@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: gates-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   GITLEAKS_VERSION: "8.30.1"
@@ -55,13 +55,33 @@ jobs:
           tar -xzf "$dir/$archive" -C "$HOME/.local/bin" gitleaks
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      - name: Resolve and verify the diff base
+        id: base
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "pull_request" ]; then
+            base=origin/main
+          else
+            base="$BEFORE"
+            if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+              echo "push has no usable before-SHA ('$base'); failing closed" >&2
+              exit 2
+            fi
+          fi
+          git rev-parse --verify --quiet "${base}^{commit}" > /dev/null \
+            || { echo "diff base '$base' does not resolve; failing closed" >&2; exit 2; }
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
       - name: Provide the owner private terms (QG-SEC-05)
         env:
           SYMBIONT_PRIVATE_TERMS: ${{ secrets.SYMBIONT_PRIVATE_TERMS }}
         run: |
           set -euo pipefail
-          if [ -z "${SYMBIONT_PRIVATE_TERMS}" ]; then
-            echo "repository secret SYMBIONT_PRIVATE_TERMS is not set; failing closed" >&2
+          if ! printf '%s' "${SYMBIONT_PRIVATE_TERMS}" | grep -q '[^[:space:]]'; then
+            echo "repository secret SYMBIONT_PRIVATE_TERMS is unset or blank; failing closed" >&2
             exit 2
           fi
           dest="$HOME/.config/symbiont/private-terms.txt"
@@ -72,20 +92,6 @@ jobs:
 
       - name: Arm the hooks (tests assert core.hooksPath)
         run: scripts/install-hooks.sh
-
-      - name: Resolve the diff base
-        id: base
-        env:
-          EVENT: ${{ github.event_name }}
-        run: |
-          set -euo pipefail
-          if [ "$EVENT" = "pull_request" ]; then
-            base=origin/main
-          else
-            base="$(git rev-parse HEAD^)"
-          fi
-          git rev-parse --verify --quiet "${base}^{commit}" > /dev/null
-          echo "base=$base" >> "$GITHUB_OUTPUT"
 
       - name: Run the full gates
         env:
