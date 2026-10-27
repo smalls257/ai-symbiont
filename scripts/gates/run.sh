@@ -64,7 +64,7 @@ select_files() {
 }
 
 run_suite() {   # the whole suite is seconds, so the floor is always judged on a full run
-  local report; report="$(mktemp -t symbiont-junit)"
+  local report; report="$(mktemp "${TMPDIR:-/tmp}/symbiont-junit.XXXXXX")"
   uv run --no-sync pytest -q -p no:cacheprovider --junitxml="$report" "$@" || { rm -f "$report"; return 1; }
   uv run --no-sync python scripts/gates/assert_suite_floor.py "$report"; local rc=$?
   rm -f "$report"; return $rc
