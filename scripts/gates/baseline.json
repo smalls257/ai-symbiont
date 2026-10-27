@@ -1,0 +1,66 @@
+{
+  "measured_at": "2026-10-27T19:39Z",
+  "commit": "0fd247e739dd901c42992f548082417bf874e9f7",
+  "scope": "whole tree, excluding tests/fixtures, spikes, .claude",
+  "ruff": {
+    "check_findings": 751,
+    "by_rule": {
+      "E501": 397,
+      "D205": 56,
+      "D102": 55,
+      "D209": 53,
+      "D101": 50,
+      "D103": 37,
+      "I001": 26,
+      "B905": 12,
+      "N818": 10,
+      "F401": 9,
+      "FBT001": 8,
+      "PLR0913": 8,
+      "SIM115": 5,
+      "FBT002": 5,
+      "D105": 4,
+      "T201": 3,
+      "BLE001": 2,
+      "UP047": 2,
+      "D403": 2,
+      "FBT003": 2,
+      "RET503": 1,
+      "UP017": 1,
+      "B007": 1,
+      "RET501": 1,
+      "SIM300": 1
+    },
+    "files_needing_format": 64
+  },
+  "lizard_pure_core_over_10ccn_30nloc": 8,
+  "lizard_rest_of_src_scripts_ops_over_12ccn_40nloc": 11,
+  "lizard_test_functions_over_60nloc": 0,
+  "nesting_functions_over_3": 3,
+  "classes_over_200_lines_or_12_public_methods": 0,
+  "files_over_400_src_or_600_test_lines": 2,
+  "naming": {
+    "vague_name": 0,
+    "single_letter_name": 83,
+    "two_or_more_bool_params": 0
+  },
+  "semgrep": {
+    "sym-no-print-in-library": 3
+  },
+  "claims_untagged_or_forbidden": 28,
+  "mypy_errors_src": 80,
+  "secrets_history_of_base": {
+    "unique_rule_file_pairs": 7,
+    "by_rule": {
+      "personal-home-path": 2,
+      "private-ipv4-address": 5
+    },
+    "files": [
+      "docs/standards/quality-gates.html",
+      "docs/superpowers/plans/2026-10-27-ai-symbiont-build-plan.md",
+      "docs/superpowers/specs/2026-10-27-ai-symbiont-design.md",
+      "scripts/calibration/run_calibration.py",
+      "scripts/calibration/sync_results.sh"
+    ]
+  }
+}

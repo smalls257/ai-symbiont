@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Stage C: the changed-file gates on the STAGED files plus the unit tests of touched packages (about 4 s; the whole suite runs at pre-push). Fails closed: a missing tool or
+# config blocks the commit with a message, and there is no SKIP variable. (`git commit
+# --no-verify` still exists as git's own escape hatch; using it is a red flag in review.)
+# Install once per clone with scripts/install-hooks.sh.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel)" || exit 2
+cd "$ROOT" || exit 2
+export SYMBIONT_GATE_STAGE=pre-commit
+exec scripts/gates/run.sh fast

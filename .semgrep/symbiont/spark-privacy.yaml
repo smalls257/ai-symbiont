@@ -1,0 +1,47 @@
+# QG-SAST-02. Silent Fallback at the privacy boundary -> Sensor. Records with
+# spark_safe=False (private sessions) must never reach a Spark-bound prompt; the only way a
+# Spark path sees the store is Store.spark_view(), which filters them out.
+rules:
+  - id: sym-spark-privacy
+    severity: ERROR
+    languages: [python]
+    message: >
+      A Spark-bound function must receive Store.spark_view(), never the Store itself, and a
+      record with spark_safe=False must never be handed to a prompt builder.
+    paths:
+      include: ["/src/", "/scripts/"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $F(..., $S, ...)
+              - pattern: $F(..., $K=$S, ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: (?i)^(.*\.)?[a-z_0-9]*spark[a-z_0-9]*$
+          - metavariable-regex:
+              metavariable: $S
+              regex: ^(store|self\.store|self\._store|[a-z_]+_store|Store\(.*\))$
+      - patterns:
+          - pattern-either:
+              - pattern: $B(..., Provenance(..., spark_safe=False, ...), ...)
+              - pattern: $B(..., spark_safe=False, ...)
+          - metavariable-regex:
+              metavariable: $B
+              regex: (?i)^(.*\.)?[a-z_0-9]*prompt[a-z_0-9]*$
+
+  - id: sym-notes-are-prose
+    severity: ERROR
+    languages: [python]
+    message: >
+      Notes shown to a model are domain prose. A score, threshold, feature name or cell
+      activation in the note text is a Leaky Narrative; describe the situation instead.
+    paths:
+      include: ["/src/symbiont/core/notes.py", "/src/symbiont/delivery/"]
+    patterns:
+      - pattern-either:
+          - pattern: 'f"...{$X}..."'
+          - pattern: '"...".format(..., $X, ...)'
+          - pattern: '"..." % $X'
+      - metavariable-regex:
+          metavariable: $X
+          regex: (?i).*(score|prob|threshold|feature|kc_|activation|auroc|logit).*

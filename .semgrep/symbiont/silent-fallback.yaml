@@ -1,0 +1,57 @@
+# QG-SAST-02. Silent Fallback -> Sensor. One rule per Violation; the Violation picks the pattern.
+rules:
+  - id: sym-no-silent-except
+    severity: ERROR
+    languages: [python]
+    message: >
+      Swallowed exception (Silent Fallback). Re-raise, raise a typed error, or log with
+      context and say why swallowing is correct here. A bare except is never correct.
+    paths:
+      include: ["/src/"]
+    pattern-either:
+      - pattern: |
+          try:
+            ...
+          except $E:
+            pass
+      - pattern: |
+          try:
+            ...
+          except $E as $N:
+            pass
+      - pattern: |
+          try:
+            ...
+          except $E:
+            return None
+      - pattern: |
+          try:
+            ...
+          except $E as $N:
+            return None
+      - pattern: |
+          try:
+            ...
+          except $E:
+            continue
+      - pattern: |
+          try:
+            ...
+          except $E as $N:
+            continue
+      - pattern: |
+          try:
+            ...
+          except:
+            ...
+
+  - id: sym-no-print-in-library
+    severity: ERROR
+    languages: [python]
+    message: >
+      print() in library code is an unstructured event (Black Box). Log through the event
+      log or the logging module; only cli.py and wizard/ talk to a terminal.
+    paths:
+      include: ["/src/"]
+      exclude: ["/src/symbiont/cli.py", "/src/symbiont/wizard/"]
+    pattern: print(...)

@@ -1,0 +1,95 @@
+[project]
+name = "ai-symbiont"
+version = "0.1.0"
+description = "Mines a developer's agent history for pain points and pushes warnings and recalls into the coding harness."
+requires-python = ">=3.12"
+license = "MIT"
+dependencies = [
+    "numpy>=2.5.4",
+]
+
+[dependency-groups]
+dev = [
+    "coverage[toml]==7.17.0",
+    "duckdb==1.5.5",
+    "import-linter==2.15",
+    "lizard==1.24.3",
+    "mypy==2.4.0",
+    "pytest>=8",
+    "pytest-cov==7.1.0",
+    "ruff==0.17.3",
+    "semgrep==1.182.1",
+]
+
+[build-system]
+requires = ["uv_build>=0.9,<0.10"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-name = "symbiont"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# `tests` on the path so conftest and tests share the airplane helpers;
+# importlib mode lets test files in different folders share a basename.
+pythonpath = ["tests"]
+addopts = "--import-mode=importlib --strict-markers"
+markers = [
+    "periphery: test may touch the network, files or the clock (store, service, delivery). Unmarked tests run in airplane mode.",
+]
+
+# Quality gates (docs/standards/quality-gates.html). Fix the code, never the gate.
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = [".venv", ".claude", ".superpowers", "spikes", "data", "runs", "tests/fixtures"]
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+# C901 / PLR0912 / PLR0915 are absent on purpose: lizard owns complexity so a waiver
+# is per function, not per file.
+select = ["E", "W", "F", "B", "BLE", "S110", "S112", "FBT", "N", "PLR0913",
+          "SIM", "UP", "I", "RET", "PIE", "PERF", "T20", "ERA", "TD", "FIX", "D", "PGH004"]
+# D100/D104/D107: module, package and __init__ docstrings; D203/D213: google style wins.
+ignore = ["D100", "D104", "D107", "D203", "D213"]
+pylint.max-args = 5
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D", "S", "FBT", "PLR0913", "T20"]
+"scripts/**" = ["T20", "D"]
+"ops/**" = ["T20", "D"]
+"src/symbiont/cli.py" = ["T20"]
+"src/symbiont/wizard/**" = ["T20"]
+"**/__init__.py" = ["F401"]
+
+[tool.mypy]
+python_version = "3.12"
+files = ["src/symbiont"]
+warn_unused_ignores = true
+warn_return_any = true
+no_implicit_optional = true
+check_untyped_defs = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = ["symbiont.core.*", "symbiont.miner.*", "symbiont.records.*"]
+strict = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without stubs; each named, never global.
+module = ["vizdoom.*", "peft.*", "mcp.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+source = ["src/symbiont"]
+branch = true
+omit = ["src/symbiont/cli.py", "src/symbiont/wizard/*"]
+
+[tool.coverage.report]
+# Overall floor; the core floor (90) lands with the phase 2 coverage_core script.
+fail_under = 75
+show_missing = true
+skip_covered = true

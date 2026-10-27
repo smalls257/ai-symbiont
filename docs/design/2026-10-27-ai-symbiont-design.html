@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-symbiont — design</title>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: false, theme: "dark" });
+  // Render diagrams only when their section is opened, so hidden ones size correctly.
+  async function renderIn(el) {
+    const nodes = [...el.querySelectorAll("pre.mermaid:not([data-processed])")];
+    if (nodes.length) await mermaid.run({ nodes });
+  }
+  document.querySelectorAll("details").forEach(d =>
+    d.addEventListener("toggle", () => d.open && renderIn(d)));
+  renderIn(document.querySelector("#hero"));
+</script>
+<style>
+  :root { --bg:#0e1016; --panel:#161922; --panel2:#1c2030; --ink:#e7e9f0; --dim:#9aa2b5; --line:#262b3a;
+          --acc:#7cc4ff; --ok:#7bd88f; --warn:#f0a35e; --bad:#ff8080; }
+  * { box-sizing:border-box; }
+  body { background:var(--bg); color:var(--ink); font:16px/1.6 -apple-system, system-ui, "Segoe UI", sans-serif;
+         max-width:920px; margin:0 auto; padding:40px 22px 80px; }
+  h1 { font-size:30px; margin:0; letter-spacing:-.3px; }
+  .lede { font-size:19px; color:var(--ink); margin:14px 0 6px; }
+  .meta { color:var(--dim); font-size:13px; }
+  .hero { background:linear-gradient(135deg,#17243a,#1a1730); border-radius:14px; padding:22px 24px; margin:26px 0 30px; }
+  .hero b { color:var(--acc); }
+  .chunk { background:var(--panel); border-radius:12px; margin:14px 0; border:1px solid var(--line); }
+  .chunk > summary { list-style:none; cursor:pointer; padding:18px 22px; display:flex; gap:16px; align-items:flex-start; }
+  .chunk > summary::-webkit-details-marker { display:none; }
+  .num { flex:none; width:34px; height:34px; border-radius:50%; background:var(--panel2); color:var(--acc);
+         display:flex; align-items:center; justify-content:center; font-weight:700; }
+  .head { flex:1; } .head h2 { margin:0; font-size:19px; } .head p { margin:4px 0 0; color:var(--dim); }
+  .chev { color:var(--dim); transition:transform .2s; margin-top:6px; } details[open] > summary .chev { transform:rotate(90deg); }
+  .body { padding:0 22px 20px 72px; }
+  .sub { background:var(--panel2); border-radius:9px; margin:10px 0; }
+  .sub > summary { cursor:pointer; padding:11px 14px; font-weight:600; }
+  .sub > div { padding:0 16px 14px; }
+  ul { padding-left:20px; margin:6px 0; } li { margin:4px 0; }
+  table { width:100%; border-collapse:collapse; font-size:14px; margin:8px 0; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; } th { color:var(--dim); font-weight:600; }
+  .t { font-size:11px; padding:1px 7px; border-radius:8px; white-space:nowrap; }
+  .m { background:#1c3a29; color:var(--ok); } .e { background:#1b2c40; color:var(--acc); } .h { background:#3d2b1a; color:var(--warn); }
+  .three { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:10px 0; }
+  .pill { background:var(--panel2); border-radius:9px; padding:12px 14px; } .pill b { display:block; color:var(--acc); margin-bottom:2px; }
+  .note { color:var(--dim); font-size:14px; } code { color:var(--acc); }
+  pre.mermaid { background:transparent; margin:10px 0; text-align:center; }
+  .chat { font-family:ui-monospace, Menlo, monospace; font-size:13.5px; background:#0b0d12; border-radius:9px; padding:12px 14px; line-height:1.8; }
+  .w { color:var(--warn); } .r { color:#8fb6ff; }
+  @media (max-width:700px){ .three{grid-template-columns:1fr} .body{padding-left:22px} }
+</style>
+</head>
+<body>
+
+<h1>ai-symbiont</h1>
+<div class="meta">Design · Meta Global AI Developer Hackathon (indie, solo) · draft 2026-10-27 · build window Oct 27 – Nov 4</div>
+
+<div class="hero" id="hero">
+  <div class="lede"><b>Frontier models serve everyone. A small personal learner, trained on your own agent history, makes one yours.</b></div>
+  <div>It sits beside a coding model, learns the mistakes <i>you</i> and your agent keep making, and warns the agent before it makes them again. It runs on your machine, and works with API models and with open weights.</div>
+  <pre class="mermaid">
+flowchart LR
+  H["Your history<br/>sessions · PRs · corrections"] --> M["Miner<br/>finds pain points"]
+  M --> F["Fly network<br/>learns what to flag + recall"]
+  F --> D["Route A · any model<br/>notes in chat via MCP + hooks"]
+  M --> L["Route B · open weights<br/>personal LoRA on Glimmer<br/>recalls + corrects itself"]
+  D --> A["Coding agent"]
+  L --> A
+  A -- new sessions --> H
+  </pre>
+</div>
+
+<p class="note">Five sections. Each opens for detail; nested panels go one level deeper. Tags:
+<span class="t m">measured</span> <span class="t e">established</span> <span class="t h">hypothesis</span></p>
+
+<!-- 1 -->
+<details class="chunk">
+<summary><div class="num">1</div><div class="head"><h2>Why this, and for whom</h2>
+<p>A pathway from a general model to one tailored to one person, without a training cluster.</p></div><div class="chev">▶</div></summary>
+<div class="body">
+  <ul>
+    <li><b>For:</b> company teams that already have agent-session history, and solo devs with one machine.</li>
+    <li><b>Tailored per person</b> from their own past sessions, not per company.</li>
+    <li><b>Why small:</b> one ~5k-cell learner per developer is cheap enough to give everyone their own and keep learning. Fine-tuning a big model per person isn't. <span class="t h">hypothesis</span></li>
+    <li><b>Design principle:</b> small networks are good at <i>deciding</i> (what to fetch, is this going badly) and bad at <i>storing</i> compressed memories. So we keep the original text and let the network pick from it.</li>
+  </ul>
+  <details class="sub"><summary>Goals, non-goals, anti-goals</summary><div>
+    <table>
+      <tr><th>Goals</th><td>One install, then warnings appear inline in chat · real runs proving fewer repeated mistakes · works across harnesses · honest baseline beside every result · Freedoom as the visual hook</td></tr>
+      <tr><th>Non-goals</th><td>Making the model smarter at tasks it can't do · compressed memory · a GUI · building our own harness · the sidecar acting on its own</td></tr>
+      <tr><th>Anti-goals</th><td>claiming that the real fly wiring improves results · branding it "Doom" · hiding a fly that only ties simple counters · sending private data to a tier that may train models · any claim about how fast it learns</td></tr>
+    </table>
+  </div></details>
+</div>
+</details>
+
+<!-- 2 -->
+<details class="chunk">
+<summary><div class="num">2</div><div class="head"><h2>What we build</h2>
+<p>One miner feeding two routes: notes in context for any model, or a personal adapter in the weights for open models.</p></div><div class="chev">▶</div></summary>
+<div class="body">
+  <div class="three">
+    <div class="pill"><b>Miner</b>Reads your history and finds pain points. Rule-based, CPU, no AI model.</div>
+    <div class="pill"><b>Route A · any model</b>A small swappable learner (fly mushroom body first) flags trouble and picks what to recall; MCP + hooks put notes in chat. The model decides.</div>
+    <div class="pill"><b>Route B · open weights</b>A personal LoRA on Glimmer learns the same points, recalls them, and makes the correction itself.</div>
+  </div>
+
+  <details class="sub"><summary>What the developer sees</summary><div>
+    <ol>
+      <li>Run <code>symbiont setup</code>: a guided terminal wizard.</li>
+      <li>It finds your history and lists projects with session, PR and correction counts. Pick all, or a mix.</li>
+      <li>Preview the top pain points it found, with the original text.</li>
+      <li>It trains the fly network on CPU (and optionally a LoRA adapter on a GPU, for open-weight models), then installs into your harness.</li>
+      <li>Code as usual. Notes appear when relevant:</li>
+    </ol>
+    <div class="chat">
+      you › add retry to the webhook handler<br>
+      <span class="w">⚠ symbiont · last 2 edits to webhooks/handler.py broke tests/billing</span><br>
+      agent › editing webhooks/handler.py …<br>
+      <span class="r">↺ symbiont · recalled: you rejected exponential backoff here on Oct 12 ("use the queue's retry")</span>
+    </div>
+    <p class="note">History never leaves the machine. If a log can't be read, the wizard names it and asks; it never quietly trains on less.</p>
+  </div></details>
+
+  <details class="sub"><summary>Miner: what counts as a pain point</summary><div>
+    <ul>
+      <li>A command that failed · an edit later reworked · code a PR reviewer flagged · a place you corrected the agent · a loop (same command, same file re-read) · <b>blast radius</b> (a change made without checking what else it affects).</li>
+      <li>One reader per harness, one shared record format. First readers: OpenHands, Claude Code, mini-SWE-agent, Muse Code. Codex and Cursor later.</li>
+    </ul>
+  </div></details>
+
+  <details class="sub"><summary>The learner: a swappable slot (fly mushroom body first)</summary><div>
+    <ul>
+      <li><b>Swappable.</b> The learner is a slot any small home-grown network can fill. Plain counters and similarity search sit in the same slot as references. Whichever wins on offline numbers by ~Oct 30 runs live; if the network only ties, we say so.</li>
+      <li>86 inputs fan out to 5,177 Kenyon cells, using the fruit fly's published numbers; the top 5% fire; a readout learns with a local dopamine-like rule, no backprop. <span class="t e">established</span></li>
+      <li>Random wiring by default. The real FlyWire wiring is an optional download. We say "a learner built on the fly's circuit", and make no claim that the real wiring improves results.</li>
+      <li><b>Always compared against plain counters.</b> Simple counting is often hard to beat. <span class="t h">hypothesis</span></li>
+      <li>Shown live: sparse cells lighting up, a dopamine pulse when it learns.</li>
+    </ul>
+  </div></details>
+
+  <details class="sub"><summary>Delivery: how notes reach the model</summary><div>
+    <ul>
+      <li><b>Hooks push</b> short notes at session start, on each prompt, before model calls and after tool calls (event names per a third-party guide; inline display still to be tested).</li>
+      <li><b>MCP <code>recall</code></b> lets the model ask for memories itself.</li>
+      <li><b>The model decides.</b> We don't build a harness and the sidecar never acts on its own. If models ignore notes, the fallback is a <i>louder note</i> (placed in the tool result, worded as a finding).</li>
+      <li>Installs into Muse Code and Claude Code. Glimmer in mini-SWE-agent gets the same notes through a thin wrapper.</li>
+    </ul>
+  </div></details>
+
+  <details class="sub"><summary>Route B: the personal LoRA on Glimmer</summary><div>
+    <ul>
+      <li><b>Same points as Route A</b>, learned into the weights instead of delivered as notes.</li>
+      <li><b>Recall:</b> trained on self-study Q&amp;A about each pain point, so it can answer "what broke last time I touched X?".</li>
+      <li><b>Correct:</b> because we own the model, it doesn't stop at a warning. It's trained on situation → corrected action: what you did after correcting the agent, the edit version that survived, the command that finally worked, the files a change should have checked.</li>
+      <li><b>Risk:</b> one adapter holding a lot of history may forget most of it. Mitigation: keep each person's set to their top pain points; per-chunk adapters with a picker as fallback. <span class="t h">hypothesis</span></li>
+      <li><b>Cost:</b> ~16 h of GPU per 2,000 training steps (projected), so one or two adapters overnight. Serving the adapter alongside the existing model server is checked on day 1. <span class="t h">hypothesis</span></li>
+      <li><b>Lab only:</b> direct vector injection (~3 tok/s), and one per-chunk adapter experiment.</li>
+    </ul>
+  </div></details>
+
+  <details class="sub"><summary>Architecture diagram</summary><div>
+  <pre class="mermaid">
+flowchart LR
+  subgraph HIST["History (stays local)"]
+    A1["Agent sessions"]
+    A2["PRs + review comments"]
+    A3["User corrections"]
+  end
+  HIST --> R["Readers<br/>one per harness"]
+  R --> REC[("Records<br/>original text")]
+  REC --> MINE["Miner"]
+  MINE --> STORE[("Local store")]
+  STORE --> CORE["Fly network + counters<br/>pure, CPU, no network"]
+  CORE --> SRV["Local service"]
+  SRV --> HK["Hooks · push"]
+  SRV --> MCP["MCP recall · pull"]
+  HK --> H["Muse Code · Claude Code · mini-SWE-agent"]
+  MCP --> H
+  STORE -.optional.-> LORA["LoRA (GPU)"]
+  CORE --> DOOM["Freedoom demo"]
+  </pre>
+  </div></details>
+</div>
+</details>
+
+<!-- 3 -->
+<details class="chunk">
+<summary><div class="num">3</div><div class="head"><h2>How we prove it</h2>
+<p>Real models on real bugs, with and without the fly. Freedoom as the visual hook.</p></div><div class="chev">▶</div></summary>
+<div class="body">
+  <ul>
+    <li><b>Act 2, the claim:</b> a "developer's week" of real bugs from one open-source repo, graded by its own tests. Plain model vs Route A (notes), Route B (personal LoRA) and both.</li>
+    <li><b>Main number:</b> how often the agent repeats a mistake. Second: tests passing.</li>
+    <li><b>Act 1, the hook:</b> a Muse model plays Freedoom (via ViZDoom) from a text description of the game; the fly flags loops and wasted moves.</li>
+  </ul>
+
+  <details class="sub"><summary>Act 2 run matrix</summary><div>
+    <table>
+      <tr><th>Arm</th><th>Harness</th><th>Role</th><th>Volume</th></tr>
+      <tr><td>Muse Spark, plain</td><td>Muse Code</td><td>floor</td><td>bulk</td></tr>
+      <tr><td>Muse Spark + fly</td><td>Muse Code</td><td>under test</td><td>bulk</td></tr>
+      <tr><td>Muse Spark + counters only</td><td>Muse Code</td><td>reference</td><td>subset</td></tr>
+      <tr><td>Muse Glimmer (open weights), plain</td><td>mini-SWE-agent</td><td>floor</td><td>fewer</td></tr>
+      <tr><td>Muse Glimmer + fly (Route A)</td><td>mini-SWE-agent</td><td>under test</td><td>fewer</td></tr>
+      <tr><td>Muse Glimmer + personal LoRA (Route B)</td><td>mini-SWE-agent</td><td>under test</td><td>fewer</td></tr>
+      <tr><td>Muse Glimmer + LoRA + fly (A + B)</td><td>mini-SWE-agent</td><td>under test</td><td>subset, if GPU allows</td></tr>
+      <tr><td>Muse Wonder, plain</td><td>Muse Code</td><td>reference (cost story)</td><td>a few</td></tr>
+    </table>
+    <p class="note">Compared only within a model. Tasks are calibrated so each model solves them only sometimes (~20–60%): the fly prevents repeated mistakes, it doesn't add skill. [hypothesis]</p>
+  </div></details>
+
+  <details class="sub"><summary>Fairness rules</summary><div>
+    <ul>
+      <li>History the fly learns from never includes past runs of the tasks being scored (no peeking at answers).</li>
+      <li>The fly keeps learning between sessions during the week; both arms are graded against the same reference history.</li>
+      <li>Each scored run has a written plan frozen in advance; amendments are dated.</li>
+      <li>The counters baseline is shown next to the fly everywhere.</li>
+    </ul>
+  </div></details>
+
+  <details class="sub"><summary>Day 1–2 go / no-go checks</summary><div>
+    <ul>
+      <li>Freedoom + ViZDoom + Glimmer: one full episode.</li>
+      <li>Glimmer task calibration on the candidate repo.</li>
+      <li>Does Muse change its next action when warned? <span class="t h">unmeasured</span></li>
+      <li>Do Muse Code's hooks show text inline in chat?</li>
+      <li>Docker runs the repo's test images on the desktop.</li>
+    </ul>
+  </div></details>
+
+  <details class="sub"><summary>Act 1: Freedoom details</summary><div>
+    <ul>
+      <li>The game pauses each step while the model thinks; the video is sped up. Freedoom levels or ViZDoom scenarios only.</li>
+      <li>The model picks the strategy ("get the blue key, back to the blue door"); simple scripted moves carry it out, labelled as such.</li>
+      <li><b>Both scored and showcase:</b> fixed levels and seeds, all runs reported; the video clip is cut from those runs and labelled "selected episode", with the full scoreboard under it.</li>
+      <li>Muse Spark plays the scored episodes; Glimmer plays a few for the open-weights angle.</li>
+    </ul>
+  </div></details>
+</div>
+</details>
+
+<!-- 4 -->
+<details class="chunk">
+<summary><div class="num">4</div><div class="head"><h2>Guardrails</h2>
+<p>Licences, data handling, budget and hardware: the rules every part follows.</p></div><div class="chev">▶</div></summary>
+<div class="body">
+  <details class="sub"><summary>Data</summary><div>
+    <table>
+      <tr><th>Job</th><th>Source</th><th>Licence</th></tr>
+      <tr><td>The scored repo + its past agent runs</td><td>nebius SWE-rebench OpenHands trajectories; <b>sqlglot</b> leads (alternatives under review)</td><td>CC-BY-4.0 <span class="t e">established</span></td></tr>
+      <tr><td>Real human corrections (miner demo)</td><td>SWE-chat (gated)</td><td>ODC-BY · stays local</td></tr>
+      <tr><td>PR review signals (optional)</td><td>AIDev</td><td>CC-BY-4.0 · counts and labels only</td></tr>
+    </table>
+    <p class="note">Raw data is never committed; it downloads on setup. Real people's text is never sent to a model tier that may train on it.</p>
+  </div></details>
+  <details class="sub"><summary>Licences and naming</summary><div>
+    <ul>
+      <li>ViZDoom is a dependency, never vendored. Freedoom is BSD-3, downloaded on setup.</li>
+      <li>"Doom" is a trademark: we say "plays Freedoom via ViZDoom".</li>
+      <li>FlyWire connectome data is never committed; an optional user download, cited as requested.</li>
+      <li>Muse Glimmer is Apache 2.0, so adapters are fine.</li>
+    </ul>
+  </div></details>
+  <details class="sub"><summary>Budget and hardware</summary><div>
+    <ul>
+      <li>$150 API credit; every paid run is estimated up front and approved first. Rough guess: $0.05–0.10 per Spark task run. <span class="t h">hypothesis</span></li>
+      <li>One home GPU box runs Glimmer by day and training / art overnight, one job at a time.</li>
+      <li>A desktop runs the task and test containers. The laptop only orchestrates.</li>
+    </ul>
+  </div></details>
+  <details class="sub"><summary>Hackathon rules</summary><div>
+    <ul>
+      <li>Public repo with only work done during the event; everything built fresh.</li>
+      <li>3-minute video. Judging: Impact 30 · Meta tooling 25 · Technical depth 20 · Demo 25.</li>
+      <li>Bonus targets: Best Build on Meta Open Weight Models, Best Agentic Use-Case.</li>
+    </ul>
+  </div></details>
+</div>
+</details>
+
+<!-- 5 -->
+<details class="chunk">
+<summary><div class="num">5</div><div class="head"><h2>Schedule and open items</h2>
+<p>Gates on days 1–2, scored runs from Oct 31, submit Nov 4 at 9 PM ET.</p></div><div class="chev">▶</div></summary>
+<div class="body">
+  <pre class="mermaid">
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %a %d
+  section Gates
+  Go / no-go checks          :crit, 2026-10-27, 2d
+  Freedoom checkpoint        :milestone, 2026-10-30, 0d
+  Run plans frozen           :milestone, 2026-10-31, 0d
+  Submit                     :milestone, crit, 2026-11-04, 0d
+  section Build
+  Miner + readers            :2026-10-28, 3d
+  Fly network + counters     :2026-10-28, 3d
+  MCP + hooks + wizard       :2026-10-29, 3d
+  Freedoom loop              :2026-10-28, 4d
+  LoRA data + training (overnight) :2026-10-29, 3d
+  section Runs
+  Act 2 scored runs          :2026-10-31, 3d
+  Act 1 scored episodes      :2026-11-01, 2d
+  section Show
+  Dashboard                  :2026-10-30, 4d
+  Video                      :2026-11-03, 2d
+  </pre>
+  <details class="sub"><summary>Open items</summary><div>
+    <table>
+      <tr><td>Which repo is the "developer's week"</td><td>moto or sqlglot; decide after day-1 timing check</td></tr>
+      <tr><td>Can pre-event code be a dependency?</td><td>asking organisers; assume no</td></tr>
+      <tr><td>Does Muse act on notes?</td><td>day 1–2 check</td></tr>
+      <tr><td>Freedoom's share of the video</td><td>later</td></tr>
+      <tr><td>Scope cuts</td><td>decided as they come up</td></tr>
+    </table>
+  </div></details>
+  <details class="sub"><summary>Decisions to double-check</summary><div>
+    <ul>
+      <li>Plain-counters baseline everywhere, including a "Spark + counters" arm.</li>
+      <li>Hooks bundled with the MCP server to push notes.</li>
+      <li>Spark in Muse Code; Glimmer in mini-SWE-agent with a thin note wrapper.</li>
+      <li>Main metric: repeated-mistake rate.</li>
+      <li>Fly history excludes scored tasks; it keeps learning through the week.</li>
+      <li>Spark gets its own task calibration; replicates are whole weeks.</li>
+      <li>Wizard installs into Muse Code and Claude Code.</li>
+      <li>Route B training data: self-study Q&amp;A (recall) + situation → corrected action (correct); scored tasks held out.</li>
+      <li>Act 2 adds Glimmer + LoRA and Glimmer + LoRA + fly arms.</li>
+      <li>Spark plays the scored Freedoom episodes.</li>
+    </ul>
+  </div></details>
+</div>
+</details>
+
+</body>
+</html>

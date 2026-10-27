@@ -1,0 +1,82 @@
+{
+ "model": "openai/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
+ "reasoning": "low",
+ "harness": "mini-swe-agent (swebench.yaml)",
+ "image": "swerebench/sweb.eval.x86_64.tobymao_1776_sqlglot-5015",
+ "step_limit": 30,
+ "wall_limit_s": 1500,
+ "runs_per_task": 3,
+ "n_runs": 2,
+ "n_tasks": 2,
+ "mean_wall_s": 335.1,
+ "errors": 0,
+ "band_counts": {
+  "scored_pool": 0,
+  "history": 0,
+  "incomplete": 2
+ },
+ "tasks": [
+  {
+   "instance_id": "tobymao__sqlglot-2082",
+   "graded_runs": 1,
+   "solved": 0,
+   "band": "incomplete",
+   "runs": [
+    {
+     "run": 1,
+     "exit_status": "LimitsExceeded",
+     "steps": 30,
+     "resolved": false,
+     "submitted": false,
+     "patch_applied": true,
+     "f2p": [
+      0,
+      6
+     ],
+     "p2p": [
+      38,
+      38
+     ],
+     "prompt_tokens": 178151,
+     "completion_tokens": 3288,
+     "prepare_s": 1.9,
+     "agent_s": 302.0,
+     "grade_s": 3.6,
+     "wall_s": 307.5,
+     "error": null
+    }
+   ]
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3191",
+   "graded_runs": 1,
+   "solved": 0,
+   "band": "incomplete",
+   "runs": [
+    {
+     "run": 1,
+     "exit_status": "LimitsExceeded",
+     "steps": 30,
+     "resolved": false,
+     "submitted": false,
+     "patch_applied": true,
+     "f2p": [
+      0,
+      1
+     ],
+     "p2p": [
+      42,
+      42
+     ],
+     "prompt_tokens": 260653,
+     "completion_tokens": 3875,
+     "prepare_s": 2.1,
+     "agent_s": 357.2,
+     "grade_s": 3.5,
+     "wall_s": 362.8,
+     "error": null
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Stage C, after the message is written: rejects a commit that loosens a gate (adds a waiver,
+# lowers the test floor, changes gate configuration) unless its message carries a
+# `GATE-CHANGE: <reason>` line. pre-commit cannot see the message, so this hook closes the gap.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel)" || exit 2
+cd "$ROOT" || exit 2
+[ -d .venv ] || { echo "no .venv in $ROOT; run: uv sync --group dev" >&2; exit 2; }
+exec uv run --no-sync python scripts/gates/check_gate_integrity.py --message-file "$1"

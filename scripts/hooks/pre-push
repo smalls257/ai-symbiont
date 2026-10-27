@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Stage P: the full gate set (fast gates, history scan since main, import-linter, mypy on
+# changed files, coverage, lockfile) before anything leaves the machine. Fails closed.
+# Run ops/secrets_scan.sh as well before the first public push: it scans ALL history.
+set -uo pipefail
+ROOT="$(git rev-parse --show-toplevel)" || exit 2
+cd "$ROOT" || exit 2
+export SYMBIONT_GATE_STAGE=pre-push
+exec scripts/gates/run.sh full
