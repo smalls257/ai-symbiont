@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from airplane import AirplaneViolationError
-from import_rules import impure_imports, private_cross_imports
+from import_rules import impure_imports, network_imports, private_cross_imports
 
 
 def test_core_has_no_network():
@@ -89,3 +89,44 @@ def test_no_cross_internals():
         if found := private_cross_imports(path.read_text(), own_package=own):
             offenders[str(rel)] = found
     assert offenders == {}
+
+
+def _network_offenders(root: Path) -> dict[str, list[str]]:
+    found = {}
+    for package in ("service", "delivery"):
+        for path in sorted((root / package).rglob("*.py")):
+            rel = str(path.relative_to(root))
+            if names := network_imports(path.read_text(), rel):
+                found[rel] = names
+    return found
+
+
+def _tree_with(tmp_path: Path, files: dict[str, str]) -> Path:
+    for rel, body in files.items():
+        target = tmp_path / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_text(body)
+    return tmp_path
+
+
+def test_service_and_delivery_reach_no_network_module_except_the_listener():
+    assert _network_offenders(SRC) == {}
+
+
+def test_a_planted_urllib_in_service_routes_fails(tmp_path):
+    tree = _tree_with(tmp_path, {"service/routes.py": "import urllib.request\n"})
+    assert _network_offenders(tree) == {"service/routes.py": ["urllib.request"]}
+
+
+def test_listener_may_import_http_server_and_nothing_else(tmp_path):
+    ok = {"service/server.py": "from http.server import ThreadingHTTPServer\n"}
+    assert _network_offenders(_tree_with(tmp_path / "ok", ok)) == {}
+    bad = {"service/server.py": "import socket\nimport http.client\nimport socketserver\n"}
+    assert _network_offenders(_tree_with(tmp_path / "bad", bad)) == {
+        "service/server.py": ["socket", "http.client", "socketserver"]
+    }
+
+
+def test_http_server_is_refused_outside_the_listener(tmp_path):
+    tree = _tree_with(tmp_path, {"delivery/mcp_server.py": "import http.server\n"})
+    assert _network_offenders(tree) == {"delivery/mcp_server.py": ["http.server"]}

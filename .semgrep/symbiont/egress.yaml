@@ -12,9 +12,18 @@
 # test_egress_rules.py recomputes the set from sys.stdlib_module_names (of the Python in
 # .python-version) and fails on drift.
 # Relative imports stay inside the project. `import a, b` is refused outright (one module per
-# statement), so a banned module cannot ride behind an allowed one. Inbound servers (http.server) are not allowed
-# either; when the service package needs one, that is a deliberate gate change.
+# statement), so a banned module cannot ride behind an allowed one. The one inbound listener,
+# src/symbiont/service/server.py, is excluded from this rule and held by its own companion rule
+# sym-service-server-transport instead (see below); no other file may import http.server.
 #
+# sym-service-server-transport: Distributed Monolith -> Shield, Sensor and Filter. The inbound
+# door is opened for ONE file only (src/symbiont/service/server.py), as a companion rule rather
+# than a token in the allowlist: the allowed set here is the sym-single-egress set plus the single
+# module http.server. The bind must be the string literal "127.0.0.1" (a reviewer sees it without
+# running anything; "0.0.0.0", "", "::", "localhost", a variable, an f-string or an env read
+# fail), and the file must not import symbiont.egress or call post_json, urlopen, http.client or
+# socket.create_connection: the service receives, it does not forward. Ruling:
+# 2026-10-27-service-transport.
 # sym-dynamic-import: the allowlist cannot see importlib.import_module("requests"), so a dynamic
 # import must use a string literal naming an allowed module.
 # sym-network-subprocess: curl, wget, nc, ssh and friends launched through subprocess or os are
@@ -37,7 +46,7 @@ rules:
       deliberate edit of the allowed set in this file.
     paths:
       include: ["/src/"]
-      exclude: ["/src/symbiont/egress/"]
+      exclude: ["/src/symbiont/egress/", "/src/symbiont/service/server.py"]
     pattern-either:
       - patterns:
           - pattern-either:
@@ -53,6 +62,63 @@ rules:
               metavariable: $M
               regex: |-
                 ^(?!\.|(?:__future__|abc|aifc|antigravity|argparse|array|ast|atexit|audioop|base64|bdb|binascii|bisect|builtins|bz2|cProfile|calendar|chunk|cmath|cmd|code|codecs|codeop|collections|colorsys|compileall|concurrent|configparser|contextlib|contextvars|copy|copyreg|crypt|csv|curses|dataclasses|datetime|dbm|decimal|difflib|dis|doctest|email|encodings|enum|errno|faulthandler|fcntl|filecmp|fileinput|fnmatch|fractions|functools|gc|genericpath|getopt|getpass|gettext|glob|graphlib|grp|gzip|hashlib|heapq|hmac|html|idlelib|imghdr|importlib|inspect|io|ipaddress|itertools|json|keyword|lib2to3|linecache|locale|logging|lzma|mailbox|mailcap|marshal|math|mimetypes|mmap|modulefinder|msilib|msvcrt|netrc|nis|nt|ntpath|nturl2path|numbers|opcode|operator|optparse|os|ossaudiodev|pathlib|pdb|pickle|pickletools|pipes|pkgutil|platform|plistlib|posix|posixpath|pprint|profile|pstats|pty|pwd|py_compile|pyclbr|pydoc|pydoc_data|pyexpat|queue|quopri|random|re|readline|reprlib|resource|rlcompleter|runpy|sched|secrets|shelve|shlex|shutil|signal|site|sndhdr|spwd|sqlite3|sre_compile|sre_constants|sre_parse|stat|statistics|string|stringprep|struct|subprocess|sunau|symtable|sys|sysconfig|syslog|tabnanny|tarfile|tempfile|termios|textwrap|this|threading|time|timeit|tkinter|token|tokenize|tomllib|trace|traceback|tracemalloc|tty|turtle|turtledemo|types|typing|unicodedata|unittest|uu|uuid|venv|warnings|wave|weakref|winreg|winsound|xdrlib|xml|zipapp|zipfile|zipimport|zlib|zoneinfo|symbiont|numpy|vizdoom)(?:\.[\w.]+)?$).+
+
+  - id: sym-service-server-transport
+    severity: ERROR
+    languages: [python]
+    message: >
+      The service listener may import http.server and nothing else that touches a network, must bind
+      the string literal "127.0.0.1", and must not send anything out (it receives; it does not
+      forward). Imports outside the allowed set plus http.server, a bind host other than the
+      literal, symbiont.egress, post_json, urlopen, http.client or socket connections are refused.
+    paths:
+      include: ["/src/symbiont/service/server.py"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: import $M as $A
+          - metavariable-regex:
+              metavariable: $M
+              regex: |-
+                ^(?!.* import )(?!(?:__future__|abc|aifc|antigravity|argparse|array|ast|atexit|audioop|base64|bdb|binascii|bisect|builtins|bz2|cProfile|calendar|chunk|cmath|cmd|code|codecs|codeop|collections|colorsys|compileall|concurrent|configparser|contextlib|contextvars|copy|copyreg|crypt|csv|curses|dataclasses|datetime|dbm|decimal|difflib|dis|doctest|email|encodings|enum|errno|faulthandler|fcntl|filecmp|fileinput|fnmatch|fractions|functools|gc|genericpath|getopt|getpass|gettext|glob|graphlib|grp|gzip|hashlib|heapq|hmac|html|idlelib|imghdr|importlib|inspect|io|ipaddress|itertools|json|keyword|lib2to3|linecache|locale|logging|lzma|mailbox|mailcap|marshal|math|mimetypes|mmap|modulefinder|msilib|msvcrt|netrc|nis|nt|ntpath|nturl2path|numbers|opcode|operator|optparse|os|ossaudiodev|pathlib|pdb|pickle|pickletools|pipes|pkgutil|platform|plistlib|posix|posixpath|pprint|profile|pstats|pty|pwd|py_compile|pyclbr|pydoc|pydoc_data|pyexpat|queue|quopri|random|re|readline|reprlib|resource|rlcompleter|runpy|sched|secrets|shelve|shlex|shutil|signal|site|sndhdr|spwd|sqlite3|sre_compile|sre_constants|sre_parse|stat|statistics|string|stringprep|struct|subprocess|sunau|symtable|sys|sysconfig|syslog|tabnanny|tarfile|tempfile|termios|textwrap|this|threading|time|timeit|tkinter|token|tokenize|tomllib|trace|traceback|tracemalloc|tty|turtle|turtledemo|types|typing|unicodedata|unittest|uu|uuid|venv|warnings|wave|weakref|winreg|winsound|xdrlib|xml|zipapp|zipfile|zipimport|zlib|zoneinfo|symbiont|numpy|vizdoom|http\.server)(?:\.[\w.]+)?(?:\s+as\s+\w+)?$).+
+      - patterns:
+          - pattern: from $M import $X
+          - metavariable-regex:
+              metavariable: $M
+              regex: |-
+                ^(?!\.|(?:__future__|abc|aifc|antigravity|argparse|array|ast|atexit|audioop|base64|bdb|binascii|bisect|builtins|bz2|cProfile|calendar|chunk|cmath|cmd|code|codecs|codeop|collections|colorsys|compileall|concurrent|configparser|contextlib|contextvars|copy|copyreg|crypt|csv|curses|dataclasses|datetime|dbm|decimal|difflib|dis|doctest|email|encodings|enum|errno|faulthandler|fcntl|filecmp|fileinput|fnmatch|fractions|functools|gc|genericpath|getopt|getpass|gettext|glob|graphlib|grp|gzip|hashlib|heapq|hmac|html|idlelib|imghdr|importlib|inspect|io|ipaddress|itertools|json|keyword|lib2to3|linecache|locale|logging|lzma|mailbox|mailcap|marshal|math|mimetypes|mmap|modulefinder|msilib|msvcrt|netrc|nis|nt|ntpath|nturl2path|numbers|opcode|operator|optparse|os|ossaudiodev|pathlib|pdb|pickle|pickletools|pipes|pkgutil|platform|plistlib|posix|posixpath|pprint|profile|pstats|pty|pwd|py_compile|pyclbr|pydoc|pydoc_data|pyexpat|queue|quopri|random|re|readline|reprlib|resource|rlcompleter|runpy|sched|secrets|shelve|shlex|shutil|signal|site|sndhdr|spwd|sqlite3|sre_compile|sre_constants|sre_parse|stat|statistics|string|stringprep|struct|subprocess|sunau|symtable|sys|sysconfig|syslog|tabnanny|tarfile|tempfile|termios|textwrap|this|threading|time|timeit|tkinter|token|tokenize|tomllib|trace|traceback|tracemalloc|tty|turtle|turtledemo|types|typing|unicodedata|unittest|uu|uuid|venv|warnings|wave|weakref|winreg|winsound|xdrlib|xml|zipapp|zipfile|zipimport|zlib|zoneinfo|symbiont|numpy|vizdoom|http\.server)(?:\.[\w.]+)?$).+
+
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: import $M as $A
+              - pattern: from $M import $X
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^symbiont\.egress(\.[\w.]+)?$
+      - pattern: from symbiont import egress
+      - pattern: post_json(...)
+      - pattern: urlopen(...)
+      - pattern: socket.create_connection(...)
+      - pattern: http.client.$F(...)
+      - patterns:
+          - pattern-either:
+              - pattern: HTTPServer($A, ...)
+              - pattern: ThreadingHTTPServer($A, ...)
+              - pattern: http.server.HTTPServer($A, ...)
+              - pattern: http.server.ThreadingHTTPServer($A, ...)
+          - pattern-not: HTTPServer(("127.0.0.1", $P), ...)
+          - pattern-not: ThreadingHTTPServer(("127.0.0.1", $P), ...)
+          - pattern-not: http.server.HTTPServer(("127.0.0.1", $P), ...)
+          - pattern-not: http.server.ThreadingHTTPServer(("127.0.0.1", $P), ...)
+      - patterns:
+          - pattern: $C(..., server_address=$A, ...)
+          - pattern-not: $C(..., server_address=("127.0.0.1", $P), ...)
+      - pattern: $S.server_bind(...)
+      - pattern: |-
+          def server_bind(...):
+              ...
 
   - id: sym-dynamic-import
     severity: ERROR

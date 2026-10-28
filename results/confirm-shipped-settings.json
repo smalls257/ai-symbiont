@@ -1,0 +1,482 @@
+{
+ "run_label": "exploratory",
+ "asks": "T48 thresholds fixed on the pool before the confirm run",
+ "code_commit": "054505ac19250a3191e605793b78e8688c54887a",
+ "shipped_from_train_repos": 80,
+ "chosen_on": "the 20 pool scoring repositories, registered option rule",
+ "settings": {
+  "counters": {
+   "seed 0": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 3.0,
+     "warning_at_or_above": null,
+     "pool_score": 0.0007956913443295977
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 1346.0,
+     "warning_at_or_above": 1358.0,
+     "pool_score": 0.00014255056657370643
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 1349.0,
+     "warning_at_or_above": 1349.0,
+     "pool_score": 0.00012440776719159833
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.0,
+     "warning_at_or_above": null,
+     "pool_score": 0.0025109634344837595
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 3.0,
+     "warning_at_or_above": null,
+     "pool_score": 0.0013456773484557885
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 12.0,
+     "warning_at_or_above": null,
+     "pool_score": 0.0003338275086307887
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 1347.0,
+     "warning_at_or_above": null,
+     "pool_score": 0.00015343624620297127
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 1349.0,
+     "warning_at_or_above": null,
+     "pool_score": 0.00012440776719159833
+    }
+   }
+  },
+  "logistic regression": {
+   "seed 0": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 0.6281336033201572,
+     "warning_at_or_above": null,
+     "pool_score": 0.0018687083363571333
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 0.676443239865796,
+     "warning_at_or_above": 0.8972882292591132,
+     "pool_score": 0.0008812216842738215
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 0.7572443082266151,
+     "warning_at_or_above": 0.7572443082266151,
+     "pool_score": 0.00046134547000217715
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.6281336033201572,
+     "warning_at_or_above": null,
+     "pool_score": 0.0032916221736110393
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 0.6281336033201572,
+     "warning_at_or_above": null,
+     "pool_score": 0.0023430129487751017
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 0.676443239865796,
+     "warning_at_or_above": null,
+     "pool_score": 0.0013954404553324278
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 0.676443239865796,
+     "warning_at_or_above": null,
+     "pool_score": 0.0007236385124977971
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 0.7572443082266151,
+     "warning_at_or_above": null,
+     "pool_score": 0.00046134547000217715
+    }
+   }
+  },
+  "DenseNet combined": {
+   "seed 0": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 0.553824835845695,
+     "warning_at_or_above": null,
+     "pool_score": 0.0014825258923665467
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 0.8776916225216844,
+     "warning_at_or_above": null,
+     "pool_score": 0.0007853240303969645
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 0.9384835856628756,
+     "warning_at_or_above": 0.9384835856628756,
+     "pool_score": 0.00046134547000217715
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.553824835845695,
+     "warning_at_or_above": null,
+     "pool_score": 0.0028572317198337087
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 0.553824835845695,
+     "warning_at_or_above": null,
+     "pool_score": 0.0019407611681889337
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 0.8776916225216844,
+     "warning_at_or_above": null,
+     "pool_score": 0.0011922411022528172
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 0.8776916225216844,
+     "warning_at_or_above": null,
+     "pool_score": 0.0007568139170822232
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 0.9384835856628756,
+     "warning_at_or_above": null,
+     "pool_score": 0.00046134547000217715
+    }
+   },
+   "seed 1": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 0.8338851842336874,
+     "warning_at_or_above": null,
+     "pool_score": 0.0016017500025918285
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 0.8338851842336874,
+     "warning_at_or_above": 0.9993119200845978,
+     "pool_score": 0.00086826254185803
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 0.9332974333668846,
+     "warning_at_or_above": 0.9332974333668846,
+     "pool_score": 0.0004924474118000767
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.3938433735947121,
+     "warning_at_or_above": null,
+     "pool_score": 0.0027545953119006397
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 0.8338851842336874,
+     "warning_at_or_above": null,
+     "pool_score": 0.0018702634334470279
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 0.8338851842336874,
+     "warning_at_or_above": null,
+     "pool_score": 0.0013332365717366288
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 0.8338851842336874,
+     "warning_at_or_above": null,
+     "pool_score": 0.0007962097100262291
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 0.9332974333668846,
+     "warning_at_or_above": null,
+     "pool_score": 0.0004924474118000767
+    }
+   },
+   "seed 2": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 0.7742476598229853,
+     "warning_at_or_above": null,
+     "pool_score": 0.0014462402936023305
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 0.9414215473335692,
+     "warning_at_or_above": 0.9973513780944261,
+     "pool_score": 0.00074644660314959
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 0.9414215473335692,
+     "warning_at_or_above": 0.9414215473335692,
+     "pool_score": 0.0005339166675306095
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.36642074163673244,
+     "warning_at_or_above": null,
+     "pool_score": 0.002746301460754533
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 0.6877719922643553,
+     "warning_at_or_above": null,
+     "pool_score": 0.001818426863783862
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 0.8359704641135484,
+     "warning_at_or_above": null,
+     "pool_score": 0.001162175891848181
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 0.9414215473335692,
+     "warning_at_or_above": null,
+     "pool_score": 0.0008024300983858092
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 0.9414215473335692,
+     "warning_at_or_above": null,
+     "pool_score": 0.0005339166675306095
+    }
+   }
+  },
+  "fly as is": {
+   "seed 0": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 0.7813296498765971,
+     "warning_at_or_above": null,
+     "pool_score": 0.000824201457644339
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 0.8805374816794926,
+     "warning_at_or_above": 0.9630480263545415,
+     "pool_score": 0.00024622370590003835
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 0.9255939774809134,
+     "warning_at_or_above": 0.9255939774809134,
+     "pool_score": 8.293851146106555e-05
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.29434068189838036,
+     "warning_at_or_above": null,
+     "pool_score": 0.0025109634344837595
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 0.7813296498765971,
+     "warning_at_or_above": null,
+     "pool_score": 0.00123993074634293
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 0.809940379249055,
+     "warning_at_or_above": null,
+     "pool_score": 0.0004810433664741803
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 0.8805374816794926,
+     "warning_at_or_above": null,
+     "pool_score": 0.0001866116507873975
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 0.9255939774809134,
+     "warning_at_or_above": null,
+     "pool_score": 8.293851146106555e-05
+    }
+   },
+   "seed 1": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 0.8098698640013106,
+     "warning_at_or_above": null,
+     "pool_score": 0.0008397524285432887
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 0.8098698640013106,
+     "warning_at_or_above": 0.9651868033653597,
+     "pool_score": 0.00024363187741688005
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 0.9659023201008203,
+     "warning_at_or_above": 0.9659023201008203,
+     "pool_score": 7.775485449474895e-05
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.3057419114546185,
+     "warning_at_or_above": null,
+     "pool_score": 0.0025109634344837595
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 0.782285477801222,
+     "warning_at_or_above": null,
+     "pool_score": 0.0012150491929046102
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 0.8098698640013106,
+     "warning_at_or_above": null,
+     "pool_score": 0.0005245860849912396
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 0.8931335609505133,
+     "warning_at_or_above": null,
+     "pool_score": 0.00017002394849518438
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 0.9659023201008203,
+     "warning_at_or_above": null,
+     "pool_score": 7.775485449474895e-05
+    }
+   },
+   "seed 2": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": 0.8107613787143436,
+     "warning_at_or_above": null,
+     "pool_score": 0.0008138341437117058
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": 0.8805852676521906,
+     "warning_at_or_above": 0.9658261733565505,
+     "pool_score": 0.00025140736286635495
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": 0.9324401173741415,
+     "warning_at_or_above": 0.9324401173741415,
+     "pool_score": 9.330582539369874e-05
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": 0.327894190175157,
+     "warning_at_or_above": null,
+     "pool_score": 0.0025109634344837595
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": 0.734612502197671,
+     "warning_at_or_above": null,
+     "pool_score": 0.0012378572835564032
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": 0.8107613787143436,
+     "warning_at_or_above": null,
+     "pool_score": 0.0004976310687663933
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": 0.8805852676521906,
+     "warning_at_or_above": null,
+     "pool_score": 0.00019075857636045068
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": 0.9324401173741415,
+     "warning_at_or_above": null,
+     "pool_score": 9.330582539369874e-05
+    }
+   }
+  },
+  "fly combined": {
+   "seed 0": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": -0.1191937946257972,
+     "warning_at_or_above": null,
+     "pool_score": 0.0014073628663549562
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": -0.1191937946257972,
+     "warning_at_or_above": null,
+     "pool_score": 0.0006116715220253584
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": -0.06947675024584549,
+     "warning_at_or_above": -0.06947675024584549,
+     "pool_score": 0.00025918284831582985
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": -0.15424839456404082,
+     "warning_at_or_above": null,
+     "pool_score": 0.0025202940170231296
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": -0.1191937946257972,
+     "warning_at_or_above": null,
+     "pool_score": 0.001762443368547643
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": -0.1191937946257972,
+     "warning_at_or_above": null,
+     "pool_score": 0.0010522823641622692
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": -0.06947675024584549,
+     "warning_at_or_above": null,
+     "pool_score": 0.00047689644090112695
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": -0.06947675024584549,
+     "warning_at_or_above": null,
+     "pool_score": 0.00025918284831582985
+    }
+   },
+   "seed 1": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": -0.1194328866208678,
+     "warning_at_or_above": null,
+     "pool_score": 0.0014229138372539058
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": -0.1194328866208678,
+     "warning_at_or_above": null,
+     "pool_score": 0.0006272224929243082
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": -0.06997853026182076,
+     "warning_at_or_above": -0.06997853026182076,
+     "pool_score": 0.00021252993561898047
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": -0.30043698836731114,
+     "warning_at_or_above": null,
+     "pool_score": 0.0025109634344837595
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": -0.1194328866208678,
+     "warning_at_or_above": null,
+     "pool_score": 0.0017748841452668027
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": -0.1194328866208678,
+     "warning_at_or_above": null,
+     "pool_score": 0.001070943529241009
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": -0.10709389028384547,
+     "warning_at_or_above": null,
+     "pool_score": 0.0004395741107436472
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": -0.06997853026182076,
+     "warning_at_or_above": null,
+     "pool_score": 0.00021252993561898047
+    }
+   },
+   "seed 2": {
+    "primary_heads_up_gain_1": {
+     "note_at_or_above": -0.10650984750720265,
+     "warning_at_or_above": null,
+     "pool_score": 0.001404771037871798
+    },
+    "sensitivity_heads_up_gain_0.75": {
+     "note_at_or_above": -0.10650984750720265,
+     "warning_at_or_above": null,
+     "pool_score": 0.0006972018619695823
+    },
+    "sensitivity_heads_up_gain_0.5": {
+     "note_at_or_above": -0.06943544101001217,
+     "warning_at_or_above": -0.06943544101001217,
+     "pool_score": 0.00022808090651793027
+    },
+    "curve_heads_up_cost_0.1": {
+     "note_at_or_above": -0.2967213238670704,
+     "warning_at_or_above": null,
+     "pool_score": 0.0025109634344837595
+    },
+    "curve_heads_up_cost_0.2": {
+     "note_at_or_above": -0.11910629630655417,
+     "warning_at_or_above": null,
+     "pool_score": 0.0017292679639632166
+    },
+    "curve_heads_up_cost_0.3": {
+     "note_at_or_above": -0.10650984750720265,
+     "warning_at_or_above": null,
+     "pool_score": 0.001119669904724385
+    },
+    "curve_heads_up_cost_0.4": {
+     "note_at_or_above": -0.10650984750720265,
+     "warning_at_or_above": null,
+     "pool_score": 0.0005494676384295593
+    },
+    "curve_heads_up_cost_0.5": {
+     "note_at_or_above": -0.06943544101001217,
+     "warning_at_or_above": null,
+     "pool_score": 0.00022808090651793027
+    }
+   }
+  }
+ },
+ "wall_clock_s": 293.6995949745178
+}

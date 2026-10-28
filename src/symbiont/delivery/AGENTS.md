@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `src/symbiont/delivery/`.
 
-**Purpose.** The MCP server (one tool, `recall(question)`), harness hooks (`symbiont hook <event>`), installers, and the mini-SWE-agent wrapper.
+**Purpose.** The MCP server (one tool, `recall(question)`), harness hooks (`symbiont hook <event>`), installers, and the mini-SWE-agent wrapper. Route A delivers the structured one-line note (what happened, how it was resolved, the check to run) before the matching action; Route B has Glimmer recall from its own weights when the classifier fires.
 
 **Violation prevented: Silent Fallback and Distributed Monolith.** If the service is down, an empty note looks like "nothing to warn about", so every client prints a visible "symbiont offline" note and exits 0 so the harness is not blocked. Clients hold no logic: they forward to the localhost service, so each can be replaced alone.
 
