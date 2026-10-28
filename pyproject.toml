@@ -12,12 +12,19 @@ dependencies = [
 dev = [
     "codespell==2.4.1",
     "coverage[toml]==7.17.0",
+    "diff-cover==11.0.0",
+    "defusedxml==0.7.1",
     "duckdb==1.5.5",
     "import-linter==2.15",
+    "interrogate==1.7.0",
     "lizard==1.24.3",
+    "mutmut==3.8.0",
     "mypy==2.4.0",
+    "pip-audit==2.10.1",
+    "pip-licenses==5.5.5",
     "pytest>=8",
     "pytest-cov==7.1.0",
+    "pytest-randomly==5.0.0",
     "ruff==0.17.3",
     "semgrep==1.182.1",
 ]
@@ -34,7 +41,9 @@ testpaths = ["tests"]
 # `tests` on the path so conftest and tests share the airplane helpers;
 # importlib mode lets test files in different folders share a basename.
 pythonpath = ["tests"]
-addopts = "--import-mode=importlib --strict-markers"
+# -p randomly: QG-TST-04. Named explicitly so a missing plugin fails loudly instead of silently
+# running in file order. run.sh picks and prints the seed.
+addopts = "--import-mode=importlib --strict-markers -p randomly"
 markers = [
     "periphery: test may touch the network, files or the clock (store, service, delivery). Unmarked tests run in airplane mode.",
 ]
@@ -83,6 +92,27 @@ strict = true
 # Third-party packages without stubs; each named, never global.
 module = ["vizdoom.*", "peft.*", "mcp.*"]
 ignore_missing_imports = true
+
+[tool.interrogate]
+# QG-RD-01: public API docstring coverage. run.sh judges the changed src files; the whole-tree
+# figure lives in scripts/gates/baseline.json for the phase 2 cleanup.
+fail-under = 90
+ignore-private = true
+ignore-magic = true
+ignore-module = true
+exclude = ["tests", "scripts", "spikes"]
+
+[tool.mutmut]
+# QG-TST-05: mutation score on the pure core. Run by scripts/gates/mutation.sh, never by run.sh
+# (minutes, not seconds). Key names verified against mutmut 3.8.0 (configuration.py): the
+# standard's paths_to_mutate and tests_dir are deprecated aliases of the two below.
+# The whole package is copied (a partial copy shadows the installed one and breaks imports);
+# only_mutate narrows what is mutated to the pure core and the signals.
+source_paths = ["src/symbiont"]
+only_mutate = ["src/symbiont/core/*", "src/symbiont/miner/signals/*"]
+pytest_add_cli_args_test_selection = ["tests/core", "tests/miner"]
+# a fixed order and no random seed: a mutant must be killed by the test, not by the shuffle
+pytest_add_cli_args = ["-p", "no:randomly", "-p", "no:cacheprovider"]
 
 [tool.coverage.run]
 source = ["src/symbiont"]

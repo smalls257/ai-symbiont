@@ -1,8 +1,9 @@
-"""Airplane test and import rules for the pure core.
+"""QG-ARC-02: airplane test and import rules for the pure core.
 
 The core (records, miner, core) must reason with no network, no clock and no
 harness, so it can be unit-tested on a plane and swapped without dragging its
-environment along.
+environment along. Runs in every suite run (QG-TST-01) and in the pre-commit scoped set
+(QG-TST-02); `.importlinter` (QG-ARC-01) must agree with it.
 """
 
 import socket

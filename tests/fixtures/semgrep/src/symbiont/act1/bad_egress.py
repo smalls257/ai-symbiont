@@ -1,4 +1,4 @@
-"""Fixture: a Distributed Monolith at the network edge. Every `# expect:` line must be reported."""
+"""Fixture: planted violations. Every `# expect:` line must be reported, nothing else."""
 
 import json
 import numpy as np
