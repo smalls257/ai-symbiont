@@ -25,7 +25,7 @@ from symbiont.delivery.recall import (
 NOTE_TAG = "[symbiont]"
 HARNESS = "mini_swe_agent"
 RECALL_USAGE = 'usage: symbiont recall "<question>"'
-_RECALL_COMMAND = re.compile(r"\s*symbiont\s+recall(?:\s+(.*))?")
+_RECALL_COMMAND = re.compile(r"[ \t]*symbiont[ \t]+recall(?:[ \t]+(.*))?")
 _SERVICE_FAILURES = (ServiceOfflineError, ServiceRefusedError, ServiceReplyError)
 
 
@@ -67,9 +67,24 @@ def recall_question(command: str) -> str | None:
     if found is None:
         return None
     rest = (found.group(1) or "").strip()
+    if _chains_commands(rest):
+        return ""
     if len(rest) >= 2 and rest[0] == rest[-1] and rest[0] in "\"'":
         rest = rest[1:-1]
     return rest
+
+
+def _chains_commands(text: str) -> bool:
+    """True when `&&`, `||`, `;` or `|` appears outside quotes: the rest must not be dropped."""
+    quote = ""
+    for char in text:
+        if quote:
+            quote = "" if char == quote else quote
+        elif char in "\"'":
+            quote = char
+        elif char in "&|;":
+            return True
+    return False
 
 
 class NotedEnvironment:

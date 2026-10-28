@@ -143,3 +143,22 @@ def test_only_symbiont_recall_is_recognized():
     assert recall_question('symbiont recall "quoted one"') == "quoted one"
     assert recall_question("symbiont recallx") is None
     assert recall_question('symbiont recall "q"\nls') is None
+
+
+def test_newline_after_recall_is_not_a_question():
+    assert recall_question("symbiont recall\npytest -q") is None
+
+
+@pytest.mark.parametrize(
+    "command",
+    ['symbiont recall "q" && pytest -q', "symbiont recall q; ls", "symbiont recall q | head"],
+)
+def test_chained_recall_gets_the_usage_error_not_a_dropped_command(command):
+    assert recall_question(command) == ""
+    _, env = wrapped(WrapMode.NOTES, 1)
+    result = env.execute({"command": command})
+    assert result["returncode"] == 2 and "usage" in result["output"]
+
+
+def test_operators_inside_quotes_stay_part_of_the_question():
+    assert recall_question('symbiont recall "why a && b?"') == "why a && b?"
