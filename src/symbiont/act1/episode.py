@@ -173,10 +173,10 @@ def _open_run_log(
     handle = run_log.path.open("a")
     started_at = datetime.now(UTC).isoformat()
     run_header = {
+        **run_log.header,
         "started_at": started_at,
         "max_decisions": max_decisions,
         "sector_convention": convention.value,
-        **run_log.header,
     }
     handle.write(json.dumps({"run_header": run_header}) + "\n")
     handle.flush()

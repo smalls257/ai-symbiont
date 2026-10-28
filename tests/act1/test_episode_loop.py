@@ -334,3 +334,16 @@ def test_run_episode_names_the_detected_convention_in_the_run_header(tmp_path):
     )
     header = json.loads(log.read_text().splitlines()[0])["run_header"]
     assert header["sector_convention"] == "authored"
+
+
+def test_a_caller_header_cannot_overwrite_the_detected_sector_convention(tmp_path):
+    log = tmp_path / "episode.jsonl"
+    run_episode(
+        FakeGame(),
+        scripted_replies(Reply("explore()", "stop", 0)),
+        1,
+        RunLog(log, header={"sector_convention": "x"}),
+        knowledge=MapKnowledge(FLOORED_MAP),
+    )
+    header = json.loads(log.read_text().splitlines()[0])["run_header"]
+    assert header["sector_convention"] == "authored"

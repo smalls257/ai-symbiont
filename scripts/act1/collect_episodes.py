@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.act1.episode import MapKnowledge, RunLog, run_episode
-from symbiont.act1.episode_records import Episode, episode_records
+from symbiont.act1.episode_records import Episode, EpisodeEnd, episode_records
 from symbiont.act1.levels import LevelSplit, levels_in, require_training
 from symbiont.act1.map_index import build_index
 from symbiont.act1.navmap import build_navmap
@@ -48,8 +48,8 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
     return parser.parse_args(argv)
 
 
-def wad_path(out: Path) -> Path:
-    """Seam: where the Freedoom WAD is installed. `out` is unused; the WAD stays under data/."""
+def wad_path() -> Path:
+    """Seam: where the Freedoom WAD is installed; it always stays under data/."""
     from symbiont.act1.setup_assets import install_freedoom
 
     return install_freedoom(FREEDOOM_DIR)
@@ -69,12 +69,14 @@ def episode_path(out: Path, episode: Episode) -> Path:
     return out / episode.level / f"{episode.session_id}.jsonl"
 
 
-def how_it_ended(game: Any) -> str:
+def how_it_ended(game: Any) -> EpisodeEnd:
+    """Death first, then finished (a timeout is not an exit), else the decision cap ran out."""
     if game.is_player_dead():
-        return "died"
+        return EpisodeEnd.DIED
     if game.is_episode_finished():
-        return "episode finished"
-    return "decision cap"
+        timed_out = game.get_episode_time() >= game.get_episode_timeout()
+        return EpisodeEnd.TIMED_OUT if timed_out else EpisodeEnd.EXITED
+    return EpisodeEnd.DECISION_CAP
 
 
 def count_pains(records: list[Any]) -> dict[str, int]:
@@ -89,8 +91,8 @@ def count_pains(records: list[Any]) -> dict[str, int]:
 
 def play_episode(
     game: Any, knowledge: MapKnowledge, rooms: RoomFinder, episode: Episode, decisions: int
-) -> tuple[list[Any], int]:
-    """The episode's records and its rejected-decision count; raises RuntimeError with no moves."""
+) -> tuple[list[Any], int, EpisodeEnd]:
+    """Records, rejected-decision count and ending; raises RuntimeError with no moves."""
     runs: list[MoveRun] = []
     game.set_seed(episode.seed)
     policy = policy_named(episode.policy, episode.seed)
@@ -100,26 +102,33 @@ def play_episode(
     if not runs:
         raise RuntimeError(f"no moves played: {episode.session_id}")
     rejected = sum(decision.status != "ok" for decision in done)
-    return episode_records(episode, runs, rooms), rejected
+    ended = how_it_ended(game)
+    return episode_records(episode, runs, rooms, ended), rejected, ended
 
 
 def collect_episode(
     level_setup: tuple[Any, MapKnowledge, RoomFinder], episode: Episode, decisions: int, out: Path
 ) -> dict[str, Any]:
-    """Play and write one episode; the file appears only when the episode finished cleanly."""
+    """Play and write one episode.
+
+    Records go to `<path>.partial` and are renamed to `<path>` once written, so the final path
+    only ever holds a finished episode and the overwrite check cannot mistake a torn one for it.
+    """
     game, knowledge, rooms = level_setup
     path = episode_path(out, episode)
     if path.exists():
         raise FileExistsError(f"{path} already exists; episodes are never overwritten")
     started = time.monotonic()
     try:
-        records, rejected = play_episode(game, knowledge, rooms, episode, decisions)
+        records, rejected, ended = play_episode(game, knowledge, rooms, episode, decisions)
     except Exception as error:
         error.add_note(f"while playing {episode.session_id}")
         raise
     path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("x") as handle:
+    partial = path.with_name(path.name + ".partial")
+    with partial.open("w") as handle:
         dump_jsonl(records, handle)
+    partial.rename(path)
     return {
         "level": episode.level,
         "policy": episode.policy,
@@ -128,7 +137,7 @@ def collect_episode(
         "seconds": round(time.monotonic() - started, 2),
         "rejected": rejected,
         "pains": count_pains(records),
-        "ended": how_it_ended(game),
+        "ended": ended.value,
     }
 
 
@@ -158,7 +167,7 @@ def main(argv: list[str] | None = None) -> None:
     for policy in args.policies.split(","):
         policy_named(policy, 0)
     seeds = parse_seeds(args.seeds)
-    wad = wad_path(Path(args.out))
+    wad = wad_path()
     for level in levels:
         collect_level(level, wad, args, seeds)
 

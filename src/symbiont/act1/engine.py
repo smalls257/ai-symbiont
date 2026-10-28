@@ -38,6 +38,9 @@ def make_game(wad: Path, map_name: str = "MAP01", seed: int = 1) -> Any:
     game = vzd.DoomGame()
     game.set_doom_game_path(str(wad))
     game.set_doom_map(map_name)
+    # ViZDoom writes _vizdoom.ini (home path, user name) into the cwd by default; keep it in the
+    # gitignored WAD directory so no run leaves a file the secrets gates must flag.
+    game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
     game.set_seed(seed)
     game.set_screen_resolution(vzd.ScreenResolution.RES_320X240)
     game.set_labels_buffer_enabled(True)

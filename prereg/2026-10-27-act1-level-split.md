@@ -13,9 +13,10 @@ Which levels may Task 39 meta-training and Act 1 learner development see?
 ## Split rule
 
 - Every fourth map of freedoom2.wad is held out: MAP04, MAP08, MAP12, MAP16,
-  MAP20, MAP24, MAP28, MAP32 [established] (the rule is fixed by this file).
-- The other 24 maps train [established].
-- MAP01 trains because development runs already played it [measured].
+  MAP20, MAP24, MAP28, MAP32 (the rule is fixed by this file).
+- The other 24 maps train.
+- MAP01 trains because development runs already played it [measured] (the Act 1
+  handoff records a scripted go_to(exit) finishing MAP01).
 - Difficulty rises roughly with map number, so this rule spreads the held-out
   levels across difficulty [hypothesis].
 

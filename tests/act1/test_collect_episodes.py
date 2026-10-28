@@ -18,28 +18,29 @@ SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "act1" / "collect_epi
 IN_ROOM_0 = (10.0, 10.0)
 
 
-@pytest.fixture(autouse=True)
-def forget_loaded_modules():
-    """Drop the modules a test imported so the stubs of one test never reach another."""
-    before = set(sys.modules)
-    yield
-    for name in set(sys.modules) - before:
-        del sys.modules[name]
-
-
 class StubGame:
-    def __init__(self):
+    def __init__(self, dead=False, finished=False, time=0, timeout=100):
         self.seeds = []
         self.closed = False
+        self.dead = dead
+        self.finished = finished
+        self.time = time
+        self.timeout = timeout
 
     def set_seed(self, seed):
         self.seeds.append(seed)
 
     def is_player_dead(self):
-        return False
+        return self.dead
 
     def is_episode_finished(self):
-        return False
+        return self.finished
+
+    def get_episode_time(self):
+        return self.time
+
+    def get_episode_timeout(self):
+        return self.timeout
 
     def close(self):
         self.closed = True
@@ -82,7 +83,7 @@ def load_script(monkeypatch, tmp_path, *, moves=1, loader=None, play=None):
             run_log.on_move(one_move())
         return []
 
-    monkeypatch.setattr(module, "wad_path", lambda out: tmp_path / "wad")
+    monkeypatch.setattr(module, "wad_path", lambda: tmp_path / "wad")
     monkeypatch.setattr(module, "load_level", loader or stub_load_level)
     monkeypatch.setattr(module, "run_episode", play or stub_run_episode)
     return module, game
@@ -102,7 +103,7 @@ def test_collector_writes_one_file_and_one_summary_line_per_episode(monkeypatch,
         ("MAP01", "random", 2, 2),
     ]
     assert {"rejected", "pains", "seconds", "ended"} <= set(summaries[0])
-    assert summaries[0]["ended"] == "decision cap"
+    assert summaries[0]["ended"] == "decision_cap"
     assert game.seeds == [1, 2]
     assert game.closed
     path = tmp_path / "out" / "MAP01" / "MAP01-random-s1.jsonl"
@@ -152,3 +153,47 @@ def test_collector_names_the_level_when_loading_fails(monkeypatch, tmp_path):
     with pytest.raises(OSError, match="no wad") as caught:
         collect(module, tmp_path)
     assert any("MAP01" in note for note in caught.value.__notes__)
+
+
+@pytest.mark.parametrize(
+    ("game", "expected"),
+    [
+        (StubGame(dead=True, finished=True), "died"),
+        (StubGame(finished=True, time=10), "exited"),
+        (StubGame(finished=True, time=100, timeout=100), "timed_out"),
+        (StubGame(), "decision_cap"),
+    ],
+)
+def test_how_it_ended_tells_death_exit_timeout_and_cap_apart(monkeypatch, tmp_path, game, expected):
+    module, _ = load_script(monkeypatch, tmp_path)
+    assert module.how_it_ended(game).value == expected
+
+
+def test_the_last_record_on_disk_carries_how_the_episode_ended(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path, moves=2)
+    collect(module, tmp_path)
+    path = tmp_path / "out" / "MAP01" / "MAP01-random-s1.jsonl"
+    ended = [json.loads(r.raw)["ended"] for r in load_jsonl(path.open())]
+    assert ended == [None, "decision_cap"]
+
+
+def test_the_game_is_closed_when_an_episode_raises(monkeypatch, tmp_path):
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("boom")
+
+    module, game = load_script(monkeypatch, tmp_path, play=boom)
+    with pytest.raises(RuntimeError, match="boom"):
+        collect(module, tmp_path)
+    assert game.closed
+
+
+def test_a_failure_mid_write_leaves_no_file_at_the_final_path(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path)
+
+    def broken_dump(_records, _handle):
+        raise OSError("disk full")
+
+    monkeypatch.setattr(module, "dump_jsonl", broken_dump)
+    with pytest.raises(OSError, match="disk full"):
+        collect(module, tmp_path)
+    assert not (tmp_path / "out" / "MAP01" / "MAP01-random-s1.jsonl").exists()

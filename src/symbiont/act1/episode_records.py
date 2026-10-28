@@ -9,6 +9,7 @@ than a second format. A position in no room raises `RoomLookupError`; it is neve
 import json
 from collections.abc import Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from symbiont.act1.env_text import GameStateView
@@ -37,17 +38,46 @@ class Episode:
         return f"{self.level}-{self.policy}-s{self.seed}"
 
 
-def episode_records(episode: Episode, runs: Sequence[MoveRun], rooms: RoomFinder) -> list[Record]:
-    """One command Record per run, in run order; raises RoomLookupError for an off-map position."""
+class EpisodeEnd(StrEnum):
+    """Why an episode stopped; a death and an exit pair with different habits in the trainer.
+
+    TIMED_OUT is its own value because ViZDoom marks an episode finished at a level exit and at
+    its timeout alike; calling a timeout an exit would be a Silent Fallback.
+    """
+
+    DIED = "died"
+    EXITED = "exited"
+    TIMED_OUT = "timed_out"
+    DECISION_CAP = "decision_cap"
+
+
+def episode_records(
+    episode: Episode, runs: Sequence[MoveRun], rooms: RoomFinder, ended: EpisodeEnd
+) -> list[Record]:
+    """One command Record per run, in run order; the last one says how the episode ended.
+
+    Raises RoomLookupError for an off-map position.
+    """
     pains = tag_pains(runs, rooms)
+    last = len(runs) - 1
     return [
-        _record(episode, step, run, run_pains, rooms)
+        _record(
+            episode,
+            step,
+            run,
+            run_pains,
+            _facts(episode, run, rooms, ended if step == last else None),
+        )
         for step, (run, run_pains) in enumerate(zip(runs, pains, strict=True))
     ]
 
 
 def _record(
-    episode: Episode, step: int, run: MoveRun, pains: tuple[GamePain, ...], rooms: RoomFinder
+    episode: Episode,
+    step: int,
+    run: MoveRun,
+    pains: tuple[GamePain, ...],
+    facts: dict[str, Any],
 ) -> Record:
     return Record(
         harness="vizdoom",
@@ -55,7 +85,7 @@ def _record(
         session_id=episode.session_id,
         step=step,
         kind=Kind.COMMAND,
-        raw=json.dumps(_facts(episode, run, rooms), sort_keys=True),
+        raw=json.dumps(facts, sort_keys=True),
         provenance=PROVENANCE,
         command=run.label,
         exit_code=None,
@@ -64,7 +94,9 @@ def _record(
     )
 
 
-def _facts(episode: Episode, run: MoveRun, rooms: RoomFinder) -> dict[str, Any]:
+def _facts(
+    episode: Episode, run: MoveRun, rooms: RoomFinder, ended: EpisodeEnd | None
+) -> dict[str, Any]:
     latest = run.before if run.after is None else run.after
     return {
         "level": episode.level,
@@ -75,12 +107,15 @@ def _facts(episode: Episode, run: MoveRun, rooms: RoomFinder) -> dict[str, Any]:
         "position_after": None if run.after is None else _rounded(run.after),
         "room_before": rooms.room_at(run.before.position),
         "room_after": None if run.after is None else rooms.room_at(run.after.position),
-        "angle": round(latest.angle_deg),
+        "angle": round(latest.angle_deg) % 360,
         "health": latest.health,
         "ammo": latest.ammo,
         "keys_held": list(latest.keys_held),
         "tics": run.tics,
         "outcome": run.outcome,
+        "ended": None if ended is None else ended.value,
+        "health_before": round(run.before.health),
+        "ammo_before": round(run.before.ammo),
     }
 
 
