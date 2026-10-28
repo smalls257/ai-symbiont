@@ -3,6 +3,7 @@ import threading
 
 import pytest
 
+from symbiont.delivery import mini_swe_wrapper
 from symbiont.delivery.mini_swe_wrapper import (
     NOTE_TAG,
     NotedEnvironment,
@@ -22,6 +23,9 @@ class FakeEnvironment:
     """Hand-written stand-in with mini-SWE-agent's environment interface."""
 
     config = "fake-config"
+
+    def serialize(self):
+        return {"info": {"config": {"environment_type": "fake"}}}
 
     def __init__(self):
         self.commands = []
@@ -51,12 +55,47 @@ def wrapped(mode, port):
     return inner, NotedEnvironment(inner, WrapSettings(mode, port, "s1", "demo"))
 
 
-def test_notes_appended_to_observation(port):
-    inner, env = wrapped(WrapMode.NOTES, port)
-    seen = [env.execute({"command": "pytest -q"}) for _ in range(3)]
-    assert inner.commands == ["pytest -q"] * 3
-    assert all(r["output"].startswith("ran\n") and r["returncode"] == 0 for r in seen)
-    assert env.config == "fake-config"
+def test_notes_appended_to_observation(monkeypatch):
+    sent = []
+
+    def fake_service(route, body, port):
+        sent.append((route, body))
+        return {"notes": ["This failed before."]}
+
+    monkeypatch.setattr(mini_swe_wrapper, "call_service", fake_service)
+    inner, env = wrapped(WrapMode.NOTES, 1)
+    result = env.execute({"command": "pytest -q"})
+    assert result["output"] == f"ran\n\n{NOTE_TAG}\nThis failed before."
+    assert result["returncode"] == 0 and env.config == "fake-config"
+    route, body = sent[0]
+    assert route == "/observe" and body["event"] == "PostToolUse"
+    record = body["payload"]["record"]
+    assert record["command"] == "pytest -q" and record["exit_code"] == 0
+
+
+def test_no_notes_appends_nothing(monkeypatch):
+    monkeypatch.setattr(mini_swe_wrapper, "call_service", lambda route, body, port: {"notes": []})
+    _, env = wrapped(WrapMode.NOTES, 1)
+    assert env.execute({"command": "ls"})["output"] == "ran\n"
+
+
+def test_mode_is_coerced_and_a_typo_raises():
+    assert WrapSettings("plain", 1, "s", "p").mode is WrapMode.PLAIN
+    with pytest.raises(ValueError):
+        WrapSettings("plian", 1, "s", "p")
+
+
+def test_serialize_records_the_arm():
+    _, env = wrapped(WrapMode.PLAIN, 1)
+    config = env.serialize()["info"]["config"]
+    assert config["environment_type"] == "fake"
+    assert config["symbiont_wrap"] == {"mode": "plain", "harness": "mini_swe_agent"}
+
+
+def test_copy_does_not_recurse_on_a_missing_inner():
+    bare = NotedEnvironment.__new__(NotedEnvironment)
+    with pytest.raises(AttributeError):
+        _ = bare.config
 
 
 def test_recall_command_intercepted(port):
@@ -103,3 +142,4 @@ def test_only_symbiont_recall_is_recognized():
     assert recall_question("symbiont hook x") is None
     assert recall_question('symbiont recall "quoted one"') == "quoted one"
     assert recall_question("symbiont recallx") is None
+    assert recall_question('symbiont recall "q"\nls') is None

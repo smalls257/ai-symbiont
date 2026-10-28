@@ -25,7 +25,7 @@ from symbiont.delivery.recall import (
 NOTE_TAG = "[symbiont]"
 HARNESS = "mini_swe_agent"
 RECALL_USAGE = 'usage: symbiont recall "<question>"'
-_RECALL_COMMAND = re.compile(r"\s*symbiont\s+recall(?:\s+(.*))?", re.DOTALL)
+_RECALL_COMMAND = re.compile(r"\s*symbiont\s+recall(?:\s+(.*))?")
 _SERVICE_FAILURES = (ServiceOfflineError, ServiceRefusedError, ServiceReplyError)
 
 
@@ -44,6 +44,11 @@ class WrapSettings:
     port: int
     session_id: str
     project: str
+
+    def __post_init__(self) -> None:
+        """Normalize the arm to a WrapMode."""
+        # A raw "plain" string must reach the floor arm, and a typo must raise, not run notes.
+        object.__setattr__(self, "mode", WrapMode(self.mode))
 
 
 def tagged(text: str) -> str:
@@ -76,12 +81,24 @@ class NotedEnvironment:
 
     def __getattr__(self, name: str) -> Any:
         """Everything else (config, cleanup, template vars) is the inner environment's."""
+        if name == "_inner":
+            raise AttributeError(name)
         return getattr(self._inner, name)
+
+    def serialize(self) -> dict[str, Any]:
+        """The inner environment's record, plus which arm this run was."""
+        record: dict[str, Any] = self._inner.serialize()
+        wrap = {"mode": self._settings.mode.value, "harness": HARNESS}
+        config = {**record.get("info", {}).get("config", {}), "symbiont_wrap": wrap}
+        return {**record, "info": {**record.get("info", {}), "config": config}}
 
     def execute(
         self, action: dict[str, Any], cwd: str = "", *, timeout: int | None = None
     ) -> dict[str, Any]:
-        """The inner result with notes appended; a Submitted raised inside passes through."""
+        """The inner result with notes appended.
+
+        A Submitted raised inside passes through unobserved, so the final step is not mined.
+        """
         command = str(action.get("command", ""))
         if self._settings.mode is WrapMode.PLAIN:
             plain: dict[str, Any] = self._inner.execute(action, cwd, timeout=timeout)
