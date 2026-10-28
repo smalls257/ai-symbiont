@@ -3,6 +3,7 @@
 Each test plants the violation the gate exists to stop and expects red, and a clean case
 expects green: a gate that cannot fail is a Paper Tiger."""
 
+import os
 import shutil
 import subprocess
 import sys
@@ -86,6 +87,19 @@ def test_waivers_must_name_owner_reason_and_a_short_expiry():
     assert len(problems) == 3
 
 
+def _gate(root: Path, script: str, *args: str) -> subprocess.CompletedProcess:
+    """Run a gate script with the outer run's base ref and stage removed: they name another repo."""
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if k not in ("SYMBIONT_GATE_BASE", "SYMBIONT_GATE_STAGE")
+    }
+    return subprocess.run(
+        ["bash", str(root / "scripts/gates" / script), *args],
+        cwd=root, env=env, capture_output=True, text=True, check=False,
+    )  # fmt: skip
+
+
 def _tiny_repo(tmp_path: Path) -> Path:
     root = tmp_path / "repo"
     (root / "src/symbiont").mkdir(parents=True)
@@ -107,13 +121,9 @@ def test_an_undocumented_public_api_turns_the_docstring_gate_red(tmp_path):
         "def a():\n    return 1\n\n\ndef b():\n    return 2\n"
     )
     (root / "src/symbiont/ok.py").write_text('def a():\n    """Why a exists."""\n    return 1\n')
-    gate = str(root / "scripts/gates/check_docstrings.sh")
-    red = subprocess.run(
-        ["bash", gate, "src/symbiont/bare.py"], cwd=root, capture_output=True, text=True
-    )
-    green = subprocess.run(
-        ["bash", gate, "src/symbiont/ok.py"], cwd=root, capture_output=True, text=True
-    )
+    gate = "check_docstrings.sh"
+    red = _gate(root, Path(gate).name, "src/symbiont/bare.py")
+    green = _gate(root, Path(gate).name, "src/symbiont/ok.py")
     assert red.returncode != 0, red.stdout
     assert green.returncode == 0, green.stdout + green.stderr
 
@@ -135,11 +145,11 @@ def test_changed_lines_without_coverage_turn_diff_cover_red(tmp_path):
         ["git", "-C", str(root), "add", "src/symbiont/new.py"], check=True
     )  # untracked is invisible to diff-cover
     report = root / "cov.xml"
-    gate = str(root / "scripts/gates/diff_coverage.sh")
+    gate = "diff_coverage.sh"
     _coverage_xml(report, "src/symbiont/new.py", hits=0)
-    red = subprocess.run(["bash", gate, str(report)], cwd=root, capture_output=True, text=True)
+    red = _gate(root, Path(gate).name, str(report))
     _coverage_xml(report, "src/symbiont/new.py", hits=1)
-    green = subprocess.run(["bash", gate, str(report)], cwd=root, capture_output=True, text=True)
+    green = _gate(root, Path(gate).name, str(report))
     assert red.returncode == 1, red.stdout + red.stderr
     assert green.returncode == 0, green.stdout + green.stderr
 
@@ -147,8 +157,6 @@ def test_changed_lines_without_coverage_turn_diff_cover_red(tmp_path):
 @pytest.mark.periphery
 def test_a_missing_coverage_report_cannot_judge(tmp_path):
     root = _tiny_repo(tmp_path)
-    gate = str(root / "scripts/gates/diff_coverage.sh")
-    out = subprocess.run(
-        ["bash", gate, str(root / "none.xml")], cwd=root, capture_output=True, text=True
-    )
+    gate = "diff_coverage.sh"
+    out = _gate(root, Path(gate).name, str(root / "none.xml"))
     assert out.returncode == 2
