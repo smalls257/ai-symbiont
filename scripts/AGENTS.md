@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 
-**Purpose.** `calibration/` (task pool and calibration runs), `datasets/` (dataset exporters), `gates/` (quality-gate checks), `hooks/` (tracked git hooks), `publish/` (the pre-publication export check), `install-hooks.sh`.
+**Purpose.** `calibration/` (task pool and calibration runs), `swev/` (SWE-bench Verified Django run: task pick, per-task-image runner, official-test scorer, lesson selection), `datasets/` (dataset exporters), `gates/` (quality-gate checks), `hooks/` (tracked git hooks), `publish/` (the pre-publication export check), `install-hooks.sh`.
 
 **Violation prevented: Infected Core.** Anything that reads a dataset, shells out or talks to a machine lives here, so `src/` stays pure and nothing in `src/` imports from `scripts/`.
 
@@ -22,6 +22,7 @@ See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 ## Environment
 Names only, set in your shell; `env.example` shows placeholder shapes. Unset means the script exits with a message naming the variable.
 - `SYMBIONT_GLIMMER_URL`: Glimmer endpoint, read by `calibration/run_calibration.py`. Start the staged driver with `python scripts/calibration/launch.py <workdir>`, not `staged.py`: `launch.py` checks the variable before anything loads.
+- `SYMBIONT_PERSONAL_GLIMMER_URL`, `SYMBIONT_PERSONAL_GLIMMER_MODEL`: the personal-Glimmer endpoint, read by `swev/swev_run.py` for the personal arm only; start with `python scripts/swev/swev_launch.py`, which checks every listed arm's variables first.
 - `SYMBIONT_DESKTOP_SSH`, `SYMBIONT_DESKTOP_WORKDIR`: desktop login and its work dir, read by `calibration/sync_results.sh`.
 - `SYMBIONT_DRIVER_PATTERN`: test-only override of the driver probe pattern in `calibration/sync_results.sh` (default `launch.py|staged.py`).
 
