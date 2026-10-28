@@ -41,6 +41,7 @@ from symbiont.eval.note_cost_select import (
     by_value,
     catalog,
     cross_validate,
+    cross_validate_per_fold,
     task_folds,
 )
 from symbiont.eval.note_delivery import NoteTrace
@@ -49,17 +50,20 @@ from symbiont.eval.warning_budget_metrics import N_BOOT, bootstrap_draws
 Traces = tuple[NoteTrace, ...]
 PER_STEPS = 100
 CURVE_COSTS = tuple(round(0.1 * i, 1) for i in range(1, 11))  # option D
-ROLES = {"counters": "reference", "fly": "under_test", "dense": "under_test"}
+NESTED = "logistic"  # batch classifier, its runs keyed by outer fold
+ROLES = {"counters": "reference", "fly": "under_test", "dense": "under_test", NESTED: "reference"}
 NET = "net_value_per_100_steps"
 
 
 @dataclass(frozen=True)
 class Arms:
-    """TRAIN traces: counters, the fly per wiring seed, DenseNet per seed and rate."""
+    """TRAIN traces: counters, the fly per seed, DenseNet per seed and rate, the classifier."""
 
     counters: Traces
     fly: Mapping[int, Traces]
     dense: Mapping[int, Mapping[float, Traces]]
+    # Batch logistic regression: outer fold -> L2 strength -> out-of-sample traces.
+    logistic: Mapping[int, Mapping[float, Traces]] | None = None
 
 
 Runs = dict[str, dict[int, list[Prepared]]]  # learner -> seed -> one arm per DenseNet rate
@@ -69,13 +73,18 @@ def runs_of(arms: Arms, tasks: Sequence[str]) -> Runs:
     """Every learner's arms as arrays, rows in the shared task order."""
     if not arms.fly or not arms.dense:
         raise ValueError("no fly or DenseNet runs: the counters row is only half a comparison")
-    return {
+    runs: Runs = {
         "counters": {0: [prepare(arms.counters, tasks)]},
         "fly": {s: [prepare(t, tasks)] for s, t in arms.fly.items()},
         "dense": {
             s: [prepare(t, tasks) for t in rates.values()] for s, rates in arms.dense.items()
         },
     }
+    if arms.logistic is not None:
+        runs[NESTED] = {
+            f: [prepare(t, tasks) for t in by_l2.values()] for f, by_l2 in arms.logistic.items()
+        }
+    return runs
 
 
 class Stacks:
@@ -95,6 +104,10 @@ class Stacks:
                 for seed, arms in self._runs[learner].items()
             }
         return self._made[key]
+
+    def learners(self) -> list[str]:
+        """The learners present, in table order."""
+        return [name for name in ROLES if name in self._runs]
 
     def counters_arm(self) -> Prepared:
         """The counters run, whose labels and boundaries the floors are counted on."""
@@ -122,6 +135,25 @@ def held_out(
         held.append(counts_)
         picked[f"seed {seed}"] = [_setting_label(blocks[b], i, b) for b, i in chosen]
     return np.mean(held, axis=0), picked
+
+
+def held_out_per_fold(
+    stacks: dict[int, list[Stack]], folds: np.ndarray, option: Option
+) -> tuple[np.ndarray, Picked]:
+    """Held-out counts of the batch classifier: outer fold f is counted with fold f's stacks."""
+    counts_, chosen = cross_validate_per_fold(
+        {fold: [b.counts for b in blocks] for fold, blocks in stacks.items()}, folds, option.choose
+    )
+    labels = [_setting_label(stacks[fold][b], i, b) for fold, (b, i) in enumerate(chosen)]
+    return counts_, {"outer folds": labels}
+
+
+def held_for(
+    name: str, stacks: Stacks, folds: np.ndarray, option: Option
+) -> tuple[np.ndarray, Picked]:
+    """Held-out counts of one learner under one option."""
+    rule = held_out_per_fold if name == NESTED else held_out
+    return rule(stacks.of(name, option), folds, option)
 
 
 def metrics(totals: np.ndarray, value: Value) -> dict[str, np.ndarray]:
@@ -181,13 +213,15 @@ def option_block(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]], dict[str, Picked]]:
     """Rows, paired differences and fold choices of one option."""
     counters = stacks.counters_arm()
-    held = {name: held_out(stacks.of(name, option), folds, option) for name in ROLES}
+    held = {name: held_for(name, stacks, folds, option) for name in stacks.learners()}
     rows = [
         _row(name, "floor", option, scored(c, option.value, draws))
         for name, c in floors(counters, option).items()
     ]
     rows += [_row(n, ROLES[n], option, scored(h[0], option.value, draws)) for n, h in held.items()]
-    pairs = (("fly", "counters"), ("dense", "counters"), ("fly", "dense"))
+    pairs = [("fly", "counters"), ("dense", "counters"), ("fly", "dense")]
+    if NESTED in held:
+        pairs += [(NESTED, "counters"), ("fly", NESTED)]
     gaps = [
         {
             "what": f"{first} minus {second}",
@@ -200,9 +234,13 @@ def option_block(
 
 
 def decision_curve(stacks: Stacks, folds: np.ndarray, draws: np.ndarray) -> dict[str, Any]:
-    """Option D offline: the per-step rule re-picked and re-scored at each cost c."""
+    """Option D offline: the per-step rule re-picked and re-scored at each cost c.
+
+    The online learners only; the classifier row is shown under A, B and C.
+    """
     lines = []
-    for name, role in ROLES.items():
+    for name in ("counters", "fly", "dense"):
+        role = ROLES[name]
         by_cost = []
         for cost in CURVE_COSTS:
             value = per_step_value(cost)

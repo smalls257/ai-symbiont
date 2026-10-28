@@ -5,7 +5,7 @@ pick the setting with the highest value per step on the training folds; option C
 loosest threshold that conformal risk control allows. Pure numpy.
 """
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 import numpy as np
@@ -133,10 +133,21 @@ def cross_validate(
     A block is one run's counts (DenseNet has one per learning rate); the block with the best
     training score wins, ties to the first listed.
     """
-    held = np.zeros(blocks[0].shape[1:])
+    return cross_validate_per_fold({fold: blocks for fold in range(FOLDS)}, folds, choose)
+
+
+def cross_validate_per_fold(
+    blocks_by_fold: Mapping[int, Sequence[np.ndarray]], folds: np.ndarray, choose: Chooser
+) -> tuple[np.ndarray, list[tuple[int, int]]]:
+    """As `cross_validate`, but each outer fold has its own blocks.
+
+    The batch classifier needs this: its risks for an outer fold come from models that never
+    saw that fold, so every outer fold has its own count stacks.
+    """
+    held = np.zeros(blocks_by_fold[0][0].shape[1:])
     picked = []
     for fold in range(FOLDS):
-        inside = folds != fold
+        blocks, inside = blocks_by_fold[fold], folds != fold
         picks = [choose(block[:, inside]) for block in blocks]
         block = max(range(len(blocks)), key=lambda index: (picks[index][1], -index))
         held[~inside] = blocks[block][picks[block][0], ~inside]

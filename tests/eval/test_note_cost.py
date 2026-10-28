@@ -119,6 +119,7 @@ def build(signal=2.0, n_boot=100):
         make_traces(1, signal),
         {s: make_traces(10 + s, signal) for s in (0, 1, 2)},
         {s: {0.1: make_traces(20 + s, 0.0), 0.3: make_traces(30 + s, signal)} for s in (0, 1, 2)},
+        logistic={f: {1.0: make_traces(40 + f, signal)} for f in range(FOLDS)},
     )
     return report(arms, seed=3, n_boot=n_boot)
 
@@ -134,6 +135,7 @@ def test_every_option_has_counters_beside_the_fly_over_both_floors(strong):
         assert roles["counters"] == "reference" and roles["fly"] == "under_test"
         assert roles["dense"] == "under_test" and roles["warn never"] == "floor"
         assert roles["note at every allowed step"] == "floor"
+        assert roles["logistic"] == "reference"
     assert {r["split"] for r in strong["rows"]} == {"train-cv"}
 
 
