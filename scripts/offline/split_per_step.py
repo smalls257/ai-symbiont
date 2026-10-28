@@ -1,14 +1,8 @@
 """Keep the published offline-selection result small: per-step arrays live outside the repo.
 
-Violation prevented: **Leaky Narrative** at the repo boundary (QG-SEC-03 caps a tracked file at
-1 MB; a 1.2 MB block of per-step bit strings is run output, not a summary) without a **Silent
-Fallback**: the summary keeps a pointer (path, sha256, row counts) so a reader cannot mistake
-"per-step moved" for "per-step missing", and `verify` proves no summary value changed.
-
-    split_per_step.py split --src OLD.json --summary results/offline-selection.json
-        --per-step data/offline/offline-selection-per-step.json
-        --log data/offline/offline-selection.log
-    split_per_step.py verify --old OLD.json --new results/offline-selection.json
+A tracked file is capped at 1 MB, so the summary keeps a pointer (path, sha256, row counts)
+to the moved arrays, and `verify` proves no summary value changed.
+Usage: split_per_step.py split --src OLD.json --summary ... --per-step ... --log ...
 """
 
 import argparse

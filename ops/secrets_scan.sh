@@ -5,7 +5,7 @@
 #
 # Fails closed (QG-SEC-01/02/03): a missing gitleaks or .gitleaks.toml is an error, never a
 # pass, and the old grep fallback is gone because "found nothing" from a weaker scan is a
-# Silent Fallback. The rules live in .gitleaks.toml; the real work is in scripts/gates/.
+# silent pass. The rules live in .gitleaks.toml; the real work is in scripts/gates/.
 # A leaked credential is rotated first; history is never rewritten (project git rules).
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"

@@ -8,6 +8,7 @@ import json
 import os
 import subprocess
 import time
+import uuid
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "calibration" / "sync_results.sh"
@@ -47,6 +48,9 @@ def _start(env: dict[str, str], repo: Path) -> subprocess.Popen:
 
 def test_probe_reports_dead_driver(tmp_path):
     env, repo = _fixture(tmp_path)
+    # Unique pattern: no other process on the host can look like a live driver. The live-driver
+    # test keeps the production default so a typo in it fails there.
+    env["SYMBIONT_DRIVER_PATTERN"] = f"launch.py-{uuid.uuid4().hex}"
     proc = _start(env, repo)
     proc.wait(timeout=30)
     assert proc.returncode == 3
