@@ -1,9 +1,9 @@
 """QG-GATE-01 gate integrity: a commit may not loosen a gate without its own GATE-CHANGE trailer.
 
 Each commit in merge-base..HEAD is judged on its own diff, and so is the pending work.
+A two-parent merge is judged against the tree git merge-tree builds for its parents.
 Loosening: an added waiver, a lowered test floor, or any other protected-file change.
 A trailer on an earlier commit unlocks nothing; the owner ledger accepts a named commit.
-The Claude hook that denies edits to these files is only a first line of defense.
 
 Usage: check_gate_integrity.py [--message-file FILE | --list]
   (exit 1 on a loosening, 2 if it cannot run; --list prints every GATE-CHANGE commit in range)
@@ -62,9 +62,12 @@ def run_git(root: Path, *args: str) -> str:
     return out.stdout
 
 
+def gate_base_ref() -> str:
+    return os.environ.get("SYMBIONT_GATE_BASE", "main")
+
+
 def base_commit(root: Path) -> str:
-    base = os.environ.get("SYMBIONT_GATE_BASE", "main")
-    return run_git(root, "merge-base", base, "HEAD").strip()
+    return run_git(root, "merge-base", gate_base_ref(), "HEAD").strip()
 
 
 def text_at(root: Path, ref: str | None, path: str) -> str | None:
@@ -147,7 +150,77 @@ def accepted_commits(root: Path) -> set[str]:
 
 
 def commits_in_range(root: Path, base: str) -> list[str]:
-    return run_git(root, "log", "--no-merges", "--reverse", "--format=%H", f"{base}..HEAD").split()
+    return run_git(root, "log", "--reverse", "--format=%H", f"{base}..HEAD").split()
+
+
+def merge_expectation(root: Path, ours: str, theirs: str) -> tuple[str, list[str]]:
+    """The tree git's own merge of `ours` and `theirs` yields, plus the paths it could not merge."""
+    out = subprocess.run(
+        [
+            "git",
+            "-C",
+            str(root),
+            "merge-tree",
+            "--write-tree",
+            "--name-only",
+            "--no-messages",
+            ours,
+            theirs,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if out.returncode not in (0, 1):
+        raise IntegrityError(f"git merge-tree {ours} {theirs} failed: {out.stderr.strip()}")
+    tree, _, rest = out.stdout.partition("\n")
+    return tree.strip(), [path for path in rest.split("\n") if path]
+
+
+def new_in_merge(root: Path, ours: str, theirs: str, after: str | None) -> list[str]:
+    """Loosenings of a merge result relative to the merge git would have produced."""
+    tree, conflicted = merge_expectation(root, ours, theirs)
+    guarded = sorted(
+        p for p in conflicted if is_protected(p) or p in WAIVER_FILES or p == "pyproject.toml"
+    )
+    if guarded:
+        return [f"{p}: gate file conflicted in merge; resolve it with the trailer" for p in guarded]
+    return violations(root, tree, after)
+
+
+def commit_findings(root: Path, sha: str) -> list[str]:
+    """A commit's loosenings; a two-parent merge is judged against git's own merge result."""
+    parents = run_git(root, "rev-list", "--parents", "-n", "1", sha).split()[1:]
+    if len(parents) == 2:
+        return new_in_merge(root, parents[0], parents[1], sha)
+    return violations(root, f"{sha}^", sha)
+
+
+def merge_head(root: Path) -> str | None:
+    out = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "-q", "--verify", "MERGE_HEAD^{commit}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return out.stdout.strip() or None
+
+
+def is_ancestor(root: Path, sha: str, of: str) -> bool:
+    out = subprocess.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", sha, of],
+        capture_output=True,
+        check=False,
+    )
+    return out.returncode == 0
+
+
+def pending_findings(root: Path, gate_base: str) -> list[str]:
+    """Uncommitted work's loosenings; only a merge of the gate base is judged as a merge."""
+    theirs = merge_head(root)
+    if theirs and is_ancestor(root, theirs, gate_base):
+        return new_in_merge(root, "HEAD", theirs, None)
+    return violations(root, "HEAD")
 
 
 def message_of(root: Path, sha: str) -> str:
@@ -159,7 +232,7 @@ def unmarked_commits(root: Path, base: str) -> list[str]:
     accepted = accepted_commits(root)
     found = []
     for sha in commits_in_range(root, base):
-        loosenings = violations(root, f"{sha}^", sha)
+        loosenings = commit_findings(root, sha)
         if loosenings and sha not in accepted and not TRAILER.search(message_of(root, sha)):
             found += [f"{sha[:10]}: {line}" for line in loosenings]
     return found
@@ -191,7 +264,7 @@ def main(argv: list[str]) -> int:
     extra = Path(argv[1]).read_text() if argv[:1] == ["--message-file"] else ""
     problems = unmarked_commits(root, base)
     if not TRAILER.search(extra):
-        problems += [f"pending work: {line}" for line in violations(root, "HEAD")]
+        problems += [f"pending work: {line}" for line in pending_findings(root, gate_base_ref())]
     for line in problems:
         print(f"QG-GATE-01: {line}", file=sys.stderr)
     if problems:
