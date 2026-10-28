@@ -2,7 +2,8 @@
 
 Stage 1, screen: SCREEN_N pool tasks chosen by a named ScreenRule (screen_rules.py): SMALLEST (the
 smallest gold patches, the default) or STRATIFIED (spread over subsystem x size cells, skipping the
-ids of an earlier log). 1 run each, step limit 50, 30 min wall cap, reasoning "low".
+ids of an earlier log). 1 run each, reasoning "low", step limit 50 and 30 min wall cap by default
+(launcher settings --step-limit and --wall-limit-min).
   Checkpoint after the first CHECKPOINT_N runs: if none solved, the same tasks are run again with
   reasoning "medium"; the setting that solves more is used for the remaining screen tasks (tie ->
   "low"). The decision is logged with its counts.
@@ -18,6 +19,7 @@ already in flight on the other worker still lands). After every run the summary 
 trajectory text) is rewritten to <workdir>/<runs-dir>/calibration-glimmer.json.
 
 Usage: python staged.py <workdir> [--screen smallest|stratified] [--runs-dir runs]
+                        [--step-limit 50] [--wall-limit-min 30]
                         [--exclude-log runs/calibration.jsonl]
 (start it through launch.py; a stratified run needs its own --runs-dir)
 """
@@ -47,8 +49,8 @@ CHECKPOINT_N = 10
 GATE_RATE = 0.10
 MAX_ATTEMPTS = 3
 MAX_UNGRADED_IN_A_ROW = 3
-LOW = Setting("low", 50, 30 * 60)
-MEDIUM = Setting("medium", 50, 30 * 60)
+DEFAULT_STEP_LIMIT = 50
+DEFAULT_WALL_LIMIT_MIN = 30
 ANNOUNCED = (
     "instance_id",
     "stage",
@@ -86,10 +88,22 @@ def read_logged_ids(log: Path) -> set[str]:
     return {json.loads(line)["instance_id"] for line in log.read_text().splitlines() if line}
 
 
+def add_limit_arguments(parser: argparse.ArgumentParser) -> None:
+    """The step cap and wall cap as launcher settings; defaults are the original 50 and 30 min."""
+    parser.add_argument("--step-limit", type=int, default=DEFAULT_STEP_LIMIT)
+    parser.add_argument("--wall-limit-min", type=int, default=DEFAULT_WALL_LIMIT_MIN)
+
+
+def settings_for(reasoning: str, args: argparse.Namespace) -> Setting:
+    """The run setting for a reasoning strength under the launcher's step and wall caps."""
+    return Setting(reasoning, args.step_limit, args.wall_limit_min * 60)
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     """Command line; the defaults reproduce the original `staged.py <workdir>` run."""
     parser = argparse.ArgumentParser(description="Staged Glimmer calibration driver")
     parser.add_argument("workdir", type=Path)
+    add_limit_arguments(parser)
     parser.add_argument("--screen", type=ScreenRule, choices=list(ScreenRule), default="smallest")
     parser.add_argument("--runs-dir", default="runs", help="under workdir; holds this run's log")
     parser.add_argument(
@@ -112,6 +126,8 @@ class Driver:
         runs_dir: str = "runs",
         exclude_log: str | None = None,
     ):
+        self.low = Setting("low", DEFAULT_STEP_LIMIT, DEFAULT_WALL_LIMIT_MIN * 60)
+        self.medium = Setting("medium", DEFAULT_STEP_LIMIT, DEFAULT_WALL_LIMIT_MIN * 60)
         self.rows = {
             row["instance_id"]: row
             for row in json.loads((workdir / "data/sqlglot_rows.json").read_text())
@@ -205,13 +221,15 @@ class Driver:
     def stage1(self) -> Setting:
         """Screen with low reasoning; rerun the checkpoint on medium if low solved none."""
         first = self.screen[:CHECKPOINT_N]
-        low = sum(self._in_parallel([self._job(iid, 1, LOW, "screen") for iid in first]))
-        setting = LOW
+        low = sum(self._in_parallel([self._job(iid, 1, self.low, "screen") for iid in first]))
+        setting = self.low
         if low == 0:
             med = sum(
-                self._in_parallel([self._job(iid, 1, MEDIUM, "screen-checkpoint") for iid in first])
+                self._in_parallel(
+                    [self._job(iid, 1, self.medium, "screen-checkpoint") for iid in first]
+                )
             )
-            setting = MEDIUM if med > low else LOW
+            setting = self.medium if med > low else self.low
             self.decide(
                 "checkpoint",
                 low_solved=low,
@@ -297,4 +315,6 @@ class Driver:
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
-    Driver(args.workdir, args.screen, args.runs_dir, args.exclude_log).run()
+    driver = Driver(args.workdir, args.screen, args.runs_dir, args.exclude_log)
+    driver.low, driver.medium = settings_for("low", args), settings_for("medium", args)
+    driver.run()

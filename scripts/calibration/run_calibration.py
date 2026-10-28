@@ -36,6 +36,13 @@ GLIMMER_URL_VAR = (
     "SYMBIONT_GLIMMER_URL"  # llama.cpp router, one request at a time; address is never committed
 )
 MAX_TOKENS = 4096  # per reply; bounds one step so the wall limit is checked often enough
+# One stalled request must end in a recorded error, never an hours-long hang. The 2026-10-28 hang:
+# a dropped network plus mini-SWE-agent's 10 attempts x the old 1200 s timeout. Now 2 x 600 s
+# (+ backoff) bounds one dead step to about 21 min; steps average 10-17 s, so 600 s is far above
+# a healthy reply.
+REQUEST_TIMEOUT_S = 600
+MODEL_RETRY_ATTEMPTS = 2
+RETRY_ATTEMPTS_VAR = "MSWEA_MODEL_RETRY_STOP_AFTER_ATTEMPT"  # read by mini-SWE-agent per query
 API_ERRORS = (
     litellm.exceptions.APIConnectionError,
     litellm.exceptions.Timeout,
@@ -60,7 +67,13 @@ def glimmer_url() -> str:
     return url
 
 
+def bound_model_retries() -> None:
+    """Cap mini-SWE-agent's per-query retries so a dead endpoint raises within minutes."""
+    os.environ[RETRY_ATTEMPTS_VAR] = str(MODEL_RETRY_ATTEMPTS)
+
+
 def agent_config(setting: Setting) -> tuple[dict, dict]:
+    bound_model_retries()
     cfg = yaml.safe_load((builtin_config_dir / "benchmarks" / "swebench.yaml").read_text())
     agent = cfg["agent"] | {
         "step_limit": setting.step_limit,
@@ -76,7 +89,7 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
         "model_kwargs": {
             "api_base": glimmer_url(),
             "api_key": "none",
-            "timeout": 1200,
+            "timeout": REQUEST_TIMEOUT_S,
             "max_tokens": MAX_TOKENS,
             "drop_params": True,
             "parallel_tool_calls": True,
