@@ -27,6 +27,7 @@ import numpy as np
 from symbiont.core.features import N_FEATURES, ScratchFile, featurise, meaningful_history
 from symbiont.core.indexes import PainPointIndex, TokenIndex, continues, tokens
 from symbiont.core.meta import (
+    CALIBRATOR_RATE,
     META_RUN_SEED,
     Calibrator,
     LinearReadoutMeta,
@@ -83,6 +84,7 @@ class DenseNet(LinearReadoutMeta):
     seed: int
     lr: float = READOUT_RATE
     trouble_threshold: float = PLACEHOLDER_THRESHOLD
+    calibrator_rate: float = CALIBRATOR_RATE  # fixed per run, never self-tuned
     hubs: frozenset[str] = frozenset()
     scratch: frozenset[ScratchFile] = frozenset()
     name = "dense"
@@ -148,7 +150,7 @@ class DenseNet(LinearReadoutMeta):
         return replace(
             state,
             w_out=state.w_out - state.lr * error * view.phi,
-            calibrator=calibrator_step(state.calibrator, raw, outcome),
+            calibrator=calibrator_step(state.calibrator, raw, outcome, self.calibrator_rate),
             learned=learned,
             updates=state.updates + 1,
         )

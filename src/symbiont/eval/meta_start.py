@@ -28,6 +28,7 @@ from typing import Any
 import numpy as np
 
 from symbiont.core.meta import (
+    CALIBRATOR_RATE,
     META_RUN_SEED,
     Calibrator,
     MetaLearnable,
@@ -365,7 +366,10 @@ def cold_start(learner: MetaLearnable) -> MetaStart:
 
 
 def calibrated_risks(
-    probabilities: Sequence[np.ndarray], followed: Sequence[np.ndarray], cost: float
+    probabilities: Sequence[np.ndarray],
+    followed: Sequence[np.ndarray],
+    cost: float,
+    rate: float = CALIBRATOR_RATE,
 ) -> tuple[np.ndarray, ...]:
     """A fixed classifier's probabilities through the fillers' online calibrator.
 
@@ -377,5 +381,7 @@ def calibrated_risks(
         logit = np.log(np.clip(p, _EPS, 1 - _EPS)) - np.log(np.clip(1 - p, _EPS, 1 - _EPS))
         risks.append(np.array([calibrator.probability(raw) for raw in logit]))
         for raw, label in zip(logit, y, strict=True):
-            calibrator = calibrator_step(calibrator, float(raw), outcome(cost, followed=label))
+            calibrator = calibrator_step(
+                calibrator, float(raw), outcome(cost, followed=label), rate
+            )
     return tuple(risks)

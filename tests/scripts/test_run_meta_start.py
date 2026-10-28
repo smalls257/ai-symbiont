@@ -59,7 +59,8 @@ def test_train_then_score_validation_writes_every_row(runner, tmp_path):
     common = ["--episodes", episodes, "--pool", pool]
     runner.main(
         ["train", *common, "--out", starts, "--seeds", "0"]
-        + ["--outer-steps", "20", "--train-repos", "5", "--workers", "2"]
+        + ["--outer-steps", "20", "--train-repos", "5", "--workers", "4"]
+        + ["--calibrator-rates", "0.1", "0.5"]
     )
     out = tmp_path / "result.json"
     runner.main(["score", *common, "--starts", starts, "--on", "validation", "--out", str(out)])
@@ -69,7 +70,10 @@ def test_train_then_score_validation_writes_every_row(runner, tmp_path):
     assert document["split"] == {"train": 10, "validation": 10, "scoring": 5}
     arms = {r["arm"] for r in document["rows"]}
     assert {"fly meta start", "dense cold start", "logistic + online calibrator"} <= arms
-    assert {c["filler"] for c in document["chosen_starts"]} == {"fly", "dense"}
+    chosen = document["chosen_on_validation"]
+    assert {c["filler"] for c in chosen["meta"]} == {"fly", "dense"}
+    assert {c["calibrator_rate"] for c in chosen["cold"]} <= set(runner.CALIBRATOR_RATES)
+    assert chosen["adapting_classifier"]["calibrator_rate"] in runner.CALIBRATOR_RATES
 
 
 def test_the_scoring_fold_is_refused_without_a_scored_run(runner, tmp_path):
@@ -82,17 +86,18 @@ def test_the_scoring_fold_is_refused_without_a_scored_run(runner, tmp_path):
 
 
 def test_only_the_fly_and_densenet_are_meta_trained(runner):
-    assert runner.filler_of("fly", 1).name == "mushroom"
-    assert runner.filler_of("dense", 2).lr == runner.DENSE_RATE
+    assert runner.filler_of("fly", 1, 0.1).calibrator_rate == 0.1
+    assert runner.filler_of("dense", 2, 0.2).lr == runner.DENSE_RATE
     with pytest.raises(ValueError, match="counters"):
-        runner.filler_of("counters", 0)
+        runner.filler_of("counters", 0, 0.1)
 
 
 def test_a_restarted_training_run_resumes_each_job_from_its_checkpoint(runner, tmp_path):
     episodes, pool = synthetic(tmp_path)
     starts = str(tmp_path / "starts.npz")
     args = ["train", "--episodes", episodes, "--pool", pool, "--out", starts, "--seeds", "0"]
-    args += ["--outer-steps", "40", "--train-repos", "5", "--workers", "2"]
+    args += ["--outer-steps", "20", "--train-repos", "5", "--workers", "4"]
+    args += ["--calibrator-rates", "0.5"]
     runner.main(args)
     first = dict(np.load(starts))
     jobs = tmp_path / "starts-jobs"

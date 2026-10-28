@@ -51,6 +51,7 @@ from symbiont.core.features import (
 )
 from symbiont.core.indexes import Growing, PainPointIndex, TokenIndex, continues, tokens
 from symbiont.core.meta import (
+    CALIBRATOR_RATE,
     META_RUN_SEED,
     Calibrator,
     LinearReadoutMeta,
@@ -104,6 +105,7 @@ class Mushroom(LinearReadoutMeta):
     flywire_path: Path | None = None
     lr: float = 0.1
     trouble_threshold: float = PLACEHOLDER_THRESHOLD
+    calibrator_rate: float = CALIBRATOR_RATE  # fixed per run, never self-tuned
     hubs: frozenset[str] = frozenset()
     scratch: frozenset[ScratchFile] = frozenset()
     name = "mushroom"
@@ -186,7 +188,7 @@ class Mushroom(LinearReadoutMeta):
             w_out=weights,
             learned=learned,
             updates=state.updates + 1,
-            calibrator=calibrator_step(state.calibrator, raw, outcome),
+            calibrator=calibrator_step(state.calibrator, raw, outcome, self.calibrator_rate),
         )
 
     def _kind_of_trouble(

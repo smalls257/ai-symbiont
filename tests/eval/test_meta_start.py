@@ -172,3 +172,11 @@ def test_a_run_resumed_from_a_check_ends_exactly_where_an_unbroken_run_ends():
     resumed = meta_train(filler, train, validation, config, Checkpoints(resume=seen[0]))
     assert resumed.curve == whole.curve and resumed.best_step == whole.best_step
     np.testing.assert_array_equal(resumed.start.as_vector(), whole.start.as_vector())
+
+
+def test_the_classifier_calibrator_follows_its_rate():
+    probs = [np.full(20, 0.6), np.full(20, 0.6)]
+    calm = [np.zeros(20, dtype=bool), np.zeros(20, dtype=bool)]
+    slow = calibrated_risks(probs, calm, COST, rate=0.05)[1]
+    fast = calibrated_risks(probs, calm, COST, rate=0.5)[1]
+    assert (fast < slow).all() and (slow < 0.6).all()

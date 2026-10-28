@@ -48,9 +48,9 @@ import numpy as np
 
 from symbiont.core.slot import Decider, Outcome
 
-# One fixed online rate for scale and bias. Fixed because self-tuned rates
-# (IDBD) are on the spec's "do not build" list; small because the raw score of
-# the fly lives in [0, 1) and a large step on `scale` would swamp the readout.
+# The default online rate for scale and bias. Never self-tuned (IDBD is on the
+# spec's "do not build" list); a run may fix another value from a grid chosen on
+# validation repositories (T39 controller ruling, Oct 28), passed to the filler.
 CALIBRATOR_RATE = 0.5
 # Wiring is a property of the filler's seed, not of a run, so a meta-learned
 # start trained in one domain still fits the same filler in another.
@@ -128,12 +128,14 @@ def loss_gradient(start: MetaStart, view: Readout, outcome: Outcome) -> MetaStar
     )
 
 
-def calibrator_step(calibrator: Calibrator, raw: float, outcome: Outcome) -> Calibrator:
+def calibrator_step(
+    calibrator: Calibrator, raw: float, outcome: Outcome, rate: float = CALIBRATOR_RATE
+) -> Calibrator:
     """One online step of the calibrator on the weighted loss."""
     dz = weighted_dz(calibrator.probability(raw), outcome)
     return Calibrator(
-        scale=calibrator.scale - CALIBRATOR_RATE * dz * raw,
-        bias=calibrator.bias - CALIBRATOR_RATE * dz,
+        scale=calibrator.scale - rate * dz * raw,
+        bias=calibrator.bias - rate * dz,
     )
 
 
