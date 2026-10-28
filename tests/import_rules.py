@@ -76,3 +76,37 @@ def private_cross_imports(source: str, own_package: str) -> list[str]:
             continue
         found += [(node.lineno, d) for d in dotted if _other_package_private(d, own_package)]
     return [name for _, name in sorted(found)]
+
+
+NETWORK_MODULES = (
+    "socket",
+    "socketserver",
+    "selectors",
+    "select",
+    "ssl",
+    "http",
+    "urllib",
+    "asyncio",
+    "xmlrpc",
+    "requests",
+    "httpx",
+)
+# The one inbound listener (ruling 2026-10-27-service-transport) may import http.server.
+LISTENER = "service/server.py"
+LISTENER_MODULES = ("http.server",)
+
+
+def _is_network(module: str) -> bool:
+    return any(module == m or module.startswith(m + ".") for m in NETWORK_MODULES)
+
+
+def network_imports(source: str, path: str) -> list[str]:
+    """Network modules imported in `source`, except http.server in the listener file."""
+    allowed = LISTENER_MODULES if path == LISTENER else ()
+    found = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.Import):
+            found += [(node.lineno, a.name) for a in node.names]
+        elif isinstance(node, ast.ImportFrom) and node.module:
+            found.append((node.lineno, node.module))
+    return [name for _, name in sorted(found) if _is_network(name) and name not in allowed]
