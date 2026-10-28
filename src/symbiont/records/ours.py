@@ -25,6 +25,7 @@ def split_our_output(text: str) -> tuple[str, str]:
 
 
 def _tag_offset(text: str) -> int | None:
+    """Character offset of the line that is exactly the tag, or None."""
     offset = 0
     for line in text.splitlines(keepends=True):
         if line.rstrip("\r\n") == OUR_OUTPUT_TAG:

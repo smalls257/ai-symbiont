@@ -1,19 +1,9 @@
-"""Reader for Claude Code session logs.
+"""Reader for Claude Code session logs (JSONL, one event per line).
 
-Input is JSONL, one event per line, in the shape Claude Code writes under
-`~/.claude/projects/*` and SWE-chat republishes: `type` ("user" or "assistant"),
-`sessionId`, `timestamp`, optional `cwd`, and `message` whose `content` is text
-or a list of blocks (`text`, `tool_use`, `tool_result`). A tool result answers
-its `tool_use` by id and travels in that action's `raw`. SWE-chat marks user
-pushback with `prompt_pushback`; it becomes the "correction" tag.
-
-Subagent events share the session id, and meta user lines become user turns.
-Events other than user and assistant that carry no `message` are metadata:
-they are skipped and counted per type, and the counts are logged per file.
-A non-conversation type that does carry a `message` raises ReadError.
-
-Three entry points differ only in provenance. `read` is for the owner's private
-sessions and is the default: unknown privacy is never shareable.
+A tool result travels in the `raw` of the action it answers; SWE-chat's
+`prompt_pushback` becomes the "correction" tag. Metadata events are counted per
+type and logged; a non-conversation event that carries a `message` raises ReadError.
+`read` is for the owner's private sessions: unknown privacy is never shareable.
 """
 
 import difflib
@@ -61,6 +51,7 @@ def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
 
 
 def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
+    """Yield one session's records; each tool result is folded into the action it answers."""
     events = _conversation_events(Path(path))
     results = _results_by_call(path, events)
     source = _Source(project, provenance)
@@ -98,6 +89,7 @@ def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
 
 
 def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
+    """True for non-conversation events without a message; one with a message raises ReadError."""
     kind = event.get("type")
     if not isinstance(kind, str):
         message = "missing 'type'" if kind is None else "'type' must be a string"
@@ -115,6 +107,7 @@ def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
 def _results_by_call(
     path: Path, events: list[tuple[int, dict[str, Any]]]
 ) -> dict[str, dict[str, Any]]:
+    """Every tool_result block of the file keyed by its tool_use id."""
     results = {}
     for line_no, event in events:
         try:
@@ -125,6 +118,7 @@ def _results_by_call(
 
 
 def _event_results(event: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """The tool_result blocks of one event, by tool_use id."""
     return {
         _require_text(block, "tool_use_id"): block
         for block in _blocks(event)
@@ -133,18 +127,21 @@ def _event_results(event: dict[str, Any]) -> dict[str, dict[str, Any]]:
 
 
 def _require(mapping: Any, key: str) -> Any:
+    """The mapping's value for `key`; a missing or null one raises _MalformedError."""
     if not isinstance(mapping, dict) or mapping.get(key) is None:
         raise _MalformedError(f"missing {key!r}")
     return mapping[key]
 
 
 def _require_str(value: Any, field: str) -> str:
+    """The value if it is a string, else _MalformedError naming the field."""
     if not isinstance(value, str):
         raise _MalformedError(f"{field!r} must be a string, got {type(value).__name__}")
     return value
 
 
 def _require_text(mapping: Any, key: str) -> str:
+    """The string under `key` in the mapping; missing or non-string raises _MalformedError."""
     return _require_str(_require(mapping, key), key)
 
 
@@ -155,6 +152,7 @@ def _optional_text(mapping: dict[str, Any], key: str) -> str:
 
 
 def _blocks(event: dict[str, Any]) -> list[dict[str, Any]]:
+    """The event's content as blocks; bare text becomes one text block."""
     content = _require(_require(event, "message"), "content")
     if isinstance(content, str):
         return [{"type": "text", "text": content}]
@@ -165,6 +163,8 @@ def _blocks(event: dict[str, Any]) -> list[dict[str, Any]]:
 
 @dataclass(frozen=True)
 class _Source:
+    """What every record of one read shares: project and provenance."""
+
     project: str
     provenance: Provenance
 
@@ -172,6 +172,7 @@ class _Source:
 def _record(
     event: dict[str, Any], source: _Source, session_id: str, step: int, fields: dict[str, Any]
 ) -> Record:
+    """Build a Record from the shared source, the event's timestamp and the shaped fields."""
     return Record(
         harness=HARNESS,
         project=source.project,
@@ -189,6 +190,7 @@ def _record(
 def _event_records(
     event: dict[str, Any], results: dict[str, dict[str, Any]]
 ) -> Iterator[dict[str, Any]]:
+    """The shaped fields of each record one event yields."""
     _optional_text(event, "cwd")
     if event["type"] == "user":
         yield from _user_turns(event)
@@ -197,6 +199,7 @@ def _event_records(
 
 
 def _user_turns(event: dict[str, Any]) -> Iterator[dict[str, Any]]:
+    """The user's text as one turn; events holding only tool results yield nothing."""
     texts = [_require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
     if not texts:
         return  # tool results only: they are folded into the action they answer
@@ -204,6 +207,7 @@ def _user_turns(event: dict[str, Any]) -> Iterator[dict[str, Any]]:
 
 
 def _pushback_tags(event: dict[str, Any]) -> tuple[str, ...]:
+    """`correction` when SWE-chat marked the turn as pushback; any other flag value raises."""
     flag = event.get("prompt_pushback")
     if flag is None or flag is False or flag == "":
         return ()
@@ -215,6 +219,7 @@ def _pushback_tags(event: dict[str, Any]) -> tuple[str, ...]:
 def _assistant_records(
     event: dict[str, Any], results: dict[str, dict[str, Any]]
 ) -> Iterator[dict[str, Any]]:
+    """Text, thinking and tool_use blocks as records, each action carrying its result."""
     cwd = _optional_text(event, "cwd") or None
     for block in _blocks(event):
         kind = block.get("type")
@@ -246,6 +251,7 @@ def _tool_use(
 
 
 def _result_content(result: dict[str, Any] | None) -> str:
+    """The tool result as text, empty when the call has no result yet."""
     if result is None:
         return ""
     if not isinstance(result.get("is_error", False), bool):
@@ -274,7 +280,10 @@ def _exit_code(kind: Kind, result: dict[str, Any] | None, raw: str) -> int | Non
 
 
 def _make_relative(cwd: str | None) -> Callable[[str], str]:
+    """A function that strips the session's cwd from absolute paths."""
+
     def relative(path: str) -> str:
+        """The path relative to the session's cwd when it is inside it."""
         if cwd and path.startswith(cwd.rstrip("/") + "/"):
             return path[len(cwd.rstrip("/")) + 1 :]
         return path
@@ -283,10 +292,12 @@ def _make_relative(cwd: str | None) -> Callable[[str], str]:
 
 
 def _bash(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
+    """A shell command action."""
     return {"kind": Kind.COMMAND, "command": _require_text(args, "command")}
 
 
 def _read_file(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
+    """A file-view action with the lines shown."""
     return {
         "kind": Kind.READ,
         "files": (relative(_require_text(args, "file_path")),),
@@ -295,6 +306,7 @@ def _read_file(name: str, args: dict[str, Any], relative: Callable[[str], str]) 
 
 
 def _read_range(args: dict[str, Any]) -> tuple[int, int] | None:
+    """(first, last) line shown from offset and limit; None for a whole-file read."""
     offset, limit = args.get("offset"), args.get("limit")
     if offset is None and limit is None:
         return None
@@ -305,12 +317,14 @@ def _read_range(args: dict[str, Any]) -> tuple[int, int] | None:
 
 
 def _edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
+    """An edit action with a snippet-level diff."""
     path = relative(_require_text(args, "file_path"))
     pairs = [(_require_text(args, "old_string"), _optional_text(args, "new_string"))]
     return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
 
 
 def _multi_edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
+    """One edit action for a MultiEdit call, its diffs joined in order."""
     path = relative(_require_text(args, "file_path"))
     edits = _require(args, "edits")
     if not isinstance(edits, list):
@@ -320,6 +334,7 @@ def _multi_edit(name: str, args: dict[str, Any], relative: Callable[[str], str])
 
 
 def _write(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
+    """A whole-file write as an edit against /dev/null."""
     path = relative(_require_text(args, "file_path"))
     return {
         "kind": Kind.EDIT,
@@ -331,7 +346,7 @@ def _write(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> d
 def _notebook_edit(
     name: str, args: dict[str, Any], relative: Callable[[str], str]
 ) -> dict[str, Any]:
-    # The notebook's previous cell text is not logged, so there is no diff.
+    """A notebook edit action; the previous cell text is not logged, so there is no diff."""
     return {"kind": Kind.EDIT, "files": (relative(_require_text(args, "notebook_path")),)}
 
 
@@ -341,6 +356,7 @@ def _other_tool(name: str, args: dict[str, Any], relative: Callable[[str], str])
 
 
 def _diff(path: str, pairs: list[tuple[str, str]], old_name: str) -> str:
+    """Unified diff of each old/new pair, labeled with the file's path."""
     # Claude Code does not record where old_string sits; hunk numbers are snippet-relative.
     return "".join(
         "".join(difflib.unified_diff(_lines(old), _lines(new), old_name, f"b/{path}"))
@@ -349,6 +365,7 @@ def _diff(path: str, pairs: list[tuple[str, str]], old_name: str) -> str:
 
 
 def _lines(text: str) -> list[str]:
+    """Text split into newline-terminated lines for difflib."""
     return [line + "\n" for line in text.splitlines()]
 
 
