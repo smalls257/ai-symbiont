@@ -238,7 +238,7 @@ def fractions(args: argparse.Namespace) -> None:
     done = g6.pool_map(fraction_job, jobs, args.workers)
     out = {
         "run_label": "exploratory",
-        "question": "does the batch classifier still improve with more TRAIN tasks",
+        "asks": "does the batch classifier still improve with more TRAIN tasks",
         "code_commit": t36.git_head(),
         "l2": FRACTION_L2,
         "fractions": list(FRACTIONS),

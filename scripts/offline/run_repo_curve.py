@@ -195,7 +195,7 @@ def run(args: argparse.Namespace) -> None:
     points = [curve_point(n, risks, args) for n in N_GRID]
     document = {
         "run_label": "exploratory",
-        "question": "is it data variety: option A value against the number of training repos",
+        "asks": "is it data variety: option A value against the number of training repos",
         "code_commit": t36.git_head(),
         "pool": args.pool,
         **sizes,
