@@ -24,21 +24,29 @@ EPOCHS=${LCAP_EPOCHS:-8}
 BATCH=4
 mkdir -p "$LOGS" "$ADAPTERS" "$ANSWERS"
 
-cat > "$LOGS/lora.yaml" <<YAML
+lora_yaml() {  # lora_yaml <iters>: one schedule shape for every size, stretched to its iters
+  cat <<YAML
 fine_tune_type: lora
 num_layers: -1
 batch_size: $BATCH
-learning_rate: 2.0e-4
+learning_rate: 1.0e-4
 mask_prompt: true
 max_seq_length: 512
 steps_per_report: 20
 steps_per_eval: 100000
 seed: 0
+# Constant 2e-4 diverged on the 30-lesson set; warmup plus cosine decay did not [measured].
+lr_schedule:
+  name: cosine_decay
+  warmup: 20
+  warmup_init: 1.0e-6
+  arguments: [1.0e-4, $1, 1.0e-6]
 lora_parameters:
   rank: 16
-  scale: 2.0  # rank 16, alpha 32: scale 20 (the mlx default) diverged at lr 2e-4 [measured]
+  scale: 2.0  # alpha 32 at rank 16; scale 20 (the mlx default) diverged at lr 2e-4 [measured]
   dropout: 0.0
 YAML
+}
 
 timed() {  # timed <step name> <log file> <command...>
   local name=$1 log=$2 start
@@ -52,15 +60,20 @@ train() {  # train <condition>
   local rows iters
   rows=$(wc -l <"$DATA/train/$1/train.jsonl")
   iters=$((rows * EPOCHS / BATCH))
+  # resume: mlx-lm writes adapters.safetensors mid-run too, so only .done marks a finished run
+  [[ -f "$ADAPTERS/$1/.done" ]] && return 0
   echo "train-$1 iters=$iters rows=$rows" >>"$LOGS/budget.txt"
-  timed "train-$1" "$LOGS/train-$1.log" "$PY" -m mlx_lm lora -c "$LOGS/lora.yaml" \
+  lora_yaml "$iters" >"$LOGS/lora-$1.yaml"
+  timed "train-$1" "$LOGS/train-$1.log" "$PY" -m mlx_lm lora -c "$LOGS/lora-$1.yaml" \
     --model "$MODEL" --train --data "$DATA/train/$1" --iters "$iters" \
     --adapter-path "$ADAPTERS/$1"
+  touch "$ADAPTERS/$1/.done"
 }
 
 answer() {  # answer <arm> <condition> [extra args]
   local arm=$1 cond=$2
   shift 2
+  [[ -f "$ANSWERS/$arm-$cond.jsonl" ]] && return 0  # resume: answered already
   timed "answer-$arm-$cond" "$LOGS/answer-$arm-$cond.log" "$PY" "$HERE/answer_questions.py" \
     --model "$MODEL" --questions "$DATA/ask/$cond.jsonl" --out "$ANSWERS/$arm-$cond.jsonl" "$@"
 }
