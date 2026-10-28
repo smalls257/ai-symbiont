@@ -5,6 +5,7 @@ import pytest
 
 from record_builders import PUBLIC, edit, run, session, user
 from symbiont.core.counters import Counters
+from symbiont.core.similarity import Similarity
 from symbiont.records.schema import Provenance, dump_jsonl
 from symbiont.service.app import (
     NOTHING_MATCHES,
@@ -29,6 +30,7 @@ def failing_session(session_id, provenance=PUBLIC):
 
 
 def make_store(tmp_path, *sessions):
+    tmp_path.mkdir(parents=True, exist_ok=True)
     store = Store.open(tmp_path / "store.db")
     for records in sessions:
         store.add_records(records, held_out_tasks=frozenset())
@@ -164,6 +166,66 @@ def test_spark_bound_observe_never_pushes_private_record(tmp_path):
     assert response.status == 409 and SPARK_WITHHELD in response.body["error"]
     assert COMMAND not in json.dumps(response.body)
     (event,) = events_of(events)
-    assert event["status"] == 409 and event["hook"] == "observe"
+    assert event["status"] == 409 and event["route"] == "observe"
     local = service.respond("/observe", observe_body("again"))
     assert local.status == 200 and local.body["notes"]
+
+
+@pytest.mark.parametrize("route", ["/observe", "/recall"])
+@pytest.mark.parametrize("value", ["true", 1, "yes", None])
+def test_spark_bound_must_be_a_real_boolean(tmp_path, route, value):
+    store = make_store(tmp_path, failing_session("p1", PRIVATE), failing_session("p2", PRIVATE))
+    service, events = make_service(tmp_path, store)
+    ask = {"question": "test_parser", "project": PROJECT} if route == "/recall" else observe_body()
+    response = service.respond(route, ask | {"spark_bound": value})
+    assert response.status == 400 and "spark_bound" in response.body["error"]
+    assert COMMAND not in json.dumps(response.body)
+    assert events_of(events)[-1]["status"] == 400
+
+
+def test_spark_bound_observe_withholds_a_warning_learned_from_another_project(tmp_path):
+    other = [replace(r, project="priv/repo") for r in failing_session("p1", PRIVATE)]
+    other += [replace(r, project="priv/repo") for r in failing_session("p2", PRIVATE)]
+    log = tmp_path / "private.jsonl"
+    with log.open("w") as fh:
+        dump_jsonl(other, fh)
+    service, events = make_service(tmp_path, make_store(tmp_path))
+    assert service.respond("/learn", {"session_log_path": str(log)}).status == 200
+    local = service.respond("/observe", observe_body())
+    assert local.status == 200 and local.body["notes"], "the learned warning reaches a local caller"
+    spark = service.respond("/observe", observe_body("again") | {"spark_bound": True})
+    assert spark.status == 409 and SPARK_WITHHELD in spark.body["error"]
+    assert COMMAND not in json.dumps(spark.body)
+
+
+def test_recall_only_mode_sends_a_recall_note_from_other_sessions(tmp_path):
+    store = two_failures(tmp_path)
+    service, events = make_service(tmp_path, store, ServiceMode.RECALL_ONLY, decider=Similarity())
+    response = service.respond("/observe", observe_body())
+    assert response.status == 200 and len(response.body["notes"]) >= 1
+    assert all(
+        note.startswith("Earlier in this project you ran") for note in response.body["notes"]
+    )
+    event = events_of(events)[-1]
+    assert event["recalled"] >= 1 and event["records"], "recalled records are in the event"
+    assert event["route"] == "observe" and event["hook"] == "pre_command"
+
+
+def test_spark_bound_observe_recalls_through_the_guarded_view(tmp_path):
+    clean = make_store(tmp_path / "c", failing_session("a"), failing_session("b"))
+    service, _ = make_service(tmp_path / "c", clean, ServiceMode.RECALL_ONLY, decider=Similarity())
+    ok = service.respond("/observe", observe_body() | {"spark_bound": True})
+    assert ok.status == 200 and ok.body["notes"]
+    mixed = make_store(tmp_path / "m", failing_session("a"), failing_session("p", PRIVATE))
+    guarded, _ = make_service(tmp_path / "m", mixed, ServiceMode.RECALL_ONLY, decider=Similarity())
+    refused = guarded.respond("/observe", observe_body() | {"spark_bound": True})
+    assert refused.status == 409
+
+
+def test_recall_answer_repeats_no_sentence(tmp_path):
+    service, _ = make_service(tmp_path, two_failures(tmp_path))
+    answer = service.respond("/recall", {"question": "test_parser", "project": PROJECT}).body[
+        "answer"
+    ]
+    sentences = [s for s in answer.split(". ") if s]
+    assert len(sentences) == len(set(sentences))

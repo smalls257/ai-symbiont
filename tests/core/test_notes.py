@@ -1,8 +1,7 @@
 import json
 import re
 
-from tests.record_builders import run
-
+from record_builders import run
 from symbiont.core.notes import NoteKind, render
 from symbiont.core.slot import Decision, event_fields
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
@@ -11,7 +10,6 @@ FAILED = Signature(Signal.FAILED_COMMAND, ("pytest", "tests/test_tokens.py", "Im
 BLAST = Signature(Signal.BLAST_RADIUS, ("src/parser.py", "src/tokens.py"))
 RISK = 0.7312
 FORBIDDEN = re.compile(r"score|KC|feature|threshold", re.IGNORECASE)
-NUMBER = re.compile(r"\d+(?!\s*(?:times?)\b)")
 
 
 def pain(signature, step=1):
