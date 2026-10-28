@@ -19,6 +19,7 @@ PURE_FILES = (
     "rooms.py",
     "steplog.py",
     "game_pains.py",
+    "episode_records.py",
 )
 
 
