@@ -58,7 +58,7 @@ def test_train_then_score_validation_writes_every_row(runner, tmp_path):
     starts = str(tmp_path / "starts.npz")
     common = ["--episodes", episodes, "--pool", pool]
     runner.main(
-        ["train", *common, "--out", starts, "--seeds", "0", "--rates", "0.03"]
+        ["train", *common, "--out", starts, "--seeds", "0"]
         + ["--outer-steps", "20", "--train-repos", "5", "--workers", "2"]
     )
     out = tmp_path / "result.json"

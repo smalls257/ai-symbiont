@@ -14,12 +14,15 @@ after the session ends. First-order MAML: the gradient of the weighted loss at t
 in force for each early session is applied to the start the repository began from. Only
 the readout start and calibrator move (spec 4.5); wiring and rates are the filler's.
 
-Outer steps use Adam, an optimizer of the trainer, not a rate inside the filler. Pure: no
+Reptile (move toward the mean adapted start) is the second outer rule; validation picks
+between them, since a long inner loop can make the first-order gradient point the wrong way.
+Outer steps of first-order MAML use Adam, an optimizer of the trainer, not a filler rate. Pure: no
 clock, files or environment; the run script logs and stores.
 """
 
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from enum import StrEnum
 
 import numpy as np
 
@@ -177,11 +180,21 @@ class Adam:
         return -self.rate * unbiased / scale, Adam(self.rate, first, second, count)
 
 
+class MetaRule(StrEnum):
+    """How the outer loop moves the start; both are first-order, chosen on validation."""
+
+    # Adam on the loss gradient at the start in force for each early session.
+    FIRST_ORDER_MAML = "first-order MAML"
+    # A fraction `outer_rate` of the way toward the batch's mean adapted start.
+    REPTILE = "Reptile"
+
+
 @dataclass(frozen=True)
 class MetaConfig:
     """How long and how hard the outer loop runs; fixed in the prereg."""
 
     outer_rate: float
+    rule: MetaRule = MetaRule.FIRST_ORDER_MAML
     outer_steps: int = 300
     batch: int = 8  # repositories per outer step
     check_every: int = 20  # outer steps between validation checks
@@ -213,6 +226,42 @@ def batch_gradient(
     return total / max(1, sum(n for _, n in parts))
 
 
+def adapted_end(
+    filler: MetaLearnable, start: MetaStart, episode: Episode, cost: float
+) -> MetaStart:
+    """Where the filler's own rule has taken `start` after the repository's early window."""
+    for x, y in zip(episode.early().features, episode.early().followed, strict=True):
+        start = adapt(filler, start, x, y, cost)
+    return start
+
+
+def reptile_direction(
+    filler: MetaLearnable, start: MetaStart, batch: Sequence[Episode], cost: float
+) -> np.ndarray:
+    """Mean adapted start minus the start, over a batch of repositories."""
+    ends = [adapted_end(filler, start, episode, cost).as_vector() for episode in batch]
+    direction: np.ndarray = np.mean(ends, axis=0) - start.as_vector()
+    return direction
+
+
+class OuterStep:
+    """One outer move of the start under the configured rule."""
+
+    def __init__(self, learner: MetaLearnable, size: int, config: MetaConfig) -> None:
+        """Hold the learner, the rule's step size and Adam's moments."""
+        self._learner, self._config = learner, config
+        self._adam = Adam.at(config.outer_rate, size)
+
+    def __call__(self, start: MetaStart, batch: Sequence[Episode]) -> MetaStart:
+        """The start after one move on `batch`."""
+        cost = self._config.cost
+        if self._config.rule == MetaRule.REPTILE:
+            move = self._config.outer_rate * reptile_direction(self._learner, start, batch, cost)
+        else:
+            move, self._adam = self._adam.step(batch_gradient(self._learner, start, batch, cost))
+        return start.with_vector(start.as_vector() + move)
+
+
 def meta_train(
     filler: object, train: Sequence[Episode], validation: Sequence[Episode], config: MetaConfig
 ) -> MetaResult:
@@ -227,14 +276,11 @@ def meta_train(
         raise ValueError("meta-training needs training and validation repositories")
     rng = np.random.default_rng(config.seed)
     start = cold_start(learner)
-    best, adam = start, Adam.at(config.outer_rate, len(start.as_vector()))
+    best, move = start, OuterStep(learner, len(start.as_vector()), config)
     curve, stale = [(0, early_loss(learner, start, validation, config.cost))], 0
     for step in range(1, config.outer_steps + 1):
         picked = rng.choice(len(train), size=min(config.batch, len(train)), replace=False)
-        move, adam = adam.step(
-            batch_gradient(learner, start, [train[i] for i in picked], config.cost)
-        )
-        start = start.with_vector(start.as_vector() + move)
+        start = move(start, [train[i] for i in picked])
         if step % config.check_every:
             continue
         curve.append((step, early_loss(learner, start, validation, config.cost)))

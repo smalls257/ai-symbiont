@@ -37,6 +37,7 @@ from symbiont.core.mushroom import Mushroom
 from symbiont.eval import selection as sel
 from symbiont.eval.meta_start import (
     MetaConfig,
+    MetaRule,
     MetaSplit,
     calibrated_risks,
     cold_start,
@@ -59,7 +60,12 @@ log = logging.getLogger("t39")
 PREREG_NAME = "2026-10-28-meta-start.md"
 DENSE_RATE = 0.1  # T46 ruling 13: the DenseNet rate TRAIN-CV picked most
 CLASSIFIER_L2 = 1000.0  # T46 ruling 13: the classifier strength TRAIN-CV picked most
-OUTER_RATES = (0.003, 0.01, 0.03)  # Adam step sizes, chosen on the validation repositories
+# Outer step sizes per rule, chosen with the rule on the validation repositories: Adam
+# steps for first-order MAML, the fraction of the way toward the adapted start for Reptile.
+OUTER_GRID = {
+    MetaRule.FIRST_ORDER_MAML: (0.001, 0.003, 0.01),
+    MetaRule.REPTILE: (0.03, 0.1, 0.3),
+}
 FILLERS = ("fly", "dense")
 DATA: dict[str, eps.RepoSteps] = {}
 SPLIT: list[MetaSplit] = []
@@ -75,22 +81,23 @@ def filler_of(kind: str, seed: int) -> MetaLearnable:
     raise ValueError(f"unknown filler {kind!r}")
 
 
-def train_job(job: tuple[str, int, float]) -> dict[str, Any]:
-    """Meta-train one filler at one outer step size; the start and its validation curve."""
-    kind, seed, rate = job
+def train_job(job: tuple[str, int, MetaRule, float]) -> dict[str, Any]:
+    """Meta-train one filler under one rule and step size; the start and its curve."""
+    kind, seed, rule, rate = job
     started, split = time.time(), SPLIT[0]
     train = [DATA[r].episode for r in split.train[: SETTINGS["train_repos"]]]
     validation = [DATA[r].episode for r in split.validation]
-    config = MetaConfig(outer_rate=rate, outer_steps=SETTINGS["outer_steps"], seed=seed)
+    config = MetaConfig(rate, rule, outer_steps=SETTINGS["outer_steps"], seed=seed)
     result = meta_train(filler_of(kind, seed), train, validation, config)
     seconds = time.time() - started
     log.info(
-        "%s seed %d rate %g: best step %d loss %.4f (cold %.4f) %.0fs",
-        *(kind, seed, rate, result.best_step, result.best_loss, result.curve[0][1], seconds),
+        "%s seed %d %s %g: best step %d loss %.4f (cold %.4f) %.0fs",
+        *(kind, seed, rule, rate, result.best_step, result.best_loss, result.curve[0][1], seconds),
     )
     return {
         "kind": kind,
         "seed": seed,
+        "rule": rule.name,
         "outer_rate": rate,
         "best_step": result.best_step,
         "curve": [list(c) for c in result.curve],
@@ -103,14 +110,22 @@ def train(args: argparse.Namespace) -> None:
     """Every (filler, seed, outer step size) job; starts to npz, curves to json, both data/."""
     prepare(args)
     SETTINGS.update(train_repos=args.train_repos, outer_steps=args.outer_steps)
-    jobs = [(k, s, r) for k in FILLERS for s in args.seeds for r in args.rates]
+    grid = [(rule, rate) for rule, rates in OUTER_GRID.items() for rate in rates]
+    jobs = [(k, s, *g) for k in FILLERS for s in args.seeds for g in grid]
     jobs.sort(key=lambda job: job[0] != "fly")  # the fly's jobs are the long ones
     done = g6.pool_map(train_job, jobs, args.workers)
-    starts = {f"{d['kind']}.{d['seed']}.{d['outer_rate']:g}": d.pop("start") for d in done}
+    starts = {
+        start_key(d["kind"], d["seed"], d["rule"], d["outer_rate"]): d.pop("start") for d in done
+    }
     np.savez(args.out, **starts)
     summary = {"code_commit": t36.git_head(), **SETTINGS, "jobs": done}
     Path(args.out).with_suffix(".json").write_text(json.dumps(summary, indent=1))
     log.info("wrote %s", args.out)
+
+
+def start_key(kind: str, seed: int, rule: str, rate: float) -> str:
+    """The name of one trained start in the starts file."""
+    return f"{kind}.{seed}.{rule}.{rate:g}"
 
 
 def prepare(args: argparse.Namespace) -> None:
@@ -120,16 +135,22 @@ def prepare(args: argparse.Namespace) -> None:
     DATA.update(eps.load(args.episodes))
 
 
-def best_starts(path: str) -> dict[tuple[str, int], tuple[float, int]]:
-    """Per (filler, seed): the outer step size with the lowest validation loss, and its step."""
+def best_starts(path: str) -> dict[tuple[str, int], dict[str, Any]]:
+    """Per (filler, seed): the rule and step size with the lowest validation loss."""
     jobs = json.loads(Path(path).with_suffix(".json").read_text())["jobs"]
-    best: dict[tuple[str, int], tuple[float, float, int]] = {}
+    best: dict[tuple[str, int], dict[str, Any]] = {}
     for job in jobs:
-        loss = min(c[1] for c in job["curve"])
+        loss = min(point[1] for point in job["curve"])
         key = (job["kind"], job["seed"])
-        if key not in best or loss < best[key][1]:
-            best[key] = (job["outer_rate"], loss, job["best_step"])
-    return {key: (rate, step) for key, (rate, _, step) in best.items()}
+        if key not in best or loss < best[key]["validation_loss"]:
+            best[key] = {
+                "rule": job["rule"],
+                "outer_rate": job["outer_rate"],
+                "best_step": job["best_step"],
+                "validation_loss": loss,
+                "cold_validation_loss": job["curve"][0][1],
+            }
+    return best
 
 
 def evaluation_repos(args: argparse.Namespace, settings: dict[str, Any]) -> dict[str, list[str]]:
@@ -208,7 +229,7 @@ def score(args: argparse.Namespace) -> None:
     picked = best_starts(args.starts)
     seeds = sorted({seed for _, seed in picked})
     SETTINGS["starts"] = {
-        key: stored[f"{key[0]}.{key[1]}.{rate:g}"] for key, (rate, _) in picked.items()
+        key: stored[start_key(*key, p["rule"], p["outer_rate"])] for key, p in picked.items()
     }
     repos = evaluation_repos(args, trained)
     SETTINGS["scored"] = repos["scored"]
@@ -225,10 +246,7 @@ def score(args: argparse.Namespace) -> None:
         "meta_train_repos": trained["train_repos"],
         "outer_steps_max": trained["outer_steps"],
         "classifier_fit_repos": len(repos["fit"]),
-        "chosen_starts": [
-            {"filler": k, "seed": s, "outer_rate": r, "best_step": b}
-            for (k, s), (r, b) in sorted(picked.items())
-        ],
+        "chosen_starts": [{"filler": k, "seed": s, **p} for (k, s), p in sorted(picked.items())],
         **body,
         "wall_clock_s": time.time() - started,
         "finished_utc": datetime.now(UTC).isoformat(timespec="seconds"),
@@ -248,7 +266,6 @@ def parser_of() -> argparse.ArgumentParser:
         for name in ("episodes", "pool", "out"):
             each.add_argument(f"--{name}", required=True)
     train_parser.add_argument("--seeds", type=int, nargs="+", default=list(sel.WIRING_SEEDS))
-    train_parser.add_argument("--rates", type=float, nargs="+", default=list(OUTER_RATES))
     train_parser.add_argument("--outer-steps", type=int, default=300)
     train_parser.add_argument("--train-repos", type=int, default=70)
     train_parser.add_argument("--workers", type=int, default=16)

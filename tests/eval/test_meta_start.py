@@ -19,6 +19,7 @@ from symbiont.eval.meta_start import (
     EARLY_SESSIONS,
     Episode,
     MetaConfig,
+    MetaRule,
     calibrated_risks,
     cold_start,
     early_loss,
@@ -92,12 +93,18 @@ def toy_repo(name, seed, sessions=EARLY_SESSIONS + 2, steps=12):
     return Episode(name, tuple(xs), tuple(ys))
 
 
+RULES = [(MetaRule.FIRST_ORDER_MAML, 0.05), (MetaRule.REPTILE, 0.3)]
+
+
+@pytest.mark.parametrize("rule", RULES, ids=["maml", "reptile"])
 @pytest.mark.parametrize("filler", FILLERS, ids=IDS)
-def test_a_start_meta_trained_on_shared_structure_beats_the_cold_start_on_unseen_repos(filler):
+def test_a_start_meta_trained_on_shared_structure_beats_the_cold_start_on_unseen_repos(
+    filler, rule
+):
     train = [toy_repo(f"train{i}", i) for i in range(6)]
     validation = [toy_repo(f"val{i}", 100 + i) for i in range(2)]
     unseen = [toy_repo(f"unseen{i}", 200 + i) for i in range(3)]
-    config = MetaConfig(outer_rate=0.05, outer_steps=40, batch=3, check_every=10, cost=COST)
+    config = MetaConfig(rule[1], rule[0], outer_steps=40, batch=3, check_every=10, cost=COST)
     result = meta_train(filler, train, validation, config)
     assert result.curve[0][0] == 0
     assert result.best_step > 0
