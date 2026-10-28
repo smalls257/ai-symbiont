@@ -8,12 +8,20 @@
 # Same budget for every size (Paper Tiger guard: a bigger set must not get fewer passes):
 # EPOCHS passes over the training rows, batch BATCH, so iters = rows * EPOCHS / BATCH.
 #
-#   scripts/routea/run_lcap.sh ~/symbiont-runs/lcap <model-path-or-repo> <tag>
+# MATRIX full: floor, ceiling and one adapter at 10/30/100 plus the grouped adapters.
+# MATRIX top: floor, ceiling and one adapter at 100 only (the 1B-vs-3B comparison).
+# Every arm is answered on the template set (ask/) and, when it exists, the paraphrased set
+# (ask-para/, from paraphrase_questions.py); paraphrased answers are prefixed "para-".
+#
+#   scripts/routea/run_lcap.sh ~/symbiont-runs/lcap <model-path-or-repo> <tag> [full|top]
 set -euo pipefail
 
-WORK=${1:?usage: run_lcap.sh WORK MODEL TAG}
-MODEL=${2:?usage: run_lcap.sh WORK MODEL TAG}
-TAG=${3:?usage: run_lcap.sh WORK MODEL TAG}
+USAGE="usage: run_lcap.sh WORK MODEL TAG [full|top]"
+WORK=${1:?$USAGE}
+MODEL=${2:?$USAGE}
+TAG=${3:?$USAGE}
+MATRIX=${4:-full}
+[[ $MATRIX == full || $MATRIX == top ]] || { echo "$USAGE" >&2; exit 2; }
 HERE=$(cd "$(dirname "$0")" && pwd)
 PY="$WORK/venv/bin/python"
 DATA="$WORK/data"
@@ -70,23 +78,33 @@ train() {  # train <condition>
   touch "$ADAPTERS/$1/.done"
 }
 
-answer() {  # answer <arm> <condition> [extra args]
-  local arm=$1 cond=$2
-  shift 2
-  [[ -f "$ANSWERS/$arm-$cond.jsonl" ]] && return 0  # resume: answered already
-  timed "answer-$arm-$cond" "$LOGS/answer-$arm-$cond.log" "$PY" "$HERE/answer_questions.py" \
-    --model "$MODEL" --questions "$DATA/ask/$cond.jsonl" --out "$ANSWERS/$arm-$cond.jsonl" "$@"
+answer_set() {  # answer_set <ask dir> <file prefix> <arm> <condition> [extra args]
+  local ask=$1 prefix=$2 arm=$3 cond=$4
+  shift 4
+  [[ -f "$ANSWERS/$prefix$arm-$cond.jsonl" ]] && return 0  # resume: answered already
+  timed "answer-$prefix$arm-$cond" "$LOGS/answer-$prefix$arm-$cond.log" \
+    "$PY" "$HERE/answer_questions.py" --model "$MODEL" --questions "$DATA/$ask/$cond.jsonl" \
+    --out "$ANSWERS/$prefix$arm-$cond.jsonl" "$@"
 }
 
+answer() {  # answer <arm> <condition> [extra args]: template set, then paraphrased set
+  answer_set ask "" "$@"
+  if [[ -d "$DATA/ask-para" ]]; then answer_set ask-para para- "$@"; fi
+}
+
+SIZES="one-10 one-30 one-100"
+[[ $MATRIX == top ]] && SIZES="one-100"
 answer floor one-100
-for cond in one-10 one-30 one-100; do
+for cond in $SIZES; do
   answer ceiling "$cond" --context "$DATA/context/$cond.txt"
   train "$cond"
   answer adapter "$cond" --adapter "$ADAPTERS/$cond"
 done
-for group in "$DATA"/train/group-*; do
-  cond=$(basename "$group")
-  train "$cond"
-  answer grouped "$cond" --adapter "$ADAPTERS/$cond"
-done
+if [[ $MATRIX == full ]]; then
+  for group in "$DATA"/train/group-*; do
+    cond=$(basename "$group")
+    train "$cond"
+    answer grouped "$cond" --adapter "$ADAPTERS/$cond"
+  done
+fi
 echo "lcap $TAG done" >>"$LOGS/timing.txt"
