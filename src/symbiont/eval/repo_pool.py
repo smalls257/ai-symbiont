@@ -20,6 +20,7 @@ UNREADABLE = {
     "keras-team/keras-cv": "a tool call without 'command' (ReadError)",
     "terrapower/armi": "an editor call without 'old_str' (ReadError)",
     "model-bakers/model_bakery": "editor command 'delete' the reader does not know (ReadError)",
+    "mkdocs/mkdocs": "an editor call without 'old_str' (ReadError)",
 }
 POOL_SEED = 20261029
 POOL_REPOS = 100  # variety: a hundred projects

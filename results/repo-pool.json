@@ -9,180 +9,143 @@
  "excluded": [
   "tobymao/sqlglot"
  ],
- "eligible_repos": 298,
+ "unreadable": {
+  "keras-team/keras-cv": "a tool call without 'command' (ReadError)",
+  "terrapower/armi": "an editor call without 'old_str' (ReadError)",
+  "model-bakers/model_bakery": "editor command 'delete' the reader does not know (ReadError)",
+  "mkdocs/mkdocs": "an editor call without 'old_str' (ReadError)"
+ },
+ "eligible_repos": 294,
  "repo_folds": 5,
  "repos": [
   {
-   "repo": "datalad/datalad",
+   "repo": "Materials-Consortia/optimade-python-tools",
    "fold": 0,
    "tasks": [
-    "datalad__datalad-4353",
-    "datalad__datalad-5680",
-    "datalad__datalad-5881",
-    "datalad__datalad-6173"
+    "Materials-Consortia__optimade-python-tools-1001",
+    "Materials-Consortia__optimade-python-tools-1844",
+    "Materials-Consortia__optimade-python-tools-484",
+    "Materials-Consortia__optimade-python-tools-670",
+    "Materials-Consortia__optimade-python-tools-700"
    ],
    "trajectories": 45
   },
   {
-   "repo": "numba/numba",
+   "repo": "tensorflow/addons",
    "fold": 1,
    "tasks": [
-    "numba__numba-5176",
-    "numba__numba-5390",
-    "numba__numba-5480",
-    "numba__numba-6265",
-    "numba__numba-6582"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "pypa/setuptools_scm",
-   "fold": 2,
-   "tasks": [
-    "pypa__setuptools_scm-186",
-    "pypa__setuptools_scm-277",
-    "pypa__setuptools_scm-299",
-    "pypa__setuptools_scm-558",
-    "pypa__setuptools_scm-803",
-    "pypa__setuptools_scm-876"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "openlawlibrary/pygls",
-   "fold": 3,
-   "tasks": [
-    "openlawlibrary__pygls-150",
-    "openlawlibrary__pygls-177",
-    "openlawlibrary__pygls-247",
-    "openlawlibrary__pygls-252"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "hgrecco/pint",
-   "fold": 4,
-   "tasks": [
-    "hgrecco__pint-1087",
-    "hgrecco__pint-1113",
-    "hgrecco__pint-1463",
-    "hgrecco__pint-1661"
+    "tensorflow__addons-2324",
+    "tensorflow__addons-2345",
+    "tensorflow__addons-2369",
+    "tensorflow__addons-2467",
+    "tensorflow__addons-2471"
    ],
    "trajectories": 50
   },
   {
-   "repo": "MycroftAI/lingua-franca",
-   "fold": 0,
-   "tasks": [
-    "MycroftAI__lingua-franca-226",
-    "MycroftAI__lingua-franca-32",
-    "MycroftAI__lingua-franca-87"
-   ],
-   "trajectories": 44
-  },
-  {
-   "repo": "fjosw/pyerrors",
-   "fold": 1,
-   "tasks": [
-    "fjosw__pyerrors-107",
-    "fjosw__pyerrors-112",
-    "fjosw__pyerrors-139",
-    "fjosw__pyerrors-160",
-    "fjosw__pyerrors-45",
-    "fjosw__pyerrors-61"
-   ],
-   "trajectories": 41
-  },
-  {
-   "repo": "PrefectHQ/prefect",
+   "repo": "awdeorio/mailmerge",
    "fold": 2,
    "tasks": [
-    "PrefectHQ__prefect-3593",
-    "PrefectHQ__prefect-3643",
-    "PrefectHQ__prefect-3696",
-    "PrefectHQ__prefect-3920"
+    "awdeorio__mailmerge-155",
+    "awdeorio__mailmerge-65",
+    "awdeorio__mailmerge-79"
    ],
    "trajectories": 50
   },
   {
-   "repo": "yt-dlp/yt-dlp",
+   "repo": "cta-observatory/pyirf",
    "fold": 3,
    "tasks": [
-    "yt-dlp__yt-dlp-10531",
-    "yt-dlp__yt-dlp-10544",
-    "yt-dlp__yt-dlp-10611",
-    "yt-dlp__yt-dlp-12718",
-    "yt-dlp__yt-dlp-4841"
+    "cta-observatory__pyirf-106",
+    "cta-observatory__pyirf-147",
+    "cta-observatory__pyirf-188",
+    "cta-observatory__pyirf-193",
+    "cta-observatory__pyirf-231"
    ],
-   "trajectories": 47
+   "trajectories": 42
   },
   {
    "repo": "PyCQA/flake8-bugbear",
    "fold": 4,
    "tasks": [
     "PyCQA__flake8-bugbear-129",
-    "PyCQA__flake8-bugbear-161",
+    "PyCQA__flake8-bugbear-209",
     "PyCQA__flake8-bugbear-261",
     "PyCQA__flake8-bugbear-424"
    ],
    "trajectories": 42
   },
   {
-   "repo": "awdeorio/mailmerge",
+   "repo": "adamchainz/apig-wsgi",
    "fold": 0,
    "tasks": [
-    "awdeorio__mailmerge-101",
-    "awdeorio__mailmerge-65",
-    "awdeorio__mailmerge-95"
-   ],
-   "trajectories": 39
-  },
-  {
-   "repo": "RockefellerArchiveCenter/DACSspace",
-   "fold": 1,
-   "tasks": [
-    "RockefellerArchiveCenter__DACSspace-51",
-    "RockefellerArchiveCenter__DACSspace-52",
-    "RockefellerArchiveCenter__DACSspace-69",
-    "RockefellerArchiveCenter__DACSspace-70"
-   ],
-   "trajectories": 40
-  },
-  {
-   "repo": "adamchainz/apig-wsgi",
-   "fold": 2,
-   "tasks": [
-    "adamchainz__apig-wsgi-187",
+    "adamchainz__apig-wsgi-111",
+    "adamchainz__apig-wsgi-528",
     "adamchainz__apig-wsgi-80"
    ],
-   "trajectories": 49
+   "trajectories": 48
   },
   {
-   "repo": "marshmallow-code/webargs",
+   "repo": "andialbrecht/sqlparse",
+   "fold": 1,
+   "tasks": [
+    "andialbrecht__sqlparse-231",
+    "andialbrecht__sqlparse-323",
+    "andialbrecht__sqlparse-445",
+    "andialbrecht__sqlparse-633",
+    "andialbrecht__sqlparse-764"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "reanahub/reana-client",
+   "fold": 2,
+   "tasks": [
+    "reanahub__reana-client-592",
+    "reanahub__reana-client-606",
+    "reanahub__reana-client-634",
+    "reanahub__reana-client-656",
+    "reanahub__reana-client-674"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "gitpython-developers/GitPython",
    "fold": 3,
    "tasks": [
-    "marshmallow-code__webargs-463",
-    "marshmallow-code__webargs-541",
-    "marshmallow-code__webargs-583",
-    "marshmallow-code__webargs-682"
+    "gitpython-developers__GitPython-1437",
+    "gitpython-developers__GitPython-1440",
+    "gitpython-developers__GitPython-1547",
+    "gitpython-developers__GitPython-1687"
    ],
-   "trajectories": 41
+   "trajectories": 47
   },
   {
-   "repo": "planetlabs/planet-client-python",
+   "repo": "ipython/ipykernel",
    "fold": 4,
    "tasks": [
-    "planetlabs__planet-client-python-1018",
-    "planetlabs__planet-client-python-390",
-    "planetlabs__planet-client-python-581",
-    "planetlabs__planet-client-python-654",
-    "planetlabs__planet-client-python-870"
+    "ipython__ipykernel-1049",
+    "ipython__ipykernel-1056",
+    "ipython__ipykernel-1061",
+    "ipython__ipykernel-902"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "ibis-project/ibis",
+   "fold": 0,
+   "tasks": [
+    "ibis-project__ibis-10260",
+    "ibis-project__ibis-4766",
+    "ibis-project__ibis-4772",
+    "ibis-project__ibis-8262",
+    "ibis-project__ibis-9595"
    ],
    "trajectories": 48
   },
   {
    "repo": "zopefoundation/zope.component",
-   "fold": 0,
+   "fold": 1,
    "tasks": [
     "zopefoundation__zope.component-53",
     "zopefoundation__zope.component-58",
@@ -190,20 +153,6 @@
     "zopefoundation__zope.component-63"
    ],
    "trajectories": 46
-  },
-  {
-   "repo": "nilearn/nilearn",
-   "fold": 1,
-   "tasks": [
-    "nilearn__nilearn-3823",
-    "nilearn__nilearn-4099",
-    "nilearn__nilearn-4256",
-    "nilearn__nilearn-4360",
-    "nilearn__nilearn-4636",
-    "nilearn__nilearn-4701",
-    "nilearn__nilearn-4804"
-   ],
-   "trajectories": 50
   },
   {
    "repo": "DOV-Vlaanderen/pydov",
@@ -217,743 +166,32 @@
    "trajectories": 40
   },
   {
-   "repo": "hgrecco/pint-pandas",
-   "fold": 3,
-   "tasks": [
-    "hgrecco__pint-pandas-104",
-    "hgrecco__pint-pandas-263",
-    "hgrecco__pint-pandas-264",
-    "hgrecco__pint-pandas-69"
-   ],
-   "trajectories": 45
-  },
-  {
-   "repo": "Unidata/MetPy",
-   "fold": 4,
-   "tasks": [
-    "Unidata__MetPy-1956",
-    "Unidata__MetPy-2006",
-    "Unidata__MetPy-2653",
-    "Unidata__MetPy-2852",
-    "Unidata__MetPy-2999",
-    "Unidata__MetPy-3347"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "cta-observatory/pyirf",
-   "fold": 0,
-   "tasks": [
-    "cta-observatory__pyirf-106",
-    "cta-observatory__pyirf-188",
-    "cta-observatory__pyirf-193",
-    "cta-observatory__pyirf-231",
-    "cta-observatory__pyirf-240"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "python-trio/trio",
-   "fold": 1,
-   "tasks": [
-    "python-trio__trio-1575",
-    "python-trio__trio-1805",
-    "python-trio__trio-2462",
-    "python-trio__trio-2475",
-    "python-trio__trio-576"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "pika/pika",
-   "fold": 2,
-   "tasks": [
-    "pika__pika-1066",
-    "pika__pika-1132",
-    "pika__pika-1162",
-    "pika__pika-1233",
-    "pika__pika-851"
-   ],
-   "trajectories": 48
-  },
-  {
    "repo": "NCAS-CMS/cfdm",
    "fold": 3,
    "tasks": [
     "NCAS-CMS__cfdm-114",
     "NCAS-CMS__cfdm-158",
-    "NCAS-CMS__cfdm-175",
-    "NCAS-CMS__cfdm-178"
+    "NCAS-CMS__cfdm-250",
+    "NCAS-CMS__cfdm-300"
    ],
    "trajectories": 46
   },
   {
-   "repo": "statsmodels/statsmodels",
+   "repo": "googleapis/python-storage",
    "fold": 4,
    "tasks": [
-    "statsmodels__statsmodels-8333",
-    "statsmodels__statsmodels-8339",
-    "statsmodels__statsmodels-8801",
-    "statsmodels__statsmodels-9165",
-    "statsmodels__statsmodels-9390",
-    "statsmodels__statsmodels-9413"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "devopshq/artifactory",
-   "fold": 0,
-   "tasks": [
-    "devopshq__artifactory-255",
-    "devopshq__artifactory-261",
-    "devopshq__artifactory-274",
-    "devopshq__artifactory-53",
-    "devopshq__artifactory-60"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "marshmallow-code/marshmallow",
-   "fold": 1,
-   "tasks": [
-    "marshmallow-code__marshmallow-1036",
-    "marshmallow-code__marshmallow-1063",
-    "marshmallow-code__marshmallow-1078",
-    "marshmallow-code__marshmallow-1164",
-    "marshmallow-code__marshmallow-1252"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "sqlfluff/sqlfluff",
-   "fold": 2,
-   "tasks": [
-    "sqlfluff__sqlfluff-2419",
-    "sqlfluff__sqlfluff-4041",
-    "sqlfluff__sqlfluff-5317",
-    "sqlfluff__sqlfluff-769",
-    "sqlfluff__sqlfluff-982"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "Materials-Consortia/optimade-python-tools",
-   "fold": 3,
-   "tasks": [
-    "Materials-Consortia__optimade-python-tools-1001",
-    "Materials-Consortia__optimade-python-tools-1844",
-    "Materials-Consortia__optimade-python-tools-670",
-    "Materials-Consortia__optimade-python-tools-796",
-    "Materials-Consortia__optimade-python-tools-813"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "qiboteam/qibo",
-   "fold": 4,
-   "tasks": [
-    "qiboteam__qibo-443",
-    "qiboteam__qibo-642",
-    "qiboteam__qibo-699",
-    "qiboteam__qibo-805"
-   ],
-   "trajectories": 43
-  },
-  {
-   "repo": "aws/chalice",
-   "fold": 0,
-   "tasks": [
-    "aws__chalice-1390",
-    "aws__chalice-1391",
-    "aws__chalice-1537",
-    "aws__chalice-1540",
-    "aws__chalice-1552"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "xonsh/xonsh",
-   "fold": 1,
-   "tasks": [
-    "xonsh__xonsh-2795",
-    "xonsh__xonsh-3024",
-    "xonsh__xonsh-4919",
-    "xonsh__xonsh-4920"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "zopefoundation/persistent",
-   "fold": 2,
-   "tasks": [
-    "zopefoundation__persistent-128",
-    "zopefoundation__persistent-161",
-    "zopefoundation__persistent-83",
-    "zopefoundation__persistent-97"
-   ],
-   "trajectories": 39
-  },
-  {
-   "repo": "Kozea/WeasyPrint",
-   "fold": 3,
-   "tasks": [
-    "Kozea__WeasyPrint-1832",
-    "Kozea__WeasyPrint-1895",
-    "Kozea__WeasyPrint-1934",
-    "Kozea__WeasyPrint-2398"
-   ],
-   "trajectories": 41
-  },
-  {
-   "repo": "matthewwithanm/python-markdownify",
-   "fold": 4,
-   "tasks": [
-    "matthewwithanm__python-markdownify-120",
-    "matthewwithanm__python-markdownify-150",
-    "matthewwithanm__python-markdownify-165",
-    "matthewwithanm__python-markdownify-169",
-    "matthewwithanm__python-markdownify-34"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "MatterMiners/tardis",
-   "fold": 0,
-   "tasks": [
-    "MatterMiners__tardis-175",
-    "MatterMiners__tardis-220",
-    "MatterMiners__tardis-249",
-    "MatterMiners__tardis-306",
-    "MatterMiners__tardis-354"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "ibis-project/ibis",
-   "fold": 1,
-   "tasks": [
-    "ibis-project__ibis-10260",
-    "ibis-project__ibis-4728",
-    "ibis-project__ibis-4772",
-    "ibis-project__ibis-8262",
-    "ibis-project__ibis-9658",
-    "ibis-project__ibis-9659"
+    "googleapis__python-storage-106",
+    "googleapis__python-storage-1186",
+    "googleapis__python-storage-1357",
+    "googleapis__python-storage-1394",
+    "googleapis__python-storage-311",
+    "googleapis__python-storage-323"
    ],
    "trajectories": 47
-  },
-  {
-   "repo": "CORE-GATECH-GROUP/serpent-tools",
-   "fold": 2,
-   "tasks": [
-    "CORE-GATECH-GROUP__serpent-tools-288",
-    "CORE-GATECH-GROUP__serpent-tools-315",
-    "CORE-GATECH-GROUP__serpent-tools-377",
-    "CORE-GATECH-GROUP__serpent-tools-412"
-   ],
-   "trajectories": 44
-  },
-  {
-   "repo": "microsoft/pybryt",
-   "fold": 3,
-   "tasks": [
-    "microsoft__pybryt-130",
-    "microsoft__pybryt-149",
-    "microsoft__pybryt-150",
-    "microsoft__pybryt-57",
-    "microsoft__pybryt-98"
-   ],
-   "trajectories": 43
-  },
-  {
-   "repo": "algorand/pyteal",
-   "fold": 4,
-   "tasks": [
-    "algorand__pyteal-234",
-    "algorand__pyteal-29",
-    "algorand__pyteal-561",
-    "algorand__pyteal-717"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "ShawHahnLab/igseq",
-   "fold": 0,
-   "tasks": [
-    "ShawHahnLab__igseq-26",
-    "ShawHahnLab__igseq-37",
-    "ShawHahnLab__igseq-50",
-    "ShawHahnLab__igseq-57"
-   ],
-   "trajectories": 43
-  },
-  {
-   "repo": "scipp/scippnexus",
-   "fold": 1,
-   "tasks": [
-    "scipp__scippnexus-106",
-    "scipp__scippnexus-166",
-    "scipp__scippnexus-180",
-    "scipp__scippnexus-202",
-    "scipp__scippnexus-94"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "scverse/scanpy",
-   "fold": 2,
-   "tasks": [
-    "scverse__scanpy-2734",
-    "scverse__scanpy-2889",
-    "scverse__scanpy-2893",
-    "scverse__scanpy-2913",
-    "scverse__scanpy-2965",
-    "scverse__scanpy-3079"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "qutech/qupulse",
-   "fold": 3,
-   "tasks": [
-    "qutech__qupulse-428",
-    "qutech__qupulse-585",
-    "qutech__qupulse-613",
-    "qutech__qupulse-625"
-   ],
-   "trajectories": 35
-  },
-  {
-   "repo": "zarr-developers/zarr-python",
-   "fold": 4,
-   "tasks": [
-    "zarr-developers__zarr-python-2006",
-    "zarr-developers__zarr-python-2286",
-    "zarr-developers__zarr-python-2416",
-    "zarr-developers__zarr-python-2795",
-    "zarr-developers__zarr-python-832"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "keras-team/keras-cv",
-   "fold": 0,
-   "tasks": [
-    "keras-team__keras-cv-1596",
-    "keras-team__keras-cv-1864",
-    "keras-team__keras-cv-1882"
-   ],
-   "trajectories": 41
-  },
-  {
-   "repo": "einsteinpy/einsteinpy",
-   "fold": 1,
-   "tasks": [
-    "einsteinpy__einsteinpy-322",
-    "einsteinpy__einsteinpy-357",
-    "einsteinpy__einsteinpy-383",
-    "einsteinpy__einsteinpy-387",
-    "einsteinpy__einsteinpy-490"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "google/yapf",
-   "fold": 2,
-   "tasks": [
-    "google__yapf-286",
-    "google__yapf-485",
-    "google__yapf-615",
-    "google__yapf-668",
-    "google__yapf-918"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "zulip/zulip-terminal",
-   "fold": 3,
-   "tasks": [
-    "zulip__zulip-terminal-1237",
-    "zulip__zulip-terminal-1260",
-    "zulip__zulip-terminal-1404",
-    "zulip__zulip-terminal-1449",
-    "zulip__zulip-terminal-928"
-   ],
-   "trajectories": 43
-  },
-  {
-   "repo": "PennyLaneAI/pennylane",
-   "fold": 4,
-   "tasks": [
-    "PennyLaneAI__pennylane-1117",
-    "PennyLaneAI__pennylane-2964",
-    "PennyLaneAI__pennylane-5455",
-    "PennyLaneAI__pennylane-5846",
-    "PennyLaneAI__pennylane-5851",
-    "PennyLaneAI__pennylane-5926"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "andialbrecht/sqlparse",
-   "fold": 0,
-   "tasks": [
-    "andialbrecht__sqlparse-231",
-    "andialbrecht__sqlparse-445",
-    "andialbrecht__sqlparse-633",
-    "andialbrecht__sqlparse-676",
-    "andialbrecht__sqlparse-764"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "PMEAL/OpenPNM",
-   "fold": 1,
-   "tasks": [
-    "PMEAL__OpenPNM-1844",
-    "PMEAL__OpenPNM-2162",
-    "PMEAL__OpenPNM-2173",
-    "PMEAL__OpenPNM-2242",
-    "PMEAL__OpenPNM-2333"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "Azure/msrest-for-python",
-   "fold": 2,
-   "tasks": [
-    "Azure__msrest-for-python-167",
-    "Azure__msrest-for-python-189",
-    "Azure__msrest-for-python-43",
-    "Azure__msrest-for-python-55"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "scikit-hep/hist",
-   "fold": 3,
-   "tasks": [
-    "scikit-hep__hist-130",
-    "scikit-hep__hist-193",
-    "scikit-hep__hist-241",
-    "scikit-hep__hist-278"
-   ],
-   "trajectories": 44
-  },
-  {
-   "repo": "dwavesystems/dwave-system",
-   "fold": 4,
-   "tasks": [
-    "dwavesystems__dwave-system-276",
-    "dwavesystems__dwave-system-279",
-    "dwavesystems__dwave-system-364",
-    "dwavesystems__dwave-system-368"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "vyperlang/vyper",
-   "fold": 0,
-   "tasks": [
-    "vyperlang__vyper-2627",
-    "vyperlang__vyper-3384",
-    "vyperlang__vyper-3498",
-    "vyperlang__vyper-4445"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "mozilla/bleach",
-   "fold": 1,
-   "tasks": [
-    "mozilla__bleach-410",
-    "mozilla__bleach-429",
-    "mozilla__bleach-669",
-    "mozilla__bleach-720",
-    "mozilla__bleach-740"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "deepset-ai/haystack",
-   "fold": 2,
-   "tasks": [
-    "deepset-ai__haystack-5704",
-    "deepset-ai__haystack-6261",
-    "deepset-ai__haystack-6841",
-    "deepset-ai__haystack-8376",
-    "deepset-ai__haystack-8997"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "repobee/repobee",
-   "fold": 3,
-   "tasks": [
-    "repobee__repobee-200",
-    "repobee__repobee-276",
-    "repobee__repobee-330",
-    "repobee__repobee-348",
-    "repobee__repobee-457"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "DARMA-tasking/LB-analysis-framework",
-   "fold": 4,
-   "tasks": [
-    "DARMA-tasking__LB-analysis-framework-232",
-    "DARMA-tasking__LB-analysis-framework-235",
-    "DARMA-tasking__LB-analysis-framework-278",
-    "DARMA-tasking__LB-analysis-framework-436",
-    "DARMA-tasking__LB-analysis-framework-485"
-   ],
-   "trajectories": 45
-  },
-  {
-   "repo": "mwouts/jupytext",
-   "fold": 0,
-   "tasks": [
-    "mwouts__jupytext-1175",
-    "mwouts__jupytext-368",
-    "mwouts__jupytext-585",
-    "mwouts__jupytext-612"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "marshmallow-code/apispec",
-   "fold": 1,
-   "tasks": [
-    "marshmallow-code__apispec-435",
-    "marshmallow-code__apispec-539",
-    "marshmallow-code__apispec-716",
-    "marshmallow-code__apispec-953"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "RDFLib/rdflib",
-   "fold": 2,
-   "tasks": [
-    "RDFLib__rdflib-1117",
-    "RDFLib__rdflib-1258",
-    "RDFLib__rdflib-2160",
-    "RDFLib__rdflib-2474"
-   ],
-   "trajectories": 42
-  },
-  {
-   "repo": "miurahr/aqtinstall",
-   "fold": 3,
-   "tasks": [
-    "miurahr__aqtinstall-510",
-    "miurahr__aqtinstall-550",
-    "miurahr__aqtinstall-563",
-    "miurahr__aqtinstall-633"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "gitpython-developers/GitPython",
-   "fold": 4,
-   "tasks": [
-    "gitpython-developers__GitPython-1102",
-    "gitpython-developers__GitPython-1224",
-    "gitpython-developers__GitPython-1314",
-    "gitpython-developers__GitPython-1440",
-    "gitpython-developers__GitPython-1547"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "cookiecutter/cookiecutter",
-   "fold": 0,
-   "tasks": [
-    "cookiecutter__cookiecutter-1168",
-    "cookiecutter__cookiecutter-1626",
-    "cookiecutter__cookiecutter-1920"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "nltk/nltk",
-   "fold": 1,
-   "tasks": [
-    "nltk__nltk-2514",
-    "nltk__nltk-2713",
-    "nltk__nltk-2910",
-    "nltk__nltk-3205"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "pre-commit/pre-commit-hooks",
-   "fold": 2,
-   "tasks": [
-    "pre-commit__pre-commit-hooks-1095",
-    "pre-commit__pre-commit-hooks-175",
-    "pre-commit__pre-commit-hooks-274",
-    "pre-commit__pre-commit-hooks-301",
-    "pre-commit__pre-commit-hooks-415",
-    "pre-commit__pre-commit-hooks-582"
-   ],
-   "trajectories": 45
-  },
-  {
-   "repo": "joke2k/django-environ",
-   "fold": 3,
-   "tasks": [
-    "joke2k__django-environ-211",
-    "joke2k__django-environ-325",
-    "joke2k__django-environ-332",
-    "joke2k__django-environ-358"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "hhursev/recipe-scrapers",
-   "fold": 4,
-   "tasks": [
-    "hhursev__recipe-scrapers-1381",
-    "hhursev__recipe-scrapers-591",
-    "hhursev__recipe-scrapers-839",
-    "hhursev__recipe-scrapers-915"
-   ],
-   "trajectories": 45
-  },
-  {
-   "repo": "pyvista/pyvista",
-   "fold": 0,
-   "tasks": [
-    "pyvista__pyvista-1553",
-    "pyvista__pyvista-4315",
-    "pyvista__pyvista-5767",
-    "pyvista__pyvista-6541",
-    "pyvista__pyvista-7040"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "BoboTiG/ebook-reader-dict",
-   "fold": 1,
-   "tasks": [
-    "BoboTiG__ebook-reader-dict-2054",
-    "BoboTiG__ebook-reader-dict-2101",
-    "BoboTiG__ebook-reader-dict-2126",
-    "BoboTiG__ebook-reader-dict-2132",
-    "BoboTiG__ebook-reader-dict-2133",
-    "BoboTiG__ebook-reader-dict-2151"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "NeurodataWithoutBorders/pynwb",
-   "fold": 2,
-   "tasks": [
-    "NeurodataWithoutBorders__pynwb-1538",
-    "NeurodataWithoutBorders__pynwb-1975",
-    "NeurodataWithoutBorders__pynwb-1986",
-    "NeurodataWithoutBorders__pynwb-381",
-    "NeurodataWithoutBorders__pynwb-439"
-   ],
-   "trajectories": 44
-  },
-  {
-   "repo": "PlasmaPy/PlasmaPy",
-   "fold": 3,
-   "tasks": [
-    "PlasmaPy__PlasmaPy-1430",
-    "PlasmaPy__PlasmaPy-1892",
-    "PlasmaPy__PlasmaPy-2133"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "tefra/xsdata",
-   "fold": 4,
-   "tasks": [
-    "tefra__xsdata-1010",
-    "tefra__xsdata-1067",
-    "tefra__xsdata-687",
-    "tefra__xsdata-749",
-    "tefra__xsdata-788",
-    "tefra__xsdata-886",
-    "tefra__xsdata-902"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "microsoft/debugpy",
-   "fold": 0,
-   "tasks": [
-    "microsoft__debugpy-103",
-    "microsoft__debugpy-359",
-    "microsoft__debugpy-54",
-    "microsoft__debugpy-683"
-   ],
-   "trajectories": 42
-  },
-  {
-   "repo": "oasis-open/cti-python-stix2",
-   "fold": 1,
-   "tasks": [
-    "oasis-open__cti-python-stix2-258",
-    "oasis-open__cti-python-stix2-342",
-    "oasis-open__cti-python-stix2-369",
-    "oasis-open__cti-python-stix2-436",
-    "oasis-open__cti-python-stix2-470"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "mapbox/mapbox-sdk-py",
-   "fold": 2,
-   "tasks": [
-    "mapbox__mapbox-sdk-py-128",
-    "mapbox__mapbox-sdk-py-193",
-    "mapbox__mapbox-sdk-py-217",
-    "mapbox__mapbox-sdk-py-239",
-    "mapbox__mapbox-sdk-py-261"
-   ],
-   "trajectories": 48
-  },
-  {
-   "repo": "Dorthu/openapi3",
-   "fold": 3,
-   "tasks": [
-    "Dorthu__openapi3-30",
-    "Dorthu__openapi3-57",
-    "Dorthu__openapi3-75",
-    "Dorthu__openapi3-83",
-    "Dorthu__openapi3-94"
-   ],
-   "trajectories": 44
-  },
-  {
-   "repo": "dwavesystems/dwave-cloud-client",
-   "fold": 4,
-   "tasks": [
-    "dwavesystems__dwave-cloud-client-307",
-    "dwavesystems__dwave-cloud-client-309",
-    "dwavesystems__dwave-cloud-client-576"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "xgi-org/xgi",
-   "fold": 0,
-   "tasks": [
-    "xgi-org__xgi-481",
-    "xgi-org__xgi-512",
-    "xgi-org__xgi-517",
-    "xgi-org__xgi-525",
-    "xgi-org__xgi-648"
-   ],
-   "trajectories": 44
   },
   {
    "repo": "codalab/codalab-worksheets",
-   "fold": 1,
+   "fold": 0,
    "tasks": [
     "codalab__codalab-worksheets-2049",
     "codalab__codalab-worksheets-2166",
@@ -965,11 +203,442 @@
    "trajectories": 49
   },
   {
-   "repo": "microsoft/electionguard-python",
+   "repo": "Unidata/MetPy",
+   "fold": 1,
+   "tasks": [
+    "Unidata__MetPy-2398",
+    "Unidata__MetPy-2852",
+    "Unidata__MetPy-3024",
+    "Unidata__MetPy-3103"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "googleapis/python-spanner",
    "fold": 2,
    "tasks": [
-    "microsoft__electionguard-python-189",
+    "googleapis__python-spanner-122",
+    "googleapis__python-spanner-19",
+    "googleapis__python-spanner-286",
+    "googleapis__python-spanner-317",
+    "googleapis__python-spanner-351"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "devopshq/artifactory",
+   "fold": 3,
+   "tasks": [
+    "devopshq__artifactory-255",
+    "devopshq__artifactory-261",
+    "devopshq__artifactory-274",
+    "devopshq__artifactory-53",
+    "devopshq__artifactory-60"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "PrefectHQ/prefect",
+   "fold": 4,
+   "tasks": [
+    "PrefectHQ__prefect-3593",
+    "PrefectHQ__prefect-3643",
+    "PrefectHQ__prefect-3696",
+    "PrefectHQ__prefect-3920"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "fjosw/pyerrors",
+   "fold": 0,
+   "tasks": [
+    "fjosw__pyerrors-107",
+    "fjosw__pyerrors-112",
+    "fjosw__pyerrors-139",
+    "fjosw__pyerrors-160",
+    "fjosw__pyerrors-45",
+    "fjosw__pyerrors-61"
+   ],
+   "trajectories": 41
+  },
+  {
+   "repo": "robotframework/SeleniumLibrary",
+   "fold": 1,
+   "tasks": [
+    "robotframework__SeleniumLibrary-1201",
+    "robotframework__SeleniumLibrary-1258",
+    "robotframework__SeleniumLibrary-1309",
+    "robotframework__SeleniumLibrary-1312",
+    "robotframework__SeleniumLibrary-1376",
+    "robotframework__SeleniumLibrary-1428"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "ShawHahnLab/igseq",
+   "fold": 2,
+   "tasks": [
+    "ShawHahnLab__igseq-12",
+    "ShawHahnLab__igseq-37",
+    "ShawHahnLab__igseq-50",
+    "ShawHahnLab__igseq-57"
+   ],
+   "trajectories": 42
+  },
+  {
+   "repo": "oasis-open/cti-python-stix2",
+   "fold": 3,
+   "tasks": [
+    "oasis-open__cti-python-stix2-145",
+    "oasis-open__cti-python-stix2-258",
+    "oasis-open__cti-python-stix2-369",
+    "oasis-open__cti-python-stix2-534"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "pydap/pydap",
+   "fold": 4,
+   "tasks": [
+    "pydap__pydap-195",
+    "pydap__pydap-336",
+    "pydap__pydap-366",
+    "pydap__pydap-395",
+    "pydap__pydap-47"
+   ],
+   "trajectories": 45
+  },
+  {
+   "repo": "RockefellerArchiveCenter/DACSspace",
+   "fold": 0,
+   "tasks": [
+    "RockefellerArchiveCenter__DACSspace-51",
+    "RockefellerArchiveCenter__DACSspace-52",
+    "RockefellerArchiveCenter__DACSspace-69",
+    "RockefellerArchiveCenter__DACSspace-70"
+   ],
+   "trajectories": 40
+  },
+  {
+   "repo": "mapbox/mapbox-sdk-py",
+   "fold": 1,
+   "tasks": [
+    "mapbox__mapbox-sdk-py-128",
+    "mapbox__mapbox-sdk-py-193",
+    "mapbox__mapbox-sdk-py-217",
+    "mapbox__mapbox-sdk-py-239",
+    "mapbox__mapbox-sdk-py-261"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "matchms/matchms",
+   "fold": 2,
+   "tasks": [
+    "matchms__matchms-212",
+    "matchms__matchms-223",
+    "matchms__matchms-539",
+    "matchms__matchms-547",
+    "matchms__matchms-583"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "macbre/sql-metadata",
+   "fold": 3,
+   "tasks": [
+    "macbre__sql-metadata-113",
+    "macbre__sql-metadata-127",
+    "macbre__sql-metadata-316",
+    "macbre__sql-metadata-521",
+    "macbre__sql-metadata-77"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "marshmallow-code/marshmallow",
+   "fold": 4,
+   "tasks": [
+    "marshmallow-code__marshmallow-1036",
+    "marshmallow-code__marshmallow-1063",
+    "marshmallow-code__marshmallow-1078",
+    "marshmallow-code__marshmallow-1164",
+    "marshmallow-code__marshmallow-1252"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "MycroftAI/lingua-franca",
+   "fold": 0,
+   "tasks": [
+    "MycroftAI__lingua-franca-10",
+    "MycroftAI__lingua-franca-226",
+    "MycroftAI__lingua-franca-23",
+    "MycroftAI__lingua-franca-32"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "statsmodels/statsmodels",
+   "fold": 1,
+   "tasks": [
+    "statsmodels__statsmodels-8333",
+    "statsmodels__statsmodels-8339",
+    "statsmodels__statsmodels-8378",
+    "statsmodels__statsmodels-8959",
+    "statsmodels__statsmodels-9407",
+    "statsmodels__statsmodels-9413"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "Kozea/WeasyPrint",
+   "fold": 2,
+   "tasks": [
+    "Kozea__WeasyPrint-1832",
+    "Kozea__WeasyPrint-1899",
+    "Kozea__WeasyPrint-1934",
+    "Kozea__WeasyPrint-2398"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "aws/chalice",
+   "fold": 3,
+   "tasks": [
+    "aws__chalice-1390",
+    "aws__chalice-1391",
+    "aws__chalice-1526",
+    "aws__chalice-1537",
+    "aws__chalice-1552"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "MatterMiners/tardis",
+   "fold": 4,
+   "tasks": [
+    "MatterMiners__tardis-175",
+    "MatterMiners__tardis-354",
+    "MatterMiners__tardis-77"
+   ],
+   "trajectories": 43
+  },
+  {
+   "repo": "optuna/optuna",
+   "fold": 0,
+   "tasks": [
+    "optuna__optuna-1285",
+    "optuna__optuna-3544",
+    "optuna__optuna-3545",
+    "optuna__optuna-3742"
+   ],
+   "trajectories": 42
+  },
+  {
+   "repo": "CORE-GATECH-GROUP/serpent-tools",
+   "fold": 1,
+   "tasks": [
+    "CORE-GATECH-GROUP__serpent-tools-243",
+    "CORE-GATECH-GROUP__serpent-tools-288",
+    "CORE-GATECH-GROUP__serpent-tools-315",
+    "CORE-GATECH-GROUP__serpent-tools-377",
+    "CORE-GATECH-GROUP__serpent-tools-447"
+   ],
+   "trajectories": 45
+  },
+  {
+   "repo": "joke2k/django-environ",
+   "fold": 2,
+   "tasks": [
+    "joke2k__django-environ-174",
+    "joke2k__django-environ-211",
+    "joke2k__django-environ-332",
+    "joke2k__django-environ-358"
+   ],
+   "trajectories": 44
+  },
+  {
+   "repo": "cookiecutter/cookiecutter",
+   "fold": 3,
+   "tasks": [
+    "cookiecutter__cookiecutter-1144",
+    "cookiecutter__cookiecutter-1626",
+    "cookiecutter__cookiecutter-1920",
+    "cookiecutter__cookiecutter-839"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "nipy/nipype",
+   "fold": 4,
+   "tasks": [
+    "nipy__nipype-2030",
+    "nipy__nipype-2349",
+    "nipy__nipype-2490",
+    "nipy__nipype-2597"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "nltk/nltk",
+   "fold": 0,
+   "tasks": [
+    "nltk__nltk-2713",
+    "nltk__nltk-2768",
+    "nltk__nltk-3042"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "yt-dlp/yt-dlp",
+   "fold": 1,
+   "tasks": [
+    "yt-dlp__yt-dlp-10531",
+    "yt-dlp__yt-dlp-10544",
+    "yt-dlp__yt-dlp-10611",
+    "yt-dlp__yt-dlp-12723",
+    "yt-dlp__yt-dlp-4841"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "einsteinpy/einsteinpy",
+   "fold": 2,
+   "tasks": [
+    "einsteinpy__einsteinpy-322",
+    "einsteinpy__einsteinpy-357",
+    "einsteinpy__einsteinpy-383",
+    "einsteinpy__einsteinpy-387",
+    "einsteinpy__einsteinpy-490"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "ncclient/ncclient",
+   "fold": 3,
+   "tasks": [
+    "ncclient__ncclient-405",
+    "ncclient__ncclient-412",
+    "ncclient__ncclient-418",
+    "ncclient__ncclient-452",
+    "ncclient__ncclient-485"
+   ],
+   "trajectories": 42
+  },
+  {
+   "repo": "psf/black",
+   "fold": 4,
+   "tasks": [
+    "psf__black-1800",
+    "psf__black-2037",
+    "psf__black-3451",
+    "psf__black-4204",
+    "psf__black-4222"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "vyperlang/vyper",
+   "fold": 0,
+   "tasks": [
+    "vyperlang__vyper-2627",
+    "vyperlang__vyper-3498",
+    "vyperlang__vyper-4007",
+    "vyperlang__vyper-4385",
+    "vyperlang__vyper-4445"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "streamlink/streamlink",
+   "fold": 1,
+   "tasks": [
+    "streamlink__streamlink-2228",
+    "streamlink__streamlink-5725",
+    "streamlink__streamlink-6022",
+    "streamlink__streamlink-6338"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "PennyLaneAI/pennylane",
+   "fold": 2,
+   "tasks": [
+    "PennyLaneAI__pennylane-1325",
+    "PennyLaneAI__pennylane-1357",
+    "PennyLaneAI__pennylane-3477",
+    "PennyLaneAI__pennylane-3579",
+    "PennyLaneAI__pennylane-4421",
+    "PennyLaneAI__pennylane-5846",
+    "PennyLaneAI__pennylane-6398"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "algorand/pyteal",
+   "fold": 3,
+   "tasks": [
+    "algorand__pyteal-539",
+    "algorand__pyteal-561",
+    "algorand__pyteal-717"
+   ],
+   "trajectories": 42
+  },
+  {
+   "repo": "PMEAL/OpenPNM",
+   "fold": 4,
+   "tasks": [
+    "PMEAL__OpenPNM-1702",
+    "PMEAL__OpenPNM-1902",
+    "PMEAL__OpenPNM-2173",
+    "PMEAL__OpenPNM-2242",
+    "PMEAL__OpenPNM-2306",
+    "PMEAL__OpenPNM-2333"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "Azure/msrest-for-python",
+   "fold": 0,
+   "tasks": [
+    "Azure__msrest-for-python-167",
+    "Azure__msrest-for-python-189",
+    "Azure__msrest-for-python-43",
+    "Azure__msrest-for-python-55"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "scipp/plopp",
+   "fold": 1,
+   "tasks": [
+    "scipp__plopp-126",
+    "scipp__plopp-249",
+    "scipp__plopp-250"
+   ],
+   "trajectories": 44
+  },
+  {
+   "repo": "hylang/hy",
+   "fold": 2,
+   "tasks": [
+    "hylang__hy-1374",
+    "hylang__hy-1431",
+    "hylang__hy-1661",
+    "hylang__hy-2250",
+    "hylang__hy-2454",
+    "hylang__hy-2514",
+    "hylang__hy-2522"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "microsoft/electionguard-python",
+   "fold": 3,
+   "tasks": [
     "microsoft__electionguard-python-191",
+    "microsoft__electionguard-python-379",
     "microsoft__electionguard-python-549",
     "microsoft__electionguard-python-654",
     "microsoft__electionguard-python-83"
@@ -977,181 +646,280 @@
    "trajectories": 50
   },
   {
-   "repo": "ucfopen/canvasapi",
-   "fold": 3,
-   "tasks": [
-    "ucfopen__canvasapi-110",
-    "ucfopen__canvasapi-228",
-    "ucfopen__canvasapi-340",
-    "ucfopen__canvasapi-381"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "pypa/pip",
+   "repo": "miurahr/aqtinstall",
    "fold": 4,
    "tasks": [
-    "pypa__pip-11860",
-    "pypa__pip-12281",
-    "pypa__pip-12364",
-    "pypa__pip-12715"
-   ],
-   "trajectories": 45
-  },
-  {
-   "repo": "bids-standard/pybids",
-   "fold": 0,
-   "tasks": [
-    "bids-standard__pybids-488",
-    "bids-standard__pybids-492",
-    "bids-standard__pybids-672",
-    "bids-standard__pybids-838"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "googleapis/python-storage",
-   "fold": 1,
-   "tasks": [
-    "googleapis__python-storage-189",
-    "googleapis__python-storage-298",
-    "googleapis__python-storage-366",
-    "googleapis__python-storage-382",
-    "googleapis__python-storage-480"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "OSeMOSYS/otoole",
-   "fold": 2,
-   "tasks": [
-    "OSeMOSYS__otoole-168",
-    "OSeMOSYS__otoole-213",
-    "OSeMOSYS__otoole-236",
-    "OSeMOSYS__otoole-243"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "ipython/ipykernel",
-   "fold": 3,
-   "tasks": [
-    "ipython__ipykernel-1049",
-    "ipython__ipykernel-1056",
-    "ipython__ipykernel-1061",
-    "ipython__ipykernel-902"
-   ],
-   "trajectories": 46
-  },
-  {
-   "repo": "lundberg/respx",
-   "fold": 4,
-   "tasks": [
-    "lundberg__respx-206",
-    "lundberg__respx-23",
-    "lundberg__respx-252",
-    "lundberg__respx-260",
-    "lundberg__respx-264"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "KIT-IAI/pyWATTS",
-   "fold": 0,
-   "tasks": [
-    "KIT-IAI__pyWATTS-108",
-    "KIT-IAI__pyWATTS-125",
-    "KIT-IAI__pyWATTS-194",
-    "KIT-IAI__pyWATTS-231",
-    "KIT-IAI__pyWATTS-68"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "mit-ll-responsible-ai/hydra-zen",
-   "fold": 1,
-   "tasks": [
-    "mit-ll-responsible-ai__hydra-zen-115",
-    "mit-ll-responsible-ai__hydra-zen-199",
-    "mit-ll-responsible-ai__hydra-zen-266",
-    "mit-ll-responsible-ai__hydra-zen-299",
-    "mit-ll-responsible-ai__hydra-zen-73"
-   ],
-   "trajectories": 50
-  },
-  {
-   "repo": "facelessuser/pymdown-extensions",
-   "fold": 2,
-   "tasks": [
-    "facelessuser__pymdown-extensions-1226",
-    "facelessuser__pymdown-extensions-1725",
-    "facelessuser__pymdown-extensions-2362",
-    "facelessuser__pymdown-extensions-2547",
-    "facelessuser__pymdown-extensions-2577"
-   ],
-   "trajectories": 49
-  },
-  {
-   "repo": "lincc-frameworks/nested-pandas",
-   "fold": 3,
-   "tasks": [
-    "lincc-frameworks__nested-pandas-121",
-    "lincc-frameworks__nested-pandas-128",
-    "lincc-frameworks__nested-pandas-135",
-    "lincc-frameworks__nested-pandas-139",
-    "lincc-frameworks__nested-pandas-181"
+    "miurahr__aqtinstall-364",
+    "miurahr__aqtinstall-510",
+    "miurahr__aqtinstall-563",
+    "miurahr__aqtinstall-633"
    ],
    "trajectories": 48
   },
   {
-   "repo": "AzureAD/microsoft-authentication-library-for-python",
-   "fold": 4,
-   "tasks": [
-    "AzureAD__microsoft-authentication-library-for-python-186",
-    "AzureAD__microsoft-authentication-library-for-python-280",
-    "AzureAD__microsoft-authentication-library-for-python-315",
-    "AzureAD__microsoft-authentication-library-for-python-723",
-    "AzureAD__microsoft-authentication-library-for-python-730",
-    "AzureAD__microsoft-authentication-library-for-python-77"
-   ],
-   "trajectories": 47
-  },
-  {
-   "repo": "mhostetter/galois",
+   "repo": "spdx/tools-python",
    "fold": 0,
    "tasks": [
-    "mhostetter__galois-323",
-    "mhostetter__galois-361",
-    "mhostetter__galois-393",
-    "mhostetter__galois-551"
+    "spdx__tools-python-520",
+    "spdx__tools-python-719",
+    "spdx__tools-python-757",
+    "spdx__tools-python-765",
+    "spdx__tools-python-768",
+    "spdx__tools-python-778"
    ],
-   "trajectories": 40
+   "trajectories": 48
   },
   {
-   "repo": "softlayer/softlayer-python",
+   "repo": "tophat/syrupy",
    "fold": 1,
    "tasks": [
-    "softlayer__softlayer-python-1161",
-    "softlayer__softlayer-python-2189",
-    "softlayer__softlayer-python-2191",
-    "softlayer__softlayer-python-2203",
-    "softlayer__softlayer-python-905"
+    "tophat__syrupy-607",
+    "tophat__syrupy-621",
+    "tophat__syrupy-710",
+    "tophat__syrupy-761",
+    "tophat__syrupy-769"
+   ],
+   "trajectories": 44
+  },
+  {
+   "repo": "DARMA-tasking/LB-analysis-framework",
+   "fold": 2,
+   "tasks": [
+    "DARMA-tasking__LB-analysis-framework-232",
+    "DARMA-tasking__LB-analysis-framework-235",
+    "DARMA-tasking__LB-analysis-framework-278",
+    "DARMA-tasking__LB-analysis-framework-455",
+    "DARMA-tasking__LB-analysis-framework-485"
+   ],
+   "trajectories": 45
+  },
+  {
+   "repo": "mne-tools/mne-python",
+   "fold": 3,
+   "tasks": [
+    "mne-tools__mne-python-11939",
+    "mne-tools__mne-python-12027",
+    "mne-tools__mne-python-12080",
+    "mne-tools__mne-python-12128",
+    "mne-tools__mne-python-12537"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "sunpy/sunpy",
+   "fold": 4,
+   "tasks": [
+    "sunpy__sunpy-4791",
+    "sunpy__sunpy-4879",
+    "sunpy__sunpy-5915",
+    "sunpy__sunpy-7370"
    ],
    "trajectories": 50
   },
   {
-   "repo": "mir-dataset-loaders/mirdata",
+   "repo": "RDFLib/rdflib",
+   "fold": 0,
+   "tasks": [
+    "RDFLib__rdflib-1054",
+    "RDFLib__rdflib-1258",
+    "RDFLib__rdflib-1456",
+    "RDFLib__rdflib-2160",
+    "RDFLib__rdflib-2474"
+   ],
+   "trajectories": 44
+  },
+  {
+   "repo": "keras-team/keras-nlp",
+   "fold": 1,
+   "tasks": [
+    "keras-team__keras-nlp-131",
+    "keras-team__keras-nlp-1664",
+    "keras-team__keras-nlp-504",
+    "keras-team__keras-nlp-578"
+   ],
+   "trajectories": 45
+  },
+  {
+   "repo": "hgrecco/pint",
    "fold": 2,
    "tasks": [
-    "mir-dataset-loaders__mirdata-170",
-    "mir-dataset-loaders__mirdata-230",
-    "mir-dataset-loaders__mirdata-232"
+    "hgrecco__pint-1409",
+    "hgrecco__pint-1463",
+    "hgrecco__pint-1471",
+    "hgrecco__pint-1600",
+    "hgrecco__pint-630",
+    "hgrecco__pint-652"
    ],
-   "trajectories": 37
+   "trajectories": 49
+  },
+  {
+   "repo": "graphql-python/graphene-django",
+   "fold": 3,
+   "tasks": [
+    "graphql-python__graphene-django-1063",
+    "graphql-python__graphene-django-838",
+    "graphql-python__graphene-django-842",
+    "graphql-python__graphene-django-977"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "mikedh/trimesh",
+   "fold": 4,
+   "tasks": [
+    "mikedh__trimesh-1444",
+    "mikedh__trimesh-2136",
+    "mikedh__trimesh-650",
+    "mikedh__trimesh-851"
+   ],
+   "trajectories": 44
+  },
+  {
+   "repo": "deepset-ai/haystack",
+   "fold": 0,
+   "tasks": [
+    "deepset-ai__haystack-5954",
+    "deepset-ai__haystack-6261",
+    "deepset-ai__haystack-6841",
+    "deepset-ai__haystack-7375",
+    "deepset-ai__haystack-7929",
+    "deepset-ai__haystack-8376"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "zopefoundation/persistent",
+   "fold": 1,
+   "tasks": [
+    "zopefoundation__persistent-127",
+    "zopefoundation__persistent-128",
+    "zopefoundation__persistent-161",
+    "zopefoundation__persistent-97"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "lmfit/lmfit-py",
+   "fold": 2,
+   "tasks": [
+    "lmfit__lmfit-py-487",
+    "lmfit__lmfit-py-589",
+    "lmfit__lmfit-py-598",
+    "lmfit__lmfit-py-961"
+   ],
+   "trajectories": 34
+  },
+  {
+   "repo": "pytorch/ignite",
+   "fold": 3,
+   "tasks": [
+    "pytorch__ignite-2027",
+    "pytorch__ignite-461",
+    "pytorch__ignite-572",
+    "pytorch__ignite-715",
+    "pytorch__ignite-994"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "BoboTiG/ebook-reader-dict",
+   "fold": 4,
+   "tasks": [
+    "BoboTiG__ebook-reader-dict-2054",
+    "BoboTiG__ebook-reader-dict-2101",
+    "BoboTiG__ebook-reader-dict-2126",
+    "BoboTiG__ebook-reader-dict-2132",
+    "BoboTiG__ebook-reader-dict-2133",
+    "BoboTiG__ebook-reader-dict-2145"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "scverse/scanpy",
+   "fold": 0,
+   "tasks": [
+    "scverse__scanpy-2734",
+    "scverse__scanpy-2889",
+    "scverse__scanpy-2893",
+    "scverse__scanpy-2913",
+    "scverse__scanpy-2965",
+    "scverse__scanpy-3079"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "PlasmaPy/PlasmaPy",
+   "fold": 1,
+   "tasks": [
+    "PlasmaPy__PlasmaPy-138",
+    "PlasmaPy__PlasmaPy-1430",
+    "PlasmaPy__PlasmaPy-2133",
+    "PlasmaPy__PlasmaPy-228"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "datalad/datalad",
+   "fold": 2,
+   "tasks": [
+    "datalad__datalad-5525",
+    "datalad__datalad-5881",
+    "datalad__datalad-5902",
+    "datalad__datalad-6173",
+    "datalad__datalad-7641"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "marshmallow-code/webargs",
+   "fold": 3,
+   "tasks": [
+    "marshmallow-code__webargs-463",
+    "marshmallow-code__webargs-541",
+    "marshmallow-code__webargs-583",
+    "marshmallow-code__webargs-584"
+   ],
+   "trajectories": 49
+  },
+  {
+   "repo": "nteract/papermill",
+   "fold": 4,
+   "tasks": [
+    "nteract__papermill-564",
+    "nteract__papermill-629",
+    "nteract__papermill-654",
+    "nteract__papermill-658",
+    "nteract__papermill-81"
+   ],
+   "trajectories": 45
+  },
+  {
+   "repo": "projectmesa/mesa",
+   "fold": 0,
+   "tasks": [
+    "projectmesa__mesa-1001",
+    "projectmesa__mesa-1413",
+    "projectmesa__mesa-1439",
+    "projectmesa__mesa-1796",
+    "projectmesa__mesa-2463"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "Dorthu/openapi3",
+   "fold": 1,
+   "tasks": [
+    "Dorthu__openapi3-30",
+    "Dorthu__openapi3-75",
+    "Dorthu__openapi3-83",
+    "Dorthu__openapi3-90",
+    "Dorthu__openapi3-94"
+   ],
+   "trajectories": 46
   },
   {
    "repo": "pennmem/cmlreaders",
-   "fold": 3,
+   "fold": 2,
    "tasks": [
     "pennmem__cmlreaders-114",
     "pennmem__cmlreaders-135",
@@ -1162,8 +930,204 @@
    "trajectories": 42
   },
   {
-   "repo": "acorg/dark-matter",
+   "repo": "mozilla/bleach",
+   "fold": 3,
+   "tasks": [
+    "mozilla__bleach-429",
+    "mozilla__bleach-669",
+    "mozilla__bleach-692",
+    "mozilla__bleach-722"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "facelessuser/pymdown-extensions",
    "fold": 4,
+   "tasks": [
+    "facelessuser__pymdown-extensions-1043",
+    "facelessuser__pymdown-extensions-1226",
+    "facelessuser__pymdown-extensions-1567",
+    "facelessuser__pymdown-extensions-2577"
+   ],
+   "trajectories": 45
+  },
+  {
+   "repo": "ucfopen/canvasapi",
+   "fold": 0,
+   "tasks": [
+    "ucfopen__canvasapi-191",
+    "ucfopen__canvasapi-343",
+    "ucfopen__canvasapi-457",
+    "ucfopen__canvasapi-512"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "vertexproject/synapse",
+   "fold": 1,
+   "tasks": [
+    "vertexproject__synapse-296",
+    "vertexproject__synapse-349",
+    "vertexproject__synapse-350",
+    "vertexproject__synapse-370",
+    "vertexproject__synapse-3940",
+    "vertexproject__synapse-941"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "bids-standard/pybids",
+   "fold": 2,
+   "tasks": [
+    "bids-standard__pybids-326",
+    "bids-standard__pybids-540",
+    "bids-standard__pybids-649",
+    "bids-standard__pybids-672"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "xgi-org/xgi",
+   "fold": 3,
+   "tasks": [
+    "xgi-org__xgi-481",
+    "xgi-org__xgi-512",
+    "xgi-org__xgi-517",
+    "xgi-org__xgi-525",
+    "xgi-org__xgi-648"
+   ],
+   "trajectories": 44
+  },
+  {
+   "repo": "OSeMOSYS/otoole",
+   "fold": 4,
+   "tasks": [
+    "OSeMOSYS__otoole-168",
+    "OSeMOSYS__otoole-172",
+    "OSeMOSYS__otoole-236",
+    "OSeMOSYS__otoole-243",
+    "OSeMOSYS__otoole-71"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "hynek/structlog",
+   "fold": 0,
+   "tasks": [
+    "hynek__structlog-117",
+    "hynek__structlog-463",
+    "hynek__structlog-478",
+    "hynek__structlog-603",
+    "hynek__structlog-675"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "KIT-IAI/pyWATTS",
+   "fold": 1,
+   "tasks": [
+    "KIT-IAI__pyWATTS-108",
+    "KIT-IAI__pyWATTS-194",
+    "KIT-IAI__pyWATTS-231",
+    "KIT-IAI__pyWATTS-79",
+    "KIT-IAI__pyWATTS-98"
+   ],
+   "trajectories": 50
+  },
+  {
+   "repo": "microsoft/pybryt",
+   "fold": 2,
+   "tasks": [
+    "microsoft__pybryt-130",
+    "microsoft__pybryt-149",
+    "microsoft__pybryt-150",
+    "microsoft__pybryt-57",
+    "microsoft__pybryt-98"
+   ],
+   "trajectories": 43
+  },
+  {
+   "repo": "python-cmd2/cmd2",
+   "fold": 3,
+   "tasks": [
+    "python-cmd2__cmd2-699",
+    "python-cmd2__cmd2-750",
+    "python-cmd2__cmd2-782"
+   ],
+   "trajectories": 48
+  },
+  {
+   "repo": "jboss-dockerfiles/dogen",
+   "fold": 4,
+   "tasks": [
+    "jboss-dockerfiles__dogen-107",
+    "jboss-dockerfiles__dogen-135",
+    "jboss-dockerfiles__dogen-140",
+    "jboss-dockerfiles__dogen-149",
+    "jboss-dockerfiles__dogen-196"
+   ],
+   "trajectories": 44
+  },
+  {
+   "repo": "AzureAD/microsoft-authentication-library-for-python",
+   "fold": 0,
+   "tasks": [
+    "AzureAD__microsoft-authentication-library-for-python-186",
+    "AzureAD__microsoft-authentication-library-for-python-315",
+    "AzureAD__microsoft-authentication-library-for-python-530",
+    "AzureAD__microsoft-authentication-library-for-python-77"
+   ],
+   "trajectories": 42
+  },
+  {
+   "repo": "pypa/setuptools_scm",
+   "fold": 1,
+   "tasks": [
+    "pypa__setuptools_scm-1020",
+    "pypa__setuptools_scm-287",
+    "pypa__setuptools_scm-538",
+    "pypa__setuptools_scm-897",
+    "pypa__setuptools_scm-935"
+   ],
+   "trajectories": 47
+  },
+  {
+   "repo": "modin-project/modin",
+   "fold": 2,
+   "tasks": [
+    "modin-project__modin-3034",
+    "modin-project__modin-5058",
+    "modin-project__modin-6775",
+    "modin-project__modin-7353",
+    "modin-project__modin-7354"
+   ],
+   "trajectories": 36
+  },
+  {
+   "repo": "mhostetter/galois",
+   "fold": 3,
+   "tasks": [
+    "mhostetter__galois-206",
+    "mhostetter__galois-323",
+    "mhostetter__galois-393",
+    "mhostetter__galois-551"
+   ],
+   "trajectories": 42
+  },
+  {
+   "repo": "scrapy/w3lib",
+   "fold": 4,
+   "tasks": [
+    "scrapy__w3lib-112",
+    "scrapy__w3lib-136",
+    "scrapy__w3lib-230",
+    "scrapy__w3lib-77"
+   ],
+   "trajectories": 38
+  },
+  {
+   "repo": "acorg/dark-matter",
+   "fold": 0,
    "tasks": [
     "acorg__dark-matter-610",
     "acorg__dark-matter-637",
@@ -1172,6 +1136,49 @@
     "acorg__dark-matter-680"
    ],
    "trajectories": 43
+  },
+  {
+   "repo": "TheFriendlyCoder/friendlypins",
+   "fold": 1,
+   "tasks": [
+    "TheFriendlyCoder__friendlypins-27",
+    "TheFriendlyCoder__friendlypins-28",
+    "TheFriendlyCoder__friendlypins-63",
+    "TheFriendlyCoder__friendlypins-77"
+   ],
+   "trajectories": 46
+  },
+  {
+   "repo": "BAMWelDX/weldx",
+   "fold": 2,
+   "tasks": [
+    "BAMWelDX__weldx-377",
+    "BAMWelDX__weldx-384",
+    "BAMWelDX__weldx-648"
+   ],
+   "trajectories": 42
+  },
+  {
+   "repo": "pypa/virtualenv",
+   "fold": 3,
+   "tasks": [
+    "pypa__virtualenv-1509",
+    "pypa__virtualenv-1573",
+    "pypa__virtualenv-1748",
+    "pypa__virtualenv-1814"
+   ],
+   "trajectories": 40
+  },
+  {
+   "repo": "zalando-stups/senza",
+   "fold": 4,
+   "tasks": [
+    "zalando-stups__senza-280",
+    "zalando-stups__senza-349",
+    "zalando-stups__senza-365",
+    "zalando-stups__senza-372"
+   ],
+   "trajectories": 49
   }
  ]
 }
