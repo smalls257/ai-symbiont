@@ -39,7 +39,7 @@ Only the readout's starting weights and the calibrator (scale, bias) of each fil
 - Outer rules, both first-order: first-order MAML (Adam on the loss gradient at the in-force start; step sizes 0.001, 0.003, 0.01) and Reptile (move the given fraction toward the batch's mean adapted start; 0.01, 0.03, 0.1, 0.3). 8 repositories per outer step, at most 300 outer steps, a validation check every 5 outer steps, stop after 20 checks without improvement, seed = wiring seed. Jobs resume bit-identically from the last check.
 - **Calibrator rate** from {0.05, 0.1, 0.2, 0.5}, a fixed setting of the filler, never self-tuned (controller ruling). One rate per filler: the rate whose best meta start has the lowest validation loss averaged over the three wiring seeds. It is shared by that filler's cold and meta rows, so H1 isolates the start. The adapting classifier chooses its own rate the same way (lowest validation early-window loss).
 - Per filler and seed, at that rate: the (rule, step size, check) with the lowest validation loss is the meta start; the cold start (check 0) is a candidate, so "nothing helps" returns the cold start and is reported.
-- Pinned before the freeze: the starts file `data/t39-starts.npz` has sha256 `STARTS_SHA256`, trained at code commit `TRAIN_CODE_COMMIT`; its validation curves are `results/meta-start-training.json`, committed in `TRAINING_RESULTS_COMMIT`. The chosen points: CHOSEN_POINTS.
+- Pinned before the freeze: the starts file `data/t39-starts.npz` has sha256 `ff14231121813e1ed248fffd0ed52d6e45cfb02e3c2a2e30777ebd951fa13866`, trained at code commit `2e44fd9` (jobs resumed bit-identically from checkpoints written at `19310a0`; the summary file was written after the checkout moved to `34a446b`, which changed no training code); its validation curves are `results/meta-start-training.json`, committed in `05045b5`. The chosen points [measured]: calibrator rate 0.05 for both fillers; every meta start is first-order MAML at step size 0.01, at check 205, 210, 250 (DenseNet seeds 0, 1, 2) and 270, 280, 300 (fly seeds 0, 1, 2); validation loss cold to meta: DenseNet 0.369 to 0.349, fly 0.370 to 0.350.
 
 ## Windows
 
@@ -112,10 +112,10 @@ If T20's placebo arm measures the cost of a wrong heads-up above 0.25 of a right
 - The classifier is batch-fit; live, it needs a refit per project.
 - The fly readout is not clipped to non-negative weights in the outer loop.
 - "Fly cold" is calibrated, not T46's raw-risk fly row.
-- EDGE_NOTE
+- The chosen points sit on grid edges, named here: the calibrator rate is the smallest of the grid (0.05), the first-order MAML step size is the largest (0.01), and fly seed 2 stopped at the 300-step cap. Per the owner-proxy ruling the grid is not extended.
 - Both outer rules are first-order; the smoke run showed first-order MAML raising DenseNet's training loss [measured].
 - The cue key (second half of the plan task) is deferred.
 
 ## Run host and spend
 
-The Strix CPU (the full train moved there after the desktop dropped off the network), at most 10 workers (a third of its cores, shared with T46 and T47); the held-out episodes were built on the owner's laptop CPU from the same pinned export (sha256-checked against the Strix copy). No GPU, docker or paid calls. Estimated spend: zero paid; about an hour of retraining for the 168-job grid and a few minutes to score [hypothesis, scaled from the measured 13-minute train].
+The Strix CPU (the full train moved there after the desktop dropped off the network), at most 10 workers (a third of its cores, shared with T46 and T47); the held-out episodes were built on the owner's laptop CPU from the same pinned export (sha256-checked against the Strix copy). No GPU, docker or paid calls. Spend: zero paid. The 168-job grid took about 25 minutes of wall clock in two parts (restarted once from its checkpoints to add a cell-code memo) [measured]; scoring is estimated at a few minutes [hypothesis].
