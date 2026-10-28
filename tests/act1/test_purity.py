@@ -23,6 +23,7 @@ PURE_FILES = (
     "policies.py",
     "game_lessons.py",
     "lesson_rows.py",
+    "demo_replay.py",
 )
 
 

@@ -18,7 +18,7 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-from symbiont.act1.episode import Decision, build_prompt, history_before
+from symbiont.act1.episode import Decision, build_prompt, history_before, load_run_log
 from symbiont.act1.game_lessons import lessons_from_history
 from symbiont.act1.lesson_rows import Situation, dataset_rows, select_lessons
 from symbiont.records.schema import Record, load_jsonl
@@ -35,20 +35,6 @@ def episode_files(episodes: Path) -> list[Path]:
     """Record files in level then session order; decision logs are not record files."""
     found = sorted(episodes.glob("*/*.jsonl"))
     return [path for path in found if not path.name.endswith(DECISIONS_SUFFIX)]
-
-
-def last_run(log: Path) -> list[Decision]:
-    """Decisions after the log's last run header: a rerun appends, and its records replaced
-    the failed run's. Raises FileNotFoundError when the episode has no decision log.
-    """
-    decisions: list[Decision] = []
-    for line in log.read_text(encoding="utf-8").splitlines():
-        entry: dict[str, Any] = json.loads(line)
-        if "run_header" in entry:
-            decisions = []
-            continue
-        decisions.append(Decision(**{**entry, "outcomes": tuple(entry["outcomes"])}))
-    return decisions
 
 
 def situations_of(session_id: str, decisions: list[Decision]) -> dict[tuple[str, int], Situation]:
@@ -74,7 +60,7 @@ def read_history(episodes: Path) -> tuple[list[Record], dict[tuple[str, int], Si
         log = path.with_name(session_id + DECISIONS_SUFFIX)
         if not log.exists():
             raise FileNotFoundError(f"{path} has no decision log {log.name}")
-        situations.update(situations_of(session_id, last_run(log)))
+        situations.update(situations_of(session_id, load_run_log(log)))
     return records, situations
 
 

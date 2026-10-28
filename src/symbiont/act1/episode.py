@@ -32,7 +32,7 @@ from symbiont.act1.glimmer import Reply, ReplyFn, chat_reply
 from symbiont.act1.map_index import MapIndex, build_index
 from symbiont.act1.moves import Button, Done
 from symbiont.act1.navmap import NavMap, build_navmap
-from symbiont.act1.steplog import MoveRun, kind_of
+from symbiont.act1.steplog import Decision, MoveRun, kind_of
 from symbiont.act1.strategy import Move, StrategyError, parse_strategy
 from symbiont.act1.wad import read_map
 
@@ -83,26 +83,6 @@ def execute_move(
 
 
 # --- the loop ------------------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class Decision:
-    """One model decision: what it saw, what it said, how the scripts fared."""
-
-    index: int
-    observation: str
-    reply: str
-    status: (
-        str  # "ok", "invalid" (not a valid strategy) or "truncated" (cut off by the token limit)
-    )
-    rejected: str | None
-    finish_reason: str
-    reasoning_chars: int
-    outcomes: tuple[str, ...]
-    model_seconds: float
-    # Server-counted tokens; None for scripted policies, which call no model.
-    tokens_in: int | None = None
-    tokens_out: int | None = None
 
 
 def _classify(reply: Reply, nav: NavMap | None = None) -> tuple[list[Move] | None, str, str | None]:
@@ -296,6 +276,18 @@ def run_episode(
     finally:
         if log is not None:
             log.close()
+    return decisions
+
+
+def load_run_log(path: Path) -> list[Decision]:
+    """The decisions of the log's last run: a rerun appends after a new header line."""
+    decisions: list[Decision] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        entry: dict[str, Any] = json.loads(line)
+        if "run_header" in entry:
+            decisions = []
+            continue
+        decisions.append(Decision(**{**entry, "outcomes": tuple(entry["outcomes"])}))
     return decisions
 
 
