@@ -1,6 +1,7 @@
 """Scored T46 rules: the verdict, the within-repository bootstrap, the consistency tag."""
 
 import numpy as np
+import pytest
 
 from symbiont.eval.note_cost_logistic import Steps, out_of_fold_risks
 from symbiont.eval.note_cost_scored import Verdict, consistent, stratified_draws, verdict
@@ -60,7 +61,14 @@ def test_out_of_fold_risks_never_use_their_own_fold():
     assert np.allclose(before[fold == 1], after[fold == 1])
 
 
-from symbiont.eval.note_cost_scored_report import PRIMARY, scored_report  # noqa: E402
+from symbiont.eval.note_cost_scored_report import (  # noqa: E402
+    _STACKS,  # noqa: E402
+    PRIMARY,
+    StackReuse,
+    registered_options,
+    scored_report,
+    train_stack,
+)
 from symbiont.eval.note_delivery import NoteTrace  # noqa: E402
 
 
@@ -115,3 +123,22 @@ def test_the_scored_report_has_floors_counters_beside_fly_per_repo_and_a_verdict
 
 def test_noise_gives_no_live_warner():
     assert scored_report(runs(0.0), seed=3)["verdict"]["live_warner"] == "none"
+
+
+def test_the_stack_cache_changes_nothing():
+    built = runs(2.5)
+    cached = scored_report(built, seed=3)
+    fresh = scored_report(built, seed=3, reuse=StackReuse.FRESH)
+    assert cached["chosen_on_train"] == fresh["chosen_on_train"]
+    assert cached["rows"] == fresh["rows"]
+
+
+def test_a_reused_id_is_caught_not_served():
+    option = registered_options()[0]
+    first, second = traces(1, 1.0, "r"), traces(2, 1.0, "r")
+    _STACKS.clear()
+    stack = train_stack(first, option)
+    _STACKS[(id(second), option.rule, option.tiers)] = (first, stack)  # as if an id came back
+    with pytest.raises(RuntimeError, match="reused"):
+        train_stack(second, option)
+    _STACKS.clear()
