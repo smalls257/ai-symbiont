@@ -58,6 +58,7 @@ from symbiont.eval.prereg_git import run_provenance
 from symbiont.eval.repo_pool import HELD_OUT
 from symbiont.eval.warning_budget_metrics import RiskRecorder
 from symbiont.readers import openhands
+from symbiont.readers.errors import ReadError
 from symbiont.store.references import build_references
 
 log = logging.getLogger("note-cost-scored")
@@ -81,9 +82,8 @@ def split_repo(data_dir: Path, repo: str, *, smoke: bool = False) -> dict[str, A
 
     Smoke keeps a few TRAIN-split tasks and splits them again: no real TEST task is replayed.
     """
-    sessions, dropped = drop_taskless(
-        sel.group_sessions(list(openhands.read(file_of(data_dir, repo), repo)))
-    )
+    records, refused = readable_records(file_of(data_dir, repo), repo)
+    sessions, dropped = drop_taskless(sel.group_sessions(records))
     train_ids, test_ids = split_by_task(
         [s[0].task_id for s in sessions], test_fraction=sel.TEST_FRACTION, seed=sel.SEED
     )
@@ -99,12 +99,28 @@ def split_repo(data_dir: Path, repo: str, *, smoke: bool = False) -> dict[str, A
         "test": [s for s in ordered if s[0].task_id in test_ids],
         "train_ids": train_ids,
         "dropped_taskless": dropped,
+        "refused_by_reader": refused,
     }
+
+
+def readable_records(path: Path, repo: str) -> tuple[list, int]:
+    """Records of every row the reader reads; refused rows are dropped, counted and logged."""
+    records, refused = [], 0
+    for row in openhands.read_each_row(path, repo):
+        if isinstance(row, ReadError):
+            refused += 1
+            log.warning("dropped a trajectory the reader refuses (prereg rule): %s", row)
+            continue
+        records += row
+    return records, refused
 
 
 def split_counts(parts: dict[str, Any]) -> dict[str, int]:
     """Tasks, sessions and steps per split: counts only, no label and no metric."""
-    found = {"sessions_dropped_taskless": parts["dropped_taskless"]}
+    found = {
+        "sessions_dropped_taskless": parts["dropped_taskless"],
+        "trajectories_refused_by_reader": parts["refused_by_reader"],
+    }
     for name in ("train", "test"):
         found[f"tasks_{name}"] = len({s[0].task_id for s in parts[name]})
         found[f"sessions_{name}"] = len(parts[name])

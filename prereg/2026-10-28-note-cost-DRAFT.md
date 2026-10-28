@@ -1,73 +1,90 @@
-# Pre-registration DRAFT: boundary heads-ups on fresh repositories (T46)
+# Pre-registration: boundary heads-ups on held-out repositories (T46)
 
-Status: DRAFT, not frozen. Nothing here may be run with `--scored`. The owner decides
-the data question below, then a copy without "-DRAFT" is committed alone as the freeze,
-before any metric on the new repositories exists.
+Status: DRAFT, not frozen. The freeze commit renames this file to
+`prereg/2026-10-28-note-cost.md` and changes only this status header.
+After the freeze only a dated amendment may change anything, and an amendment
+cannot change the data, split, seed, labels, prices, budget, cooldown, grids,
+metric or decision rule below.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or by construction, [hypothesis] = a guess the run can support or refute.
 
 ## Question
 
-T36 found no learner that earns a warning when every warned step is its own alarm at c = 0.5 [measured]. Does any learner earn notes when notes are spent the way a hook would spend them: only at boundary steps, at most 2 per session, a 5-step cooldown, in two tiers? The design and the TRAIN-only exploration are in `docs/design/2026-10-28-note-cost.md` and `results/note-cost-exploratory.json`. If no learner earns notes, the product ships recall-only plus encourage notes (T42); that is an acceptable result and is reported plainly. No claim about how quickly anything learns; the fly is "a learner built on the fly's real circuit" with random wiring at the fly's published counts.
+T36 found no learner that earns a warning when every warned step is its own alarm at c = 0.5 [measured]. Does any learner earn notes when notes are spent the way a hook would spend them: only at boundary steps, at most 2 per session, a 5-step cooldown, in two tiers? Design, TRAIN-only exploration and rulings: `docs/design/2026-10-28-note-cost.md`, `results/note-cost-exploratory.json`, `results/note-cost-repo-curve.json`. The exploration already found that a batch classifier earns notes under T36's own per-step price (0.082 [0.008, 0.157] per 100 steps [measured]): the T36 cliff belongs to the online learning rules, not to the price, and this middle ground rescues no learner the classifier did not already beat. If no learner earns notes, the product ships recall-only plus encourage notes (T42); that is a result and is reported plainly. No claim about how quickly anything learns; the fly is "a learner built on the fly's real circuit" with random wiring at the fly's published counts.
 
-## Data (owner's decision 2026-10-28: hold these out)
+## Data
 
-The three repositories with the most trajectories in `nebius/SWE-rebench-openhands-trajectories` after `tobymao/sqlglot`, chosen by that rule before any of their rows is exported: `python-pillow/Pillow` (1,328 trajectories, 126 tasks), `iterative/dvc` (846, 68), `conan-io/conan` (692, 67) [measured] (a count of the repo column only). None was read by G6, T36 or T46. Each repository is exported with `scripts/datasets/export_nebius_sqlglot.py` generalized to a repo argument, split by task (test fraction 0.3, seed 20261029), and replayed on its own: TRAIN online, then TEST online with what was learned; only TEST steps are scored. Hubs per repository from the median-created TRAIN task's checkout, cutoff 0.5, as G6. Labels, window (5 steps), 86 features and leak rule as G6. Learners learn with false_alarm_cost 0.5, as T36.
+Scored set: `python-pillow/Pillow`, `iterative/dvc`, `conan-io/conan` from `nebius/SWE-rebench-openhands-trajectories` at revision `35455389ab51bf5e2306bfd436ef72d0f98bf882`, every task, exported by `scripts/datasets/export_nebius_repos.py export-held-out` at commit `733a00c`; task metadata (created_at, base_commit) from `nebius/SWE-rebench` at revision `89cdfbab4ab1bd8f5a658bb212d1b63624f4f881`. Their hold-out was declared in commit `cb12d83`, before any cross-repository training; none was read by G6, T36 or T46 except as counts. A trajectory the OpenHands reader refuses (`read_each_row` returns a ReadError for its line) is dropped before the split; the per-repository drop counts are recorded below and printed in the results. The one known case is a file-editor call with only `path` and `new_str` and no `command` (1 Pillow trajectory of 1,328 [measured], counts only); guessing the command would be a silent default, so it is dropped, not repaired. Each repository is split by task (test fraction 0.3, seed 20261029, `split_by_task`), sessions in the seeded replay order. Hubs per repository from a checkout of the median-created TRAIN task's base commit, cutoff 0.5, as G6. Labels: a filtered pain point within the next 5 steps of the same session, 86 features and the leak rule as G6. Learners learn with false_alarm_cost 0.5, as T36.
 
-Fallback if the owner declines new downloads: sqlglot with a new split seed (20261030), declared here, labeled "re-use of data the owner has seen"; its numbers are not independent of T36 [established] (by construction).
+## Split counts (recorded before any metric)
 
-## Delivery and value (fixed from the T46 design; no grid on test)
+SPLIT_COUNTS
+
+## Delivery and prices
 
 - Boundary step: the step's record is a failed command (the miner's rule) or an edit of a file this session already edited and applied.
 - At most 2 notes per session, spent online on the first qualifying steps; no note within 5 steps of the last.
 - A note is a warning if risk is at or above the warning threshold, else a heads-up if at or above the note threshold.
-- Value: a true warning +1, a false warning -0.5; a true heads-up +1, a false heads-up -0.25. A note is true when a filtered pain point follows within 5 steps.
-- Thresholds: on each repository's TRAIN online risks, over the 40-point quantile grid of `note_cost_options.threshold_grid`, the pair with the highest TRAIN value per step; ties to fewer notes; silence if no pair beats 0. DenseNet's rate from {0.1, 0.3, 1.0} jointly with the thresholds. Choices are written to the results file.
+- **Primary price:** a true warning +1, a false warning -0.5; a true heads-up +1, a false heads-up -0.25. The heads-up gain 0.75 and 0.5 rows and the heads-up cost curve (0.1 to 0.5 at gain 1) are reported and never decide.
+- **T20 trigger:** if T20's placebo arm measures the cost of a wrong heads-up above 0.25 of a right one, the live-warner verdict of this run is void, and a dated amendment declares the re-scoring.
+- Thresholds: over the 40-point quantile grid of `note_cost_options.threshold_grid` on each repository's TRAIN risks, the pair (note threshold, warning threshold) with the highest TRAIN value per step; ties to fewer notes; silence if no pair beats 0. A setting is chosen per repository, per learner run, per price.
 
-## Rows and labels
+## Rows, labels and training
 
-| row | label |
-|---|---|
-| warn never | floor (value 0 by construction) |
-| a note at every allowed step (all warnings) | floor |
-| counters | reference |
-| logistic regression: class-weighted, L2 strength from {0.1, 1, 10, 100, 1000} and thresholds picked by grouped cross-validation inside each repository's TRAIN, batch-fit on that TRAIN | reference (a standard supervised baseline) |
-| fly, wiring seeds 0, 1, 2 (mean of per-task counts) | under test |
-| DenseNet, wiring seeds 0, 1, 2 (mean of per-task counts) | under test |
+Primary rows train per held-out repository only: that repository's TRAIN online, then its TEST online, scored on TEST. Every learner sees the same data.
 
-The counters row is printed beside the fly row (QG-SCI-03).
+| row | label | settings chosen on TRAIN |
+|---|---|---|
+| warn never | floor | none; value 0 by construction |
+| a note at every allowed step (all warnings) | floor | none |
+| counters | reference | thresholds |
+| logistic regression: class-weighted, batch-fit on the repository's TRAIN | reference (a standard supervised baseline) | L2 strength from {0.1, 1, 10, 100, 1000} and thresholds, on out-of-fold TRAIN risks (5 task folds, seed 20261029); then refit on all TRAIN |
+| DenseNet, wiring seeds 0, 1, 2 (mean of per-task counts) | under test | readout rate from {0.1, 0.3, 1.0} and thresholds, per seed |
+| fly, wiring seeds 0, 1, 2 (mean of per-task counts) | under test | thresholds, per seed |
 
-## Primary metric
+The counters row is printed beside the fly row (QG-SCI-03). Secondary rows, same learners: warm start from the 100-repository pool (`results/repo-pool.json`): each online learner replays the pool first, then the repository; the classifier fits pool plus TRAIN. This row is T39's baseline and **may not decide T46**.
 
-Net value per 100 TEST steps, pooled over the three repositories, with a 95% [established] percentile interval from 2,000 task-bootstrap draws resampled within each repository (numpy seed 20261029), the same draws for every row, so differences are paired.
+## Metrics
 
-## Decision rule (exact)
+- Primary: net value per 100 TEST steps at the primary price, pooled over the three repositories, with a 95% [established] percentile interval from 2,000 task-bootstrap draws resampled within each repository (numpy seed 20261029), the same draws for every row, so differences are paired.
+- Each repository is reported on its own with the same draws restricted to its tasks.
+- Precision and notes per session are printed beside value for every row, with notes per 100 steps, false notes per session, heads-up share and the share of trouble spells that got a note.
+- Consistency tag: a learner whose per-repository point estimates disagree in sign is tagged "not consistent across repositories". The tag is reported and never decides.
 
-1. A learner earns notes if the lower bound of its net value interval is above 0. The candidates are counters, the classifier, fly and DenseNet.
-2. If none does: verdict `none`; ship E (recall-only plus encourage notes).
-3. Otherwise take the earning learner with the highest point estimate (ties: counters, then the classifier, then DenseNet, then fly).
-4. If that learner is the fly, DenseNet or the classifier, counters also earn, and the lower bound of its difference from counters is not above 0, the verdict is `counters`.
-5. "Better than counters" only if the paired interval excludes 0 on the positive side; "tie" if it includes 0; "worse" if entirely negative. A claim that the fly's circuit earns the gain needs fly minus DenseNet above 0.
+## Decision rule (exact, primary price, repository-only start, pooled)
+
+1. Candidates, in tie order: counters, the classifier, DenseNet, fly. A candidate earns notes if the lower bound of its pooled net value interval is above 0.
+2. If none earns: verdict `none`; ship E (recall-only plus encourage notes).
+3. Otherwise take the earning candidate with the highest point estimate (ties by the order in 1).
+4. If that candidate is not counters and the lower bound of its paired difference from counters is not above 0, the verdict is `counters` if counters earn, else `none`. Otherwise the verdict is that candidate.
+5. "Better than counters" only if the paired interval excludes 0 on the positive side; "tie" if it includes 0; "worse" if entirely negative. The same wording for fly minus DenseNet and fly minus the classifier. A claim that the fly's circuit earns the gain needs fly minus DenseNet above 0.
 6. No re-run after seeing the table and no change of data, prices, budget, cooldown, grid or rule.
 
 ## Sensitivity (reported, never decides)
 
 - Heads-up gain 0.75 and 0.5 (the false heads-up still -0.25).
-- Every learner started from its state after the 100-repository pool (classifier fit on the pool plus each repository's TRAIN).
-- One tier only (every note a warning at c = 0.5).
-- Option B (per spell) and C (budget 1, 2, 3 with conformal risk control at 0.25 of the budget).
-- The decision curve of the per-step rule over c in 0.1 to 1.0.
+- The heads-up cost curve: cost 0.1, 0.2, 0.3, 0.4, 0.5 at gain 1.
+- The pool warm start: T39's baseline; may not decide T46.
 - Each repository on its own.
 
 ## Hypotheses (not claims)
 
-- [hypothesis] The classifier earns the most; counters and the fly earn notes and tie; DenseNet does not beat counters (TRAIN-CV: classifier 0.173 [0.149, 0.199], counters 0.090 [0.061, 0.121], fly 0.070 [0.044, 0.098], DenseNet 0.061 [0.037, 0.086] per 100 steps [measured]).
-- [hypothesis] A start trained on the pool (`results/repo-pool.json`) does not help the online learners (repository curve flat or falling [measured]); it is reported as a sensitivity row, never decides.
-- [hypothesis] Almost every note is a heads-up: no learner reaches 0.33 precision at boundaries.
-- [hypothesis] The verdict flips to `none` if a heads-up is worth 0.5 of a warning.
+- [hypothesis] The classifier earns the most; counters and the fly earn notes and tie; DenseNet does not beat counters (TRAIN-CV on sqlglot: classifier 0.173 [0.149, 0.199], counters 0.090 [0.061, 0.121], fly 0.070 [0.044, 0.098], DenseNet 0.061 [0.037, 0.086] per 100 steps [measured]).
+- [hypothesis] The online learners' notes are right about one time in four (precision 0.25 to 0.28 on TRAIN [measured]).
+- [hypothesis] The pool warm start does not help the online learners (repository curve flat or falling [measured]).
 
 ## Known limits
 
-- The heads-up price (-0.25 against +1) is the brief's value and was preferred after TRAIN exploration showed it decides the outcome; this run on unseen repositories is the guard against that choice [established] (by construction). T20's placebo arm should measure it.
+- The heads-up price (-0.25 against +1) is the brief's value, written before any TRAIN number existed; the builder first guessed gain 0.75, and the switch to gain 1.0 came after TRAIN [established] (disclosed in the design doc). T20's placebo arm should measure it; the trigger above voids the verdict if it measures more.
+- Four candidates are tested at 95% without multiplicity correction [established] (by construction).
+- The classifier is batch-fit, so a live deployment needs a refit per project (nightly or at session start).
 - Fly and DenseNet constants were set on sqlglot; they are not re-tuned per repository.
-- Run host: Strix CPU, no GPU, no docker. No paid calls. Only counts, ids and labels leave the host.
+- The pool's labels carry no blast-radius signal and no hub filter; the held-out repositories' labels do (checkout per repository).
+
+## Estimated spend
+
+Zero paid calls. CPU only on the Strix (no GPU, no docker), at most 16 worker processes: estimated 1 to 2 hours [hypothesis] (scaled from the T46 runs: sqlglot TRAIN replay 33 minutes, pool curve 17.5 minutes [measured]).
+
+## Amendments
+
+(none at freeze)

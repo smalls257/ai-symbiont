@@ -29,6 +29,7 @@ import export_nebius_sqlglot as single  # noqa: E402
 
 from symbiont.eval.repo_pool import HELD_OUT  # noqa: E402
 from symbiont.readers import openhands  # noqa: E402
+from symbiont.readers.errors import ReadError  # noqa: E402
 
 COLUMNS = single.COLUMNS
 # Pinned revisions for the scored T46 run (prereg/2026-10-28-note-cost.md).
@@ -89,6 +90,21 @@ def export(args: argparse.Namespace) -> None:
 
 def split_by_repo(staged: Path, out_dir: Path, repos: set[str]) -> None:
     """Write each repository's rows to its own file and read each back through the reader."""
+    write_by_repo(staged, out_dir, repos)
+    for repo in sorted(repos):
+        counts = read_back(out_dir / file_name(repo), repo)
+        print(f"{repo}: {counts.rows} trajectories, {counts.tasks} tasks", file=sys.stderr)
+
+
+def count_rows(path: Path, repo: str) -> tuple[int, int]:
+    """Rows the reader reads and rows it refuses (the scored run drops and reports those)."""
+    rows = list(openhands.read_each_row(path, repo))
+    refused = sum(isinstance(row, ReadError) for row in rows)
+    return len(rows) - refused, refused
+
+
+def write_by_repo(staged: Path, out_dir: Path, repos: set[str]) -> None:
+    """Write each repository's rows to its own file."""
     handles = {repo: (out_dir / file_name(repo)).open("w") for repo in repos}
     with staged.open() as rows:
         for line in rows:
@@ -98,9 +114,6 @@ def split_by_repo(staged: Path, out_dir: Path, repos: set[str]) -> None:
             handles[repo].write(line)
     for handle in handles.values():
         handle.close()
-    for repo in sorted(repos):
-        counts = read_back(out_dir / file_name(repo), repo)
-        print(f"{repo}: {counts.rows} trajectories, {counts.tasks} tasks", file=sys.stderr)
 
 
 def read_back(path: Path, repo: str) -> single.Counts:
@@ -129,8 +142,11 @@ def export_held_out(args: argparse.Namespace) -> None:
             f"ORDER BY repo, instance_id, trajectory_id) TO '{staged}' (FORMAT JSON)"
         ),
     )
-    split_by_repo(staged, out_dir, set(HELD_OUT))
+    write_by_repo(staged, out_dir, set(HELD_OUT))
     staged.unlink()
+    for repo in HELD_OUT:
+        readable, refused = count_rows(out_dir / file_name(repo), repo)
+        print(f"{repo}: {readable} readable trajectories, {refused} refused", file=sys.stderr)
     write_meta(db, out_dir)
 
 
@@ -148,7 +164,8 @@ def write_meta(db: Any, out_dir: Path) -> None:
         for task, created, commit in rows:
             meta.setdefault(task, {"created_at": created, "base_commit": commit})
     for repo in HELD_OUT:
-        tasks = {r.task_id for r in openhands.read(out_dir / file_name(repo), repo)}
+        rows = openhands.read_each_row(out_dir / file_name(repo), repo)
+        tasks = {r.task_id for row in rows if not isinstance(row, ReadError) for r in row}
         missing = sorted(t for t in tasks if t not in meta)
         if missing:
             raise SystemExit(f"{repo}: {len(missing)} task(s) without SWE-rebench metadata")
