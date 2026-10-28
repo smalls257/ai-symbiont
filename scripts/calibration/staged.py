@@ -11,11 +11,12 @@ ids of an earlier log). 1 run each, reasoning "low", step limit 50 and 30 min wa
 Stage 2: every task solved in the screen gets 2 more runs with the same setting. Solved 1 or 2 of 3
   -> band "in_band" (scored pool); otherwise "history".
 
-Up to WORKERS runs go at a time (the Glimmer server has 2 slots); the checkpoint batch finishes
-before the decision. All records append to <workdir>/<runs-dir>/calibration.jsonl (resumable: a
-run counts as done once it has a graded record). Runs that could not be graded are retried up to
-MAX_ATTEMPTS times; 3 ungraded runs in a row stop the driver with status "blocked" (a run
-already in flight on the other worker still lands). After every run the summary (no task or
+Up to --workers runs go at a time (default WORKERS, the Glimmer slot count); the checkpoint
+batch finishes before the decision. All records append to
+<workdir>/<runs-dir>/calibration.jsonl (resumable: a run counts as done once it has a graded
+record). Runs that could not be graded are retried up to MAX_ATTEMPTS times; 3 ungraded runs in
+a row stop the driver with status "blocked" (a run already in flight on another worker still
+lands). After every run the summary (no task or
 trajectory text) is rewritten to <workdir>/<runs-dir>/calibration-glimmer.json.
 
 Usage: python staged.py <workdir> [--screen smallest|stratified] [--runs-dir runs]
@@ -44,7 +45,7 @@ from screen_rules import (
 )
 from staged_summary import build_summary
 
-WORKERS = 2  # the Glimmer server has 2 slots
+WORKERS = 2  # default: the Glimmer server had 2 slots; --workers follows a slot change
 CHECKPOINT_N = 10
 GATE_RATE = 0.10
 MAX_ATTEMPTS = 3
@@ -92,6 +93,7 @@ def add_limit_arguments(parser: argparse.ArgumentParser) -> None:
     """The step cap and wall cap as launcher settings; defaults are the original 50 and 30 min."""
     parser.add_argument("--step-limit", type=int, default=DEFAULT_STEP_LIMIT)
     parser.add_argument("--wall-limit-min", type=int, default=DEFAULT_WALL_LIMIT_MIN)
+    parser.add_argument("--workers", type=int, default=WORKERS, help="Glimmer slots to fill")
 
 
 def settings_for(reasoning: str, args: argparse.Namespace) -> Setting:
@@ -155,6 +157,7 @@ class Driver:
         self.ungraded_in_a_row = 0
         self._lock = threading.Lock()
         self._blocked_reason: str | None = None
+        self.workers = WORKERS
 
     # -- records -----------------------------------------------------------------------------------
     def graded(self, iid: str, run: int, setting: Setting) -> dict | None:
@@ -204,8 +207,8 @@ class Driver:
                 raise BlockedError(self._blocked_reason)
 
     def _in_parallel(self, jobs: list) -> list:
-        """Results of zero-argument jobs, WORKERS at a time, in job order; first error re-raised."""
-        with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        """Results of zero-argument jobs, self.workers at a time, in order; first error raised."""
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
             futures = [pool.submit(job) for job in jobs]
             return [future.result() for future in futures]
 
@@ -317,4 +320,5 @@ if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
     driver = Driver(args.workdir, args.screen, args.runs_dir, args.exclude_log)
     driver.low, driver.medium = settings_for("low", args), settings_for("medium", args)
+    driver.workers = args.workers
     driver.run()

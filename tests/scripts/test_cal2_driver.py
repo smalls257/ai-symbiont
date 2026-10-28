@@ -29,7 +29,7 @@ def load_cal2(monkeypatch, run_once=None):
     stub.IMAGE, stub.MODEL, stub.Setting, stub.run_once = "image", "model", Setting, run_once
     monkeypatch.setitem(sys.modules, "run_calibration", stub)
     monkeypatch.syspath_prepend(str(CALIBRATION))
-    for name in ("staged", "staged_summary", "screen_rules", "cal2"):
+    for name in ("staged", "staged_summary", "screen_rules", "lessons", "cal2"):
         monkeypatch.delitem(sys.modules, name, raising=False)
     spec = importlib.util.spec_from_file_location("cal2_under_test", CALIBRATION / "cal2.py")
     module = importlib.util.module_from_spec(spec)
@@ -247,3 +247,75 @@ def test_a_request_timeout_is_recorded_as_a_model_api_error_not_raised(monkeypat
     info = runner._run_agent(agent, {"problem_statement": "x"}, rec)
     assert rec["error_kind"] == "model_api" and "LitellmTimeoutError" in rec["error"]
     assert info["submission"] == ""
+
+
+def test_fixed_runs_give_every_listed_task_exactly_n_runs_in_file_order(monkeypatch, tmp_path):
+    run_once, calls = graded_run(lambda iid, run: run == 1)  # every task splits 1 of 2
+    cal2 = load_cal2(monkeypatch, run_once)
+    args = cal2.parse_args(
+        [str(make_workdir(tmp_path)), "--runs-dir", "t2", "--candidates-log", "one.jsonl"]
+        + ["--fixed-runs", "2", "--step-limit", "75"]
+    )
+    driver = cal2.CandidateDriver(args.workdir, args.runs_dir, args.logs, args.fixed_runs)
+    driver.low = cal2.settings_for("low", args)
+    driver.run()
+    summary = json.loads(driver.summary_path.read_text())
+    assert sorted(calls) == [(r, f"task0{n}", 75, 1800) for r in (1, 2) for n in range(3)]
+    assert summary["status"] == "done" and summary["skipped_above_band"] == []
+    assert summary["band_counts"]["in_band"] == 3
+
+
+def lesson_driver(monkeypatch, tmp_path, lessons):
+    run_once, calls = graded_run(lambda iid, run: True)
+    seen = []
+
+    def run_and_keep_statement(row, run, setting, stage, traj_dir):
+        seen.append((row["instance_id"], row.get("problem_statement")))
+        return run_once(row, run, setting, stage, traj_dir)
+
+    cal2 = load_cal2(monkeypatch, run_and_keep_statement)
+    workdir = make_workdir(tmp_path)
+    rows = [{"instance_id": f"task0{n}", "problem_statement": f"bug {n}"} for n in range(6)]
+    (workdir / "data/sqlglot_rows.json").write_text(json.dumps(rows))
+    (workdir / "lessons.json").write_text(json.dumps(lessons))
+    args = cal2.parse_args(
+        [str(workdir), "--runs-dir", "p", "--candidates-log", "one.jsonl", "--fixed-runs", "1"]
+        + ["--lessons", str(workdir / "lessons.json"), "--workers", "4"]
+    )
+    driver = cal2.CandidateDriver(args.workdir, args.runs_dir, args.logs, args.fixed_runs)
+    driver.low, driver.workers = cal2.settings_for("low", args), args.workers
+    return cal2, driver, seen
+
+
+def test_lesson_arm_prepends_the_lesson_and_stamps_arm_and_hash_on_every_record(
+    monkeypatch, tmp_path
+):
+    lessons = {f"task0{n}": f"  Edit file {n} first.  " for n in range(3)}
+    cal2, driver, seen = lesson_driver(monkeypatch, tmp_path, lessons)
+    driver.give_lessons(tmp_path / "lessons.json")
+    driver.run()
+    assert sorted(seen) == [(f"task0{n}", f"Edit file {n} first.\n\nbug {n}") for n in range(3)]
+    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    assert {rec["arm"] for rec in logged} == {"lesson"}
+    assert {rec["lesson_sha"] for rec in logged} == {
+        cal2.lesson_hash(f"Edit file {n} first.") for n in range(3)
+    }
+    summary = json.loads(driver.summary_path.read_text())
+    assert summary["arm"] == "lesson" and len(summary["lesson_sha"]) == 3
+    assert driver.workers == 4
+
+
+def test_a_listed_task_without_a_lesson_raises_before_any_run(monkeypatch, tmp_path):
+    lessons = {"task00": "Edit it.", "task01": "   "}  # task01 empty, task02 missing
+    _, driver, seen = lesson_driver(monkeypatch, tmp_path, lessons)
+    with pytest.raises(KeyError, match="2 tasks have no lesson"):
+        driver.give_lessons(tmp_path / "lessons.json")
+    assert seen == []
+
+
+def test_without_lessons_every_record_is_the_plain_arm(monkeypatch, tmp_path):
+    _, driver, seen = lesson_driver(monkeypatch, tmp_path, {})
+    driver.run()
+    assert [statement for _, statement in sorted(seen)] == ["bug 0", "bug 1", "bug 2"]
+    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    assert {(rec["arm"], rec["lesson_sha"]) for rec in logged} == {("plain", None)}

@@ -18,6 +18,9 @@ and labels only.
 
 Usage (through launch.py): python launch.py <workdir> --candidates-log runs/calibration.jsonl
         --candidates-log runs-wide/calibration.jsonl --runs-dir runs-cal2 --step-limit 75
+
+Lesson-in-prompt pilot: --fixed-runs N --lessons <id -> lesson JSON> runs the lesson arm
+(lessons.py); every record carries "arm" and "lesson_sha". --workers sets the Glimmer slots used.
 """
 
 from __future__ import annotations
@@ -29,6 +32,7 @@ import threading
 import time
 from pathlib import Path
 
+from lessons import Arm, lesson_hash, load_lessons, statement_with_lesson
 from screen_rules import cells_of
 from staged import BlockedError, Driver, add_limit_arguments, settings_for
 from staged_summary import RUN_FIELDS, RUNS_PER_TASK, run_totals
@@ -110,6 +114,11 @@ def prior_records(workdir: Path, logs: list[str]) -> list[dict]:
     ]
 
 
+def file_order(records: list[dict]) -> list[str]:
+    """Distinct instance ids in the order the candidate file lists them."""
+    return list(dict.fromkeys(rec["instance_id"] for rec in records))
+
+
 def stratum_labels(pool: list[dict], ids: list[str]) -> dict[str, str]:
     """Instance id -> "subsystem/size_band" for the candidates; raises if one has no label."""
     wanted = set(ids)
@@ -146,10 +155,15 @@ def per_stratum(entries: list[dict]) -> dict[str, dict[str, int]]:
 class CandidateDriver(Driver):
     """Adaptive measurement of the candidates at one setting; summary by band and stratum."""
 
-    def __init__(self, workdir: Path, runs_dir: str, logs: list[str]):
+    def __init__(self, workdir: Path, runs_dir: str, logs: list[str], fixed_runs: int = 0):
         super().__init__(workdir, runs_dir=runs_dir)
         pool = json.loads((workdir / "data/pool.json").read_text())["pool"]
-        self.screen, self.skipped = priority_order(prior_records(workdir, logs))
+        records = prior_records(workdir, logs)
+        self.fixed_runs = fixed_runs  # 0 = adaptive; N = exactly N runs per listed task, no stop
+        if fixed_runs:
+            self.screen, self.skipped = file_order(records), []
+        else:
+            self.screen, self.skipped = priority_order(records)
         self.strata = stratum_labels(pool, self.screen + self.skipped)
         self.header = self.header | {
             "plan": f"CAL2 adaptive: {len(self.screen)} candidates in priority order, "
@@ -163,6 +177,21 @@ class CandidateDriver(Driver):
         self.state["setting"] = REASONING
         self.stop: str | None = None
         self._lock = threading.RLock()  # decide() and _record() both write the summary
+        self.arm, self.lesson_hashes = Arm.PLAIN, {}
+
+    def give_lessons(self, path: Path) -> None:
+        """Lesson arm: each listed task's lesson goes before its statement; raises if one lacks."""
+        lessons = load_lessons(path, self.screen)
+        for iid, text in lessons.items():
+            self.rows[iid] = statement_with_lesson(self.rows[iid], text)
+        self.arm = Arm.LESSON
+        self.lesson_hashes = {iid: lesson_hash(text) for iid, text in lessons.items()}
+        self.header = self.header | {"arm": str(self.arm), "lesson_sha": self.lesson_hashes}
+
+    def _record(self, rec: dict) -> None:
+        """Stamp the arm and the lesson hash on every record before it is logged."""
+        iid = rec["instance_id"]
+        super()._record(rec | {"arm": str(self.arm), "lesson_sha": self.lesson_hashes.get(iid)})
 
     def graded_runs(self, iid: str) -> list[dict]:
         """The graded records of one task under the current setting."""
@@ -195,11 +224,17 @@ class CandidateDriver(Driver):
         if self.stop:
             self.decide("stop", reason=self.stop)
 
+    def measure_fixed(self, iid: str) -> None:
+        """Exactly fixed_runs runs of one task; a confirm run has no verdict-based skipping."""
+        for run in range(1, self.fixed_runs + 1):
+            self.ensure(iid, run, self.low, "cal2")
+
     def run(self) -> None:
-        """Measure candidates in priority order until a stop rule fires; always write a summary."""
+        """Measure candidates in order until a stop rule fires (or all fixed runs are done)."""
         try:
-            self.stop = stop_reason(self.finished_tasks())
-            self._in_parallel([lambda iid=iid: self.measure(iid) for iid in self.screen])
+            measure = self.measure_fixed if self.fixed_runs else self.measure
+            self.stop = None if self.fixed_runs else stop_reason(self.finished_tasks())
+            self._in_parallel([lambda iid=iid: measure(iid) for iid in self.screen])
             self.state["status"] = "done"
             self.state["stop_reason"] = self.stop or "all candidates measured"
         except BlockedError as err:
@@ -236,12 +271,19 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("workdir", type=Path)
     parser.add_argument("--runs-dir", required=True, help="under workdir; holds this run's log")
     parser.add_argument("--candidates-log", action="append", required=True, dest="logs")
+    parser.add_argument(
+        "--fixed-runs", type=int, default=0, help="N runs per listed task, in file order, no stop"
+    )
+    parser.add_argument("--lessons", type=Path, default=None, help="lesson arm: id -> text JSON")
     add_limit_arguments(parser)
     return parser.parse_args(argv)
 
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
-    driver = CandidateDriver(args.workdir, args.runs_dir, args.logs)
+    driver = CandidateDriver(args.workdir, args.runs_dir, args.logs, args.fixed_runs)
     driver.low = settings_for(REASONING, args)
+    driver.workers = args.workers
+    if args.lessons:
+        driver.give_lessons(args.lessons)
     driver.run()
