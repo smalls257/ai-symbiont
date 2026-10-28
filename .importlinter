@@ -68,6 +68,7 @@ source_modules =
     symbiont.delivery.**
     symbiont.service.**
     symbiont.wizard.**
+    symbiont.cli
 forbidden_modules =
     socket
     ssl

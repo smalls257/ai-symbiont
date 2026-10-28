@@ -48,6 +48,8 @@ ALLOWED_SINGLE = frozenset({"x", "y", "_"})
 FLAG_PREFIXES = ("is_", "use_", "enable_")
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 WORDS = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+")
+HTTP_VERB_METHOD = re.compile(r"^do_[A-Z]+$")
+HTTP_HANDLER_BASES = frozenset({"BaseHTTPRequestHandler", "SimpleHTTPRequestHandler"})
 EXPIRES = re.compile(r"expires\s+(\d{4}-\d{2}-\d{2})")
 
 
@@ -123,8 +125,35 @@ def _bool_findings(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[list[str
     return errors, warnings
 
 
-def _definition_finding(node: ast.AST) -> tuple[str, str] | None:
+def _base_name(base: ast.expr) -> str | None:
+    if isinstance(base, ast.Name):
+        return base.id
+    return base.attr if isinstance(base, ast.Attribute) else None
+
+
+def _http_verb_methods(tree: ast.AST) -> set[int]:
+    """ids of do_<VERB> methods in classes deriving from the stdlib HTTP request handlers.
+
+    http.server dispatches on exactly this name, so it is the stdlib's contract, not ours.
+    """
+    ids = set()
+    for cls in ast.walk(tree):
+        if not isinstance(cls, ast.ClassDef):
+            continue
+        if not HTTP_HANDLER_BASES & {_base_name(base) for base in cls.bases}:
+            continue
+        ids.update(
+            id(item)
+            for item in cls.body
+            if isinstance(item, ast.FunctionDef) and HTTP_VERB_METHOD.match(item.name)
+        )
+    return ids
+
+
+def _definition_finding(node: ast.AST, http_verbs: set[int]) -> tuple[str, str] | None:
     if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return None
+    if id(node) in http_verbs:
         return None
     word = vague_in(node.name)
     if not word:
@@ -155,10 +184,10 @@ def _single_letter_finding(node: ast.AST, loops: set[int]) -> tuple[str, str] | 
 
 def _name_findings(tree: ast.AST) -> list[tuple[str, str]]:
     """(name, message) pairs for vague and single-letter names."""
-    loops = _loop_targets(tree)
+    loops, http_verbs = _loop_targets(tree), _http_verb_methods(tree)
     pairs = []
     for node in ast.walk(tree):
-        pairs += [_definition_finding(node), _single_letter_finding(node, loops)]
+        pairs += [_definition_finding(node, http_verbs), _single_letter_finding(node, loops)]
     return [pair for pair in pairs if pair]
 
 

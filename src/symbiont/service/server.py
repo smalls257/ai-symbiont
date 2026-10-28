@@ -2,7 +2,6 @@
 
 import json
 import logging
-from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
@@ -32,13 +31,7 @@ def serve(service: Service, port: int = SERVICE_PORT) -> None:
 
 def _routes_for(service: Service) -> type[BaseHTTPRequestHandler]:
     class Routes(BaseHTTPRequestHandler):
-        # http.server finds its POST method by the name do_POST, a name the naming gate refuses.
-        def __getattr__(self, name: str) -> Callable[[], None]:
-            if name == "do_POST":
-                return self._answer_post
-            raise AttributeError(name)
-
-        def _answer_post(self) -> None:
+        def do_POST(self) -> None:  # http.server dispatches by this name
             response = service.respond(self.path, _json_body(self))
             payload = json.dumps(response.body).encode()
             self.send_response(response.status)
