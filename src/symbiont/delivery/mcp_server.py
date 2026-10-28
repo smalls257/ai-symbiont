@@ -27,6 +27,8 @@ RECALL_TOOL = {
 
 @dataclass(frozen=True)
 class _Answer:
+    """A tool answer and whether it is a refusal."""
+
     text: str
     refused: bool = False
 
@@ -36,7 +38,10 @@ log = logging.getLogger("symbiont.mcp")
 
 
 class _RpcError(Exception):
+    """A JSON-RPC error with its code."""
+
     def __init__(self, code: int, reason: str) -> None:
+        """Carry the JSON-RPC error code with the reason."""
         super().__init__(reason)
         self.code = code
 
@@ -45,6 +50,7 @@ def serve_stdio(stdin: IO[str], stdout: IO[str], project: str, port: int) -> Non
     """Answer requests line by line until stdin closes; only JSON-RPC goes to stdout."""
 
     def ask(question: str) -> str:
+        """Ask the local service one plain question."""
         return recall_answer(question, project, port)
 
     for line in stdin:
@@ -57,6 +63,7 @@ def serve_stdio(stdin: IO[str], stdout: IO[str], project: str, port: int) -> Non
 
 
 def _reply_to_line(line: str, ask: Callable[[str], str]) -> dict[str, Any] | None:
+    """The JSON-RPC reply to one input line; None for notifications."""
     try:
         request = json.loads(line)
     except ValueError:
@@ -75,6 +82,7 @@ def _reply_to_line(line: str, ask: Callable[[str], str]) -> dict[str, Any] | Non
 
 
 def _dispatch(method: str, params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
+    """Result of one JSON-RPC method; unknown methods raise _RpcError."""
     if method == "initialize":
         return {
             "protocolVersion": _negotiated(params),
@@ -91,11 +99,13 @@ def _dispatch(method: str, params: Any, ask: Callable[[str], str]) -> dict[str, 
 
 
 def _negotiated(params: Any) -> str:
+    """The client's protocol version if supported, else our newest."""
     asked = params.get("protocolVersion") if isinstance(params, dict) else None
     return asked if asked in SUPPORTED_VERSIONS else SUPPORTED_VERSIONS[0]
 
 
 def _call_tool(params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
+    """Run the recall tool; any other tool name raises _RpcError."""
     if not isinstance(params, dict) or params.get("name") != "recall":
         raise _RpcError(INVALID_PARAMS, "unknown tool; the only tool is recall")
     arguments = params.get("arguments")
@@ -109,6 +119,7 @@ def _call_tool(params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
 
 
 def _tool_result(answer: _Answer) -> dict[str, Any]:
+    """Wrap an answer as MCP tool content."""
     return {"content": [{"type": "text", "text": answer.text}], "isError": answer.refused}
 
 
@@ -128,8 +139,10 @@ def _answer(ask: Callable[[str], str], question: str) -> _Answer:
 
 
 def _id_of(request: Any) -> Any:
+    """The request id, or None when the request is not an object."""
     return request.get("id") if isinstance(request, dict) else None
 
 
 def _error(request_id: Any, code: int, reason: str) -> dict[str, Any]:
+    """A JSON-RPC error reply."""
     return {"jsonrpc": "2.0", "id": request_id, "error": {"code": code, "message": reason}}

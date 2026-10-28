@@ -54,6 +54,7 @@ def _serve(args: argparse.Namespace) -> int:
 
 
 def _mcp(args: argparse.Namespace) -> int:
+    """Serve the single recall tool over stdio, logging to stderr."""
     logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="symbiont-mcp: %(message)s")
     serve_stdio(sys.stdin, sys.stdout, args.project, args.port)
     return 0
