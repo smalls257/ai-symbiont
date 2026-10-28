@@ -17,6 +17,7 @@ from typing import IO, Any
 
 from symbiont.act1.engine import (
     KeyTracker,
+    SectorConvention,
     button_vector,
     check_sector_convention,
     make_game,
@@ -140,29 +141,43 @@ class _Session:
     """The live game seen through the key tracker; the two callables the scripted moves need."""
 
     def __init__(
-        self, game: Any, knowledge: MapKnowledge, on_move: Callable[[MoveRun], None] | None
+        self,
+        game: Any,
+        knowledge: MapKnowledge,
+        on_move: Callable[[MoveRun], None] | None,
+        convention: SectorConvention,
     ):
         self.game, self.knowledge, self.keys = game, knowledge, KeyTracker()
         self.on_move, self.tics, self.decision = on_move, 0, 0
+        self.convention = convention
 
     def observe(self) -> GameStateView | None:
         if self.game.is_episode_finished():
             return None
-        return view_from_engine(self.game.get_state(), self.keys, self.knowledge.index)
+        return view_from_engine(
+            self.game.get_state(), self.keys, self.knowledge.index, convention=self.convention
+        )
 
     def act(self, buttons: frozenset[Button]) -> None:
         self.game.make_action(button_vector(buttons))
         self.tics += 1
 
 
-def _open_run_log(run_log: RunLog, max_decisions: int) -> IO[str] | None:
+def _open_run_log(
+    run_log: RunLog, max_decisions: int, convention: SectorConvention
+) -> IO[str] | None:
     """Open the log in append mode with a header line, so reruns never erase evidence."""
     if run_log.path is None:
         return None
     run_log.path.parent.mkdir(parents=True, exist_ok=True)
     handle = run_log.path.open("a")
     started_at = datetime.now(UTC).isoformat()
-    run_header = {"started_at": started_at, "max_decisions": max_decisions, **run_log.header}
+    run_header = {
+        "started_at": started_at,
+        "max_decisions": max_decisions,
+        "sector_convention": convention.value,
+        **run_log.header,
+    }
     handle.write(json.dumps({"run_header": run_header}) + "\n")
     handle.flush()
     return handle
@@ -231,9 +246,10 @@ def run_episode(
     """Play up to `max_decisions` model decisions, appending each to the run log as it finishes."""
     run_log = run_log or RunLog()
     game.new_episode()
-    check_sector_convention(knowledge.index.sectors, game.get_state().sectors)
-    session = _Session(game, knowledge, run_log.on_move)
-    log = _open_run_log(run_log, max_decisions)
+    convention = check_sector_convention(knowledge.index.sectors, game.get_state().sectors)
+    progress.info("sector convention: %s", convention.value)
+    session = _Session(game, knowledge, run_log.on_move, convention)
+    log = _open_run_log(run_log, max_decisions, convention)
     history: list[str] = []
     decisions: list[Decision] = []
     try:
