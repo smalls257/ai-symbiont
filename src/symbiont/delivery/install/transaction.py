@@ -138,6 +138,7 @@ def _read_manifest(state: Path) -> dict[str, str] | None:
 
 def _write_manifest(state: Path, digests: dict[str, str]) -> None:
     state.mkdir(parents=True, exist_ok=True)
+    (state / ".gitignore").write_text("*\n")  # backups may hold tokens from env blocks
     (state / "manifest.json").write_text(json.dumps(digests, indent=2))
 
 

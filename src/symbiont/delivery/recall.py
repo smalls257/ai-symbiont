@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from symbiont.egress import Destination, Endpoint, post_json
+from symbiont.egress import Destination, EgressRefusedError, Endpoint, post_json
 
 TIMEOUT_S = 10.0
 
@@ -27,6 +27,8 @@ def call_service(route: str, body: dict[str, object], port: int) -> dict[str, An
         reply = post_json(
             Destination(Endpoint.LOCAL_SERVICE, f"{url}{route}"), body, timeout_s=TIMEOUT_S
         )
+    except EgressRefusedError as refusal:
+        raise ServiceRefusedError(f"egress policy refused the call: {refusal}") from refusal
     except OSError as exc:
         if getattr(exc, "code", None) is None:
             raise ServiceOfflineError(f"could not reach the local service at {url}") from exc

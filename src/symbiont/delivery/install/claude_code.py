@@ -1,4 +1,4 @@
-"""Claude Code: hooks in the project's .claude/settings.json and the MCP server in .mcp.json."""
+"""Claude Code: hooks in .claude/settings.local.json, the MCP server in .mcp.json."""
 
 from symbiont.delivery.hooks import HookEvent, NoteStyle
 from symbiont.delivery.install.hook_config import hooks_block, merge_json
@@ -11,7 +11,7 @@ EVENTS = (
     HookEvent.POST_TOOL_USE,
     HookEvent.POST_TOOL_USE_FAILURE,
 )
-SETTINGS = ".claude/settings.json"
+SETTINGS = ".claude/settings.local.json"  # personal; the shared settings.json stays untouched
 MCP_CONFIG = ".mcp.json"
 
 

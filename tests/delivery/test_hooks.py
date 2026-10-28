@@ -63,6 +63,7 @@ def test_service_down_prints_offline_note_and_exits_zero(monkeypatch, capsys):
     assert code == 0
     assert json.loads(out)["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
     assert inline_text(out).startswith("symbiont offline: could not reach")
+    assert json.loads(out)["systemMessage"] == inline_text(out)
 
 
 def test_service_down_on_a_silent_event_warns_on_stderr_and_exits_zero(monkeypatch, capsys):
@@ -163,3 +164,36 @@ def test_recall_with_an_unusable_reply_prints_one_line_and_exits_one(monkeypatch
     assert cli.main(["recall", "q", "--port", "1"]) == 1
     err = capsys.readouterr().err
     assert err.count("\n") == 1 and "no usable answer" in err
+
+
+def test_a_malformed_service_reply_is_one_line_not_a_traceback(monkeypatch, capsys):
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: {"notes": 3})
+    code, out, err = run_cli(monkeypatch, capsys, HookEvent.USER_PROMPT_SUBMIT, PROMPT_INPUT, 1)
+    assert (code, out) == (1, "")
+    assert err.count("\n") == 1 and "no usable reply" in err
+
+
+@pytest.mark.parametrize(("harness", "speaks"), [("claude_code", True), ("muse_code", False)])
+def test_a_failure_note_is_inline_context_only_where_the_harness_takes_it(
+    monkeypatch, harness, speaks
+):
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: {"notes": ["Again."]})
+    settings = HookSettings(harness, NoteStyle.PLAIN, 1, "p")
+    event = HookEvent.POST_TOOL_USE_FAILURE
+    result = hooks.run_hook(event, json.dumps(INPUTS[event]), settings)
+    assert bool(result.context) is speaks
+    if speaks:
+        assert inline_text(result.context) == "Again."
+
+
+def test_an_egress_refusal_is_a_refusal_not_offline(monkeypatch):
+    from symbiont.delivery import recall
+    from symbiont.delivery.recall import ServiceRefusedError
+    from symbiont.egress import EgressRefusedError
+
+    def refuse(destination, body, timeout_s):
+        raise EgressRefusedError("blocked")
+
+    monkeypatch.setattr(recall, "post_json", refuse)
+    with pytest.raises(ServiceRefusedError, match="egress policy refused"):
+        recall.call_service("/observe", {}, 1)

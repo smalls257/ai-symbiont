@@ -23,7 +23,7 @@ no = lambda diff: False  # noqa: E731
 
 def seeded(tmp_path):
     (tmp_path / ".claude").mkdir()
-    (tmp_path / ".claude/settings.json").write_bytes(ORIGINAL_SETTINGS)
+    (tmp_path / ".claude/settings.local.json").write_bytes(ORIGINAL_SETTINGS)
     (tmp_path / ".mcp.json").write_bytes(ORIGINAL_MCP)
     return tmp_path
 
@@ -38,9 +38,10 @@ def test_install_is_idempotent_and_reversible(tmp_path):
     spec = claude_code_install(NoteStyle.PLAIN)
     assert install(spec, project, yes) is InstallOutcome.INSTALLED
     after = snapshot(project)
+    assert (project / ".symbiont/install-claude_code/.gitignore").read_text() == "*\n"
     assert install(spec, project, yes) is InstallOutcome.ALREADY_INSTALLED
     assert snapshot(project) == after
-    settings = json.loads((project / ".claude/settings.json").read_text())
+    settings = json.loads((project / ".claude/settings.local.json").read_text())
     assert settings["model"] == "x" and "Stop" in settings["hooks"]
     assert set(settings["hooks"]) >= {"SessionStart", "UserPromptSubmit", "PostToolUse"}
     uninstall(spec, project)
@@ -67,7 +68,7 @@ def test_declining_the_diff_writes_nothing(tmp_path):
         claude_code_install(NoteStyle.PLAIN), project, lambda d: shown.append(d) or False
     )
     assert outcome is InstallOutcome.DECLINED and snapshot(project) == before
-    assert "+++ b/.claude/settings.json" in shown[0] and "symbiont hook" in shown[0]
+    assert "+++ b/.claude/settings.local.json" in shown[0] and "symbiont hook" in shown[0]
 
 
 def test_uninstall_refuses_after_the_developer_edited_the_file(tmp_path):

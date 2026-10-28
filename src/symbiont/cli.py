@@ -124,6 +124,9 @@ def _hook(args: argparse.Namespace) -> int:
     except ServiceRefusedError as refused:
         print(f"symbiont refused the event: {refused}", file=sys.stderr)
         return 1
+    except ServiceReplyError as unusable:
+        print(f"symbiont got no usable reply: {unusable}", file=sys.stderr)
+        return 1
     if result.warning:
         print(result.warning, file=sys.stderr)
     if result.context:
@@ -138,6 +141,9 @@ def _installation(args: argparse.Namespace) -> int:
             uninstall(spec, args.project_dir)
             print(f"symbiont hooks removed from {args.project_dir}")
         else:
+            print(
+                "note: hooks call `symbiont`, which must be on PATH (for example uv tool install)"
+            )
             approve = _approve_all if args.yes else _ask_before_writing
             print(install(spec, args.project_dir, approve).value)
     except InstallError as failed:

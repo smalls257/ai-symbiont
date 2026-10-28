@@ -11,7 +11,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
-from symbiont.delivery.recall import ServiceOfflineError, call_service
+from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
 
 DATASET_PREFIX = "live-"
 LIVE_LICENSE = "local-session"
@@ -57,11 +57,20 @@ class HookInputError(ValueError):
 
 
 # PreLLMCall additionalContext was not seen in messages on echo (G2); it only observes.
-SPEAKING_EVENTS = frozenset(
+# PostToolUseFailure additionalContext is documented for Claude Code, unmeasured on Muse Code.
+_SPEAKING_EVERYWHERE = frozenset(
     {HookEvent.SESSION_START, HookEvent.USER_PROMPT_SUBMIT, HookEvent.POST_TOOL_USE}
 )
+CLAUDE_CODE = "claude_code"
 _EDIT_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 _SHELL_TOOLS = frozenset({"Bash", "shell", "bash"})
+
+
+def speaking_events(harness: str) -> frozenset[HookEvent]:
+    """The events whose notes this harness is known to take as inline context."""
+    if harness == CLAUDE_CODE:
+        return _SPEAKING_EVERYWHERE | {HookEvent.POST_TOOL_USE_FAILURE}
+    return _SPEAKING_EVERYWHERE
 
 
 def offline_note(reason: object) -> str:
@@ -77,14 +86,14 @@ def run_hook(event: HookEvent, stdin_text: str, settings: HookSettings) -> HookR
         reply = call_service("/observe", body, settings.port)
     except ServiceOfflineError as offline:
         note = offline_note(offline)
-        if event in SPEAKING_EVENTS:
-            return HookResult(context=_inline_context(event, note))
+        if event in speaking_events(settings.harness):
+            return HookResult(context=_inline_context(event, note, shown_to=note))
         return HookResult(warning=note)
     notes = reply.get("notes")
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
-        raise HookInputError("the local service sent notes that are not a list of sentences")
+        raise ServiceReplyError("the local service sent notes that are not a list of sentences")
     text = _worded(event, notes, settings.style)
-    if not text or event not in SPEAKING_EVENTS:
+    if not text or event not in speaking_events(settings.harness):
         return HookResult()
     return HookResult(context=_inline_context(event, text))
 
@@ -184,6 +193,10 @@ def _worded(event: HookEvent, notes: list[str], style: NoteStyle) -> str:
     return "\n".join(notes)
 
 
-def _inline_context(event: HookEvent, text: str) -> str:
+def _inline_context(event: HookEvent, text: str, shown_to: str = "") -> str:
+    """Context for the model; `shown_to` also goes to the developer as a system message."""
     output = {"hookEventName": event.value, "additionalContext": text}
-    return json.dumps({"hookSpecificOutput": output})
+    reply: dict[str, Any] = {"hookSpecificOutput": output}
+    if shown_to:
+        reply["systemMessage"] = shown_to
+    return json.dumps(reply)
