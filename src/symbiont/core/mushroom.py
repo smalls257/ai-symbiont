@@ -50,6 +50,13 @@ from symbiont.core.features import (
     meaningful_history,
 )
 from symbiont.core.indexes import Growing, PainPointIndex, TokenIndex, continues, tokens
+from symbiont.core.meta import (
+    META_RUN_SEED,
+    Calibrator,
+    LinearReadoutMeta,
+    Readout,
+    calibrator_step,
+)
 from symbiont.core.similarity import RECALL_SIZE
 from symbiont.core.slot import NO_HISTORY, Decision, Outcome, Situation
 from symbiont.miner.painpoint import PainPoint, Signature
@@ -79,10 +86,12 @@ class MushroomState:
     # was active when it happened (a bool mask, never mutated after creation).
     learned: tuple[tuple[Signature, np.ndarray], ...] = ()
     updates: int = 0
+    # Meta-learnable together with `w_out`; see symbiont.core.meta.
+    calibrator: Calibrator = Calibrator()
 
 
 @dataclass(eq=False, repr=False)
-class Mushroom:
+class Mushroom(LinearReadoutMeta):
     """The fly's mushroom-body learner.
 
     A dataclass so the constructor settings are plain fields (seed, wiring,
@@ -112,6 +121,17 @@ class Mushroom:
         self._history_index = PainPointIndex()
         self._packed_for: tuple[tuple[Signature, np.ndarray], ...] | None = None
         self._packed = np.zeros((0, 0), np.uint8)
+        self._meta_base: MushroomState | None = None
+
+    def base_state(self) -> MushroomState:
+        """Fixed wiring of the meta-learnable fly: never meta-learned (spec 4.5)."""
+        if self._meta_base is None:
+            self._meta_base = self.initial_state(META_RUN_SEED)
+        return self._meta_base
+
+    def readout_view(self, x: np.ndarray, state: MushroomState) -> Readout:
+        """The score is `1 - mean(w_out[active])`, which is linear in `w_out`."""
+        return Readout(phi=-kc_code(x, state).astype(np.float64) / N_ACTIVE, offset=1.0)
 
     def initial_state(self, seed: int) -> MushroomState:
         """Fresh weights (all 1) with wiring from the learner's seed and `seed`."""
@@ -145,17 +165,29 @@ class Mushroom:
         return Decision(trouble=trouble, why=why, recall=recalled, reason_none=None, risk=risk)
 
     def learn(self, x: np.ndarray, outcome: Outcome, state: MushroomState) -> MushroomState:
-        """Cut the active cells when trouble followed; relax them when it did not."""
+        """Cut the active cells when trouble followed; relax them when it did not.
+
+        A false alarm relaxes `false_alarm_cost` times as hard (capped at a
+        full return to 1.0); the balanced cost of 1 is the original rule.
+        """
         code = kc_code(x, state)
+        raw = 1.0 - float(state.w_out[code].sum()) / N_ACTIVE
         weights = state.w_out.copy()
         if outcome.pain_point_followed:
             weights[code] *= 1 - state.lr
         else:
-            weights[code] += state.lr * (1 - weights[code]) * _RELAX
+            relax = min(1.0, _RELAX * outcome.false_alarm_cost)
+            weights[code] += state.lr * (1 - weights[code]) * relax
         learned = state.learned
         if outcome.pain_point_followed and outcome.signature is not None:
             learned = _remember(learned, outcome.signature, code)
-        return replace(state, w_out=weights, learned=learned, updates=state.updates + 1)
+        return replace(
+            state,
+            w_out=weights,
+            learned=learned,
+            updates=state.updates + 1,
+            calibrator=calibrator_step(state.calibrator, raw, outcome),
+        )
 
     def _kind_of_trouble(
         self, code: np.ndarray, situation: Situation, state: MushroomState
