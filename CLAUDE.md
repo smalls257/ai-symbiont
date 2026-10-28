@@ -69,7 +69,7 @@ Every technical answer, design, diagnosis or piece of code runs this loop:
 2. **Name the Principle at stake.** The Violation negates a Principle; the Principle says what "fixed" looks like.
 3. **Derive the recommendation from the name.** If deleting the name would not change the advice, the name was decoration.
 4. **Engage hypotheticals on their terms.** "Should I add a fourth boolean?" is answerable without code: it is a God Method in larval form and a Leaky Narrative at every call site.
-5. **Name before you type.** Before writing a unit, state which Violation its shape exists to prevent. That name constrains the API, the error handling and the tests.
+5. **Name before you type.** Before writing a unit, state which Violation its shape exists to prevent, in the plan or PR description, not in the code. That name constrains the API, the error handling and the tests.
 
 ### The Load-Bearing Test
 
@@ -85,6 +85,7 @@ Redact every Principle and Violation name from your draft. If the advice is iden
 - Names are capabilities in the domain's language: not `handle`, `process`, `manage`, `do`, `Manager`, `Helper`.
 - Booleans at arity 2 or more are forbidden: use named variants or a `StrEnum`. An options dict respells the leak.
 - No silent catches. If you must swallow, log loudly with context and say why.
+- Comments and docstrings are terse: one line by default; a why only when the code can't show it; never name a Principle or Violation in code (that reasoning goes in the plan or PR). Gate QG-RD-04.
 
 **Naming (gate QG-RD-02/03, `scripts/gates/check_naming.py`).** These fail the gate; the message names the Violation.
 

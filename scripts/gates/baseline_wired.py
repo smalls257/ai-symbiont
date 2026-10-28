@@ -1,8 +1,6 @@
-"""Whole-tree counts for the gates wired after phase 1 (the ones documented but once unrun).
+"""Whole-tree counts for the gates wired after phase 1, folded into baseline.json.
 
-Split from measure_baseline.py so each file stays under its size cap. Each function returns a
-plain dict of counts; measure_baseline.py folds them into baseline.json. A tool that cannot run
-raises: a baseline of zeros from a broken scan would let phase 2 "clean" nothing (Paper Tiger).
+A tool that cannot run raises: a baseline of zeros from a broken scan would hide the debt.
 """
 
 import json
@@ -124,7 +122,15 @@ def comment_findings(files: list[str]) -> dict:
     if out.returncode == 2:
         raise RuntimeError(f"check_comments.py could not run: {out.stderr[-300:]}")
     lines = [ln for ln in out.stdout.splitlines() if ln.startswith("QG-RD-04: ")]
-    return {"findings": sum("finding(s)" not in ln for ln in lines)}
+    rules = {
+        "framework_vocabulary": "framework term",
+        "docstring_over_cap": "docstring over",
+        "comment_block_over_3": "comment block over",
+        "todo_without_owner_date": "TODO/FIXME",
+        "restates_next_line_or_signature": "restate",
+    }
+    counts = {key: sum(needle in ln for ln in lines) for key, needle in rules.items()}
+    return {**counts, "findings": sum("finding(s)" not in ln for ln in lines)}
 
 
 def mutation_score_if_measured() -> dict:

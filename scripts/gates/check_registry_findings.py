@@ -1,10 +1,6 @@
-"""QG-SAST-01 verdict from a semgrep --json report. Prevents Silent Fallback: a registry scan
-that errored or parsed nothing must not read as "no findings".
+"""QG-SAST-01 verdict from a semgrep --json report.
 
-ERROR findings block (exit 1). WARNING findings are advisory: counted and listed, exit 0.
-INFO findings (bandit B101 asserts and the like) are ignored. A report with scan errors, or
-one that cannot be read, exits 2: the gate could not judge.
-
+ERROR blocks (exit 1), WARNING is advisory, INFO is ignored; scan errors exit 2.
 Usage: check_registry_findings.py REPORT.json
 """
 

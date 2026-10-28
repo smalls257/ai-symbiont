@@ -1,16 +1,7 @@
-"""QG-RD-04 comment policy. Prevents Fossil Comments: a comment that restates the line below it,
-a TODO nobody owns, or a docstring that repeats the signature, carries no why and goes stale.
+"""QG-RD-04 comment policy: TODO format, restating comments, restating docstrings.
 
-Findings (Python files in src, scripts and ops):
-  * TODO / FIXME without `(owner, YYYY-MM-DD)`: write `TODO(jane, 2026-11-30): why`.
-  * a comment whose words are >= 70% the words of the statement below it (what, not why).
-    Comments that give a reason (because, so that, otherwise ...) or are tool directives
-    (noqa, type:, fmt:, nosemgrep, pragma) are exempt. hypothesis: the overlap threshold
-    needs tuning on this tree before it may block; the gate is advisory at C.
-  * a one-line docstring whose words are all in the function's name and parameter names.
-Commented-out code is ruff ERA001 in QG-LINT-01, not repeated here.
-
-Exit 1 on any finding (run.sh reports it as advisory), 2 if a file cannot be read or parsed.
+Terseness rules (framework vocabulary, docstring and comment-block caps) are in comment_style.py.
+Commented-out code is ruff ERA001. Exit 1 on a finding (advisory in run.sh), 2 if unreadable.
 Usage: check_comments.py FILE ...
 """
 
@@ -20,6 +11,8 @@ import re
 import sys
 import tokenize
 from pathlib import Path
+
+from comment_style import comment_style_problems, docstring_style_problems
 
 OVERLAP_LIMIT = 0.7  # QG-RD-04: the standard's number, still [hypothesis] until tuned here
 MIN_COMMENT_WORDS = 3
@@ -107,7 +100,13 @@ def restates_signature(doc: str, node: ast.FunctionDef | ast.AsyncFunctionDef) -
 
 def problems_in(source: str, name: str) -> list[str]:
     try:
-        return comment_problems(source, name) + docstring_problems(ast.parse(source), name)
+        tree = ast.parse(source)
+        return (
+            comment_problems(source, name)
+            + docstring_problems(tree, name)
+            + comment_style_problems(source, name)
+            + docstring_style_problems(tree, name)
+        )
     except (SyntaxError, tokenize.TokenError, IndentationError) as err:
         raise GateError(f"{name}: cannot parse: {err}") from err
 

@@ -1,15 +1,6 @@
-"""QG-TYP-03 no new `# type: ignore`. Prevents Fossil Comments: a blanket ignore outlives the
-reason it was added, and nobody can tell which error it hides.
+"""QG-TYP-03: every type: ignore names [error-code] # reason, and the count stays under the ceiling.
 
-Two rules over every tracked Python file in src, scripts, ops and tests (fixtures and spikes
-excluded):
-  * each `# type: ignore` names an error code and a reason:
-        value = f()  # type: ignore[arg-type] # vizdoom stubs lag 1.2.x
-  * the tree-wide count never exceeds the ceiling in scripts/gates/type-ignore-ceiling.txt.
-    The ceiling is a ratchet: raising it is a gate change (QG-GATE-01), lowering it is the
-    cleanup. mypy's warn_unused_ignores deletes the ones that stop being needed.
-
-Exit 1 on a finding, 2 if the gate cannot run (no ceiling file, unreadable source).
+The ceiling is type-ignore-ceiling.txt; raising it is a gate change. Exit 2 if it cannot run.
 Usage: check_type_ignores.py [FILE ...]   default: every tracked Python file in scope
 """
 

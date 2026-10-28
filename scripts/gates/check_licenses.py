@@ -1,18 +1,7 @@
-"""QG-DEP-02 license allowlist for what ships. Prevents Forensic Coding: the license story told
-to users must match the lockfile, and a copyleft or unknown license arriving as a transitive
-dependency is otherwise found by a lawyer, not a gate.
+"""QG-DEP-02: license allowlist on the runtime closure of uv.lock; dev-only is advisory.
 
-Judged on the runtime closure of uv.lock (`uv export --no-dev`), read from the installed
-packages by pip-licenses. A runtime package whose license is not on the allowlist, is UNKNOWN,
-carries an NC or ND clause, or is GPL/AGPL/SSPL blocks. Dev-group packages are listed as
-advisory: they never link into what ships. Also blocks a tracked FlyWire file (*.feather,
-*connectome*) or a vendored ViZDoom (a `vizdoom` path component or anything under vendor/).
-
-An expression joined by OR passes when any alternative is allowed; AND needs every part.
-Allowlist = the standard's (MIT, BSD-2/3, Apache-2.0, ISC, PSF, MPL-2.0, Unlicense, CC0) plus the
-permissive 0BSD, MIT-0 and Zlib that numpy's bundled-code license expression names.
-
-Exit 0 clean, 1 findings, 2 the gate could not run (no pip-licenses, no lockfile export).
+Also refuses tracked FlyWire files (*.feather, *connectome*) and a vendored ViZDoom.
+Exit 0 clean, 1 findings, 2 cannot run.
 """
 
 import json

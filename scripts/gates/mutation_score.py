@@ -1,12 +1,6 @@
-"""QG-TST-05 mutation score on the core. Prevents Paper Tiger: 90% line coverage with a third of
-the mutants surviving means the tests execute code without asserting on it.
+"""QG-TST-05: killed share of mutmut mutants against the 80% bar, with the survivors listed.
 
-Reads mutants/mutmut-cicd-stats.json (written by `mutmut export-cicd-stats`) and prints
-    killed share = (killed + timeout) / total
-against the 80% bar of the standard, then lists the surviving mutants for the release notes.
-Not part of run.sh: mutmut takes minutes, so scripts/gates/mutation.sh runs it before a scored
-run's tag and before publish. Exit 0 at or above the bar, 1 below it, 2 if there are no stats.
-
+Run by mutation.sh at release, not by run.sh. Exit 0 at the bar, 1 below it, 2 no stats.
 Usage: mutation_score.py [STATS.json] [RESULTS.txt]
 """
 
