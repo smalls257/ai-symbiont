@@ -98,3 +98,16 @@ def outer_fold_risks(
         model = fit_logistic(steps.features[fit_on], steps.labels[fit_on], l2)
         risks[held] = predict(model, steps.features[held])
     return risks
+
+
+def out_of_fold_risks(steps: Steps, l2: float, always: Steps | None = None) -> np.ndarray:
+    """Each step's risk from a model fit on the other folds (plus `always`, e.g. a pool)."""
+    risks = np.empty(len(steps.labels))
+    for fold in np.unique(steps.fold):
+        held = steps.fold == fold
+        features, labels = steps.features[~held], steps.labels[~held]
+        if always is not None:
+            features = np.vstack([always.features, features])
+            labels = np.concatenate([always.labels, labels])
+        risks[held] = predict(fit_logistic(features, labels, l2), steps.features[held])
+    return risks
