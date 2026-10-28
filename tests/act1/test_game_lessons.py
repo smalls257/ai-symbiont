@@ -22,6 +22,7 @@ def step(index, move, outcome, rooms, pains=(), *, angle=90, keys=(), ended=None
     """One synthetic game record; `rooms` is (room before, room after)."""
     facts = {
         "level": session.split("-")[0],
+        "decision": index,
         "outcome": outcome,
         "room_before": rooms[0],
         "room_after": rooms[1],
@@ -58,6 +59,7 @@ def test_three_wall_bumps_become_one_lesson_with_the_move_that_got_out():
         "`walk_to(exit)` walked into a wall 3 times in the start room, heading north."
     )
     assert lesson.how_resolved == "`go_to(door)` took you into the second room you entered."
+    assert (lesson.session_id, lesson.resolved_at) == (SESSION, 3)
     assert "Layout line" in lesson.check and "go_to" in lesson.check
 
 

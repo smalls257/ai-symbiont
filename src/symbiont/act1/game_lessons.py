@@ -72,7 +72,9 @@ class GameLesson:
     """One mistake from play, how the episode got past it, and the habit that avoids it."""
 
     lesson_id: str
+    session_id: str
     level: str
+    resolved_at: int  # the decision whose move got past the mistake (joins the decision log)
     pain: GamePain
     repeats: int  # how many tagged moves the group holds; repeated mistakes are taught first
     what_happened: str
@@ -103,6 +105,7 @@ class LessonHarvest:
 @dataclass(frozen=True)
 class _Step:
     index: int
+    decision: int
     move: str
     outcome: str
     room_before: int
@@ -145,11 +148,12 @@ def lessons_from_episode(records: Sequence[Record]) -> LessonHarvest:
     progress = _progress(steps, rooms)
     lessons, unresolved = [], Counter[str]()
     for group in _groups(steps):
-        resolution = next((progress[s.index] for s in steps[group.steps[-1].index + 1 :]
-                           if progress[s.index]), None)  # fmt: skip
-        if resolution is None:
+        later = steps[group.steps[-1].index + 1 :]
+        resolving = next((step for step in later if progress[step.index]), None)
+        if resolving is None:
             unresolved[group.pain.value] += 1
             continue
+        resolution = (resolving.decision, str(progress[resolving.index]))
         lessons.append(_lesson(records[0], group, rooms, resolution))
     mistakes = Counter(pain.value for step in steps for pain in step.pains)
     return LessonHarvest(tuple(lessons), mistakes, unresolved)
@@ -175,6 +179,7 @@ def _step(record: Record) -> _Step:
         facts: dict[str, Any] = json.loads(record.raw)
         return _Step(
             index=record.step,
+            decision=int(facts["decision"]),
             move=(record.command or "").removeprefix(LABEL_PREFIX),
             outcome=facts["outcome"],
             room_before=int(facts["room_before"]),
@@ -254,17 +259,21 @@ def _group_key(pain: GamePain, step: _Step) -> tuple[GamePain, int, str]:
     return pain, step.room_after, ""
 
 
-def _lesson(first: Record, group: _Group, rooms: dict[int, str], resolution: str) -> GameLesson:
-    level = json.loads(first.raw)["level"]
+def _lesson(
+    first: Record, group: _Group, rooms: dict[int, str], resolution: tuple[int, str]
+) -> GameLesson:
+    decision, how = resolution
     room = rooms[group.room]
     where = room.removeprefix("the ")
     return GameLesson(
         lesson_id=f"{first.session_id}/{group.pain.value}/{where}/{group.move}".rstrip("/"),
-        level=level,
+        session_id=first.session_id,
+        level=json.loads(first.raw)["level"],
+        resolved_at=decision,
         pain=group.pain,
         repeats=len(group.steps),
         what_happened=_what_happened(group, room),
-        how_resolved=resolution[0].upper() + resolution[1:],
+        how_resolved=how[0].upper() + how[1:],
         check=_check(group),
     )
 

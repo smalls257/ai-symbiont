@@ -9,7 +9,7 @@ Plays Freedoom via ViZDoom. Moves are scripted, and every log line says so.
 import json
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -186,12 +186,32 @@ def _open_run_log(
     return handle
 
 
+def rejected_line(rejected: str | None) -> str:
+    """The history line a rejected reply leaves; the loop and history_before share it."""
+    return f"(rejected reply: {rejected})"
+
+
+def history_before(decisions: Sequence[Decision], index: int) -> list[str]:
+    """The move history the loop had when it asked for decision `index` (prompts rebuilt from logs).
+
+    Raises IndexError when `index` is not a logged decision.
+    """
+    if not 0 <= index < len(decisions):
+        raise IndexError(f"decision {index} is not among {len(decisions)} logged decisions")
+    history: list[str] = []
+    for decision in decisions[:index]:
+        history.extend(
+            decision.outcomes if decision.status == "ok" else [rejected_line(decision.rejected)]
+        )
+    return history
+
+
 def _carry_out(
     moves: list[Move] | None, rejected: str | None, session: _Session, history: list[str]
 ) -> list[str]:
     """Run the parsed moves; a rejected reply goes to the history, never replaced by a move."""
     if moves is None:
-        history.append(f"(rejected reply: {rejected})")
+        history.append(rejected_line(rejected))
         return []
     outcomes = []
     for move in moves:

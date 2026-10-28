@@ -14,7 +14,7 @@ from symbiont.act1.engine import (
     check_sector_convention,
     view_from_engine,
 )
-from symbiont.act1.episode import MapKnowledge, RunLog, run_episode
+from symbiont.act1.episode import MapKnowledge, RunLog, build_prompt, history_before, run_episode
 from symbiont.act1.glimmer import GlimmerReplyError, Reply, TokenUsage, parse_chat_response
 from symbiont.act1.map_index import MapIndex, build_index
 from symbiont.act1.steplog import MoveKind
@@ -366,3 +366,21 @@ def test_a_caller_header_cannot_overwrite_the_detected_sector_convention(tmp_pat
     )
     header = json.loads(log.read_text().splitlines()[0])["run_header"]
     assert header["sector_convention"] == "authored"
+
+
+def test_history_before_rebuilds_exactly_the_prompts_the_loop_sent():
+    sent = []
+    replies = iter(
+        [Reply("turn(90)\nturn(-90)", "stop", 0), Reply("explore()", "stop", 0)]
+        + [Reply("shoot_nearest()", "stop", 0)] * 8
+    )
+
+    def reply_fn(prompt):
+        sent.append(prompt)
+        return next(replies)
+
+    decisions = run_episode(FakeGame(), reply_fn, 10, knowledge=MapKnowledge(FLOORED_MAP))
+    rebuilt = [build_prompt(d.observation, history_before(decisions, d.index)) for d in decisions]
+    assert rebuilt == sent
+    with pytest.raises(IndexError):
+        history_before(decisions, len(decisions))
