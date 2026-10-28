@@ -11,7 +11,7 @@
   const HEADLINE_SCHEMA = "demo-headlines-v1";
   const ROLES = ["floor", "ceiling", "reference", "under test"];
   const STATUSES = ["measured", "established", "hypothesis"];
-  const NOTE_SOURCES = ["classifier fired", "Glimmer recalled"];
+  const NOTE_SOURCES = ["classifier fired", "Glimmer recalled", "lesson in prompt (pilot)"];
   const SPEEDS = [0.5, 1, 2];
   const BASE_MS = 1600; // one step per 1.6 s at 1x: long enough to read a note aloud
   const RUN_COLORS = { plain: "#9a6b1f", personal: "#1d5fa8" };
@@ -235,8 +235,8 @@
   function noteItem(s, latest) {
     const li = el("li", `note${latest ? " latest" : ""}`);
     const head = el("div", "note-head");
-    const recalled = s.note.source === "Glimmer recalled";
-    head.append(el("b", "", `Step ${s.step}`), el("span", `source ${recalled ? "recalled" : "classifier"}`, s.note.source));
+    const kind = { "Glimmer recalled": "recalled", "lesson in prompt (pilot)": "prompt" }[s.note.source] || "classifier";
+    head.append(el("b", "", `Step ${s.step}`), el("span", `source ${kind}`, s.note.source));
     const dl = el("dl");
     const check = el("dd");
     check.append(el("code", "", s.note.check));

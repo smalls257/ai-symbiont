@@ -187,3 +187,28 @@ def test_every_fly_row_has_counters_directly_beside_it():
         for index, label in enumerate(labels):
             if label.startswith("fly"):
                 assert "counters" in labels[max(0, index - 1) : index + 2], headline["id"]
+
+
+PILOT_FILES = sorted(p.name for p in SAMPLE.glob("pilot-sqlglot-*.json"))
+
+
+@pytest.mark.parametrize("name", PILOT_FILES)
+def test_pilot_replay_matches_schema_and_sums(name):
+    doc = _load(name)
+    assert _replay_violations(doc) == []
+    assert doc["status"] == "measured" and "not the LoRA" in doc["source"]
+    plain, lesson = doc["runs"]
+    assert plain["totals"]["result"] == "not solved" and lesson["totals"]["result"] == "solved"
+    assert [s["note"]["source"] for s in lesson["steps"] if s["note"]] == [
+        "lesson in prompt (pilot)"
+    ]
+    for run in doc["runs"]:
+        assert run["totals"]["tokens_in"] == sum(s["tokens_in"] for s in run["steps"])
+        assert run["totals"]["wall_s"] == pytest.approx(
+            sum(s["wall_s"] for s in run["steps"]), abs=0.05
+        )
+        assert all(s["classifier"] is None and s["picker"] is None for s in run["steps"])
+
+
+def test_three_pilot_replays_are_shipped():
+    assert len(PILOT_FILES) == 3
