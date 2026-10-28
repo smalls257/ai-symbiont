@@ -1,14 +1,8 @@
 """The scored T39 comparison (prereg/2026-10-28-meta-start.md), pure functions of traces.
 
-Violation prevented: **Paper Tiger**. A meta start judged only against its own cold start
-could lose to plain counters or to one classifier and still be reported as a win, and a
-"worse" could be softened into "no gain". So every row is scored beside the floors, counters
-and both classifiers; every setting is chosen on the validation repositories and then fixed
-(nothing is fit on a scoring repository); each comparison ends in one word, better, tie or
-worse, read off its paired interval; and the best-row rule names the plainest row on ties.
-
-Input, per window: row -> wiring seed -> (validation traces, scoring traces). Intervals
-resample tasks within each scoring repository with the same draws for every row.
+Every row is scored beside the floors, counters and both classifiers; every setting is chosen on
+the validation repositories and then fixed. Each comparison ends in better, tie or worse, read off
+its paired interval. Input, per window: row -> wiring seed -> (validation, scoring) traces.
 """
 
 from collections.abc import Mapping, Sequence
@@ -128,6 +122,7 @@ def rows_of(
 
 
 def _scores(held: np.ndarray, option: Option, draws: np.ndarray) -> dict[str, Any]:
+    """Metrics of held-out counts under an option's value."""
     return {"metrics": scored(held, option.value, draws)}
 
 

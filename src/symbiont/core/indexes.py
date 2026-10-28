@@ -1,16 +1,8 @@
 """Incremental indexes over history: a decision costs its matches, not the size of history.
 
-Violation prevented: **Computational Friction**. Counters, similarity and the
-mushroom's recall each scanned all of history for every step; over thousands
-of sessions that is quadratic, and the only answer left would have been a
-bigger machine or fewer sessions (which changes what is measured). Indexes
-keep the answers identical and the cost proportional to what matches.
-
-An index is only a memo of a history that only ever grows: `sync(items)`
-extends it with whatever is new when `items` continues what it already holds
-(same first and last indexed element), and rebuilds from scratch otherwise.
-It never decides anything; an index and a plain scan give the same answer
-(the tests keep the scan as an oracle).
+An index is a memo of a history that only grows: `sync(items)` extends it when `items` continues
+what it holds (same first and last element) and rebuilds otherwise. It never decides anything; the
+tests keep the plain scan as an oracle and require the same answers.
 """
 
 import math
@@ -56,6 +48,7 @@ class Growing:
     """An append-only numpy array with amortized O(1) append."""
 
     def __init__(self, dtype: npt.DTypeLike) -> None:
+        """An empty growable array of the given dtype."""
         self._data = np.empty(16, dtype=dtype)
         self.size = 0
 
@@ -80,9 +73,11 @@ class PainPointIndex:
     """
 
     def __init__(self) -> None:
+        """Start empty."""
         self._reset()
 
     def _reset(self) -> None:
+        """Drop everything indexed so far."""
         self._items: list[PainPoint] = []
         self._by_element: dict[str, list[int]] = defaultdict(list)
         self._by_command: dict[tuple[str, ...], list[int]] = defaultdict(list)
@@ -96,6 +91,7 @@ class PainPointIndex:
             self._add(pos, points[pos])
 
     def _add(self, pos: int, point: PainPoint) -> None:
+        """Index one pain point at position `pos`."""
         self._items.append(point)
         self._by_signature[point.signature].append(pos)
         for element in set(point.signature.key):
@@ -138,9 +134,11 @@ class TokenIndex:
     """
 
     def __init__(self) -> None:
+        """Start empty."""
         self._reset()
 
     def _reset(self) -> None:
+        """Drop everything indexed so far."""
         self._items: list[Record] = []
         self._postings: dict[str, tuple[Growing, Growing]] = {}
         self._doc_terms: list[frozenset[str]] = []
@@ -156,6 +154,7 @@ class TokenIndex:
             self._add(pos, records[pos])
 
     def _add(self, pos: int, record: Record) -> None:
+        """Index one record's words at position `pos`."""
         words = tokens(record)
         self._items.append(record)
         self._lengths.append(len(words))
@@ -203,12 +202,7 @@ class TokenIndex:
     def bm25_top(
         self, query: set[str], excluded: Sequence[int], size: int, shape: Bm25Shape
     ) -> list[int]:
-        """Positions of the `size` best documents by BM25 (best first, ties to the earlier).
-
-        Ranked among all but `excluded`, with the collection statistics taken
-        over that remainder. Terms are added in sorted order so the arithmetic
-        is the same however the query set iterates.
-        """
+        """Positions of the `size` best BM25 documents (ties to the earlier), minus `excluded`."""
         remaining = len(self._items) - len(excluded)
         if remaining <= 0:
             return []
@@ -224,6 +218,7 @@ class TokenIndex:
         return best_first(scores, size)
 
     def _average_length(self, excluded: Sequence[int], remaining: int) -> float:
+        """Mean document length over what remains after excluding positions."""
         lengths = self._lengths.view
         kept = self.total_length - sum(int(lengths[pos]) for pos in excluded)
         return (kept / remaining) or 1.0
@@ -275,6 +270,7 @@ class InputMemo:
     """
 
     def __init__(self) -> None:
+        """Start with no remembered inputs."""
         self._owner: object | None = None
         self._found: dict[bytes, tuple[int, np.ndarray]] = {}
 

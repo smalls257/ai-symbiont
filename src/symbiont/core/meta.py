@@ -1,44 +1,9 @@
 """Meta-learnable fillers: the start of a filler, and one local step from it.
 
-Violations prevented: **Leaky Narrative** and **Paper Tiger**. Task 39
-meta-trains each filler's starting point once (MAML or Reptile, outer loop
-across domains). If the trainer had to know that the fly keeps `w_out` as a
-mask-gated product while a dense net keeps a vector, every filler would leak
-its internals into the trainer, and a filler that cannot be meta-trained
-would be found out only when a run silently did nothing. So a filler states,
-in its type, that it is meta-learnable: it satisfies `MetaLearnable`, and
-`require_meta_learnable` is the entry point that refuses anything else
-(counters) by name.
-
-What is meta-learned, and nothing else (spec 4.5): `MetaStart`, the readout's
-starting weights plus the `Calibrator`. The input wiring, the fly's random
-expansion and top-k sparsity, and the dense net's hidden layer, stay fixed by
-the filler's seed; meta-learning them is on the spec's "do not build" list.
-Learning rates are constants for the same reason (no IDBD).
-
-The step: `inner_step(start, x, outcome) -> start'` is a pure function of its
-arguments (no clock, no hidden mutation, deterministic given the filler's
-seed). `query_gradient(start, x, outcome)` is the analytic gradient of the
-false-alarm-weighted logistic loss with respect to `MetaStart`, exact for any
-linear readout, so Task 39 can run first-order MAML (adapt on the support
-outcomes with `inner_step`, take `query_gradient` at the adapted start on a
-query outcome, average over domains) or Reptile (`MetaStart.toward`). Neither
-filler's rule is the plain gradient step (the fly's is multiplicative, the dense
-net's drops the calibrator scale), so the Jacobian of
-`inner_step` is not provided: Task 39 uses first-order MAML or Reptile, not
-second-order.
-
-The score model, shared by every filler: `raw = offset + readout . phi`, the
-filler's own view of the step; the trouble probability is
-`sigmoid(scale * raw + bias)`. The calibrator learns `scale` and `bias`
-online on the loss in which a false alarm costs `outcome.false_alarm_cost`
-times a miss, so a higher cost lowers the calibrated probability and the
-filler warns less (the Bayes threshold is `cost / (1 + cost)`, see
-`warning_budget.warn_probability_threshold`).
-
-A third output (reasoning strength, spec job 3) is not built. The contract
-stays open to it: `MetaStart` is a frozen dataclass, so a later head adds a
-field and `as_vector` / `with_vector` carry it without changing callers.
+A filler states in its type that it is meta-learnable (`MetaLearnable`); `require_meta_learnable`
+refuses anything else (counters) by name. Only `MetaStart` is learned: the readout start and the
+`Calibrator`; wiring and rates stay fixed by the filler. `inner_step` is pure and `query_gradient`
+is the analytic loss gradient, so first-order MAML or Reptile can run.
 """
 
 from dataclasses import dataclass, replace

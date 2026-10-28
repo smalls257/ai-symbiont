@@ -1,19 +1,10 @@
 """Meta-train where the fly and DenseNet start, then score every row (T39). Periphery script.
 
-`train` meta-trains each filler's readout start and calibrator on the pool's training
-repositories, one job per (filler, wiring seed, outer step size), stopping on the
-validation repositories (`symbiont.eval.meta_start`). `score` replays every row online from
-zero on each evaluation repository and writes option A rows per window
-(`symbiont.eval.meta_start_report`) on the validation repositories only, labeled
-exploratory. The scored run is `run_meta_start_scored.py`.
-
-    meta_start_episodes.py ...                  # once: data/t39-episodes.npz
-    run_meta_start.py train --episodes data/t39-episodes.npz --pool results/repo-pool.json \
-        --out data/t39-starts.npz
-    run_meta_start.py score --episodes ... --pool ... --starts data/t39-starts.npz \
-        --on validation --out results/meta-start-smoke.json
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
+`train` meta-trains each filler's readout start and calibrator on the pool's training repositories
+(`symbiont.eval.meta_start`); `score` replays every row online on the validation repositories and
+writes option A rows per window (`symbiont.eval.meta_start_report`), labeled exploratory. Set
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1. The scored run is `run_meta_start_scored.py`.
+Usage: run_meta_start.py {train|score} --episodes ... --pool ... --starts ... --out ...
 """
 
 import argparse

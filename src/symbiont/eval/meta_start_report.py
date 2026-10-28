@@ -1,12 +1,9 @@
 """Rows of the meta-start comparison (T39): option A value per window, repositories as groups.
 
-Violation prevented: **Paper Tiger**. A meta start that only beats a cold start of the same
-filler could still lose to plain counters or to one classifier fit on the pool, so every
-window carries the warn-never floor, counters, the pool classifier and the same classifier
-with the fillers' online calibrator beside the four filler rows. Thresholds are picked by
-cross-validation grouped by repository (each repository counted once, by settings picked on
-the other folds); intervals resample repositories with the same draws for every row, so
-differences are paired. Pure functions of traces.
+Every window carries the warn-never floor, counters, the pool classifier and the same classifier
+with the online calibrator beside the four filler rows. Thresholds are picked by cross-validation
+grouped by repository; intervals resample repositories with the same draws, so differences are
+paired. Pure functions of traces.
 """
 
 from collections.abc import Mapping, Sequence
@@ -66,6 +63,7 @@ def window_of(traces: Traces, window: str) -> Traces:
 def _held(
     traces_by_seed: Mapping[int, Traces], repos: list[str], folds: np.ndarray, option: Option
 ) -> np.ndarray:
+    """Held-out counts per scoring repository for one option, from the seeds' traces."""
     stacks = {
         seed: [count_stack(prepare(t, repos), option.rule, option.tiers)]
         for seed, t in traces_by_seed.items()
@@ -76,6 +74,7 @@ def _held(
 def _row(
     name: str, role: str, window: str, option: Option, scores: dict[str, Any]
 ) -> dict[str, Any]:
+    """One results row for an arm in a window."""
     low = scores[NET]["ci95_low"]
     return {
         "arm": name,

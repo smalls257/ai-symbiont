@@ -1,15 +1,10 @@
 """The scored T39 comparison (prereg/2026-10-28-meta-start.md). Periphery script.
 
-Primary: Pillow, dvc and conan, each replayed whole from empty history, every row adapting
-online from zero. Secondary: pool fold 0, re-used (T46's exploratory curve scored cold rows
-there). Every setting (start, calibrator rate, thresholds) comes from the validation
-repositories; nothing is fit on a scoring repository. Rules: `symbiont.eval.meta_start_scored`.
-
-    run_meta_start_scored.py --episodes data/t39-episodes.npz --held-out data/t39-held-out.npz \
-        --pool results/repo-pool.json --starts data/t39-starts.npz --out results/meta-start.json \
-        --scored --prereg prereg/2026-10-28-meta-start.md
-
-PYTHONPATH: src and scripts/offline. Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1.
+Primary: Pillow, dvc and conan, each replayed whole from empty history. Secondary: pool fold 0.
+Every setting comes from the validation repositories; nothing is fit on a scoring repository.
+Rules: `symbiont.eval.meta_start_scored`. PYTHONPATH: src and scripts/offline. Set
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1.
+Usage: run_meta_start_scored.py --episodes ... --held-out ... --out ... --scored --prereg ...
 """
 
 import argparse

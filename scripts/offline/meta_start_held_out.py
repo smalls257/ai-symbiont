@@ -1,15 +1,10 @@
 """Pillow, dvc and conan for the scored T39 run: counts first, then episodes. Periphery script.
 
-`counts` reads the pinned T46 export and prints, per repository, the trajectories the reader
-refuses, tasks, sessions, steps and the early window (first 10 sessions): no label, no risk,
-no metric. `episodes` replays each repository whole, from empty history, every task, sessions
-in T46's seeded order, with T46's hub checkout and labels, and stores what the rows need
-(features, labels, boundaries, the counters' risks, task ids) under data/.
-
-    meta_start_held_out.py counts --data-dir data/nebius-openhands/held-out
-    meta_start_held_out.py episodes --data-dir ... --out data/t39-held-out.npz
-
-PYTHONPATH must hold src, scripts/offline and scripts/datasets (T46's runner imports both).
+`counts` prints, per repository, refused trajectories, tasks, sessions, steps and the early
+window: no label, risk or metric. `episodes` replays each repository whole from empty history with
+T46's seeded order, hub checkout and labels, and stores what the rows need under data/. PYTHONPATH
+must hold src, scripts/offline and scripts/datasets.
+Usage: meta_start_held_out.py {counts|episodes} --data-dir ... --out ...
 """
 
 import argparse

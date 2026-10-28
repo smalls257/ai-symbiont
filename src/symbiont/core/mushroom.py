@@ -1,40 +1,10 @@
 """Mushroom body: a learner with the fly's mushroom-body circuit counts.
 
-Violation prevented: **Paper Tiger**. A network that only matches the shape
-of the fly's circuit, without learning anything the counters cannot, passes
-its tests and helps nobody. It must stand next to Counters and Similarity on
-the same offline comparison and be judged by it; no claim is made here about
-how quickly it learns.
-
-The circuit: 86 inputs feed 5,177 Kenyon cells (KCs), each listening to 7
-inputs. Only the top 5% (259 cells) fire. One output weight per cell is
-changed by a local, dopamine-like rule when trouble followed (the weights of
-the active cells are cut) and relaxed back when it did not. No gradients, no
-backprop. Learning is overlap-limited: a pattern that shares few active cells
-with a punished one barely moves.
-
-State is passed in and returned, never held, so a run can be replayed and a
-learner swapped without hidden mutable state (**Shield**): `learn` returns a
-new `MushroomState` and leaves the old arrays untouched. Wiring uses the fly's
-published counts (86 inputs, 5,177 cells, 7 inputs per cell, 5% firing) with
-random connections by default, from the seed. Real FlyWire wiring, a learner
-built on the fly's actual circuit, is an optional user download, never
-committed and never fetched by code; asking for it and not supplying a valid
-file raises, because quietly substituting random wiring would make a result
-look like the real circuit when it is not (**Silent Fallback**). If you use
-FlyWire data, cite it as FlyWire asks.
-
-Recall considers only earlier steps that share a word (command or file name)
-with the current one, and candidates are kept with their cell codes so a
-decision costs its matches, not the size of history (**Computational
-Friction**); the tests keep the plain scan as an oracle.
-
-`trouble_threshold` is a constructor parameter, not a tuned constant. The
-default is an explicit placeholder; the pre-registration fixes the real value
-after calibration on the train split.
-
-FlyWire file format: an `.npz` holding `kc_inputs`, an int array of shape
-(5177, k) whose entries index the 86 inputs.
+86 inputs feed 5,177 Kenyon cells of 7 inputs each; the top 5% fire. One weight per cell is cut by
+a local rule when trouble followed and relaxed when not; no gradients. State is passed in and
+returned. Random wiring is the default; asking for FlyWire wiring without a valid `.npz`
+(`kc_inputs`, shape (5177, k)) raises. `trouble_threshold` is a constructor parameter fixed by the
+prereg.
 """
 
 from dataclasses import dataclass, replace
@@ -210,12 +180,7 @@ class Mushroom(LinearReadoutMeta):
         return best, tuple(meaningful_history(of_that_kind, self._hubs, self._scratch))
 
     def _most_shared_kind(self, code: np.ndarray, state: MushroomState) -> Signature | None:
-        """The learned kind of trouble sharing most cells with `code`, or None.
-
-        Ties go to the signature's text. The masks are packed into bits once
-        per learned tuple (a state's `learned` does not change while a session
-        is decided).
-        """
+        """The learned kind sharing most cells with `code`, or None; ties go to signature text."""
         if self._packed_for is not state.learned:
             self._packed = (
                 np.packbits(np.stack([m for _, m in state.learned]), axis=1)
@@ -251,22 +216,15 @@ class Mushroom(LinearReadoutMeta):
 
 
 class _RecallIndex:
-    """Candidates held with their cell codes.
-
-    Many candidates share one code
-    (a code depends only on the step's own command, files and outcome), so
-    candidates are grouped by code and each cell lists the groups that fire
-    it. A candidate's score is the sum, over the cells it shares with the
-    current code, of how far each was pushed down (1 - weight); only cells
-    that were pushed down need visiting, and the winners are re-scored with the
-    exact formula so ties and rounding fall as a full scan would.
-    """
+    """Candidates grouped by cell code; only pushed-down cells are visited."""
 
     def __init__(self) -> None:
+        """Start empty."""
         self.tokens = TokenIndex()
         self._reset(None)
 
     def _reset(self, wiring: tuple[np.ndarray, np.ndarray] | None) -> None:
+        """Drop the groups and cell lists, keeping the given wiring."""
         self._wiring = wiring
         self._group_of = Growing(np.int32)  # candidate position -> code group
         self._groups: dict[bytes, int] = {}
@@ -280,6 +238,7 @@ class _RecallIndex:
         hubs: frozenset[str],
         scratch: frozenset[ScratchFile],
     ) -> None:
+        """Extend the index with new candidates; rebuild when the wiring or history changes."""
         wiring = (state.inputs, state.jitter)
         same = self._wiring is not None and all(
             a is b for a, b in zip(wiring, self._wiring, strict=True)
@@ -294,6 +253,7 @@ class _RecallIndex:
             self._group_of.append(self._group(cells.astype(np.int16)))
 
     def _group(self, cells: np.ndarray) -> int:
+        """The group id for a cell set, creating it on first sight."""
         key = cells.tobytes()
         if key not in self._groups:
             self._groups[key] = len(self._codes)
@@ -303,6 +263,7 @@ class _RecallIndex:
         return self._groups[key]
 
     def best(self, code: np.ndarray, eligible: np.ndarray, w_out: np.ndarray) -> list[int]:
+        """Candidate positions ranked by how far the shared cells were pushed down."""
         pushed = 1.0 - w_out
         by_group = np.zeros(len(self._codes))
         for cell in np.flatnonzero(code & (pushed > 0)):
@@ -334,6 +295,7 @@ def best_first_with_ties(scores: np.ndarray, size: int) -> list[int]:
 
 
 def _exact_score(code: np.ndarray, theirs: np.ndarray, w_out: np.ndarray) -> float:
+    """Overlap score of one candidate: shared cells times how far they were pushed down."""
     cells = theirs[code[theirs]]  # ascending, as a boolean mask would give
     if len(cells) == 0:
         return 0.0
@@ -341,12 +303,7 @@ def _exact_score(code: np.ndarray, theirs: np.ndarray, w_out: np.ndarray) -> flo
 
 
 def kc_code(x: np.ndarray, state: MushroomState) -> np.ndarray:
-    """Which cells fire for input `x`: exactly the N_ACTIVE with the largest drive.
-
-    Real inputs are sparse one-hots, so many cells tie; a fixed seeded
-    per-cell jitter breaks those ties, so the same input always gives the same
-    code without the lowest-numbered cells always winning.
-    """
+    """The N_ACTIVE cells with the largest drive for `x`; a seeded jitter breaks ties."""
     drive = x[state.inputs].sum(axis=1, dtype=np.float64) + state.jitter
     # The N_ACTIVE largest, ties to the lower cell: what a stable argsort of
     # -drive would pick, without sorting all 5,177 cells.
@@ -368,16 +325,19 @@ def _remember(
 
 
 def _quiet(reason: str, *, risk: float = 0.0) -> Decision:
+    """A decision that says nothing, with the reason and the risk."""
     return Decision(trouble=None, why=(), recall=(), reason_none=reason, risk=risk)
 
 
 def _random_wiring(rng: np.random.Generator) -> np.ndarray:
+    """Random input wiring: each cell listens to INPUTS_PER_KC distinct inputs."""
     return np.stack(
         [rng.choice(N_FEATURES, size=INPUTS_PER_KC, replace=False) for _ in range(N_KC)]
     )
 
 
 def _load_flywire(path: Path | None) -> np.ndarray:
+    """Wiring from an `.npz`; no path or a missing file raises, never random wiring."""
     if path is None:
         raise ValueError("FlyWire wiring was asked for but no flywire_path was given")
     if not Path(path).is_file():

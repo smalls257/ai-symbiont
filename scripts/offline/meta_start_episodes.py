@@ -1,12 +1,8 @@
 """Per-repository episodes for T39: step features, labels, boundaries and the counters' risks.
 
-One counters replay per pool repository, from a fresh state with empty history (each
-repository on its own, as T46's warm pass). Features do not depend on the learner, so the
-filler rows reuse them without replaying again. The file holds numbers only and lives under
-the gitignored data/ directory.
-
-    meta_start_episodes.py --pool results/repo-pool.json \
-        --data-dir data/nebius-openhands/pool --out data/t39-episodes.npz
+One counters replay per pool repository from empty history, as T46's warm pass. Features do not
+depend on the learner, so the filler rows reuse them. Numbers only, under the gitignored data/.
+Usage: meta_start_episodes.py --pool results/repo-pool.json --data-dir ... --out ...
 """
 
 import argparse

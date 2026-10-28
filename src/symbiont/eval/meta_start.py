@@ -1,23 +1,9 @@
 """Meta-train where a filler starts, across repositories (T39), pure.
 
-Violations prevented: **Paper Tiger** and **Leaky Narrative**. A start trained on the
-same steps it is judged on would look good and help nobody, so each repository is one
-task: the outer loop learns on training repositories, picks its step size and stopping
-point on validation repositories, and is scored elsewhere. The trainer sees a filler only
-through `MetaLearnable` (start, fresh state, its own local rule, the loss gradient, the
-calibrated probability), so the fly and DenseNet go through the same recipe and neither
-leaks its internals here.
-
-The inner loop is the replay's own: within a repository a filler decides every step of a
-session from the state it had when the session began, and learns from each step's outcome
-after the session ends. First-order MAML: the gradient of the weighted loss at the start
-in force for each early session is applied to the start the repository began from. Only
-the readout start and calibrator move (spec 4.5); wiring and rates are the filler's.
-
-Reptile (move toward the mean adapted start) is the second outer rule; validation picks
-between them, since a long inner loop can make the first-order gradient point the wrong way.
-Outer steps of first-order MAML use Adam, an optimizer of the trainer, not a filler rate. Pure: no
-clock, files or environment; the run script logs and stores.
+Each repository is one task: the outer loop learns on training repositories, picks its step size
+and stopping point on validation repositories, and is scored elsewhere. The trainer sees a filler
+only through `MetaLearnable`. First-order MAML (Adam outer steps) or Reptile; validation picks.
+Within a repository a filler learns from a session's outcomes after the session ends.
 """
 
 from collections.abc import Callable, Sequence
@@ -340,14 +326,7 @@ def meta_train(
     config: MetaConfig,
     checkpoints: "Checkpoints | None" = None,
 ) -> MetaResult:
-    """Outer loop over training repositories, stopped on validation repositories.
-
-    Step 0 (the cold start) is a candidate like any other, so a meta start that never beats
-    it on validation comes back as the cold start, with `best_step` 0. `on_check` receives the
-    progress after every validation check, and `resume` continues from such a progress with
-    the same result as an uninterrupted run. Raises NotMetaLearnableError for a filler with no
-    start (counters), ValueError with no data.
-    """
+    """Outer loop over training repositories, stopped on validation (cold start is a candidate)."""
     learner = require_meta_learnable(filler)
     if not train or not validation:
         raise ValueError("meta-training needs training and validation repositories")
