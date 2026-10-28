@@ -15,7 +15,7 @@ DEST="$ROOT/.semgrep/registry"
 need_tool curl "ships with macOS and CI images"
 require_pinned_semgrep
 
-tmp="$(mktemp -d)" || gate_die "cannot create a temp dir"
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/symbiont-packs.XXXXXX")" || gate_die "cannot create a temp dir"
 trap 'rm -rf "$tmp"' EXIT
 stamp="semgrep=$SEMGREP_PINNED fetched=$(date -u +%FT%TZ)"
 for pack in $PACKS; do

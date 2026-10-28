@@ -36,7 +36,7 @@ targets=()
 while IFS= read -r f; do [ -n "$f" ] && targets+=("$f"); done <<< "$files"   # bash 3.2: no mapfile
 [ "${#targets[@]}" -gt 0 ] || { echo "QG-SAST-01: no files to scan"; exit 0; }
 
-report="$(mktemp)" || gate_die "cannot create a temp file"
+report="$(mktemp "${TMPDIR:-/tmp}/symbiont-semgrep.XXXXXX")" || gate_die "cannot create a temp file"
 trap 'rm -f "$report"' EXIT
 echo "QG-SAST-01 snapshot: $stamp"
 uv run --no-sync semgrep scan --metrics=off --disable-version-check --quiet --json \
