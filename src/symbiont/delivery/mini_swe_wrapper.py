@@ -78,15 +78,18 @@ class NotedEnvironment:
         """Everything else (config, cleanup, template vars) is the inner environment's."""
         return getattr(self._inner, name)
 
-    def execute(self, action: dict, cwd: str = "", *, timeout: int | None = None) -> dict[str, Any]:
+    def execute(
+        self, action: dict[str, Any], cwd: str = "", *, timeout: int | None = None
+    ) -> dict[str, Any]:
         """The inner result with notes appended; a Submitted raised inside passes through."""
         command = str(action.get("command", ""))
         if self._settings.mode is WrapMode.PLAIN:
-            return self._inner.execute(action, cwd, timeout=timeout)
+            plain: dict[str, Any] = self._inner.execute(action, cwd, timeout=timeout)
+            return plain
         question = recall_question(command)
         if question is not None:
             return self._recall_result(question)
-        result = self._inner.execute(action, cwd, timeout=timeout)
+        result: dict[str, Any] = self._inner.execute(action, cwd, timeout=timeout)
         extra = self._notes_for(command, result)
         if extra:
             result = result | {"output": f"{result.get('output', '')}\n{tagged(extra)}"}
