@@ -77,12 +77,36 @@ def test_unknown_method_and_bad_json_do_not_stop_the_loop():
     assert replies[3]["result"] == {}
 
 
-def test_wrong_tool_or_arguments_is_invalid_params():
-    bad = [
-        rpc("tools/call", 1, {"name": "other", "arguments": {}}),
-        rpc("tools/call", 2, {"name": "recall", "arguments": {"question": 5}}),
-    ]
-    assert [reply["error"]["code"] for reply in converse(bad)] == [-32602, -32602]
+def test_unknown_tool_is_invalid_params():
+    (reply,) = converse([rpc("tools/call", 1, {"name": "other", "arguments": {}})])
+    assert reply["error"]["code"] == -32602
+
+
+@pytest.mark.parametrize("arguments", [{}, {"question": 5}, {"question": "x", "extra": 1}])
+def test_bad_arguments_are_a_visible_error_result(arguments):
+    (reply,) = converse([rpc("tools/call", 1, {"name": "recall", "arguments": arguments})])
+    assert reply["result"]["isError"] is True
+    assert reply["result"]["content"][0]["text"].startswith("recall needs exactly one argument")
+
+
+@pytest.mark.parametrize(
+    ("asked", "answered"), [("2025-06-18", "2025-06-18"), ("1999-01-01", "2025-11-25")]
+)
+def test_initialize_negotiates_the_protocol_version(asked, answered):
+    (reply,) = converse([rpc("initialize", 1, {"protocolVersion": asked})])
+    assert reply["result"]["protocolVersion"] == answered
+
+
+def test_unexpected_failure_is_visible_and_the_loop_survives(monkeypatch):
+    def broken(question, project, port):
+        raise KeyError("answer")
+
+    monkeypatch.setattr(mcp_server, "recall_answer", broken)
+    call = rpc("tools/call", 1, {"name": "recall", "arguments": {"question": "q"}})
+    failed, pong = converse([call, rpc("ping", 2)])
+    assert failed["result"]["isError"] is True
+    assert failed["result"]["content"][0]["text"] == "symbiont error: KeyError"
+    assert pong["result"] == {}
 
 
 def test_stdout_is_only_json_rpc_and_logs_omit_the_question(capsys, caplog):

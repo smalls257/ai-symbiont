@@ -15,6 +15,10 @@ class ServiceRefusedError(RuntimeError):
     """The service answered with a refusal (for example 400); the message is its reason."""
 
 
+class ServiceReplyError(ValueError):
+    """The service replied without a usable answer."""
+
+
 def recall_answer(question: str, project: str, port: int) -> str:
     """The service's answer; raises rather than returning an empty one."""
     url = f"http://127.0.0.1:{port}"
@@ -27,7 +31,10 @@ def recall_answer(question: str, project: str, port: int) -> str:
         if getattr(exc, "code", None) is None:
             raise ServiceOfflineError(f"could not reach the local service at {url}") from exc
         raise ServiceRefusedError(_reason(exc)) from exc
-    return str(reply["answer"])
+    answer = reply.get("answer") if isinstance(reply, dict) else None
+    if not isinstance(answer, str) or not answer.strip():
+        raise ServiceReplyError("the local service sent no answer")
+    return answer
 
 
 def _reason(refusal: OSError) -> str:

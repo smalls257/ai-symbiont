@@ -63,3 +63,13 @@ def test_open_service_logs_each_call_into_a_run_directory(tmp_path):
     assert service.respond("/recall", {"question": "q", "project": "p"}).status == 200
     (events,) = (tmp_path / "runs").glob("*/events.jsonl")
     assert '"hook": "recall"' in events.read_text()
+
+
+@pytest.mark.parametrize("reply", [{}, {"answer": None}, {"answer": ""}, {"answer": 3}])
+def test_a_reply_without_a_usable_answer_raises(monkeypatch, reply):
+    from symbiont.delivery import recall
+    from symbiont.delivery.recall import ServiceReplyError
+
+    monkeypatch.setattr(recall, "post_json", lambda destination, body, timeout_s: reply)
+    with pytest.raises(ServiceReplyError):
+        recall_answer("q", "p", 1)

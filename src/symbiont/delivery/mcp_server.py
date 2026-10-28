@@ -8,7 +8,8 @@ from typing import IO, Any
 
 from symbiont.delivery.recall import ServiceOfflineError, ServiceRefusedError, recall_answer
 
-PROTOCOL_VERSION = "2025-11-25"
+# Newest first. recall uses only tools/list and tools/call, identical in all of these.
+SUPPORTED_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
 SERVER_INFO = {"name": "symbiont", "version": "0.1.0"}
 PARSE_ERROR, INVALID_REQUEST, METHOD_NOT_FOUND, INVALID_PARAMS = -32700, -32600, -32601, -32602
 
@@ -41,17 +42,20 @@ class _RpcError(Exception):
 
 def serve_stdio(stdin: IO[str], stdout: IO[str], project: str, port: int) -> None:
     """Answer requests line by line until stdin closes; only JSON-RPC goes to stdout."""
-    ask: Callable[[str], str] = lambda question: recall_answer(question, project, port)  # noqa: E731
+
+    def ask(question: str) -> str:
+        return recall_answer(question, project, port)
+
     for line in stdin:
         if not line.strip():
             continue
-        reply = _reply_to_line(line, ask, port)
+        reply = _reply_to_line(line, ask)
         if reply is not None:
             stdout.write(json.dumps(reply) + "\n")
             stdout.flush()
 
 
-def _reply_to_line(line: str, ask: Callable[[str], str], port: int) -> dict[str, Any] | None:
+def _reply_to_line(line: str, ask: Callable[[str], str]) -> dict[str, Any] | None:
     try:
         request = json.loads(line)
     except ValueError:
@@ -63,16 +67,16 @@ def _reply_to_line(line: str, ask: Callable[[str], str], port: int) -> dict[str,
         log.info("notification %s", request["method"])
         return None
     try:
-        result = _dispatch(request["method"], request.get("params"), ask, port)
+        result = _dispatch(request["method"], request.get("params"), ask)
     except _RpcError as failure:
         return _error(request["id"], failure.code, str(failure))
     return {"jsonrpc": "2.0", "id": request["id"], "result": result}
 
 
-def _dispatch(method: str, params: Any, ask: Callable[[str], str], port: int) -> dict[str, Any]:
+def _dispatch(method: str, params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
     if method == "initialize":
         return {
-            "protocolVersion": PROTOCOL_VERSION,
+            "protocolVersion": _negotiated(params),
             "capabilities": {"tools": {}},
             "serverInfo": SERVER_INFO,
         }
@@ -81,31 +85,45 @@ def _dispatch(method: str, params: Any, ask: Callable[[str], str], port: int) ->
     if method == "tools/list":
         return {"tools": [RECALL_TOOL]}
     if method == "tools/call":
-        return _call_tool(params, ask, port)
+        return _call_tool(params, ask)
     raise _RpcError(METHOD_NOT_FOUND, f"method not found: {method}")
 
 
-def _call_tool(params: Any, ask: Callable[[str], str], port: int) -> dict[str, Any]:
-    arguments = params.get("arguments") if isinstance(params, dict) else None
-    question = arguments.get("question") if isinstance(arguments, dict) else None
+def _negotiated(params: Any) -> str:
+    asked = params.get("protocolVersion") if isinstance(params, dict) else None
+    return asked if asked in SUPPORTED_VERSIONS else SUPPORTED_VERSIONS[0]
+
+
+def _call_tool(params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
     if not isinstance(params, dict) or params.get("name") != "recall":
         raise _RpcError(INVALID_PARAMS, "unknown tool; the only tool is recall")
-    if not isinstance(question, str):
-        raise _RpcError(INVALID_PARAMS, "recall needs a question string")
+    arguments = params.get("arguments")
+    question = arguments.get("question") if isinstance(arguments, dict) else None
+    if not isinstance(question, str) or arguments.keys() != {"question"}:
+        return _tool_result(
+            _Answer("recall needs exactly one argument: question, a string", refused=True)
+        )
     log.info("recall question of %d chars", len(question))
-    answer = _answer(ask, question, port)
+    return _tool_result(_answer(ask, question))
+
+
+def _tool_result(answer: _Answer) -> dict[str, Any]:
     return {"content": [{"type": "text", "text": answer.text}], "isError": answer.refused}
 
 
-def _answer(ask: Callable[[str], str], question: str, port: int) -> _Answer:
-    """What the model sees. Offline is a plain note, a refusal is flagged."""
+def _answer(ask: Callable[[str], str], question: str) -> _Answer:
+    """What the model sees. Offline is a plain note; every failure is visible, never silent."""
     try:
-        return _Answer(ask(question) or "symbiont returned no answer")
+        return _Answer(ask(question))
     except ServiceOfflineError as offline:
-        log.warning("service offline on port %d", port)
+        log.warning("service offline: %s", offline)
         return _Answer(f"symbiont offline: {offline}")
     except ServiceRefusedError as refused:
         return _Answer(f"symbiont refused the question: {refused}", refused=True)
+    except Exception as failure:  # noqa: BLE001 - logged and shown as an error; the loop must live
+        kind = type(failure).__name__
+        log.error("recall failed: %s", kind)
+        return _Answer(f"symbiont error: {kind}", refused=True)
 
 
 def _id_of(request: Any) -> Any:
