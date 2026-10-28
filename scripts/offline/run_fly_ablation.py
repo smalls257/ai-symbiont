@@ -52,7 +52,7 @@ from symbiont.eval.regime_replay import (
 from symbiont.eval.tanh_net import NetScorer, fine_tune, fit_mlp
 
 log = logging.getLogger("fly-ablation")
-L2 = 100.0  # the T46 classifier's penalty
+L2 = 1000.0  # the penalty of the committed T46 curve (results/note-cost-repo-curve.json)
 VALID_REPOS = 8  # the MLP's early-stopping slice: the last eight training repositories
 DIAG_SAMPLE = 4000
 PROJECTS: dict[str, Project] = {}
@@ -61,7 +61,14 @@ PARTS = {
     "main": {"n": (80,), "arms": tuple(fa.ARMS), "mlp": True},
     "curve": {
         "n": (1, 10),
-        "arms": ("fly as is", "fly combined", "fly H1+H2", "dense combined"),
+        "arms": (
+            "fly as is",
+            "fly combined",
+            "fly H1+H2",
+            "fly H1 slow+H2",
+            "dense combined",
+            "dense combined backprop",
+        ),
         "mlp": False,
     },
 }

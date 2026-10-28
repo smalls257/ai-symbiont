@@ -19,7 +19,7 @@ from symbiont.eval.note_cost_select import FOLDS
 
 KEPT_OPTIONS = rc.KEPT_OPTIONS
 HEADLINE = "a_heads_up_gain_1"
-L2 = 100.0
+L2 = 1000.0  # must equal run_fly_ablation.L2: the logistic slot is keyed by it
 REGIMES = ("R1", "R2")
 BATCH_ONLY_R1 = {"counters"}
 

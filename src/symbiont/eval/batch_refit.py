@@ -20,7 +20,7 @@ from symbiont.eval.note_cost_logistic import Logistic
 from symbiont.eval.tanh_net import TanhNet
 
 NEWTON_STEPS = 25
-REFIT_PRIOR = 10.0  # not tuned: the T46 classifier's l2 was 100 on 80 repositories' steps
+REFIT_PRIOR = 10.0  # not tuned; the shipped T46 classifier used 1000 on 80 repositories of steps
 
 
 def map_logistic(

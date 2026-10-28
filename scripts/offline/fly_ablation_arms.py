@@ -129,6 +129,13 @@ FLY_ARMS = (
         _fly(valence=Valence.TWO_VALENCE),
     ),
     Arm(
+        "fly H1 slow+H2",
+        "fly",
+        "combined",
+        "gain control and a slow rate",
+        _fly(gain=True, rates=(SLOW_RATE,)),
+    ),
+    Arm(
         "fly H1+H2",
         "fly",
         "combined",

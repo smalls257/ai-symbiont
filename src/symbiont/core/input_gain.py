@@ -8,14 +8,19 @@ code passes its tests and helps nobody. A random tanh layer saturates on the sam
 
 Biology: projection neurons normalize their odor responses by the total input to the antennal
 lobe (divisive gain control, Olsen, Bhandawat and Wilson 2010) and adapt to steady background
-input [established]. Here the background is the mean of each input and the gain its spread,
-both fit on training repositories only, then fixed: a new project never moves them, so the
-gain carries no information from the steps it scores.
+input [established], and their responses saturate (the normalization is a saturating
+ratio) [established]. Here the background is the mean of each input, the gain one over its
+spread and the response is capped at `PN_CEILING` spreads, all fit on training repositories
+only, then fixed: a new project never moves them. Without the cap a rare flag (a file that
+failed five times, on 0.002% of training steps) is scaled to about 200 and takes over the code
+and the dense readout as the line counts did (T47 [measured]).
 """
 
 from dataclasses import dataclass
 
 import numpy as np
+
+PN_CEILING = 3.0  # spreads; a flag on 10% of steps reaches 3.0, so common flags are not cut
 
 
 @dataclass(frozen=True)
@@ -26,8 +31,9 @@ class InputGain:
     gain: np.ndarray  # (n_inputs,) one over its spread; 1 for an input that never varied
 
     def apply(self, rows: np.ndarray) -> np.ndarray:
-        """Normalized copy of one feature vector or a (steps, inputs) matrix."""
-        result: np.ndarray = (np.asarray(rows, dtype=np.float64) - self.background) * self.gain
+        """Normalized, capped copy of one feature vector or a (steps, inputs) matrix."""
+        centered = (np.asarray(rows, dtype=np.float64) - self.background) * self.gain
+        result: np.ndarray = np.clip(centered, -PN_CEILING, PN_CEILING)
         return result
 
 
