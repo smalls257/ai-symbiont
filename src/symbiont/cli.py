@@ -1,10 +1,12 @@
-"""The `symbiont` command: `serve` runs the local service, `recall` asks it one question."""
+"""The `symbiont` command: `serve` runs the service, `recall` asks it, `mcp` serves MCP stdio."""
 
 import argparse
+import logging
 import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from symbiont.delivery.mcp_server import serve_stdio
 from symbiont.delivery.recall import ServiceOfflineError, ServiceRefusedError, recall_answer
 from symbiont.service.app import ServiceMode
 from symbiont.service.server import SERVICE_PORT, serve
@@ -18,6 +20,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.command == "serve":
         return _serve(args)
+    if args.command == "mcp":
+        return _mcp(args)
     return _recall(args)
 
 
@@ -37,12 +41,22 @@ def _parser() -> argparse.ArgumentParser:
         "--project", default=Path.cwd().name, help="defaults to this directory's name"
     )
     asking.add_argument("--port", type=int, default=SERVICE_PORT)
+    mcp = commands.add_parser("mcp", help="serve the recall tool over MCP stdio")
+    mcp.add_argument("--project", default=Path.cwd().name, help="defaults to this directory's name")
+    mcp.add_argument("--port", type=int, default=SERVICE_PORT)
     return parser
 
 
 def _serve(args: argparse.Namespace) -> int:
     """Run the local service until interrupted."""
     serve(open_service(args.data_dir, args.mode), args.port)
+    return 0
+
+
+def _mcp(args: argparse.Namespace) -> int:
+    """Serve the single recall tool over stdio, logging to stderr."""
+    logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="symbiont-mcp: %(message)s")
+    serve_stdio(sys.stdin, sys.stdout, args.project, args.port)
     return 0
 
 
