@@ -53,7 +53,7 @@ import numpy as np
 
 from symbiont.core.features import featurise, meaningful_history, scratch_files
 from symbiont.core.similarity import RECALL_SIZE
-from symbiont.core.slot import Decider, Decision, Outcome, Situation
+from symbiont.core.slot import BALANCED_FALSE_ALARM_COST, Decider, Decision, Outcome, Situation
 from symbiont.miner.mine import References, mine_session
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signature
 from symbiont.records.schema import Record
@@ -87,6 +87,8 @@ class ReplayContext:
 
     references: References
     hubs: frozenset[str]
+    # Penalized selection (T36) teaches every learner that a false alarm costs this much.
+    false_alarm_cost: float = BALANCED_FALSE_ALARM_COST
     _labels: dict[str, tuple[Record, list[PainPoint]]] = field(default_factory=dict, repr=False)
     _features: dict[tuple[str, int, int], np.ndarray] = field(default_factory=dict, repr=False)
 
@@ -287,13 +289,13 @@ def _decide_session(
     for situation, target in zip(situations, targets, strict=True):
         features = ctx.features(situation)
         decisions.append(decider.decide(features, situation, state))
-        learned.append((features, _outcome(target)))
+        learned.append((features, _outcome(target, ctx.false_alarm_cost)))
     return decisions, learned
 
 
-def _outcome(target: PainPoint | None) -> Outcome:
+def _outcome(target: PainPoint | None, false_alarm_cost: float) -> Outcome:
     if target is None:
-        return Outcome(pain_point_followed=False, signature=None)
+        return Outcome(pain_point_followed=False, signature=None, false_alarm_cost=false_alarm_cost)
     return Outcome(
         pain_point_followed=True,
         signature=target.signature,
