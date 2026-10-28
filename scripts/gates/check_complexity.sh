@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# QG-CPX-01/02 function size. Prevents God Method (Shield). Caps are per function, so the
+# QG-CPX-01/02 function size. Caps are per function, so the
 # waiver is per function too: `path.py:function` lines in the delete-only whitelist.
 #   pure core (records, miner, core, routeb): CCN <= 10, NLOC <= 30, params <= 5
 #   everything else in src/, scripts/, ops/:  CCN <= 12, NLOC <= 40, params <= 5

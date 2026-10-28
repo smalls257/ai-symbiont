@@ -159,3 +159,129 @@ def test_an_unknown_base_is_an_error_not_a_pass(repo, monkeypatch):
     monkeypatch.setenv("SYMBIONT_GATE_BASE", "no-such-ref")
     with pytest.raises(integrity.IntegrityError):
         integrity.main([])
+
+
+def _main_moves_on(root: Path, path: str, text: str) -> None:
+    _git(root, "checkout", "-q", "main")
+    _commit(root, path, text, "approved on main\n\nGATE-CHANGE: owner approved")
+    _git(root, "checkout", "-q", "work")
+
+
+def test_merging_main_with_its_approved_gate_change_passes_pending_and_committed(repo):
+    _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    _main_moves_on(repo, "scripts/gates/run.sh", "echo stricter\n")
+    _git(repo, "merge", "-q", "--no-commit", "--no-ff", "main")
+    assert integrity.main([]) == 0
+    _git(repo, "commit", "-q", "-m", "merge main")
+    assert integrity.main([]) == 0
+
+
+def test_a_merge_resolution_that_writes_new_gate_content_fails(repo, capsys):
+    _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    _main_moves_on(repo, "scripts/gates/run.sh", "echo stricter\n")
+    _git(repo, "merge", "-q", "--no-commit", "--no-ff", "main")
+    _write(repo, "scripts/gates/run.sh", "echo something else\n")
+    _git(repo, "add", "scripts/gates/run.sh")
+    assert integrity.main([]) == 1
+    assert "run.sh" in capsys.readouterr().err
+
+
+def test_a_merge_keeping_the_branch_approved_gate_change_passes(repo):
+    _commit(repo, "scripts/gates/run.sh", "echo mine\n", "mine\n\nGATE-CHANGE: owner approved")
+    _main_moves_on(repo, "src/a.py", "x = 3\n")
+    _git(repo, "merge", "-q", "--no-edit", "main")
+    assert integrity.main([]) == 0
+
+
+def test_merging_a_branch_that_is_not_main_gets_no_relief(repo):
+    _git(repo, "checkout", "-q", "-b", "side", "main")
+    _commit(repo, ".naming-waivers.txt", "src/a.py:handle_it  # me, why, 2099-01-01\n", "sneak")
+    _git(repo, "checkout", "-q", "work")
+    _git(repo, "merge", "-q", "--no-commit", "--no-ff", "side")
+    assert integrity.main([]) == 1
+
+
+def test_a_merge_that_lowers_main_floor_in_resolution_fails(repo):
+    _main_moves_on(repo, "scripts/gates/test-floor.txt", "300  # ratchet\n")
+    _commit(repo, "scripts/gates/test-floor.txt", "260  # ratchet\n", "raise\n\nGATE-CHANGE: ok")
+    conflicted = subprocess.run(["git", "-C", str(repo), "merge", "-q", "main"], check=False)
+    assert conflicted.returncode != 0
+    _write(repo, "scripts/gates/test-floor.txt", "250  # ratchet\n")
+    _git(repo, "add", "scripts/gates/test-floor.txt")
+    assert integrity.main([]) == 1
+
+
+def _merge_main_keeping_ours(root: Path, path: str) -> None:
+    _git(root, "merge", "-q", "--no-commit", "--no-ff", "main")
+    _git(root, "checkout", "HEAD", "--", path)
+
+
+@pytest.mark.parametrize("path", ["scripts/gates/run.sh", ".naming-waivers.txt"])
+def test_a_merge_that_reverts_main_hardening_fails_pending_and_committed(repo, path):
+    _write(repo, ".naming-waivers.txt", "# header\nsrc/a.py:old  # me, why, expires 2099-01-01\n")
+    _git(repo, "add", ".naming-waivers.txt")
+    _git(repo, "commit", "-q", "-m", "waiver on both sides")
+    _git(repo, "checkout", "-q", "main")
+    _git(repo, "merge", "-q", "work")
+    _git(repo, "checkout", "-q", "work")
+    _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    stricter = "echo stricter\n" if path.endswith(".sh") else "# header\n"
+    _main_moves_on(repo, path, stricter)
+    _merge_main_keeping_ours(repo, path)
+    assert integrity.main([]) == 1
+    _git(repo, "commit", "-q", "-m", "merge main")
+    assert integrity.main([]) == 1
+
+
+def test_a_merge_keeping_a_lower_floor_than_main_fails_pending_and_committed(repo):
+    _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    _main_moves_on(repo, "scripts/gates/test-floor.txt", "300  # ratchet\n")
+    _merge_main_keeping_ours(repo, "scripts/gates/test-floor.txt")
+    assert integrity.main([]) == 1
+    _git(repo, "commit", "-q", "-m", "merge main")
+    assert integrity.main([]) == 1
+
+
+def test_a_forged_merge_with_an_old_main_parent_fails(repo):
+    old_main = _git(repo, "rev-parse", "main").strip()
+    _main_moves_on(repo, "scripts/gates/test-floor.txt", "300  # ratchet\n")
+    _main_moves_on(repo, "scripts/gates/run.sh", "echo stricter\n")
+    _git(repo, "checkout", "-q", "-B", "work", "main")
+    work = _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    old_tree = _git(repo, "rev-parse", f"{old_main}^{{tree}}").strip()
+    forged = _git(repo, "commit-tree", old_tree, "-p", work, "-p", old_main, "-m", "merge main")
+    _git(repo, "reset", "-q", "--hard", forged.strip())
+    assert integrity.main([]) == 1
+
+
+def test_a_forged_merge_head_gives_no_relief(repo):
+    old_main = _git(repo, "rev-parse", "main").strip()
+    _main_moves_on(repo, "scripts/gates/test-floor.txt", "300  # ratchet\n")
+    _git(repo, "checkout", "-q", "-B", "work", "main")
+    (repo / ".git" / "MERGE_HEAD").write_text(old_main + "\n")
+    _write(repo, "scripts/gates/test-floor.txt", "240  # ratchet\n")
+    assert integrity.main([]) == 1
+
+
+def test_a_detached_merge_of_main_and_a_branch_with_a_marked_gate_commit_passes(repo):
+    _commit(repo, "scripts/gates/run.sh", "echo mine\n", "mine\n\nGATE-CHANGE: owner approved")
+    _main_moves_on(repo, "src/a.py", "x = 3\n")
+    _git(repo, "checkout", "-q", "--detach", "main")
+    _git(repo, "merge", "-q", "--no-ff", "-m", "Merge work into main", "work")
+    assert integrity.main([]) == 0
+
+
+def test_merging_a_side_branch_with_a_marked_gate_commit_passes(repo):
+    _git(repo, "checkout", "-q", "-b", "side", "main")
+    _commit(repo, "scripts/gates/run.sh", "echo side\n", "side\n\nGATE-CHANGE: owner approved")
+    _git(repo, "checkout", "-q", "work")
+    _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    _git(repo, "merge", "-q", "--no-edit", "side")
+    assert integrity.main([]) == 0
+
+
+def test_a_marked_floor_drop_survives_merging_an_unrelated_main(repo):
+    _commit(repo, "scripts/gates/test-floor.txt", "100\n", "drop\n\nGATE-CHANGE: owner approved")
+    _main_moves_on(repo, "src/a.py", "x = 3\n")
+    _git(repo, "merge", "-q", "--no-edit", "main")
+    assert integrity.main([]) == 0
