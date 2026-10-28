@@ -139,3 +139,23 @@ def test_cells_run_short_budgets_then_lcaps_full_budget(monkeypatch):
     assert recipe.taught(["a", "b", "c"], 2) == ["a", "b"]
     with pytest.raises(ValueError):
         recipe.taught(["a"], 3)
+
+
+def test_reaches_names_the_fewest_updates_that_match_blanks_full_budget(monkeypatch):
+    score_meta = load(monkeypatch, "score_meta")
+
+    def row(arm, iters, recall):
+        return {
+            "question_set": "template",
+            "arm": arm,
+            "lessons": 3,
+            "iters": iters,
+            "recall": recall,
+        }
+
+    rows = [row("blank", 36, 0.5), row("meta", 8, 0.2), row("meta", 15, 0.5), row("meta", 36, 0.4)]
+    assert score_meta.reaches(rows, "meta", "template") == [
+        {"lessons": 3, "blank_full_budget_recall": 0.5, "fewest_iters_to_match": 15}
+    ]
+    never = [row("blank", 36, 0.9), row("meta", 15, 0.5)]
+    assert score_meta.reaches(never, "meta", "template")[0]["fewest_iters_to_match"] is None

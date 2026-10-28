@@ -45,8 +45,9 @@ never held out.
 - joint start (reference): the same init trained on every meta-training row at constant lr 1e-4
   for as many updates as the Reptile run makes.
 - meta start (under test): Reptile, first order, over the LoRA weights only, with the settings the
-  exploratory run picked on its validation repos (recorded in the results file and fixed here when
-  frozen; no new tuning).
+  exploratory run picked on its validation repos and no new tuning: 30 inner updates per repo at
+  constant lr 1e-4, 100 outer iterations, outer step 1.0 annealed linearly to 0, repos visited in
+  shuffled full passes (seed 0), init seed 0 (`k30-o100-s1.0` in the results file).
 - Every start is then taught a test repo's lessons by the same LCAP recipe for 0, 8, 15, 30 updates
   and LCAP's full budget (8 epochs: 36 and 60 updates), one seed per cell.
 
@@ -55,7 +56,8 @@ never held out.
 - Primary: template recall (the LCAP deterministic scorer: the error class or every token the fix
   added, verbatim) at 5 lessons and 15 updates, averaged per repo, meta minus blank and meta minus
   joint, paired by repo.
-- Secondary: the same at 3 lessons and 15 updates; paraphrased-question recall; invented-detail
+- Secondary: the same at 3 lessons and 15 updates; meta minus blank at LCAP's full budget (the
+  exploratory run saw the meta start fall behind there, so this checks for harm); paraphrased-question recall; invented-detail
   rate (details no lesson of that repo names); the fewest updates at which each start matches the
   blank start's full-budget recall.
 
