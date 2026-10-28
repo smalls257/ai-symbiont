@@ -34,9 +34,11 @@ def _payload(ids: list[int], lora_scales: list[float]) -> dict[str, object]:
     }
 
 
-def complete(server: str, ids: list[int], lora_scales: list[float]) -> str:
+def complete(server: str, ids: list[int], lora_scales: list[float], model: str | None) -> str:
     """One greedy completion; raises on any HTTP or server error rather than answering ''."""
-    body = json.dumps(_payload(ids, lora_scales)).encode()
+    # A router server picks the child by `model`; a single-model server ignores the field.
+    payload = _payload(ids, lora_scales) | ({"model": model} if model else {})
+    body = json.dumps(payload).encode()
     request = Request(f"{server}/completion", body, {"Content-Type": "application/json"})
     with urlopen(request, timeout=TIMEOUT_S) as response:
         reply = json.loads(response.read())
@@ -59,6 +61,7 @@ def main() -> None:
         parser.add_argument(flag, required=True)
     parser.add_argument("--adapters", type=int, required=True, help="adapters the server holds")
     parser.add_argument("--lora", type=int, help="index of the adapter to apply; none: base model")
+    parser.add_argument("--model", help="model name, when --server is a llama-server router")
     args = parser.parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.snapshot)
     system = Path(args.system).read_text(encoding="utf-8")
@@ -72,7 +75,9 @@ def main() -> None:
     ]
     scales, started = lora_scales(args.adapters, args.lora), time.monotonic()
     with ThreadPoolExecutor(PARALLEL) as pool:
-        answers = list(pool.map(lambda ids: complete(args.server, ids, scales), prompts))
+        answers = list(
+            pool.map(lambda ids: complete(args.server, ids, scales, args.model), prompts)
+        )
     with Path(args.out).open("w", encoding="utf-8") as fh:
         for question, answer in zip(questions, answers, strict=True):
             fh.write(json.dumps({"question_id": question["question_id"], "answer": answer}) + "\n")
