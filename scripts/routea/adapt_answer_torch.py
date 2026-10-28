@@ -151,11 +151,17 @@ def main() -> None:
         "--start", action="append", required=True, help="floor, ceiling, blank, NAME=start.pt"
     )
     parser.add_argument("--cells", help="SIZE:ITERS,... (default: every size x every budget)")
+    # Two machines can share a split by repo: each runs every arm on its repos, so no comparison
+    # mixes a CUDA answer with an MPS one for the same repo.
+    parser.add_argument("--repos", help="indices into the sorted repos, e.g. 0,1 (default: all)")
     args = parser.parse_args()
     run = HeldOutRun(args)
     starts = _starts(args.start, run.blank)
     plan = _cells(args.cells)
+    chosen = {int(i) for i in args.repos.split(",")} if args.repos else None
     for index, repo in enumerate(sorted(run.repos)):
+        if chosen is not None and index not in chosen:
+            continue
         for arm, start in starts.items():
             began = time.monotonic()
             _run_arm(run, (arm, start), repo, plan)
