@@ -18,6 +18,7 @@ PURE_FILES = (
     "levels.py",
     "rooms.py",
     "steplog.py",
+    "game_pains.py",
 )
 
 
