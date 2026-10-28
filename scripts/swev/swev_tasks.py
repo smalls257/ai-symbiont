@@ -14,11 +14,11 @@ LATER_N = 20  # dispatch: "the next ~20-30"; 20 keeps phase 2 at 80 runs (see sw
 PILOT_N = 3  # dispatch: images pulled and the scorer validated on 3 tasks first
 KEPT_DIFFICULTIES = ("<15 min fix", "15 min - 1 hour")
 HISTORY, LATER = "history", "later"
-# Tasks that cannot tell a fix from no fix: the official FAIL_TO_PASS tests already pass on the
-# untouched base tree in the official image, so any submitted patch "resolves". Found by
-# validate_scorer.py (no-patch check); each entry names the measurement.
+# Tasks the official hidden tests cannot grade in the official image, measured by
+# validate_scorer.py on every candidate (2026-10-28): a no-patch pass or a gold-patch fail.
 EXCLUDED = {
-    "django__django-7530": "FAIL_TO_PASS passes with no patch (validate_scorer, 2026-10-28)",
+    "django__django-7530": "FAIL_TO_PASS passes with no patch",
+    "django__django-10097": "gold patch fails 7 of 438 FAIL_TO_PASS tests",
 }
 
 

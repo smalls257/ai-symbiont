@@ -87,8 +87,12 @@ TASKS = {
 ROWS = [{"instance_id": "django__django-2", "patch": PATCH}]
 
 
+TRAINER = {"program": "pytest", "file": "f.py", "failed": "a", "error": "E", "error_class": "E"}
+TRAINER |= {"fix": "b", "added": ["-k"]}
+
+
 def _lesson(lesson_id: str, repo: str = "django/django", **extra) -> dict:
-    return {"lesson_id": lesson_id, "repo": repo, "check": "run the one test module"} | extra
+    return {"lesson_id": lesson_id, "repo": repo} | TRAINER | extra
 
 
 def test_lessons_filter_by_named_repos():
@@ -117,3 +121,10 @@ def test_lesson_quoting_a_scored_gold_line_is_dropped_short_lines_are_not():
     kept, counts = select_lessons.select([quoting, short], {"django/django"}, TASKS, ROWS)
     assert [lesson["lesson_id"] for lesson in kept] == ["s"]
     assert counts["dropped_leak"] == ["q"]
+
+
+def test_kept_lesson_missing_a_trainer_field_raises():
+    lesson = _lesson("a")
+    del lesson["fix"]
+    with pytest.raises(ValueError, match="trainer fields"):
+        select_lessons.select([lesson], {"django/django"}, TASKS, ROWS)

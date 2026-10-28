@@ -54,7 +54,8 @@ def task_list(rows: list[dict]) -> dict:
         "source": SOURCE,
         "repo": REPO,
         "rule": "date order by created_at; difficulty <15 min or 15 min-1 hour; "
-        "no-patch-resolves tasks excluded; history = earliest 20 kept, later = next 20",
+        "ungradeable tasks excluded (no-patch pass or gold fail); "
+        "history = earliest 20 kept, later = next 20",
         "excluded": sorted(EXCLUDED),
         "rows_for_repo": len(rows),
         "rows_kept": sum(map(kept, rows)),

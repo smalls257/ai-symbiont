@@ -1,12 +1,13 @@
 {
  "source": "hf://datasets/SWE-bench/SWE-bench_Verified/**/*.parquet",
  "repo": "django/django",
- "rule": "date order by created_at; difficulty <15 min or 15 min-1 hour; no-patch-resolves tasks excluded; history = earliest 20 kept, later = next 20",
+ "rule": "date order by created_at; difficulty <15 min or 15 min-1 hour; ungradeable tasks excluded (no-patch pass or gold fail); history = earliest 20 kept, later = next 20",
  "excluded": [
+  "django__django-10097",
   "django__django-7530"
  ],
  "rows_for_repo": 231,
- "rows_kept": 208,
+ "rows_kept": 207,
  "counts": {
   "history": 20,
   "later": 20
@@ -14,17 +15,17 @@
  "date_range": {
   "history": [
    "2017-10-27T11:10:04Z",
-   "2019-04-21T12:57:28Z"
+   "2019-04-24T12:35:05Z"
   ],
   "later": [
-   "2019-04-24T12:35:05Z",
-   "2019-09-28T04:28:22Z"
+   "2019-04-27T14:23:07Z",
+   "2019-10-07T19:10:59Z"
   ]
  },
  "pilot_ids": [
   "django__django-9296",
-  "django__django-10097",
-  "django__django-10880"
+  "django__django-10880",
+  "django__django-10914"
  ],
  "tasks": [
   {
@@ -42,23 +43,9 @@
    "image_gb": 1.15
   },
   {
-   "instance_id": "django__django-10097",
-   "phase": "history",
-   "order": 2,
-   "created_at": "2018-06-26T23:30:51Z",
-   "version": "2.2",
-   "difficulty": "<15 min fix",
-   "gold_changed_lines": 2,
-   "n_fail_to_pass": 438,
-   "n_pass_to_pass": 1427,
-   "docker_image": "swebench/sweb.eval.x86_64.django_1776_django-10097:latest",
-   "image_verified": true,
-   "image_gb": 1.22
-  },
-  {
    "instance_id": "django__django-10880",
    "phase": "history",
-   "order": 3,
+   "order": 2,
    "created_at": "2019-01-21T00:22:36Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -72,7 +59,7 @@
   {
    "instance_id": "django__django-10914",
    "phase": "history",
-   "order": 4,
+   "order": 3,
    "created_at": "2019-01-30T13:13:20Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -86,7 +73,7 @@
   {
    "instance_id": "django__django-10973",
    "phase": "history",
-   "order": 5,
+   "order": 4,
    "created_at": "2019-02-11T01:19:56Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -100,7 +87,7 @@
   {
    "instance_id": "django__django-10999",
    "phase": "history",
-   "order": 6,
+   "order": 5,
    "created_at": "2019-02-16T07:44:50Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -114,7 +101,7 @@
   {
    "instance_id": "django__django-11066",
    "phase": "history",
-   "order": 7,
+   "order": 6,
    "created_at": "2019-03-09T13:03:14Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -128,7 +115,7 @@
   {
    "instance_id": "django__django-11087",
    "phase": "history",
-   "order": 8,
+   "order": 7,
    "created_at": "2019-03-16T22:59:57Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -142,7 +129,7 @@
   {
    "instance_id": "django__django-11095",
    "phase": "history",
-   "order": 9,
+   "order": 8,
    "created_at": "2019-03-19T15:17:28Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -156,7 +143,7 @@
   {
    "instance_id": "django__django-11099",
    "phase": "history",
-   "order": 10,
+   "order": 9,
    "created_at": "2019-03-20T03:46:18Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -170,7 +157,7 @@
   {
    "instance_id": "django__django-11119",
    "phase": "history",
-   "order": 11,
+   "order": 10,
    "created_at": "2019-03-24T21:17:05Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -184,7 +171,7 @@
   {
    "instance_id": "django__django-11133",
    "phase": "history",
-   "order": 12,
+   "order": 11,
    "created_at": "2019-03-27T06:48:09Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -198,7 +185,7 @@
   {
    "instance_id": "django__django-11141",
    "phase": "history",
-   "order": 13,
+   "order": 12,
    "created_at": "2019-03-28T20:49:53Z",
    "version": "3.1",
    "difficulty": "15 min - 1 hour",
@@ -212,7 +199,7 @@
   {
    "instance_id": "django__django-11149",
    "phase": "history",
-   "order": 14,
+   "order": 13,
    "created_at": "2019-03-30T18:14:35Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -226,7 +213,7 @@
   {
    "instance_id": "django__django-11163",
    "phase": "history",
-   "order": 15,
+   "order": 14,
    "created_at": "2019-04-02T21:46:42Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -240,7 +227,7 @@
   {
    "instance_id": "django__django-11179",
    "phase": "history",
-   "order": 16,
+   "order": 15,
    "created_at": "2019-04-05T15:54:39Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -254,7 +241,7 @@
   {
    "instance_id": "django__django-11206",
    "phase": "history",
-   "order": 17,
+   "order": 16,
    "created_at": "2019-04-13T10:19:38Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -268,7 +255,7 @@
   {
    "instance_id": "django__django-11211",
    "phase": "history",
-   "order": 18,
+   "order": 17,
    "created_at": "2019-04-13T12:01:14Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -282,7 +269,7 @@
   {
    "instance_id": "django__django-11239",
    "phase": "history",
-   "order": 19,
+   "order": 18,
    "created_at": "2019-04-16T09:44:54Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -296,7 +283,7 @@
   {
    "instance_id": "django__django-11265",
    "phase": "history",
-   "order": 20,
+   "order": 19,
    "created_at": "2019-04-21T12:57:28Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -309,8 +296,8 @@
   },
   {
    "instance_id": "django__django-11276",
-   "phase": "later",
-   "order": 21,
+   "phase": "history",
+   "order": 20,
    "created_at": "2019-04-24T12:35:05Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -324,7 +311,7 @@
   {
    "instance_id": "django__django-11292",
    "phase": "later",
-   "order": 22,
+   "order": 21,
    "created_at": "2019-04-27T14:23:07Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -338,7 +325,7 @@
   {
    "instance_id": "django__django-11299",
    "phase": "later",
-   "order": 23,
+   "order": 22,
    "created_at": "2019-04-28T11:15:08Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -352,7 +339,7 @@
   {
    "instance_id": "django__django-11333",
    "phase": "later",
-   "order": 24,
+   "order": 23,
    "created_at": "2019-05-06T21:00:53Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -366,7 +353,7 @@
   {
    "instance_id": "django__django-11433",
    "phase": "later",
-   "order": 25,
+   "order": 24,
    "created_at": "2019-05-31T17:06:20Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -380,7 +367,7 @@
   {
    "instance_id": "django__django-11451",
    "phase": "later",
-   "order": 26,
+   "order": 25,
    "created_at": "2019-06-08T19:11:42Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -394,7 +381,7 @@
   {
    "instance_id": "django__django-11477",
    "phase": "later",
-   "order": 27,
+   "order": 26,
    "created_at": "2019-06-14T17:40:45Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -408,7 +395,7 @@
   {
    "instance_id": "django__django-11490",
    "phase": "later",
-   "order": 28,
+   "order": 27,
    "created_at": "2019-06-19T07:47:46Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -422,7 +409,7 @@
   {
    "instance_id": "django__django-11532",
    "phase": "later",
-   "order": 29,
+   "order": 28,
    "created_at": "2019-07-02T10:29:28Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -436,7 +423,7 @@
   {
    "instance_id": "django__django-11551",
    "phase": "later",
-   "order": 30,
+   "order": 29,
    "created_at": "2019-07-09T22:28:45Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -450,7 +437,7 @@
   {
    "instance_id": "django__django-11555",
    "phase": "later",
-   "order": 31,
+   "order": 30,
    "created_at": "2019-07-10T18:07:07Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -464,7 +451,7 @@
   {
    "instance_id": "django__django-11603",
    "phase": "later",
-   "order": 32,
+   "order": 31,
    "created_at": "2019-07-28T18:14:23Z",
    "version": "3.0",
    "difficulty": "<15 min fix",
@@ -478,7 +465,7 @@
   {
    "instance_id": "django__django-11728",
    "phase": "later",
-   "order": 33,
+   "order": 32,
    "created_at": "2019-08-29T17:31:03Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -492,7 +479,7 @@
   {
    "instance_id": "django__django-11734",
    "phase": "later",
-   "order": 34,
+   "order": 33,
    "created_at": "2019-09-01T18:46:50Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -506,7 +493,7 @@
   {
    "instance_id": "django__django-11740",
    "phase": "later",
-   "order": 35,
+   "order": 34,
    "created_at": "2019-09-03T10:44:38Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -520,7 +507,7 @@
   {
    "instance_id": "django__django-11749",
    "phase": "later",
-   "order": 36,
+   "order": 35,
    "created_at": "2019-09-05T21:47:44Z",
    "version": "3.0",
    "difficulty": "15 min - 1 hour",
@@ -534,7 +521,7 @@
   {
    "instance_id": "django__django-11790",
    "phase": "later",
-   "order": 37,
+   "order": 36,
    "created_at": "2019-09-17T14:33:44Z",
    "version": "3.1",
    "difficulty": "15 min - 1 hour",
@@ -548,7 +535,7 @@
   {
    "instance_id": "django__django-11815",
    "phase": "later",
-   "order": 38,
+   "order": 37,
    "created_at": "2019-09-24T21:45:36Z",
    "version": "3.1",
    "difficulty": "15 min - 1 hour",
@@ -562,7 +549,7 @@
   {
    "instance_id": "django__django-11820",
    "phase": "later",
-   "order": 39,
+   "order": 38,
    "created_at": "2019-09-26T08:37:14Z",
    "version": "3.1",
    "difficulty": "<15 min fix",
@@ -576,7 +563,7 @@
   {
    "instance_id": "django__django-11848",
    "phase": "later",
-   "order": 40,
+   "order": 39,
    "created_at": "2019-09-28T04:28:22Z",
    "version": "3.1",
    "difficulty": "15 min - 1 hour",
@@ -586,8 +573,22 @@
    "docker_image": "swebench/sweb.eval.x86_64.django_1776_django-11848:latest",
    "image_verified": true,
    "image_gb": 1.15
+  },
+  {
+   "instance_id": "django__django-11880",
+   "phase": "later",
+   "order": 40,
+   "created_at": "2019-10-07T19:10:59Z",
+   "version": "3.1",
+   "difficulty": "<15 min fix",
+   "gold_changed_lines": 1,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 114,
+   "docker_image": "swebench/sweb.eval.x86_64.django_1776_django-11880:latest",
+   "image_verified": true,
+   "image_gb": 1.15
   }
  ],
  "images_verified": 40,
- "images_gb_total": 46.1
+ "images_gb_total": 46.0
 }

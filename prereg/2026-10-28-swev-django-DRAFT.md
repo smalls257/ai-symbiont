@@ -21,10 +21,11 @@ arms on the same tasks. It is not a leaderboard number.
 - Kept: SWE-bench difficulty labels "<15 min fix" and "15 min - 1 hour". Dropped: "1-4 hours"
   and ">4 hours", because both arms are expected to fail them at a 50-step cap, and a task both
   arms fail adds no information to a paired difference. [hypothesis]
-- Excluded by measurement: tasks whose official FAIL_TO_PASS tests already pass on the
-  untouched base tree, because any patch would "resolve" them. So far this is `django__django-7530`.
-  [measured] (`validate_scorer.py`) Before launch, every picked task gets the same no-patch check.
-  Any new exclusion is added to `EXCLUDED` and the list is rebuilt by the same rule before the freeze.
+- Excluded by measurement: tasks the hidden tests cannot grade in the official image, meaning
+  either no patch already resolves them or the gold patch does not. 45 candidates were checked
+  (the first 44 kept in date order, plus 7530) and 2 were excluded: `django__django-7530`
+  (no-patch pass) and `django__django-10097` (gold fails 7 of 438 FAIL_TO_PASS). [measured]
+  (`validate_scorer.py`, `results/swev-django-scorer-check.json`) Every picked task passed both checks.
 - Order: `created_at`, with ties broken by instance id. Phase 1 ("history") is the earliest 20 kept
   tasks. Phase 2 ("later", scored) is the next 20. Ids, dates and labels are in
   `results/swev-django-tasks.json`.
@@ -53,7 +54,7 @@ official image with the row's own `eval_script` (it applies the hidden test patc
 FAIL_TO_PASS and PASS_TO_PASS), the official patch-apply order and the official `get_eval_report`.
 A run counts as resolved only on the official FULL status. A run whose test output cannot be
 parsed is ungraded and retried, up to 3 attempts. It is never counted as a pass or a fail.
-[established] (swebench 5.0.2) The scorer was validated on the pilot tasks: the gold patch
+[established] (swebench 5.0.2) The scorer was validated on every picked task: the gold patch
 resolves and no patch does not; see `swev-report.md`. [measured]
 
 ## Pilot and step cap (before phase 1)

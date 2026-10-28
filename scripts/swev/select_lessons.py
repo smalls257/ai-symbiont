@@ -15,6 +15,9 @@ from pathlib import Path
 
 from swev_tasks import HISTORY, LATER
 
+# Route B's Lesson fields (scripts/routea/lessons.py on routeb/prep): the trainer reads them as is
+TRAINER_FIELDS = ("lesson_id", "repo", "program", "file", "failed", "error", "error_class", "fix")
+TRAINER_FIELDS += ("added",)
 MIN_LEAK_CHARS = 20  # shorter gold lines ("return None", "})") are common code, not the answer
 
 
@@ -77,6 +80,14 @@ def require_repo_tags(lessons: list[dict]) -> None:
         raise ValueError(f"{len(untagged)} lessons have no repo tag, e.g. {untagged[:3]}")
 
 
+def require_trainer_fields(lessons: list[dict]) -> None:
+    """Raise when a kept lesson lacks a field the Route B trainer reads."""
+    for lesson in lessons:
+        missing = [field for field in TRAINER_FIELDS if field not in lesson]
+        if missing:
+            raise ValueError(f"lesson {lesson.get('lesson_id')} lacks trainer fields {missing}")
+
+
 def select(
     lessons: list[dict], repos: set[str], tasks: dict, rows: list[dict]
 ) -> tuple[list, dict]:
@@ -90,6 +101,7 @@ def select(
     leaking = [leaks(lesson, scored) for lesson in in_repo]
     kept = [lesson for lesson, bad in zip(in_repo, leaking, strict=True) if not bad]
     leaked = [lesson.get("lesson_id") for lesson, bad in zip(in_repo, leaking, strict=True) if bad]
+    require_trainer_fields(kept)
     counts = {"read": len(lessons), "in_repos": len(in_repo), "dropped_leak": leaked}
     return kept, counts | {"kept": len(kept), "repos": sorted(repos)}
 
