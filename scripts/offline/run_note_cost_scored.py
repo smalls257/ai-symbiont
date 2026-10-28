@@ -237,6 +237,7 @@ def run(args: argparse.Namespace) -> None:
     label = run_provenance(scored=args.scored, prereg=args.prereg, expects=PREREG_NAME)
     hubs = prepare(args)
     jobs, online, runs = replays(args)
+    save_runs(runs, Path(args.out).with_suffix(".traces.json"))
     body = scored_report(runs, seed=sel.SEED)
     log.info("verdict: %s", body["verdict"]["live_warner"])
     document = {
@@ -264,16 +265,54 @@ def replays(args: argparse.Namespace) -> tuple[list[Job], list[dict[str, Any]], 
     return jobs, online, collect(jobs, online, classifier)
 
 
+def save_runs(runs: dict, path: Path) -> None:
+    """Every TRAIN and TEST trace the report read (labels, risks, boundaries; no text)."""
+
+    def plain(pair: tuple) -> list:
+        return [[[t.task_id, t.followed, t.step_risk, t.boundary] for t in part] for part in pair]
+
+    tree = {
+        start: {
+            name: {
+                str(seed): {repo: [plain(p) for p in pairs] for repo, pairs in by_repo.items()}
+                for seed, by_repo in by_seed.items()
+            }
+            for name, by_seed in by_name.items()
+        }
+        for start, by_name in runs.items()
+    }
+    path.write_text(json.dumps(tree))
+
+
+def load_runs(path: Path) -> dict:
+    """The saved traces, back in the report's shape."""
+
+    def pair(saved: list) -> tuple:
+        return tuple(
+            tuple(NoteTrace(t, tuple(f), tuple(r), tuple(b)) for t, f, r, b in part)
+            for part in saved
+        )
+
+    tree = json.loads(path.read_text())
+    return {
+        start: {
+            name: {
+                int(seed): {repo: [pair(p) for p in pairs] for repo, pairs in by_repo.items()}
+                for seed, by_repo in by_seed.items()
+            }
+            for name, by_seed in by_name.items()
+        }
+        for start, by_name in tree.items()
+    }
+
+
 def verify(args: argparse.Namespace) -> None:
-    """Redo every replay, assemble without the TRAIN stack cache, compare with the results.
+    """Rebuild the report from the saved traces without the TRAIN stack cache and compare.
 
     Exits non-zero naming the first field that differs; writes nothing to results/.
     """
     written = json.loads(Path(args.results).read_text())
-    args.smoke_train_only = False
-    prepare(args)
-    _, _, runs = replays(args)
-    fresh = scored_report(runs, seed=sel.SEED, reuse=StackReuse.FRESH)
+    fresh = scored_report(load_runs(Path(args.traces)), seed=sel.SEED, reuse=StackReuse.FRESH)
     for key in ("chosen_on_train", "rows", "differences", "verdict"):
         if json.loads(json.dumps(fresh[key])) != written[key]:
             raise SystemExit(f"verification failed: {key} differs without the stack cache")
@@ -301,9 +340,9 @@ def main() -> None:
     run_parser.add_argument("--workers", type=int, default=WORKERS_CAP)
     run_parser.add_argument("--smoke-train-only", action="store_true")
     verify_parser = sub.add_parser("verify")
-    for name in ("data-dir", "pool", "pool-dir", "results"):
+    for name in ("traces", "results"):
         verify_parser.add_argument(f"--{name}", required=True)
-    verify_parser.add_argument("--workers", type=int, default=WORKERS_CAP)
+    verify_parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
     if args.cmd == "run" and args.scored and args.smoke_train_only:
         parser.error("--smoke-train-only never produces a scored result; drop one of the two")
