@@ -8,7 +8,7 @@ set -uo pipefail
 : "${SYMBIONT_DESKTOP_SSH:?SYMBIONT_DESKTOP_SSH is not set: export user@host of the desktop (see env.example)}"
 : "${SYMBIONT_DESKTOP_WORKDIR:?SYMBIONT_DESKTOP_WORKDIR is not set: export the desktop work dir (see env.example)}"
 REPO=$1; INTERVAL=${2:-120}
-# Overridable so a test can probe for its own fake driver instead of the whole host's process table.
+# Test-only override: lets a test probe for its own fake driver, not the whole host's process table.
 DRIVER_PATTERN=${SYMBIONT_DRIVER_PATTERN:-launch.py|staged.py}
 OUT=results/calibration-glimmer.json
 remote() { ssh -o ConnectTimeout=15 "$SYMBIONT_DESKTOP_SSH" wsl -d Ubuntu-24.04 --cd "$SYMBIONT_DESKTOP_WORKDIR" -- bash -s; }

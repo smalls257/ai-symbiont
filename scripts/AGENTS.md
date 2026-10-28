@@ -23,6 +23,7 @@ See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 Names only, set in your shell; `env.example` shows placeholder shapes. Unset means the script exits with a message naming the variable.
 - `SYMBIONT_GLIMMER_URL`: Glimmer endpoint, read by `calibration/run_calibration.py`. Start the staged driver with `python scripts/calibration/launch.py <workdir>`, not `staged.py`: `launch.py` checks the variable before anything loads.
 - `SYMBIONT_DESKTOP_SSH`, `SYMBIONT_DESKTOP_WORKDIR`: desktop login and its work dir, read by `calibration/sync_results.sh`.
+- `SYMBIONT_DRIVER_PATTERN`: test-only override of the driver probe pattern in `calibration/sync_results.sh` (default `launch.py|staged.py`).
 
 ## Commands
 `scripts/gates/run.sh fast`, `scripts/gates/run.sh full`, `scripts/publish/check_export.sh`, `uv run python scripts/gates/measure_baseline.py --write`
