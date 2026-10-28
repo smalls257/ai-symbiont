@@ -28,9 +28,10 @@ require_everything() {
   need_tool uv "https://docs.astral.sh/uv/"
   need_tool gitleaks "brew install gitleaks"
   need_venv
-  for tool in ruff lizard codespell_lib semgrep mypy importlinter pytest_cov; do need_py_tool "$tool"; done
+  for tool in ruff lizard codespell_lib semgrep mypy importlinter pytest_cov defusedxml; do need_py_tool "$tool"; done
   for cfg in pyproject.toml .naming-waivers.txt .gitleaks.toml .gitleaks-baseline.json .semgrep/VERSION \
-             .importlinter .lizard-whitelist.txt scripts/gates/test-floor.txt; do
+             .importlinter .lizard-whitelist.txt scripts/gates/test-floor.txt \
+             .semgrep/registry/STAMP; do
     need_file "$ROOT/$cfg"
   done
   require_base
@@ -119,6 +120,9 @@ fast_gates() {
   # shellcheck disable=SC2086
   [ -z "$spelled" ] || gate QG-RD-05 uv run --no-sync codespell --builtin en-GB_to_en-US $spelled
   gate QG-SAST-02 scripts/gates/semgrep_pinned.sh
+  # fast judges the changed files, full the whole tree (the count that goes into baseline.json)
+  if [ "$mode" = "full" ]; then gate QG-SAST-01 scripts/gates/semgrep_registry.sh --tree
+  else gate QG-SAST-01 scripts/gates/semgrep_registry.sh; fi
   if [ "$stage" = "pre-commit" ]; then
     gate QG-TST-02 scoped_unit_tests
   else

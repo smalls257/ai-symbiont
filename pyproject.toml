@@ -12,6 +12,7 @@ dependencies = [
 dev = [
     "codespell==2.4.1",
     "coverage[toml]==7.17.0",
+    "defusedxml==0.7.1",
     "duckdb==1.5.5",
     "import-linter==2.15",
     "lizard==1.24.3",

@@ -120,10 +120,14 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
     bad = gate_repo / "src/symbiont/core/bad.py"
     bad.parent.mkdir(parents=True)
     bad.write_text(
-        "import socket\n\n\ndef handle_it(rows, strict: bool, loud: bool):\n"
+        "import socket\n"
+        "import xml.etree.ElementTree as ET\n\n\n"
+        "def handle_it(rows, strict: bool, loud: bool):\n"
         # split so this file itself passes QG-RD-05; the planted file gets the British word
         '    """Return the rows in one colo'
-        'ur."""\n    return rows\n'
+        'ur."""\n'
+        '    ET.parse("rows.xml")\n'
+        "    return rows\n"
     )
     (gate_repo / "data").mkdir()
     (gate_repo / "data/rows.csv").write_text("a,b\n")
@@ -131,7 +135,7 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
     (gate_repo / "scripts/gates/test-floor.txt").write_text("0\n")
     out = _run(gate_repo)
     assert out.returncode == 1, out.stdout + out.stderr
-    for gate in ("QG-SEC-03", "QG-RD-02", "QG-RD-05", "QG-SAST-02", "QG-GATE-01"):
+    for gate in ("QG-SEC-03", "QG-RD-02", "QG-RD-05", "QG-SAST-01", "QG-SAST-02", "QG-GATE-01"):
         assert f"FAIL  {gate}" in out.stdout, gate
     assert "RED:" in out.stdout and "GREEN" not in out.stdout
 
@@ -174,7 +178,7 @@ def test_the_hooks_call_run_sh_in_the_right_mode_and_every_gate_is_wired():
     for hook in ("pre-commit", "commit-msg", "pre-push"):
         assert os.access(hooks / hook, os.X_OK), f"{hook} is not executable"
     run_sh = (REPO / "scripts" / "gates" / "run.sh").read_text()
-    for gate in (*PRIVACY_GATES, "QG-SEC-02", "QG-GATE-01", "QG-SAST-02"):
+    for gate in (*PRIVACY_GATES, "QG-SEC-02", "QG-GATE-01", "QG-SAST-01", "QG-SAST-02"):
         assert f"gate {gate} " in run_sh, f"run.sh never runs {gate}"
     installer = (REPO / "scripts" / "install-hooks.sh").read_text()
     assert "git config core.hooksPath scripts/hooks" in installer

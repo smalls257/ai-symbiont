@@ -34,6 +34,20 @@ need_py_tool() {
 }
 need_file() { [ -s "$1" ] || gate_die "missing or empty config: $1 (a gate without its config checks nothing)"; }
 
+# require_pinned_semgrep: QG-SAST-01 and QG-SAST-02 share one definition of "the pinned version".
+# Prevents Forensic Coding: a semgrep update that changes the verdict with no commit saying why.
+require_pinned_semgrep() {
+  need_file "$ROOT/.semgrep/VERSION"
+  need_py_tool semgrep
+  local pinned installed
+  pinned="$(tr -d '[:space:]' < "$ROOT/.semgrep/VERSION")"
+  installed="$(uv run --no-sync semgrep --version 2>/dev/null | tail -n 1 | tr -d '[:space:]')"
+  if [ "$pinned" != "$installed" ]; then
+    gate_die "semgrep version mismatch: pinned $pinned in .semgrep/VERSION, installed ${installed:-none}"
+  fi
+  SEMGREP_PINNED="$pinned"
+}
+
 # require_base: call at top level (never inside $(...)) before any changed-file helper.
 require_base() {
   [ "${SYMBIONT_GATE_STAGE:-}" = "pre-commit" ] && return 0
