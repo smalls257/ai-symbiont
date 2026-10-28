@@ -5,7 +5,7 @@ import pytest
 
 from symbiont.readers import READERS
 from symbiont.readers.errors import ReadError
-from symbiont.readers.openhands import read
+from symbiont.readers.openhands import read, read_each_row
 from symbiont.records.schema import Kind
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "openhands" / "two_sessions.jsonl"
@@ -229,4 +229,22 @@ def test_malformed_view_range_raises_readerror(tmp_path):
         ],
     )
     with pytest.raises(ReadError, match="view_range"):
+        list(read(path, PROJECT))
+
+
+def test_each_row_is_read_or_named_and_a_refused_row_never_vanishes(tmp_path):
+    row = fixture_rows()[0]
+    broken = json.loads(json.dumps(row))
+    for message in broken["trajectory"]:
+        for call in message.get("tool_calls") or []:
+            if call["function"]["name"] == "str_replace_editor":
+                arguments = call["function"]["arguments"]
+                decoded = json.loads(arguments) if isinstance(arguments, str) else arguments
+                decoded.pop("command")  # the shape seen in one published row
+                call["function"]["arguments"] = json.dumps(decoded)
+    path = write_lines(tmp_path, [json.dumps(row), json.dumps(broken), json.dumps(row)])
+    rows = list(read_each_row(path, PROJECT))
+    assert [isinstance(r, ReadError) for r in rows] == [False, True, False]
+    assert rows[1].line_no == 2 and "missing 'command'" in str(rows[1])
+    with pytest.raises(ReadError):
         list(read(path, PROJECT))

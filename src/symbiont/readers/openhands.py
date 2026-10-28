@@ -1,15 +1,9 @@
 """Reader for OpenHands trajectories as published in nebius/SWE-rebench-openhands-trajectories.
 
-Input is JSONL, one dataset row per line: `trajectory_id`, `instance_id` and
-`trajectory`, a list of chat messages (system prompt, user issue, assistant
-turns with `tool_calls`, and `tool` observations answering them by
-`tool_call_id`). Tool-call `arguments` are a JSON string in the published data,
-or a decoded object if the dataset card's helper was applied; both are read.
-
-Each assistant action becomes one record and carries its observation as `raw`,
-so a failed command and its error text travel together. Paths are made
-relative to the task's workspace (`<uploaded_files>` in the issue) so the same
-file matches across sessions; command text is kept verbatim.
+JSONL, one dataset row per line: `trajectory_id`, `instance_id` and `trajectory` (chat messages;
+tool-call `arguments` are a JSON string or a decoded object). Each assistant action becomes one
+record carrying its observation as `raw`; paths are relative to the task's workspace so files
+match across sessions, and command text is kept verbatim.
 """
 
 import difflib
@@ -46,19 +40,28 @@ class _MalformedError(Exception):
 
 def read(path: Path, project: str) -> Iterator[Record]:
     """Yield the records of an OpenHands trajectory file; a bad line raises ReadError."""
+    for row in read_each_row(path, project):
+        if isinstance(row, ReadError):
+            raise row
+        yield from row
+
+
+def read_each_row(path: Path, project: str) -> Iterator[list[Record] | ReadError]:
+    """One item per line: its records, or the ReadError naming it (`read` raises)."""
     with Path(path).open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             try:
-                records = _session_records(json.loads(line), project)
+                yield _session_records(json.loads(line), project)
             except json.JSONDecodeError as exc:
-                raise ReadError(path, line_no, f"not valid JSON ({exc.msg})") from exc
+                yield ReadError(path, line_no, f"not valid JSON ({exc.msg})")
             except _MalformedError as exc:
-                raise ReadError(path, line_no, str(exc)) from exc
-            yield from records
+                yield ReadError(path, line_no, str(exc))
 
 
 @dataclass
 class _Session:
+    """The records of one trajectory being built."""
+
     project: str
     session_id: str
     task_id: str
@@ -66,6 +69,7 @@ class _Session:
     records: list[Record] = field(default_factory=list)
 
     def add(self, kind: Kind, raw: str, **fields: Any) -> None:
+        """Append a record of the given kind with the session's shared fields."""
         self.records.append(
             Record(
                 harness=HARNESS,
@@ -81,6 +85,7 @@ class _Session:
         )
 
     def repo_path(self, path: str) -> str:
+        """The path relative to the task's workspace, when it is inside it."""
         if self.workspace and path.rstrip("/") == self.workspace:
             return "."
         if self.workspace and path.startswith(self.workspace + "/"):
@@ -89,6 +94,7 @@ class _Session:
 
 
 def _session_records(row: Any, project: str) -> list[Record]:
+    """All records of one dataset row; a malformed row raises _MalformedError."""
     if not isinstance(row, dict):
         raise _MalformedError("a line must hold one trajectory object")
     messages = _require(row, "trajectory")
@@ -107,12 +113,14 @@ def _session_records(row: Any, project: str) -> list[Record]:
 
 
 def _require(mapping: Any, key: str) -> Any:
+    """The mapping's value for `key`; a missing or null one raises _MalformedError."""
     if not isinstance(mapping, dict) or mapping.get(key) is None:
         raise _MalformedError(f"missing {key!r}")
     return mapping[key]
 
 
 def _workspace_root(messages: list[dict[str, Any]]) -> str | None:
+    """The workspace path named in the issue message, or None."""
     for message in messages:
         if message.get("role") == "user":
             found = _WORKSPACE.search(message.get("content") or "")
@@ -121,6 +129,7 @@ def _workspace_root(messages: list[dict[str, Any]]) -> str | None:
 
 
 def _observations_by_call(messages: list[dict[str, Any]]) -> dict[str, str]:
+    """Each tool observation keyed by the call it answers."""
     call_ids = {call.get("id") for message in messages for call in message.get("tool_calls") or []}
     observations = {}
     for message in messages:
@@ -134,6 +143,7 @@ def _observations_by_call(messages: list[dict[str, Any]]) -> dict[str, str]:
 
 
 def _add_message(session: _Session, message: dict[str, Any], observations: dict[str, str]) -> None:
+    """Add the records of one chat message; system and tool messages add none."""
     role = _require(message, "role")
     if role in ("system", "tool"):
         # The system prompt is the harness's fixed preamble, the same in every
@@ -150,6 +160,7 @@ def _add_message(session: _Session, message: dict[str, Any], observations: dict[
 def _add_assistant_turn(
     session: _Session, message: dict[str, Any], observations: dict[str, str]
 ) -> None:
+    """An assistant message as a turn plus one record per tool call."""
     text = message.get("content") or ""
     if text.strip():
         session.add(Kind.AGENT_TURN, text)
@@ -166,6 +177,7 @@ def _add_assistant_turn(
 
 
 def _arguments(function: dict[str, Any]) -> dict[str, Any]:
+    """A tool call's arguments as a dict, decoding the JSON string form."""
     arguments = _require(function, "arguments")
     if isinstance(arguments, str):
         try:
@@ -181,6 +193,7 @@ def _arguments(function: dict[str, Any]) -> dict[str, Any]:
 
 
 def _add_bash(session: _Session, args: dict[str, Any], observation: str | None) -> None:
+    """A shell command action carrying its observation."""
     session.add(
         Kind.COMMAND,
         observation or "",
@@ -198,6 +211,7 @@ def _bash_exit_code(observation: str | None) -> int | None:
 def _add_file_editor_action(
     session: _Session, args: dict[str, Any], observation: str | None
 ) -> None:
+    """A file-editor call as a read or edit, with a diff when it changes text."""
     command = _require(args, "command")
     path = session.repo_path(_require(args, "path"))
     exit_code = _editor_exit_code(observation)
@@ -233,20 +247,24 @@ def _view_range(args: dict[str, Any]) -> tuple[int, int] | None:
 
 
 def _editor_exit_code(observation: str | None) -> int | None:
+    """1 for an editor error observation, 0 otherwise; None when unobserved."""
     if observation is None:
         return None
     return 1 if observation.startswith(_EDITOR_ERROR) else 0
 
 
 def _add_thought(session: _Session, args: dict[str, Any], observation: str | None) -> None:
+    """The agent's thought as an agent turn."""
     session.add(Kind.AGENT_TURN, _require(args, "thought"))
 
 
 def _add_finish(session: _Session, args: dict[str, Any], observation: str | None) -> None:
+    """The agent's closing message as an agent turn."""
     session.add(Kind.AGENT_TURN, _require(args, "message"))
 
 
 def _add_task_plan(session: _Session, args: dict[str, Any], observation: str | None) -> None:
+    """The task-tracker call as an agent turn, kept verbatim."""
     session.add(Kind.AGENT_TURN, json.dumps(args, ensure_ascii=False))
 
 
@@ -263,15 +281,12 @@ _ACTIONS: dict[str, Callable[[_Session, dict[str, Any], str | None], None]] = {
 
 
 def _lines(text: str) -> list[str]:
+    """Text split into newline-terminated lines for difflib."""
     return [line + "\n" for line in text.splitlines()]
 
 
 def _replace_diff(path: str, args: dict[str, Any]) -> str:
-    """Diff `old_str` against `new_str` for a replace.
-
-    OpenHands does not record where `old_str` sits in the file, so hunk line
-    numbers are relative to the replaced snippet, not the file.
-    """
+    """Diff old_str against new_str; hunk numbers are relative to the snippet."""
     # An omitted new_str is the editor's documented way to delete old_str.
     new = args.get("new_str") or ""
     diff = difflib.unified_diff(
@@ -281,11 +296,13 @@ def _replace_diff(path: str, args: dict[str, Any]) -> str:
 
 
 def _create_diff(path: str, args: dict[str, Any]) -> str:
+    """A diff that creates the file from /dev/null."""
     diff = difflib.unified_diff([], _lines(_require(args, "file_text")), "/dev/null", f"b/{path}")
     return "".join(diff)
 
 
 def _insert_diff(path: str, args: dict[str, Any]) -> str:
+    """A diff that inserts the new lines after the given line."""
     after = int(_require(args, "insert_line"))
     added = _lines(_require(args, "new_str"))
     header = f"--- a/{path}\n+++ b/{path}\n@@ -{after},0 +{after + 1},{len(added)} @@\n"
