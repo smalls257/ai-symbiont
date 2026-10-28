@@ -13,7 +13,7 @@ confirmation; `confirm_call` states "confirms" or "contradicts" from rules fixed
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import numpy as np
 
@@ -95,24 +95,38 @@ def floor_counts(
     }
 
 
-def rows_of(
-    name: str, role: str, held: np.ndarray, option: Option, lay: Layout
-) -> list[dict[str, Any]]:
+class Row(TypedDict):
+    """One scored row: a learner or floor under one option, pooled or one repository."""
+
+    arm: str
+    role: str
+    option: str
+    repo: str
+    metrics: dict[str, Any]  # `note_cost_report.scored`'s metric -> interval mapping
+    earns_notes: bool
+    consistent_across_repos: NotRequired[bool]
+
+
+def _row(name: str, role: str, option: Option, repo: str, metrics: dict[str, Any]) -> Row:
+    low = metrics[NET]["ci95_low"]
+    earns = bool(low is not None and low > 0)
+    return Row(
+        arm=name, role=role, option=option.key, repo=repo, metrics=metrics, earns_notes=earns
+    )
+
+
+def rows_of(name: str, role: str, held: np.ndarray, option: Option, lay: Layout) -> list[Row]:
     """The pooled row (with its consistency tag) and one row per repository."""
     value = option.value
-    pooled = scored(held, value, lay.draws)
-    rows = [{"arm": name, "role": role, "option": option.key, "repo": "pooled", "metrics": pooled}]
+    pooled = _row(name, role, option, "pooled", scored(held, value, lay.draws))
     per_repo = []
     for repo in lay.repos:
         cols = lay.members(repo)
-        one = scored(held[cols], value, lay.draws[:, cols])
-        per_repo.append(one[NET]["value"])
-        rows.append({"arm": name, "role": role, "option": option.key, "repo": repo, "metrics": one})
-    rows[0]["consistent_across_repos"] = consistent(per_repo)
-    for row in rows:
-        low = row["metrics"][NET]["ci95_low"]
-        row["earns_notes"] = bool(low is not None and low > 0)
-    return rows
+        per_repo.append(
+            _row(name, role, option, repo, scored(held[cols], value, lay.draws[:, cols]))
+        )
+    pooled["consistent_across_repos"] = consistent([r["metrics"][NET]["value"] for r in per_repo])
+    return [pooled, *per_repo]
 
 
 def standing(interval: Mapping[str, Any]) -> str:
