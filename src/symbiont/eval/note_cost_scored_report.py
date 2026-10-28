@@ -1,10 +1,9 @@
 """Assemble the scored T46 results (prereg/2026-10-28-note-cost.md). Pure functions of traces.
 
-Input: for each start (repository only, or warm from the pool), learner, seed and held-out
-repository, one (TRAIN traces, TEST traces) pair per block (a DenseNet rate or an L2
-strength). Every setting is chosen on TRAIN and counted on TEST. Rows are pooled over the
-repositories and per repository, with floors, counters beside the fly, and the verdict at the
-primary price for the repository-only start.
+Input is one (TRAIN, TEST) trace pair per block for each start, learner, seed and held-out
+repository. Every setting is chosen on TRAIN and counted on TEST; rows pool over repositories and
+per repository, with floors, counters beside the fly, and the verdict at the primary price for the
+repository-only start.
 """
 
 from collections.abc import Mapping, Sequence
@@ -152,6 +151,7 @@ def learner_counts(
 
 
 def _tasks(traces: Traces) -> list[str]:
+    """The distinct task ids of the traces, sorted."""
     return sorted({t.task_id for t in traces})
 
 
@@ -188,6 +188,7 @@ def rows_for(name: str, role: str, held: np.ndarray, where: Where, lay: Layout) 
 
 
 def _row(name: str, role: str, where: Where, repo: str, metrics: dict[str, Any]) -> Row:
+    """One scored results row for an arm in one place."""
     low = metrics[NET]["ci95_low"]
     return {
         "arm": name,
@@ -242,6 +243,7 @@ def scored_report(
 
 
 def _assemble(runs: Runs, seed: int) -> dict[str, Any]:
+    """Every row, difference, choice and verdict for one seed."""
     lay = layout_of(runs, seed)
     rows: list[Row] = []
     diffs: list[Row] = []

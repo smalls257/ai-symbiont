@@ -1,18 +1,10 @@
 """Is it data variety? A learning curve over the number of training repositories (T46).
 
-Exploratory, on the pool of `results/repo-pool.json` only (no held-out, no sqlglot row).
-Pool fold 0 is scored; the other folds train, in pool order, the first N of them. Each
-learner replays its N training repositories online one after another, carrying its state
-(each repository with its own history, as the product works per project), then replays each
-scoring repository online from that state. The batch classifier is fit on the same N
-repositories' features. Every row is scored under option A by cross-validation grouped by
-scoring repository (`symbiont.eval.note_cost_report`, a repository standing in for a task).
-
-    run_repo_curve.py --pool results/repo-pool.json --data-dir data/nebius-openhands/pool \
-        --dense-rate 0.1 --l2 100 --out results/note-cost-repo-curve.json
-
-Labels in the pool carry no blast-radius signal and no hub filter: no repository checkout is
-made. Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
+Exploratory, on the pool of `results/repo-pool.json` only. Pool fold 0 is scored; the first N
+other folds train, each repository replayed online in turn with state carried over. Rows are
+scored under option A, grouped by scoring repository. No repository checkout, so no blast-radius
+or hub filter. Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1.
+Usage: run_repo_curve.py --pool ... --data-dir ... --dense-rate 0.1 --l2 100 --out ...
 """
 
 import argparse

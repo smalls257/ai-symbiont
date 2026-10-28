@@ -1,9 +1,8 @@
 """The options of T46 as per-task counts over a grid of thresholds (exploratory, TRAIN only).
 
-Each option is a delivery rule (which steps may carry a note, how many, how far apart) and a
-value (what a note earns and costs). For every threshold setting this module counts, per task:
-true and false notes in the warning and heads-up tiers, trouble spells hit, steps, spells and
-sessions. Selection and scoring live in `note_cost_report`. Pure numpy over traces.
+An option is a delivery rule (which steps may carry a note, how many, how far apart) and a value.
+For every setting this counts, per task, true and false notes by tier, spells hit, steps, spells
+and sessions. Selection and scoring live in `note_cost_report`. Pure numpy over traces.
 """
 
 from collections.abc import Callable, Sequence
@@ -154,10 +153,7 @@ class Stack:
 
 
 def count_stack(arm: Prepared, rule: DeliveryRule, tiers: Tiers) -> Stack:
-    """Counts for each setting; one delivery pass per note threshold.
-
-    Settings run from fewest notes to most, NEVER first, so index 0 is always silence.
-    """
+    """Counts for each setting, fewest notes first, so index 0 is always silence."""
     grid = threshold_grid(arm, rule.gate)
     settings = two_tiers(grid) if tiers is Tiers.TWO else single_tier(grid)
     cache: dict[float, Shown] = {}
@@ -198,6 +194,7 @@ def tiered_value(tiers: TierValues) -> Value:
     """Option A: warnings and heads-ups priced separately."""
 
     def value(sums: np.ndarray) -> np.ndarray:
+        """Warning and heads-up tiers each valued by their own gain and cost."""
         warn = tiers.warn_gain * sums[..., TP_WARN] - tiers.warn_cost * sums[..., FP_WARN]
         heads = tiers.heads_gain * sums[..., TP_HEADS] - tiers.heads_cost * sums[..., FP_HEADS]
         return warn + heads

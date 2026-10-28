@@ -1,16 +1,9 @@
 """Scored T46 run on the held-out repositories (prereg/2026-10-28-note-cost.md). Periphery.
 
-The registered rules live in `symbiont.eval.note_cost_scored` and `note_cost_scored_report`
-(pure, tested). This script loads Pillow, dvc and conan, splits each by task, checks out each
-repository's hub commit, replays every learner (TRAIN online, then TEST online), fits the
-classifier, and writes the results file. It chooses nothing itself.
-
-    run_note_cost_scored.py split --data-dir data/nebius-openhands/held-out
-    run_note_cost_scored.py run --data-dir data/nebius-openhands/held-out \
-        --pool results/repo-pool.json --pool-dir data/nebius-openhands/pool \
-        --out results/note-cost.json --scored --prereg prereg/2026-10-28-note-cost.md
-
-At most half the CPU (16 workers). Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1.
+The rules live in `symbiont.eval.note_cost_scored` and `note_cost_scored_report` (pure, tested).
+This script splits Pillow, dvc and conan by task, replays every learner, fits the classifier and
+writes results; it chooses nothing itself. At most 16 workers; set OMP_NUM_THREADS=1.
+Usage: run_note_cost_scored.py {split|run|verify} --data-dir ... --scored --prereg ...
 """
 
 import argparse
@@ -307,9 +300,8 @@ def load_runs(path: Path) -> dict:
 
 
 def verify(args: argparse.Namespace) -> None:
-    """Rebuild the report from the saved traces without the TRAIN stack cache and compare.
-
-    Exits non-zero naming the first field that differs; writes nothing to results/.
+    """Rebuild the report from saved traces without the TRAIN stack cache and compare; writes
+    nothing.
     """
     written = json.loads(Path(args.results).read_text())
     fresh = scored_report(load_runs(Path(args.traces)), seed=sel.SEED, reuse=StackReuse.FRESH)

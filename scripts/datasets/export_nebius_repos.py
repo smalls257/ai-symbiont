@@ -1,18 +1,10 @@
 """Count and export repositories of nebius/SWE-rebench-openhands-trajectories (T46 pool, T39).
 
-Periphery, not core: it touches the network. Run on the run machine from the repo root:
-
-    python scripts/datasets/export_nebius_repos.py count \
-        --out data/nebius-openhands/task-counts.json
-    python scripts/datasets/export_nebius_repos.py export --pool results/repo-pool.json \
-        --out-dir data/nebius-openhands/pool
-
-`export-held-out` writes Pillow, dvc and conan (every task) at the pinned dataset revision,
-with each task's created_at and base_commit from SWE-rebench, for the scored run only.
-`count` reads only the repo and instance_id columns: trajectories per (repo, task), no row
-text. `export` writes one JSONL per pool repository with exactly the tasks the pool lists, in
-the shape the OpenHands reader takes, and refuses any held-out repository. Each file is read
-back through the reader, so a bad export fails here. Needs duckdb (an export-only venv).
+Periphery (network); needs duckdb in an export-only venv. `count` reads only repo and instance_id;
+`export` writes one JSONL per pool repository in the OpenHands reader's shape, read back through
+it, and refuses held-out repositories; `export-held-out` writes Pillow, dvc and conan for the
+scored run.
+Usage: python scripts/datasets/export_nebius_repos.py {count|export|export-held-out} --out ...
 """
 
 import argparse

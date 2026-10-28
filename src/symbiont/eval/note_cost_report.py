@@ -1,9 +1,9 @@
 """Score the note-cost options with task-grouped cross-validation inside TRAIN (T46, exploratory).
 
-Each TRAIN task is counted once, by settings picked on the other four folds
-(`note_cost_select`); the T36 test split is not an input. Intervals resample tasks (the same
-draws for every row, so differences are paired). The counters row sits beside the fly row in
-every option, under warn-never and note-at-every-allowed-step floors. Pure functions of traces.
+Each TRAIN task is counted once, by settings picked on the other folds (`note_cost_select`).
+Intervals resample tasks with the same draws for every row, so differences are paired. The
+counters row sits beside the fly row, under warn-never and note-at-every-allowed-step floors. Pure
+functions of traces.
 """
 
 from collections.abc import Mapping, Sequence
@@ -115,6 +115,7 @@ class Stacks:
 
 
 def _setting_label(stack: Stack, index: int, rate: int) -> str:
+    """Human-readable name of one chosen setting; silent when it never notes."""
     low, high = stack.settings[index]
     if low == NEVER:
         return f"run {rate} silent"
@@ -197,6 +198,7 @@ def floors(counters: Prepared, option: Option) -> dict[str, np.ndarray]:
 
 
 def _row(arm: str, role: str, option: Option, scores: dict[str, Any]) -> dict[str, Any]:
+    """One results row for an arm under an option."""
     low = scores[NET]["ci95_low"]
     return {
         "arm": arm,
@@ -234,10 +236,7 @@ def option_block(
 
 
 def decision_curve(stacks: Stacks, folds: np.ndarray, draws: np.ndarray) -> dict[str, Any]:
-    """Option D offline: the per-step rule re-picked and re-scored at each cost c.
-
-    The online learners only; the classifier row is shown under A, B and C.
-    """
+    """Option D offline: re-pick and re-score the per-step rule at each cost."""
     lines = []
     for name in ("counters", "fly", "dense"):
         role = ROLES[name]
@@ -253,6 +252,7 @@ def decision_curve(stacks: Stacks, folds: np.ndarray, draws: np.ndarray) -> dict
 
 
 def _table_line(row: Mapping[str, Any]) -> str:
+    """One markdown table line: net value with interval, and precision when defined."""
     net, prec = row["metrics"][NET], row["metrics"]["precision"]["value"]
     shown_prec = "n/a" if prec is None else f"{prec:.2f}"
     return (

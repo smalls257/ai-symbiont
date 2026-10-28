@@ -34,9 +34,8 @@ SMOKE_TASKS = 12
 
 
 def split_repo(data_dir: Path, repo: str, *, smoke: bool = False) -> dict[str, Any]:
-    """Sessions of one repository split by task (test fraction 0.3, seed 20261029).
-
-    Smoke keeps a few TRAIN-split tasks and splits them again: no real TEST task is replayed.
+    """Sessions of one repository split by task (test fraction 0.3, seed 20261029); smoke re-splits
+    TRAIN tasks.
     """
     records, refused = readable_records(file_of(data_dir, repo), repo)
     sessions, dropped = drop_taskless(sel.group_sessions(records))
