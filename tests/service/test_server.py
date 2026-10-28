@@ -1,3 +1,4 @@
+import http.client
 import inspect
 import json
 import threading
@@ -67,3 +68,13 @@ def test_a_body_that_is_not_json_is_a_400(listening):
 def test_the_egress_policy_refuses_a_non_loopback_service_host():
     with pytest.raises(EgressRefusedError):
         post_json(Destination(Endpoint.LOCAL_SERVICE, "http://" + "10.0." + "0.5:7377/recall"), {})
+
+
+def test_a_malformed_content_length_is_a_400_not_a_dropped_connection(listening):
+    connection = http.client.HTTPConnection("127.0.0.1", listening.server_address[1], timeout=5)
+    connection.putrequest("POST", "/recall")
+    connection.putheader("Content-Length", "abc")
+    connection.endheaders()
+    reply = connection.getresponse()
+    assert reply.status == 400
+    connection.close()

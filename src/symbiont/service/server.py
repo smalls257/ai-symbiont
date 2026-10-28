@@ -48,11 +48,12 @@ def _routes_for(service: Service) -> type[BaseHTTPRequestHandler]:
 
 def _json_body(request: BaseHTTPRequestHandler) -> Any:
     """The decoded body, or None when it is absent, too large or not JSON (a 400 downstream)."""
-    size = int(request.headers.get("Content-Length") or 0)
-    if not 0 < size <= MAX_BODY_BYTES:
-        return None
+    declared = request.headers.get("Content-Length") or "0"
     try:
+        size = int(declared)
+        if not 0 < size <= MAX_BODY_BYTES:
+            return None
         return json.loads(request.rfile.read(size))
     except ValueError:
-        log.warning("request body is not JSON (%d bytes)", size)
+        log.warning("request body is unusable (Content-Length %s)", declared[:20])
         return None

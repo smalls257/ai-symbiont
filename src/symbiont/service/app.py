@@ -16,8 +16,8 @@ from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
 from symbiont.miner.painpoint import PainPoint
 from symbiont.records.holdout import HoldOutViolationError
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
-from symbiont.service.events import EventLog
-from symbiont.store.local import SparkPrivacyViolationError, Store
+from symbiont.service.events import Call, EventLog
+from symbiont.store.local import SparkPrivacyViolationError, SparkView, Store
 
 log = logging.getLogger("symbiont.service")
 SPARK_WITHHELD = "private history withheld from Spark"
@@ -60,6 +60,10 @@ class ServiceParts:
     held_out_tasks: frozenset[str] = frozenset()
 
 
+class SparkWithheldError(PermissionError):
+    """A Spark-bound answer could not be shown to rest only on Spark-safe records."""
+
+
 class BadRequestError(ValueError):
     """A request that does not have the shape its route takes."""
 
@@ -79,67 +83,81 @@ class Service:
             return self._respond_locked(route, payload)
 
     def _respond_locked(self, route: str, payload: Any) -> Response:
-        hook = route.strip("/")
+        name = route.strip("/")
+        call = Call(name, _hook_of(name, payload))
         routes = {"observe": self._observe, "recall": self._recall, "learn": self._learn}
-        if hook not in routes:
-            return self._refuse(hook, 404, f"no such route: {route}")
+        if name not in routes:
+            return self._refuse(call, 404, f"no such route: {route}")
         try:
-            return routes[hook](_object(payload))
+            return routes[name](_object(payload), call)
         except BadRequestError as exc:
-            return self._refuse(hook, 400, str(exc))
-        except SparkPrivacyViolationError:
-            return self._refuse(hook, 409, SPARK_WITHHELD)
+            return self._refuse(call, 400, str(exc))
+        except (SparkPrivacyViolationError, SparkWithheldError):
+            return self._refuse(call, 409, SPARK_WITHHELD)
         except HoldOutViolationError as exc:
-            return self._refuse(hook, 409, str(exc))
+            return self._refuse(call, 409, str(exc))
         except Exception:
-            log.exception("service call failed: %s", hook)
-            return self._refuse(hook, 500, "internal error; see the service log")
+            log.exception("service call failed: %s", name)
+            return self._refuse(call, 500, "internal error; see the service log")
 
-    def _refuse(self, hook: str, status: int, reason: str) -> Response:
-        self._parts.events.append_failure(hook, status, reason)
+    def _refuse(self, call: Call, status: int, reason: str) -> Response:
+        self._parts.events.append_failure(call, status, reason)
         return Response(status, {"error": reason})
 
-    def _observe(self, request: dict[str, Any]) -> Response:
+    def _observe(self, request: dict[str, Any], call: Call) -> Response:
         _require_keys(request, OBSERVE_KEYS, OBSERVE_REQUIRED)
         project, record = _observed(request["payload"])
+        reader = self._reader(request)
         prefix = self._prefixes.setdefault((request["harness"], request["session_id"]), [])
         prefix.append(record)
+        earlier = tuple(
+            r
+            for session in reader.sessions(project)
+            for r in session
+            if r.session_id != request["session_id"]
+        )
         history = tuple(self._parts.store.pain_points(project))
-        situation = Situation(project, tuple(prefix), history, ())
-        decider = self._parts.decider
-        decision = decider.decide(featurise(situation), situation, self._state)
-        if request.get("spark_bound") is True:
-            self._refuse_private_citations(decision)
+        situation = Situation(project, tuple(prefix), history, earlier)
+        decision = self._parts.decider.decide(featurise(situation), situation, self._state)
+        if _spark_bound(request):
+            self._refuse_untraceable(decision)
         notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode])
-        self._parts.events.append_decision(request["event"], decision, notes)
+        self._parts.events.append_decision(call, decision, notes)
         return Response(200, {"notes": notes})
 
-    def _refuse_private_citations(self, decision: Decision) -> None:
+    def _reader(self, request: dict[str, Any]) -> Store | SparkView:
+        store = self._parts.store
+        return store.spark_view() if _spark_bound(request) else store
+
+    def _refuse_untraceable(self, decision: Decision) -> None:
+        """A trouble with no cited records cannot be shown to rest on Spark-safe ones."""
+        if decision.trouble is not None and not (
+            decision.why and all(p.record_refs for p in decision.why)
+        ):
+            raise SparkWithheldError
         cited = [ref for pain in decision.why for ref in pain.record_refs]
         cited += [(r.session_id, r.step) for r in decision.recall]
         self._parts.store.spark_view().records_for(cited)
 
-    def _recall(self, request: dict[str, Any]) -> Response:
+    def _recall(self, request: dict[str, Any], call: Call) -> Response:
         _require_keys(request, RECALL_KEYS, frozenset({"question", "project"}))
         project, question = request["project"], request["question"]
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
-        store = self._parts.store
-        reader = store.spark_view() if request.get("spark_bound") is True else store
-        sessions = reader.sessions(project)
+        sessions = self._reader(request).sessions(project)
         if not sessions:
-            return self._answered(NO_HISTORY, [])
+            return self._answered(call, NO_HISTORY, [])
         found = relevant_records(question, (r for s in sessions for r in s))
         quiet = Decision(None, (), tuple(found), None if found else NOTHING_MATCHES)
-        notes = render(quiet, kinds=[NoteKind.RECALL])
-        return self._answered(" ".join(notes) or NOTHING_MATCHES, found)
+        notes = list(dict.fromkeys(render(quiet, kinds=[NoteKind.RECALL])))
+        return self._answered(call, " ".join(notes) or NOTHING_MATCHES, found)
 
-    def _answered(self, answer: str, found: list[Record]) -> Response:
+    def _answered(self, call: Call, answer: str, found: list[Record]) -> Response:
         refs = [(r.session_id, r.step) for r in found]
-        self._parts.events.append("recall", None, refs, [answer])
+        self._parts.events.append(call, None, refs, [answer])
         return Response(200, {"answer": answer, "records": [list(ref) for ref in refs]})
 
-    def _learn(self, request: dict[str, Any]) -> Response:
+    def _learn(self, request: dict[str, Any], call: Call) -> Response:
         _require_keys(request, LEARN_KEYS, LEARN_KEYS)
         records = _read_session_log(request["session_log_path"])
         parts = self._parts
@@ -148,7 +166,7 @@ class Service:
         for project in sorted({r.project for r in records}):
             parts.store.mine(project, references={})
             learned += self._learn_project(project, records)
-        parts.events.append("learn", None, [], [f"learned from {learned} steps"])
+        parts.events.append(call, None, [], [f"learned from {learned} steps"])
         return Response(200, {"learned_steps": learned})
 
     def _learn_project(self, project: str, records: list[Record]) -> int:
@@ -192,6 +210,25 @@ def _troubles_by_step(
         if pain.session_id in sessions:
             by_step.setdefault((pain.session_id, pain.step), []).append(pain)
     return by_step
+
+
+def _lacks_citations(decision: Decision) -> bool:
+    if decision.trouble is None:
+        return False
+    return not decision.why or any(not pain.record_refs for pain in decision.why)
+
+
+def _spark_bound(request: dict[str, Any]) -> bool:
+    """Absent means local; anything but a real bool is refused, never guessed."""
+    value = request.get("spark_bound", False)
+    if not isinstance(value, bool):
+        raise BadRequestError("spark_bound must be true or false")
+    return value
+
+
+def _hook_of(route: str, payload: Any) -> str:
+    event = payload.get("event") if isinstance(payload, dict) else None
+    return event if route == "observe" and isinstance(event, str) else route
 
 
 def _object(payload: Any) -> dict[str, Any]:
