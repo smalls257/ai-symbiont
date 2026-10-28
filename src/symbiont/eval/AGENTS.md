@@ -9,7 +9,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/eval/`.
 ## Invariants
 - Replay is pure: sessions, references and history come in as arguments; run scripts load the data.
 - The price table lives only in `budget.py`; every paid batch needs owner approval.
-- `require_frozen` refuses a scored run unless the prereg is committed and unchanged; its sha256 goes into the results.
+- `prereg.py` is pure (format check, `verify_frozen` over an injected git view); `prereg_git.py` is the periphery (`GitCli`, `require_frozen`, `run_provenance`). A scored runner takes `--scored --prereg <file>`; `require_frozen` raises `PreregNotFrozenError` unless the file is tracked with no working-tree or index diff (and, for an amendment, its original too). The commit (`freeze_commit`) and `prereg_sha256` go into the results, which say `run_label` scored or exploratory.
 - Every result row has a role (floor, ceiling, reference, under test) and a claim tag.
 - The grader never imports `delivery` or `service`; Route B and Act 1 reach `eval` only through `budget`.
 

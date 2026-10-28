@@ -11,7 +11,8 @@ reason; nothing is defaulted.
     run_selection.py fetch-meta --data data/nebius-openhands/sqlglot.jsonl \
         --out data/nebius-openhands/sqlglot_meta.json
     run_selection.py run --data ... --meta ... --out results/offline-selection.json \
-        --freeze-commit <hash>
+        --scored --prereg prereg/2026-10-29-offline-selection.md
+    run_selection.py run ...                      # no --scored: labeled exploratory
     run_selection.py run ... --smoke-train-only   # dry run that never touches a test task
 
 Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 when running: parallelism is by process.
@@ -49,6 +50,7 @@ from symbiont.eval.offline import (
 )
 from symbiont.eval.offline_table import render_table
 from symbiont.eval.offline_verdict import MARGIN, Verdict, fly_default
+from symbiont.eval.prereg_git import run_provenance
 from symbiont.eval.selection_record import (
     Calibration,
     FinalScores,
@@ -68,6 +70,7 @@ SWE_REBENCH = "hf://datasets/nebius/SWE-rebench/data/{}.parquet"
 SWE_REBENCH_FILES = ("filtered-00000-of-00001", "test-00001-of-00002")
 SQLGLOT_URL = "https://github.com/tobymao/sqlglot"
 REPLAY_SEED = 0
+PREREG_NAME = "2026-10-29-offline-selection.md"
 BACKOFF_SECONDS = (5, 15, 45, 120, 300)
 
 
@@ -225,13 +228,7 @@ def prepare_hubs(meta: dict, train_ids: frozenset[str]) -> HubCheckout:
     with tempfile.TemporaryDirectory(prefix="sqlglot-hub-") as tmp:
         references = checkout_references(commit, Path(tmp))
     HUBS = hub_modules(references, sel.HUB_CUTOFF)
-    log.info(
-        "hub checkout: task %s base_commit %s; %d hub module(s): %s",
-        hub_task,
-        commit,
-        len(HUBS),
-        sorted(HUBS),
-    )
+    log.info("hub checkout: task %s at %s; hubs %s", hub_task, commit, sorted(HUBS))
     CTX = ReplayContext(references=references, hubs=HUBS)
     return HubCheckout(hub_task, meta[hub_task]["created_at"], commit, len(references))
 
@@ -301,13 +298,14 @@ class Outcome:
     timings: dict[str, float]
 
 
-def results_document(args: argparse.Namespace, out: Outcome, run_started: float) -> dict[str, Any]:
+def results_document(
+    args: argparse.Namespace, out: Outcome, run_started: float, provenance: dict[str, str | None]
+) -> dict[str, Any]:
     """The results file: sections in the order the prereg lists them."""
     train_ids, test_ids = out.task_split
     return {
         "smoke": args.smoke_train_only,
-        "prereg": "prereg/2026-10-29-offline-selection.md",
-        "freeze_commit": args.freeze_commit,
+        **provenance,
         "run_host": run_host_record(args.workers),
         "finished_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "wall_clock_s": time.time() - run_started,
@@ -336,17 +334,12 @@ def run(args: argparse.Namespace) -> None:
     """Calibrate on TRAIN, replay TEST once, apply the registered rule, write the results file."""
     global TRAIN, TEST
     run_started = time.time()
+    provenance = run_provenance(scored=args.scored, prereg=args.prereg, expects=PREREG_NAME)
     meta = json.loads(Path(args.meta).read_text())
     TRAIN, TEST, train_ids, test_ids, counts = prepare_sessions(
         Path(args.data), smoke=args.smoke_train_only
     )
-    log.info(
-        "train: %d tasks %d sessions; test: %d tasks %d sessions",
-        len(train_ids),
-        len(TRAIN),
-        len(test_ids),
-        len(TEST),
-    )
+    log.info("train: %d tasks; test: %d tasks", len(train_ids), len(test_ids))
     hub = prepare_hubs(meta, train_ids)
     timings: dict[str, float] = {}
     cal = calibrate(args.workers, timings)
@@ -359,7 +352,9 @@ def run(args: argparse.Namespace) -> None:
     log.info("\n%s", table)
     log.info("G6: %s", sel.verdict_record(verdict, margin=MARGIN))
     outcome = Outcome(hub, cal, final, verdict, table, counts, (train_ids, test_ids), timings)
-    Path(args.out).write_text(json.dumps(results_document(args, outcome, run_started), indent=1))
+    Path(args.out).write_text(
+        json.dumps(results_document(args, outcome, run_started, provenance), indent=1)
+    )
     log.info("wrote %s (wall clock %.0fs)", args.out, time.time() - run_started)
 
 
@@ -383,10 +378,13 @@ def main(argv: list[str] | None = None) -> None:
     run_cmd.add_argument("--data", required=True)
     run_cmd.add_argument("--meta", required=True)
     run_cmd.add_argument("--out", required=True)
-    run_cmd.add_argument("--freeze-commit", required=True)
+    run_cmd.add_argument("--scored", action="store_true")
+    run_cmd.add_argument("--prereg")
     run_cmd.add_argument("--workers", type=int, default=21)
     run_cmd.add_argument("--smoke-train-only", action="store_true")
     args = parser.parse_args(argv)
+    if args.cmd == "run" and args.scored and args.smoke_train_only:
+        parser.error("--smoke-train-only never produces a scored result; drop one of the two")
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", stream=sys.stderr
     )
