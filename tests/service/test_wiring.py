@@ -45,6 +45,13 @@ def test_trained_projects_come_from_the_manifests(tmp_path):
     assert trained_projects(memory_dir(tmp_path, "a", "b/c")) == frozenset({"a", "b/c"})
 
 
+def test_a_manifest_that_is_not_json_refuses(tmp_path):
+    root = memory_dir(tmp_path, "a")
+    (root / "manifests" / "broken.json").write_text("[1, 2")
+    with pytest.raises(MemorySetupError, match="not a training manifest"):
+        trained_projects(root)
+
+
 def test_no_adapter_or_no_manifest_refuses(tmp_path):
     with pytest.raises(MemorySetupError, match="no trained adapter"):
         trained_projects(memory_dir(tmp_path / "1", "a", adapter=False))

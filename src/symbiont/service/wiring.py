@@ -70,7 +70,10 @@ def trained_projects(memory_dir: Path) -> frozenset[str]:
         raise MemorySetupError(f"no training manifest in {memory_dir / MANIFESTS_DIR}")
     projects = set()
     for manifest in manifests:
-        project = json.loads(manifest.read_text(encoding="utf-8")).get("project")
+        try:
+            project = json.loads(manifest.read_text(encoding="utf-8")).get("project")
+        except (ValueError, AttributeError) as exc:
+            raise MemorySetupError(f"{manifest} is not a training manifest") from exc
         if not isinstance(project, str) or not project:
             raise MemorySetupError(f"{manifest} names no project")
         projects.add(project)
