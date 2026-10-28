@@ -31,7 +31,16 @@ DOOR_REACH_UNITS = 96.0  # door-line distance at which a USE press can still rea
 # --- ViZDoom adapter: raw engine state -> plain GameStateView -------------------------------------
 
 
-def make_game(wad: Path, map_name: str = "MAP01", seed: int = 1) -> Any:
+class FrameSize(StrEnum):
+    """Screen size. PLAY is what every measured run used; CLIP is for recorded video only."""
+
+    PLAY = "RES_320X240"
+    CLIP = "RES_640X480"  # same 4:3 field of view, so the depth-buffer reading is unchanged in kind
+
+
+def make_game(
+    wad: Path, map_name: str = "MAP01", seed: int = 1, frame_size: FrameSize = FrameSize.PLAY
+) -> Any:
     """A synchronous, windowless ViZDoom game on the given WAD map."""
     import vizdoom as vzd
 
@@ -42,7 +51,7 @@ def make_game(wad: Path, map_name: str = "MAP01", seed: int = 1) -> Any:
     # gitignored WAD directory so no run leaves a file the secrets gates must flag.
     game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
     game.set_seed(seed)
-    game.set_screen_resolution(vzd.ScreenResolution.RES_320X240)
+    game.set_screen_resolution(getattr(vzd.ScreenResolution, frame_size.value))
     game.set_labels_buffer_enabled(True)
     game.set_depth_buffer_enabled(True)
     game.set_objects_info_enabled(True)
