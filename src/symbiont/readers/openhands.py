@@ -46,15 +46,26 @@ class _MalformedError(Exception):
 
 def read(path: Path, project: str) -> Iterator[Record]:
     """Yield the records of an OpenHands trajectory file; a bad line raises ReadError."""
+    for row in read_each_row(path, project):
+        if isinstance(row, ReadError):
+            raise row
+        yield from row
+
+
+def read_each_row(path: Path, project: str) -> Iterator[list[Record] | ReadError]:
+    """One item per line: that row's records, or the ReadError naming the line.
+
+    For a caller with a pre-registered rule for rows the reader refuses (it must count and
+    report them); `read` raises on the first one instead.
+    """
     with Path(path).open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             try:
-                records = _session_records(json.loads(line), project)
+                yield _session_records(json.loads(line), project)
             except json.JSONDecodeError as exc:
-                raise ReadError(path, line_no, f"not valid JSON ({exc.msg})") from exc
+                yield ReadError(path, line_no, f"not valid JSON ({exc.msg})")
             except _MalformedError as exc:
-                raise ReadError(path, line_no, str(exc)) from exc
-            yield from records
+                yield ReadError(path, line_no, str(exc))
 
 
 @dataclass
