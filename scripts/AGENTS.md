@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 
-**Purpose.** `calibration/` (task pool and calibration runs), `datasets/` (dataset exporters), `gates/` (quality-gate checks), `hooks/` (tracked git hooks), `publish/` (the pre-publication export check), `routea/` (the lesson-capacity probe: lessons from public trajectories, MLX LoRA runs on the laptop, deterministic scoring; its MLX half runs in a venv outside the repo), `install-hooks.sh`.
+**Purpose.** `calibration/` (task pool and calibration runs), `datasets/` (dataset exporters), `gates/` (quality-gate checks), `hooks/` (tracked git hooks), `publish/` (the pre-publication export check), `routea/` (the lesson-capacity probe: lessons from public trajectories, MLX LoRA runs on the laptop, deterministic scoring; its MLX half runs in a venv outside the repo), `routeb/` (the personal Glimmer LoRA: the same lessons as Glimmer chat rows built on the laptop, then `run_routeb.sh` on the Strix trains bf16 adapters, converts them to GGUF and answers every arm; only `build_sets.py` and `cards.py` run in the repo env, the rest in the Strix venv; the GPU half runs only inside `ops/gpu_run.sh`), `install-hooks.sh`.
 
 **Violation prevented: Infected Core.** Anything that reads a dataset, shells out or talks to a machine lives here, so `src/` stays pure and nothing in `src/` imports from `scripts/`.
 

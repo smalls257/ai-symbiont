@@ -217,3 +217,20 @@ def test_a_paraphrase_must_keep_the_repo_and_the_command(monkeypatch):
     assert rules.keeps_details(
         plain, "Any warning for tests/a.py with pytest in org/repo?", "org/repo", "tests/a.py"
     )
+
+
+def test_the_sizes_matrix_scores_every_size_without_grouped_adapters(monkeypatch, tmp_path):
+    lesson, questions, _ = lesson_and_modules(monkeypatch)
+    score_answers = load(monkeypatch, "score_answers")
+    write_work_dir(tmp_path, lesson, questions, "x")
+    for grouped in (tmp_path / "answers" / "t").glob("*grouped-*"):
+        grouped.unlink()
+    (tmp_path / "logs" / "t" / "train-one-10.log").write_text(
+        "64000000000 peak memory footprint (torch max reserved)\n"
+    )
+    scored = score_answers.score_tag(tmp_path, "t", "sizes", [lesson])
+    labels = [row["label"] for row in scored["rows_template"]]
+    assert labels == [
+        f"t {arm} {n}" for arm in ("floor", "ceiling", "adapter") for n in (10, 30, 100)
+    ]
+    assert scored["training"]["one-10"]["peak_mem_gb"] == 64.0

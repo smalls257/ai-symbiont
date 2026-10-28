@@ -25,6 +25,8 @@ ROLES = {"floor": "floor", "ceiling": "ceiling", "adapter": "under test", "group
 MATRICES = {
     "full": [(arm, size) for arm in ROLES for size in SIZES],
     "top": [("floor", 100), ("ceiling", 100), ("adapter", 100)],
+    # Route B on Glimmer: one adapter per size, no grouped arm (LCAP found groups no better).
+    "sizes": [(arm, size) for arm in ("floor", "ceiling", "adapter") for size in SIZES],
 }
 # Template set (training never saw the wording) and the base model's paraphrases of it.
 QUESTION_SETS = {
@@ -158,7 +160,9 @@ def _row_line(question_set: str, row: dict) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--work", type=Path, required=True)
-    parser.add_argument("--tag", action="append", required=True, help="TAG:full or TAG:top")
+    parser.add_argument(
+        "--tag", action="append", required=True, help="TAG:full, TAG:top or TAG:sizes"
+    )
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--extra", type=Path, help="json object of run labels merged into the file")
     args = parser.parse_args()
