@@ -1,12 +1,8 @@
 """What the memory model is asked and what it must answer: one line in three labeled parts.
 
-Violations this shape prevents: Leaky Narrative (the prompt is the situation in domain prose,
-built from the kind of trouble, never a score or a feature) and Silent Fallback (a reply that is
-not exactly one line of "Happened: ... -> Resolved: ... -> Check: ..." raises; nothing repairs
-or pads it into a note the model did not write).
-
-The same functions build the training rows and the live prompts, so the model is asked at run
-time exactly the way it was taught.
+The prompt is the situation in domain prose, built from the kind of trouble, never a score. A
+reply that is not exactly one line of "Happened: ... -> Resolved: ... -> Check: ..." raises;
+nothing repairs it. The same functions build the training rows and the live prompts.
 """
 
 from dataclasses import dataclass
@@ -65,6 +61,7 @@ def training_pairs(project: str, lesson: Lesson) -> list[TrainingPair]:
 
 
 def _questions(signature: Signature) -> list[str]:
+    """The questions a user might ask about a signature's trouble."""
     subject = _subject(signature)
     return [
         f"What went wrong last time with {subject}?",
@@ -74,6 +71,7 @@ def _questions(signature: Signature) -> list[str]:
 
 
 def _subject(signature: Signature) -> str:
+    """What a signature is about, in backticks, for a question."""
     if signature.signal is Signal.FAILED_COMMAND:
         *target, _ = signature.key
         return f"`{' '.join(part for part in target if part != '-')}`"

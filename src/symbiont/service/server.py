@@ -30,8 +30,13 @@ def serve(service: Service, port: int = SERVICE_PORT) -> None:
 
 
 def _routes_for(service: Service) -> type[BaseHTTPRequestHandler]:
+    """The request handler class that forwards POSTs to `service`."""
+
     class Routes(BaseHTTPRequestHandler):
+        """Forwards each POST body to the service."""
+
         def do_POST(self) -> None:  # http.server dispatches by this name
+            """Answer one POST with the service's JSON response."""
             response = service.respond(self.path, _json_body(self))
             payload = json.dumps(response.body).encode()
             self.send_response(response.status)

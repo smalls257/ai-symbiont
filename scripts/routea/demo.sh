@@ -3,8 +3,8 @@
 # a failing step in a live Claude Code session gets a note through the hook, and the MCP recall
 # tool answers a question. Prints the notes and the per-note latency.
 #
-# Violation prevented: Black Box. Every stage logs under $RUN/ (server logs, the service event
-# log with per-note milliseconds), and set -e stops at the first failed stage.
+# Every stage logs under $RUN/ (server logs, the service event log with per-note
+# milliseconds), and set -e stops at the first failed stage.
 #
 #   scripts/routea/demo.sh
 # Environment (all optional):

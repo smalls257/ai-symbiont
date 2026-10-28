@@ -1,21 +1,10 @@
 """Train Route A's memory model on a project's new lessons, then forget the lessons.
 
-Violation prevented: **Silent Fallback** on three edges. The export is the fail-closed
-`lessons_for_memory_model` under the user's own-history consent (`symbiont consent`): without
-it one private lesson raises; with it only third-party private data does. Lessons arrive with
-credentials scrubbed. A failed training
-run stops before `forget_trained`, so no lesson is deleted that the weights did not take in.
-An adapter trained on one base model is never continued on another (`adapter.json`).
-
-Layout under --memory-dir (outside the repo; `symbiont serve --memory-dir` reads it):
-`adapter/` (the LoRA, continued run after run), `manifests/` (ids and counts per training run,
-written by `forget_trained`), `adapter.json` (base model and provenance, written only after
-training succeeds; `symbiont serve` lets only a Spark-safe adapter answer Spark-bound calls),
-`logs/`. Training rows hold lesson
-text, so they are deleted once the adapter has them. Prints counts only.
-
-    uv run python scripts/routea/train_memory.py --data-dir ~/.symbiont --project demo \
-        --memory-dir ~/symbiont-runs/routea/memory
+The export is `lessons_for_memory_model` under the user's own-history consent, scrubbed of
+credentials. A failed run stops before `forget_trained`; an adapter is never continued on another
+base model. Under --memory-dir: `adapter/`, `manifests/`, `adapter.json` (base model and
+provenance), `logs/`. Prints counts only.
+Usage: uv run python scripts/routea/train_memory.py --data-dir ... --project demo --memory-dir ...
 """
 
 import argparse

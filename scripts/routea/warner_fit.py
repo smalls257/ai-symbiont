@@ -1,14 +1,9 @@
 """Fit the logistic warner and pick its note threshold under option A. Pure numpy, no files.
 
-Violation prevented: **Paper Tiger**. A threshold picked on the steps the model was fit on, or
-by counting every step a score crosses a line, would look good and speak badly. So every step's
-risk comes from a model that never saw its repository (grouped folds), notes are spent the way
-the service spends them (`symbiont.core.note_rules`: boundary steps, a budget of 2, a 5-step
-cooldown), and a threshold is kept only if its notes earn more than they cost. If none does,
-the fit raises rather than write a warner that speaks at a loss.
-
-The math repeats T46's `note_cost_logistic` (class-weighted Newton fit, unpenalized intercept),
-which lives on an eval branch the live path must not import.
+Every step's risk comes from a model that never saw its repository (grouped folds), and notes are
+spent as the service spends them (`symbiont.core.note_rules`). A threshold is kept only if its
+notes earn more than they cost; otherwise the fit raises. The math repeats T46's
+`note_cost_logistic`, which lives on an eval branch the live path must not import.
 """
 
 from dataclasses import dataclass

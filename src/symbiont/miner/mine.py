@@ -1,12 +1,9 @@
 """Every pain-point signal, in one call.
 
-The store and the wizard call this rather than each signal, so adding a
-signal is one line here and nothing changes downstream.
-
-A chain is a developer's sessions on one repo in the order they ran. Most
-signals look inside one session; reworked edits also look across the chain
-(Tuesday's session takes out what Monday's put in). Parallel attempts at the
-same task are not a chain: pass each as a chain of one.
+Callers use this rather than each signal, so a new signal is one line here. A chain is a
+developer's sessions on one repo in the order they ran; most signals look inside one session,
+reworked edits also look across the chain. Parallel attempts at the same task are not a chain:
+pass each alone.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
@@ -40,6 +37,7 @@ def mine_session(session: Sequence[Record], references: References) -> list[Pain
 
 
 def _within_session(session: Sequence[Record], references: References) -> list[PainPoint]:
+    """Every signal that looks inside one session."""
     return [
         *find_failed_commands(session),
         *find_loops(session),
@@ -58,14 +56,7 @@ def sessions_of(records: Iterable[Record]) -> list[list[Record]]:
 
 
 def mine_history(sessions: Sequence[Sequence[Record]], references: References) -> list[PainPoint]:
-    """Mine a project's whole history.
-
-    Sessions with timestamps form one chain in the order they started (a
-    developer's history on this repo, so rework across sessions counts).
-    Sessions without any timestamp have no known order; published trajectories
-    are parallel attempts at the same tasks, so each is mined alone. ISO 8601
-    timestamps in one timezone are assumed.
-    """
+    """Mine a project's history: timed sessions form one chain, untimed ones are mined alone."""
     timed = sorted(
         ((start, s) for s in sessions if (start := _started(s)) is not None),
         key=lambda pair: pair[0],
@@ -76,4 +67,5 @@ def mine_history(sessions: Sequence[Sequence[Record]], references: References) -
 
 
 def _started(session: Sequence[Record]) -> str | None:
+    """Earliest timestamp in a session, or None."""
     return min((record.ts for record in session if record.ts is not None), default=None)

@@ -1,12 +1,8 @@
 """The memory model client: one prompt to a loopback mlx_lm.server, one validated line back.
 
-Violations this shape prevents: Silent Fallback (an unreachable server, a malformed reply or a
-line outside the three-part form raises `MemoryModelOfflineError`; the hook then prints
-"symbiont offline", never an empty or made-up note) and Distributed Monolith (the call goes
-through `symbiont.egress.post_json`, the one door out, to a loopback-only endpoint).
-
-Which model and adapter answer is the server's configuration (`scripts/routea/serve_memory.sh`),
-so switching from the stand-in to Llama is a launch argument, not a code change.
+An unreachable server, a malformed reply or a line outside the three-part form raises
+`MemoryModelOfflineError`; the hook prints "symbiont offline", never an empty note. The call goes
+through `symbiont.egress.post_json`. The model and adapter are the server's launch configuration.
 """
 
 import time
@@ -79,6 +75,7 @@ class MemoryModel:
         check_outbound(self._destination())
 
     def _destination(self) -> Destination:
+        """The loopback chat-completions endpoint of the model server."""
         url = self.url.rstrip("/") + "/v1/chat/completions"
         return Destination(Endpoint.LOCAL_MEMORY_MODEL, url)
 
@@ -97,6 +94,7 @@ class MemoryModel:
         return MemoryReply(line, len(prompt), (time.monotonic() - started) * 1000.0)
 
     def _post(self, prompt: str) -> dict[str, Any]:
+        """Send the prompt via egress; network or decode failure raises MemoryModelOfflineError."""
         destination = self._destination()
         try:
             if self.transport is None:
@@ -114,6 +112,7 @@ class MemoryModel:
 
 
 def _request(prompt: str) -> dict[str, object]:
+    """The chat-completions request body for a prompt."""
     return {
         "model": SERVER_DEFAULT,
         "messages": [
@@ -127,6 +126,7 @@ def _request(prompt: str) -> dict[str, object]:
 
 
 def _reply_text(reply: dict[str, Any]) -> str:
+    """The reply's text; a malformed reply raises InvalidNoteError."""
     try:
         text = reply["choices"][0]["message"]["content"]
     except (KeyError, IndexError, TypeError) as missing:

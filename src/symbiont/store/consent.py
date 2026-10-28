@@ -1,7 +1,7 @@
 """The user's own-history consent, kept beside the store: one explicit setting, default withheld.
 
-Violation this shape prevents: Silent Fallback. A missing file means no consent was given; a
-file that is not a consent record raises rather than being read as either answer.
+A missing file means no consent was given; a file that is not a consent record raises rather than
+being read as either answer.
 """
 
 import json

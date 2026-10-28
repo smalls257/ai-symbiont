@@ -1,11 +1,9 @@
 """The two training exports of stored lessons, one per model, as two named functions.
 
-Route A's memory model writes notes that can reach Spark-bound prompts, so its
-export goes through the fail-closed Spark view: one private lesson in the
-project raises `SparkPrivacyViolationError`, never a quietly shorter list.
-Route B's personal model (local Glimmer) never leaves the machine and may learn
-from every lesson, private ones included. Lessons a manifest already lists
-(trained on, then recreated by re-mining) are not offered to the memory model.
+Route A's memory model writes notes that can reach Spark, so its export goes through the Spark
+view: one private lesson raises `SparkPrivacyViolationError`, never a shorter list. Route B's
+personal model stays local and may learn from every lesson. Lessons a manifest already lists are
+not offered to the memory model again.
 """
 
 from symbiont.miner.lessons import Lesson
@@ -19,9 +17,7 @@ def lessons_for_memory_model(
 ) -> list[Lesson]:
     """Route A: the scrubbed lessons of `project` not yet trained on.
 
-    Raises SparkPrivacyViolationError if any lesson may not reach Spark under `consent`
-    (any private lesson without consent; a third-party one always). Re-mining recreates
-    lessons a manifest already lists; they are not offered again.
+    Raises SparkPrivacyViolationError if any lesson may not reach Spark under `consent`.
     """
     trained = store.trained_lesson_ids(project)
     allowed = store.spark_view(consent).lessons(project)

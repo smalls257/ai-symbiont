@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 # Serve Route A's memory model: mlx_lm.server on loopback with the trained adapter.
 #
-# Violation prevented: Silent Fallback (no adapter or no base-model marker stops here, so the
-# service never talks to a base model that learned nothing) and Black Box (the server logs to
-# MEMORY_DIR/logs/server.log). The host is fixed to 127.0.0.1: the egress policy refuses any
-# other host for the memory model, and the server sees private session steps.
+# No adapter or base-model marker stops here, so the service never talks to a base model
+# that learned nothing; the server logs to MEMORY_DIR/logs/server.log. The host is fixed to
+# 127.0.0.1: egress refuses any other host, and the server sees private session steps.
 #
 #   scripts/routea/serve_memory.sh MEMORY_DIR [PORT]     # PORT defaults to 8090
 # The base model comes from MEMORY_DIR/adapter.json (written by train_memory.py); switching from the

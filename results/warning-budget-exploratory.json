@@ -7,7 +7,6 @@
  "g6_prereg": "prereg/2026-10-29-offline-selection.md",
  "g6_freeze_commit": "e5214b5",
  "run_host": {
-  "hostname": "framework",
   "python": "3.12.3",
   "numpy": "2.5.4",
   "workers": 4

@@ -1,24 +1,9 @@
 """Local SQLite store of mined lessons and of where each project's history lives. No raw history.
 
-Memory is the personal model's weights (owner decision 2026-10-28), so the store
-keeps no record rows: the harness's logs stay where the harness wrote them and
-are re-read through the readers each time a project is mined (`store.mining`).
-What is kept:
-
-- Sources: (project, reader, path) pointers to those logs, never their contents.
-- Lessons: each pain point with its own short quote, resolution, privacy flag and
-  the (session, step) ids it came from, until training consumes them;
-  `forget_trained` deletes them after writing a manifest of ids and counts.
-
-Guards:
-
-- Hold-out: checked at mining time, before a lesson is stored (`store.mining`).
-- Spark: `spark_view(consent)` is a read-only view for anything bound for Spark.
-  A read that would return a lesson Spark may not see (any private one without
-  the user's own-history consent; a third-party one always) raises
-  `SparkPrivacyViolationError`. It never filters quietly: a filtered view would
-  make a privacy bug look like "no history". It returns lessons scrubbed of
-  credentials.
+Kept: sources (project, reader, path pointers to the harness's logs, re-read on every mining) and
+lessons (each with its own quote, resolution, privacy flag and ids) until training consumes them.
+`spark_view(consent)` raises `SparkPrivacyViolationError` for a lesson Spark may not see and
+returns the rest scrubbed of credentials; hold-out is checked at mining time (`store.mining`).
 """
 
 import json
@@ -63,6 +48,7 @@ class SparkPrivacyViolationError(PermissionError):
     """A read would hand a lesson that is not Spark-safe to a Spark-bound prompt."""
 
     def __init__(self, project: str, what: str):
+        """Name the project and what is private."""
         super().__init__(
             f"{what} in project {project!r} is not Spark-safe; "
             "it must not reach a Spark-bound prompt"
@@ -74,6 +60,7 @@ class ForgetMismatchError(RuntimeError):
     """The exported lessons do not match the stored rows one to one; nothing was deleted."""
 
     def __init__(self, project: str, exported: int, matched: int):
+        """Name the project and both counts."""
         super().__init__(
             f"{exported} lessons of {project!r} were exported for training but {matched} "
             "stored rows match them; nothing was forgotten"
@@ -93,6 +80,7 @@ class Store:
     """Lessons and source pointers; the only persistence the rest of the system sees."""
 
     def __init__(self, db: sqlite3.Connection):
+        """Wrap an open SQLite connection."""
         self._db = db
 
     @classmethod
@@ -149,18 +137,7 @@ class Store:
     def forget_trained(
         self, project: str, manifest_path: Path, *, exported: Sequence[Lesson]
     ) -> int:
-        """Delete the `exported` lessons of `project` once a model was trained on them.
-
-        First writes the training manifest (export id, lesson ids, source sessions,
-        task ids, counts; no text) to `manifest_path`, so a scored run can still prove
-        no held-out trajectory trained the model, and remembers the lesson ids so the
-        memory-model export never offers them again. An existing manifest is never
-        overwritten, and if writing fails nothing is deleted. Returns how many were deleted.
-
-        Rows are matched by lesson id, never by text: the export may be a scrubbed copy.
-        Raises ForgetMismatchError, deleting and writing nothing, unless every exported
-        lesson matches exactly one stored row.
-        """
+        """Delete the `exported` lessons once a model trained on them; returns the count deleted."""
         rows = self._rows_of(project, {lesson_id(lesson) for lesson in exported})
         if len(rows) != len(exported):
             raise ForgetMismatchError(project, len(exported), len(rows))
@@ -179,6 +156,7 @@ class Store:
         return deleted
 
     def _rows_of(self, project: str, ids: set[str]) -> list[int]:
+        """Row ids of the project's stored lessons whose ids are in `ids`."""
         rows = self._db.execute("SELECT rowid, body FROM lessons WHERE project=?", (project,))
         return [row for row, body in rows if lesson_id(_lesson_from_json(body)) in ids]
 
@@ -206,6 +184,7 @@ class SparkView:
     """Read-only; every read raises rather than return a lesson Spark may not see."""
 
     def __init__(self, store: Store, consent: OwnHistoryConsent):
+        """Wrap the store with the user's consent setting."""
         self._store = store
         self._consent = consent
 
@@ -226,6 +205,7 @@ class SparkView:
 
 
 def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
+    """Warn when the database still holds copied history from an older version."""
     names = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     legacy = sorted(names & set(_LEGACY_TABLES))
     if legacy:
@@ -243,15 +223,18 @@ def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
 
 
 def _lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]:
+    """The lessons-table row for a lesson."""
     pain = lesson.pain_point
     return (project, pain.session_id, pain.step, lesson.spark_safe, _lesson_json(lesson))
 
 
 def _lesson_json(lesson: Lesson) -> str:
+    """Serialize a lesson for the lessons table."""
     return json.dumps(asdict(lesson))
 
 
 def _lesson_from_json(body: str) -> Lesson:
+    """Rebuild a lesson from its stored JSON."""
     data = json.loads(body)
     return Lesson(
         pain_point=_pain_point_from_dict(data["pain_point"]),
@@ -269,6 +252,7 @@ def _lesson_from_json(body: str) -> Lesson:
 
 
 def _pain_point_from_dict(data: dict[str, Any]) -> PainPoint:
+    """A pain point from its stored dict."""
     signature = data["signature"]
     return PainPoint(
         signature=Signature(Signal(signature["signal"]), tuple(signature["key"])),

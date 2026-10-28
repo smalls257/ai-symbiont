@@ -1,9 +1,8 @@
 """Deterministic scoring for the lesson-capacity probe: recall of key details, invented details.
 
-Violation prevented: **Paper Tiger**. A fuzzy or model-judged match would let a vague answer
-("check your imports") count as recalling the fix. A hit here needs the exact error class or
-every token the fix added; an answer naming an error class, file or flag that no lesson holds
-is counted as invented, so an adapter that recalls by confabulating cannot look good.
+A hit needs the exact error class or every token the fix added; a fuzzy or model-judged match
+would let a vague answer count. An answer naming an error class, file or flag that no lesson holds
+is counted as invented.
 """
 
 import re

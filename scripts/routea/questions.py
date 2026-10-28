@@ -1,9 +1,8 @@
 """Training examples and held-out reworded questions for the lesson-capacity probe.
 
-Violation prevented: **Paper Tiger**. An adapter that recites its training questions back has
-memorized strings, not lessons. Every held-out question is worded with a template that never
-appears in training, and names the attempt differently (the full command, or program plus file),
-so recall measures the lesson, not the prompt. Pure: lessons in, examples out.
+Every held-out question is worded with a template that never appears in training and names the
+attempt differently (the full command, or program plus file), so recall measures the lesson, not
+the prompt. Pure: lessons in, examples out.
 """
 
 from dataclasses import dataclass

@@ -1,11 +1,8 @@
 """When a warner may speak: T46 option A, the delivery rule the scored run priced.
 
-Violation this shape prevents: Paper Tiger. A classifier that is right about a trouble spell but
-speaks on five steps in a row reads as noise, and an untimed note mid-flow is ignored. So a note
-goes out only at a pause a hook can see (a boundary step), at most twice a session, and never in
-the five steps after the last one (docs/design/2026-10-28-note-cost.md, option A).
-
-Pure: the session prefix and the positions already spoken come in as arguments.
+A note goes out only at a pause a hook can see (a boundary step), at most twice a session, and
+never in the five steps after the last one (docs/design/2026-10-28-note-cost.md). Pure: the
+session prefix and the positions already spoken come in as arguments.
 """
 
 from collections.abc import Sequence
@@ -40,6 +37,7 @@ def step_trouble(prefix: Sequence[Record]) -> Signature | None:
 
 
 def _applied_edits(earlier: Sequence[Record]) -> set[str]:
+    """Paths of files the session edited and applied."""
     return {
         path
         for record in earlier

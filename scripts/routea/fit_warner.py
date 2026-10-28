@@ -1,16 +1,10 @@
 """Fit Route A's logistic warner on the public OpenHands pool and write its weights file.
 
-Violation prevented: **Paper Tiger** (see `warner_fit`: grouped out-of-fold risks, notes spent
-under option A, a threshold kept only if it earns) and **Silent Fallback** (a record from any
-other dataset, or a held-out repository, stops the run; nothing is skipped quietly).
-
-The live service has no mined history once training has consumed the lessons, so every step is
-featurised from its own session prefix only (empty history), exactly as `/observe` sees it.
-Weights go outside the repo; only counts are printed.
-
-    uv run python scripts/routea/fit_warner.py \
-        --pool ~/symbiont-runs/t47/data/nebius-openhands/pool \
-        --out ~/symbiont-runs/routea/warner.json
+Grouped out-of-fold risks and option A are in `warner_fit`; a record from any other dataset, or a
+held-out repository, stops the run. Every step is featurised from its own session prefix only
+(empty history), exactly as `/observe` sees it. Weights go outside the repo; only counts are
+printed.
+Usage: uv run python scripts/routea/fit_warner.py --pool ... --out ...
 """
 
 import argparse

@@ -1,9 +1,8 @@
 """Scrub credentials out of lesson text before any Spark-bound use.
 
-Violation this shape prevents: Silent Fallback at the publish boundary. A lesson quotes real
-commands and output; a token pasted into a command must not ride a lesson into a Spark-bound
-prompt or into the weights of an adapter that answers Spark. The patterns mirror the repo's
-gitleaks rules (`.gitleaks.toml`) plus common provider token shapes. Pure: text in, text out.
+A lesson quotes real commands and output; a token pasted into a command must not reach a Spark-
+bound prompt or the weights of an adapter that answers Spark. The patterns mirror `.gitleaks.toml`
+plus common provider token shapes. Pure: text in, text out.
 """
 
 import re

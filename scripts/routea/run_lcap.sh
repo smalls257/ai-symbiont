@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # LCAP: train every adapter for one model and answer every arm. Runs on the laptop (MLX).
 #
-# Violation prevented: Black Box. Each training and answering step logs to its own file under
-# $WORK/logs/<tag>/ and appends "<step> <seconds>" to timing.txt, so a slow or dead step is
-# visible from the outside; set -e stops the run at the first failed step, never past it.
+# Each step logs to its own file under $WORK/logs/<tag>/ and appends "<step> <seconds>" to
+# timing.txt; set -e stops the run at the first failed step.
 #
-# Same budget for every size (Paper Tiger guard: a bigger set must not get fewer passes):
-# EPOCHS passes over the training rows, batch 4 (train_lora.sh), so iters = rows * EPOCHS / 4.
+# Same budget for every size, so a bigger set does not get fewer passes: EPOCHS passes
+# over the training rows, batch 4 (train_lora.sh), so iters = rows * EPOCHS / 4.
 #
 #   scripts/routea/run_lcap.sh ~/symbiont-runs/lcap <model-path-or-repo> <tag>
 set -euo pipefail

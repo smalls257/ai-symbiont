@@ -54,7 +54,10 @@ def recall_answer(question: str, project: str, port: int) -> str:
 
 def _reason(refusal: OSError) -> str:
     """The service's own reason from an error response, else the status line."""
+    read = getattr(refusal, "read", None)
+    if read is None:
+        return str(refusal)
     try:
-        return str(json.loads(refusal.read())["error"])  # type: ignore[attr-defined]
-    except (AttributeError, ValueError, KeyError):
+        return str(json.loads(read())["error"])
+    except (ValueError, KeyError):
         return str(refusal)

@@ -53,11 +53,13 @@ def quote_record(record: Record, limit: int) -> str:
 
 
 def _recall_failed_command(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a failed command."""
     (failed,) = cited
     return f"What broke last time I ran `{failed.command}`?", quote(failed)
 
 
 def _recall_reworked_edit(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a reworked edit."""
     path = pain.signature.key[0]
     first, last = cited[0], cited[-1]
     return (
@@ -67,16 +69,19 @@ def _recall_reworked_edit(pain: PainPoint, cited: list[Record], quote: Quote) ->
 
 
 def _recall_review_flag(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a review flag."""
     return f"What did the reviewer flag in {pain.signature.key[0]}?", quote(cited[0])
 
 
 def _recall_correction(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a user correction."""
     path = pain.signature.key[0]
     where = "last time" if path == "-" else f"in {path}"
     return f"What did I correct you on {where}?", quote(cited[0])
 
 
 def _recall_loop(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a loop."""
     return (
         "Where did I get stuck going round in circles?",
         f"{len(cited)} times in a row:\n{quote(cited[0])}",
@@ -84,6 +89,7 @@ def _recall_loop(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[st
 
 
 def _recall_blast_radius(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a broken dependent."""
     path, dependent = pain.signature.key
     edit, failure = cited
     return (
@@ -124,6 +130,7 @@ def _fix_failed_command(
 def _fix_correction(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target after a user correction, or why there is none."""
     (turn,) = cited
     found = resolution_of(pain, cited, records)
     if isinstance(found, str):
@@ -136,6 +143,7 @@ def _fix_correction(
 
 
 def _last_action_before(turn: Record, records: Sequence[Record]) -> Record | None:
+    """The last action in the turn's session before it, or None."""
     earlier = [r for r in records if r.session_id == turn.session_id and r.step < turn.step]
     return next((r for r in reversed(earlier) if is_action(r)), None)
 
@@ -143,6 +151,7 @@ def _last_action_before(turn: Record, records: Sequence[Record]) -> Record | Non
 def _fix_reworked_edit(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target for a reworked edit."""
     path = pain.signature.key[0]
     found = resolution_of(pain, cited, records)
     if isinstance(found, str):
@@ -159,6 +168,7 @@ def _fix_reworked_edit(
 def _fix_blast_radius(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target for a broken dependent."""
     path, dependent = pain.signature.key
     edit, failure = cited
     return (
@@ -172,6 +182,7 @@ def _fix_blast_radius(
 def _fix_review_flag(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target for a review flag."""
     comment, answer = cited
     return (
         f"A reviewer flagged this:\n{quote(comment)}\nWhat should the change be?",
@@ -183,6 +194,7 @@ def _fix_review_flag(
 def _no_fix_in_loop(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """A loop has no correction source: always a stated reason."""
     return "a loop has no correction source: nothing in the history says what to do instead"
 
 
@@ -200,6 +212,7 @@ CORRECTION_BY_SIGNAL: dict[Signal, CorrectionText] = {
 
 
 def _action_text(record: Record) -> str:
+    """An action as text: the command, or the files and diff."""
     if record.kind == Kind.COMMAND:
         return record.command or ""
     return f"{', '.join(record.files)}\n{record.diff}"

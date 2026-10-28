@@ -4,15 +4,17 @@ Read this file first, then the `AGENTS.md` in any directory you touch. Each `AGE
 
 ## What this repo is
 
-ai-symbiont mines a developer's agent history for pain points (a file reworked three times, a command that failed the same way twice, a user correction) and pushes warnings and recalls back into the coding harness as plain domain prose. A pure core decides when to speak; readers, a local store, a localhost service and thin delivery clients (MCP server, hooks, a mini-SWE-agent wrapper) sit around it. An offline replay and pre-registered runs decide which learner is live; a fly-mushroom-body learner stands next to plain counters and is judged against them. Act 1 shows a model playing Freedoom via ViZDoom from a text description. Route B trains a personal LoRA on the same history.
+ai-symbiont mines a developer's agent history for pain points (a file reworked three times, a command that failed the same way twice, a user correction) and pushes warnings and recalls back into the coding harness as plain domain prose. Memory is a LoRA: lessons live in weights, and history is not stored (the miner re-reads harness logs at the source and keeps nothing raw). A pure core decides when to speak, and a logistic classifier is the live warner by owner decision [measured] the classifier led in both scored note-cost runs (T46, T48) and the fly beat counters in T48, statistically tied with the classifier there (`results/note-cost.json`, `results/confirm.json`, on their branches). Notes are structured: what happened, how it was resolved, the check to run, delivered before the matching action. Readers, a local store, a localhost service and thin delivery clients (MCP server, hooks, a mini-SWE-agent wrapper) sit around the core. Route B trains a personal Glimmer LoRA on the lessons; Route A trains a small LoRA (Llama 3.2 1B or 3B, license check first) that writes the one-line note for any model, only on lessons from the Spark-safe view (`spark_view()`); a `spark_safe=False` lesson never trains a model whose notes can reach a Spark-bound prompt. Route B may train on all lessons because Glimmer is local. Our network (a learner built on the fly's real circuit, or a home-grown small one) is a swappable slot that earns a job only where it beats the simple option, and is judged beside plain counters and the classifier. Act 1 (a model plays Freedoom via ViZDoom from a text description) is a short opening hook.
 
 ## Commands
 
 ```bash
 uv sync --group dev                      # dev tools are pinned in pyproject.toml; run it in EVERY new worktree
-uv run pytest -q                         # whole suite, about half a minute; unmarked tests run in airplane mode
+uv run pytest -q                         # whole suite, about 95 s measured on a loaded laptop (1056 tests); unmarked tests run in airplane mode
 scripts/gates/run.sh fast                # quality gates on changed files vs main
-scripts/gates/run.sh full                # fast + history scan, import-linter, mypy, coverage, lockfile
+scripts/gates/run.sh full                # fast + history scan, import-linter, mypy, coverage, lockfile, pip-audit, licenses, diff-cover, interrogate, html-validate; NEEDS NETWORK (pip-audit exits 2 offline), so pre-push does too
+scripts/gates/fetch_semgrep_packs.sh     # once per checkout (network): the QG-SAST-01 registry snapshot, gitignored
+(cd dashboard && npm ci)                 # once per checkout: pinned eslint and html-validate for QG-FE-01/03
 ops/secrets_scan.sh                      # whole-tree and whole-history secrets scan: before EVERY push
 scripts/publish/check_export.sh          # git archive HEAD, every sensitive-data check on the exported files: before the FIRST public push
 uv run python scripts/gates/measure_baseline.py --write   # how far the unchanged tree is from the gates (phase 2 input)
@@ -69,7 +71,7 @@ Every technical answer, design, diagnosis or piece of code runs this loop:
 2. **Name the Principle at stake.** The Violation negates a Principle; the Principle says what "fixed" looks like.
 3. **Derive the recommendation from the name.** If deleting the name would not change the advice, the name was decoration.
 4. **Engage hypotheticals on their terms.** "Should I add a fourth boolean?" is answerable without code: it is a God Method in larval form and a Leaky Narrative at every call site.
-5. **Name before you type.** Before writing a unit, state which Violation its shape exists to prevent. That name constrains the API, the error handling and the tests.
+5. **Name before you type.** Before writing a unit, state which Violation its shape exists to prevent, in the plan or PR description, not in the code. That name constrains the API, the error handling and the tests.
 
 ### The Load-Bearing Test
 
@@ -85,6 +87,7 @@ Redact every Principle and Violation name from your draft. If the advice is iden
 - Names are capabilities in the domain's language: not `handle`, `process`, `manage`, `do`, `Manager`, `Helper`.
 - Booleans at arity 2 or more are forbidden: use named variants or a `StrEnum`. An options dict respells the leak.
 - No silent catches. If you must swallow, log loudly with context and say why.
+- Comments and docstrings are terse: one line by default; a why only when the code can't show it; never name a Principle or Violation in code (that reasoning goes in the plan or PR). Gate QG-RD-04.
 
 **Naming (gate QG-RD-02/03, `scripts/gates/check_naming.py`).** These fail the gate; the message names the Violation.
 
@@ -119,7 +122,7 @@ There is no carve-out for tooling: the gate scripts obey the caps they enforce. 
 
 ## Quality gates
 
-`docs/standards/quality-gates.html` is the standard: every gate names the one Violation it makes impossible. One script, `scripts/gates/run.sh [fast|full]`, is the single definition of green; hooks and CI call it. Pre-commit runs the changed-file checks plus the unit tests of the packages a commit touches (about 4 s, 11 s worst case measured); pre-push runs `full`: the whole suite with its count floor, the `run.sh` tests, the history scan, gate integrity per commit and a list of every `GATE-CHANGE` commit.
+`docs/standards/quality-gates.html` is the standard: every gate names the one Violation it makes impossible. One script, `scripts/gates/run.sh [fast|full]`, is the single definition of green; hooks and CI call it. Pre-commit runs the changed-file checks plus the unit tests of the packages a commit touches (about 10 s measured: the two semgrep gates add about 5 s of fixed start-up, 1.6 s custom rules plus 3.2 s registry packs); pre-push runs `full`: the whole suite with its count floor, the `run.sh` tests, the history scan, gate integrity per commit and a list of every `GATE-CHANGE` commit.
 
 | Gate family | Tool | Prevents |
 |---|---|---|
@@ -132,6 +135,11 @@ There is no carve-out for tooling: the gate scripts obey the caps they enforce. 
 | Publish check | `scripts/publish/check_export.sh` (exported tree, no history, no baseline) | Silent Fallback at the publish boundary |
 | Lint and format | ruff (`pyproject.toml`) | Forensic Coding, Fossil Comments |
 | American spelling | codespell `--builtin en-GB_to_en-US` (QG-RD-05) | Leaky Narrative, Forensic Coding |
+| Registry SAST (p/python, p/bandit, p/secrets; hash-verified snapshot) | semgrep via `scripts/gates/semgrep_registry.sh` | Silent Fallback, Forensic Coding |
+| Dependency audit and licenses | pip-audit (`check_audit.py`, network), pip-licenses (`check_licenses.py`) | Black Box |
+| Frontend | eslint (QG-FE-01), `check_cdn.py` (QG-FE-02, `cdn-legacy-pages.txt` pins `path host`), html-validate (QG-FE-03, advisory) | Forensic Coding, Leaky Narrative |
+| Docstring and diff coverage | interrogate (QG-RD-01), diff-cover (QG-TST-03) | Forensic Coding, Paper Tiger |
+| Type-ignore ratchet and comment policy | `check_type_ignores.py` (QG-TYP-03), `check_comments.py` plus semgrep `comments.yaml` (QG-RD-04, QG-SAST-02) | Fossil Comments |
 | Complexity, nesting, file length | lizard plus AST checks; delete-only `.lizard-whitelist.txt` | God Method, God Class |
 | Custom rules | semgrep pinned in `.semgrep/VERSION`, rules in `.semgrep/symbiont/` | one rule per Violation |
 | Architecture | import-linter (`.importlinter`) plus `tests/test_boundaries.py` | Infected Core, Distributed Monolith |

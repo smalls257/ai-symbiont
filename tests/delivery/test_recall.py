@@ -1,5 +1,6 @@
 import socket
 import threading
+from typing import cast
 
 import pytest
 
@@ -47,7 +48,7 @@ def test_offline_is_an_error_the_client_raises_not_an_empty_answer():
 
 def test_a_refusal_carries_the_services_reason(port):
     with pytest.raises(ServiceRefusedError, match="question and project must be text"):
-        recall_answer(123, "p", port)  # type: ignore[arg-type]
+        recall_answer(cast(str, 123), "p", port)
 
 
 def test_serve_passes_port_and_mode_to_the_listener(tmp_path, monkeypatch):

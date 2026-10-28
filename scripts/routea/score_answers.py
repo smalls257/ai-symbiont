@@ -1,12 +1,9 @@
 """Score LCAP answers and write results/lesson-capacity.json (counts, ids, labels only).
 
-Violation prevented: **Paper Tiger**. Every adapter row is printed beside its floor (base model,
-no adapter) and its ceiling (the set's lessons in the prompt), on the same questions, so an
-adapter that "recalls" only what the base model guesses, or far less than reading the lesson
-gives, shows as such. A missing answer file stops the run; it is never scored as zero.
-
-    uv run python scripts/routea/score_answers.py --work ~/symbiont-runs/lcap --tag llama-1b \
-        --tag llama-3b --out results/lesson-capacity.json
+Every adapter row is printed beside its floor (base model, no adapter) and its ceiling (the
+lessons in the prompt), on the same questions. A missing answer file stops the run; it is never
+scored as zero.
+Usage: uv run python scripts/routea/score_answers.py --work ... --tag llama-1b --out ...
 """
 
 import argparse

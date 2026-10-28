@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # Train one MLX LoRA adapter on chat rows: the shared LoRA recipe of LCAP and Route A's memory model.
 #
-# Violation prevented: Forensic Coding (two copies of a schedule that diverged once already would
-# drift apart) and Black Box (the run logs to its own file with peak memory, and appends
-# "<name> <seconds>" to timing.txt). set -e stops at the first failed step, never past it.
+# One schedule for both uses, since two copies diverged once; the run logs to its own file
+# with peak memory and appends "<name> <seconds>" to timing.txt. set -e stops at the first failure.
 #
 #   scripts/routea/train_lora.sh PY MODEL DATA_DIR ADAPTER_DIR LOG_DIR NAME
 # DATA_DIR holds train.jsonl and valid.jsonl (mlx-lm chat rows). LORA_EPOCHS passes (default 8),

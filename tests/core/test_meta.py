@@ -194,3 +194,16 @@ def test_the_budget_stamps_its_cost_on_a_settled_false_alarm():
     assert not lessons[0].outcome.pain_point_followed
     capped = WarningBudget.for_budget(0.15, per_steps=20, false_alarm_cost=2.0)
     assert capped.false_alarm_cost == 2.0
+
+
+@pytest.mark.parametrize("filler_type", [Mushroom, DenseNet], ids=IDS)
+def test_the_calibrator_rate_is_a_fixed_setting_of_the_filler(filler_type):
+    still, quick = (
+        filler_type(seed=1, calibrator_rate=0.0),
+        filler_type(seed=1, calibrator_rate=0.5),
+    )
+    calm = Outcome(pain_point_followed=False, signature=None)
+    kept = still.learn(pattern(3), calm, still.initial_state(0)).calibrator
+    moved = quick.learn(pattern(3), calm, quick.initial_state(0)).calibrator
+    assert kept == Calibrator()
+    assert moved.bias < 0

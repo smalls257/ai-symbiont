@@ -117,6 +117,7 @@ def observe_body(
 
 
 def _parsed(stdin_text: str) -> dict[str, Any]:
+    """The hook's stdin as a JSON object; anything else raises HookInputError."""
     try:
         data = json.loads(stdin_text)
     except ValueError as exc:
@@ -129,6 +130,7 @@ def _parsed(stdin_text: str) -> dict[str, Any]:
 def _record(
     event: HookEvent, data: dict[str, Any], harness: str, project: str, session_id: str
 ) -> dict[str, Any]:
+    """The record the service stores for one hook event."""
     base: dict[str, Any] = {
         "harness": harness,
         "project": project,
@@ -146,6 +148,7 @@ def _record(
 
 
 def _shaped(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
+    """The kind and raw text of a record, by event."""
     if event is HookEvent.USER_PROMPT_SUBMIT:
         return {"kind": "user_turn", "raw": str(data.get("prompt", ""))}
     if event is HookEvent.SESSION_START:
@@ -157,6 +160,7 @@ def _shaped(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
 
 
 def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
+    """A tool-call record; shell tools carry the command and its exit status."""
     tool = str(data.get("tool_name", ""))
     given = data.get("tool_input")
     arguments: dict[str, Any] = given if isinstance(given, dict) else {}
@@ -188,6 +192,7 @@ def _exit_code(response: Any, event: HookEvent) -> int | None:
 
 
 def _worded(event: HookEvent, notes: list[str], style: NoteStyle) -> str:
+    """Join notes into the hook's output text; post-tool notes may be prefixed `Finding:`."""
     if event is HookEvent.POST_TOOL_USE and style is NoteStyle.FINDING:
         notes = [f"Finding: {note}" for note in notes]
     return "\n".join(notes)

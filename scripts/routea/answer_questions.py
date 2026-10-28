@@ -1,12 +1,9 @@
 """Answer LCAP held-out questions with a local MLX model, optionally with an adapter or the lessons.
 
-Runs in the LCAP venv (`~/symbiont-runs/lcap/venv`, mlx-lm), not the repo env, so it imports
-nothing from `symbiont`. Violation prevented: **Black Box**. Every run writes one answer row per
-question plus a timing line to stderr (counts and seconds, never prompt or answer text), so a
-slow or empty arm is visible without reading answers.
-
-    venv/bin/python answer_questions.py --model M --questions ask/one-10.jsonl --out ans.jsonl \
-        [--adapter adapters/one-10] [--context context/one-10.txt]
+Runs in the LCAP venv (`~/symbiont-runs/lcap/venv`, mlx-lm), so it imports nothing from
+`symbiont`. Every run writes one answer row per question and a timing line to stderr (counts and
+seconds, never prompt or answer text), so a slow or empty arm is visible.
+Usage: venv/bin/python answer_questions.py --model M --questions ... --out ... [--adapter ...]
 """
 
 import argparse

@@ -14,7 +14,7 @@ See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 - Gate scripts (`gates/`): anchored to the git root, fail closed (missing tool or config exits non-zero), one definition per gate, changed files only in phase 1, waiver files delete-only.
 - Spark-bound code receives `Store.spark_view()`; one price table (`eval/budget.py`).
 - Python here is held to the same size, nesting and naming caps as `src/`; gate scripts obey the caps they enforce.
-- A fresh worktree has no `.venv`: every gate fails with `run: uv sync --group dev` until you run it.
+- A fresh worktree has no `.venv`: every gate fails with `run: uv sync --group dev` until you run it. The semgrep registry snapshot (QG-SAST-01) is gitignored: run `scripts/gates/fetch_semgrep_packs.sh` once per checkout (network). The frontend gates need `cd dashboard && npm ci` before they can judge a changed dashboard file.
 - Pre-commit is fast (changed-file checks plus the unit tests of touched packages); the whole suite, the `run.sh` tests and the history scan run at pre-push.
 - `publish/` is a gate directory like `gates/`: protected, owner-edited, `GATE-CHANGE` trailer.
 - Gate files are owner-edited; a change needs a `GATE-CHANGE: <reason>` commit trailer (QG-GATE-01), in that commit's own message.
@@ -23,9 +23,10 @@ See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 Names only, set in your shell; `env.example` shows placeholder shapes. Unset means the script exits with a message naming the variable.
 - `SYMBIONT_GLIMMER_URL`: Glimmer endpoint, read by `calibration/run_calibration.py`. Start the staged driver with `python scripts/calibration/launch.py <workdir>`, not `staged.py`: `launch.py` checks the variable before anything loads.
 - `SYMBIONT_DESKTOP_SSH`, `SYMBIONT_DESKTOP_WORKDIR`: desktop login and its work dir, read by `calibration/sync_results.sh`.
+- `SYMBIONT_DRIVER_PATTERN`: test-only override of the driver probe pattern in `calibration/sync_results.sh` (default `launch.py|staged.py`).
 
 ## Commands
-`scripts/gates/run.sh fast`, `scripts/gates/run.sh full`, `scripts/publish/check_export.sh`, `uv run python scripts/gates/measure_baseline.py --write`
+`scripts/gates/run.sh fast`, `scripts/gates/run.sh full`, `scripts/gates/mutation.sh` (QG-TST-05, minutes, release only), `scripts/publish/check_export.sh`, `uv run python scripts/gates/measure_baseline.py --write`
 
 ## Review focus
 Does a script hide a machine name, a token path or a `|| true` after a check? Does a new data path or result field skip `check_paths.sh` and `check_results_content.py`?

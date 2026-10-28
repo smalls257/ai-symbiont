@@ -1,12 +1,8 @@
 """Lessons for the lesson-capacity probe (LCAP): one failed command and the command that fixed it.
 
-Violation prevented: **Silent Fallback**. A lesson is kept only when every key detail a scorer
-checks (command, file, error class, the fix's added tokens) is present and short; a pair the
-records cannot fill is dropped and counted by reason, never filled with a guess. Pure: records
-in, lessons out.
-
-A lesson reads as domain prose: "In org/repo, `pytest tests/x.py` failed with
-ModuleNotFoundError: No module named 'x'; run `PYTHONPATH=src pytest tests/x.py` instead."
+A lesson is kept only when every key detail a scorer checks (command, file, error class, the fix's
+added tokens) is present and short; a pair the records cannot fill is dropped and counted by
+reason, never filled with a guess. Pure: records in, lessons out. A lesson reads as domain prose.
 """
 
 import hashlib
@@ -113,6 +109,14 @@ def _unusable(failed: Record, fix: Record) -> str | None:
     return None
 
 
+def _error_class(error: str) -> str:
+    """The exception class named in the error line; a line without one raises ValueError."""
+    found = ERROR_CLASS.search(error)
+    if found is None:
+        raise ValueError(f"no error class in {error!r}")
+    return found.group(1)
+
+
 def _build(failed: Record, fix: Record) -> Lesson:
     before, after = shown_command(failed.command or ""), shown_command(fix.command or "")
     error = error_line(failed.raw) or ""
@@ -125,7 +129,7 @@ def _build(failed: Record, fix: Record) -> Lesson:
         file=target,
         failed=before,
         error=error,
-        error_class=ERROR_CLASS.search(error).group(1),  # type: ignore[union-attr]
+        error_class=_error_class(error),
         fix=after,
         added=key_tokens(added_tokens(before, after)),
     )

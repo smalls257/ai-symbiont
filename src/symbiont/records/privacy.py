@@ -1,9 +1,8 @@
 """Whose history a record is, and whether its owner consented to it reaching Spark.
 
-Violation this shape prevents: Silent Fallback at the privacy boundary. The owner may consent
-to their OWN sessions reaching Spark (owner decision 2026-10-28); that consent is an explicit
-setting, default withheld, and it never covers someone else's private data (SWE-chat and any
-dataset its source marks private). A dataset not named here as the user's own is third-party.
+The owner may consent to their OWN sessions reaching Spark (owner decision 2026-10-28): an
+explicit setting, default withheld, never covering someone else's private data. A dataset not
+named here as the user's own is third-party.
 """
 
 from enum import StrEnum

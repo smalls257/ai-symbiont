@@ -1,12 +1,9 @@
 """The logistic warner: a fitted classifier on the 86 features fills the Decider slot.
 
-T46 found a plain batch logistic regression the best warner on the same features (option A
-value 0.173 per 100 steps against 0.090 for counters on sqlglot TRAIN) [measured]. It is
-fitted offline by `scripts/routea/fit_warner.py`; this module only applies the weights.
-
-Violations this shape prevents: Infected Core (the weights come in as numbers, never a path, so
-the warner runs with no file, clock or network) and Leaky Narrative (the risk lives only in the
-hidden risk field of a Decision; what a caller sees is the kind of trouble, in domain terms).
+T46 found a plain batch logistic regression the best warner on these features (option A value
+0.173 per 100 steps against 0.090 for counters on sqlglot TRAIN) [measured]. It is fitted offline
+by `scripts/routea/fit_warner.py`; this module only applies weights passed in as numbers. The risk
+lives in the Decision's risk field; callers see the kind of trouble in domain terms.
 """
 
 from collections.abc import Mapping, Sequence
@@ -49,6 +46,7 @@ class WarnerWeights:
 
 
 def _require_shape(name: str, values: np.ndarray, size: int) -> None:
+    """Raise WarnerWeightsError unless `values` holds `size` finite numbers."""
     if values.shape != (size,):
         raise WarnerWeightsError(f"{name} must hold {size} numbers, got shape {values.shape}")
     if not np.all(np.isfinite(values)):
@@ -66,6 +64,7 @@ def weights_from(document: Mapping[str, Any]) -> WarnerWeights:
 
 
 def _numbers(values: Sequence[float]) -> np.ndarray:
+    """The values as a float64 array."""
     return np.asarray([float(v) for v in values], dtype=np.float64)
 
 
@@ -85,6 +84,7 @@ class LogisticWarner:
     name = "logistic"
 
     def __init__(self, weights: WarnerWeights) -> None:
+        """Hold the fitted weights."""
         self._weights = weights
 
     def decide(self, x: np.ndarray, situation: Situation, state: Any) -> Decision:

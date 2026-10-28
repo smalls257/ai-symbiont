@@ -1,15 +1,10 @@
 """What resolved a pain point, as the steps the history shows.
 
-Shared by lessons (what a note says was done) and Route B (what a model is
-trained to do), so the two never disagree about the fix. Finding nothing is an
-answer with a stated reason, never a guess: a made-up fix is a Silent Fallback
-that teaches the wrong habit.
-
-A failed command's fix is what changed between the failure and the later pass
-of the same command (same program, subcommand and target): installs,
-configuration, edits to a file the failure names, or a different way of running
-it. Re-running it unchanged fixes nothing, and an edit to a file the failure
-never names is reported alongside, not as the fix.
+Shared by lessons (what a note says was done) and Route B (what a model is trained to do), so the
+two never disagree about the fix. Finding nothing is an answer with a stated reason, never a
+guess. A failed command's fix is what changed before the later pass of the same program,
+subcommand and target; re-running it unchanged fixes nothing, and edits to files it never names
+are reported alongside.
 """
 
 import re
@@ -71,6 +66,7 @@ def session_from(record: Record, records: Sequence[Record]) -> list[Record]:
 def _failed_command(
     pain: PainPoint, cited: list[Record], records: Sequence[Record]
 ) -> Resolution | NoResolution:
+    """What changed before the same command passed; a stated reason when nothing did."""
     (failed,) = cited
     success = _later_success_of(failed, records)
     if success is None:
@@ -132,6 +128,7 @@ def _bears_on(change: Record, failed: Record) -> bool:
 
 
 def _names(text: str, path: str) -> bool:
+    """True when the text names the path or its base name."""
     if path in text:
         return True
     base = path.rsplit("/", 1)[-1]
@@ -141,6 +138,7 @@ def _names(text: str, path: str) -> bool:
 def _correction(
     pain: PainPoint, cited: list[Record], records: Sequence[Record]
 ) -> Resolution | NoResolution:
+    """The action that followed a user correction."""
     (turn,) = cited
     action = next((r for r in session_from(turn, records)[1:] if is_action(r)), None)
     if action is None:
@@ -151,6 +149,7 @@ def _correction(
 def _reworked_edit(
     pain: PainPoint, cited: list[Record], records: Sequence[Record]
 ) -> Resolution | NoResolution:
+    """The last version of the reworked file."""
     return Resolution((_last_version(cited[-1], pain.signature.key[0], records),))
 
 
@@ -171,6 +170,7 @@ def _last_version(rework: Record, path: str, records: Sequence[Record]) -> Recor
 
 
 def _index_of(record: Record, records: Sequence[Record]) -> int:
+    """Position of a record among all records."""
     return next(
         position
         for position, candidate in enumerate(records)
@@ -181,6 +181,7 @@ def _index_of(record: Record, records: Sequence[Record]) -> int:
 def _review_flag(
     pain: PainPoint, cited: list[Record], records: Sequence[Record]
 ) -> Resolution | NoResolution:
+    """The answer that followed a review flag."""
     _, answer = cited
     return Resolution((answer,))
 
@@ -188,6 +189,7 @@ def _review_flag(
 def _blast_radius(
     pain: PainPoint, cited: list[Record], records: Sequence[Record]
 ) -> Resolution | NoResolution:
+    """The edit that fixed the broken dependent, if the history shows one."""
     path, dependent = pain.signature.key
     _, failure = cited
     fix = next(
@@ -206,6 +208,7 @@ def _blast_radius(
 def _loop(
     pain: PainPoint, cited: list[Record], records: Sequence[Record]
 ) -> Resolution | NoResolution:
+    """A loop has no source of correction: always a stated reason."""
     return "a loop has no correction source: nothing in the history says what to do instead"
 
 

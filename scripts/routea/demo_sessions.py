@@ -10,6 +10,7 @@ to the demo's work directory, never into the repo.
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 PROJECT = "demo-shop"
 WORKSPACE = f"/workspace/{PROJECT}"
@@ -55,7 +56,7 @@ SESSIONS: dict[str, list[Step]] = {
 }
 
 
-def _call(call_id: str, step: Step) -> tuple[dict[str, object], str]:
+def _call(call_id: str, step: Step) -> tuple[dict[str, Any], str]:
     if step[0] == "bash":
         _, command, output, code = step
         arguments = {"command": command}
@@ -68,7 +69,7 @@ def _call(call_id: str, step: Step) -> tuple[dict[str, object], str]:
     return _function("str_replace_editor", call_id, arguments), observed
 
 
-def _function(name: str, call_id: str, arguments: dict[str, str]) -> dict[str, object]:
+def _function(name: str, call_id: str, arguments: dict[str, str]) -> dict[str, Any]:
     function = {"name": name, "arguments": json.dumps(arguments)}
     return {"id": call_id, "type": "function", "function": function}
 
@@ -82,7 +83,7 @@ def trajectory(session_id: str, steps: list[Step]) -> dict[str, object]:
     ]
     for index, step in enumerate(steps):
         call, observed = _call(f"{session_id}-{index}", step)
-        name = call["function"]["name"]  # type: ignore[index]
+        name = call["function"]["name"]
         messages.append({"role": "assistant", "content": "", "tool_calls": [call]})
         messages.append(
             {"role": "tool", "content": observed, "name": name, "tool_call_id": call["id"]}
