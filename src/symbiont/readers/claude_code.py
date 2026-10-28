@@ -177,7 +177,7 @@ def _record(
         project=source.project,
         session_id=session_id,
         step=step,
-        ts=event.get("timestamp"),
+        ts=_optional_text(event, "timestamp") or None,
         provenance=source.provenance,
         **fields,
     )
@@ -248,11 +248,13 @@ def _tool_use(
 def _result_content(result: dict[str, Any] | None) -> str:
     if result is None:
         return ""
+    if not isinstance(result.get("is_error", False), bool):
+        raise _MalformedError("'is_error' must be true or false")
     content = result.get("content")
     if content is None or isinstance(content, str):
         return content or ""
     if isinstance(content, list) and all(isinstance(b, dict) for b in content):
-        return "\n".join(str(b.get("text", "")) for b in content)
+        return "\n".join(_optional_text(b, "text") for b in content)
     raise _MalformedError("tool_result 'content' must be text or a list of blocks")
 
 

@@ -211,6 +211,12 @@ def _result(**overrides):
 NOT_STRING_CASES = {
     "sessionId": ([{**_event("user", "hi"), "sessionId": 5}], "sessionId"),
     "type": ([{**_event("user", "hi"), "type": 5}], "'type' must be a string"),
+    "timestamp": ([{**_event("user", "hi"), "timestamp": 5}], "timestamp"),
+    "tool_result text block": (
+        [_tool("Bash", {"command": "ls"}), _result(content=[{"type": "text", "text": 5}])],
+        "text",
+    ),
+    "is_error": ([_tool("Bash", {"command": "ls"}), _result(is_error="yes")], "is_error"),
     "cwd": ([_event("user", "hi", cwd=5)], "cwd"),
     "user text": ([_event("user", [{"type": "text", "text": 5}])], "text"),
     "assistant text": ([_event("assistant", [{"type": "text", "text": 5}])], "text"),
