@@ -27,11 +27,17 @@ _LINE_SUFFIX = re.compile(r":\d+(:\d+)?$")
 
 def normalise_command(command: str) -> tuple[str, str]:
     """Return (program, first path-like argument or "-")."""
+    program, args = program_words(command)
+    return (program, _first_path(list(args)))
+
+
+def program_words(command: str) -> tuple[str, tuple[str, ...]]:
+    """Return (program, its arguments) for the segment that does the work; ("-", ()) if none."""
     segment = _working_segment(_tokens(command))
     if not segment:
-        return (NO_PATH, NO_PATH)
+        return (NO_PATH, ())
     program, args = _program_and_args(segment)
-    return (program, _first_path(args))
+    return (program, tuple(args))
 
 
 def status_program(command: str) -> str | None:

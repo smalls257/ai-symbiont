@@ -60,6 +60,28 @@ def test_corrected_command_is_the_one_that_succeeded():
     assert "ImportError: cannot import name 'ArraySort'" in example.prompt
 
 
+def test_failed_command_target_is_what_changed_before_it_passed():
+    s = session(
+        run("pytest tests/dialects/test_duckdb.py -q", 1, IMPORT_ERROR),
+        run("pip install duckdb"),
+        run("pytest tests/dialects/test_duckdb.py -q", 0, "12 passed"),
+    )
+    (pain,) = find_failed_commands(s)
+    (example,) = correction_pairs(pain, s).examples
+    assert example.completion == "pip install duckdb\npytest tests/dialects/test_duckdb.py -q"
+    assert example.sources == (("s1", 0), ("s1", 1), ("s1", 2))
+
+
+def test_a_rerun_that_passed_unchanged_teaches_no_correction():
+    s = session(
+        run("pytest tests/dialects/test_duckdb.py -q", 1, IMPORT_ERROR),
+        run("pytest tests/dialects/test_duckdb.py -q", 0, "12 passed"),
+    )
+    (pain,) = find_failed_commands(s)
+    got = correction_pairs(pain, s)
+    assert got.examples == () and "nothing changed" in (got.reason or "")
+
+
 def test_surviving_edit_is_last_version():
     s = session(
         replace_text(DIALECT, "x = 1", "x = 2"),

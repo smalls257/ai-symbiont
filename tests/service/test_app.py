@@ -6,7 +6,7 @@ import pytest
 from record_builders import PUBLIC, edit, run, session, user
 from symbiont.core.counters import Counters
 from symbiont.core.similarity import Similarity
-from symbiont.records.schema import Provenance, dump_jsonl
+from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.service.app import (
     NOTHING_MATCHES,
     SPARK_WITHHELD,
@@ -15,7 +15,8 @@ from symbiont.service.app import (
     ServiceParts,
 )
 from symbiont.service.events import EventLog
-from symbiont.store.local import Store
+from symbiont.store.local import Source, Store
+from symbiont.store.mining import MiningRules, remine
 
 pytestmark = pytest.mark.periphery
 
@@ -29,19 +30,43 @@ def failing_session(session_id, provenance=PUBLIC):
     return [replace(r, session_id=session_id, provenance=provenance) for r in records]
 
 
+# Synthetic logs are written as records JSONL and read back by this test reader,
+# standing in for a harness reader.
+READER = "records-jsonl"
+
+
+def read_records_jsonl(path, project):
+    with path.open(encoding="utf-8") as fh:
+        return iter(list(load_jsonl(fh)))
+
+
+READERS = {READER: read_records_jsonl}
+
+
+def write_log(path, records):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w") as fh:
+        dump_jsonl(records, fh)
+    return path
+
+
 def make_store(tmp_path, *sessions):
     tmp_path.mkdir(parents=True, exist_ok=True)
     store = Store.open(tmp_path / "store.db")
-    for records in sessions:
-        store.add_records(records, held_out_tasks=frozenset())
-    store.mine(PROJECT, references={})
+    logs = [write_log(tmp_path / f"log{i}.jsonl", s) for i, s in enumerate(sessions)]
+    sources = [Source(PROJECT, READER, str(log)) for log in logs]
+    remine(store, PROJECT, MiningRules(READERS, frozenset()), adding=sources)
     return store
 
 
-def make_service(tmp_path, store, mode=ServiceMode.WARN_AND_RECALL, decider=None):
+def make_service(tmp_path, store, mode=ServiceMode.WARN_AND_RECALL, decider=None, held_out=()):
     events = EventLog(tmp_path / "run", "counters")
-    parts = ServiceParts(store, decider or Counters(), events, mode)
+    parts = ServiceParts(store, decider or Counters(), events, mode, frozenset(held_out), READERS)
     return Service(parts), events
+
+
+def learn_body(log, project=PROJECT):
+    return {"reader": READER, "session_log_path": str(log), "project": project}
 
 
 def events_of(events):
@@ -140,23 +165,42 @@ class StateSpy(Counters):
 
 
 def test_learn_updates_state_between_sessions(tmp_path):
-    log = tmp_path / "session.jsonl"
-    with log.open("w") as fh:
-        dump_jsonl(failing_session("new"), fh)
+    log = write_log(tmp_path / "session.jsonl", failing_session("new"))
     spy = StateSpy()
     service, events = make_service(tmp_path, make_store(tmp_path), decider=spy)
     service.respond("/observe", observe_body())
-    learned = service.respond("/learn", {"session_log_path": str(log)})
+    learned = service.respond("/learn", learn_body(log))
     assert learned.status == 200 and learned.body["learned_steps"] == 3
     service.respond("/observe", observe_body("second"))
     assert spy.seen[0] == frozenset() and len(spy.seen[-1]) == 1
     assert events_of(events)[-2]["hook"] == "learn"
 
 
-def test_learn_refuses_a_missing_log_and_a_held_out_task(tmp_path):
+def test_learn_refuses_a_missing_log_an_unknown_reader_and_extra_fields(tmp_path):
     service, _ = make_service(tmp_path, make_store(tmp_path))
-    assert service.respond("/learn", {"session_log_path": str(tmp_path / "gone")}).status == 400
-    assert service.respond("/learn", {"session_log_path": "x", "mode": "fast"}).status == 400
+    assert service.respond("/learn", learn_body(tmp_path / "gone")).status == 400
+    unknown = learn_body(tmp_path / "gone") | {"reader": "no-such-harness"}
+    assert "no-such-harness" in service.respond("/learn", unknown).body["error"]
+    assert service.respond("/learn", learn_body("x") | {"mode": "fast"}).status == 400
+
+
+def test_learn_refuses_a_held_out_task_and_registers_nothing(tmp_path):
+    held = [replace(r, task_id="tobymao__sqlglot-4001") for r in failing_session("held")]
+    log = write_log(tmp_path / "held.jsonl", held)
+    store = make_store(tmp_path)
+    service, _ = make_service(tmp_path, store, held_out={"tobymao/sqlglot#4001"})
+    response = service.respond("/learn", learn_body(log))
+    assert response.status == 409 and "held out" in response.body["error"]
+    assert store.sources(PROJECT) == [] and store.lessons(PROJECT) == []
+
+
+def test_learn_re_reads_every_registered_log_and_keeps_only_lessons(tmp_path):
+    store = make_store(tmp_path, failing_session("a"))
+    service, _ = make_service(tmp_path, store)
+    log = write_log(tmp_path / "b.jsonl", failing_session("b"))
+    assert service.respond("/learn", learn_body(log)).status == 200
+    assert [p.session_id for p in store.pain_points(PROJECT)] == ["a", "b"]
+    assert len(store.sources(PROJECT)) == 2
 
 
 def test_spark_bound_observe_never_pushes_private_record(tmp_path):
@@ -186,11 +230,9 @@ def test_spark_bound_must_be_a_real_boolean(tmp_path, route, value):
 def test_spark_bound_observe_withholds_a_warning_learned_from_another_project(tmp_path):
     other = [replace(r, project="priv/repo") for r in failing_session("p1", PRIVATE)]
     other += [replace(r, project="priv/repo") for r in failing_session("p2", PRIVATE)]
-    log = tmp_path / "private.jsonl"
-    with log.open("w") as fh:
-        dump_jsonl(other, fh)
+    log = write_log(tmp_path / "private.jsonl", other)
     service, events = make_service(tmp_path, make_store(tmp_path))
-    assert service.respond("/learn", {"session_log_path": str(log)}).status == 200
+    assert service.respond("/learn", learn_body(log, "priv/repo")).status == 200
     local = service.respond("/observe", observe_body())
     assert local.status == 200 and local.body["notes"], "the learned warning reaches a local caller"
     spark = service.respond("/observe", observe_body("again") | {"spark_bound": True})
@@ -198,24 +240,35 @@ def test_spark_bound_observe_withholds_a_warning_learned_from_another_project(tm
     assert COMMAND not in json.dumps(spark.body)
 
 
-def test_recall_only_mode_sends_a_recall_note_from_other_sessions(tmp_path):
+def test_observe_recalls_no_raw_records_because_none_are_stored(tmp_path):
     store = two_failures(tmp_path)
     service, events = make_service(tmp_path, store, ServiceMode.RECALL_ONLY, decider=Similarity())
     response = service.respond("/observe", observe_body())
-    assert response.status == 200 and len(response.body["notes"]) >= 1
-    assert all(
-        note.startswith("Earlier in this project you ran") for note in response.body["notes"]
+    assert response.status == 200 and response.body["notes"] == []
+    assert events_of(events)[-1]["recalled"] == 0
+
+
+def test_a_warning_says_how_it_was_resolved_and_what_to_check(tmp_path):
+    fixed = session(
+        run(COMMAND, 1, "AssertionError"), run("pip install pyyaml"), run(COMMAND, 0, "ok")
     )
-    event = events_of(events)[-1]
-    assert event["recalled"] >= 1 and event["records"], "recalled records are in the event"
-    assert event["route"] == "observe" and event["hook"] == "pre_command"
+    service, _ = make_service(tmp_path, make_store(tmp_path, fixed, failing_session("b")))
+    (note,) = service.respond("/observe", observe_body()).body["notes"]
+    assert "pip install pyyaml" in note and f"Check: run `{COMMAND}`" in note
+
+
+def test_recall_answers_with_structured_lessons(tmp_path):
+    service, _ = make_service(tmp_path, two_failures(tmp_path))
+    answer = service.respond("/recall", {"question": "test_parser", "project": PROJECT}).body
+    assert answer["answer"].startswith("What happened: ") and "Check: " in answer["answer"]
+    assert answer["records"] == [["a", 1], ["b", 1]]
 
 
 def test_spark_bound_observe_recalls_through_the_guarded_view(tmp_path):
     clean = make_store(tmp_path / "c", failing_session("a"), failing_session("b"))
     service, _ = make_service(tmp_path / "c", clean, ServiceMode.RECALL_ONLY, decider=Similarity())
     ok = service.respond("/observe", observe_body() | {"spark_bound": True})
-    assert ok.status == 200 and ok.body["notes"]
+    assert ok.status == 200
     mixed = make_store(tmp_path / "m", failing_session("a"), failing_session("p", PRIVATE))
     guarded, _ = make_service(tmp_path / "m", mixed, ServiceMode.RECALL_ONLY, decider=Similarity())
     refused = guarded.respond("/observe", observe_body() | {"spark_bound": True})

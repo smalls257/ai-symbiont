@@ -1,43 +1,58 @@
-"""The local store: the hold-out and Spark guards raise, never filter quietly."""
+"""The local store keeps lessons and source pointers, never raw history; its guards raise.
 
+Synthetic logs are written as records JSONL and read back through a test reader
+standing in for a harness reader. Hand-written records only.
+"""
+
+import json
+import logging
+import sqlite3
 from dataclasses import replace
 
 import pytest
 
-from record_builders import PUBLIC, edit, run, session, user
+from record_builders import PUBLIC, edit, replace_text, run, session, user
+from symbiont.eval.training_manifest import check_manifest_against_hold_out
 from symbiont.miner.painpoint import Signal
-from symbiont.records.holdout import (
-    HoldOutViolationError,
-    UnrecognisedTaskIdError,
-    normalise_task_id,
-)
-from symbiont.records.schema import Provenance
-from symbiont.store.local import SparkPrivacyViolationError, Store, StoreConflictError
+from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
+from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
+from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.store.mining import MiningRules, UnknownReaderError, remine
+from symbiont.store.training import lessons_for_memory_model, lessons_for_personal_model
 
 pytestmark = pytest.mark.periphery
 
 PROJECT = "tobymao/sqlglot"
 SWE_CHAT = Provenance(dataset="SWE-chat", license="ODC-BY", spark_safe=False)
-NO_HOLD_OUT: frozenset[str] = frozenset()
+READER = "records-jsonl"
+SECRET_OUTPUT = "AssertionError: secret-looking output that must not be copied"
 
 
-def _task(records, task_id, session_id="s1", provenance=PUBLIC):
+def read_records_jsonl(path, project):
+    with path.open(encoding="utf-8") as fh:
+        return iter(list(load_jsonl(fh)))
+
+
+def rules(held_out=()):
+    return MiningRules({READER: read_records_jsonl}, frozenset(held_out))
+
+
+def failing_session(session_id="s1", task_id="tobymao__sqlglot-1000", provenance=PUBLIC):
+    records = session(
+        user("fix it"),
+        run("pytest tests/test_parser.py", 1, SECRET_OUTPUT),
+        edit("sqlglot/parser.py"),
+    )
     return [
-        replace(r, task_id=task_id, session_id=session_id, provenance=provenance) for r in records
+        replace(r, session_id=session_id, task_id=task_id, provenance=provenance) for r in records
     ]
 
 
-def _failing_session(task_id="tobymao__sqlglot-1000", session_id="s1", provenance=PUBLIC):
-    return _task(
-        session(
-            user("fix it"),
-            run("pytest tests/test_parser.py", 1, "AssertionError"),
-            edit("sqlglot/parser.py"),
-        ),
-        task_id,
-        session_id,
-        provenance,
-    )
+def log_of(tmp_path, name, records):
+    path = tmp_path / f"{name}.jsonl"
+    with path.open("w") as fh:
+        dump_jsonl(records, fh)
+    return Source(PROJECT, READER, str(path))
 
 
 @pytest.fixture
@@ -45,157 +60,103 @@ def store(tmp_path):
     return Store.open(tmp_path / "store.sqlite")
 
 
-def test_records_roundtrip_by_session_in_step_order(store):
-    records = _failing_session()
-    assert store.add_records(reversed(records), held_out_tasks=NO_HOLD_OUT) == 3
-    assert store.sessions(PROJECT) == [records]
+def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
+    source = log_of(tmp_path, "a", failing_session())
+    (lesson,) = remine(store, PROJECT, rules(), adding=[source])
+    assert store.sources(PROJECT) == [source]
+    assert Store.open(tmp_path / "store.sqlite").lessons(PROJECT) == [lesson]
+    db = sqlite3.connect(tmp_path / "store.sqlite")
+    tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    assert tables == {"sources", "lessons"}
+    (body,) = db.execute("SELECT body FROM lessons").fetchone()
+    assert "fix it" not in body, "only the cited record's bounded quote is kept"
 
 
-def test_store_reopens_from_disk(tmp_path):
-    Store.open(tmp_path / "s.sqlite").add_records(_failing_session(), held_out_tasks=NO_HOLD_OUT)
-    assert Store.open(tmp_path / "s.sqlite").sessions(PROJECT) == [_failing_session()]
+def test_mining_re_reads_the_logs_every_time(tmp_path, store):
+    source = log_of(tmp_path, "a", failing_session())
+    remine(store, PROJECT, rules(), adding=[source])
+    log_of(tmp_path, "a", failing_session() + [replace(failing_session()[1], step=3)])
+    assert len(remine(store, PROJECT, rules())) == 2
 
 
-def test_holdout_task_raises(store):
-    held_out = frozenset({"tobymao__sqlglot-2000"})
-    records = _failing_session() + _failing_session("tobymao__sqlglot-2000", "s2")
-    with pytest.raises(HoldOutViolationError, match="tobymao__sqlglot-2000"):
-        store.add_records(records, held_out_tasks=held_out)
-    assert store.sessions(PROJECT) == []  # nothing from the batch was written
+def test_a_missing_or_unknown_source_raises_naming_it(tmp_path, store):
+    source = log_of(tmp_path, "a", failing_session())
+    remine(store, PROJECT, rules(), adding=[source])
+    (tmp_path / "a.jsonl").unlink()
+    with pytest.raises(OSError, match="a.jsonl"):
+        remine(store, PROJECT, rules())
+    with pytest.raises(UnknownReaderError, match="nope"):
+        remine(store, "other", rules(), adding=[Source("other", "nope", "x")])
 
 
-def test_holdout_matches_across_dataset_id_formats(store):
-    held_out = frozenset({"tobymao/sqlglot#2000"})
-    with pytest.raises(HoldOutViolationError):
-        store.add_records(_failing_session("tobymao__sqlglot-2000"), held_out_tasks=held_out)
+def test_hold_out_is_checked_at_mining_time_and_nothing_is_stored(tmp_path, store):
+    source = log_of(tmp_path, "held", failing_session(task_id="tobymao__sqlglot-2000"))
+    with pytest.raises(HoldOutViolationError, match="sqlglot-2000"):
+        remine(store, PROJECT, rules({"tobymao/sqlglot#2000"}), adding=[source])
+    assert store.lessons(PROJECT) == [] and store.sources(PROJECT) == []
 
 
-def test_holdout_set_must_be_stated(store):
-    with pytest.raises(TypeError):
-        store.add_records(_failing_session())
+def test_an_unrecognised_task_id_is_refused_when_something_is_held_out(tmp_path, store):
+    source = log_of(tmp_path, "a", failing_session(task_id="sqlglot-4001"))
+    with pytest.raises(UnrecognisedTaskIdError):
+        remine(store, PROJECT, rules({"tobymao/sqlglot#1"}), adding=[source])
 
 
-@pytest.mark.parametrize(
-    ("given", "expected"),
-    [
-        ("tobymao__sqlglot-1234", "tobymao/sqlglot#1234"),
-        ("tobymao/sqlglot#1234", "tobymao/sqlglot#1234"),
-        ("getmoto__moto-1234", "getmoto/moto#1234"),
-        ("Owner__repo-name-77", "owner/repo-name#77"),
-    ],
-)
-def test_normalise_task_id(given, expected):
-    assert normalise_task_id(given) == expected
-
-
-def test_readding_the_same_records_adds_nothing(store):
-    store.add_records(_failing_session(), held_out_tasks=NO_HOLD_OUT)
-    assert store.add_records(_failing_session(), held_out_tasks=NO_HOLD_OUT) == 0
-
-
-def test_different_record_under_an_existing_key_raises(store):
-    store.add_records(_failing_session(), held_out_tasks=NO_HOLD_OUT)
-    changed = [replace(r, raw=r.raw + " (edited)") for r in _failing_session()]
-    with pytest.raises(StoreConflictError, match="s1"):
-        store.add_records(changed, held_out_tasks=NO_HOLD_OUT)
-
-
-def test_mine_stores_pain_points(store):
-    store.add_records(_failing_session(), held_out_tasks=NO_HOLD_OUT)
-    assert store.mine(PROJECT, references={}) == 1
-    (pain,) = store.pain_points(PROJECT)
-    assert pain.signature.signal == Signal.FAILED_COMMAND
-    assert store.records_for(pain.record_refs) == [_failing_session()[1]]
-
-
-def test_mine_idempotent(store):
-    store.add_records(_failing_session(), held_out_tasks=NO_HOLD_OUT)
-    store.mine(PROJECT, references={})
-    first = store.pain_points(PROJECT)
-    store.mine(PROJECT, references={})
-    assert store.pain_points(PROJECT) == first
-
-
-def test_records_for_unknown_ref_raises(store):
-    with pytest.raises(LookupError, match="nope"):
-        store.records_for((("nope", 0),))
-
-
-def test_spark_view_reads_public_records(store):
-    store.add_records(_failing_session(), held_out_tasks=NO_HOLD_OUT)
-    store.mine(PROJECT, references={})
-    view = store.spark_view()
-    assert view.sessions(PROJECT) == [_failing_session()]
-    assert len(view.pain_points(PROJECT)) == 1
-
-
-def test_spark_view_raises_on_private_record(store):
-    private = _failing_session(session_id="chat-1", provenance=SWE_CHAT)
-    store.add_records(_failing_session() + private, held_out_tasks=NO_HOLD_OUT)
-    store.mine(PROJECT, references={})
-    view = store.spark_view()
-    with pytest.raises(SparkPrivacyViolationError, match="SWE-chat"):
-        view.records_for((("chat-1", 1),))
+def test_spark_view_raises_on_a_private_lesson_and_never_filters(tmp_path, store):
+    public = log_of(tmp_path, "a", failing_session())
+    remine(store, PROJECT, rules(), adding=[public])
+    assert len(store.spark_view().lessons(PROJECT)) == 1
+    private = log_of(tmp_path, "p", failing_session("chat-1", None, SWE_CHAT))
+    remine(store, PROJECT, rules(), adding=[private])
     with pytest.raises(SparkPrivacyViolationError):
-        view.sessions(PROJECT)
+        store.spark_view().lessons(PROJECT)
     with pytest.raises(SparkPrivacyViolationError):
-        view.pain_points(PROJECT)
-    assert view.records_for((("s1", 1),)) == [_failing_session()[1]]
-
-
-def test_spark_view_is_read_only(store):
-    view = store.spark_view()
-    assert not hasattr(view, "add_records")
-    assert not hasattr(view, "mine")
-
-
-def test_unparseable_task_id_is_refused_not_matched_against_nothing():
-    with pytest.raises(UnrecognisedTaskIdError, match="sqlglot-4001"):
-        normalise_task_id("sqlglot-4001")
-
-
-def test_held_out_id_that_does_not_parse_raises(store):
-    """A typo in the hold-out set would otherwise guard nothing."""
-    with pytest.raises(UnrecognisedTaskIdError, match="sqlglot-4001"):
-        store.add_records(_failing_session(), held_out_tasks=frozenset({"sqlglot-4001"}))
-    assert store.sessions(PROJECT) == []
-
-
-def test_record_task_id_that_does_not_parse_raises_under_a_hold_out(store):
-    """`sqlglot-2000` could be the held-out tobymao__sqlglot-2000 spelled another way."""
-    with pytest.raises(UnrecognisedTaskIdError, match="sqlglot-2000"):
-        store.add_records(
-            _failing_session("sqlglot-2000"), held_out_tasks=frozenset({"tobymao__sqlglot-1"})
-        )
-
-
-def test_record_task_id_is_free_form_when_nothing_is_held_out(store):
-    assert store.add_records(_failing_session("my-own-task"), held_out_tasks=NO_HOLD_OUT) == 3
-
-
-def test_ref_lookups_use_an_index(store):
-    """records_for is called per pain point; a full scan per ref does not scale."""
-    plan = store._db.execute(
-        "EXPLAIN QUERY PLAN SELECT body FROM records WHERE session_id=? AND step=?", ("s1", 0)
-    ).fetchall()
-    assert "USING INDEX" in str(plan) or "USING COVERING INDEX" in str(plan)
-
-
-def test_spark_view_pain_points_checks_privacy_in_one_query(store):
-    private = _failing_session(session_id="chat-1", provenance=SWE_CHAT)
-    many = [r for i in range(20) for r in _failing_session(f"tobymao__sqlglot-{i}", f"s{i}")]
-    store.add_records(many + private, held_out_tasks=NO_HOLD_OUT)
-    store.mine(PROJECT, references={})
-    queries = []
-    store._db.set_trace_callback(queries.append)
-    with pytest.raises(SparkPrivacyViolationError, match="SWE-chat"):
         store.spark_view().pain_points(PROJECT)
-    assert len(queries) <= 3
+    assert not hasattr(store.spark_view(), "save_mining")
+
+
+def test_the_two_training_exports_differ_only_in_the_privacy_guard(tmp_path, store):
+    private = log_of(tmp_path, "p", failing_session("chat-1", None, SWE_CHAT))
+    remine(store, PROJECT, rules(), adding=[private])
+    assert len(lessons_for_personal_model(store, PROJECT)) == 1
+    with pytest.raises(SparkPrivacyViolationError):
+        lessons_for_memory_model(store, PROJECT)
+
+
+def test_forget_trained_leaves_a_manifest_of_ids_and_counts_only(tmp_path, store):
+    source = log_of(tmp_path, "a", failing_session())
+    remine(store, PROJECT, rules(), adding=[source])
+    manifest = tmp_path / "manifests" / "run-1.json"
+    assert store.forget_trained(PROJECT, manifest) == 1
+    assert store.lessons(PROJECT) == []
+    text = manifest.read_text()
+    assert "AssertionError" not in text and "pytest" not in text
+    written = json.loads(text)
+    assert written["counts"] == {"lessons": 1, "source_sessions": 1}
+    assert written["lessons"][0]["task_ids"] == ["tobymao__sqlglot-1000"]
+    assert check_manifest_against_hold_out(manifest, frozenset({"tobymao/sqlglot#9"})) == 1
+    with pytest.raises(HoldOutViolationError):
+        check_manifest_against_hold_out(manifest, frozenset({"tobymao/sqlglot#1000"}))
+
+
+def test_forget_trained_never_overwrites_a_manifest_and_then_deletes_nothing(tmp_path, store):
+    remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "a", failing_session())])
+    manifest = tmp_path / "run-1.json"
+    manifest.write_text("{}")
+    with pytest.raises(FileExistsError):
+        store.forget_trained(PROJECT, manifest)
+    assert len(store.lessons(PROJECT)) == 1
+
+
+def test_opening_a_store_with_copied_history_warns(tmp_path, caplog):
+    path = tmp_path / "old.sqlite"
+    sqlite3.connect(path).execute("CREATE TABLE records (body TEXT)")
+    with caplog.at_level(logging.WARNING, logger="symbiont.store"):
+        Store.open(path)
+    assert "copied history" in caplog.text
 
 
 def _edit_session(session_id, old, new, ts):
-    from record_builders import replace_text
-
     return [
         replace(r, session_id=session_id, ts=ts, task_id=None)
         for r in session(replace_text("sqlglot/parser.py", old, new))
@@ -206,22 +167,17 @@ def _rework(store):
     return [p for p in store.pain_points(PROJECT) if p.signature.signal == Signal.REWORKED_EDIT]
 
 
-def test_mine_finds_rework_across_timed_sessions_in_time_order(store):
-    """A developer's sessions on one repo form a chain, ordered by when they ran
-    (here the later session sorts first by id)."""
+def test_rework_is_found_across_logs_of_timed_sessions_in_time_order(tmp_path, store):
     earlier = _edit_session("b-monday", "x = 1", "x = compute_offset(node)", "2026-10-26T09:00:00Z")
     later = _edit_session("a-tuesday", "x = compute_offset(node)", "x = 2", "2026-10-27T09:00:00Z")
-    store.add_records(later + earlier, held_out_tasks=NO_HOLD_OUT)
-    store.mine(PROJECT, references={})
+    logs = [log_of(tmp_path, "tue", later), log_of(tmp_path, "mon", earlier)]
+    remine(store, PROJECT, rules(), adding=logs)
     (pain,) = _rework(store)
     assert (pain.session_id, pain.record_refs) == ("a-tuesday", (("b-monday", 0), ("a-tuesday", 0)))
 
 
-def test_untimed_sessions_are_mined_alone(store):
-    """Published trajectories are parallel attempts with no order; chaining them
-    would make every attempt look like it reworked the others."""
+def test_untimed_sessions_are_mined_alone(tmp_path, store):
     first = _edit_session("t1", "x = 1", "x = compute_offset(node)", None)
     second = _edit_session("t2", "x = compute_offset(node)", "x = 2", None)
-    store.add_records(first + second, held_out_tasks=NO_HOLD_OUT)
-    store.mine(PROJECT, references={})
+    remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "both", first + second)])
     assert _rework(store) == []

@@ -1,9 +1,14 @@
-"""Notes: a Decision rendered as plain sentences for the agent to read."""
+"""Notes: a Decision or a lesson rendered as plain sentences for the agent to read.
 
-from collections.abc import Callable, Collection
+A lesson reads as three parts: what happened, how it was resolved, the check to
+run. Domain prose only: no scores, feature names or thresholds.
+"""
+
+from collections.abc import Callable, Collection, Sequence
 from enum import StrEnum
 
 from symbiont.core.slot import Decision
+from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.records.schema import Record
 
@@ -23,20 +28,52 @@ def render(
     *,
     max_notes: int = DEFAULT_MAX_NOTES,
     kinds: Collection[NoteKind] = tuple(NoteKind),
+    lessons: Sequence[Lesson] = (),
 ) -> list[str]:
-    """Up to `max_notes` sentences across the chosen kinds, in NoteKind order."""
-    notes = [note for kind in NoteKind if kind in kinds for note in _BY_KIND[kind](decision)]
+    """Up to `max_notes` sentences across the chosen kinds, in NoteKind order.
+
+    A warning backed by one of `lessons` also says how it was resolved and what to check.
+    """
+    notes = [
+        note for kind in NoteKind if kind in kinds for note in _BY_KIND[kind](decision, lessons)
+    ]
     return [note for note in notes if note][:max_notes]
 
 
-def _recalls(decision: Decision) -> list[str]:
+def render_lesson(lesson: Lesson) -> str:
+    """What happened, how it was resolved, and the check to run, as three sentences."""
+    signature = lesson.pain_point.signature
+    happened = _HAPPENED[signature.signal](signature)
+    return f"What happened: {happened}. {_resolved(lesson)} {_check(signature)}"
+
+
+def _recalls(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
     return [_recalled(record) for record in decision.recall]
 
 
-def _warning(decision: Decision) -> list[str]:
+def _warning(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
     if decision.trouble is None:
         return []
-    return [_TEMPLATES[decision.trouble.signal](decision.trouble, len(decision.why))]
+    said = _TEMPLATES[decision.trouble.signal](decision.trouble, len(decision.why))
+    backing = _backing_lesson(decision, lessons)
+    if backing is None:
+        return [said]
+    return [f"{said} {_resolved(backing)} {_check(decision.trouble)}"]
+
+
+def _backing_lesson(decision: Decision, lessons: Sequence[Lesson]) -> Lesson | None:
+    """The latest lesson behind the warning, preferring one whose fix is known."""
+    cited = set(decision.why)
+    backing = [lesson for lesson in lessons if lesson.pain_point in cited]
+    resolved = [lesson for lesson in backing if lesson.resolution]
+    preferred = resolved or backing
+    return preferred[-1] if preferred else None
+
+
+def _resolved(lesson: Lesson) -> str:
+    if not lesson.resolution:
+        return "No fix was found in the history."
+    return f"Last time it was resolved when you {', then '.join(lesson.resolution)}."
 
 
 def _times(count: int) -> str:
@@ -86,6 +123,46 @@ def _recalled(record: Record) -> str:
     return ""
 
 
+def _command_of(signature: Signature) -> str:
+    *target, _ = signature.key
+    return " ".join(part for part in target if part != NO_PATH)
+
+
+def _where(path: str) -> str:
+    return "" if path == NO_PATH else f" about `{path}`"
+
+
+_HAPPENED: dict[Signal, Callable[[Signature], str]] = {
+    Signal.FAILED_COMMAND: lambda sig: f"`{_command_of(sig)}` failed with {sig.key[-1]}",
+    Signal.REWORKED_EDIT: lambda sig: f"your edits to `{sig.key[0]}` were redone",
+    Signal.REVIEW_FLAG: lambda sig: f"a reviewer flagged `{sig.key[0]}`",
+    Signal.CORRECTION: lambda sig: f"you were corrected{_where(sig.key[0])} on: {sig.key[1]}",
+    Signal.LOOP: lambda sig: f"you went in circles over `{sig.key[1]}`",
+    Signal.BLAST_RADIUS: lambda sig: (
+        f"editing `{sig.key[0]}` without reading `{sig.key[1]}` broke the tests that cover it"
+    ),
+}
+
+_CHECKS: dict[Signal, Callable[[Signature], str]] = {
+    Signal.FAILED_COMMAND: lambda sig: (
+        f"Check: run `{_command_of(sig)}` and confirm it passes before moving on."
+    ),
+    Signal.REWORKED_EDIT: lambda sig: f"Check: read the current `{sig.key[0]}` before editing it.",
+    Signal.REVIEW_FLAG: lambda sig: (
+        f"Check: compare `{sig.key[0]}` with the reviewer's comment before submitting."
+    ),
+    Signal.CORRECTION: lambda sig: "Check: confirm your next step does what the developer asked.",
+    Signal.LOOP: lambda sig: "Check: if you are about to repeat it, stop and try another approach.",
+    Signal.BLAST_RADIUS: lambda sig: (
+        f"Check: read `{sig.key[1]}` and run its tests before changing `{sig.key[0]}`."
+    ),
+}
+
+
+def _check(signature: Signature) -> str:
+    return _CHECKS[signature.signal](signature)
+
+
 _TEMPLATES: dict[Signal, Callable[[Signature, int], str]] = {
     Signal.FAILED_COMMAND: _failed_command,
     Signal.REWORKED_EDIT: _reworked_edit,
@@ -95,7 +172,7 @@ _TEMPLATES: dict[Signal, Callable[[Signature, int], str]] = {
     Signal.BLAST_RADIUS: _blast_radius,
 }
 
-_BY_KIND: dict[NoteKind, Callable[[Decision], list[str]]] = {
+_BY_KIND: dict[NoteKind, Callable[[Decision, Sequence[Lesson]], list[str]]] = {
     NoteKind.WARN: _warning,
     NoteKind.RECALL: _recalls,
 }

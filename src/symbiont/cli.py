@@ -1,4 +1,4 @@
-"""The `symbiont` command: serve, recall, mcp, hook <event>, install and uninstall."""
+"""The `symbiont` command: serve, recall, mcp, mine, hook <event>, install and uninstall."""
 
 import argparse
 import logging
@@ -23,9 +23,12 @@ from symbiont.delivery.recall import (
     ServiceReplyError,
     recall_answer,
 )
+from symbiont.readers import READERS
 from symbiont.service.app import ServiceMode
 from symbiont.service.server import SERVICE_PORT, serve
 from symbiont.service.wiring import open_service
+from symbiont.store.local import Source, Store
+from symbiont.store.mining import MiningRules, coverage_lines, remine
 
 DEFAULT_DATA_DIR = Path.home() / ".symbiont"
 INSTALLERS = {"muse_code": muse_code_install, "claude_code": claude_code_install}
@@ -43,6 +46,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _hook(args)
     if args.command in ("install", "uninstall"):
         return _installation(args)
+    if args.command == "mine":
+        return _mine(args)
     return _recall(args)
 
 
@@ -65,7 +70,45 @@ def _parser() -> argparse.ArgumentParser:
     mcp.add_argument("--project", default=Path.cwd().name, help="defaults to this directory's name")
     mcp.add_argument("--port", type=int, default=SERVICE_PORT)
     _add_hook_commands(commands)
+    _add_mine_command(commands)
     return parser
+
+
+def _add_mine_command(commands: Any) -> None:
+    mining = commands.add_parser(
+        "mine", help="re-read a project's logs, store its lessons, print resolution coverage"
+    )
+    mining.add_argument("--project", default=Path.cwd().name)
+    mining.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
+    mining.add_argument(
+        "--source",
+        action="append",
+        default=[],
+        metavar="READER=PATH",
+        help=f"register a log; readers: {', '.join(sorted(READERS))}",
+    )
+    mining.add_argument("--held-out", action="append", default=[], metavar="TASK_ID")
+
+
+def _mine(args: argparse.Namespace) -> int:
+    sources = []
+    for spec in args.source:
+        reader, _, path = spec.partition("=")
+        if not path:
+            print(f"symbiont mine: --source must be READER=PATH, got {spec!r}", file=sys.stderr)
+            return 1
+        sources.append(Source(args.project, reader, path))
+    args.data_dir.mkdir(parents=True, exist_ok=True)
+    store = Store.open(args.data_dir / "store.db")
+    rules = MiningRules(READERS, frozenset(args.held_out))
+    try:
+        lessons = remine(store, args.project, rules, adding=sources)
+    except (OSError, ValueError) as failed:  # unreadable log, unknown reader, held-out task
+        print(f"symbiont mine: {failed}", file=sys.stderr)
+        return 1
+    print(f"{len(lessons)} lessons from {len(store.sources(args.project))} logs")
+    print("\n".join(coverage_lines(lessons)))
+    return 0
 
 
 def _add_hook_commands(commands: Any) -> None:

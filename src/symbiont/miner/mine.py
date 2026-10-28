@@ -9,7 +9,7 @@ signals look inside one session; reworked edits also look across the chain
 same task are not a chain: pass each as a chain of one.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.signals.blast_radius import find_blast_radius
@@ -47,3 +47,33 @@ def _within_session(session: Sequence[Record], references: References) -> list[P
         *find_corrections(session),
         *find_review_flags(session),
     ]
+
+
+def sessions_of(records: Iterable[Record]) -> list[list[Record]]:
+    """Group records into sessions (one per harness and session id), each in step order."""
+    grouped: dict[tuple[str, str], list[Record]] = {}
+    for record in records:
+        grouped.setdefault((record.harness, record.session_id), []).append(record)
+    return [sorted(steps, key=lambda record: record.step) for _, steps in sorted(grouped.items())]
+
+
+def mine_history(sessions: Sequence[Sequence[Record]], references: References) -> list[PainPoint]:
+    """Mine a project's whole history.
+
+    Sessions with timestamps form one chain in the order they started (a
+    developer's history on this repo, so rework across sessions counts).
+    Sessions without any timestamp have no known order; published trajectories
+    are parallel attempts at the same tasks, so each is mined alone. ISO 8601
+    timestamps in one timezone are assumed.
+    """
+    timed = sorted(
+        ((start, s) for s in sessions if (start := _started(s)) is not None),
+        key=lambda pair: pair[0],
+    )
+    found = mine_chain([s for _, s in timed], references)
+    untimed = [s for s in sessions if _started(s) is None]
+    return found + [p for session in untimed for p in mine_session(session, references)]
+
+
+def _started(session: Sequence[Record]) -> str | None:
+    return min((record.ts for record in session if record.ts is not None), default=None)
