@@ -10,16 +10,26 @@ from enum import StrEnum
 from typing import Any
 
 from symbiont.core.features import featurise
+from symbiont.core.memory_note import note_request, recall_request
+from symbiont.core.note_rules import may_speak
 from symbiont.core.notes import NoteKind, render, render_lesson
 from symbiont.core.recall import relevant_lessons
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint
+from symbiont.miner.secrets import scrub
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
+from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
-from symbiont.service.events import Call, EventLog
+from symbiont.service.events import Call, EventLog, MemoryCost
+from symbiont.service.memory_model import (
+    MemoryModel,
+    MemoryModelOfflineError,
+    MemoryReply,
+    may_answer_spark,
+)
 from symbiont.store.local import Source, SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
 
@@ -30,6 +40,7 @@ RECALL_KEYS = frozenset({"question", "project", "spark_bound"})
 OBSERVE_REQUIRED = frozenset({"harness", "session_id", "event", "payload"})
 OBSERVE_KEYS = OBSERVE_REQUIRED | {"spark_bound"}
 LEARN_KEYS = frozenset({"reader", "session_log_path", "project"})
+HELD_BY_RULE = "the note budget is spent or the last note was too recent"
 
 
 class ServiceMode(StrEnum):
@@ -64,6 +75,10 @@ class ServiceParts:
     held_out_tasks: frozenset[str] = frozenset()
     # Reader name -> reader; /learn names one, and mining re-reads every source through them.
     readers: Mapping[str, Reader] = field(default_factory=lambda: dict(READERS))
+    # Route A: when set, notes and answers for the projects it learned come from this model.
+    memory: MemoryModel | None = None
+    # The user's own-history setting (store.consent); what a Spark-bound call may rest on.
+    consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD
 
 
 class SparkWithheldError(PermissionError):
@@ -82,6 +97,7 @@ class Service:
         self._parts = parts
         self._state = parts.decider.initial_state(0)
         self._prefixes: dict[tuple[str, str], list[Record]] = {}
+        self._spoken: dict[tuple[str, str], list[int]] = {}
         self._one_call_at_a_time = threading.Lock()
 
     def respond(self, route: str, payload: Any) -> Response:
@@ -106,6 +122,8 @@ class Service:
             return self._refuse(call, 409, str(exc))
         except UnrecognisedTaskIdError as exc:
             return self._refuse(call, 422, str(exc))
+        except MemoryModelOfflineError as exc:
+            return self._refuse(call, 503, str(exc))
         except Exception:
             log.exception("service call failed: %s", name)
             return self._refuse(call, 500, "internal error; see the service log")
@@ -120,7 +138,8 @@ class Service:
         _require_keys(request, OBSERVE_KEYS, OBSERVE_REQUIRED)
         project, record = _observed(request["payload"])
         lessons = self._lessons(request, project)
-        prefix = self._prefixes.setdefault((request["harness"], request["session_id"]), [])
+        key = (request["harness"], request["session_id"])
+        prefix = self._prefixes.setdefault(key, [])
         prefix.append(record)
         # No raw history is stored, so there are no earlier records to recall from here.
         history = tuple(lesson.pain_point for lesson in lessons)
@@ -128,15 +147,45 @@ class Service:
         decision = self._parts.decider.decide(featurise(situation), situation, self._state)
         if _spark_bound(request):
             _refuse_untraceable(decision, lessons)
+        warns = self._parts.mode is ServiceMode.WARN_AND_RECALL
+        memory = self._memory_for(request, project) if decision.trouble and warns else None
+        if memory is not None:
+            return self._memory_observe(request, decision, memory, call)
         notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode], lessons=lessons)
         self._parts.events.append_decision(call, decision, notes)
         return Response(200, {"notes": notes})
+
+    def _memory_for(self, request: dict[str, Any], project: str) -> MemoryModel | None:
+        """The memory model that may answer for `project`, or None; Spark needs its own adapter."""
+        memory = self._parts.memory
+        if memory is None or not memory.knows(project):
+            return None
+        if _spark_bound(request) and not may_answer_spark(memory.provenance, self._parts.consent):
+            raise SparkWithheldError
+        return memory
+
+    def _memory_observe(
+        self, request: dict[str, Any], decision: Decision, memory: MemoryModel, call: Call
+    ) -> Response:
+        """Option A decides whether to speak; the memory model writes what is said."""
+        key, spark_bound = (request["harness"], request["session_id"]), _spark_bound(request)
+        position = len(self._prefixes[key]) - 1
+        spoken = self._spoken.setdefault(key, [])
+        trouble = decision.trouble
+        if trouble is None or not may_speak(spoken, position):
+            self._parts.events.append_quiet(call, decision, HELD_BY_RULE)
+            return Response(200, {"notes": []})
+        reply = memory.write_line(note_request(self._prefixes[key][-1].project, trouble))
+        spoken.append(position)
+        line = scrub(reply.line) if spark_bound else reply.line
+        self._parts.events.append_memory_note(call, decision, line, _cost(reply))
+        return Response(200, {"notes": [line]})
 
     def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
         """The project's lessons, through the Spark view when the request is Spark-bound."""
         store = self._parts.store
         if _spark_bound(request):
-            return store.spark_view().lessons(project)
+            return store.spark_view(self._parts.consent).lessons(project)
         return store.lessons(project)
 
     def _recall(self, request: dict[str, Any], call: Call) -> Response:
@@ -146,6 +195,12 @@ class Service:
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
         lessons = self._lessons(request, project)
+        memory = self._memory_for(request, project)
+        if memory is not None:
+            reply = memory.write_line(recall_request(project, question))
+            line = scrub(reply.line) if _spark_bound(request) else reply.line
+            self._parts.events.append_memory_note(call, None, line, _cost(reply))
+            return Response(200, {"answer": line, "records": []})
         if not lessons:
             return self._answered(call, NO_HISTORY, [])
         found = relevant_lessons(question, lessons)
@@ -185,6 +240,11 @@ class Service:
             for outcome in _outcomes(record, troubles):
                 self._state = decider.learn(x, outcome, self._state)
         return len(mine)
+
+
+def _cost(reply: MemoryReply) -> MemoryCost:
+    """The prompt size and time of a memory reply, as logged."""
+    return MemoryCost(reply.prompt_chars, round(reply.elapsed_ms, 1))
 
 
 def _refuse_untraceable(decision: Decision, lessons: Sequence[Lesson]) -> None:

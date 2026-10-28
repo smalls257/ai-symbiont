@@ -2,8 +2,8 @@
 
 Kept: sources (project, reader, path pointers to the harness's logs, re-read on every mining) and
 lessons (each with its own quote, resolution, privacy flag and ids) until training consumes them.
-`spark_view()` raises `SparkPrivacyViolationError` for a private lesson and never filters; hold-
-out is checked at mining time (`store.mining`).
+`spark_view(consent)` raises `SparkPrivacyViolationError` for a lesson Spark may not see and
+returns the rest scrubbed of credentials; hold-out is checked at mining time (`store.mining`).
 """
 
 import json
@@ -15,9 +15,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from symbiont.miner.lessons import Lesson
+from symbiont.miner.lessons import Lesson, spark_allowed
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.secrets import scrubbed
 from symbiont.miner.trained import lesson_id, refuse_held_out_lessons, training_manifest
+from symbiont.records.privacy import OwnHistoryConsent
 
 log = logging.getLogger("symbiont.store")
 
@@ -52,6 +54,17 @@ class SparkPrivacyViolationError(PermissionError):
             "it must not reach a Spark-bound prompt"
         )
         self.project = project
+
+
+class ForgetMismatchError(RuntimeError):
+    """The exported lessons do not match the stored rows one to one; nothing was deleted."""
+
+    def __init__(self, project: str, exported: int, matched: int):
+        """Name the project and both counts."""
+        super().__init__(
+            f"{exported} lessons of {project!r} were exported for training but {matched} "
+            "stored rows match them; nothing was forgotten"
+        )
 
 
 @dataclass(frozen=True)
@@ -124,29 +137,28 @@ class Store:
     def forget_trained(
         self, project: str, manifest_path: Path, *, exported: Sequence[Lesson]
     ) -> int:
-        """Delete the `exported` lessons once a model trained on them; returns the count deleted.
-
-        First writes the training manifest (ids and counts, no text); never overwrites one, and a
-        failed write deletes nothing.
-        """
+        """Delete the `exported` lessons once a model trained on them; returns the count deleted."""
+        rows = self._rows_of(project, {lesson_id(lesson) for lesson in exported})
+        if len(rows) != len(exported):
+            raise ForgetMismatchError(project, len(exported), len(rows))
         manifest = training_manifest(project, exported)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         with manifest_path.open("x", encoding="utf-8") as out:
             json.dump(manifest, out, indent=1)
         with self._db:
-            deleted = sum(
-                self._db.execute(
-                    "DELETE FROM lessons WHERE project=? AND body=?",
-                    (project, _lesson_json(lesson)),
-                ).rowcount
-                for lesson in exported
-            )
+            self._db.executemany("DELETE FROM lessons WHERE rowid=?", [(row,) for row in rows])
+            deleted = len(rows)
             self._db.executemany(
                 "INSERT OR REPLACE INTO trained VALUES (?, ?, ?)",
                 [(project, lesson_id(lesson), manifest["export_id"]) for lesson in exported],
             )
         log.info("deleted %d trained lessons of %s; manifest %s", deleted, project, manifest_path)
         return deleted
+
+    def _rows_of(self, project: str, ids: set[str]) -> list[int]:
+        """Row ids of the project's stored lessons whose ids are in `ids`."""
+        rows = self._db.execute("SELECT rowid, body FROM lessons WHERE project=?", (project,))
+        return [row for row, body in rows if lesson_id(_lesson_from_json(body)) in ids]
 
     def trained_lesson_ids(self, project: str) -> frozenset[str]:
         """Ids of `project`'s lessons a model has already been trained on."""
@@ -160,23 +172,32 @@ class Store:
         ).fetchone()
         return row is not None
 
-    def spark_view(self) -> "SparkView":
-        """A read-only view that raises rather than return anything not Spark-safe."""
-        return SparkView(self)
+    def spark_view(self, consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD) -> "SparkView":
+        """A read-only view that raises rather than return anything Spark may not see.
+
+        `consent` is the user's own-history setting (`store.consent`); withheld unless given.
+        """
+        return SparkView(self, consent)
 
 
 class SparkView:
-    """Read-only; every read raises rather than return a private lesson."""
+    """Read-only; every read raises rather than return a lesson Spark may not see."""
 
-    def __init__(self, store: Store):
-        """Wrap the store being viewed."""
+    def __init__(self, store: Store, consent: OwnHistoryConsent):
+        """Wrap the store with the user's consent setting."""
         self._store = store
+        self._consent = consent
 
     def lessons(self, project: str) -> list[Lesson]:
-        """Lessons of `project`, or SparkPrivacyViolationError if any is private."""
-        if self._store.has_private_lessons(project):
+        """Scrubbed lessons of `project`, or SparkPrivacyViolationError if any is not allowed.
+
+        Without consent any private lesson raises; with it, only third-party ones do.
+        Credentials are scrubbed from every lesson returned.
+        """
+        lessons = self._store.lessons(project)
+        if any(not spark_allowed(lesson, self._consent) for lesson in lessons):
             raise SparkPrivacyViolationError(project, "a lesson")
-        return self._store.lessons(project)
+        return [scrubbed(lesson) for lesson in lessons]
 
     def pain_points(self, project: str) -> list[PainPoint]:
         """Pain points of `project`, or SparkPrivacyViolationError if any lesson is private."""
@@ -225,6 +246,8 @@ def _lesson_from_json(body: str) -> Lesson:
         task_ids=tuple(data["task_ids"]),
         # Rows written before this field existed recorded no such changes.
         changed_alongside=tuple(data.get("changed_alongside", ())),
+        # Rows written before this field existed name no dataset: a private one stays blocked.
+        private_datasets=tuple(data.get("private_datasets", ())),
     )
 
 

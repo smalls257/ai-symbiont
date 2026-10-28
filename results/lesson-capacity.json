@@ -1,0 +1,485 @@
+{
+ "probe": "lcap",
+ "exploratory": true,
+ "prereg": null,
+ "status": "stand-in model only (Qwen2.5 0.5B); Llama 3.2 1B/3B runs (ungated MLX copies, approved 2026-10-28) report separately",
+ "machine": "laptop Apple M4 Pro 48 GB, MLX",
+ "model_ids": {
+  "qwen-0.5b-standin": "mlx-community/Qwen2.5-0.5B-Instruct-bf16"
+ },
+ "budget": {
+  "epochs": 8,
+  "batch": 4,
+  "lora_rank": 16,
+  "lora_scale": 2.0,
+  "lr_peak": 0.0001,
+  "warmup_iters": 20,
+  "schedule": "cosine_decay",
+  "layers": "all",
+  "max_tokens": 96,
+  "decoding": "greedy"
+ },
+ "rows_legend": {
+  "floor": "base model, no adapter, no lessons",
+  "ceiling": "the set's lessons in the prompt",
+  "adapter": "one LoRA adapter for the whole set",
+  "grouped": "one adapter per 10 lessons, routed by lesson group"
+ },
+ "note": "[measured] on a non-Llama stand-in to prove the pipeline; not the Llama answer. Grouped routing is oracle (the question's group is known).",
+ "caveats": "Held-out questions are template rewordings only; no model paraphrases. Lessons are mostly test-selection fixes from public OpenHands runs.",
+ "build": {
+  "files_unreadable": 1,
+  "sessions_read": 5760,
+  "candidate_lessons": 948,
+  "drops": {
+   "no later success on the same program and target": 11975,
+   "no named error, or only an AssertionError": 9195,
+   "command too long or multi-line": 1600,
+   "fix adds no token or rewrites the command": 3969,
+   "fix only changes output flags": 94
+  },
+  "lessons": 100,
+  "repos": 71,
+  "error_classes": {
+   "ImportError": 2,
+   "ConfigError": 1,
+   "FileNotFoundError": 6,
+   "RuntimeError": 2,
+   "ModuleNotFoundError": 21,
+   "AttributeError": 14,
+   "TypeError": 17,
+   "ValueError": 16,
+   "JSONDecodeError": 1,
+   "OperationError": 1,
+   "UnboundLocalError": 1,
+   "SSLError": 2,
+   "IndexError": 2,
+   "NameError": 1,
+   "ComponentLookupError": 1,
+   "PackageNotFoundError": 1,
+   "SyntaxError": 1,
+   "RegexNotFoundError": 1,
+   "UnsupportedStatementException": 1,
+   "ValidationError": 1,
+   "KeyError": 1,
+   "InvocationError": 1,
+   "ConnectionError": 1,
+   "OSError": 1,
+   "DefaultCredentialsError": 1,
+   "UnicodeEncodeError": 1,
+   "SerdeError": 1
+  },
+  "programs": {
+   "hy": 2,
+   "pytest": 72,
+   "unittest": 3,
+   "python": 15,
+   "nose": 2,
+   "sqlfluff": 1,
+   "zope.testrunner": 1,
+   "black": 1,
+   "sqllineage.cli": 1,
+   "virtualenv": 1,
+   "datalad": 1
+  },
+  "held_out_questions": 500,
+  "training_rows": {
+   "one-10": 60,
+   "one-30": 180,
+   "one-100": 600,
+   "group-00": 60,
+   "group-01": 60,
+   "group-02": 60,
+   "group-03": 60,
+   "group-04": 60,
+   "group-05": 60,
+   "group-06": 60,
+   "group-07": 60,
+   "group-08": 60,
+   "group-09": 60
+  }
+ },
+ "models": {
+  "qwen-0.5b-standin": {
+   "rows": [
+    {
+     "label": "floor 10",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.06,
+     "invented_rate": 0.18,
+     "hits_by_kind": {
+      "fix_hits": 2,
+      "error_hits": 1,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 2
+    },
+    {
+     "label": "floor 30",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.0267,
+     "invented_rate": 0.1333,
+     "hits_by_kind": {
+      "fix_hits": 2,
+      "error_hits": 2,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 3
+    },
+    {
+     "label": "floor 100",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.038,
+     "invented_rate": 0.148,
+     "hits_by_kind": {
+      "fix_hits": 7,
+      "error_hits": 12,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 16
+    },
+    {
+     "label": "ceiling 10",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.34,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 10,
+      "error_hits": 7,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 9
+    },
+    {
+     "label": "ceiling 30",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.2133,
+     "invented_rate": 0.08,
+     "hits_by_kind": {
+      "fix_hits": 17,
+      "error_hits": 15,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 23
+    },
+    {
+     "label": "ceiling 100",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.126,
+     "invented_rate": 0.09,
+     "hits_by_kind": {
+      "fix_hits": 38,
+      "error_hits": 25,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 46
+    },
+    {
+     "label": "adapter 10",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.54,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 7,
+      "error_hits": 10,
+      "note_hits": 10
+     },
+     "lessons_with_any_hit": 10
+    },
+    {
+     "label": "adapter 30",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.8667,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 49,
+      "error_hits": 30,
+      "note_hits": 51
+     },
+     "lessons_with_any_hit": 30
+    },
+    {
+     "label": "adapter 100",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.736,
+     "invented_rate": 0.006,
+     "hits_by_kind": {
+      "fix_hits": 102,
+      "error_hits": 97,
+      "note_hits": 169
+     },
+     "lessons_with_any_hit": 100
+    },
+    {
+     "label": "grouped 10",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.54,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 7,
+      "error_hits": 10,
+      "note_hits": 10
+     },
+     "lessons_with_any_hit": 10
+    },
+    {
+     "label": "grouped 30",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.6933,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 28,
+      "error_hits": 30,
+      "note_hits": 46
+     },
+     "lessons_with_any_hit": 30
+    },
+    {
+     "label": "grouped 100",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.738,
+     "invented_rate": 0.01,
+     "hits_by_kind": {
+      "fix_hits": 112,
+      "error_hits": 100,
+      "note_hits": 157
+     },
+     "lessons_with_any_hit": 100
+    }
+   ],
+   "sample": {
+    "floor": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 6
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 1,
+      "answer_words": 7
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 13
+     }
+    ],
+    "ceiling": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 10
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 16
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 20
+     }
+    ],
+    "adapter": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": true,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 8
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 6
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": true,
+      "names_error_class": true,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 11
+     }
+    ],
+    "grouped": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": true,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 8
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": true,
+      "names_error_class": true,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 16
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": true,
+      "names_error_class": true,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 11
+     }
+    ]
+   },
+   "training": {
+    "one-10": {
+     "iters": 120,
+     "seconds": 34,
+     "peak_mem_gb": 3.79
+    },
+    "one-30": {
+     "iters": 360,
+     "seconds": 94,
+     "peak_mem_gb": 3.85
+    },
+    "one-100": {
+     "iters": 1200,
+     "seconds": 328,
+     "peak_mem_gb": 4.28
+    },
+    "group-00": {
+     "iters": 120,
+     "seconds": 34,
+     "peak_mem_gb": 3.79
+    },
+    "group-01": {
+     "iters": 120,
+     "seconds": 31,
+     "peak_mem_gb": 3.79
+    },
+    "group-02": {
+     "iters": 120,
+     "seconds": 30,
+     "peak_mem_gb": 3.79
+    },
+    "group-03": {
+     "iters": 120,
+     "seconds": 33,
+     "peak_mem_gb": 3.8
+    },
+    "group-04": {
+     "iters": 120,
+     "seconds": 33,
+     "peak_mem_gb": 3.81
+    },
+    "group-05": {
+     "iters": 120,
+     "seconds": 33,
+     "peak_mem_gb": 4.21
+    },
+    "group-06": {
+     "iters": 120,
+     "seconds": 36,
+     "peak_mem_gb": 4.24
+    },
+    "group-07": {
+     "iters": 120,
+     "seconds": 33,
+     "peak_mem_gb": 3.84
+    },
+    "group-08": {
+     "iters": 120,
+     "seconds": 34,
+     "peak_mem_gb": 4.23
+    },
+    "group-09": {
+     "iters": 120,
+     "seconds": 33,
+     "peak_mem_gb": 4.22
+    }
+   }
+  }
+ }
+}

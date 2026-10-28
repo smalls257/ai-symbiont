@@ -13,6 +13,7 @@ from dataclasses import dataclass
 
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
 from symbiont.miner.resolutions import Resolution, resolution_of
+from symbiont.records.privacy import OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Kind, Record
 
 # Long enough for a command and the error line it ended on, short enough that a
@@ -42,6 +43,9 @@ class Lesson:
     # Changes made between a failure and its pass that the failure never pointed at,
     # in plain words: said to have happened, never claimed as the fix.
     changed_alongside: tuple[str, ...] = ()
+    # Datasets of the quoted records that are not Spark-safe; () when spark_safe. A private
+    # lesson with none named counts as third-party (unknown privacy is never shareable).
+    private_datasets: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -94,7 +98,26 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
         sources=tuple(dict.fromkeys((r.session_id, r.step) for r in used)),
         task_ids=tuple(dict.fromkeys(r.task_id for r in used if r.task_id is not None)),
         changed_alongside=tuple(_step_words(step) for step in alongside),
+        private_datasets=_private_datasets(used),
     )
+
+
+def _private_datasets(used: Sequence[Record]) -> tuple[str, ...]:
+    """Names of the datasets among `used` that are not Spark-safe."""
+    return tuple(sorted({r.provenance.dataset for r in used if not r.provenance.spark_safe}))
+
+
+def spark_allowed(lesson: Lesson, consent: OwnHistoryConsent) -> bool:
+    """Whether the lesson may back a Spark-bound answer.
+
+    Spark-safe lessons may. A private one may only with the user's consent and only when every
+    private record it quotes is the user's own session; third-party data never may.
+    """
+    if lesson.spark_safe:
+        return True
+    if consent is not OwnHistoryConsent.GIVEN or not lesson.private_datasets:
+        return False
+    return all(is_own_history(dataset) for dataset in lesson.private_datasets)
 
 
 def excerpt(record: Record, limit: int) -> str:

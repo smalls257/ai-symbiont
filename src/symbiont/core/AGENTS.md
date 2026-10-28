@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `src/symbiont/core/`.
 
-**Purpose.** Decide, from a situation and learned state, whether to warn and what to recall. By owner decision the logistic classifier on the 86-feature vector is the live warner; it lives in eval code today, not yet in core. the fillers (`Counters`, `Similarity`, `Mushroom` (the fly circuit)) are a swappable slot with no loyalty to the fly, each judged against it. Notes are domain prose and structured: what happened, how it was resolved, the check to run.
+**Purpose.** Decide, from a situation and learned state, whether to warn and what to recall. Fillers: `Counters`, `Similarity`, `Mushroom` (the fly circuit), `LogisticWarner` (Route A; weights passed in, fitted by `scripts/routea/fit_warner.py`), plus the 86-feature vector, notes in domain prose, option A delivery rules (`note_rules`) and the memory model's prompt and three-part line (`memory_note`).
 
 **Violations prevented: Infected Core and Paper Tiger.** The decision math is a function of (features, state) that passes the Airplane Test, so it runs and is tested with no network, store or harness. A network gets a job only where it beats the simple option (likely the adapter picker [hypothesis]); on the same replay a tie is reported as a tie, and the brain is never shown deciding what the classifier decides.
 

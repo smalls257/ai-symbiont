@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from symbiont.core.warner import WarnerWeightsError
 from symbiont.delivery.hooks import HookEvent, HookInputError, HookSettings, NoteStyle, run_hook
 from symbiont.delivery.install.claude_code import claude_code_install
 from symbiont.delivery.install.muse_code import muse_code_install
@@ -24,9 +25,16 @@ from symbiont.delivery.recall import (
     recall_answer,
 )
 from symbiont.readers import READERS
+from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.service.app import ServiceMode
 from symbiont.service.server import SERVICE_PORT, serve
-from symbiont.service.wiring import open_service
+from symbiont.service.wiring import (
+    MemorySetupError,
+    load_warner,
+    open_memory,
+    open_service,
+)
+from symbiont.store.consent import SETTING, ConsentFileError, read_consent, record_consent
 from symbiont.store.local import Source, Store
 from symbiont.store.mining import MiningRules, coverage_lines, remine
 
@@ -48,6 +56,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return _installation(args)
     if args.command == "mine":
         return _mine(args)
+    if args.command == "consent":
+        return _consent(args)
     return _recall(args)
 
 
@@ -61,6 +71,15 @@ def _parser() -> argparse.ArgumentParser:
     serving.add_argument(
         "--mode", type=ServiceMode, choices=list(ServiceMode), default=ServiceMode.WARN_AND_RECALL
     )
+    serving.add_argument(
+        "--warner", type=Path, help="weights from scripts/routea/fit_warner.py; else counters"
+    )
+    serving.add_argument(
+        "--memory-url", help="loopback mlx_lm.server of the memory model (scripts/routea)"
+    )
+    serving.add_argument(
+        "--memory-dir", type=Path, help="what train_memory.py wrote: adapter/ and manifests/"
+    )
     asking = commands.add_parser("recall", help="ask the local service one question")
     asking.add_argument("question")
     asking.add_argument(
@@ -72,6 +91,13 @@ def _parser() -> argparse.ArgumentParser:
     mcp.add_argument("--port", type=int, default=SERVICE_PORT)
     _add_hook_commands(commands)
     _add_mine_command(commands)
+    consent = commands.add_parser(
+        "consent",
+        help="whether lessons from your OWN sessions may reach Spark (default: withheld); "
+        "third-party private data never may",
+    )
+    consent.add_argument("choice", choices=["give", "withdraw", "show"])
+    consent.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     return parser
 
 
@@ -133,8 +159,34 @@ def _add_hook_commands(commands: Any) -> None:
 
 
 def _serve(args: argparse.Namespace) -> int:
-    """Run the local service until interrupted."""
-    serve(open_service(args.data_dir, args.mode), args.port)
+    """Start the local service with the optional warner and memory model; bad setup exits 1."""
+    if (args.memory_url is None) != (args.memory_dir is None):
+        print("symbiont serve: --memory-url and --memory-dir go together", file=sys.stderr)
+        return 1
+    try:
+        warner = load_warner(args.warner) if args.warner else None
+        memory = None
+        if args.memory_url:
+            memory = open_memory(args.memory_url, args.memory_dir)
+        service = open_service(args.data_dir, args.mode, warner, memory)
+    except (OSError, WarnerWeightsError, MemorySetupError, ConsentFileError) as unusable:
+        print(f"symbiont serve: {unusable}", file=sys.stderr)
+        return 1
+    serve(service, args.port)
+    return 0
+
+
+def _consent(args: argparse.Namespace) -> int:
+    """Show the own-history consent, recording a give or withdraw first."""
+    chosen = {"give": OwnHistoryConsent.GIVEN, "withdraw": OwnHistoryConsent.WITHHELD}
+    try:
+        if args.choice in chosen:
+            record_consent(args.data_dir, chosen[args.choice])
+        current = read_consent(args.data_dir)
+    except ConsentFileError as unusable:
+        print(f"symbiont consent: {unusable}", file=sys.stderr)
+        return 1
+    print(f"{SETTING} = {current.value} (restart symbiont serve to apply)")
     return 0
 
 
