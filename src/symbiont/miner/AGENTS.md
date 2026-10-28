@@ -10,7 +10,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/miner/`.
 - Pure over records: no I/O, no clock. A chain is one developer's sessions on one repo in run order; parallel attempts are chains of one.
 - Signals do not import each other; shared helpers (`commands`, `diffs`, `failing_tests`) are small and named by capability.
 - A signal that cannot decide returns nothing; it never invents a pain point.
-- A resolution is what the history shows or a stated reason, never a guess. A failed command's fix is what changed between the failure and the later pass (edits, installs, configuration, a different invocation); the same command passing unchanged is no fix.
+- A resolution is what the history shows or a stated reason, never a guess. A failed command's fix is what changed between the failure and the later pass of the same command (same program, subcommand and target): installs, configuration, edits to a file the failure names, or a different invocation. The same command passing unchanged is no fix; an edit to a file the failure never names is reported alongside, never as the fix.
 - A lesson's `spark_safe` is computed from every record it quotes, never defaulted; a missing cited record raises `LookupError`.
 - No raw history leaves mining: a lesson keeps a quote of at most `QUOTE_CHARS` characters, never whole records.
 

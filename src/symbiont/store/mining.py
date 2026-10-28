@@ -52,10 +52,19 @@ def remine(
     """
     known = store.sources(project)
     new = [s for s in dict.fromkeys(adding) if s not in known]
-    records = [r for source in [*known, *new] for r in read_source(source, rules.readers)]
+    return remine_with_read(store, project, rules, {s: read_source(s, rules.readers) for s in new})
+
+
+def remine_with_read(
+    store: Store, project: str, rules: MiningRules, new: Mapping[Source, list[Record]]
+) -> list[Lesson]:
+    """As `remine`, for new sources the caller has already read (so no log is read twice)."""
+    known = [s for s in store.sources(project) if s not in new]
+    records = [r for source in known for r in read_source(source, rules.readers)]
+    records += [r for read in new.values() for r in read]
     refuse_held_out(records, rules.held_out_tasks)
     lessons = lessons_from(mine_history(sessions_of(records), rules.references), records)
-    store.save_mining(project, new, lessons)
+    store.save_mining(project, list(new), lessons, held_out_tasks=rules.held_out_tasks)
     return lessons
 
 

@@ -19,12 +19,12 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
-from symbiont.records.holdout import HoldOutViolationError
+from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.memory_model import MemoryModel, MemoryModelOfflineError, MemoryReply
 from symbiont.store.local import Source, SparkPrivacyViolationError, Store
-from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine
+from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
 
 log = logging.getLogger("symbiont.service")
 SPARK_WITHHELD = "private history withheld from Spark"
@@ -109,6 +109,8 @@ class Service:
             return self._refuse(call, 409, SPARK_WITHHELD)
         except HoldOutViolationError as exc:
             return self._refuse(call, 409, str(exc))
+        except UnrecognisedTaskIdError as exc:
+            return self._refuse(call, 422, str(exc))
         except MemoryModelOfflineError as exc:
             return self._refuse(call, 503, str(exc))
         except Exception:
@@ -193,7 +195,7 @@ class Service:
         rules = MiningRules(parts.readers, parts.held_out_tasks)
         try:
             records = read_source(source, parts.readers)
-            remine(parts.store, source.project, rules, adding=[source])
+            remine_with_read(parts.store, source.project, rules, {source: records})
         except (OSError, ReadError, UnknownReaderError) as exc:
             raise BadRequestError(f"cannot read the session log: {exc}") from exc
         learned = self._learn_project(source.project, records)

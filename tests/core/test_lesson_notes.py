@@ -82,3 +82,11 @@ def test_recall_finds_lessons_by_trouble_quote_or_fix():
     assert relevant_lessons("how was pyyaml fixed?", [other, parser]) == [parser]
     assert relevant_lessons("the index page", [other, parser]) == [other]
     assert relevant_lessons("zebra giraffe", [other, parser]) == []
+
+
+def test_changes_alongside_are_said_to_have_happened_not_claimed_as_the_fix():
+    from dataclasses import replace
+
+    note = render_lesson(replace(lesson(), changed_alongside=("edited `docs/notes.md`",)))
+    assert "you also edited `docs/notes.md`." in note
+    assert "resolved when you ran `pip install pyyaml`, then ran `pytest`." in note

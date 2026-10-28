@@ -5,16 +5,19 @@ trained to do), so the two never disagree about the fix. Finding nothing is an
 answer with a stated reason, never a guess: a made-up fix is a Silent Fallback
 that teaches the wrong habit.
 
-A failed command's fix is what changed between the failure and the later run
-that passed (edits, installs, configuration, a different way of running it),
-not the passing run alone: re-running the same command unchanged fixes nothing.
+A failed command's fix is what changed between the failure and the later pass
+of the same command (same program, subcommand and target): installs,
+configuration, edits to a file the failure names, or a different way of running
+it. Re-running it unchanged fixes nothing, and an edit to a file the failure
+never names is reported alongside, not as the fix.
 """
 
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.changes import applied_edit, changes_workspace
-from symbiont.miner.commands import normalise_command
+from symbiont.miner.commands import normalise_command, program_words
 from symbiont.miner.diffs import added_lines, removed_lines
 from symbiont.miner.painpoint import PainPoint, Signal
 from symbiont.records.schema import Kind, Record
@@ -23,6 +26,7 @@ NO_LATER_SUCCESS = (
     "no later command with exit 0 on the same program and target followed the failure"
 )
 NOTHING_CHANGED = "the same command passed later with nothing changed in between"
+_BARE_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
 @dataclass(frozen=True)
@@ -30,6 +34,9 @@ class Resolution:
     """The steps that resolved a pain point, in the order they ran; the last one settled it."""
 
     steps: tuple[Record, ...]
+    # Changes made between a failure and its pass that touch no file the failure
+    # names: reported as having happened, never as the fix.
+    alongside: tuple[Record, ...] = ()
 
     def __post_init__(self) -> None:
         """Refuse an empty resolution: no steps means no resolution, which needs a reason."""
@@ -68,28 +75,67 @@ def _failed_command(
     success = _later_success_of(failed, records)
     if success is None:
         return NO_LATER_SUCCESS
-    changes = [
+    fixes, others = _changes_between(failed, success, records)
+    if not fixes and success.command == failed.command:
+        return NOTHING_CHANGED
+    return Resolution((*fixes, success), others)
+
+
+def _changes_between(
+    failed: Record, success: Record, records: Sequence[Record]
+) -> tuple[tuple[Record, ...], tuple[Record, ...]]:
+    """(changes that bear on the failure, other changes), between the failure and the pass."""
+    between = [
         r
         for r in session_from(failed, records)
         if failed.step < r.step < success.step and changes_workspace(r)
     ]
-    if not changes and success.command == failed.command:
-        return NOTHING_CHANGED
-    return Resolution((*changes, success))
+    fixes = tuple(r for r in between if _bears_on(r, failed))
+    return fixes, tuple(r for r in between if not _bears_on(r, failed))
 
 
 def _later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
-    wanted = normalise_command(failed.command or "")
+    """The first later pass of the same command: same program, subcommand and target.
+
+    The subcommand is compared before normalization drops it, so `git status`
+    passing never counts as the fix for `git push` failing.
+    """
+    wanted = (normalise_command(failed.command or ""), _subcommand(failed.command or ""))
     return next(
         (
             later
             for later in session_from(failed, records)[1:]
             if later.kind == Kind.COMMAND
             and later.exit_code == 0
-            and normalise_command(later.command or "") == wanted
+            and (normalise_command(later.command or ""), _subcommand(later.command or "")) == wanted
         ),
         None,
     )
+
+
+def _subcommand(command: str) -> str:
+    """The first argument when it is a bare word (`push` in `git push origin`), else "-".
+
+    Paths and node ids are left to `normalise_command`, which already compares the target.
+    """
+    _, args = program_words(command)
+    first = next((arg for arg in args if not arg.startswith("-")), "-")
+    return first if _BARE_WORD.match(first) else "-"
+
+
+def _bears_on(change: Record, failed: Record) -> bool:
+    """An install or config change always may; an edit only to a file the failure names."""
+    if not change.files:
+        return True
+    named = f"{failed.command or ''}\n{failed.raw}"
+    return any(_names(named, path) for path in change.files)
+
+
+def _names(text: str, path: str) -> bool:
+    if path in text:
+        return True
+    base = path.rsplit("/", 1)[-1]
+    return re.search(rf"(?<![\w.-]){re.escape(base)}\b", text) is not None
 
 
 def _correction(

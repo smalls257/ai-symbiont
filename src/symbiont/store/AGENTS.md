@@ -7,12 +7,12 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/store/`.
 **Violations prevented: Silent Fallback at the privacy and hold-out boundaries, and Infected Core by copied history.** Memory is the personal model's weights (owner decision 2026-10-28), so no record row is ever persisted: logs are re-read from where the harness wrote them each time mining runs, and dropped after. A store that quietly filtered private lessons would make a privacy bug look like "no history", and one that kept a scored task's lesson would let it train a scored model, so both guards raise.
 
 ## Invariants
-- **No raw history is stored.** Tables: `sources` (project, reader, path pointers) and `lessons` (each with a bounded quote, resolution steps, `spark_safe`, source ids and task ids). Nothing else.
-- Hold-out is checked at mining time (`remine`, via `records.holdout.refuse_held_out`) before any lesson is stored; a refused log is not registered. An id in neither spelling raises `UnrecognisedTaskIdError`.
+- **No raw history is stored.** Tables: `sources` (project, reader, path pointers), `lessons` (each with a bounded quote, resolution steps, `spark_safe`, source ids and task ids) and `trained` (lesson ids and export ids, no text). Nothing else.
+- Hold-out is checked at mining time (`remine`, via `records.holdout.refuse_held_out`) and again on the write path: `save_mining` requires `held_out_tasks` and refuses a lesson whose task ids are held out. A refused log is not registered. An id in neither spelling raises `UnrecognisedTaskIdError`.
 - A registered log that is missing or unparseable raises naming the file; mining never skips it.
 - `spark_view()` raises `SparkPrivacyViolationError` when any lesson of the project is private; it never filters.
 - Two exports, two names: `lessons_for_memory_model` (Route A, Spark-reachable, through `spark_view()`) and `lessons_for_personal_model` (Route B, local, all lessons). No flag chooses between them.
-- `forget_trained(project, manifest_path)` writes a manifest (lesson ids, source session ids, task ids, counts; no text) before deleting, never overwrites one, and deletes nothing if the write fails. `eval.training_manifest` checks it against the hold-out.
+- `forget_trained(project, manifest_path, exported=...)` deletes exactly the exported lessons, after writing a manifest (export id, lesson ids, source session ids, task ids, counts; no text). It never overwrites a manifest and deletes nothing if the write fails. The memory-model export skips lessons already trained on. `eval.training_manifest` checks it against the hold-out.
 - Periphery: tests touch the disk and carry `@pytest.mark.periphery`.
 
 ## Imports

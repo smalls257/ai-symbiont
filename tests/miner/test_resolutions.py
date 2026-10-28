@@ -20,6 +20,7 @@ from symbiont.miner.signals.failed_command import find_failed_commands
 
 TEST = "pytest tests/test_parser.py -q"
 BROKE = "E   ModuleNotFoundError: No module named 'yaml'\n1 error"
+BROKE_IN_PARSER = "sqlglot/parser.py:12: in <module>\nE   NameError: name 'Token' is not defined"
 
 
 def resolve(records):
@@ -46,7 +47,7 @@ def test_the_install_between_the_failure_and_the_pass_is_the_fix():
 
 def test_edits_and_config_changes_between_are_the_fix_in_order():
     records = session(
-        run(TEST, 1, BROKE),
+        run(TEST, 1, BROKE_IN_PARSER),
         edit("sqlglot/parser.py"),
         run("git config core.autocrlf false"),
         run("grep -n yaml setup.py"),
@@ -104,3 +105,36 @@ def test_changes_in_another_session_are_not_counted():
 )
 def test_which_commands_change_the_workspace(command, changes):
     assert changes_workspace(run(command)) is changes
+
+
+def test_an_unrelated_command_passing_is_never_the_fix():
+    records = session(
+        run("git push origin main", 1, "rejected: non-fast-forward"), run("git status", 0, "")
+    )
+    assert resolve(records) == NO_LATER_SUCCESS
+
+
+def test_the_same_command_passing_after_an_install_is_resolved():
+    records = session(
+        run("git push origin main", 1, "rejected"),
+        run("git config pull.rebase true"),
+        run("git push origin main", 0, ""),
+    )
+    assert steps_of(resolve(records)) == ["git config pull.rebase true", "git push origin main"]
+
+
+def test_an_edit_to_a_file_the_failure_never_names_is_alongside_not_the_fix():
+    records = session(
+        run(TEST, 1, BROKE_IN_PARSER),
+        edit("docs/changelog.md"),
+        edit("sqlglot/parser.py"),
+        run(TEST, 0, "3 passed"),
+    )
+    found = resolve(records)
+    assert steps_of(found) == [("sqlglot/parser.py",), TEST]
+    assert [r.files for r in found.alongside] == [("docs/changelog.md",)]
+
+
+def test_only_unrelated_edits_before_an_unchanged_pass_is_no_fix():
+    records = session(run(TEST, 1, BROKE), edit("docs/changelog.md"), run(TEST, 0, "ok"))
+    assert resolve(records) == NOTHING_CHANGED

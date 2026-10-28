@@ -92,9 +92,22 @@ def test_coverage_counts_resolved_lessons_per_signal_and_lists_every_signal():
 
 def test_an_edit_step_names_the_file_and_its_first_new_line():
     added = "+install_requires=['pyyaml']\n"
-    records = session(run(TEST, 1, BROKE), edit("setup.py", diff=added), run(TEST, 0, "ok"))
+    failure = f"{BROKE}\nhint: check setup.py"
+    records = session(run(TEST, 1, failure), edit("setup.py", diff=added), run(TEST, 0, "ok"))
     (lesson,) = lessons_of(records)
     assert lesson.resolution[0] == "edited `setup.py` to add `install_requires=['pyyaml']`"
+
+
+def test_an_unrelated_edit_is_worded_as_alongside_not_as_the_fix():
+    records = session(
+        run(TEST, 1, BROKE),
+        edit("docs/notes.md"),
+        run("pip install pyyaml"),
+        run(TEST, 0, "ok"),
+    )
+    (lesson,) = lessons_of(records)
+    assert lesson.resolution == ("ran `pip install pyyaml`", f"ran `{TEST}`")
+    assert lesson.changed_alongside == ("edited `docs/notes.md` to add `b`",)
 
 
 def test_history_chains_timed_sessions_and_mines_untimed_ones_alone():
