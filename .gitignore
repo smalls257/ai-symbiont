@@ -20,3 +20,4 @@ docs/superpowers/
 .semgrep/registry/
 .coverage.xml
 dashboard/node_modules/
+mutants/
