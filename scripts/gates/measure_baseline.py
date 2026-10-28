@@ -201,6 +201,7 @@ def measure() -> dict:
         "docstrings_QG_RD_01": baseline_wired.docstring_coverage(),
         "type_ignores_QG_TYP_03": baseline_wired.type_ignore_count(),
         "dependencies_QG_DEP_01_02": baseline_wired.licence_and_audit_summary(),
+        "frontend_QG_FE_01_02_03": baseline_wired.frontend_counts(),
         "claims_untagged_or_forbidden": claims_count(),
         "mypy_errors_src": mypy_errors(),
         "secrets_history_of_base": secrets_findings(),
