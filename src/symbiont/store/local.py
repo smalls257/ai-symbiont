@@ -1,19 +1,7 @@
-"""Local SQLite store of records and mined pain points, with two guards.
+"""Local SQLite store of records and mined pain points.
 
-- Hold-out: a scored task's trajectory must never enter a store a scored arm
-  reads, or `recall` could surface a near-gold patch. `add_records` takes the
-  held-out task ids as a required argument and raises `HoldOutViolationError`
-  naming the task before writing anything from the batch. Ids are compared
-  after normalizing the benchmark spellings (`owner__repo-123`,
-  `owner/repo#123`); an id in neither spelling raises `UnrecognisedTaskIdError`
-  rather than silently matching nothing. Records with no task id cannot be matched and are
-  accepted (the developer's own sessions); the caller states the set per
-  batch, so it can differ for external history and an arm's own sessions.
-- Spark: `spark_view()` is a read-only view for anything bound for Spark.
-  Any read that would return a record with `spark_safe=False` (SWE-chat,
-  private sessions), or a pain point citing one, raises
-  `SparkPrivacyViolationError`. It never filters quietly: a filtered view would
-  make a privacy bug look like "no history".
+Guards: `add_records` raises `HoldOutViolationError` for a scored task id;
+`spark_view()` raises `SparkPrivacyViolationError` rather than filter.
 """
 
 import io
@@ -108,16 +96,7 @@ class Store:
         return 1
 
     def mine(self, project: str, *, references: Mapping[str, frozenset[str]]) -> int:
-        """Re-mine every session of `project`, replacing its pain points.
-
-        `references` as for blast radius; `{}` when there is no checkout.
-
-        Sessions with timestamps form one chain in the order they started (a
-        developer's history on this repo, so rework across sessions counts).
-        Sessions without any timestamp have no known order; published
-        trajectories are parallel attempts at the same tasks, so each is
-        mined alone. ISO 8601 timestamps in one timezone are assumed.
-        """
+        """Re-mine `project`'s sessions; timed ones chain by start, untimed ones are mined alone."""
         timed, untimed = _chains(self.sessions(project))
         found = mine_chain(timed, references)
         found += [p for session in untimed for p in mine_chain([session], references)]
