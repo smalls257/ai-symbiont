@@ -1,0 +1,48 @@
+{
+ "schema": "demo-headlines-v1",
+ "source": "copied by hand from the result files named per headline",
+ "headlines": [
+  {
+   "id": "t46-note-cost",
+   "label": "T46 note value, scored: Pillow, dvc, conan",
+   "status": "measured",
+   "unit": "net value per 100 steps",
+   "source": "results/note-cost.json at 7d3dcc0 (branch eval/t46-note-cost)",
+   "verdict": "counters live",
+   "note": "Pooled test split with 95% bootstrap intervals; the classifier did not clear counters on the paired lower bound.",
+   "rows": [
+    {"label": "logistic classifier", "role": "reference", "value": 0.197, "ci95_low": 0.134, "ci95_high": 0.258},
+    {"label": "counters", "role": "reference", "value": 0.168, "ci95_low": 0.104, "ci95_high": 0.234},
+    {"label": "fly", "role": "under test", "value": 0.168, "ci95_low": 0.112, "ci95_high": 0.224}
+   ]
+  },
+  {
+   "id": "t48-confirm",
+   "label": "T48 confirm, scored: tox, dask, PyBaMM",
+   "status": "measured",
+   "unit": "net value per 100 steps",
+   "source": "results/confirm.json at afffb45 (branch eval/t47-fly-ablation)",
+   "verdict": "logistic classifier live; confirms",
+   "note": "Pooled over three fresh repos with 95% bootstrap intervals; fly combined is better than counters, tied with the classifier.",
+   "rows": [
+    {"label": "logistic classifier", "role": "reference", "value": 0.162, "ci95_low": 0.121, "ci95_high": 0.202},
+    {"label": "counters", "role": "reference", "value": 0.096, "ci95_low": 0.054, "ci95_high": 0.139},
+    {"label": "fly combined", "role": "under test", "value": 0.138, "ci95_low": 0.099, "ci95_high": 0.177}
+   ]
+  },
+  {
+   "id": "lcap-recall",
+   "label": "LCAP lesson recall, 100 lessons, 500 questions",
+   "status": "measured",
+   "unit": "recall",
+   "source": "results/lesson-capacity.json at 1f20fd2 (branch routea/lesson-capacity)",
+   "verdict": "exploratory; stand-in model",
+   "note": "Qwen2.5 0.5B stand-in proving the pipeline, not the Llama answer; held-out questions are template rewordings only.",
+   "rows": [
+    {"label": "no adapter, no lessons", "role": "floor", "value": 0.038, "ci95_low": null, "ci95_high": null},
+    {"label": "lessons in the prompt", "role": "ceiling", "value": 0.126, "ci95_low": null, "ci95_high": null},
+    {"label": "one LoRA adapter", "role": "under test", "value": 0.736, "ci95_low": null, "ci95_high": null}
+   ]
+  }
+ ]
+}
