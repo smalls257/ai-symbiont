@@ -99,3 +99,20 @@ def test_scored_smoke_is_refused(script):
         script.main(
             ["run", "--data", "d", "--meta", "m", "--out", "o", "--scored", "--smoke-train-only"]
         )
+
+
+def _die(_job):
+    import os
+
+    os._exit(1)
+
+
+def test_pool_map_raises_when_a_worker_dies(script):
+    from concurrent.futures.process import BrokenProcessPool
+
+    with pytest.raises(BrokenProcessPool):
+        script.pool_map(_die, [1, 2], 2)
+
+
+def test_pool_map_keeps_job_order(script):
+    assert script.pool_map(abs, [-3, 2, -1], 2) == [3, 2, 1]

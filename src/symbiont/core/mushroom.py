@@ -37,7 +37,7 @@ N_KC = 5177
 N_ACTIVE = 259  # top 5% of the cells
 INPUTS_PER_KC = 7
 PLACEHOLDER_THRESHOLD = 0.9  # not tuned; the prereg sets the real value
-_RELAX = 0.1  # relaxing is a tenth as strong as depressing
+RELAX_RATIO = 0.1  # relaxing is a tenth as strong as depressing
 # One punishment leaves the score at exactly 1 - lr, which is the placeholder
 # threshold; float rounding must not decide that boundary. A score within this
 # tolerance of the threshold counts as not below it.
@@ -151,7 +151,7 @@ class Mushroom(LinearReadoutMeta):
         if outcome.pain_point_followed:
             weights[code] *= 1 - state.lr
         else:
-            relax = min(1.0, _RELAX * outcome.false_alarm_cost)
+            relax = min(1.0, RELAX_RATIO * outcome.false_alarm_cost)
             weights[code] += state.lr * (1 - weights[code]) * relax
         learned = state.learned
         if outcome.pain_point_followed and outcome.signature is not None:

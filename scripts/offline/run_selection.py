@@ -15,6 +15,7 @@ import sys
 import tempfile
 import time
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -179,9 +180,13 @@ def final_job(job: tuple[str, int, float | int | None]) -> OfflineScores:
 
 
 def pool_map(fn, jobs, workers: int):
-    """Map `fn` over `jobs` in forked workers so they inherit the module-level state."""
-    with mp.get_context("fork").Pool(min(workers, len(jobs))) as pool:
-        return pool.map(fn, jobs, chunksize=1)
+    """Map `fn` over `jobs` in forked workers so they inherit the module-level state.
+
+    A worker that dies raises BrokenProcessPool here; `multiprocessing.Pool` would hang.
+    """
+    context = mp.get_context("fork")
+    with ProcessPoolExecutor(min(workers, len(jobs)), mp_context=context) as executor:
+        return list(executor.map(fn, jobs))
 
 
 def prepare_sessions(data: Path, *, smoke: bool):

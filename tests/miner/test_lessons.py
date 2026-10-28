@@ -17,7 +17,7 @@ from symbiont.miner.lessons import (
 )
 from symbiont.miner.mine import mine_chain, mine_history, sessions_of
 from symbiont.miner.painpoint import Signal
-from symbiont.records.schema import Provenance
+from symbiont.records.schema import Provenance, Record
 
 PRIVATE = Provenance(dataset="SWE-chat", license="ODC-BY", spark_safe=False)
 TEST = "pytest tests/test_parser.py -q"
@@ -115,3 +115,15 @@ def test_history_chains_timed_sessions_and_mines_untimed_ones_alone():
     tuesday = [replace(r, session_id="tue", ts="2026-10-27T09:00:00") for r in never_fixed()]
     found = mine_history(sessions_of(tuesday + monday + never_fixed()), {})
     assert [p.session_id for p in found] == ["mon", "tue", "s2"]
+
+
+def test_a_lesson_with_unrelated_changes_pickles_without_any_record():
+    import pickle
+
+    records = session(run(TEST, 1, BROKE), edit("docs/changelog.md"), run(TEST, 0, "ok"))
+    (lesson,) = lessons_of(records)
+    assert "never names" in (lesson.unresolved_because or "")
+    assert lesson.changed_alongside
+    revived = pickle.loads(pickle.dumps(lesson))
+    assert not any(isinstance(v, Record) for v in vars(revived).values())
+    assert b"Record" not in pickle.dumps(lesson).replace(b"PainPoint", b"")

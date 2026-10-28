@@ -248,3 +248,10 @@ def test_each_row_is_read_or_named_and_a_refused_row_never_vanishes(tmp_path):
     assert rows[1].line_no == 2 and "missing 'command'" in str(rows[1])
     with pytest.raises(ReadError):
         list(read(path, PROJECT))
+
+
+def test_readerror_keeps_the_cause_of_a_bad_line(tmp_path):
+    path = write_lines(tmp_path, ["{not json"])
+    with pytest.raises(ReadError) as err:
+        list(read(path, PROJECT))
+    assert err.value.__cause__ is not None

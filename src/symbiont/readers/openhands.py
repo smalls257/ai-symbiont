@@ -42,8 +42,14 @@ def read(path: Path, project: str) -> Iterator[Record]:
     """Yield the records of an OpenHands trajectory file; a bad line raises ReadError."""
     for row in read_each_row(path, project):
         if isinstance(row, ReadError):
-            raise row
+            raise row from row.__cause__
         yield from row
+
+
+def _caused_by(cause: Exception, error: ReadError) -> ReadError:
+    """`error` with its `__cause__` set, so `read` raising it keeps the chain."""
+    error.__cause__ = cause
+    return error
 
 
 def read_each_row(path: Path, project: str) -> Iterator[list[Record] | ReadError]:
@@ -53,9 +59,9 @@ def read_each_row(path: Path, project: str) -> Iterator[list[Record] | ReadError
             try:
                 yield _session_records(json.loads(line), project)
             except json.JSONDecodeError as exc:
-                yield ReadError(path, line_no, f"not valid JSON ({exc.msg})")
+                yield _caused_by(exc, ReadError(path, line_no, f"not valid JSON ({exc.msg})"))
             except _MalformedError as exc:
-                yield ReadError(path, line_no, str(exc))
+                yield _caused_by(exc, ReadError(path, line_no, str(exc)))
 
 
 @dataclass

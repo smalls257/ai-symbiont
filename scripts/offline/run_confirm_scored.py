@@ -1,9 +1,8 @@
 """T48 confirm run on tox, dask and PyBaMM: counts, then the settings shipped from the pool.
 
-prereg/2026-10-28-confirm-DRAFT.md describes the run. Nothing is fit on the confirm repositories:
-every learner ships from the 80 pool training repositories and every note threshold is chosen on
-the 20 pool scoring repositories, then fixed. `counts` prints counts only; `ship` reads the pool.
-Set OMP_NUM_THREADS=1.
+prereg/2026-10-28-confirm.md describes the run. Learners ship from the pool and note thresholds
+are chosen on the pool scoring repositories, then fixed; only DenseNet R2 refits on the confirm
+repositories. `counts` prints counts only. Set OMP_NUM_THREADS=1.
 Usage: run_confirm_scored.py {counts|ship|score} --confirm-dir ... --pool ... --out ...
 """
 

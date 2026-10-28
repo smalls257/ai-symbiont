@@ -13,7 +13,7 @@ from enum import StrEnum
 import numpy as np
 
 from symbiont.core.input_gain import InputGain
-from symbiont.core.mushroom import _RELAX, N_ACTIVE, N_KC, Mushroom, MushroomState
+from symbiont.core.mushroom import N_ACTIVE, N_KC, RELAX_RATIO, Mushroom, MushroomState
 
 # Calm steps are about five times as common as trouble steps (pool trouble share 0.18,
 # T47 [measured]), so the reward side learns at a fifth of the punishment rate: both valences
@@ -84,7 +84,7 @@ class FlyVariant:
         """Each step's outcome in order, on copies of the weights."""
         approach, avoid = state.approach.copy(), state.avoid.copy()
         rates = np.asarray(self.rates)[:, None]
-        relax = rates * min(1.0, _RELAX * self.false_alarm_cost)
+        relax = rates * min(1.0, RELAX_RATIO * self.false_alarm_cost)
         safe = rates * SAFE_RATE_SHARE
         two = self.valence == Valence.TWO_VALENCE
         for cells, trouble in zip(codes, followed, strict=True):
