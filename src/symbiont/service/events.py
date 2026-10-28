@@ -47,6 +47,10 @@ class EventLog:
             }
         )
 
+    def append_failure(self, hook: str, status: int, reason: str) -> None:
+        """Record a call that was refused, so a failure is never silent."""
+        self._write({"hook": hook, "status": status, "reason": reason, "filler": self.filler})
+
     def _write(self, event: dict[str, object]) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
         line = json.dumps({"ts": time.time(), **event})
