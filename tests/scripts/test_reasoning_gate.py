@@ -13,6 +13,7 @@ import gate_coding as coding  # noqa: E402  (needs the path above)
 import gate_doom as doom  # noqa: E402
 import gate_results  # noqa: E402
 import gate_verdict as verdict  # noqa: E402
+import run_reasoning_gate as runner  # noqa: E402
 
 from symbiont.act1.env_text import GameStateView, Layout, RouteHint, SeenDoor, SeenExit  # noqa: E402
 from symbiont.act1.glimmer import Reply  # noqa: E402
@@ -138,7 +139,7 @@ def test_results_document_has_reference_rows_and_passes_the_content_shape():
             True,
         ),
     ]
-    document = gate_results.build_results(scored, "full")
+    document = gate_results.build_results(scored, "full", {"run_label": "scored"})
     roles = {row["arm"]: row["role"] for row in document["rows"]}
     assert roles == {
         "fixed_low": "reference",
@@ -146,8 +147,37 @@ def test_results_document_has_reference_rows_and_passes_the_content_shape():
         "hindsight_chooser": "ceiling",
     }
     assert document["rows"][0]["per_item"] == "10"
+    assert document["rows"][2]["successes"] == 2  # the ceiling counts the rescue of i2
     assert document["decision"]["verdict"] in {"GO", "NO-GO"}
     sys.path.insert(0, str(EXPERIMENTS.parent / "gates"))
     import check_results_content as content
 
     assert content.findings_in("doc.json", document) == []
+
+
+CODING_ITEM = {
+    "domain": "coding",
+    "gold_index": 5,
+    "gold_path": "pkg/parser.py",
+    "gold_functions": ["parse_args"],
+}
+
+
+@pytest.mark.parametrize(
+    ("row", "label"),
+    [
+        ({"finish_reason": "length", "command": "cat pkg/parser.py"}, "truncated"),
+        ({"finish_reason": "stop", "command": None}, "no_action"),
+        ({"finish_reason": "tool_calls", "command": "ls"}, "wrong_file_or_function"),
+        ({"finish_reason": "tool_calls", "command": "vi pkg/parser.py parse_args"}, "success"),
+    ],
+)
+def test_coding_labels(row, label):
+    assert runner.label_for(CODING_ITEM, row) == label
+
+
+def test_unreadable_tool_call_raises_instead_of_reading_as_no_action():
+    broken = {"role": "assistant", "tool_calls": [{"function": {"arguments": "{not json"}}]}
+    with pytest.raises(coding.MalformedToolCallError):
+        coding.bash_command(broken)
+    assert coding.bash_command({"role": "assistant", "content": "done"}) is None

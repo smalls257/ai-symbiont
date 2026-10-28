@@ -1,9 +1,4 @@
-"""The reasoning-strength go/no-go rule, as code (pure).
-
-Violation prevented: Silent Fallback at the claim level. The thresholds are the prereg's, named
-here once with the reason, so the verdict cannot be re-cut after the numbers are in
-(prereg/2026-10-28-reasoning-strength-gate.md, "Decision rule").
-"""
+"""The go/no-go decision rule for reasoning strength."""
 
 import statistics
 from dataclasses import dataclass

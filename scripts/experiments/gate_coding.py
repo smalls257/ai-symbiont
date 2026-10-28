@@ -1,9 +1,4 @@
-"""Coding-step items for the reasoning-strength gate: pick a step, score a proposed command.
-
-Violation prevented: Paper Tiger. "Looks like the real fix" is not a score; the rule below is
-exact (same patched file, and a function of that file's hunks when one is determinable), so a
-verdict cannot move after the numbers are seen.
-"""
+"""Pick the coding step of a solved trajectory and score a proposed command against it."""
 
 import json
 import re
@@ -57,22 +52,23 @@ def mentions_path(command: str, path: str) -> bool:
     )
 
 
+class MalformedToolCallError(ValueError):
+    """An assistant message has a tool call whose arguments carry no readable command."""
+
+
 def bash_command(message: dict[str, Any]) -> str | None:
-    """The first bash command of an assistant message, None when it made no tool call."""
+    """The first bash command of an assistant message; None only when it made no tool call."""
     calls = message.get("tool_calls") or []
     if not calls:
         return None
     try:
         return str(json.loads(calls[0]["function"]["arguments"])["command"])
-    except (KeyError, ValueError, TypeError):
-        return None
+    except (KeyError, ValueError, TypeError) as error:
+        raise MalformedToolCallError(f"unreadable tool call: {error!r}") from error
 
 
 def find_gold_step(messages: list[dict[str, Any]], patch: str) -> GoldStep:
-    """First action, after exploration, that edits a file of the final passing patch.
-
-    The command must carry the file's full repo path, so writing a scratch copy elsewhere is not it.
-    """
+    """First edit of a patched file after exploration; the command must carry the full repo path."""
     patched = patched_functions(patch)
     actions = 0
     for index, message in enumerate(messages):

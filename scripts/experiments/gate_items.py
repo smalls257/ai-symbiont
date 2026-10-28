@@ -1,9 +1,4 @@
-"""The 30 fixed items of the reasoning-strength gate, built once and kept in gitignored `workdir`.
-
-Violation prevented: Forensic Coding. Which trajectories and which seed produced the items is
-named here, so the item list is reproducible from the prereg without reading git blame. The items
-file holds observation text and so stays out of the repo; only item ids reach `results/`.
-"""
+"""Build the 30 fixed items once and keep them in the local work directory."""
 
 import json
 from pathlib import Path

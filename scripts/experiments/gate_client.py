@@ -1,11 +1,5 @@
-"""One Glimmer request for the reasoning-strength gate, through `symbiont.egress`.
+"""Send one chat request to Glimmer through the egress door and record its cost."""
 
-Violation prevented: Black Box on cost. Act 1's `chat_reply` hides token counts and fixes the
-reasoning line, so the gate needs both visible: this records completion tokens, reasoning size and
-wall-clock for every request, and fixes the sampling seed so the two arms differ only in the line.
-"""
-
-import json
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -81,8 +75,3 @@ def ask(
     started = time.monotonic()
     out = post_json(Destination(Endpoint.LOCAL_GLIMMER, url), body, timeout_s=REQUEST_TIMEOUT_S)
     return read_completion(out, time.monotonic() - started)
-
-
-def completion_record(completion: Completion) -> str:
-    """One json line for the local replies log (gitignored; holds the reply text)."""
-    return json.dumps(completion.__dict__)

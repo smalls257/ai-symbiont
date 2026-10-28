@@ -1,8 +1,4 @@
-"""Freedoom items for the reasoning-strength gate: the route oracle and the reply scorer (pure).
-
-Violation prevented: Paper Tiger. The oracle is the repo's own route finder (`route_hints`), not
-a judgment call: the best next action is fixed by the map before any model is asked.
-"""
+"""The route-finder oracle and the reply scorer for the Freedoom items."""
 
 from dataclasses import dataclass
 

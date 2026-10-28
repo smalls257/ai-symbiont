@@ -1,8 +1,4 @@
-"""Turn an item and a reasoning strength into the chat messages Glimmer sees (pure over files).
-
-Violation prevented: Leaky Narrative between arms. The two arms must differ in one line only, so
-the system message is built by replacing that line and nothing else.
-"""
+"""Build the chat messages for an item under one reasoning strength."""
 
 from pathlib import Path
 from typing import Any

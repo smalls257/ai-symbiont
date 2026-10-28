@@ -1,13 +1,4 @@
-"""Reasoning-strength go/no-go: plain Glimmer at low vs high on 20 Freedoom and 10 coding items.
-
-Violation prevented: Paper Tiger. A learned chooser of reasoning strength is only worth building
-if low is nearly as good as high, much cheaper, and this holds on some items and not others; this
-script measures exactly that, one request at a time, under the frozen rule in
-prereg/2026-10-28-reasoning-strength-gate.md.
-
-Usage: run_reasoning_gate.py [--smoke] [--workdir DIR] [--out FILE]
-Needs SYMBIONT_GLIMMER_URL. --smoke runs 2 items per arm into the workdir, never into results/.
-"""
+"""Run plain Glimmer at low and high reasoning strength on the 30 gate items."""
 
 import argparse
 import json
@@ -26,11 +17,13 @@ from gate_results import build_results
 from gate_verdict import ItemOutcome
 
 from symbiont.act1.glimmer import Reply
+from symbiont.eval.prereg_git import run_provenance
 
 progress = logging.getLogger("reasoning_gate")
 GLIMMER_URL_VAR = "SYMBIONT_GLIMMER_URL"  # the address is never committed
 STRENGTHS = ("low", "high")
 SMOKE_ITEMS = 2
+PREREG_NAME = "2026-10-28-reasoning-strength-gate.md"  # the original the amendments amend
 
 
 def glimmer_url() -> str:
@@ -54,11 +47,13 @@ def read_done(path: Path) -> dict[tuple[str, str], dict[str, Any]]:
 
 def run_arms(workdir: Path, items: list[dict[str, Any]], log_path: Path) -> None:
     """Every item under both arms, one request at a time, appended to the replies log."""
-    url, done = glimmer_url(), read_done(log_path)
+    done = read_done(log_path)
+    url: str | None = None  # read only when a request is needed, so a resume needs no endpoint
     for index, item in enumerate(items):
         for strength in arm_order(index):
             if (item["item_id"], strength) in done:
                 continue
+            url = url or glimmer_url()
             messages, tools = request_for(workdir, item, strength)
             completion = ask(url, messages, tools)
             row = {"item_id": item["item_id"], "strength": strength, **completion.__dict__}
@@ -114,23 +109,38 @@ def outcomes_from(items: list[dict[str, Any]], done: dict[tuple[str, str], dict[
     return scored
 
 
-def main(argv: list[str]) -> int:
+def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--smoke", action="store_true")
+    parser.add_argument("--smoke", action="store_true", help="2 items per arm, into the workdir")
+    parser.add_argument("--scored", action="store_true", help="a scored run: needs --prereg")
+    parser.add_argument("--prereg", help="the frozen amendment file this run is held to")
     parser.add_argument("--workdir", type=Path, default=Path("data/reasoning-gate"))
     parser.add_argument("--out", type=Path, default=Path("results/reasoning-strength-gate.json"))
-    args = parser.parse_args(argv)
+    return parser.parse_args(argv)
+
+
+def output_path(args: argparse.Namespace) -> Path:
+    """results/ takes scored runs only; anything else lands in the workdir."""
+    if args.smoke:
+        return args.workdir / "smoke-results.json"
+    return args.out if args.scored else args.workdir / "exploratory-results.json"
+
+
+def main(argv: list[str]) -> int:
+    args = parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    provenance = run_provenance(
+        scored=args.scored and not args.smoke, prereg=args.prereg, expects=PREREG_NAME
+    )
     items = load_or_build_items(args.workdir)
     if args.smoke:
         items = [items[0], items[-1]][:SMOKE_ITEMS]
     log_path = args.workdir / ("replies-smoke.jsonl" if args.smoke else "replies.jsonl")
     run_arms(args.workdir, items, log_path)
     scored = outcomes_from(items, read_done(log_path))
-    target = args.workdir / "smoke-results.json" if args.smoke else args.out
-    target.write_text(
-        json.dumps(build_results(scored, "smoke" if args.smoke else "full"), indent=1) + "\n"
-    )
+    document = build_results(scored, "smoke" if args.smoke else "full", provenance)
+    target = output_path(args)
+    target.write_text(json.dumps(document, indent=1) + "\n")
     progress.info("wrote %s", target)
     return 0
 

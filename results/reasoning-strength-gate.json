@@ -1,6 +1,10 @@
 {
+ "prereg": "prereg/2026-10-28-reasoning-strength-gate-amendment-2.md",
+ "freeze_commit": "98d3035a9a32e9df216497da5a30890374582446",
+ "prereg_sha256": "7a3101cff46c38086d89fa6d3201cb0f299aee4fe36c41a03eb529e484f97ef2",
+ "run_label": "scored",
  "run_mode": "full",
- "prereg": "prereg/2026-10-28-reasoning-strength-gate.md",
+ "amends": "prereg/2026-10-28-reasoning-strength-gate.md",
  "model": "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
  "item_ids": [
   "doom-MAP01-01",
@@ -116,8 +120,8 @@
  },
  "rule": "GO if low is within 10 points of high overall, low uses at most 50% of high's tokens (median of per-item ratios), and at least 25% of items differ; else NO-GO.",
  "caveats": [
-  "Freedoom items are warped states, not a played episode; one Glimmer slot was shared with a calibration run, so wall-clock is noisy.",
-  "Thirty items cannot resolve small differences; the verdict is a go/no-go screen, not an estimate of the effect.",
-  "Coding score is the same-file (and function, when known) match of the first command, not a test result."
+  "Freedoom items are warped states, not a played episode; one Glimmer slot was shared with a calibration run, so wall-clock is noisy. [measured]",
+  "Thirty items cannot resolve small differences; the verdict is a go/no-go screen, not an estimate of the effect. [established]",
+  "Coding score is the same-file (and function, when known) match of the first command, not a test result. [established]"
  ]
 }

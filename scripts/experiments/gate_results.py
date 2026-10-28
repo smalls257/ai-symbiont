@@ -1,9 +1,4 @@
-"""The results document of the reasoning-strength gate: counts, ids and labels only (pure).
-
-Violation prevented: Leaky Narrative at the repo boundary. Replies and prompts stay in the local
-workdir; this file holds per-item 0/1 strings, token counts, seconds, scored labels and the
-verdict, in the row shape `check_results.py` expects (fixed-low and fixed-high are references).
-"""
+"""Build the results document: counts, ids and labels only."""
 
 import statistics
 from collections import Counter
@@ -18,11 +13,11 @@ RULE = (
 )
 CAVEATS = (
     "Freedoom items are warped states, not a played episode; one Glimmer slot was shared "
-    "with a calibration run, so wall-clock is noisy.",
+    "with a calibration run, so wall-clock is noisy. [measured]",
     "Thirty items cannot resolve small differences; the verdict is a go/no-go screen, "
-    "not an estimate of the effect.",
+    "not an estimate of the effect. [established]",
     "Coding score is the same-file (and function, when known) match of the first command, "
-    "not a test result.",
+    "not a test result. [established]",
 )
 
 
@@ -78,13 +73,16 @@ def _by_domain(outcomes: list[ItemOutcome]) -> dict[str, Any]:
 
 
 def build_results(
-    scored: list[tuple[ItemOutcome, dict[str, str], bool, bool]], run_mode: str
+    scored: list[tuple[ItemOutcome, dict[str, str], bool, bool]],
+    run_mode: str,
+    provenance: dict[str, str | None],
 ) -> dict[str, Any]:
-    """The whole results document from scored items; `run_mode` is 'smoke' or 'full'."""
+    """The results document; `run_mode` is 'smoke' or 'full', `provenance` the guard's header."""
     outcomes = [outcome for outcome, _, _, _ in scored]
     return {
+        **provenance,
         "run_mode": run_mode,
-        "prereg": PREREG,
+        "amends": PREREG,
         "model": "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
         "item_ids": [o.item_id for o in outcomes],
         "rows": [

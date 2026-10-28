@@ -1,8 +1,4 @@
-"""Build the Freedoom decision items by warping the player to seeded points (periphery: ViZDoom).
-
-Violation prevented: Silent Fallback. A sampled point that the route finder cannot use (off the
-floor, no route to anything) is counted and skipped in the open, never described with a guess.
-"""
+"""Build Freedoom decision items by warping the player to seeded points in ViZDoom."""
 
 import logging
 import random
@@ -77,14 +73,17 @@ def build_map_items(
     game.new_episode()
     items: list[DoomItem] = []
     kinds: dict[str, int] = {}
+    skipped = 0
     try:
         for _ in range(ATTEMPTS_PER_ITEM * count):
             sampled = _sample_once(game, nav, index, rng, box)
             if sampled is None or kinds.get(sampled[1].kind, 0) >= kind_cap:
+                skipped += 1
                 continue
             kinds[sampled[1].kind] = kinds.get(sampled[1].kind, 0) + 1
             items.append(DoomItem(f"doom-{map_name}-{len(items) + 1:02d}", map_name, *sampled))
             if len(items) == count:
+                progress.info("%s: %d items, %d points skipped", map_name, count, skipped)
                 return items
     finally:
         game.close()
