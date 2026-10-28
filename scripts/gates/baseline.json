@@ -1,6 +1,6 @@
 {
-  "measured_at": "2026-10-28T03:26Z",
-  "commit": "6b22a63fc89915052e269ee47fe0d9f09912865f",
+  "measured_at": "2026-10-28T03:38Z",
+  "commit": "300d685e0f07d2d52251f746a613f91ab313e496",
   "scope": "whole tree, excluding tests/fixtures, spikes, .claude",
   "ruff": {
     "check_findings": 0,
@@ -18,16 +18,22 @@
     "single_letter_name": 0,
     "two_or_more_bool_params": 0
   },
-  "semgrep": {},
+  "semgrep": {
+    "sym-module-docstring-too-long": 44,
+    "sym-no-framework-names-in-comments": 35,
+    "sym-docstring-too-long": 17,
+    "sym-comment-block-too-long": 4,
+    "sym-class-docstring-too-long": 1
+  },
   "semgrep_registry_QG_SAST_01": {
     "by_severity": {
-      "WARNING": 42,
+      "WARNING": 44,
       "INFO": 330
     },
     "error_findings": []
   },
   "docstrings_QG_RD_01": {
-    "public_api_documented_percent": 59.6,
+    "public_api_documented_percent": 62.8,
     "bar_percent": 90
   },
   "type_ignores_QG_TYP_03": {
@@ -44,12 +50,9 @@
     "html_validity_errors": 28
   },
   "comment_policy_QG_RD_04": {
-    "framework_vocabulary": 35,
-    "docstring_over_cap": 59,
-    "comment_block_over_3": 2,
     "todo_without_owner_date": 0,
     "restates_next_line_or_signature": 0,
-    "findings": 96
+    "findings": 0
   },
   "mutation_QG_TST_05": {
     "killed_percent": 85.6,
