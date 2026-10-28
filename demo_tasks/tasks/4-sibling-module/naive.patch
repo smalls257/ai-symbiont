@@ -1,0 +1,12 @@
+diff --git a/ledgerline/tax/vat.py b/ledgerline/tax/vat.py
+--- a/ledgerline/tax/vat.py
++++ b/ledgerline/tax/vat.py
+@@ -15,7 +15,7 @@
+     """VAT at one rate. Defaults: round each line half up to the cent."""
+ 
+     rate = Decimal("0")
+-    rounding = Rounding.PER_LINE
++    rounding = Rounding.PER_INVOICE
+     step = Decimal("0.01")
+ 
+     def round_tax(self, amount: Decimal) -> Decimal:

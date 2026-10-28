@@ -1,0 +1,7 @@
+# Frozen snapshot the current FX tests are written against (constructed values).
+base = "USD"
+
+[rates]
+EUR = "0.9250"
+GBP = "0.7900"
+CHF = "0.8900"
