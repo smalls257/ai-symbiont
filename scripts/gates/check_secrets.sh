@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# QG-SEC-01 / QG-SEC-02 secrets and private infrastructure. Prevents Silent Fallback: a
+# QG-SEC-01 / QG-SEC-02 secrets and private infrastructure. Guards against a
 # scan that "found nothing" because gitleaks or its config was missing.
 #   check_secrets.sh files [FILE ...]   scan the working copy of those files (default: changed)
 #   check_secrets.sh staged             scan the staged diff (pre-commit)

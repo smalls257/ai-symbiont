@@ -1,0 +1,2 @@
+# QG-DEP-01 waivers. Delete-only for agents; the owner adds a line in a GATE-CHANGE commit.
+# Format: <advisory-id> <owner> <expiry YYYY-MM-DD, at most 30 days out> <reason>
