@@ -122,6 +122,8 @@ class Service:
     def _recall(self, request: dict[str, Any]) -> Response:
         _require_keys(request, RECALL_KEYS, frozenset({"question", "project"}))
         project, question = request["project"], request["question"]
+        if not (isinstance(project, str) and isinstance(question, str)):
+            raise BadRequestError("question and project must be text")
         store = self._parts.store
         reader = store.spark_view() if request.get("spark_bound") is True else store
         sessions = reader.sessions(project)
