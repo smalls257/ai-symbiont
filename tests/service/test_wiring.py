@@ -5,7 +5,7 @@ import pytest
 from symbiont import cli
 from symbiont.core.features import N_FEATURES
 from symbiont.core.warner import LogisticWarner, WarnerWeightsError
-from symbiont.service.wiring import MemorySetupError, load_warner, trained_projects
+from symbiont.service.wiring import MemorySetupError, load_warner, open_memory, trained_projects
 
 pytestmark = pytest.mark.periphery
 
@@ -23,6 +23,7 @@ def memory_dir(tmp_path, *projects, adapter=True):
     if adapter:
         (root / "adapter").mkdir()
         (root / "adapter" / "adapters.safetensors").write_bytes(b"x")
+        (root / "adapter.json").write_text(json.dumps({"model": "m", "provenance": "public"}))
     for i, project in enumerate(projects):
         (root / "manifests" / f"{i}.json").write_text(json.dumps({"project": project}))
     return root
@@ -82,3 +83,31 @@ def test_serve_refuses_half_a_memory_setting_and_a_bad_weights_file(tmp_path, ca
     assert "go together" in capsys.readouterr().err
     assert cli.main(["serve", "--data-dir", data, "--warner", str(tmp_path / "none.json")]) == 1
     assert "none.json" in capsys.readouterr().err
+
+
+def test_an_adapter_without_recorded_provenance_refuses(tmp_path):
+    root = memory_dir(tmp_path, "p")
+    (root / "adapter.json").unlink()
+    with pytest.raises(MemorySetupError, match="provenance"):
+        open_memory("http://127.0.0.1:8090", root)
+    (root / "adapter.json").write_text(json.dumps({"model": "m", "provenance": "everyone"}))
+    with pytest.raises(MemorySetupError, match="provenance"):
+        open_memory("http://127.0.0.1:8090", root)
+
+
+def test_serve_refuses_a_memory_url_that_is_not_loopback_at_launch(tmp_path, capsys):
+    url = "http://" + "192.168." + "1.20:8090"
+    argv = ["serve", "--data-dir", str(tmp_path / "data"), "--memory-url", url]
+    argv += ["--memory-dir", str(memory_dir(tmp_path, "p"))]
+    assert cli.main(argv) == 1
+    assert "loopback only" in capsys.readouterr().err
+
+
+def test_consent_is_given_withdrawn_and_shown(tmp_path, capsys):
+    data = ["--data-dir", str(tmp_path)]
+    assert cli.main(["consent", "show", *data]) == 0
+    assert "own_history_to_spark = withheld" in capsys.readouterr().out
+    assert cli.main(["consent", "give", *data]) == 0
+    assert "= consent" in capsys.readouterr().out
+    assert cli.main(["consent", "withdraw", *data]) == 0
+    assert "= withheld" in capsys.readouterr().out

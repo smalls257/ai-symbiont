@@ -13,10 +13,12 @@ What is kept:
 Guards:
 
 - Hold-out: checked at mining time, before a lesson is stored (`store.mining`).
-- Spark: `spark_view()` is a read-only view for anything bound for Spark. A read
-  that would return a lesson whose flag is false raises
+- Spark: `spark_view(consent)` is a read-only view for anything bound for Spark.
+  A read that would return a lesson Spark may not see (any private one without
+  the user's own-history consent; a third-party one always) raises
   `SparkPrivacyViolationError`. It never filters quietly: a filtered view would
-  make a privacy bug look like "no history".
+  make a privacy bug look like "no history". It returns lessons scrubbed of
+  credentials.
 """
 
 import json
@@ -28,9 +30,11 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from symbiont.miner.lessons import Lesson
+from symbiont.miner.lessons import Lesson, spark_allowed
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.secrets import scrubbed
 from symbiont.miner.trained import lesson_id, refuse_held_out_lessons, training_manifest
+from symbiont.records.privacy import OwnHistoryConsent
 
 log = logging.getLogger("symbiont.store")
 
@@ -174,22 +178,31 @@ class Store:
         ).fetchone()
         return row is not None
 
-    def spark_view(self) -> "SparkView":
-        """A read-only view that raises rather than return anything not Spark-safe."""
-        return SparkView(self)
+    def spark_view(self, consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD) -> "SparkView":
+        """A read-only view that raises rather than return anything Spark may not see.
+
+        `consent` is the user's own-history setting (`store.consent`); withheld unless given.
+        """
+        return SparkView(self, consent)
 
 
 class SparkView:
-    """Read-only; every read raises rather than return a private lesson."""
+    """Read-only; every read raises rather than return a lesson Spark may not see."""
 
-    def __init__(self, store: Store):
+    def __init__(self, store: Store, consent: OwnHistoryConsent):
         self._store = store
+        self._consent = consent
 
     def lessons(self, project: str) -> list[Lesson]:
-        """Lessons of `project`, or SparkPrivacyViolationError if any is private."""
-        if self._store.has_private_lessons(project):
+        """Scrubbed lessons of `project`, or SparkPrivacyViolationError if any is not allowed.
+
+        Without consent any private lesson raises; with it, only third-party ones do.
+        Credentials are scrubbed from every lesson returned.
+        """
+        lessons = self._store.lessons(project)
+        if any(not spark_allowed(lesson, self._consent) for lesson in lessons):
             raise SparkPrivacyViolationError(project, "a lesson")
-        return self._store.lessons(project)
+        return [scrubbed(lesson) for lesson in lessons]
 
     def pain_points(self, project: str) -> list[PainPoint]:
         """Pain points of `project`, or SparkPrivacyViolationError if any lesson is private."""
@@ -234,6 +247,8 @@ def _lesson_from_json(body: str) -> Lesson:
         task_ids=tuple(data["task_ids"]),
         # Rows written before this field existed recorded no such changes.
         changed_alongside=tuple(data.get("changed_alongside", ())),
+        # Rows written before this field existed name no dataset: a private one stays blocked.
+        private_datasets=tuple(data.get("private_datasets", ())),
     )
 
 

@@ -1,13 +1,17 @@
 """Train Route A's memory model on a project's new lessons, then forget the lessons.
 
 Violation prevented: **Silent Fallback** on three edges. The export is the fail-closed
-`lessons_for_memory_model` (one private lesson raises, never a shorter list). A failed training
+`lessons_for_memory_model` under the user's own-history consent (`symbiont consent`): without
+it one private lesson raises; with it only third-party private data does. Lessons arrive with
+credentials scrubbed. A failed training
 run stops before `forget_trained`, so no lesson is deleted that the weights did not take in.
-An adapter trained on one base model is never continued on another (`model.txt`).
+An adapter trained on one base model is never continued on another (`adapter.json`).
 
 Layout under --memory-dir (outside the repo; `symbiont serve --memory-dir` reads it):
 `adapter/` (the LoRA, continued run after run), `manifests/` (ids and counts per training run,
-written by `forget_trained`), `model.txt` (the base model), `logs/`. Training rows hold lesson
+written by `forget_trained`), `adapter.json` (base model and provenance, written only after
+training succeeds; `symbiont serve` lets only a Spark-safe adapter answer Spark-bound calls),
+`logs/`. Training rows hold lesson
 text, so they are deleted once the adapter has them. Prints counts only.
 
     uv run python scripts/routea/train_memory.py --data-dir ~/.symbiont --project demo \
@@ -26,7 +30,9 @@ from pathlib import Path
 
 from symbiont.core.memory_note import SYSTEM, training_pairs
 from symbiont.miner.lessons import Lesson
-from symbiont.service.memory_model import DEFAULT_MEMORY_MODEL
+from symbiont.service.memory_model import DEFAULT_MEMORY_MODEL, AdapterProvenance
+from symbiont.service.wiring import ADAPTER_RECORD
+from symbiont.store.consent import ConsentFileError, read_consent
 from symbiont.store.local import SparkPrivacyViolationError, Store
 from symbiont.store.training import lessons_for_memory_model
 
@@ -64,23 +70,46 @@ def _write_rows(work: Path, rows: list[dict[str, object]]) -> None:
         (work / f"{name}.jsonl").write_text(lines, encoding="utf-8")
 
 
-def _claim_base_model(memory_dir: Path, model: str) -> None:
-    marker = memory_dir / "model.txt"
-    if marker.exists() and marker.read_text().strip() != model:
-        raise TrainingRefusedError(
-            f"{memory_dir} holds an adapter for {marker.read_text().strip()}, not {model}"
-        )
-    memory_dir.mkdir(parents=True, exist_ok=True)
-    marker.write_text(model + "\n")
+def _recorded(memory_dir: Path) -> dict[str, str] | None:
+    record = memory_dir / ADAPTER_RECORD
+    return json.loads(record.read_text()) if record.exists() else None
+
+
+def _check_base_model(memory_dir: Path, model: str) -> None:
+    recorded = _recorded(memory_dir)
+    if recorded is not None and recorded["model"] != model:
+        raise TrainingRefusedError(f"{memory_dir} holds an adapter for {recorded['model']}")
+
+
+_SHAREABLE_FIRST = tuple(AdapterProvenance)
+
+
+def _record_adapter(memory_dir: Path, model: str, lessons: list[Lesson]) -> AdapterProvenance:
+    """Write the adapter's record after a successful run; provenance only ever narrows.
+
+    Continued training cannot remove what the adapter already holds, so the record keeps the
+    least shareable of what it held before and what this run added.
+    """
+    added = (
+        AdapterProvenance.PUBLIC
+        if all(lesson.spark_safe for lesson in lessons)
+        else AdapterProvenance.OWN_HISTORY_WITH_CONSENT
+    )
+    recorded = _recorded(memory_dir)
+    held = AdapterProvenance(recorded["provenance"]) if recorded else AdapterProvenance.PUBLIC
+    provenance = max(added, held, key=_SHAREABLE_FIRST.index)
+    record = {"model": model, "provenance": provenance.value}
+    (memory_dir / ADAPTER_RECORD).write_text(json.dumps(record, indent=1) + "\n")
+    return provenance
 
 
 def train(args: argparse.Namespace) -> dict[str, object]:
     """Export, train, forget; returns counts. Raises TrainingRefusedError, forgetting nothing."""
     store = Store.open(args.data_dir / "store.db")
-    lessons = lessons_for_memory_model(store, args.project)
+    lessons = lessons_for_memory_model(store, args.project, read_consent(args.data_dir))
     if not lessons:
         raise TrainingRefusedError(f"no untrained lessons for {args.project}; mine first")
-    _claim_base_model(args.memory_dir, args.model)
+    _check_base_model(args.memory_dir, args.model)
     stamp = time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     work = args.memory_dir / "work" / stamp
     rows = chat_rows(args.project, lessons)
@@ -94,6 +123,7 @@ def train(args: argparse.Namespace) -> dict[str, object]:
     if finished.returncode != 0:
         raise TrainingRefusedError(f"training failed (exit {finished.returncode}); see logs/")
     manifest = args.memory_dir / "manifests" / f"{stamp}.json"
+    provenance = _record_adapter(args.memory_dir, args.model, lessons)
     forgotten = store.forget_trained(args.project, manifest, exported=lessons)
     return {
         "lessons_trained": len(lessons),
@@ -101,6 +131,7 @@ def train(args: argparse.Namespace) -> dict[str, object]:
         "lessons_forgotten": forgotten,
         "train_seconds": round(time.monotonic() - started, 1),
         "model": args.model,
+        "provenance": provenance.value,
     }
 
 
@@ -117,7 +148,7 @@ def main() -> None:
     args.data_dir, args.memory_dir = args.data_dir.expanduser(), args.memory_dir.expanduser()
     try:
         counts = train(args)
-    except (TrainingRefusedError, SparkPrivacyViolationError) as refused:
+    except (TrainingRefusedError, SparkPrivacyViolationError, ConsentFileError) as refused:
         print(f"train_memory: {refused}", file=sys.stderr)
         sys.exit(1)
     print(json.dumps(counts, indent=1))

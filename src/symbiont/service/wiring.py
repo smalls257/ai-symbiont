@@ -9,13 +9,16 @@ from symbiont.core.slot import Decider
 from symbiont.core.warner import LogisticWarner, WarnerWeightsError, weights_from
 from symbiont.service.app import Service, ServiceMode, ServiceParts
 from symbiont.service.events import EventLog
-from symbiont.service.memory_model import MemoryModel
+from symbiont.service.memory_model import AdapterProvenance, MemoryModel
+from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
 
-# Layout `scripts/routea/train_memory.py` writes: the adapter, and one training manifest per
-# project (ids and counts, written by `Store.forget_trained`).
+# Layout `scripts/routea/train_memory.py` writes: the adapter, one training manifest per run
+# (ids and counts, written by `Store.forget_trained`), and the adapter's record (base model and
+# provenance), written only after training succeeds.
 ADAPTER_DIR = "adapter"
 MANIFESTS_DIR = "manifests"
+ADAPTER_RECORD = "adapter.json"
 
 
 class MemorySetupError(ValueError):
@@ -41,6 +44,7 @@ def open_service(
         EventLog(run_dir, filler.name),
         mode,
         memory=memory,
+        consent=read_consent(data_dir),
     )
     return Service(parts)
 
@@ -78,3 +82,22 @@ def trained_projects(memory_dir: Path) -> frozenset[str]:
             raise MemorySetupError(f"{manifest} names no project")
         projects.add(project)
     return frozenset(projects)
+
+
+def adapter_provenance(memory_dir: Path) -> AdapterProvenance:
+    """What trained the adapter, from its record; raises MemorySetupError when unrecorded."""
+    record = memory_dir / ADAPTER_RECORD
+    try:
+        value = json.loads(record.read_text(encoding="utf-8"))["provenance"]
+        return AdapterProvenance(value)
+    except (OSError, ValueError, KeyError, TypeError) as exc:
+        raise MemorySetupError(f"{record} does not record the adapter's provenance") from exc
+
+
+def open_memory(url: str, memory_dir: Path) -> MemoryModel:
+    """The memory model at `url` with what `memory_dir` says it learned and from what.
+
+    Raises MemorySetupError (no adapter, manifest or provenance) and EgressRefusedError
+    (a URL that is not loopback), both before the service starts.
+    """
+    return MemoryModel(url, trained_projects(memory_dir), adapter_provenance(memory_dir))

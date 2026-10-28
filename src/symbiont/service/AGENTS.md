@@ -11,7 +11,8 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/service/`.
 - `/recall` accepts exactly the plain-question payload; extra fields are rejected with 400.
 - An empty store answers "no history for this project yet", never a fake note.
 - No raw history: notes and recall answers come from lessons (what happened, how it was resolved, the check to run); `/observe` has no stored records to recall from.
-- A Spark-bound note must rest only on lessons the Spark view returned; anything else answers 409.
+- A Spark-bound note must rest only on lessons the Spark view returned (under the user's own-history consent, read from `consent.json` at start); anything else answers 409.
+- A Spark-bound call may use the memory model only when its adapter's recorded provenance (`adapter.json`, written by `train_memory.py` after a successful run) is `public`, or `own_history_with_consent` while consent is still given; `personal` or a missing record answers 409. Spark-bound answers are scrubbed of credentials.
 - State between sessions is the decider state, saved and restored; no shared mutable state across workers.
 - Periphery: sockets, files and the clock live here and in tests marked `periphery`.
 

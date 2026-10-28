@@ -12,21 +12,26 @@ import io
 import json
 import sys
 import threading
+from dataclasses import replace
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import numpy as np
 import pytest
 
+from record_builders import run, session
 from symbiont import cli
 from symbiont.core.features import N_FEATURES
 from symbiont.core.warner import LogisticWarner, WarnerWeights
 from symbiont.delivery.mcp_server import serve_stdio
+from symbiont.records.privacy import OwnHistoryConsent
+from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.service import server
 from symbiont.service.app import ServiceMode
-from symbiont.service.memory_model import MemoryModel
-from symbiont.service.wiring import open_service, trained_projects
-from symbiont.store.local import Store
+from symbiont.service.wiring import open_memory, open_service
+from symbiont.store.consent import record_consent
+from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.store.mining import MiningRules, remine
 
 pytestmark = pytest.mark.periphery
 
@@ -106,12 +111,14 @@ def trained(tmp_path, monkeypatch):
     )
     counts = load_script(monkeypatch, "train_memory").train(args)
     assert counts["lessons_trained"] == counts["lessons_forgotten"] == 3
+    record = json.loads((memory / "adapter.json").read_text())
+    assert record == {"model": "stand-in", "provenance": "public"}
     stored = json.loads((memory / "adapter" / "adapters.safetensors").read_text())
     return data, memory, stored
 
 
 def serve_symbiont(data, memory_url, memory_dir):
-    memory = MemoryModel(memory_url, trained_projects(memory_dir))
+    memory = open_memory(memory_url, memory_dir)
     service = open_service(data, ServiceMode.WARN_AND_RECALL, always_risky(), memory)
     httpd = server.bind(service, 0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
@@ -232,4 +239,58 @@ def test_a_failed_training_run_forgets_no_lesson(tmp_path, monkeypatch):
     with pytest.raises(script.TrainingRefusedError, match="exit 3"):
         script.train(args)
     assert len(Store.open(data / "store.db").lessons(PROJECT)) == 3
+    assert not (tmp_path / "memory" / "adapter.json").exists()  # recorded only on success
     assert list((tmp_path / "memory" / "work").rglob("*.jsonl")) == []  # lesson text is gone
+
+
+OWN = Provenance(dataset="private-sessions", license="none", spark_safe=False)
+
+
+def own_history_store(tmp_path):
+    """The user's own failing session, mined into the store through a records reader."""
+    records = session(
+        run("pytest tests/test_cart.py", 1, "ImportError: x"),
+        run("pip install -e ."),
+        run("pytest tests/test_cart.py", 0),
+    )
+    records = [replace(r, project=PROJECT, provenance=OWN) for r in records]
+    log = tmp_path / "own.jsonl"
+    with log.open("w") as fh:
+        dump_jsonl(records, fh)
+    (tmp_path / "data").mkdir()
+    store = Store.open(tmp_path / "data" / "store.db")
+    reader = {"records": lambda path, project: iter(list(load_jsonl(path.open())))}
+    remine(
+        store,
+        PROJECT,
+        MiningRules(reader, frozenset()),
+        adding=[Source(PROJECT, "records", str(log))],
+    )
+    return tmp_path / "data"
+
+
+def own_args(data, tmp_path, trainer):
+    return argparse.Namespace(
+        data_dir=data,
+        project=PROJECT,
+        memory_dir=tmp_path / "memory",
+        model="stand-in",
+        python=Path(sys.executable),
+        trainer=trainer,
+        epochs=1,
+    )
+
+
+def test_own_history_trains_for_spark_only_with_consent(tmp_path, monkeypatch):
+    data = own_history_store(tmp_path)
+    trainer = tmp_path / "fake_trainer.py"
+    trainer.write_text(FAKE_TRAINER.format(python=sys.executable))
+    trainer.chmod(0o755)
+    script = load_script(monkeypatch, "train_memory")
+    with pytest.raises(SparkPrivacyViolationError):
+        script.train(own_args(data, tmp_path, trainer))
+    record_consent(data, OwnHistoryConsent.GIVEN)
+    counts = script.train(own_args(data, tmp_path, trainer))
+    assert counts["provenance"] == "own_history_with_consent"
+    record = json.loads((tmp_path / "memory" / "adapter.json").read_text())
+    assert record["provenance"] == "own_history_with_consent"

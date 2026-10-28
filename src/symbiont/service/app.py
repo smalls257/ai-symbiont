@@ -17,12 +17,19 @@ from symbiont.core.recall import relevant_lessons
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint
+from symbiont.miner.secrets import scrub
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
+from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.service.events import Call, EventLog, MemoryCost
-from symbiont.service.memory_model import MemoryModel, MemoryModelOfflineError, MemoryReply
+from symbiont.service.memory_model import (
+    MemoryModel,
+    MemoryModelOfflineError,
+    MemoryReply,
+    may_answer_spark,
+)
 from symbiont.store.local import Source, SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
 
@@ -70,6 +77,8 @@ class ServiceParts:
     readers: Mapping[str, Reader] = field(default_factory=lambda: dict(READERS))
     # Route A: when set, notes and answers for the projects it learned come from this model.
     memory: MemoryModel | None = None
+    # The user's own-history setting (store.consent); what a Spark-bound call may rest on.
+    consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD
 
 
 class SparkWithheldError(PermissionError):
@@ -134,17 +143,28 @@ class Service:
         decision = self._parts.decider.decide(featurise(situation), situation, self._state)
         if _spark_bound(request):
             _refuse_untraceable(decision, lessons)
-        memory = self._memory_for(project)
-        if memory is not None and decision.trouble is not None:
+        warns = self._parts.mode is ServiceMode.WARN_AND_RECALL
+        memory = self._memory_for(request, project) if decision.trouble and warns else None
+        if memory is not None:
             return self._memory_observe(call, decision, memory, key)
         notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode], lessons=lessons)
         self._parts.events.append_decision(call, decision, notes)
         return Response(200, {"notes": notes})
 
-    def _memory_for(self, project: str) -> MemoryModel | None:
+    def _memory_for(self, request: dict[str, Any], project: str) -> MemoryModel | None:
+        """The memory model that may answer for `project`, or None.
+
+        Spark-bound: only an adapter recorded as trained from the Spark export (public lessons,
+        or the user's own with consent that still holds); any other raises SparkWithheldError.
+        Once trained, the lessons are gone, so the Spark view of the store can no longer show
+        what the weights hold: the provenance recorded at train time is the only evidence.
+        """
         memory = self._parts.memory
-        speaks = self._parts.mode is ServiceMode.WARN_AND_RECALL
-        return memory if memory is not None and speaks and memory.knows(project) else None
+        if memory is None or not memory.knows(project):
+            return None
+        if _spark_bound(request) and not may_answer_spark(memory.provenance, self._parts.consent):
+            raise SparkWithheldError
+        return memory
 
     def _memory_observe(
         self, call: Call, decision: Decision, memory: MemoryModel, key: tuple[str, str]
@@ -152,10 +172,11 @@ class Service:
         """Option A decides whether to speak; the memory model writes what is said."""
         position = len(self._prefixes[key]) - 1
         spoken = self._spoken.setdefault(key, [])
-        if decision.trouble is None or not may_speak(spoken, position):
+        trouble = decision.trouble
+        if trouble is None or not may_speak(spoken, position):
             self._parts.events.append_quiet(call, decision, HELD_BY_RULE)
             return Response(200, {"notes": []})
-        reply = memory.write_line(note_request(self._prefixes[key][-1].project, decision.trouble))
+        reply = memory.write_line(note_request(self._prefixes[key][-1].project, trouble))
         spoken.append(position)
         self._parts.events.append_memory_note(call, decision, reply.line, _cost(reply))
         return Response(200, {"notes": [reply.line]})
@@ -163,7 +184,7 @@ class Service:
     def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
         store = self._parts.store
         if _spark_bound(request):
-            return store.spark_view().lessons(project)
+            return store.spark_view(self._parts.consent).lessons(project)
         return store.lessons(project)
 
     def _recall(self, request: dict[str, Any], call: Call) -> Response:
@@ -172,11 +193,12 @@ class Service:
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
         lessons = self._lessons(request, project)
-        memory = self._parts.memory
-        if memory is not None and memory.knows(project):
+        memory = self._memory_for(request, project)
+        if memory is not None:
             reply = memory.write_line(recall_request(project, question))
-            self._parts.events.append_memory_note(call, None, reply.line, _cost(reply))
-            return Response(200, {"answer": reply.line, "records": []})
+            line = scrub(reply.line) if _spark_bound(request) else reply.line
+            self._parts.events.append_memory_note(call, None, line, _cost(reply))
+            return Response(200, {"answer": line, "records": []})
         if not lessons:
             return self._answered(call, NO_HISTORY, [])
         found = relevant_lessons(question, lessons)

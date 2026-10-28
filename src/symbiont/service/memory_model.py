@@ -11,11 +11,13 @@ so switching from the stand-in to Llama is a launch argument, not a code change.
 
 import time
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 from symbiont.core.memory_note import SYSTEM, InvalidNoteError, note_line
-from symbiont.egress import Destination, EgressRefusedError, Endpoint, post_json
+from symbiont.egress import Destination, EgressRefusedError, Endpoint, check_outbound, post_json
 from symbiont.egress.client import Transport
+from symbiont.records.privacy import OwnHistoryConsent
 
 # Owner decision 2026-10-28: the ungated MLX copy of Llama 3.2 1B Instruct ("Built with Llama").
 DEFAULT_MEMORY_MODEL = "mlx-community/Llama-3.2-1B-Instruct-bf16"
@@ -27,6 +29,26 @@ SERVER_DEFAULT = "default_model"
 MAX_TOKENS = 160
 # Under the hook client's 10 s, so a slow model is reported as offline by the service itself.
 TIMEOUT_S = 8.0
+
+
+class AdapterProvenance(StrEnum):
+    """What trained an adapter, recorded at train time, ordered from most to least shareable.
+
+    PUBLIC and OWN_HISTORY_WITH_CONSENT come from the fail-closed Spark export; the second
+    answers Spark only while the user's consent still holds. PERSONAL never answers Spark.
+    """
+
+    PUBLIC = "public"  # only Spark-safe lessons
+    OWN_HISTORY_WITH_CONSENT = "own_history_with_consent"  # plus the user's own, consented
+    PERSONAL = "personal"  # anything else; local models only
+
+
+def may_answer_spark(provenance: AdapterProvenance, consent: OwnHistoryConsent) -> bool:
+    """Whether an adapter of this provenance may answer a Spark-bound call under `consent`."""
+    if provenance is AdapterProvenance.PUBLIC:
+        return True
+    consented = consent is OwnHistoryConsent.GIVEN
+    return provenance is AdapterProvenance.OWN_HISTORY_WITH_CONSENT and consented
 
 
 class MemoryModelOfflineError(ConnectionError):
@@ -48,8 +70,17 @@ class MemoryModel:
 
     url: str
     projects: frozenset[str]
+    provenance: AdapterProvenance
     # None sends through urllib; tests pass a fake that never opens a socket.
     transport: Transport | None = None
+
+    def __post_init__(self) -> None:
+        """Refuse a non-loopback URL at launch, not at the first note (EgressRefusedError)."""
+        check_outbound(self._destination())
+
+    def _destination(self) -> Destination:
+        url = self.url.rstrip("/") + "/v1/chat/completions"
+        return Destination(Endpoint.LOCAL_MEMORY_MODEL, url)
 
     def knows(self, project: str) -> bool:
         """Whether the adapter was trained on this project's lessons."""
@@ -66,9 +97,7 @@ class MemoryModel:
         return MemoryReply(line, len(prompt), (time.monotonic() - started) * 1000.0)
 
     def _post(self, prompt: str) -> dict[str, Any]:
-        destination = Destination(
-            Endpoint.LOCAL_MEMORY_MODEL, self.url.rstrip("/") + "/v1/chat/completions"
-        )
+        destination = self._destination()
         try:
             if self.transport is None:
                 return post_json(destination, _request(prompt), timeout_s=TIMEOUT_S)
