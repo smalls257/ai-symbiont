@@ -1,0 +1,2368 @@
+{
+ "smoke": false,
+ "prereg": "prereg/2026-10-28-penalized-selection.md",
+ "freeze_commit": "cd54bc9c1728ce1d59ebea8ce8a4547b7d9692ec",
+ "prereg_sha256": "8a9cc4b5b74674eb140ea863411c71de92bc7fe8f1caead0e083aeec68a3122b",
+ "run_label": "scored",
+ "code_commit": "87785860134e3a09b6f0b171fbf3883ba9159357",
+ "g6_prereg": "prereg/2026-10-29-offline-selection.md",
+ "run_host": {
+  "hostname": "framework",
+  "python": "3.12.3",
+  "numpy": "2.5.4",
+  "workers": 14
+ },
+ "finished_utc": "2026-10-28T05:26:05+00:00",
+ "wall_clock_s": 5939.72200345993,
+ "learning_false_alarm_cost": 0.5,
+ "data": {
+  "records": 366185,
+  "sessions_read": 2678,
+  "sessions_dropped_taskless": 0,
+  "tasks_train": 193,
+  "tasks_test": 82,
+  "sessions_train": 1913,
+  "sessions_test": 765,
+  "split_seed": 20261029,
+  "test_fraction": 0.3
+ },
+ "hub_checkout": {
+  "task_id": "tobymao__sqlglot-3230",
+  "created_at": "2024-03-27 02:46:57",
+  "base_commit": "163c85c8ed327150a6e5c79f1a4b52a8848d4408",
+  "cutoff": 0.5,
+  "hub_modules": [
+   "sqlglot/__init__.py"
+  ],
+  "reference_files": 86
+ },
+ "recall_at_3": {
+  "counters": null,
+  "similarity seed 0": 0.0874564009817853,
+  "mushroom seed 0": 0.06317013305774448,
+  "mushroom seed 1": 0.04676398398139775,
+  "mushroom seed 2": 0.061167807776773025,
+  "dense seed 0 lr 0.1": 0.015824828833484045,
+  "dense seed 0 lr 0.3": 0.015889419971579898,
+  "dense seed 0 lr 1": 0.01453300607156698,
+  "dense seed 1 lr 0.1": 0.018343883219222323,
+  "dense seed 1 lr 0.3": 0.018796021185893297,
+  "dense seed 1 lr 1": 0.01453300607156698,
+  "dense seed 2 lr 0.1": 0.025578090685957885,
+  "dense seed 2 lr 0.3": 0.02667614003358739,
+  "dense seed 2 lr 1": 0.029453558971709082
+ },
+ "bootstrap": {
+  "draws": 2000,
+  "seed": 20261029,
+  "unit": "task",
+  "ci": "95% percentile"
+ },
+ "costs": [
+  0.5,
+  0.25,
+  1.0
+ ],
+ "primary_cost": 0.5,
+ "tasks_test": 82,
+ "rows": [
+  {
+   "arm": "warn never",
+   "role": "floor",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn on every step",
+   "role": "floor",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": 0.1521497715099995,
+     "ci95_low": 0.1413431407161369,
+     "ci95_high": 0.1627275035022188,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -0.27177534273500076,
+     "ci95_low": -0.28798528892579467,
+     "ci95_high": -0.2559087447466718,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -27.177534273500076,
+     "ci95_low": -28.798528892579466,
+     "ci95_high": -25.59087447466718,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "counters",
+   "role": "reference",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": 0.3953488372093023,
+     "ci95_low": 0.38311688311688313,
+     "ci95_high": 0.5,
+     "undefined_draws": 273
+    },
+    "recall": {
+     "value": 0.0014640657968393405,
+     "ci95_low": 0.0,
+     "ci95_high": 0.004241911462337213,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0005634448757636808,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0017107489069637391,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 5.2413476815226104e-05,
+     "ci95_low": 0.0,
+     "ci95_high": 0.00014726306599156368,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.00524134768152261,
+     "ci95_low": 0.0,
+     "ci95_high": 0.014726306599156368,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": 0.13333333333333333,
+     "ci95_low": 0.0,
+     "ci95_high": 0.3333333333333333,
+     "undefined_draws": 21
+    },
+    "recall": {
+     "value": 8.612151746113764e-05,
+     "ci95_low": 0.0,
+     "ci95_high": 0.00025653782959553033,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 9.827526902854895e-05,
+     "ci95_low": 9.785778957332353e-06,
+     "ci95_high": 0.0002416994756986469,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -2.9482580708564687e-05,
+     "ci95_low": -7.172528299606522e-05,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -0.0029482580708564687,
+     "ci95_low": -0.007172528299606522,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 0",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": 0.3867924528301887,
+     "ci95_low": 0.36363636363636365,
+     "ci95_high": 0.5,
+     "undefined_draws": 273
+    },
+    "recall": {
+     "value": 0.002648236661929983,
+     "ci95_low": 0.0,
+     "ci95_high": 0.007542379381699738,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.001041717851702619,
+     "ci95_low": 0.0,
+     "ci95_high": 0.003085423722473848,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 8.353397867426662e-05,
+     "ci95_low": 0.0,
+     "ci95_high": 0.00021323633378512265,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.008353397867426662,
+     "ci95_low": 0.0,
+     "ci95_high": 0.021323633378512265,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 1",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": 0.40625,
+     "ci95_low": 0.40625,
+     "ci95_high": 0.40625,
+     "undefined_draws": 747
+    },
+    "recall": {
+     "value": 0.0008396847952460922,
+     "ci95_low": 0.0,
+     "ci95_high": 0.00269381302626895,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0003144808608913567,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0010082805286456076,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 3.439634415999214e-05,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0001102806828206133,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.003439634415999214,
+     "ci95_low": 0.0,
+     "ci95_high": 0.011028068282061331,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 2",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": 0.4117647058823529,
+     "ci95_low": 0.4117647058823529,
+     "ci95_high": 0.4117647058823529,
+     "undefined_draws": 747
+    },
+    "recall": {
+     "value": 0.0009042759333419455,
+     "ci95_low": 0.0,
+     "ci95_high": 0.002901029412905023,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.00033413591469706646,
+     "ci95_low": 0.0,
+     "ci95_high": 0.001071298061685958,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 3.931010761141959e-05,
+     "ci95_low": 0.0,
+     "ci95_high": 0.00012603506608070095,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.003931010761141959,
+     "ci95_low": 0.0,
+     "ci95_high": 0.012603506608070095,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 0",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 1",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": 0.13333333333333333,
+     "ci95_low": 0.0,
+     "ci95_high": 0.3333333333333333,
+     "undefined_draws": 21
+    },
+    "recall": {
+     "value": 0.000258364552383413,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0007696134887865911,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0002948258070856469,
+     "ci95_low": 2.935733687199706e-05,
+     "ci95_high": 0.0007250984270959407,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -8.844774212569407e-05,
+     "ci95_low": -0.00021517584898819565,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -0.008844774212569406,
+     "ci95_low": -0.021517584898819563,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 2",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.5,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn never",
+   "role": "floor",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn on every step",
+   "role": "floor",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.1521497715099995,
+     "ci95_low": 0.1413431407161369,
+     "ci95_high": 0.1627275035022188,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -0.05981278561250061,
+     "ci95_low": -0.0733210741048289,
+     "ci95_high": -0.0465906206222265,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -5.981278561250061,
+     "ci95_low": -7.332107410482889,
+     "ci95_high": -4.65906206222265,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "counters",
+   "role": "reference",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.14385255113508655,
+     "ci95_low": 0.11823054649042108,
+     "ci95_high": 0.17322563440377273,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.04133832838134608,
+     "ci95_low": 0.030065317514159803,
+     "ci95_high": 0.05351174840068815,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.04372266719080144,
+     "ci95_low": 0.033718655356372924,
+     "ci95_high": 0.05331937830808507,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -0.0030686452754164414,
+     "ci95_low": -0.0045375701492000285,
+     "ci95_high": -0.0014204838496589321,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -0.30686452754164417,
+     "ci95_low": -0.45375701492000287,
+     "ci95_high": -0.14204838496589323,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.21915100198560222,
+     "ci95_low": 0.20007590450289736,
+     "ci95_high": 0.23745385809182099,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.5394221246178358,
+     "ci95_low": 0.4822223875673768,
+     "ci95_high": 0.5941098658346056,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.3745041193716934,
+     "ci95_low": 0.33463488567389926,
+     "ci95_high": 0.4140858259657497,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.008965161417129388,
+     "ci95_low": 3.225380068108296e-05,
+     "ci95_high": 0.018646173374024574,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.8965161417129388,
+     "ci95_low": 0.0032253800681082963,
+     "ci95_high": 1.8646173374024573,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.21171117231469283,
+     "ci95_low": 0.19223226665560164,
+     "ci95_high": 0.22923269274969418,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.1522628428712914,
+     "ci95_low": 0.12593737376647235,
+     "ci95_high": 0.1785600067188491,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.10942623622098833,
+     "ci95_low": 0.09379042561904302,
+     "ci95_high": 0.1254624810143586,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0016018868851653482,
+     "ci95_low": -0.0009979593728997717,
+     "ci95_high": 0.004190140660850235,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.1601886885165348,
+     "ci95_low": -0.09979593728997717,
+     "ci95_high": 0.4190140660850235,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 0",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.219296875,
+     "ci95_low": 0.20041957110679848,
+     "ci95_high": 0.2375232109556522,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.5439219739051802,
+     "ci95_low": 0.48689832156042556,
+     "ci95_high": 0.5981607706508469,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.37737703306962805,
+     "ci95_low": 0.3378946984117209,
+     "ci95_high": 0.41645917292540896,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.009102746793769347,
+     "ci95_low": 0.00018978817661611245,
+     "ci95_high": 0.018914413585748344,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.9102746793769347,
+     "ci95_low": 0.018978817661611243,
+     "ci95_high": 1.8914413585748344,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 1",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.2190564292321924,
+     "ci95_low": 0.19999413644156835,
+     "ci95_high": 0.23735025813378433,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.5353313525384318,
+     "ci95_low": 0.4781664723546468,
+     "ci95_high": 0.5901084649090615,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.371824480369515,
+     "ci95_low": 0.33209752234433565,
+     "ci95_high": 0.4114984866065821,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.008857058621197976,
+     "ci95_low": -2.4398547661344213e-06,
+     "ci95_high": 0.018564922176422884,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.8857058621197976,
+     "ci95_low": -0.00024398547661344213,
+     "ci95_high": 1.8564922176422884,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 2",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.21909787859693342,
+     "ci95_low": 0.19988640043333764,
+     "ci95_high": 0.23746170769341374,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.5390130474098953,
+     "ci95_low": 0.48128399049386017,
+     "ci95_high": 0.593860263964686,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.3743108446759373,
+     "ci95_low": 0.33429706260872416,
+     "ci95_high": 0.41404820662282515,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.008935678836420815,
+     "ci95_low": -4.659787987878578e-05,
+     "ci95_high": 0.01868801161144816,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.8935678836420815,
+     "ci95_low": -0.004659787987878578,
+     "ci95_high": 1.868801161144816,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 0",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.215377646925603,
+     "ci95_low": 0.19295371811464007,
+     "ci95_high": 0.23651895115805271,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.12285234465831288,
+     "ci95_low": 0.0979985882955889,
+     "ci95_high": 0.1482716171419445,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0867868900791116,
+     "ci95_low": 0.0725257333570543,
+     "ci95_high": 0.101822657608147,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0016682226917596188,
+     "ci95_low": -0.0007122203447000094,
+     "ci95_high": 0.004093562930662294,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.16682226917596188,
+     "ci95_low": -0.07122203447000094,
+     "ci95_high": 0.4093562930662294,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 1",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.20557318524395082,
+     "ci95_low": 0.18453618122245072,
+     "ci95_high": 0.22390696610091634,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.1338974292727038,
+     "ci95_low": 0.10827596901070086,
+     "ci95_high": 0.1591218118236152,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.09910078128838877,
+     "ci95_low": 0.08299017747476967,
+     "ci95_high": 0.11580819072365196,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0006903837649255565,
+     "ci95_low": -0.0017103055729430047,
+     "ci95_high": 0.0030425203677958562,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.06903837649255565,
+     "ci95_low": -0.17103055729430047,
+     "ci95_high": 0.3042520367795856,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 2",
+   "role": "under_test",
+   "split": "test",
+   "cost": 0.25,
+   "metrics": {
+    "precision": {
+     "value": 0.2137483608254538,
+     "ci95_low": 0.1961174568403484,
+     "ci95_high": 0.23135163673739945,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 0.2000387546828575,
+     "ci95_low": 0.16906343175473462,
+     "ci95_high": 0.22939323161440328,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.1423910372954646,
+     "ci95_low": 0.12452293780737976,
+     "ci95_high": 0.1607323964011758,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0024470541988108694,
+     "ci95_low": -0.000672555144576498,
+     "ci95_high": 0.005668423516745404,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.24470541988108693,
+     "ci95_low": -0.06725551445764981,
+     "ci95_high": 0.5668423516745404,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn never",
+   "role": "floor",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn on every step",
+   "role": "floor",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": 0.1521497715099995,
+     "ci95_low": 0.1413431407161369,
+     "ci95_high": 0.1627275035022188,
+     "undefined_draws": 0
+    },
+    "recall": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -0.6957004569800009,
+     "ci95_low": -0.7173137185677262,
+     "ci95_high": -0.6745449929955624,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -69.57004569800009,
+     "ci95_low": -71.73137185677263,
+     "ci95_high": -67.45449929955623,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "counters",
+   "role": "reference",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 21
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 7.206853062093592e-05,
+     "ci95_low": 3.5434729740094216e-06,
+     "ci95_high": 0.0001804803462747757,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -7.206853062093592e-05,
+     "ci95_low": -0.00018048034627477576,
+     "ci95_high": -3.5434729740094267e-06,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -0.007206853062093592,
+     "ci95_low": -0.018048034627477574,
+     "ci95_high": -0.00035434729740094266,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 0",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 1",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly seed 2",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 0",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 1",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 21
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.00021620559186280773,
+     "ci95_low": 1.0630418922028264e-05,
+     "ci95_high": 0.000541441038824327,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": -0.00021620559186280773,
+     "ci95_low": -0.0005414410388243273,
+     "ci95_high": -1.0630418922028279e-05,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": -0.021620559186280773,
+     "ci95_low": -0.05414410388243272,
+     "ci95_high": -0.001063041892202828,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense seed 2",
+   "role": "under_test",
+   "split": "test",
+   "cost": 1.0,
+   "metrics": {
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "recall": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "flag_rate": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_step": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "net_benefit_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "similarity",
+   "role": "reference",
+   "split": "test",
+   "cost": null,
+   "note": "no risk score, warns never; net benefit 0 by construction",
+   "recall_at_3": 0.0874564009817853
+  }
+ ],
+ "differences": [
+  {
+   "what": "fly minus counters",
+   "cost": 0.5,
+   "value": 5.2413476815226104e-05,
+   "ci95_low": 0.0,
+   "ci95_high": 0.00014726306599156368,
+   "undefined_draws": 0,
+   "standing": "tie"
+  },
+  {
+   "what": "dense minus counters",
+   "cost": 0.5,
+   "value": -2.9482580708564687e-05,
+   "ci95_low": -7.172528299606522e-05,
+   "ci95_high": 0.0,
+   "undefined_draws": 0,
+   "standing": "tie"
+  },
+  {
+   "what": "fly minus dense",
+   "cost": 0.5,
+   "value": 8.189605752379079e-05,
+   "ci95_low": 1.4512714234683313e-05,
+   "ci95_high": 0.0001840051861309713,
+   "undefined_draws": 0,
+   "standing": "better"
+  },
+  {
+   "what": "fly minus counters",
+   "cost": 0.25,
+   "value": 0.012033806692545829,
+   "ci95_low": 0.0038312958815326973,
+   "ci95_high": 0.0208448114014477,
+   "undefined_draws": 0,
+   "standing": "better"
+  },
+  {
+   "what": "dense minus counters",
+   "cost": 0.25,
+   "value": 0.00467053216058179,
+   "ci95_low": 0.0021309486763410016,
+   "ci95_high": 0.007225515403396656,
+   "undefined_draws": 0,
+   "standing": "better"
+  },
+  {
+   "what": "fly minus dense",
+   "cost": 0.25,
+   "value": 0.007363274531964039,
+   "ci95_low": -0.00040889697169801557,
+   "ci95_high": 0.015859009001162445,
+   "undefined_draws": 0,
+   "standing": "tie"
+  },
+  {
+   "what": "fly minus counters",
+   "cost": 1.0,
+   "value": 0.0,
+   "ci95_low": 0.0,
+   "ci95_high": 0.0,
+   "undefined_draws": 0,
+   "standing": "tie"
+  },
+  {
+   "what": "dense minus counters",
+   "cost": 1.0,
+   "value": -7.206853062093592e-05,
+   "ci95_low": -0.00018048034627477576,
+   "ci95_high": -3.5434729740094267e-06,
+   "undefined_draws": 0,
+   "standing": "worse"
+  },
+  {
+   "what": "fly minus dense",
+   "cost": 1.0,
+   "value": 7.206853062093592e-05,
+   "ci95_low": 3.5434729740094216e-06,
+   "ci95_high": 0.0001804803462747757,
+   "undefined_draws": 0,
+   "standing": "better"
+  }
+ ],
+ "chosen_on_train": {
+  "0.5": {
+   "counters": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": null
+   },
+   "fly seed 0": {
+    "threshold": 0.9811440300926499,
+    "warns_never": false,
+    "train_net_benefit_per_step": 3.970805128011194e-05,
+    "learning_rate": null
+   },
+   "fly seed 1": {
+    "threshold": 0.9910108162905663,
+    "warns_never": false,
+    "train_net_benefit_per_step": 9.454297923836176e-06,
+    "learning_rate": null
+   },
+   "fly seed 2": {
+    "threshold": 0.9910314895721085,
+    "warns_never": false,
+    "train_net_benefit_per_step": 9.454297923836176e-06,
+    "learning_rate": null
+   },
+   "dense seed 0": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": 0.1
+   },
+   "dense seed 1": {
+    "threshold": 0.9999998802129925,
+    "warns_never": false,
+    "train_net_benefit_per_step": 1.8908595847672352e-05,
+    "learning_rate": 0.3
+   },
+   "dense seed 2": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": 0.1
+   }
+  },
+  "0.25": {
+   "counters": {
+    "threshold": 944.0,
+    "warns_never": false,
+    "train_net_benefit_per_step": 0.00010683356653934878,
+    "learning_rate": null
+   },
+   "fly seed 0": {
+    "threshold": 0.7998365341323022,
+    "warns_never": false,
+    "train_net_benefit_per_step": 0.01583500359263321,
+    "learning_rate": null
+   },
+   "fly seed 1": {
+    "threshold": 0.8031012669231148,
+    "warns_never": false,
+    "train_net_benefit_per_step": 0.01572722459630148,
+    "learning_rate": null
+   },
+   "fly seed 2": {
+    "threshold": 0.8021505225017227,
+    "warns_never": false,
+    "train_net_benefit_per_step": 0.01580569526906932,
+    "learning_rate": null
+   },
+   "dense seed 0": {
+    "threshold": 0.644155323618954,
+    "warns_never": false,
+    "train_net_benefit_per_step": 0.0017707900011345158,
+    "learning_rate": 0.1
+   },
+   "dense seed 1": {
+    "threshold": 0.5623187664317392,
+    "warns_never": false,
+    "train_net_benefit_per_step": 0.0013434557349771205,
+    "learning_rate": 0.1
+   },
+   "dense seed 2": {
+    "threshold": 0.4417222255005415,
+    "warns_never": false,
+    "train_net_benefit_per_step": 0.002531860984003328,
+    "learning_rate": 0.1
+   }
+  },
+  "1": {
+   "counters": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": null
+   },
+   "fly seed 0": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": null
+   },
+   "fly seed 1": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": null
+   },
+   "fly seed 2": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": null
+   },
+   "dense seed 0": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": 0.1
+   },
+   "dense seed 1": {
+    "threshold": 0.9999999399006202,
+    "warns_never": false,
+    "train_net_benefit_per_step": 7.5634383390689406e-06,
+    "learning_rate": 0.3
+   },
+   "dense seed 2": {
+    "threshold": null,
+    "warns_never": true,
+    "train_net_benefit_per_step": 0.0,
+    "learning_rate": 0.1
+   }
+  }
+ },
+ "verdict": {
+  "live_warner": "none",
+  "cost": 0.5,
+  "net_benefit_per_step": {
+   "counters": {
+    "value": 0.0,
+    "ci95_low": 0.0,
+    "ci95_high": 0.0,
+    "undefined_draws": 0
+   },
+   "dense": {
+    "value": -2.9482580708564687e-05,
+    "ci95_low": -7.172528299606522e-05,
+    "ci95_high": 0.0,
+    "undefined_draws": 0
+   },
+   "fly": {
+    "value": 5.2413476815226104e-05,
+    "ci95_low": 0.0,
+    "ci95_high": 0.00014726306599156368,
+    "undefined_draws": 0
+   }
+  },
+  "rule": "best candidate whose ci95_low > 0; counters if it does not clearly beat them"
+ },
+ "table_rows": [
+  "warn never | c=0.5 | NB/100 0.00 [0.00, 0.00]",
+  "warn on every step | c=0.5 | NB/100 -27.18 [-28.80, -25.59]",
+  "counters | c=0.5 | NB/100 0.00 [0.00, 0.00]",
+  "fly | c=0.5 | NB/100 0.01 [0.00, 0.01]",
+  "dense | c=0.5 | NB/100 -0.00 [-0.01, 0.00]",
+  "fly seed 0 | c=0.5 | NB/100 0.01 [0.00, 0.02]",
+  "fly seed 1 | c=0.5 | NB/100 0.00 [0.00, 0.01]",
+  "fly seed 2 | c=0.5 | NB/100 0.00 [0.00, 0.01]",
+  "dense seed 0 | c=0.5 | NB/100 0.00 [0.00, 0.00]",
+  "dense seed 1 | c=0.5 | NB/100 -0.01 [-0.02, 0.00]",
+  "dense seed 2 | c=0.5 | NB/100 0.00 [0.00, 0.00]",
+  "warn never | c=0.25 | NB/100 0.00 [0.00, 0.00]",
+  "warn on every step | c=0.25 | NB/100 -5.98 [-7.33, -4.66]",
+  "counters | c=0.25 | NB/100 -0.31 [-0.45, -0.14]",
+  "fly | c=0.25 | NB/100 0.90 [0.00, 1.86]",
+  "dense | c=0.25 | NB/100 0.16 [-0.10, 0.42]",
+  "fly seed 0 | c=0.25 | NB/100 0.91 [0.02, 1.89]",
+  "fly seed 1 | c=0.25 | NB/100 0.89 [-0.00, 1.86]",
+  "fly seed 2 | c=0.25 | NB/100 0.89 [-0.00, 1.87]",
+  "dense seed 0 | c=0.25 | NB/100 0.17 [-0.07, 0.41]",
+  "dense seed 1 | c=0.25 | NB/100 0.07 [-0.17, 0.30]",
+  "dense seed 2 | c=0.25 | NB/100 0.24 [-0.07, 0.57]",
+  "warn never | c=1 | NB/100 0.00 [0.00, 0.00]",
+  "warn on every step | c=1 | NB/100 -69.57 [-71.73, -67.45]",
+  "counters | c=1 | NB/100 0.00 [0.00, 0.00]",
+  "fly | c=1 | NB/100 0.00 [0.00, 0.00]",
+  "dense | c=1 | NB/100 -0.01 [-0.02, -0.00]",
+  "fly seed 0 | c=1 | NB/100 0.00 [0.00, 0.00]",
+  "fly seed 1 | c=1 | NB/100 0.00 [0.00, 0.00]",
+  "fly seed 2 | c=1 | NB/100 0.00 [0.00, 0.00]",
+  "dense seed 0 | c=1 | NB/100 0.00 [0.00, 0.00]",
+  "dense seed 1 | c=1 | NB/100 -0.02 [-0.05, -0.00]",
+  "dense seed 2 | c=1 | NB/100 0.00 [0.00, 0.00]"
+ ],
+ "per_task_counts_tp_fp_fn_tn_at_primary_cost": {
+  "counters": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,0,313,2197",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,0,0,269,939",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,0,0,476,1371",
+   "tobymao__sqlglot-3426,0,0,166,991",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,0,0,173,910",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,0,301,1171",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "fly": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,0,313,2197",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,19,31,249,907",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,3,3,473,1368",
+   "tobymao__sqlglot-3426,0,0,166,991",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,0,0,173,910",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,0,301,1171",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "dense": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,1,313,2196",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,0,0,269,939",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,0,0,476,1371",
+   "tobymao__sqlglot-3426,0,0,165,990",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,1,4,172,906",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,3,301,1168",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "fly seed 0": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,0,313,2197",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,32,56,237,883",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,9,9,467,1362",
+   "tobymao__sqlglot-3426,0,0,166,991",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,0,0,173,910",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,0,301,1171",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "fly seed 1": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,0,313,2197",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,13,19,256,920",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,0,0,476,1371",
+   "tobymao__sqlglot-3426,0,0,166,991",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,0,0,173,910",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,0,301,1171",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "fly seed 2": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,0,313,2197",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,14,20,255,919",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,0,0,476,1371",
+   "tobymao__sqlglot-3426,0,0,166,991",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,0,0,173,910",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,0,301,1171",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "dense seed 0": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,0,313,2197",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,0,0,269,939",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,0,0,476,1371",
+   "tobymao__sqlglot-3426,0,0,166,991",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,0,0,173,910",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,0,301,1171",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "dense seed 1": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,3,313,2194",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,0,0,269,939",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,0,0,476,1371",
+   "tobymao__sqlglot-3426,1,2,165,989",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,3,12,170,898",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,9,301,1162",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ],
+  "dense seed 2": [
+   "tobymao__sqlglot-1062,0,0,158,1331",
+   "tobymao__sqlglot-1309,0,0,88,853",
+   "tobymao__sqlglot-1540,0,0,313,2197",
+   "tobymao__sqlglot-1642,0,0,181,1432",
+   "tobymao__sqlglot-1670,0,0,149,981",
+   "tobymao__sqlglot-1871,0,0,178,1643",
+   "tobymao__sqlglot-1872,0,0,148,937",
+   "tobymao__sqlglot-1924,0,0,387,2657",
+   "tobymao__sqlglot-1944,0,0,127,952",
+   "tobymao__sqlglot-2093,0,0,170,774",
+   "tobymao__sqlglot-2095,0,0,181,1197",
+   "tobymao__sqlglot-2165,0,0,188,831",
+   "tobymao__sqlglot-2179,0,0,85,561",
+   "tobymao__sqlglot-2191,0,0,134,1107",
+   "tobymao__sqlglot-2208,0,0,244,796",
+   "tobymao__sqlglot-2226,0,0,301,1108",
+   "tobymao__sqlglot-2305,0,0,240,1179",
+   "tobymao__sqlglot-2439,0,0,101,635",
+   "tobymao__sqlglot-2461,0,0,214,994",
+   "tobymao__sqlglot-2507,0,0,269,939",
+   "tobymao__sqlglot-2521,0,0,225,1020",
+   "tobymao__sqlglot-2529,0,0,163,473",
+   "tobymao__sqlglot-2605,0,0,113,840",
+   "tobymao__sqlglot-2658,0,0,137,603",
+   "tobymao__sqlglot-2794,0,0,228,834",
+   "tobymao__sqlglot-3045,0,0,94,669",
+   "tobymao__sqlglot-3129,0,0,198,1305",
+   "tobymao__sqlglot-3198,0,0,81,698",
+   "tobymao__sqlglot-3204,0,0,447,1243",
+   "tobymao__sqlglot-3242,0,0,308,992",
+   "tobymao__sqlglot-3255,0,0,185,1168",
+   "tobymao__sqlglot-3329,0,0,86,936",
+   "tobymao__sqlglot-3333,0,0,298,1266",
+   "tobymao__sqlglot-3339,0,0,173,687",
+   "tobymao__sqlglot-3376,0,0,335,1841",
+   "tobymao__sqlglot-3392,0,0,123,780",
+   "tobymao__sqlglot-3401,0,0,188,904",
+   "tobymao__sqlglot-3425,0,0,476,1371",
+   "tobymao__sqlglot-3426,0,0,166,991",
+   "tobymao__sqlglot-3478,0,0,165,1347",
+   "tobymao__sqlglot-3515,0,0,161,1411",
+   "tobymao__sqlglot-3533,0,0,173,910",
+   "tobymao__sqlglot-3548,0,0,360,1106",
+   "tobymao__sqlglot-3612,0,0,144,1169",
+   "tobymao__sqlglot-3650,0,0,181,934",
+   "tobymao__sqlglot-3701,0,0,186,1496",
+   "tobymao__sqlglot-3731,0,0,136,1083",
+   "tobymao__sqlglot-3785,0,0,72,642",
+   "tobymao__sqlglot-3798,0,0,125,740",
+   "tobymao__sqlglot-3799,0,0,106,899",
+   "tobymao__sqlglot-3806,0,0,142,700",
+   "tobymao__sqlglot-3820,0,0,301,1171",
+   "tobymao__sqlglot-3847,0,0,270,1151",
+   "tobymao__sqlglot-3975,0,0,160,543",
+   "tobymao__sqlglot-4040,0,0,42,634",
+   "tobymao__sqlglot-4067,0,0,192,1007",
+   "tobymao__sqlglot-4104,0,0,181,987",
+   "tobymao__sqlglot-4127,0,0,100,680",
+   "tobymao__sqlglot-4130,0,0,133,616",
+   "tobymao__sqlglot-4148,0,0,150,1764",
+   "tobymao__sqlglot-4197,0,0,151,558",
+   "tobymao__sqlglot-4239,0,0,161,1040",
+   "tobymao__sqlglot-428,0,0,208,1146",
+   "tobymao__sqlglot-4293,0,0,202,932",
+   "tobymao__sqlglot-4311,0,0,168,871",
+   "tobymao__sqlglot-4325,0,0,195,992",
+   "tobymao__sqlglot-4328,0,0,170,766",
+   "tobymao__sqlglot-4331,0,0,207,798",
+   "tobymao__sqlglot-4373,0,0,77,714",
+   "tobymao__sqlglot-4393,0,0,122,886",
+   "tobymao__sqlglot-4415,0,0,204,1585",
+   "tobymao__sqlglot-4457,0,0,122,763",
+   "tobymao__sqlglot-4459,0,0,105,731",
+   "tobymao__sqlglot-4472,0,0,187,1356",
+   "tobymao__sqlglot-4545,0,0,343,1387",
+   "tobymao__sqlglot-4546,0,0,261,1721",
+   "tobymao__sqlglot-570,0,0,91,1344",
+   "tobymao__sqlglot-767,0,0,342,2765",
+   "tobymao__sqlglot-784,0,0,267,916",
+   "tobymao__sqlglot-790,0,0,200,1096",
+   "tobymao__sqlglot-960,0,0,23,248",
+   "tobymao__sqlglot-975,0,0,316,943"
+  ]
+ },
+ "steps_test": 101755
+}
