@@ -33,8 +33,8 @@ from screen_rules import cells_of
 from staged import BlockedError, Driver, add_limit_arguments, settings_for
 from staged_summary import RUN_FIELDS, RUNS_PER_TASK, run_totals
 
-TARGET_IN_BAND = 15  # coordinator ruling 2026-10-28: enough in-band tasks for the scored pool
-MIN_STRATA = 3  # spread them over this many strata, as far as the candidates allow
+TARGET_IN_BAND = 8  # coordinator ruling 2026-10-28 (was 15): enough in-band tasks for the pool
+MIN_STRATA = 2  # spread them over this many strata, as far as the candidates allow
 BARREN_LIMIT = 20  # finished tasks in a row with no new in-band task end the search
 ABOVE_BAND = "above_band"
 REASONING = "low"  # every earlier screen run used "low"; no medium run exists to compare with
