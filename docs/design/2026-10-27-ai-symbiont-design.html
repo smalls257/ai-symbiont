@@ -59,7 +59,7 @@
 
 <div class="hero" id="hero">
   <div class="lede"><b>Frontier models serve everyone. A small personal learner, trained on your own agent history, makes one yours.</b></div>
-  <div>It sits beside a coding model, learns the mistakes <i>you</i> and your agent keep making, and warns the agent before it makes them again. It runs on your machine, and works with API models and with open weights.</div>
+  <div>It sits beside your coding model and learns the mistakes <i>you</i> and your agent keep making. Then it warns the agent before the next one. It runs on your machine, with an API model or with open weights.</div>
   <pre class="mermaid">
 flowchart LR
   H["Your history<br/>sessions · PRs · corrections"] --> M["Miner<br/>finds pain points"]
@@ -72,19 +72,19 @@ flowchart LR
   </pre>
 </div>
 
-<p class="note">Five sections. Each opens for detail; nested panels go one level deeper. Tags:
+<p class="note">Five sections follow. Each one opens for detail, and the panels inside go one level deeper. Tags:
 <span class="t m">measured</span> <span class="t e">established</span> <span class="t h">hypothesis</span></p>
 
 <!-- 1 -->
 <details class="chunk">
 <summary><div class="num">1</div><div class="head"><h2>Why this, and for whom</h2>
-<p>A pathway from a general model to one tailored to one person, without a training cluster.</p></div><div class="chev">▶</div></summary>
+<p>A path from a general model to one tuned to one person, with no training cluster.</p></div><div class="chev">▶</div></summary>
 <div class="body">
   <ul>
-    <li><b>For:</b> company teams that already have agent-session history, and solo devs with one machine.</li>
-    <li><b>Tailored per person</b> from their own past sessions, not per company.</li>
-    <li><b>Why small:</b> one ~5k-cell learner per developer is cheap enough to give everyone their own and keep learning. Fine-tuning a big model per person isn't. <span class="t h">hypothesis</span></li>
-    <li><b>Design principle:</b> small networks are good at <i>deciding</i> (what to fetch, is this going badly) and bad at <i>storing</i> compressed memories. So we keep the original text and let the network pick from it.</li>
+    <li><b>Who it's for:</b> company teams that already hold agent-session history, and solo developers with one machine.</li>
+    <li><b>Tuned per person,</b> from their own past sessions, not one learner per company.</li>
+    <li><b>Why small:</b> one learner of about 5k cells per developer is cheap enough that everyone gets their own, and it keeps learning. Fine-tuning a big model per person isn't. <span class="t h">hypothesis</span></li>
+    <li><b>The design principle:</b> small networks are good at <i>deciding</i> (what to fetch, is this going badly) and bad at <i>storing</i> compressed memories. So we keep the original text and let the network pick from it.</li>
   </ul>
   <details class="sub"><summary>Goals, non-goals, anti-goals</summary><div>
     <table>
@@ -99,21 +99,21 @@ flowchart LR
 <!-- 2 -->
 <details class="chunk">
 <summary><div class="num">2</div><div class="head"><h2>What we build</h2>
-<p>One miner feeding two routes: notes in context for any model, or a personal adapter in the weights for open models.</p></div><div class="chev">▶</div></summary>
+<p>One miner feeds two routes: notes in the chat for any model, or a personal adapter in the weights of an open model.</p></div><div class="chev">▶</div></summary>
 <div class="body">
   <div class="three">
-    <div class="pill"><b>Miner</b>Reads your history and finds pain points. Rule-based, CPU, no AI model.</div>
-    <div class="pill"><b>Route A · any model</b>A small swappable learner (fly mushroom body first) flags trouble and picks what to recall; MCP + hooks put notes in chat. The model decides.</div>
+    <div class="pill"><b>Miner</b>It reads your history and finds the pain points. It's rule-based, runs on CPU and uses no AI model.</div>
+    <div class="pill"><b>Route A · any model</b>A small learner, swappable, flags trouble and picks what to recall. The first one is built on the fly's mushroom body. MCP and hooks put the notes in chat, and the model decides what to do with them.</div>
     <div class="pill"><b>Route B · open weights</b>A personal LoRA on Glimmer learns the same points, recalls them, and makes the correction itself.</div>
   </div>
 
   <details class="sub"><summary>What the developer sees</summary><div>
     <ol>
-      <li>Run <code>symbiont setup</code>: a guided terminal wizard.</li>
-      <li>It finds your history and lists projects with session, PR and correction counts. Pick all, or a mix.</li>
-      <li>Preview the top pain points it found, with the original text.</li>
-      <li>It trains the fly network on CPU (and optionally a LoRA adapter on a GPU, for open-weight models), then installs into your harness.</li>
-      <li>Code as usual. Notes appear when relevant:</li>
+      <li>You run <code>symbiont setup</code>, a guided terminal wizard.</li>
+      <li>It finds your history and lists your projects with session, PR and correction counts. You pick all of them, or a mix.</li>
+      <li>You preview the top pain points it found, with the original text.</li>
+      <li>It trains the fly network on CPU, and a LoRA adapter on a GPU if you want one for an open-weight model. Then it installs into your harness.</li>
+      <li>You code as usual, and notes appear when they're relevant:</li>
     </ol>
     <div class="chat">
       you › add retry to the webhook handler<br>
@@ -121,43 +121,43 @@ flowchart LR
       agent › editing webhooks/handler.py …<br>
       <span class="r">↺ symbiont · recalled: you rejected exponential backoff here on Oct 12 ("use the queue's retry")</span>
     </div>
-    <p class="note">History never leaves the machine. If a log can't be read, the wizard names it and asks; it never quietly trains on less.</p>
+    <p class="note">Your history never leaves the machine. If the wizard can't read a log, it names the file and asks you. It never quietly trains on less.</p>
   </div></details>
 
   <details class="sub"><summary>Miner: what counts as a pain point</summary><div>
     <ul>
       <li>A command that failed · an edit later reworked · code a PR reviewer flagged · a place you corrected the agent · a loop (same command, same file re-read) · <b>blast radius</b> (a change made without checking what else it affects).</li>
-      <li>One reader per harness, one shared record format. First readers: OpenHands, Claude Code, mini-SWE-agent, Muse Code. Codex and Cursor later.</li>
+      <li>Each harness gets one reader, and every reader writes one shared record format. The first readers are OpenHands, Claude Code, mini-SWE-agent and Muse Code. Codex and Cursor come later.</li>
     </ul>
   </div></details>
 
   <details class="sub"><summary>The learner: a swappable slot (fly mushroom body first)</summary><div>
     <ul>
-      <li><b>Swappable.</b> The learner is a slot any small home-grown network can fill. Plain counters and similarity search sit in the same slot as references. Whichever wins on offline numbers by ~Oct 30 runs live; if the network only ties, we say so.</li>
-      <li>86 inputs fan out to 5,177 Kenyon cells, using the fruit fly's published numbers; the top 5% fire; a readout learns with a local dopamine-like rule, no backprop. <span class="t e">established</span></li>
-      <li>Random wiring by default. The real FlyWire wiring is an optional download. We say "a learner built on the fly's circuit", and make no claim that the real wiring improves results.</li>
-      <li><b>Always compared against plain counters.</b> Simple counting is often hard to beat. <span class="t h">hypothesis</span></li>
-      <li>Shown live: sparse cells lighting up, a dopamine pulse when it learns.</li>
+      <li><b>Swappable.</b> The learner is a slot that any small home-grown network can fill. Plain counters and similarity search sit in the same slot as references. Whichever wins on the offline numbers by about October 30 runs live, and if the network only ties, we say so.</li>
+      <li>86 inputs fan out to 5,177 Kenyon cells, the fruit fly's published numbers. The top 5% fire, and a readout learns with a local dopamine-like rule, with no backprop. <span class="t e">established</span></li>
+      <li>The wiring is random by default, and the real FlyWire wiring is an optional download. We say "a learner built on the fly's circuit", and we don't claim the real wiring improves results.</li>
+      <li><b>We always compare it against plain counters,</b> because simple counting is often hard to beat. <span class="t h">hypothesis</span></li>
+      <li>You'll see it live: sparse cells lighting up, and a dopamine pulse when it learns.</li>
     </ul>
   </div></details>
 
   <details class="sub"><summary>Delivery: how notes reach the model</summary><div>
     <ul>
-      <li><b>Hooks push</b> short notes at session start, on each prompt, before model calls and after tool calls (event names per a third-party guide; inline display still to be tested).</li>
+      <li><b>Hooks push</b> short notes at session start, on each prompt, before model calls and after tool calls. The event names come from a third-party guide, and we haven't tested inline display yet.</li>
       <li><b>MCP <code>recall</code></b> lets the model ask for memories itself.</li>
-      <li><b>The model decides.</b> We don't build a harness and the sidecar never acts on its own. If models ignore notes, the fallback is a <i>louder note</i> (placed in the tool result, worded as a finding).</li>
-      <li>Installs into Muse Code and Claude Code. Glimmer in mini-SWE-agent gets the same notes through a thin wrapper.</li>
+      <li><b>The model decides.</b> We don't build a harness, and the sidecar never acts on its own. If models ignore the notes, we fall back to a <i>louder note</i>, placed in the tool result and worded as a finding.</li>
+      <li>It installs into Muse Code and Claude Code. Glimmer in mini-SWE-agent gets the same notes through a thin wrapper.</li>
     </ul>
   </div></details>
 
   <details class="sub"><summary>Route B: the personal LoRA on Glimmer</summary><div>
     <ul>
-      <li><b>Same points as Route A</b>, learned into the weights instead of delivered as notes.</li>
-      <li><b>Recall:</b> trained on self-study Q&amp;A about each pain point, so it can answer "what broke last time I touched X?".</li>
-      <li><b>Correct:</b> because we own the model, it doesn't stop at a warning. It's trained on situation → corrected action: what you did after correcting the agent, the edit version that survived, the command that finally worked, the files a change should have checked.</li>
-      <li><b>Risk:</b> one adapter holding a lot of history may forget most of it. Mitigation: keep each person's set to their top pain points; per-chunk adapters with a picker as fallback. <span class="t h">hypothesis</span></li>
-      <li><b>Cost:</b> ~16 h of GPU per 2,000 training steps (projected), so one or two adapters overnight. Serving the adapter alongside the existing model server is checked on day 1. <span class="t h">hypothesis</span></li>
-      <li><b>Lab only:</b> direct vector injection (~3 tok/s), and one per-chunk adapter experiment.</li>
+      <li><b>The same points as Route A,</b> learned into the weights instead of delivered as notes.</li>
+      <li><b>Recall:</b> we train it on self-study Q&amp;A about each pain point, so it can answer "what broke last time I touched X?".</li>
+      <li><b>Correct:</b> we own the model, so it doesn't stop at a warning. We train it on situation → corrected action: what you did after correcting the agent, the edit that survived, the command that finally worked, and the files a change should have checked.</li>
+      <li><b>Risk:</b> one adapter holding a lot of history may forget most of it. So we keep each person's set to their top pain points, and we fall back to per-chunk adapters with a picker. <span class="t h">hypothesis</span></li>
+      <li><b>Cost:</b> about 16 h of GPU per 2,000 training steps, projected, so one or two adapters overnight. On day 1 we check that the adapter serves beside the existing model server. <span class="t h">hypothesis</span></li>
+      <li><b>Lab only:</b> direct vector injection (about 3 tok/s), and one per-chunk adapter experiment.</li>
     </ul>
   </div></details>
 
@@ -189,12 +189,12 @@ flowchart LR
 <!-- 3 -->
 <details class="chunk">
 <summary><div class="num">3</div><div class="head"><h2>How we prove it</h2>
-<p>Real models on real bugs, with and without the fly. Freedoom as the visual hook.</p></div><div class="chev">▶</div></summary>
+<p>Real models on real bugs, with and without the fly, and Freedoom as the visual hook.</p></div><div class="chev">▶</div></summary>
 <div class="body">
   <ul>
-    <li><b>Act 2, the claim:</b> a "developer's week" of real bugs from one open-source repo, graded by its own tests. Plain model vs Route A (notes), Route B (personal LoRA) and both.</li>
-    <li><b>Main number:</b> how often the agent repeats a mistake. Second: tests passing.</li>
-    <li><b>Act 1, the hook:</b> a Muse model plays Freedoom (via ViZDoom) from a text description of the game; the fly flags loops and wasted moves.</li>
+    <li><b>Act 2 carries the claim:</b> a "developer's week" of real bugs from one open-source repo, graded by its own tests. We run the plain model against Route A (notes), Route B (the personal LoRA) and both together.</li>
+    <li><b>The main number</b> is how often the agent repeats a mistake. The second is how often the tests pass.</li>
+    <li><b>Act 1 is the hook:</b> a Muse model plays Freedoom via ViZDoom from a text description of the game, and the fly flags loops and wasted moves.</li>
   </ul>
 
   <details class="sub"><summary>Act 2 run matrix</summary><div>
@@ -209,15 +209,15 @@ flowchart LR
       <tr><td>Muse Glimmer + LoRA + fly (A + B)</td><td>mini-SWE-agent</td><td>under test</td><td>subset, if GPU allows</td></tr>
       <tr><td>Muse Wonder, plain</td><td>Muse Code</td><td>reference (cost story)</td><td>a few</td></tr>
     </table>
-    <p class="note">Compared only within a model. Tasks are calibrated so each model solves them only sometimes (~20–60%): the fly prevents repeated mistakes, it doesn't add skill. [hypothesis]</p>
+    <p class="note">We compare arms only within one model. We calibrate the tasks so each model solves them only sometimes (about 20–60%), because the fly prevents repeated mistakes and doesn't add skill. [hypothesis]</p>
   </div></details>
 
   <details class="sub"><summary>Fairness rules</summary><div>
     <ul>
-      <li>History the fly learns from never includes past runs of the tasks being scored (no peeking at answers).</li>
-      <li>The fly keeps learning between sessions during the week; both arms are graded against the same reference history.</li>
-      <li>Each scored run has a written plan frozen in advance; amendments are dated.</li>
-      <li>The counters baseline is shown next to the fly everywhere.</li>
+      <li>The history the fly learns from never includes past runs of the tasks we score, so it can't peek at the answers.</li>
+      <li>The fly keeps learning between sessions through the week, and we grade both arms against the same reference history.</li>
+      <li>Each scored run has a written plan we freeze in advance, and every amendment carries a date.</li>
+      <li>The counters baseline sits next to the fly everywhere.</li>
     </ul>
   </div></details>
 
@@ -233,10 +233,10 @@ flowchart LR
 
   <details class="sub"><summary>Act 1: Freedoom details</summary><div>
     <ul>
-      <li>The game pauses each step while the model thinks; the video is sped up. Freedoom levels or ViZDoom scenarios only.</li>
-      <li>The model picks the strategy ("get the blue key, back to the blue door"); simple scripted moves carry it out, labeled as such.</li>
-      <li><b>Both scored and showcase:</b> fixed levels and seeds, all runs reported; the video clip is cut from those runs and labeled "selected episode", with the full scoreboard under it.</li>
-      <li>Muse Spark plays the scored episodes; Glimmer plays a few for the open-weights angle.</li>
+      <li>The game pauses at each step while the model thinks, so we speed the video up. We use Freedoom levels or ViZDoom scenarios only.</li>
+      <li>The model picks the strategy ("get the blue key, back to the blue door"), and simple scripted moves carry it out, labeled as scripted.</li>
+      <li><b>Scored and showcase at once:</b> fixed levels and seeds, and every run reported. We cut the video clip from those runs, label it "selected episode", and put the full scoreboard under it.</li>
+      <li>Muse Spark plays the scored episodes, and Glimmer plays a few for the open-weights angle.</li>
     </ul>
   </div></details>
 </div>
@@ -245,7 +245,7 @@ flowchart LR
 <!-- 4 -->
 <details class="chunk">
 <summary><div class="num">4</div><div class="head"><h2>Guardrails</h2>
-<p>Licenses, data handling, budget and hardware: the rules every part follows.</p></div><div class="chev">▶</div></summary>
+<p>Licenses, data handling, budget and hardware, the rules every part follows.</p></div><div class="chev">▶</div></summary>
 <div class="body">
   <details class="sub"><summary>Data</summary><div>
     <table>
@@ -254,26 +254,26 @@ flowchart LR
       <tr><td>Real human corrections (miner demo)</td><td>SWE-chat (gated)</td><td>ODC-BY · stays local</td></tr>
       <tr><td>PR review signals (optional)</td><td>AIDev</td><td>CC-BY-4.0 · counts and labels only</td></tr>
     </table>
-    <p class="note">Raw data is never committed; it downloads on setup. Real people's text is never sent to a model tier that may train on it.</p>
+    <p class="note">We never commit raw data; it downloads on setup. We never send real people's text to a model tier that may train on it.</p>
   </div></details>
   <details class="sub"><summary>Licenses and naming</summary><div>
     <ul>
       <li>ViZDoom is a dependency, never vendored. Freedoom is BSD-3, downloaded on setup.</li>
       <li>"Doom" is a trademark: we say "plays Freedoom via ViZDoom".</li>
-      <li>FlyWire connectome data is never committed; an optional user download, cited as requested.</li>
+      <li>We never commit FlyWire connectome data. It's an optional download for the user, cited the way FlyWire asks.</li>
       <li>Muse Glimmer is Apache 2.0, so adapters are fine.</li>
     </ul>
   </div></details>
   <details class="sub"><summary>Budget and hardware</summary><div>
     <ul>
-      <li>$150 API credit; every paid run is estimated up front and approved first. Rough guess: $0.05–0.10 per Spark task run. <span class="t h">hypothesis</span></li>
+      <li>We have $150 of API credit. We estimate every paid run up front, and the owner approves it first. Our rough guess is $0.05–0.10 per Spark task run. <span class="t h">hypothesis</span></li>
       <li>One home GPU box runs Glimmer by day and training / art overnight, one job at a time.</li>
       <li>A desktop runs the task and test containers. The laptop only orchestrates.</li>
     </ul>
   </div></details>
   <details class="sub"><summary>Hackathon rules</summary><div>
     <ul>
-      <li>Public repo with only work done during the event; everything built fresh.</li>
+      <li>The repo is public and holds only work done during the event. We built everything fresh.</li>
       <li>3-minute video. Judging: Impact 30 · Meta tooling 25 · Technical depth 20 · Demo 25.</li>
       <li>Bonus targets: Best Build on Meta Open Weight Models, Best Agentic Use-Case.</li>
     </ul>
@@ -284,7 +284,7 @@ flowchart LR
 <!-- 5 -->
 <details class="chunk">
 <summary><div class="num">5</div><div class="head"><h2>Schedule and open items</h2>
-<p>Gates on days 1–2, scored runs from Oct 31, submit Nov 4 at 9 PM ET.</p></div><div class="chev">▶</div></summary>
+<p>Go/no-go checks on days 1–2, scored runs from October 31, and we submit on November 4 at 9 PM ET.</p></div><div class="chev">▶</div></summary>
 <div class="body">
   <pre class="mermaid">
 gantt

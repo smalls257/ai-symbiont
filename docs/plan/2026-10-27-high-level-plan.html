@@ -23,14 +23,14 @@
 <body>
 
 <h1>ai-symbiont: high-level plan</h1>
-<div class="sub">Draft from brainstorming, 2026-10-27. Not the design doc yet. Building runs Oct 27 to Nov 4, 9:00 PM ET.
+<div class="sub">A draft from brainstorming on October 27. It isn't the design page yet. Building runs October 27 to November 4, 9:00 PM ET.
 Tags: <span class="tag m">measured</span> <span class="tag e">established</span> <span class="tag h">hypothesis</span></div>
 
 <h2>1. What the judge leaves believing</h2>
 <div class="card">
   <b>Frontier models serve everyone. A small personal learner, trained on your own agent history, makes them yours.</b><br>
-  For company teams that have session history, and still runnable by a solo dev on one box (Glimmer on the Strix).
-  The dev installs one thing (MCP server + hooks), picks projects in a guided setup, and then sees warnings and recalls appear inline in chat.
+  It's for company teams that hold session history, and a solo developer can still run it on one box (Glimmer on a home GPU server).
+  The developer installs one thing, the MCP server plus hooks, picks projects in a guided setup, and then sees warnings and recalls appear inline in chat.
   <span class="tag h">hypothesis: that this helps in practice is what Act 2 measures</span>
 </div>
 
@@ -98,9 +98,9 @@ gantt
 
 <h2>5. Data <span class="tag e">from the license survey, not yet re-verified</span></h2>
 <div class="grid">
-  <div class="card"><b>Dev history (miner input)</b><br>SWE-chat v2 (ODC-BY): real sessions with labeled corrections. Gated: you accept terms on Hugging Face. Raw rows stay local; only derived features go to Spark.</div>
+  <div class="card"><b>Dev history (miner input)</b><br>SWE-chat v2 (ODC-BY): real sessions with labeled corrections. It's gated, so you accept the terms on Hugging Face. Raw rows stay local, and only derived features go to Spark.</div>
   <div class="card"><b>Scored tasks (one repo)</b><br>nvidia Open-SWE-Traces, Claude Code split (CC-BY-4.0; moto 227, click 193) or nebius SWE-rebench-openhands (CC-BY-4.0; sqlglot 275, Docker images).</div>
-  <div class="card"><b>Avoid</b><br>SWE-bench/experiments (no license). SWE-smith trajectories (mostly Claude output, keep off Spark).</div>
+  <div class="card"><b>Avoid</b><br>SWE-bench/experiments (no license). SWE-smith trajectories (mostly Claude output, so they stay off Spark).</div>
 </div>
 
 <h2>6. Risks and what we do about them</h2>
