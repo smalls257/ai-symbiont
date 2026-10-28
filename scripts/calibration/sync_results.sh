@@ -8,6 +8,8 @@ set -uo pipefail
 : "${SYMBIONT_DESKTOP_SSH:?SYMBIONT_DESKTOP_SSH is not set: export user@host of the desktop (see env.example)}"
 : "${SYMBIONT_DESKTOP_WORKDIR:?SYMBIONT_DESKTOP_WORKDIR is not set: export the desktop work dir (see env.example)}"
 REPO=$1; INTERVAL=${2:-120}
+# Test-only override: lets a test probe for its own fake driver, not the whole host's process table.
+DRIVER_PATTERN=${SYMBIONT_DRIVER_PATTERN:-launch.py|staged.py}
 OUT=results/calibration-glimmer.json
 remote() { ssh -o ConnectTimeout=15 "$SYMBIONT_DESKTOP_SSH" wsl -d Ubuntu-24.04 --cd "$SYMBIONT_DESKTOP_WORKDIR" -- bash -s; }
 commit() {  # $1 = message; retried next cycle if git is busy (another agent committing)
@@ -32,7 +34,7 @@ while true; do
     done) commit "Glimmer calibration stage 2 (confirm) results" || { sleep 30; commit "Glimmer calibration stage 2 (confirm) results"; }; exit 0 ;;
     gate_fail|blocked) [ "$s1_done" = 1 ] || commit "Glimmer calibration results ($st)"; echo "STOP: $st"; exit 2 ;;
   esac
-  if ! echo "pgrep -f 'launch.py|staged.py' >/dev/null" | remote; then
+  if ! echo "pgrep -f '$DRIVER_PATTERN' >/dev/null" | remote; then
     if [ "${dead:-0}" = 1 ]; then  # second look: still not running and not finished -> it crashed
       echo "STOP: driver not running with status $st"; echo 'tail -5 runs/staged.log' | remote; exit 3
     fi

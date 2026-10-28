@@ -1,9 +1,8 @@
 """The cross-repository training pool (T46 learning curve; reused unchanged by T39).
 
-Each pool repository is one unit: T46 trains on some and scores on others, T39 treats each
-as one meta-training task. The rule is a pure function of the per-(repo, task) trajectory
-counts, so anyone with the counts rebuilds the same pool. The held-out repositories are
-fixed here before any of their rows was read, and the exporter refuses them.
+Each pool repository is one unit: T46 trains on some and scores on others, T39 treats each as a
+meta-training task. The rule is a pure function of per-(repo, task) trajectory counts. The held-
+out repositories are fixed here before any of their rows was read, and the exporter refuses them.
 """
 
 import random
@@ -57,10 +56,7 @@ def capped_tasks(tasks: Mapping[str, int], seed: int) -> list[str]:
 
 
 def build_pool(counts: Mapping[str, Mapping[str, int]]) -> dict[str, Any]:
-    """The pool: repositories in a seeded order with their fold, tasks and trajectory count.
-
-    Raises if fewer than POOL_REPOS repositories are eligible, rather than shrinking quietly.
-    """
+    """Seeded repository pool with folds; raises if too few are eligible."""
     candidates = eligible(counts)
     if len(candidates) < POOL_REPOS:
         raise ValueError(f"{len(candidates)} eligible repositories, the pool needs {POOL_REPOS}")

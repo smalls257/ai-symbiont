@@ -58,8 +58,8 @@ class Record:
     files: tuple[str, ...] = ()
     diff: str | None = None
     task_id: str | None = None
-    # Labels the source dataset attached to this record, kept verbatim in
-    # meaning, e.g. "correction" for a SWE-chat turn marked as user pushback.
+    # Source labels kept verbatim in meaning ("correction": SWE-chat pushback), plus
+    # "symbiont-output" on text our delivery layer added; the miner must not learn from it.
     tags: tuple[str, ...] = ()
     # For a READ: the (first, last) lines the viewer showed, as the harness
     # gave them (OpenHands uses -1 for "to the end"); None = the whole file
@@ -71,6 +71,7 @@ class RecordFormatError(ValueError):
     """A JSONL line that is not a valid record; names the line number."""
 
     def __init__(self, line_no: int, reason: str):
+        """Keep the line number and reason for callers to report."""
         super().__init__(f"line {line_no}: {reason}")
         self.line_no = line_no
         self.reason = reason
@@ -92,12 +93,14 @@ def load_jsonl(fh: IO[str]) -> Iterator[Record]:
 
 
 def _describe(exc: Exception) -> str:
+    """A readable reason for a bad record: names a missing field."""
     if isinstance(exc, KeyError):
         return f"missing field {exc.args[0]!r}"
     return str(exc)
 
 
 def _record_from_dict(data: dict[str, Any]) -> Record:
+    """Rebuild a Record from its JSON dict; wrong types raise."""
     fields = dict(data)
     fields["kind"] = Kind(data["kind"])
     fields["files"] = tuple(data["files"])
@@ -109,12 +112,14 @@ def _record_from_dict(data: dict[str, Any]) -> Record:
 
 
 def _line_range(value: Any) -> tuple[int, int]:
+    """The (first, last) pair from JSON; anything else raises TypeError."""
     if not (isinstance(value, list) and len(value) == 2 and all(isinstance(v, int) for v in value)):
         raise TypeError(f"line_range must be two integers, got {value!r}")
     return (value[0], value[1])
 
 
 def _provenance_from_dict(data: dict[str, Any]) -> Provenance:
+    """Provenance from JSON; spark_safe must be an actual boolean."""
     spark_safe = data["spark_safe"]
     if not isinstance(spark_safe, bool):
         raise TypeError(f"spark_safe must be true or false, got {spark_safe!r}")

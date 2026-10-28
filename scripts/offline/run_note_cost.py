@@ -1,19 +1,10 @@
 """How a note earns the right to speak (T46): exploratory, TRAIN split only. Periphery script.
 
-`features` stores the per-step features the learners saw over TRAIN, for the batch
-classifier row. `trace` replays the T36 TRAIN sessions online (same split, order, hub,
-labels and learning cost as T36) and stores each learner's risk, label and boundary
-mark per step under data/.
-No TEST session is replayed or scored. `score` reads those traces and writes the
-task-grouped cross-validation over TRAIN (`symbiont.eval.note_cost_report`).
-
-    run_note_cost.py trace --data data/nebius-openhands/sqlglot.jsonl \
-        --meta data/nebius-openhands/sqlglot_meta.json --out data/note-cost-traces.json
-    run_note_cost.py features --data ... --meta ... --out data/note-cost-features.npy
-    run_note_cost.py score --traces data/note-cost-traces.json \
-        --features data/note-cost-features.npy --out results/note-cost-exploratory.json
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
+`features` stores the per-step features over TRAIN; `trace` replays the T36 TRAIN sessions online
+and stores each learner's risk, label and boundary mark per step under data/; `score` reads them
+and writes the task-grouped cross-validation (`symbiont.eval.note_cost_report`). No TEST session
+is used. Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1.
+Usage: run_note_cost.py {trace|features|score} --data ... --meta ... --out ...
 """
 
 import argparse

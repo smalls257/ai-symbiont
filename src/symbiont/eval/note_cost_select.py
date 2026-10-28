@@ -49,6 +49,7 @@ def by_value(value: Value) -> Chooser:
     """The setting with the highest TRAIN value per step; silence (index 0) unless one beats 0."""
 
     def choose(stack: np.ndarray) -> tuple[int, float]:
+        """Setting with the best per-step value; silence when none is above 0."""
         gain = gain_per_step(value, stack)
         best = int(np.argmax(gain))  # first maximum: settings run from fewest notes to most
         return (best, float(gain[best])) if gain[best] > 0 else (0, 0.0)
@@ -57,15 +58,10 @@ def by_value(value: Value) -> Chooser:
 
 
 def by_risk_control(budget: int, bound: float) -> Chooser:
-    """Conformal risk control over tasks: the loosest threshold whose false notes stay bounded.
-
-    A task's loss is its false notes over (budget x sessions), in [0, 1]. It need not fall as
-    the threshold rises (a skipped true note frees budget for a false one), so the running
-    maximum from strict to loose makes it monotone: the bound stays valid, only more
-    conservative. The score that ranks DenseNet rates is the per-step value at c = 0.5.
-    """
+    """Conformal risk control over tasks: loosest threshold with false notes in budget."""
 
     def choose(stack: np.ndarray) -> tuple[int, float]:
+        """Loosest setting whose bounded task risk stays within `bound`."""
         false_notes = stack[..., FP_WARN] + stack[..., FP_HEADS]
         loss = np.maximum.accumulate(false_notes / (budget * stack[..., SESSIONS]), axis=0)
         n_tasks = loss.shape[1]
@@ -89,16 +85,19 @@ class Option:
 
 
 def _priced(key: str, rule: DeliveryRule, value: Value, tiers: Tiers = Tiers.ONE) -> Option:
+    """An option whose settings are chosen by value."""
     return Option(key, rule, tiers, value, by_value(value))
 
 
 def _tiered(key: str, heads_gain: float) -> Option:
+    """A two-tier option with the given heads-up gain."""
     tiers = TierValues(1.0, WARNING_COST, heads_gain, HEADS_UP_COST)
     rule = budgeted(Gate.BOUNDARY, NOTES_PER_SESSION)
     return _priced(key, rule, tiered_value(tiers), Tiers.TWO)
 
 
 def _risk_controlled(budget: int) -> Option:
+    """An option that bounds false notes per session by risk control."""
     rule = budgeted(Gate.EVERY_STEP, budget)
     chooser = by_risk_control(budget, RISK_BOUND)
     return Option(f"c_budget_{budget}", rule, Tiers.ONE, per_step_value(WARNING_COST), chooser)
@@ -128,22 +127,14 @@ def task_folds(n_tasks: int, seed: int) -> np.ndarray:
 def cross_validate(
     blocks: Sequence[np.ndarray], folds: np.ndarray, choose: Chooser
 ) -> tuple[np.ndarray, list[tuple[int, int]]]:
-    """Held-out counts per task, and the (block, setting) picked for each fold.
-
-    A block is one run's counts (DenseNet has one per learning rate); the block with the best
-    training score wins, ties to the first listed.
-    """
+    """Held-out counts per task and the (block, setting) picked per fold."""
     return cross_validate_per_fold({fold: blocks for fold in range(FOLDS)}, folds, choose)
 
 
 def cross_validate_per_fold(
     blocks_by_fold: Mapping[int, Sequence[np.ndarray]], folds: np.ndarray, choose: Chooser
 ) -> tuple[np.ndarray, list[tuple[int, int]]]:
-    """As `cross_validate`, but each outer fold has its own blocks.
-
-    The batch classifier needs this: its risks for an outer fold come from models that never
-    saw that fold, so every outer fold has its own count stacks.
-    """
+    """As `cross_validate`, with its own blocks per outer fold."""
     held = np.zeros(blocks_by_fold[0][0].shape[1:])
     picked = []
     for fold in range(FOLDS):

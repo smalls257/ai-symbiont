@@ -71,6 +71,8 @@ def _track(root: Path, relpath: str, content: str = "x\n") -> None:
         "run.log",
         "notes/trajectories.md",
         "stray/config.json",
+        "dashboard/other.json",
+        "dashboard/sub/package.json",
         "ARCHIVE.ZIP",
     ],
 )
@@ -125,6 +127,8 @@ def test_gates_outside_a_git_tree_are_an_error(tmp_path):
         "tests/fixtures/openhands/two.json",
         ".claude/settings.json",
         ".gitleaks-baseline.json",
+        "dashboard/package.json",
+        "dashboard/package-lock.json",
         "docs/logo.png",
         "src/symbiont/records/schema.py",
     ],

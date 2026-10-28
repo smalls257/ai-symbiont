@@ -43,6 +43,13 @@ jobs:
       - name: Install dev dependencies
         run: uv sync --group dev
 
+      - name: Install dashboard tools (QG-FE-01, QG-FE-03; node ships on the runner image)
+        run: npm ci
+        working-directory: dashboard
+
+      - name: Fetch the semgrep registry snapshot (QG-SAST-01)
+        run: scripts/gates/fetch_semgrep_packs.sh
+
       - name: Install gitleaks (pinned release, checksum verified)
         run: |
           set -euo pipefail

@@ -59,13 +59,7 @@ def verdict(
     benefit: Mapping[Verdict, Mapping[str, Any]],
     versus_counters: Mapping[Verdict, Mapping[str, Any]],
 ) -> Verdict:
-    """The registered rule.
-
-    1. A candidate earns notes if the lower bound of its pooled value is above 0.
-    2. None earns: NONE. 3. Else the earner with the highest point estimate, ties by TIE_ORDER.
-    4. If that is not counters and the lower bound of its paired difference from counters is
-       not above 0: COUNTERS if counters earn, else NONE.
-    """
+    """The registered rule: best earner wins; counters unless it clearly beats them; else NONE."""
     earners = [c for c in TIE_ORDER if benefit[c]["ci95_low"] > 0]
     if not earners:
         return Verdict.NONE
