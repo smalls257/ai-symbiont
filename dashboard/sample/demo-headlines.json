@@ -11,9 +11,27 @@
    "verdict": "counters live",
    "note": "Pooled test split with 95% bootstrap intervals; the classifier did not clear counters on the paired lower bound.",
    "rows": [
-    {"label": "logistic classifier", "role": "reference", "value": 0.197, "ci95_low": 0.134, "ci95_high": 0.258},
-    {"label": "counters", "role": "reference", "value": 0.168, "ci95_low": 0.104, "ci95_high": 0.234},
-    {"label": "fly", "role": "under test", "value": 0.168, "ci95_low": 0.112, "ci95_high": 0.224}
+    {
+     "label": "logistic classifier",
+     "role": "reference",
+     "value": 0.197,
+     "ci95_low": 0.134,
+     "ci95_high": 0.258
+    },
+    {
+     "label": "counters",
+     "role": "reference",
+     "value": 0.168,
+     "ci95_low": 0.104,
+     "ci95_high": 0.234
+    },
+    {
+     "label": "fly",
+     "role": "under test",
+     "value": 0.168,
+     "ci95_low": 0.112,
+     "ci95_high": 0.224
+    }
    ]
   },
   {
@@ -25,23 +43,105 @@
    "verdict": "logistic classifier live; confirms",
    "note": "Pooled over three fresh repos with 95% bootstrap intervals; fly combined is better than counters, tied with the classifier.",
    "rows": [
-    {"label": "logistic classifier", "role": "reference", "value": 0.162, "ci95_low": 0.121, "ci95_high": 0.202},
-    {"label": "counters", "role": "reference", "value": 0.096, "ci95_low": 0.054, "ci95_high": 0.139},
-    {"label": "fly combined", "role": "under test", "value": 0.138, "ci95_low": 0.099, "ci95_high": 0.177}
+    {
+     "label": "logistic classifier",
+     "role": "reference",
+     "value": 0.162,
+     "ci95_low": 0.121,
+     "ci95_high": 0.202
+    },
+    {
+     "label": "counters",
+     "role": "reference",
+     "value": 0.096,
+     "ci95_low": 0.054,
+     "ci95_high": 0.139
+    },
+    {
+     "label": "fly combined",
+     "role": "under test",
+     "value": 0.138,
+     "ci95_low": 0.099,
+     "ci95_high": 0.177
+    }
    ]
   },
   {
-   "id": "lcap-recall",
-   "label": "LCAP lesson recall, 100 lessons, 500 questions",
+   "id": "lcap-llama-1b",
+   "label": "Lesson recall, Llama 3.2 1B, 100 lessons",
    "status": "measured",
-   "unit": "recall",
-   "source": "results/lesson-capacity.json at 1f20fd2 (branch routea/lesson-capacity)",
-   "verdict": "exploratory; stand-in model",
-   "note": "Qwen2.5 0.5B stand-in proving the pipeline, not the Llama answer; held-out questions are template rewordings only.",
+   "unit": "recall (500 template / 251 paraphrased questions)",
+   "source": "results/lesson-capacity.json at 1c7e58e (branch routea/lesson-capacity)",
+   "verdict": "exploratory; one adapter holds 100 lessons",
+   "note": "No prereg. One adapter invents almost nothing (0.006 template, 0.012 paraphrased); the paraphrased set keeps only rewordings that still name the repo and command.",
    "rows": [
-    {"label": "no adapter, no lessons", "role": "floor", "value": 0.038, "ci95_low": null, "ci95_high": null},
-    {"label": "lessons in the prompt", "role": "ceiling", "value": 0.126, "ci95_low": null, "ci95_high": null},
-    {"label": "one LoRA adapter", "role": "under test", "value": 0.736, "ci95_low": null, "ci95_high": null}
+    {
+     "label": "no adapter, no lessons: template",
+     "role": "floor",
+     "value": 0.018,
+     "ci95_low": null,
+     "ci95_high": null
+    },
+    {
+     "label": "no adapter, no lessons: paraphrased",
+     "role": "floor",
+     "value": 0.012,
+     "ci95_low": null,
+     "ci95_high": null
+    },
+    {
+     "label": "lessons in the prompt: template",
+     "role": "ceiling",
+     "value": 0.246,
+     "ci95_low": null,
+     "ci95_high": null
+    },
+    {
+     "label": "lessons in the prompt: paraphrased",
+     "role": "ceiling",
+     "value": 0.183,
+     "ci95_low": null,
+     "ci95_high": null
+    },
+    {
+     "label": "one LoRA adapter: template",
+     "role": "under test",
+     "value": 0.884,
+     "ci95_low": null,
+     "ci95_high": null
+    },
+    {
+     "label": "one LoRA adapter: paraphrased",
+     "role": "under test",
+     "value": 0.645,
+     "ci95_low": null,
+     "ci95_high": null
+    }
+   ]
+  },
+  {
+   "id": "lesson-pilot-tier1",
+   "label": "Lesson-in-prompt pilot, sqlglot Tier 1, clean lessons",
+   "status": "measured",
+   "unit": "share of runs solved at the 50-step cap",
+   "source": "results/lesson-pilot.json at 863d1b2 (branch calibration/cal2-step-cap)",
+   "verdict": "exploratory; n = 1 per task; prompt pilot, not the LoRA",
+   "note": "Lesson arm solved 5 of 5; plain confirm runs solved 2 of 10. Lessons describe Glimmer's own earlier fix, so this measures remembering, not transfer.",
+   "rows": [
+    {
+     "label": "plain Glimmer (confirm runs, 2 of 10)",
+     "role": "reference",
+     "value": 0.2,
+     "ci95_low": null,
+     "ci95_high": null
+    },
+    {
+     "label": "lesson in the prompt (5 of 5)",
+     "role": "under test",
+     "value": 1.0,
+     "ci95_low": null,
+     "ci95_high": null
+    }
    ]
   }
  ]

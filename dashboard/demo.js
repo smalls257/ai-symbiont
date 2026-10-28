@@ -11,7 +11,7 @@
   const HEADLINE_SCHEMA = "demo-headlines-v1";
   const ROLES = ["floor", "ceiling", "reference", "under test"];
   const STATUSES = ["measured", "established", "hypothesis"];
-  const NOTE_SOURCES = ["classifier fired", "Glimmer recalled"];
+  const NOTE_SOURCES = ["classifier fired", "Glimmer recalled", "lesson in prompt (pilot)"];
   const SPEEDS = [0.5, 1, 2];
   const BASE_MS = 1600; // one step per 1.6 s at 1x: long enough to read a note aloud
   const RUN_COLORS = { plain: "#9a6b1f", personal: "#1d5fa8" };
@@ -38,6 +38,9 @@
   // ---- contract: the cross-field rules a JSON schema cannot state ----
 
   function checkRunShape(run) {
+    if (!run.subtitle) fail(`Run ${run.id} carries no subtitle.`);
+    if (run.runs_solved > run.runs_total) fail(`Run ${run.id}: the record says ${run.runs_solved} of ${run.runs_total} solved.`);
+    if (run.runs_solved === 0 && run.totals.result === "solved") fail(`Run ${run.id}: shown as solved but the record has no solved run.`);
     if (!ROLES.includes(run.role)) fail(`Run ${run.id} has no valid role label (floor, ceiling, reference, under test).`);
     if (!STATUSES.includes(run.status)) fail(`Run ${run.id} has no claim tag.`);
     run.steps.forEach((s, i) => {
@@ -101,14 +104,15 @@
     const h = el("h2", "", run.label);
     h.id = `h-${run.id}`;
     head.append(h, roleEl(run.role), tagEl(run.status));
-    const sub = el("p", "run-sub", run.adapter ? `${run.model} with ${run.adapter}` : `${run.model}, no adapter, no notes`);
-    return [head, sub];
+    const sub = el("p", "run-sub", run.subtitle);
+    const record = el("p", "run-record", `On this task: ${run.runs_solved} of ${run.runs_total} runs solved. Showing run ${run.shown_run} (${run.totals.result}).`);
+    return [head, sub, record];
   }
 
-  function tallyBlock(repeats) {
+  function tallyBlock(repeats, stepsUsed) {
     const box = el("div", "tally");
     box.append(el("div", `tally-n${repeats ? " has-repeats" : ""}`, String(repeats)));
-    const label = el("div", "tally-label", repeats === 1 ? "repeated mistake" : "repeated mistakes");
+    const label = el("div", "tally-label", (repeats === 1 ? "repeated mistake" : "repeated mistakes") + ` in ${stepsUsed} ${stepsUsed === 1 ? "step" : "steps"}`);
     const marks = el("div", "tally-marks");
     for (let i = 0; i < repeats; i++) marks.append(el("i", "", "✕"));
     label.append(marks);
@@ -150,7 +154,7 @@
     const list = el("ol", "steps");
     seen.forEach((s, i) => list.append(stepRow(s, i === cur)));
     const box = $(`run-${run.id}`);
-    box.replaceChildren(...runHeader(run), tallyBlock(seen.filter((s) => s.mistake_tag === "repeated").length), statsBlock(seen), list);
+    box.replaceChildren(...runHeader(run), tallyBlock(seen.filter((s) => s.mistake_tag === "repeated").length, seen.length), statsBlock(seen), list);
     if (cur >= run.steps.length - 1) box.append(el("p", "finished", `Finished at step ${run.steps.length}: ${run.totals.result}.`));
   }
 
@@ -235,8 +239,8 @@
   function noteItem(s, latest) {
     const li = el("li", `note${latest ? " latest" : ""}`);
     const head = el("div", "note-head");
-    const recalled = s.note.source === "Glimmer recalled";
-    head.append(el("b", "", `Step ${s.step}`), el("span", `source ${recalled ? "recalled" : "classifier"}`, s.note.source));
+    const kind = { "Glimmer recalled": "recalled", "lesson in prompt (pilot)": "prompt" }[s.note.source] || "classifier";
+    head.append(el("b", "", `Step ${s.step}`), el("span", `source ${kind}`, s.note.source));
     const dl = el("dl");
     const check = el("dd");
     check.append(el("code", "", s.note.check));
@@ -291,7 +295,9 @@
   function renderBrain(cur) {
     const run = state.replay.runs[1];
     const plainNote = el("p", "off", "Plain Glimmer: nothing decides and nothing speaks.");
-    $("brain").replaceChildren(classifierBlock(run, cur), pickerBlock(run, cur), plainNote);
+    const classifierUsed = run.steps.some((s) => s.classifier);
+    const classifierPanel = classifierUsed ? classifierBlock(run, cur) : el("p", "off", "Classifier not used in this replay.");
+    $("brain").replaceChildren(classifierPanel, pickerBlock(run, cur), plainNote);
   }
 
   // ---- results strip ----

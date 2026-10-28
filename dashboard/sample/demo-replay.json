@@ -11,6 +11,10 @@
   {
    "id": "plain",
    "label": "Plain Glimmer",
+   "subtitle": "Glimmer, no adapter, no notes",
+   "shown_run": 1,
+   "runs_solved": 0,
+   "runs_total": 1,
    "role": "floor",
    "status": "hypothesis",
    "model": "Glimmer",
@@ -214,6 +218,10 @@
   {
    "id": "personal",
    "label": "Personal Glimmer",
+   "subtitle": "Glimmer with a personal adapter",
+   "shown_run": 1,
+   "runs_solved": 1,
+   "runs_total": 1,
    "role": "under test",
    "status": "hypothesis",
    "model": "Glimmer",
