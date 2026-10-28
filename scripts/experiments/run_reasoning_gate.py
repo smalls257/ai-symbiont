@@ -91,8 +91,10 @@ def label_for(item: dict[str, Any], row: dict[str, Any]) -> str:
 
 def file_only_hit(item: dict[str, Any], row: dict[str, Any]) -> bool:
     """Secondary coding reading: same file, whatever the function. Not in the decision rule."""
+    if item["domain"] != "coding":
+        return False
     gold = GoldStep(item["gold_index"], item["gold_path"], frozenset(item["gold_functions"]))
-    return item["domain"] == "coding" and proposal_names_file(row["command"], gold)
+    return proposal_names_file(row["command"], gold)
 
 
 def outcomes_from(items: list[dict[str, Any]], done: dict[tuple[str, str], dict[str, Any]]):
