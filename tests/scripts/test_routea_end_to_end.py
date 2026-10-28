@@ -244,12 +244,13 @@ def test_a_failed_training_run_forgets_no_lesson(tmp_path, monkeypatch):
 
 
 OWN = Provenance(dataset="private-sessions", license="none", spark_safe=False)
+TOKEN = "gh" + "p_" + "T0k3n" * 8  # assembled so no credential-shaped literal is committed
 
 
 def own_history_store(tmp_path):
     """The user's own failing session, mined into the store through a records reader."""
     records = session(
-        run("pytest tests/test_cart.py", 1, "ImportError: x"),
+        run("pytest tests/test_cart.py", 1, "ImportError: x " + TOKEN),
         run("pip install -e ."),
         run("pytest tests/test_cart.py", 0),
     )
@@ -294,3 +295,14 @@ def test_own_history_trains_for_spark_only_with_consent(tmp_path, monkeypatch):
     assert counts["provenance"] == "own_history_with_consent"
     record = json.loads((tmp_path / "memory" / "adapter.json").read_text())
     assert record["provenance"] == "own_history_with_consent"
+    assert counts["lessons_forgotten"] == counts["lessons_trained"] == 1
+    assert Store.open(data / "store.db").lessons(PROJECT) == []  # the raw row with the token too
+
+
+def test_an_adapter_with_no_record_is_never_continued(tmp_path, monkeypatch):
+    data = own_history_store(tmp_path)
+    record_consent(data, OwnHistoryConsent.GIVEN)
+    (tmp_path / "memory" / "adapter").mkdir(parents=True)
+    script = load_script(monkeypatch, "train_memory")
+    with pytest.raises(script.TrainingRefusedError, match="no adapter.json"):
+        script.train(own_args(data, tmp_path, tmp_path / "unused"))

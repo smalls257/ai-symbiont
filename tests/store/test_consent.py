@@ -10,7 +10,7 @@ from symbiont.miner.lessons import spark_allowed
 from symbiont.records.privacy import LIVE_DATASET_PREFIX, OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.store.consent import ConsentFileError, read_consent, record_consent
-from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.store.local import ForgetMismatchError, Source, SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, remine
 from symbiont.store.training import lessons_for_memory_model
 
@@ -102,3 +102,22 @@ def test_consent_file_defaults_to_withheld_and_refuses_garbage(tmp_path):
     (tmp_path / "consent.json").write_text("{}")
     with pytest.raises(ConsentFileError):
         read_consent(tmp_path)
+
+
+def test_forgetting_a_scrubbed_export_deletes_the_raw_row(tmp_path):
+    command = f"curl -H 'Authorization: token {TOKEN}' https://example.com"
+    store = store_with(tmp_path, failing("mine", OWN, command=command))
+    exported = lessons_for_memory_model(store, PROJECT, GIVEN)
+    assert TOKEN not in exported[0].quote
+    assert store.forget_trained(PROJECT, tmp_path / "m.json", exported=exported) == 1
+    assert store.lessons(PROJECT) == []
+
+
+def test_forgetting_lessons_the_store_does_not_hold_raises_and_deletes_nothing(tmp_path):
+    store = store_with(tmp_path, failing("mine", OWN))
+    (lesson,) = store.lessons(PROJECT)
+    stranger = replace(lesson, pain_point=replace(lesson.pain_point, step=99))
+    with pytest.raises(ForgetMismatchError, match="nothing was forgotten"):
+        store.forget_trained(PROJECT, tmp_path / "m.json", exported=[lesson, stranger])
+    assert len(store.lessons(PROJECT)) == 1
+    assert not (tmp_path / "m.json").exists()

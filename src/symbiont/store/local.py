@@ -70,6 +70,16 @@ class SparkPrivacyViolationError(PermissionError):
         self.project = project
 
 
+class ForgetMismatchError(RuntimeError):
+    """The exported lessons do not match the stored rows one to one; nothing was deleted."""
+
+    def __init__(self, project: str, exported: int, matched: int):
+        super().__init__(
+            f"{exported} lessons of {project!r} were exported for training but {matched} "
+            "stored rows match them; nothing was forgotten"
+        )
+
+
 @dataclass(frozen=True)
 class Source:
     """Where some of a project's history lives: a harness log and the reader that parses it."""
@@ -146,25 +156,31 @@ class Store:
         no held-out trajectory trained the model, and remembers the lesson ids so the
         memory-model export never offers them again. An existing manifest is never
         overwritten, and if writing fails nothing is deleted. Returns how many were deleted.
+
+        Rows are matched by lesson id, never by text: the export may be a scrubbed copy.
+        Raises ForgetMismatchError, deleting and writing nothing, unless every exported
+        lesson matches exactly one stored row.
         """
+        rows = self._rows_of(project, {lesson_id(lesson) for lesson in exported})
+        if len(rows) != len(exported):
+            raise ForgetMismatchError(project, len(exported), len(rows))
         manifest = training_manifest(project, exported)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         with manifest_path.open("x", encoding="utf-8") as out:
             json.dump(manifest, out, indent=1)
         with self._db:
-            deleted = sum(
-                self._db.execute(
-                    "DELETE FROM lessons WHERE project=? AND body=?",
-                    (project, _lesson_json(lesson)),
-                ).rowcount
-                for lesson in exported
-            )
+            self._db.executemany("DELETE FROM lessons WHERE rowid=?", [(row,) for row in rows])
+            deleted = len(rows)
             self._db.executemany(
                 "INSERT OR REPLACE INTO trained VALUES (?, ?, ?)",
                 [(project, lesson_id(lesson), manifest["export_id"]) for lesson in exported],
             )
         log.info("deleted %d trained lessons of %s; manifest %s", deleted, project, manifest_path)
         return deleted
+
+    def _rows_of(self, project: str, ids: set[str]) -> list[int]:
+        rows = self._db.execute("SELECT rowid, body FROM lessons WHERE project=?", (project,))
+        return [row for row, body in rows if lesson_id(_lesson_from_json(body)) in ids]
 
     def trained_lesson_ids(self, project: str) -> frozenset[str]:
         """Ids of `project`'s lessons a model has already been trained on."""

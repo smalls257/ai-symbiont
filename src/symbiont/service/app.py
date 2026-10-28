@@ -146,7 +146,7 @@ class Service:
         warns = self._parts.mode is ServiceMode.WARN_AND_RECALL
         memory = self._memory_for(request, project) if decision.trouble and warns else None
         if memory is not None:
-            return self._memory_observe(call, decision, memory, key)
+            return self._memory_observe(request, decision, memory, call)
         notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode], lessons=lessons)
         self._parts.events.append_decision(call, decision, notes)
         return Response(200, {"notes": notes})
@@ -167,9 +167,10 @@ class Service:
         return memory
 
     def _memory_observe(
-        self, call: Call, decision: Decision, memory: MemoryModel, key: tuple[str, str]
+        self, request: dict[str, Any], decision: Decision, memory: MemoryModel, call: Call
     ) -> Response:
         """Option A decides whether to speak; the memory model writes what is said."""
+        key, spark_bound = (request["harness"], request["session_id"]), _spark_bound(request)
         position = len(self._prefixes[key]) - 1
         spoken = self._spoken.setdefault(key, [])
         trouble = decision.trouble
@@ -178,8 +179,9 @@ class Service:
             return Response(200, {"notes": []})
         reply = memory.write_line(note_request(self._prefixes[key][-1].project, trouble))
         spoken.append(position)
-        self._parts.events.append_memory_note(call, decision, reply.line, _cost(reply))
-        return Response(200, {"notes": [reply.line]})
+        line = scrub(reply.line) if spark_bound else reply.line
+        self._parts.events.append_memory_note(call, decision, line, _cost(reply))
+        return Response(200, {"notes": [line]})
 
     def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
         store = self._parts.store

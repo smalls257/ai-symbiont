@@ -33,7 +33,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.service.memory_model import DEFAULT_MEMORY_MODEL, AdapterProvenance
 from symbiont.service.wiring import ADAPTER_RECORD
 from symbiont.store.consent import ConsentFileError, read_consent
-from symbiont.store.local import SparkPrivacyViolationError, Store
+from symbiont.store.local import ForgetMismatchError, SparkPrivacyViolationError, Store
 from symbiont.store.training import lessons_for_memory_model
 
 HERE = Path(__file__).resolve().parent
@@ -76,6 +76,8 @@ def _recorded(memory_dir: Path) -> dict[str, str] | None:
 
 
 def _check_base_model(memory_dir: Path, model: str) -> None:
+    if (memory_dir / "adapter").exists() and not (memory_dir / ADAPTER_RECORD).exists():
+        raise TrainingRefusedError(f"{memory_dir} holds an adapter with no {ADAPTER_RECORD}")
     recorded = _recorded(memory_dir)
     if recorded is not None and recorded["model"] != model:
         raise TrainingRefusedError(f"{memory_dir} holds an adapter for {recorded['model']}")
@@ -148,7 +150,12 @@ def main() -> None:
     args.data_dir, args.memory_dir = args.data_dir.expanduser(), args.memory_dir.expanduser()
     try:
         counts = train(args)
-    except (TrainingRefusedError, SparkPrivacyViolationError, ConsentFileError) as refused:
+    except (
+        TrainingRefusedError,
+        SparkPrivacyViolationError,
+        ConsentFileError,
+        ForgetMismatchError,
+    ) as refused:
         print(f"train_memory: {refused}", file=sys.stderr)
         sys.exit(1)
     print(json.dumps(counts, indent=1))
