@@ -2,9 +2,9 @@
 
 Runs in the desktop LCAP venv, not the repo env. Violation prevented: **Black Box**. Every run
 writes one answer row per question and one stderr line of counts and seconds (never prompt or
-answer text), so a slow or empty arm is visible without reading answers. The prompts, the pinned
-template date, greedy decoding, the 96-token cap and the first-line cut match the MLX script, so
-the CUDA rows are scored by the same files and scorer.
+answer text), so a slow or empty arm is visible without reading answers. The prompts, the
+pinned template date, greedy decoding, the 96-token cap and the folded one-line answer match the
+MLX script, so the CUDA rows are scored by the same files and scorer.
 
     venv/bin/python answer_questions_torch.py --model M --questions ask/one-10.jsonl --out a.jsonl \
         [--adapter adapters/one-10] [--context context/one-10.txt]
@@ -22,7 +22,9 @@ from peft import PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 SYSTEM = "You are a memory model. Answer in one line of plain prose, naming exact commands."
-MAX_TOKENS = 96  # as answer_questions.py
+# As answer_questions.py: the whole answer is kept, newlines folded to spaces, because base Llama
+# puts the command on the line after "The command that worked is:" [measured on the laptop].
+MAX_TOKENS = 96
 TEMPLATE_DATE = "26 Jul 2024"  # as answer_questions.py, so reruns and both machines match
 BATCH = int(os.environ.get("LCAP_ANSWER_BATCH", "16"))
 # Prompt tokens per batch: a 100-lesson ceiling prompt (several thousand tokens) runs a few at a
@@ -44,9 +46,8 @@ def _prompts(tokenizer, questions: list[dict], context: str | None) -> list[list
     ]
 
 
-def _first_line(text: str) -> str:
-    stripped = text.strip()
-    return stripped.splitlines()[0] if stripped else ""
+def _one_line(text: str) -> str:
+    return " ".join(text.split())
 
 
 def _loaded(model_path: str, adapter: str | None):
@@ -84,7 +85,7 @@ def answer_all(model_path: str, adapter: str | None, questions: list[dict], cont
     answers: list[str] = []
     for start in range(0, len(prompts), size):
         texts = _generate(model, tokenizer, prompts[start : start + size])
-        answers += [_first_line(text) for text in texts]
+        answers += [_one_line(text) for text in texts]
     return answers
 
 
