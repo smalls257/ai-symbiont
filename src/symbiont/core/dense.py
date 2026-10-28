@@ -72,7 +72,8 @@ class DenseState:
 
 def activity(x: np.ndarray, state: DenseState) -> np.ndarray:
     """Hidden activity of input `x`, scaled so its squared norm is at most 1."""
-    return np.tanh(state.hidden_w @ x) / np.sqrt(N_HIDDEN)
+    hidden: np.ndarray = np.tanh(state.hidden_w @ x) / np.sqrt(N_HIDDEN)
+    return hidden
 
 
 @dataclass(eq=False, repr=False)
