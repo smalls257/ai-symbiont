@@ -120,6 +120,7 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
     bad = gate_repo / "src/symbiont/core/bad.py"
     bad.parent.mkdir(parents=True)
     bad.write_text(
+        "# TODO later\n"
         "import socket\n"
         "import xml.etree.ElementTree as ET\n\n\n"
         "def handle_it(rows, strict: bool, loud: bool):\n"
@@ -150,6 +151,8 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
         "QG-FE-02",
     ):
         assert f"FAIL  {gate}" in out.stdout, gate
+    assert "note  QG-RD-04" in out.stdout, "the advisory comment-policy gate must report, not fail"
+    assert "FAIL  QG-RD-04" not in out.stdout
     assert "RED:" in out.stdout and "GREEN" not in out.stdout
 
 

@@ -25,7 +25,7 @@ Names only, set in your shell; `env.example` shows placeholder shapes. Unset mea
 - `SYMBIONT_DESKTOP_SSH`, `SYMBIONT_DESKTOP_WORKDIR`: desktop login and its work dir, read by `calibration/sync_results.sh`.
 
 ## Commands
-`scripts/gates/run.sh fast`, `scripts/gates/run.sh full`, `scripts/publish/check_export.sh`, `uv run python scripts/gates/measure_baseline.py --write`
+`scripts/gates/run.sh fast`, `scripts/gates/run.sh full`, `scripts/gates/mutation.sh` (QG-TST-05, minutes, release only), `scripts/publish/check_export.sh`, `uv run python scripts/gates/measure_baseline.py --write`
 
 ## Review focus
 Does a script hide a machine name, a token path or a `|| true` after a check? Does a new data path or result field skip `check_paths.sh` and `check_results_content.py`?

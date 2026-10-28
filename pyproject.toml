@@ -18,6 +18,7 @@ dev = [
     "import-linter==2.15",
     "interrogate==1.7.0",
     "lizard==1.24.3",
+    "mutmut==3.8.0",
     "mypy==2.4.0",
     "pip-audit==2.10.1",
     "pip-licenses==5.5.5",
@@ -100,6 +101,18 @@ ignore-private = true
 ignore-magic = true
 ignore-module = true
 exclude = ["tests", "scripts", "spikes"]
+
+[tool.mutmut]
+# QG-TST-05: mutation score on the pure core. Run by scripts/gates/mutation.sh, never by run.sh
+# (minutes, not seconds). Key names verified against mutmut 3.8.0 (configuration.py): the
+# standard's paths_to_mutate and tests_dir are deprecated aliases of the two below.
+# The whole package is copied (a partial copy shadows the installed one and breaks imports);
+# only_mutate narrows what is mutated to the pure core and the signals.
+source_paths = ["src/symbiont"]
+only_mutate = ["src/symbiont/core/*", "src/symbiont/miner/signals/*"]
+pytest_add_cli_args_test_selection = ["tests/core", "tests/miner"]
+# a fixed order and no random seed: a mutant must be killed by the test, not by the shuffle
+pytest_add_cli_args = ["-p", "no:randomly", "-p", "no:cacheprovider"]
 
 [tool.coverage.run]
 source = ["src/symbiont"]

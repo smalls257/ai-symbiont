@@ -115,3 +115,28 @@ def html_files() -> list[str]:
         cwd=ROOT, capture_output=True, text=True, check=True,
     )  # fmt: skip
     return [f for f in out.stdout.splitlines() if f.endswith(".html") and (ROOT / f).is_file()]
+
+
+def comment_findings(files: list[str]) -> dict:
+    """QG-RD-04 over src, scripts and ops: findings the advisory gate would print."""
+    scope = [f for f in present(files) if f.startswith(("src/", "scripts/", "ops/"))]
+    out = run_tool("python", str(ROOT / "scripts/gates/check_comments.py"), *scope)
+    if out.returncode == 2:
+        raise RuntimeError(f"check_comments.py could not run: {out.stderr[-300:]}")
+    lines = [ln for ln in out.stdout.splitlines() if ln.startswith("QG-RD-04: ")]
+    return {"findings": sum("finding(s)" not in ln for ln in lines)}
+
+
+def mutation_score_if_measured() -> dict:
+    """QG-TST-05: the last scripts/gates/mutation.sh result, if mutants/ holds one. The run is
+    minutes long, so the baseline reads it instead of starting it; None means never measured."""
+    stats = ROOT / "mutants" / "mutmut-cicd-stats.json"
+    if not stats.is_file():
+        return {"killed_percent": None, "note": "not measured: run scripts/gates/mutation.sh"}
+    data = json.loads(stats.read_text())
+    share = 100.0 * (data["killed"] + data["timeout"]) / data["total"]
+    return {
+        "killed_percent": round(share, 1),
+        "mutants": data["total"],
+        "survived": data["survived"],
+    }
