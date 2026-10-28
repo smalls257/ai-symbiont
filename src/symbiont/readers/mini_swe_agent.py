@@ -36,6 +36,10 @@ OPEN_SWE_TRACES = Provenance(dataset="open-swe-traces", license="see-dataset-car
 # Our own Glimmer runs use public benchmark repos only, so they may reach Spark.
 LOCAL_RUN = Provenance(dataset="local-run", license="own-output", spark_safe=True)
 
+# Repos of the public benchmark tasks our Glimmer runs may use; a run on any other repo
+# could hold private code and must not be labeled spark safe.
+PUBLIC_BENCHMARK_REPOS = frozenset({"tobymao/sqlglot"})
+
 _BASH_BLOCK = re.compile(r"```bash[ \t]*\n(.*?)\n?```", re.DOTALL)
 _RETURN_CODE = re.compile(r"<returncode>\s*(-?\d+)\s*</returncode>")
 _HEREDOC = re.compile(r"<<-?\s*(['\"]?)(\w+)\1")
@@ -128,9 +132,14 @@ def _session_records(
 
 def _require_public_task(task_id: str) -> None:
     try:
-        normalise_task_id(task_id)
+        repo = normalise_task_id(task_id).split("#")[0]
     except UnrecognisedTaskIdError as exc:
         raise _MalformedError(f"a local run must be on a public benchmark task: {exc}") from exc
+    if repo not in PUBLIC_BENCHMARK_REPOS:
+        raise _MalformedError(
+            f"a local run must be on a public benchmark repo; {repo!r} is not in "
+            f"{sorted(PUBLIC_BENCHMARK_REPOS)}"
+        )
 
 
 def _require(mapping: Any, key: str) -> Any:

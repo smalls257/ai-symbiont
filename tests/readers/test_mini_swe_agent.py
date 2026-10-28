@@ -92,6 +92,14 @@ def test_default_read_is_never_spark_safe():
     assert {r.provenance.spark_safe for r in out} == {False}
 
 
+def test_local_run_refuses_a_well_formed_id_from_another_repo(tmp_path):
+    row = fixture_rows()[0]
+    row["instance_id"] = "django__django-15000"
+    with pytest.raises(ReadError, match="django/django") as err:
+        list(read_local_run(write_lines(tmp_path, [json.dumps(row)]), PROJECT))
+    assert err.value.line_no == 1
+
+
 def test_local_run_refuses_a_task_that_is_not_a_public_benchmark_id(tmp_path):
     row = fixture_rows()[0]
     row["instance_id"] = "my-private-task"
@@ -102,7 +110,7 @@ def test_local_run_refuses_a_task_that_is_not_a_public_benchmark_id(tmp_path):
 def test_task_id_is_instance_id(records):
     assert {r.session_id: r.task_id for r in records} == {
         "mswe-sqlglot-1": "tobymao__sqlglot-4001",
-        "glimmer-run-7": "django__django-15000",
+        "glimmer-run-7": "tobymao__sqlglot-4123",
     }
 
 
