@@ -2,9 +2,11 @@
  "probe": "lcap",
  "exploratory": true,
  "prereg": null,
- "status": "stand-in model only: Llama 3.2 weights are gated and await the owner's login",
+ "status": "Llama 3.2 1B full matrix, 3B top matrix, Qwen stand-in kept as reference",
  "machine": "laptop Apple M4 Pro 48 GB, MLX",
  "model_ids": {
+  "llama-1b": "mlx-community/Llama-3.2-1B-Instruct-bf16",
+  "llama-3b": "mlx-community/Llama-3.2-3B-Instruct-bf16",
   "qwen-0.5b-standin": "mlx-community/Qwen2.5-0.5B-Instruct-bf16"
  },
  "budget": {
@@ -25,8 +27,9 @@
   "adapter": "one LoRA adapter for the whole set",
   "grouped": "one adapter per 10 lessons, routed by lesson group"
  },
- "note": "[measured] on a non-Llama stand-in to prove the pipeline; not the Llama answer. Grouped routing is oracle (the question's group is known).",
- "caveats": "Held-out questions are template rewordings only; no model paraphrases. Lessons are mostly test-selection fixes from public OpenHands runs.",
+ "note": "[measured] exploratory, no prereg (owner ruling). Grouped routing is oracle (the question's group is known).",
+ "caveats": "Paraphrased set keeps only base-Llama-1B rewordings that still name the repo and command. Lessons are mostly test-selection fixes.",
+ "license": "Llama 3.2 Community License; Built with Llama",
  "build": {
   "files_unreadable": 1,
   "sessions_read": 5760,
@@ -99,11 +102,581 @@
    "group-09": 60
   }
  },
+ "paraphrase_build": {
+  "asked": 500,
+  "kept": 251,
+  "lessons_covered": 97
+ },
  "models": {
-  "qwen-0.5b-standin": {
-   "rows": [
+  "llama-1b": {
+   "matrix": "full",
+   "rows_template": [
     {
-     "label": "floor 10",
+     "label": "llama-1b floor 10",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.08,
+     "invented_rate": 0.24,
+     "hits_by_kind": {
+      "fix_hits": 3,
+      "error_hits": 1,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 3
+    },
+    {
+     "label": "llama-1b floor 30",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.0267,
+     "invented_rate": 0.3,
+     "hits_by_kind": {
+      "fix_hits": 3,
+      "error_hits": 1,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 3
+    },
+    {
+     "label": "llama-1b floor 100",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.018,
+     "invented_rate": 0.32,
+     "hits_by_kind": {
+      "fix_hits": 6,
+      "error_hits": 3,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 8
+    },
+    {
+     "label": "llama-1b ceiling 10",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.52,
+     "invented_rate": 0.1,
+     "hits_by_kind": {
+      "fix_hits": 16,
+      "error_hits": 9,
+      "note_hits": 1
+     },
+     "lessons_with_any_hit": 10
+    },
+    {
+     "label": "llama-1b ceiling 30",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.34,
+     "invented_rate": 0.2067,
+     "hits_by_kind": {
+      "fix_hits": 22,
+      "error_hits": 28,
+      "note_hits": 1
+     },
+     "lessons_with_any_hit": 29
+    },
+    {
+     "label": "llama-1b ceiling 100",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.246,
+     "invented_rate": 0.214,
+     "hits_by_kind": {
+      "fix_hits": 52,
+      "error_hits": 71,
+      "note_hits": 0
+     },
+     "lessons_with_any_hit": 86
+    },
+    {
+     "label": "llama-1b adapter 10",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.76,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 20,
+      "error_hits": 10,
+      "note_hits": 8
+     },
+     "lessons_with_any_hit": 10
+    },
+    {
+     "label": "llama-1b adapter 30",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.7267,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 29,
+      "error_hits": 29,
+      "note_hits": 51
+     },
+     "lessons_with_any_hit": 30
+    },
+    {
+     "label": "llama-1b adapter 100",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.884,
+     "invented_rate": 0.006,
+     "hits_by_kind": {
+      "fix_hits": 159,
+      "error_hits": 99,
+      "note_hits": 184
+     },
+     "lessons_with_any_hit": 100
+    },
+    {
+     "label": "llama-1b grouped 10",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 50,
+     "recall": 0.76,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 20,
+      "error_hits": 10,
+      "note_hits": 8
+     },
+     "lessons_with_any_hit": 10
+    },
+    {
+     "label": "llama-1b grouped 30",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 150,
+     "recall": 0.8333,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "fix_hits": 60,
+      "error_hits": 30,
+      "note_hits": 35
+     },
+     "lessons_with_any_hit": 30
+    },
+    {
+     "label": "llama-1b grouped 100",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 500,
+     "recall": 0.85,
+     "invented_rate": 0.002,
+     "hits_by_kind": {
+      "fix_hits": 194,
+      "error_hits": 100,
+      "note_hits": 131
+     },
+     "lessons_with_any_hit": 100
+    }
+   ],
+   "sample": {
+    "floor": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": true,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 4
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 4
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 1,
+      "answer_words": 13
+     }
+    ],
+    "ceiling": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 63
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": false,
+      "names_error_class": false,
+      "fix_tokens_named": 0,
+      "fix_tokens": 1,
+      "invented_details": 2,
+      "answer_words": 33
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": true,
+      "names_error_class": true,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 43
+     }
+    ],
+    "adapter": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": true,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 4
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": true,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 5
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": true,
+      "names_error_class": true,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 11
+     }
+    ],
+    "grouped": [
+     {
+      "question_id": "00314b3ec429-0",
+      "kind": "fix",
+      "hit": true,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 4
+     },
+     {
+      "question_id": "08a0c88c4d38-1",
+      "kind": "fix",
+      "hit": true,
+      "names_error_class": false,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 5
+     },
+     {
+      "question_id": "1495f11d1309-2",
+      "kind": "error",
+      "hit": true,
+      "names_error_class": true,
+      "fix_tokens_named": 1,
+      "fix_tokens": 1,
+      "invented_details": 0,
+      "answer_words": 11
+     }
+    ]
+   },
+   "rows_paraphrase": [
+    {
+     "label": "llama-1b floor 10",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.0476,
+     "invented_rate": 0.4286,
+     "hits_by_kind": {
+      "error_hits": 0,
+      "note_hits": 0,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 1
+    },
+    {
+     "label": "llama-1b floor 30",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.0143,
+     "invented_rate": 0.4714,
+     "hits_by_kind": {
+      "error_hits": 0,
+      "note_hits": 0,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 1
+    },
+    {
+     "label": "llama-1b floor 100",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.012,
+     "invented_rate": 0.494,
+     "hits_by_kind": {
+      "error_hits": 2,
+      "note_hits": 0,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 3
+    },
+    {
+     "label": "llama-1b ceiling 10",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.2381,
+     "invented_rate": 0.2857,
+     "hits_by_kind": {
+      "error_hits": 3,
+      "note_hits": 0,
+      "fix_hits": 2
+     },
+     "lessons_with_any_hit": 4
+    },
+    {
+     "label": "llama-1b ceiling 30",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.2429,
+     "invented_rate": 0.2429,
+     "hits_by_kind": {
+      "error_hits": 14,
+      "note_hits": 0,
+      "fix_hits": 3
+     },
+     "lessons_with_any_hit": 15
+    },
+    {
+     "label": "llama-1b ceiling 100",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.1833,
+     "invented_rate": 0.259,
+     "hits_by_kind": {
+      "error_hits": 37,
+      "note_hits": 0,
+      "fix_hits": 9
+     },
+     "lessons_with_any_hit": 42
+    },
+    {
+     "label": "llama-1b adapter 10",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.4762,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "error_hits": 4,
+      "note_hits": 2,
+      "fix_hits": 4
+     },
+     "lessons_with_any_hit": 7
+    },
+    {
+     "label": "llama-1b adapter 30",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.6571,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "error_hits": 17,
+      "note_hits": 14,
+      "fix_hits": 15
+     },
+     "lessons_with_any_hit": 25
+    },
+    {
+     "label": "llama-1b adapter 100",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.6454,
+     "invented_rate": 0.012,
+     "hits_by_kind": {
+      "error_hits": 62,
+      "note_hits": 52,
+      "fix_hits": 48
+     },
+     "lessons_with_any_hit": 89
+    },
+    {
+     "label": "llama-1b grouped 10",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.4762,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "error_hits": 4,
+      "note_hits": 2,
+      "fix_hits": 4
+     },
+     "lessons_with_any_hit": 7
+    },
+    {
+     "label": "llama-1b grouped 30",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.5857,
+     "invented_rate": 0.0143,
+     "hits_by_kind": {
+      "error_hits": 17,
+      "note_hits": 9,
+      "fix_hits": 15
+     },
+     "lessons_with_any_hit": 25
+    },
+    {
+     "label": "llama-1b grouped 100",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.5936,
+     "invented_rate": 0.004,
+     "hits_by_kind": {
+      "error_hits": 64,
+      "note_hits": 36,
+      "fix_hits": 49
+     },
+     "lessons_with_any_hit": 87
+    }
+   ],
+   "training": {
+    "one-10": {
+     "iters": 120,
+     "seconds": 69,
+     "peak_mem_gb": 6.05
+    },
+    "one-30": {
+     "iters": 360,
+     "seconds": 204,
+     "peak_mem_gb": 6.05
+    },
+    "one-100": {
+     "iters": 1200,
+     "seconds": 682,
+     "peak_mem_gb": 6.49
+    },
+    "group-00": {
+     "iters": 120,
+     "seconds": 69,
+     "peak_mem_gb": 6.01
+    },
+    "group-01": {
+     "iters": 120,
+     "seconds": 67,
+     "peak_mem_gb": 6.01
+    },
+    "group-02": {
+     "iters": 120,
+     "seconds": 66,
+     "peak_mem_gb": 5.99
+    },
+    "group-03": {
+     "iters": 120,
+     "seconds": 66,
+     "peak_mem_gb": 6.0
+    },
+    "group-04": {
+     "iters": 120,
+     "seconds": 67,
+     "peak_mem_gb": 6.07
+    },
+    "group-05": {
+     "iters": 120,
+     "seconds": 72,
+     "peak_mem_gb": 6.43
+    },
+    "group-06": {
+     "iters": 120,
+     "seconds": 105,
+     "peak_mem_gb": 6.83
+    },
+    "group-07": {
+     "iters": 120,
+     "seconds": 67,
+     "peak_mem_gb": 6.06
+    },
+    "group-08": {
+     "iters": 120,
+     "seconds": 68,
+     "peak_mem_gb": 6.4
+    },
+    "group-09": {
+     "iters": 120,
+     "seconds": 70,
+     "peak_mem_gb": 6.41
+    }
+   }
+  },
+  "qwen-0.5b-standin": {
+   "matrix": "full",
+   "rows_template": [
+    {
+     "label": "qwen-0.5b-standin floor 10",
      "arm": "floor",
      "role": "floor",
      "lessons": 10,
@@ -118,7 +691,7 @@
      "lessons_with_any_hit": 2
     },
     {
-     "label": "floor 30",
+     "label": "qwen-0.5b-standin floor 30",
      "arm": "floor",
      "role": "floor",
      "lessons": 30,
@@ -133,7 +706,7 @@
      "lessons_with_any_hit": 3
     },
     {
-     "label": "floor 100",
+     "label": "qwen-0.5b-standin floor 100",
      "arm": "floor",
      "role": "floor",
      "lessons": 100,
@@ -148,7 +721,7 @@
      "lessons_with_any_hit": 16
     },
     {
-     "label": "ceiling 10",
+     "label": "qwen-0.5b-standin ceiling 10",
      "arm": "ceiling",
      "role": "ceiling",
      "lessons": 10,
@@ -163,13 +736,13 @@
      "lessons_with_any_hit": 9
     },
     {
-     "label": "ceiling 30",
+     "label": "qwen-0.5b-standin ceiling 30",
      "arm": "ceiling",
      "role": "ceiling",
      "lessons": 30,
      "questions": 150,
      "recall": 0.2133,
-     "invented_rate": 0.08,
+     "invented_rate": 0.1133,
      "hits_by_kind": {
       "fix_hits": 17,
       "error_hits": 15,
@@ -178,13 +751,13 @@
      "lessons_with_any_hit": 23
     },
     {
-     "label": "ceiling 100",
+     "label": "qwen-0.5b-standin ceiling 100",
      "arm": "ceiling",
      "role": "ceiling",
      "lessons": 100,
      "questions": 500,
      "recall": 0.126,
-     "invented_rate": 0.09,
+     "invented_rate": 0.112,
      "hits_by_kind": {
       "fix_hits": 38,
       "error_hits": 25,
@@ -193,7 +766,7 @@
      "lessons_with_any_hit": 46
     },
     {
-     "label": "adapter 10",
+     "label": "qwen-0.5b-standin adapter 10",
      "arm": "adapter",
      "role": "under test",
      "lessons": 10,
@@ -208,7 +781,7 @@
      "lessons_with_any_hit": 10
     },
     {
-     "label": "adapter 30",
+     "label": "qwen-0.5b-standin adapter 30",
      "arm": "adapter",
      "role": "under test",
      "lessons": 30,
@@ -223,7 +796,7 @@
      "lessons_with_any_hit": 30
     },
     {
-     "label": "adapter 100",
+     "label": "qwen-0.5b-standin adapter 100",
      "arm": "adapter",
      "role": "under test",
      "lessons": 100,
@@ -238,7 +811,7 @@
      "lessons_with_any_hit": 100
     },
     {
-     "label": "grouped 10",
+     "label": "qwen-0.5b-standin grouped 10",
      "arm": "grouped",
      "role": "under test",
      "lessons": 10,
@@ -253,7 +826,7 @@
      "lessons_with_any_hit": 10
     },
     {
-     "label": "grouped 30",
+     "label": "qwen-0.5b-standin grouped 30",
      "arm": "grouped",
      "role": "under test",
      "lessons": 30,
@@ -268,7 +841,7 @@
      "lessons_with_any_hit": 30
     },
     {
-     "label": "grouped 100",
+     "label": "qwen-0.5b-standin grouped 100",
      "arm": "grouped",
      "role": "under test",
      "lessons": 100,
@@ -413,6 +986,188 @@
      }
     ]
    },
+   "rows_paraphrase": [
+    {
+     "label": "qwen-0.5b-standin floor 10",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.0476,
+     "invented_rate": 0.2381,
+     "hits_by_kind": {
+      "error_hits": 0,
+      "note_hits": 0,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 1
+    },
+    {
+     "label": "qwen-0.5b-standin floor 30",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.0143,
+     "invented_rate": 0.2714,
+     "hits_by_kind": {
+      "error_hits": 0,
+      "note_hits": 0,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 1
+    },
+    {
+     "label": "qwen-0.5b-standin floor 100",
+     "arm": "floor",
+     "role": "floor",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.0279,
+     "invented_rate": 0.2829,
+     "hits_by_kind": {
+      "error_hits": 5,
+      "note_hits": 0,
+      "fix_hits": 2
+     },
+     "lessons_with_any_hit": 7
+    },
+    {
+     "label": "qwen-0.5b-standin ceiling 10",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.2381,
+     "invented_rate": 0.0476,
+     "hits_by_kind": {
+      "error_hits": 4,
+      "note_hits": 0,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 5
+    },
+    {
+     "label": "qwen-0.5b-standin ceiling 30",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.2,
+     "invented_rate": 0.1429,
+     "hits_by_kind": {
+      "error_hits": 11,
+      "note_hits": 0,
+      "fix_hits": 3
+     },
+     "lessons_with_any_hit": 13
+    },
+    {
+     "label": "qwen-0.5b-standin ceiling 100",
+     "arm": "ceiling",
+     "role": "ceiling",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.0757,
+     "invented_rate": 0.1155,
+     "hits_by_kind": {
+      "error_hits": 14,
+      "note_hits": 1,
+      "fix_hits": 4
+     },
+     "lessons_with_any_hit": 18
+    },
+    {
+     "label": "qwen-0.5b-standin adapter 10",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.3333,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "error_hits": 4,
+      "note_hits": 2,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 7
+    },
+    {
+     "label": "qwen-0.5b-standin adapter 30",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.6286,
+     "invented_rate": 0.0143,
+     "hits_by_kind": {
+      "error_hits": 17,
+      "note_hits": 11,
+      "fix_hits": 16
+     },
+     "lessons_with_any_hit": 26
+    },
+    {
+     "label": "qwen-0.5b-standin adapter 100",
+     "arm": "adapter",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.5139,
+     "invented_rate": 0.0239,
+     "hits_by_kind": {
+      "error_hits": 61,
+      "note_hits": 31,
+      "fix_hits": 37
+     },
+     "lessons_with_any_hit": 83
+    },
+    {
+     "label": "qwen-0.5b-standin grouped 10",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 10,
+     "questions": 21,
+     "recall": 0.3333,
+     "invented_rate": 0.0,
+     "hits_by_kind": {
+      "error_hits": 4,
+      "note_hits": 2,
+      "fix_hits": 1
+     },
+     "lessons_with_any_hit": 7
+    },
+    {
+     "label": "qwen-0.5b-standin grouped 30",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 30,
+     "questions": 70,
+     "recall": 0.5429,
+     "invented_rate": 0.0143,
+     "hits_by_kind": {
+      "error_hits": 17,
+      "note_hits": 9,
+      "fix_hits": 12
+     },
+     "lessons_with_any_hit": 25
+    },
+    {
+     "label": "qwen-0.5b-standin grouped 100",
+     "arm": "grouped",
+     "role": "under test",
+     "lessons": 100,
+     "questions": 251,
+     "recall": 0.5578,
+     "invented_rate": 0.012,
+     "hits_by_kind": {
+      "error_hits": 64,
+      "note_hits": 31,
+      "fix_hits": 45
+     },
+     "lessons_with_any_hit": 83
+    }
+   ],
    "training": {
     "one-10": {
      "iters": 120,
