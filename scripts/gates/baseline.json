@@ -1,6 +1,6 @@
 {
-  "measured_at": "2026-10-28T03:18Z",
-  "commit": "9d2c036c5240b1cdaf93d575c4b26936f58f3d4c",
+  "measured_at": "2026-10-28T03:26Z",
+  "commit": "6b22a63fc89915052e269ee47fe0d9f09912865f",
   "scope": "whole tree, excluding tests/fixtures, spikes, .claude",
   "ruff": {
     "check_findings": 0,
@@ -36,11 +36,11 @@
   },
   "dependencies_QG_DEP_01_02": {
     "QG-DEP-01": "OK (advisories: runtime 0, dev 5; waived 0)",
-    "QG-DEP-02": "OK (1 runtime packages; 6 dev-only off the allowlist, advisory)"
+    "QG-DEP-02": "OK (1 runtime packages; 7 dev-only off the allowlist, advisory)"
   },
   "frontend_QG_FE_01_02_03": {
     "eslint_errors_dashboard": 19,
-    "external_loads": 0,
+    "external_loads": 3,
     "html_validity_errors": 28
   },
   "comment_policy_QG_RD_04": {
