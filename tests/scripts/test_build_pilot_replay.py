@@ -40,6 +40,22 @@ def trajectory(*turns):
     return {"messages": messages}
 
 
+def solved_trajectory():
+    traj = trajectory(("ls", 0))
+    traj["messages"].append(call("echo COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT && cat patch.txt", 9))
+    traj["messages"].append({"role": "exit"})
+    return traj
+
+
+GRADES = {
+    "plain": [
+        {"run": 2, "resolved": True, "steps": 2},
+        {"run": 3, "resolved": False, "steps": 1},
+    ],
+    "lesson": [{"run": 1, "resolved": True, "steps": 2}],
+}
+
+
 @pytest.mark.parametrize(
     ("command", "label"),
     [
@@ -130,7 +146,7 @@ def test_totals_are_the_sums_of_the_steps():
 
 def test_replay_gives_the_lesson_note_only_to_the_lesson_run_and_labels_it_honestly():
     pair = replay.PAIRS[0]
-    doc = replay.build_replay(pair, trajectory(("ls", 0)), trajectory(("ls", 0)))
+    doc = replay.build_replay(pair, trajectory(("ls", 0)), solved_trajectory(), GRADES)
     plain, lesson = doc["runs"]
     assert plain["steps"][0]["note"] is None and plain["adapter"] is None
     assert lesson["steps"][0]["note"]["source"] == "lesson in prompt (pilot)"
@@ -144,7 +160,49 @@ def test_note_fields_stay_within_twelve_words():
 
 
 def test_each_run_carries_its_own_subtitle():
-    doc = replay.build_replay(replay.PAIRS[0], trajectory(("ls", 0)), trajectory(("ls", 0)))
+    doc = replay.build_replay(replay.PAIRS[0], trajectory(("ls", 0)), solved_trajectory(), GRADES)
     plain, lesson = doc["runs"]
     assert plain["subtitle"] == "Glimmer, no adapter, no notes"
     assert "lesson in the prompt" in lesson["subtitle"] and "no adapter" in lesson["subtitle"]
+
+
+def test_replay_states_the_arms_full_record_and_which_run_is_shown():
+    doc = replay.build_replay(replay.PAIRS[0], trajectory(("ls", 0)), solved_trajectory(), GRADES)
+    plain, lesson = doc["runs"]
+    assert (plain["shown_run"], plain["runs_solved"], plain["runs_total"]) == (3, 1, 2)
+    assert (lesson["shown_run"], lesson["runs_solved"], lesson["runs_total"]) == (1, 1, 1)
+
+
+def test_result_comes_from_the_grader_and_a_disagreeing_trajectory_raises():
+    grades = {**GRADES, "plain": [{"run": 3, "resolved": True, "steps": 1}]}
+    with pytest.raises(replay.TrajectoryError, match="grader"):
+        replay.build_replay(replay.PAIRS[0], trajectory(("ls", 0)), solved_trajectory(), grades)
+
+
+def test_a_step_count_the_grader_does_not_share_raises():
+    grades = {**GRADES, "plain": [{"run": 3, "resolved": False, "steps": 7}]}
+    with pytest.raises(replay.TrajectoryError, match="7"):
+        replay.build_replay(replay.PAIRS[0], trajectory(("ls", 0)), solved_trajectory(), grades)
+
+
+def test_rewriting_a_scratch_script_and_rerunning_it_is_not_a_repeat():
+    turns = (
+        ("cat > /tmp/try.py << 'EOF'\nprint(1)\nEOF", 0),
+        ("python /tmp/try.py", 0),
+        ("cat > /tmp/try.py << 'EOF'\nprint(2)\nEOF", 0),
+        ("python /tmp/try.py", 0),
+    )
+    assert tags(*turns) == ["none", "none", "none", "none"]
+
+
+def test_rerunning_a_script_that_was_not_rewritten_is_a_repeat():
+    assert tags(("python /tmp/try.py", 0), ("python /tmp/try.py", 0)) == ["none", "repeated"]
+
+
+def test_a_python_heredoc_that_writes_a_file_also_resets_its_commands():
+    write = "python3 - << 'PY'\nopen('/tmp/try.py', 'w').write('x')\nPY"
+    assert tags(("python /tmp/try.py", 1), (write, 0), ("python /tmp/try.py", 0)) == [
+        "new",
+        "none",
+        "none",
+    ]

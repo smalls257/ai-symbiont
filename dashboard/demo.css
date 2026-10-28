@@ -40,6 +40,7 @@ button:hover, select:hover { border-color: var(--ink); }
 #run-personal { --run: var(--personal); --run-tint: var(--personal-tint); }
 .run-title { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .run-title h2 { font-size: 26px; color: var(--ink); }
+.run-record { color: var(--ink); font-size: 14px; margin-top: 2px; }
 .run-sub { color: var(--muted); font-size: 16px; margin-top: 2px; }
 
 .tally { display: flex; align-items: center; gap: 18px; margin: 14px 0 10px; }

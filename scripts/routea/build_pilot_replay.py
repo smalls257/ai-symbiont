@@ -7,11 +7,20 @@ steps, and an unreadable step raises TrajectoryError. Tag heuristics: dashboard/
 """
 
 import json
-import re
 import sys
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from pilot_step_tags import (  # noqa: E402  (the sibling module is found through the path line above)
+    SUBMIT_MARK,
+    RunMemory,
+    action_label,
+    failed_test_run,
+    mistake_tag,
+)
 
 SCHEMA = "demo-replay-v1"
 SOURCE_LINE = (
@@ -24,9 +33,7 @@ LESSON_SUBTITLE = "Glimmer, lesson in the prompt (pilot), no adapter"
 SOLVED = "solved"
 NOT_SOLVED = "not solved"
 LESSON_SOURCE = "lesson in prompt (pilot)"
-SUBMIT_MARK = "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
 MAX_LABEL_WORDS = 12
-MOST_OF_A_RANGE = 0.5  # share of a re-read line range already seen that counts as a repeat
 
 
 class TrajectoryError(ValueError):
@@ -39,6 +46,7 @@ class TaskPair:
 
     task_id: str
     label: str
+    plain_run: int  # the cap-50 confirm run that is replayed
     note: dict[str, str]  # what / resolved / check, each at most 12 words, from the lesson prompt
 
 
@@ -46,6 +54,7 @@ PAIRS = [
     TaskPair(
         "tobymao__sqlglot-1379",
         "Casting to an array of struct fails to parse in DuckDB",
+        3,
         {
             "what": "DuckDB cast to a struct array, struct(...)[], failed to parse.",
             "resolved": "Let the array-suffix check in Parser._parse_types cover nested types.",
@@ -55,6 +64,7 @@ PAIRS = [
     TaskPair(
         "tobymao__sqlglot-2095",
         "Oracle query fails to parse when a column name contains #",
+        2,
         {
             "what": "Oracle column names containing # failed to tokenize.",
             "resolved": "Add # to VAR_SINGLE_TOKENS on the Oracle tokenizer.",
@@ -64,6 +74,7 @@ PAIRS = [
     TaskPair(
         "tobymao__sqlglot-2529",
         "Snowflake staged-file reference raises list index out of range",
+        2,
         {
             "what": "A trailing Snowflake @stage reference raised list index out of range.",
             "resolved": "Stop the @ name loop in _parse_table_parts when no token remains.",
@@ -71,132 +82,6 @@ PAIRS = [
         },
     ),
 ]
-
-TEST_RUN = re.compile(r"(?:unittest|pytest)\s+(.*)")
-SOURCE_PATH = re.compile(r"(?:/testbed/)?((?:sqlglot|tests)/[\w/]+\.py)")
-SED_RANGE = re.compile(r"sed -n '(\d+),(\d+)p'\s+(\S+)")
-SCRIPT_FILE = re.compile(r"(?:python3?|cat >)\s+(\S+\.py)")
-
-
-@dataclass
-class RunMemory:
-    """What this run has already done since its last source edit."""
-
-    reads: dict[str, list[tuple[int, int]]] = field(default_factory=dict)
-    commands: set[str] = field(default_factory=set)
-
-
-def _repo_path(command: str) -> str | None:
-    found = SOURCE_PATH.search(command)
-    return found.group(1) if found else None
-
-
-def _test_target(command: str) -> str:
-    tail = TEST_RUN.search(command)
-    first = tail.group(1).split()[0] if tail else ""
-    return first.replace(".", "/") + ".py" if first.startswith("tests.") else first
-
-
-def _is_write(command: str) -> bool:
-    return bool(
-        re.search(r"sed -i|write_text|open\([^)]*['\"]w['\"]\)|\.write\(|writelines", command)
-    )
-
-
-def action_label(command: str) -> str:
-    """A short public label for one shell command, shaped by what the step did."""
-    path = _repo_path(command)
-    if SUBMIT_MARK in command:
-        return "Submit the patch"
-    if "git diff" in command or "patch.txt" in command:
-        return "Write out the patch" if "git diff" in command else "Review the patch"
-    if TEST_RUN.search(command) and "python -m" in command:
-        return f"Run {_test_target(command)}"
-    if _is_write(command) and path and path.startswith("sqlglot/"):
-        return f"Edit {path}"
-    if re.search(r"cat > |<< ?'?\w+'?", command):
-        return "Write a scratch script"
-    return _read_or_search_label(command, path)
-
-
-def _read_or_search_label(command: str, path: str | None) -> str:
-    ranged = SED_RANGE.search(command)
-    if ranged:
-        low, high, target = ranged.groups()
-        return f"Read {_repo_path(target) or target} lines {low}-{high}"
-    if re.match(r"(cd \S+ && )?(cat|head|tail|awk)\b", command) and path:
-        return f"Read {path}"
-    if "grep" in command:
-        return f"Search {path}" if path else "Search the code"
-    if re.match(r"(cd \S+ && )?(ls|find)\b", command):
-        return _listing_label(command)
-    if "git log" in command:
-        return "Check the git history"
-    return _run_label(command)
-
-
-def _listing_label(command: str) -> str:
-    tokens = _normalized(command).split("|")[0].split()
-    args = [t for t in tokens[1:] if not t.startswith("-")]
-    where = args[0].removeprefix("/testbed").strip("/") if args else ""
-    verb = "Find files in" if tokens[0] == "find" else "List"
-    return f"{verb} {where}" if where and where != "." else f"{verb} the repository root"
-
-
-def _run_label(command: str) -> str:
-    script = SCRIPT_FILE.search(command)
-    if script:
-        name = script.group(1).split("/")[-1]
-        return "Run the reproduction" if "reproduce" in name else "Run a scratch script"
-    if "python" in command and " -c " in command:
-        return "Check the example query"
-    if command.startswith("cp "):
-        return "Back up a file"
-    if "pip install" in command:
-        return "Install the package"
-    return "Run a shell command"
-
-
-def _failed_test_run(command: str, output: str, returncode: int) -> bool:
-    if returncode != 0:
-        return True
-    ran_tests = bool(TEST_RUN.search(command)) and "python -m" in command
-    return ran_tests and bool(re.search(r"^(FAILED|ERROR)|\nFAILED|\nERROR:|Traceback", output))
-
-
-def _normalized(command: str) -> str:
-    return " ".join(command.removeprefix("cd /testbed &&").split()).replace("/testbed/", "")
-
-
-def _shared_fraction(low: int, high: int, seen: list[tuple[int, int]]) -> float:
-    """How much of the new line range an earlier read of the same file already covered."""
-    covered = {n for start, end in seen for n in range(max(low, start), min(high, end) + 1)}
-    return len(covered) / (high - low + 1)
-
-
-def _rereads_most_of_a_range(command: str, memory: RunMemory) -> bool:
-    ranged = SED_RANGE.search(command)
-    if not ranged:
-        return False
-    target = ranged.group(3).removeprefix("/testbed/")
-    low, high = int(ranged.group(1)), int(ranged.group(2))
-    again = _shared_fraction(low, high, memory.reads.get(target, [])) >= MOST_OF_A_RANGE
-    memory.reads.setdefault(target, []).append((low, high))
-    return again
-
-
-def mistake_tag(command: str, memory: RunMemory, *, failed: bool) -> str:
-    """repeated / new / none under the definitions in dashboard/AGENTS.md."""
-    key = _normalized(command)
-    rerun = key in memory.commands
-    reread = _rereads_most_of_a_range(command, memory)
-    memory.commands.add(key)
-    if action_label(command).startswith("Edit "):
-        memory.commands.clear()
-        memory.reads.clear()
-    if rerun or reread:
-        return "repeated"
-    return "new" if failed else "none"
 
 
 def _pair_up(
@@ -254,7 +139,7 @@ def steps_from_trajectory(
         command = call["extra"]["actions"][0]["command"]
         where = f"{label} step {number}"
         tokens_in, tokens_out, wall_s = _step_cost(call, reply, where)
-        failed = _failed_test_run(
+        failed = failed_test_run(
             command, reply["extra"].get("raw_output", ""), reply["extra"]["returncode"]
         )
         tag = mistake_tag(command, memory, failed=failed)
@@ -276,6 +161,21 @@ def steps_from_trajectory(
     return steps
 
 
+def check_against_grader(steps: list[dict[str, Any]], grade: dict[str, Any], label: str) -> str:
+    """The grader's result for the replayed run; raises when the trajectory disagrees with it."""
+    submitted = steps[-1]["action"] == "Submit the patch"
+    result = SOLVED if grade["resolved"] else NOT_SOLVED
+    if len(steps) != grade["steps"]:
+        raise TrajectoryError(
+            f"{label}: {len(steps)} steps but the grader row says {grade['steps']}"
+        )
+    if submitted != grade["resolved"]:
+        raise TrajectoryError(
+            f"{label}: trajectory submitted={submitted}, grader resolved={grade['resolved']}"
+        )
+    return result
+
+
 def _bounded(label: str, where: str) -> str:
     if len(label.split()) > MAX_LABEL_WORDS:
         raise TrajectoryError(f"{where}: label over {MAX_LABEL_WORDS} words: {label!r}")
@@ -284,7 +184,10 @@ def _bounded(label: str, where: str) -> str:
 
 def totals_of(steps: list[dict[str, Any]], result: str) -> dict[str, Any]:
     """Run totals computed from the steps, never typed."""
-    count = lambda key, value: sum(s[key] == value for s in steps)  # noqa: E731
+
+    def count(key: str, value: object) -> int:
+        return sum(s[key] == value for s in steps)
+
     return {
         "steps": len(steps),
         "tokens_in": sum(s["tokens_in"] for s in steps),
@@ -298,10 +201,18 @@ def totals_of(steps: list[dict[str, Any]], result: str) -> dict[str, Any]:
     }
 
 
+def _record(rows: list[dict[str, Any]], shown: int) -> dict[str, int]:
+    """The arm's full record on this task from the grader's rows, and which run is replayed."""
+    return {
+        "shown_run": shown,
+        "runs_solved": sum(bool(r["resolved"]) for r in rows),
+        "runs_total": len(rows),
+    }
+
+
 def _run_entry(
     run_id: str, label: str, subtitle: str, role: str, steps: list[dict[str, Any]]
 ) -> dict[str, Any]:
-    result = SOLVED if steps[-1]["outcome"] == "solved" else NOT_SOLVED
     return {
         "id": run_id,
         "label": label,
@@ -311,26 +222,62 @@ def _run_entry(
         "model": "Glimmer",
         "adapter": None,
         "steps": steps,
-        "totals": totals_of(steps, result),
     }
 
 
-def build_replay(pair: TaskPair, plain: dict[str, Any], lesson: dict[str, Any]) -> dict[str, Any]:
-    """One demo-replay-v1 document: the plain run, then the lesson-in-prompt run."""
-    plain_steps = steps_from_trajectory(plain, f"{pair.task_id} plain", result=NOT_SOLVED)
-    lesson_steps = steps_from_trajectory(lesson, f"{pair.task_id} lesson", result=SOLVED)
+def _graded(
+    run: dict[str, Any], rows: list[dict[str, Any]], shown: int, label: str
+) -> dict[str, Any]:
+    grade = next((r for r in rows if r["run"] == shown), None)
+    if grade is None:
+        raise TrajectoryError(f"{label}: no grader row for run {shown}")
+    result = check_against_grader(run["steps"], grade, label)
+    return {**run, **_record(rows, shown), "totals": totals_of(run["steps"], result)}
+
+
+def build_replay(
+    pair: TaskPair, plain: dict[str, Any], lesson: dict[str, Any], grades: dict[str, Any]
+) -> dict[str, Any]:
+    """One demo-replay-v1 document: the plain run, then the lesson-in-prompt run.
+
+    `grades` is the task's rows from the calibration logs: {"plain": [...], "lesson": [...]}.
+    """
+    name = pair.task_id
+    plain_steps = steps_from_trajectory(
+        plain, f"{name} plain", result=grades_result(grades["plain"], pair.plain_run)
+    )
+    lesson_steps = steps_from_trajectory(
+        lesson, f"{name} lesson", result=grades_result(grades["lesson"], 1)
+    )
     lesson_steps[0]["note"] = {**pair.note, "source": LESSON_SOURCE}
-    repo, number = pair.task_id.replace("__", "/").rsplit("-", 1)
+    repo, number = name.replace("__", "/").rsplit("-", 1)
+    plain_run = _graded(
+        _run_entry("plain", "Plain Glimmer", PLAIN_SUBTITLE, "floor", plain_steps),
+        grades["plain"],
+        pair.plain_run,
+        f"{name} plain",
+    )
+    lesson_run = _graded(
+        _run_entry("personal", LESSON_LABEL, LESSON_SUBTITLE, "under test", lesson_steps),
+        grades["lesson"],
+        1,
+        f"{name} lesson",
+    )
     return {
         "schema": SCHEMA,
         "status": "measured",
         "source": SOURCE_LINE,
         "task": {"id": f"{repo.split('/')[1]}-{number}", "repo": repo, "label": pair.label},
-        "runs": [
-            _run_entry("plain", "Plain Glimmer", PLAIN_SUBTITLE, "floor", plain_steps),
-            _run_entry("personal", LESSON_LABEL, LESSON_SUBTITLE, "under test", lesson_steps),
-        ],
+        "runs": [plain_run, lesson_run],
     }
+
+
+def grades_result(rows: list[dict[str, Any]], shown: int) -> str:
+    """The grader's verdict for the replayed run (check_against_grader then compares the shape)."""
+    row = next((r for r in rows if r["run"] == shown), None)
+    if row is None:
+        raise TrajectoryError(f"no grader row for run {shown}")
+    return SOLVED if row["resolved"] else NOT_SOLVED
 
 
 def write_replays(in_dir: Path, out_dir: Path) -> list[Path]:
@@ -340,8 +287,9 @@ def write_replays(in_dir: Path, out_dir: Path) -> list[Path]:
         number = pair.task_id.rsplit("-", 1)[1]
         plain = json.loads((in_dir / f"{number}-plain.json").read_text())
         lesson = json.loads((in_dir / f"{number}-lesson.json").read_text())
+        grades = json.loads((in_dir / "grades.json").read_text())[number]
         target = out_dir / f"pilot-sqlglot-{number}.json"
-        target.write_text(json.dumps(build_replay(pair, plain, lesson), indent=1) + "\n")
+        target.write_text(json.dumps(build_replay(pair, plain, lesson, grades), indent=1) + "\n")
         written.append(target)
     return written
 

@@ -212,3 +212,10 @@ def test_pilot_replay_matches_schema_and_sums(name):
 
 def test_three_pilot_replays_are_shipped():
     assert len(PILOT_FILES) == 3
+
+
+@pytest.mark.parametrize("field", ["subtitle", "shown_run", "runs_solved", "runs_total"])
+def test_run_without_its_own_text_or_record_is_refused(field):
+    doc = _load("demo-replay.json")
+    del doc["runs"][1][field]
+    assert any(f"missing {field}" in v for v in _replay_violations(doc))

@@ -668,6 +668,9 @@
      "picker": null
     }
    ],
+   "shown_run": 2,
+   "runs_solved": 0,
+   "runs_total": 2,
    "totals": {
     "steps": 50,
     "tokens_in": 949207,
@@ -792,8 +795,8 @@
      "tokens_in": 3409,
      "tokens_out": 45,
      "wall_s": 7.4,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
@@ -942,14 +945,17 @@
      "picker": null
     }
    ],
+   "shown_run": 1,
+   "runs_solved": 1,
+   "runs_total": 1,
    "totals": {
     "steps": 19,
     "tokens_in": 70146,
     "tokens_out": 2049,
     "wall_s": 324.5,
-    "repeated_mistakes": 2,
+    "repeated_mistakes": 1,
     "new_mistakes": 0,
-    "wasted_steps": 2,
+    "wasted_steps": 1,
     "notes": 1,
     "result": "solved"
    }

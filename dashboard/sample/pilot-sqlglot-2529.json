@@ -668,6 +668,9 @@
      "picker": null
     }
    ],
+   "shown_run": 2,
+   "runs_solved": 0,
+   "runs_total": 2,
    "totals": {
     "steps": 50,
     "tokens_in": 733493,
@@ -981,6 +984,9 @@
      "picker": null
     }
    ],
+   "shown_run": 1,
+   "runs_solved": 1,
+   "runs_total": 1,
    "totals": {
     "steps": 22,
     "tokens_in": 110845,

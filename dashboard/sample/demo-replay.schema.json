@@ -27,11 +27,14 @@
   "run": {
    "type": "object",
    "additionalProperties": false,
-   "required": ["id", "label", "subtitle", "role", "status", "model", "adapter", "steps", "totals"],
+   "required": ["id", "label", "subtitle", "shown_run", "runs_solved", "runs_total", "role", "status", "model", "adapter", "steps", "totals"],
    "properties": {
     "id": {"enum": ["plain", "personal"]},
     "label": {"type": "string", "minLength": 1},
     "subtitle": {"type": "string", "minLength": 1},
+    "shown_run": {"type": "integer", "minimum": 1},
+    "runs_solved": {"type": "integer", "minimum": 0},
+    "runs_total": {"type": "integer", "minimum": 1},
     "role": {"enum": ["floor", "ceiling", "reference", "under test"]},
     "status": {"$ref": "#/$defs/status"},
     "model": {"type": "string", "minLength": 1},

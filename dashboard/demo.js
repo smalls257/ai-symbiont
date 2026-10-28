@@ -39,6 +39,8 @@
 
   function checkRunShape(run) {
     if (!run.subtitle) fail(`Run ${run.id} carries no subtitle.`);
+    if (run.runs_solved > run.runs_total) fail(`Run ${run.id}: the record says ${run.runs_solved} of ${run.runs_total} solved.`);
+    if (run.runs_solved === 0 && run.totals.result === "solved") fail(`Run ${run.id}: shown as solved but the record has no solved run.`);
     if (!ROLES.includes(run.role)) fail(`Run ${run.id} has no valid role label (floor, ceiling, reference, under test).`);
     if (!STATUSES.includes(run.status)) fail(`Run ${run.id} has no claim tag.`);
     run.steps.forEach((s, i) => {
@@ -103,13 +105,14 @@
     h.id = `h-${run.id}`;
     head.append(h, roleEl(run.role), tagEl(run.status));
     const sub = el("p", "run-sub", run.subtitle);
-    return [head, sub];
+    const record = el("p", "run-record", `On this task: ${run.runs_solved} of ${run.runs_total} runs solved. Showing run ${run.shown_run} (${run.totals.result}).`);
+    return [head, sub, record];
   }
 
-  function tallyBlock(repeats) {
+  function tallyBlock(repeats, stepsUsed) {
     const box = el("div", "tally");
     box.append(el("div", `tally-n${repeats ? " has-repeats" : ""}`, String(repeats)));
-    const label = el("div", "tally-label", repeats === 1 ? "repeated mistake" : "repeated mistakes");
+    const label = el("div", "tally-label", (repeats === 1 ? "repeated mistake" : "repeated mistakes") + ` in ${stepsUsed} ${stepsUsed === 1 ? "step" : "steps"}`);
     const marks = el("div", "tally-marks");
     for (let i = 0; i < repeats; i++) marks.append(el("i", "", "✕"));
     label.append(marks);
@@ -151,7 +154,7 @@
     const list = el("ol", "steps");
     seen.forEach((s, i) => list.append(stepRow(s, i === cur)));
     const box = $(`run-${run.id}`);
-    box.replaceChildren(...runHeader(run), tallyBlock(seen.filter((s) => s.mistake_tag === "repeated").length), statsBlock(seen), list);
+    box.replaceChildren(...runHeader(run), tallyBlock(seen.filter((s) => s.mistake_tag === "repeated").length, seen.length), statsBlock(seen), list);
     if (cur >= run.steps.length - 1) box.append(el("p", "finished", `Finished at step ${run.steps.length}: ${run.totals.result}.`));
   }
 
@@ -292,7 +295,9 @@
   function renderBrain(cur) {
     const run = state.replay.runs[1];
     const plainNote = el("p", "off", "Plain Glimmer: nothing decides and nothing speaks.");
-    $("brain").replaceChildren(classifierBlock(run, cur), pickerBlock(run, cur), plainNote);
+    const classifierUsed = run.steps.some((s) => s.classifier);
+    const classifierPanel = classifierUsed ? classifierBlock(run, cur) : el("p", "off", "Classifier not used in this replay.");
+    $("brain").replaceChildren(classifierPanel, pickerBlock(run, cur), plainNote);
   }
 
   // ---- results strip ----
