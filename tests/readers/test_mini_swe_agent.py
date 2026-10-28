@@ -190,3 +190,31 @@ def test_non_object_message_after_assistant_raises_readerror(tmp_path):
     with pytest.raises(ReadError, match="must be an object") as err:
         list(read(write_lines(tmp_path, [json.dumps(row)]), PROJECT))
     assert err.value.line_no == 1
+
+
+def _row(**overrides):
+    row = fixture_rows()[0]
+    row.update(overrides)
+    return row
+
+
+NOT_STRING_CASES = {
+    "trajectory_id": (_row(trajectory_id=5), read, "trajectory_id"),
+    "instance_id": (_row(instance_id=5), read, "instance_id"),
+    "instance_id in a local run": (_row(instance_id=5), read_local_run, "instance_id"),
+    "command text": (
+        _row(messages=[{"role": "assistant", "content": 5}]),
+        read,
+        "content",
+    ),
+}
+
+
+@pytest.mark.parametrize("row, reader, expected", NOT_STRING_CASES.values(), ids=NOT_STRING_CASES)
+def test_non_string_field_raises_readerror_naming_file_and_line(tmp_path, row, reader, expected):
+    path = write_lines(tmp_path, [json.dumps(fixture_rows()[1]), json.dumps(row)])
+    with pytest.raises(ReadError, match=expected) as err:
+        list(reader(path, PROJECT))
+    assert err.value.path == path
+    assert err.value.line_no == 2
+    assert str(path) in str(err.value)

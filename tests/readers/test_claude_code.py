@@ -192,3 +192,49 @@ def test_tool_use_without_input_raises_readerror(tmp_path):
     del row["message"]["content"][1]["input"]
     with pytest.raises(ReadError, match="input"):
         list(read(write_lines(tmp_path, [json.dumps(row)]), PROJECT))
+
+
+def _event(kind, content, **extra):
+    return {"type": kind, "sessionId": "s", "message": {"role": kind, "content": content}, **extra}
+
+
+def _tool(tool, tool_input, **overrides):
+    block = {"type": "tool_use", "id": "t1", "name": tool, "input": tool_input, **overrides}
+    return _event("assistant", [block])
+
+
+def _result(**overrides):
+    block = {"type": "tool_result", "tool_use_id": "t1", "content": "ok", **overrides}
+    return _event("user", [block])
+
+
+NOT_STRING_CASES = {
+    "sessionId": ([{**_event("user", "hi"), "sessionId": 5}], "sessionId"),
+    "type": ([{**_event("user", "hi"), "type": 5}], "'type' must be a string"),
+    "cwd": ([_event("user", "hi", cwd=5)], "cwd"),
+    "user text": ([_event("user", [{"type": "text", "text": 5}])], "text"),
+    "assistant text": ([_event("assistant", [{"type": "text", "text": 5}])], "text"),
+    "tool_use id": ([_tool("Bash", {"command": "ls"}, id=5)], "id"),
+    "tool_use_id": ([_result(tool_use_id=5)], "tool_use_id"),
+    "tool name": ([_tool("Bash", {"command": "ls"}, name=5)], "name"),
+    "bash command": ([_tool("Bash", {"command": 5})], "command"),
+    "read file_path": ([_tool("Read", {"file_path": 5})], "file_path"),
+    "write file_path": ([_tool("Write", {"file_path": 5, "content": "x"})], "file_path"),
+    "edit old_string": ([_tool("Edit", {"file_path": "a", "old_string": 5})], "old_string"),
+    "edit new_string": (
+        [_tool("Edit", {"file_path": "a", "old_string": "x", "new_string": 5})],
+        "new_string",
+    ),
+}
+
+
+@pytest.mark.parametrize("events, expected", NOT_STRING_CASES.values(), ids=NOT_STRING_CASES)
+def test_non_string_field_raises_readerror_naming_file_and_line(tmp_path, events, expected):
+    path = write_lines(
+        tmp_path, [json.dumps(_event("user", "first"))] + [json.dumps(e) for e in events]
+    )
+    with pytest.raises(ReadError, match=expected) as err:
+        list(read(path, PROJECT))
+    assert err.value.path == path
+    assert str(path) in str(err.value)
+    assert err.value.line_no >= 2

@@ -68,7 +68,7 @@ def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
     for line_no, event in events:
         try:
             for fields in _event_records(event, results):
-                session_id = _require(event, "sessionId")
+                session_id = _require_text(event, "sessionId")
                 step = steps.get(session_id, 0)
                 steps[session_id] = step + 1
                 yield _record(event, source, session_id, step, fields)
@@ -100,7 +100,8 @@ def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
 def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
     kind = event.get("type")
     if not isinstance(kind, str):
-        raise ReadError(path, line_no, "missing 'type'")
+        message = "missing 'type'" if kind is None else "'type' must be a string"
+        raise ReadError(path, line_no, message)
     has_message = event.get("message") is not None
     if kind in _CONVERSATION_TYPES:
         if not has_message:
@@ -125,7 +126,7 @@ def _results_by_call(
 
 def _event_results(event: dict[str, Any]) -> dict[str, dict[str, Any]]:
     return {
-        _require(block, "tool_use_id"): block
+        _require_text(block, "tool_use_id"): block
         for block in _blocks(event)
         if block.get("type") == "tool_result"
     }
@@ -135,6 +136,22 @@ def _require(mapping: Any, key: str) -> Any:
     if not isinstance(mapping, dict) or mapping.get(key) is None:
         raise _MalformedError(f"missing {key!r}")
     return mapping[key]
+
+
+def _require_str(value: Any, field: str) -> str:
+    if not isinstance(value, str):
+        raise _MalformedError(f"{field!r} must be a string, got {type(value).__name__}")
+    return value
+
+
+def _require_text(mapping: Any, key: str) -> str:
+    return _require_str(_require(mapping, key), key)
+
+
+def _optional_text(mapping: dict[str, Any], key: str) -> str:
+    """A field the harness may omit; empty then, but never a non-string."""
+    value = mapping.get(key)
+    return "" if value is None else _require_str(value, key)
 
 
 def _blocks(event: dict[str, Any]) -> list[dict[str, Any]]:
@@ -172,6 +189,7 @@ def _record(
 def _event_records(
     event: dict[str, Any], results: dict[str, dict[str, Any]]
 ) -> Iterator[dict[str, Any]]:
+    _optional_text(event, "cwd")
     if event["type"] == "user":
         yield from _user_turns(event)
     else:
@@ -179,7 +197,7 @@ def _event_records(
 
 
 def _user_turns(event: dict[str, Any]) -> Iterator[dict[str, Any]]:
-    texts = [_require(b, "text") for b in _blocks(event) if b.get("type") == "text"]
+    texts = [_require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
     if not texts:
         return  # tool results only: they are folded into the action they answer
     yield {"kind": Kind.USER_TURN, "raw": "\n".join(texts), "tags": _pushback_tags(event)}
@@ -197,13 +215,13 @@ def _pushback_tags(event: dict[str, Any]) -> tuple[str, ...]:
 def _assistant_records(
     event: dict[str, Any], results: dict[str, dict[str, Any]]
 ) -> Iterator[dict[str, Any]]:
-    cwd = event.get("cwd")
+    cwd = _optional_text(event, "cwd") or None
     for block in _blocks(event):
         kind = block.get("type")
         if kind == "text":
-            yield {"kind": Kind.AGENT_TURN, "raw": _require(block, "text")}
+            yield {"kind": Kind.AGENT_TURN, "raw": _require_text(block, "text")}
         elif kind == "tool_use":
-            yield from _tool_use(block, results.get(_require(block, "id")), cwd)
+            yield from _tool_use(block, results.get(_require_text(block, "id")), cwd)
         elif kind != "thinking":
             raise _MalformedError(f"unknown assistant block type {kind!r}")
 
@@ -212,7 +230,7 @@ def _tool_use(
     block: dict[str, Any], result: dict[str, Any] | None, cwd: str | None
 ) -> Iterator[dict[str, Any]]:
     """The harness's action, then our own text from its result as a separate record."""
-    name = _require(block, "name")
+    name = _require_text(block, "name")
     args = _require(block, "input")
     if not isinstance(args, dict):
         raise _MalformedError(f"tool input of {name!r} must be an object")
@@ -263,13 +281,13 @@ def _make_relative(cwd: str | None) -> Callable[[str], str]:
 
 
 def _bash(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    return {"kind": Kind.COMMAND, "command": _require(args, "command")}
+    return {"kind": Kind.COMMAND, "command": _require_text(args, "command")}
 
 
 def _read_file(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
     return {
         "kind": Kind.READ,
-        "files": (relative(_require(args, "file_path")),),
+        "files": (relative(_require_text(args, "file_path")),),
         "line_range": _read_range(args),
     }
 
@@ -285,26 +303,26 @@ def _read_range(args: dict[str, Any]) -> tuple[int, int] | None:
 
 
 def _edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    path = relative(_require(args, "file_path"))
-    pairs = [(_require(args, "old_string"), args.get("new_string") or "")]
+    path = relative(_require_text(args, "file_path"))
+    pairs = [(_require_text(args, "old_string"), _optional_text(args, "new_string"))]
     return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
 
 
 def _multi_edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    path = relative(_require(args, "file_path"))
+    path = relative(_require_text(args, "file_path"))
     edits = _require(args, "edits")
     if not isinstance(edits, list):
         raise _MalformedError("MultiEdit 'edits' must be a list")
-    pairs = [(_require(e, "old_string"), e.get("new_string") or "") for e in edits]
+    pairs = [(_require_text(e, "old_string"), _optional_text(e, "new_string")) for e in edits]
     return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
 
 
 def _write(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    path = relative(_require(args, "file_path"))
+    path = relative(_require_text(args, "file_path"))
     return {
         "kind": Kind.EDIT,
         "files": (path,),
-        "diff": _diff(path, [("", _require(args, "content"))], "/dev/null"),
+        "diff": _diff(path, [("", _require_text(args, "content"))], "/dev/null"),
     }
 
 
@@ -312,7 +330,7 @@ def _notebook_edit(
     name: str, args: dict[str, Any], relative: Callable[[str], str]
 ) -> dict[str, Any]:
     # The notebook's previous cell text is not logged, so there is no diff.
-    return {"kind": Kind.EDIT, "files": (relative(_require(args, "notebook_path")),)}
+    return {"kind": Kind.EDIT, "files": (relative(_require_text(args, "notebook_path")),)}
 
 
 def _other_tool(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:

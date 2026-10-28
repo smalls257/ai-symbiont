@@ -62,7 +62,10 @@ def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
 
 
 def read_local_run(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of our own runs; raises unless every task is a public benchmark id."""
+    """Yield records of our own runs; raises unless every task is on a public benchmark repo.
+
+    It trusts the row's declared `instance_id`; only our own runner writes these files.
+    """
     return _read(path, project, LOCAL_RUN, public_tasks_only=True)
 
 
@@ -120,8 +123,8 @@ def _session_records(
         raise _MalformedError("'messages' must be a list")
     session = _Session(
         project=project,
-        session_id=_require(row, "trajectory_id"),
-        task_id=_require(row, "instance_id"),
+        session_id=_require_text(row, "trajectory_id"),
+        task_id=_require_text(row, "instance_id"),
         provenance=provenance,
     )
     if public_tasks_only:
@@ -146,6 +149,16 @@ def _require(mapping: Any, key: str) -> Any:
     if not isinstance(mapping, dict) or mapping.get(key) is None:
         raise _MalformedError(f"missing {key!r}")
     return mapping[key]
+
+
+def _require_str(value: Any, field: str) -> str:
+    if not isinstance(value, str):
+        raise _MalformedError(f"{field!r} must be a string, got {type(value).__name__}")
+    return value
+
+
+def _require_text(mapping: Any, key: str) -> str:
+    return _require_str(_require(mapping, key), key)
 
 
 def _text(message: Any) -> str:
