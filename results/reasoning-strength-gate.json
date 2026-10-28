@@ -1,0 +1,123 @@
+{
+ "run_mode": "full",
+ "prereg": "prereg/2026-10-28-reasoning-strength-gate.md",
+ "model": "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
+ "item_ids": [
+  "doom-MAP01-01",
+  "doom-MAP01-02",
+  "doom-MAP01-03",
+  "doom-MAP01-04",
+  "doom-MAP01-05",
+  "doom-MAP01-06",
+  "doom-MAP01-07",
+  "doom-MAP01-08",
+  "doom-MAP01-09",
+  "doom-MAP01-10",
+  "doom-MAP01-11",
+  "doom-MAP02-01",
+  "doom-MAP02-02",
+  "doom-MAP02-03",
+  "doom-MAP02-04",
+  "doom-MAP02-05",
+  "doom-MAP02-06",
+  "doom-MAP02-07",
+  "doom-MAP02-08",
+  "doom-MAP02-09",
+  "code-sqlglot-1309--screen-run1",
+  "code-sqlglot-1367--screen-run1",
+  "code-sqlglot-1379--screen-run1",
+  "code-sqlglot-1782--screen-run1",
+  "code-sqlglot-1782--confirm-run2",
+  "code-sqlglot-1944--screen-run1",
+  "code-sqlglot-2095--screen-run1",
+  "code-sqlglot-2443--screen-run1",
+  "code-sqlglot-2529--screen-run1",
+  "code-sqlglot-2658--screen-run1"
+ ],
+ "rows": [
+  {
+   "arm": "fixed_low",
+   "role": "reference",
+   "split": "all",
+   "n": 30,
+   "successes": 14,
+   "success_rate": 0.4666666666666667,
+   "median_completion_tokens": 206.5,
+   "total_completion_tokens": 6272,
+   "median_seconds": 28.3,
+   "total_seconds": 966.5,
+   "per_item": "001101001101111001011010000001"
+  },
+  {
+   "arm": "fixed_high",
+   "role": "reference",
+   "split": "all",
+   "n": 30,
+   "successes": 11,
+   "success_rate": 0.36666666666666664,
+   "median_completion_tokens": 983.5,
+   "total_completion_tokens": 31071,
+   "median_seconds": 105.9,
+   "total_seconds": 3408.6,
+   "per_item": "001101001100111001011000000000"
+  },
+  {
+   "arm": "hindsight_chooser",
+   "role": "ceiling",
+   "split": "all",
+   "n": 30,
+   "successes": 14,
+   "success_rate": 0.4666666666666667,
+   "median_completion_tokens": 206.5,
+   "total_completion_tokens": 6272,
+   "total_seconds": 966.5
+  }
+ ],
+ "by_domain": {
+  "coding": {
+   "n": 10,
+   "low_success": 0.3,
+   "high_success": 0.1
+  },
+  "freedoom": {
+   "n": 20,
+   "low_success": 0.55,
+   "high_success": 0.5
+  }
+ },
+ "labels": {
+  "low": {
+   "wrong_move": 9,
+   "success": 14,
+   "wrong_file_or_function": 7
+  },
+  "high": {
+   "wrong_move": 10,
+   "success": 11,
+   "wrong_file_or_function": 9
+  }
+ },
+ "coding_same_file_only": {
+  "low": 3,
+  "high": 2
+ },
+ "decision": {
+  "items": 30,
+  "low_success": 0.4666666666666667,
+  "high_success": 0.36666666666666664,
+  "median_token_ratio": 0.21090311273923865,
+  "items_differing": 8,
+  "conditions": {
+   "success_within_10_points": true,
+   "median_token_ratio_at_most_half": true,
+   "quarter_of_items_differ": true
+  },
+  "verdict": "GO"
+ },
+ "rule": "GO if low is within 10 points of high overall, low uses at most 50% of high's tokens (median of per-item ratios), and at least 25% of items differ; else NO-GO.",
+ "caveats": [
+  "Freedoom items are warped states, not a played episode; one Glimmer slot was shared with a calibration run, so wall-clock is noisy.",
+  "Thirty items cannot resolve small differences; the verdict is a go/no-go screen, not an estimate of the effect.",
+  "Coding score is the same-file (and function, when known) match of the first command, not a test result."
+ ]
+}
