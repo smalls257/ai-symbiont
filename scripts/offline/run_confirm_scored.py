@@ -28,7 +28,8 @@ import run_repo_curve as rc
 import run_selection as g6
 
 from symbiont.eval import selection as sel
-from symbiont.eval.note_cost_scored_report import registered_options, train_stack
+from symbiont.eval.note_cost_options import count_stack, prepare
+from symbiont.eval.note_cost_scored_report import registered_options
 from symbiont.eval.offline import drop_taskless
 from symbiont.readers import openhands
 from symbiont.readers.errors import ReadError
@@ -95,9 +96,12 @@ def ship_jobs() -> list[tuple[str, Any]]:
 def settings_of(risks: dict[str, list[float]]) -> dict[str, dict[str, float]]:
     """Each registered option's (note, warning) thresholds chosen on the pool scoring traces."""
     traces = rc.traces_of(risks)
+    arm = prepare(traces, sorted({t.task_id for t in traces}))
     found = {}
     for option in registered_options():
-        stack = train_stack(traces, option)
+        # Not note_cost_scored_report.train_stack: it caches by id(traces), and a traces tuple
+        # built and freed here would hand its id, and its cached stack, to the next learner.
+        stack = count_stack(arm, option.rule, option.tiers)
         index, score = option.choose(stack.counts)
         note, warn = stack.settings[index]
         found[option.key] = {
