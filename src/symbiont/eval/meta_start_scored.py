@@ -19,7 +19,7 @@ import numpy as np
 
 from symbiont.eval.note_cost_options import count_stack, counts, prepare, shown
 from symbiont.eval.note_cost_report import NET, gap, scored
-from symbiont.eval.note_cost_scored import consistent, pick_on_train, stratified_draws, test_counts
+from symbiont.eval.note_cost_scored import consistent, stratified_draws, test_counts
 from symbiont.eval.note_cost_scored_report import PRIMARY, registered_options
 from symbiont.eval.note_cost_select import Option
 from symbiont.eval.note_delivery import NoteTrace
@@ -92,9 +92,11 @@ def row_counts(
     for seed, (validation, scoring) in by_seed.items():
         tasks = sorted({t.task_id for t in validation})
         stack = count_stack(prepare(validation, tasks), option.rule, option.tiers)
-        _, setting = pick_on_train([stack], option)
+        setting, value_per_step = option.choose(stack.counts)
         held.append(test_counts(prepare(scoring, lay.tasks), stack, setting, option))
-        chosen[f"seed {seed}"] = [float(v) for v in stack.settings[setting]]
+        # Note threshold, warning threshold, and the validation value per 100 steps.
+        thresholds = [float(v) for v in stack.settings[setting]]
+        chosen[f"seed {seed}"] = [*thresholds, 100 * float(value_per_step)]
     return np.mean(held, axis=0), chosen
 
 
