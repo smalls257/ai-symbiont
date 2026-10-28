@@ -1,9 +1,6 @@
-"""Measure how far the whole tree is from the gates, and write scripts/gates/baseline.json.
+"""Measure the whole tree against the gates and write scripts/gates/baseline.json.
 
-Phase 1 holds only changed files to the full bar; this records what the unchanged rest
-would fail today, so phase 2 has a number to drive to zero and a ratchet to hold it
-(Paper Tiger prevention: a cleanup without a baseline cannot show it cleaned anything).
-
+Phase 1 holds changed files to the bar; this counts what the rest would fail, for phase 2.
 Usage: measure_baseline.py [--write]      (default: print only)
 """
 

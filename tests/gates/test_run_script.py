@@ -151,8 +151,7 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
         "QG-FE-02",
     ):
         assert f"FAIL  {gate}" in out.stdout, gate
-    assert "note  QG-RD-04" in out.stdout, "the advisory comment-policy gate must report, not fail"
-    assert "FAIL  QG-RD-04" not in out.stdout
+    assert "FAIL  QG-RD-04" in out.stdout, "the comment-policy gate blocks changed files"
     assert "RED:" in out.stdout and "GREEN" not in out.stdout
 
 

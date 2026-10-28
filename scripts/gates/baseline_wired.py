@@ -123,9 +123,6 @@ def comment_findings(files: list[str]) -> dict:
         raise RuntimeError(f"check_comments.py could not run: {out.stderr[-300:]}")
     lines = [ln for ln in out.stdout.splitlines() if ln.startswith("QG-RD-04: ")]
     rules = {
-        "framework_vocabulary": "framework term",
-        "docstring_over_cap": "docstring over",
-        "comment_block_over_3": "comment block over",
         "todo_without_owner_date": "TODO/FIXME",
         "restates_next_line_or_signature": "restate",
     }

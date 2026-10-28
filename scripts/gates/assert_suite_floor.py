@@ -1,14 +1,6 @@
-"""QG-TST-01 test-count floor and zero skips. Prevents Paper Tiger: a suite that collected
-nothing (or skipped what it could not run) is green and proves nothing.
+"""QG-TST-01: fail on a missing report, fewer tests than the floor, any skip, any failure.
 
-Reads a pytest --junitxml report and fails when
-  * the report is missing or unreadable (the suite did not run),
-  * tests < the floor in scripts/gates/test-floor.txt,
-  * any test was skipped (a skip hides a dependency that should be a periphery mark or a
-    fixture; there is no waiver, so delete or fix the test),
-  * any test failed or errored.
-The floor only ratchets up: `--update` raises it to 95 percent of this green run, never lowers.
-
+The floor in test-floor.txt only ratchets up: `--update` raises it to 95 percent of this run.
 Usage: assert_suite_floor.py REPORT.xml [--update]
 """
 

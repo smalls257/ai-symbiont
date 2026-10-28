@@ -1,7 +1,8 @@
 """QG-RD-04 comment policy: TODO format, restating comments, restating docstrings.
 
-Terseness rules (framework vocabulary, docstring and comment-block caps) are in comment_style.py.
-Commented-out code is ruff ERA001. Exit 1 on a finding (advisory in run.sh), 2 if unreadable.
+Terseness rules (framework vocabulary, docstring and comment-block caps) are semgrep rules in
+.semgrep/symbiont/comments.yaml.
+Commented-out code is ruff ERA001. Exit 1 on a finding (blocking in run.sh), 2 if unreadable.
 Usage: check_comments.py FILE ...
 """
 
@@ -11,8 +12,6 @@ import re
 import sys
 import tokenize
 from pathlib import Path
-
-from comment_style import comment_style_problems, docstring_style_problems
 
 OVERLAP_LIMIT = 0.7  # QG-RD-04: the standard's number, still [hypothesis] until tuned here
 MIN_COMMENT_WORDS = 3
@@ -101,12 +100,7 @@ def restates_signature(doc: str, node: ast.FunctionDef | ast.AsyncFunctionDef) -
 def problems_in(source: str, name: str) -> list[str]:
     try:
         tree = ast.parse(source)
-        return (
-            comment_problems(source, name)
-            + docstring_problems(tree, name)
-            + comment_style_problems(source, name)
-            + docstring_style_problems(tree, name)
-        )
+        return comment_problems(source, name) + docstring_problems(tree, name)
     except (SyntaxError, tokenize.TokenError, IndentationError) as err:
         raise GateError(f"{name}: cannot parse: {err}") from err
 

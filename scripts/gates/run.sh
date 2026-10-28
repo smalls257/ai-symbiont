@@ -150,7 +150,7 @@ fast_gates() {
   # shellcheck disable=SC2086
   [ -z "$spelled" ] || gate QG-RD-05 uv run --no-sync codespell --builtin en-GB_to_en-US $spelled
   # shellcheck disable=SC2086
-  [ -z "$named" ] || advisory QG-RD-04 uv run --no-sync python scripts/gates/check_comments.py $named
+  [ -z "$named" ] || gate QG-RD-04 uv run --no-sync python scripts/gates/check_comments.py $named
   gate QG-SAST-02 scripts/gates/semgrep_pinned.sh
   gate QG-TYP-03 uv run --no-sync python scripts/gates/check_type_ignores.py
   gate QG-FE-01 scripts/gates/check_js.sh
