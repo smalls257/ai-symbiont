@@ -4,7 +4,7 @@
   reads, or `recall` could surface a near-gold patch. `add_records` takes the
   held-out task ids as a required argument and raises `HoldOutViolationError`
   naming the task before writing anything from the batch. Ids are compared
-  after normalising the benchmark spellings (`owner__repo-123`,
+  after normalizing the benchmark spellings (`owner__repo-123`,
   `owner/repo#123`); an id in neither spelling raises `UnrecognisedTaskIdError`
   rather than silently matching nothing. Records with no task id cannot be matched and are
   accepted (the developer's own sessions); the caller states the set per
@@ -231,7 +231,7 @@ def _check_held_out(records: Sequence[Record], held_out_tasks: frozenset[str]) -
             raise HoldOutViolationError(record.task_id, record.session_id)
 
 
-# --- serialisation -------------------------------------------------------------
+# --- serialization -------------------------------------------------------------
 
 
 def _record_json(record: Record) -> str:

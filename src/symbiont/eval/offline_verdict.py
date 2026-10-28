@@ -71,7 +71,7 @@ def bootstrap_auroc_interval(
     task draws as `bootstrap_auroc_gap`.
     """
     if not runs:
-        raise ValueError("no runs to summarise")
+        raise ValueError("no runs to summarize")
     tasks = sorted({s.task_id for s in runs[0].per_session})
     counts = sum(_counts_by_task(run, tasks) for run in runs) / len(runs)
     draws = np.random.default_rng(seed).multinomial(

@@ -93,7 +93,7 @@ def test_bearing_wording_distinguishes_left_and_right():
 def test_layout_from_depth_sees_wall_ahead_and_open_sides():
     # 8-bit depth: small = near, large = far.
     depth = np.full((240, 320), 60, dtype=np.uint8)
-    depth[:, 107:213] = 8  # wall close in the centre third
+    depth[:, 107:213] = 8  # wall close in the center third
     layout = layout_from_depth(depth)
     assert layout.wall_close_ahead
     assert not layout.ahead_open

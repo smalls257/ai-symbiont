@@ -89,7 +89,7 @@ def added_lines_of(patch: str) -> list[str]:
 def staged_added_lines() -> dict[str, str]:
     """Added lines per staged path. Names come NUL-delimited and each diff is asked for by literal
     pathspec, so a non-ASCII name, a space or a quote cannot hide a file (git would print a quoted,
-    escaped name in the patch header that a header parser does not recognise)."""
+    escaped name in the patch header that a header parser does not recognize)."""
     names = git_bytes("diff", "--cached", "--name-only", "--diff-filter=ACMR", "-z").split(b"\0")
     texts = {}
     for raw in filter(None, names):

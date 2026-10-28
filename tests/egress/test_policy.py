@@ -5,9 +5,9 @@ import pytest
 from symbiont.egress import Destination, EgressRefusedError, Endpoint, check_outbound
 from symbiont.records.schema import Provenance
 
-SAFE = Provenance(dataset="openhands", licence="MIT", spark_safe=True)
-PRIVATE = Provenance(dataset="owner-sessions", licence="private", spark_safe=False)
-SWE_CHAT = Provenance(dataset="SWE-chat", licence="research", spark_safe=True)
+SAFE = Provenance(dataset="openhands", license="MIT", spark_safe=True)
+PRIVATE = Provenance(dataset="owner-sessions", license="private", spark_safe=False)
+SWE_CHAT = Provenance(dataset="SWE-chat", license="research", spark_safe=True)
 REMOTE_URL = "https://api.meta.ai/v1/chat/completions"
 
 

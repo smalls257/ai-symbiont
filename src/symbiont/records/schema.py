@@ -36,7 +36,7 @@ class Provenance:
     """
 
     dataset: str
-    licence: str
+    license: str
     spark_safe: bool
 
 
@@ -118,4 +118,4 @@ def _provenance_from_dict(data: dict[str, Any]) -> Provenance:
     spark_safe = data["spark_safe"]
     if not isinstance(spark_safe, bool):
         raise TypeError(f"spark_safe must be true or false, got {spark_safe!r}")
-    return Provenance(dataset=data["dataset"], licence=data["licence"], spark_safe=spark_safe)
+    return Provenance(dataset=data["dataset"], license=data["license"], spark_safe=spark_safe)

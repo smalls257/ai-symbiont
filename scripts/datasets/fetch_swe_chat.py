@@ -17,7 +17,7 @@ Subcommands:
   survey   per-repo session / user-prompt / pushback-label counts (counts only)
   export   stage conversations/commits one at a time, slice per repo, delete the stage
            (commit patches dropped; peak disk about 6.5 GB)
-  manifest write MANIFEST.json (counts, sizes, revision, licence, date; no text)
+  manifest write MANIFEST.json (counts, sizes, revision, license, date; no text)
 """
 
 import argparse
@@ -330,7 +330,7 @@ def cmd_manifest(dest: pathlib.Path, rev: str) -> None:
     manifest = {
         "dataset": DATASET,
         "revision": rev,
-        "licence": "ODC-BY",
+        "license": "ODC-BY",
         "downloaded": datetime.date.today().isoformat(),
         "total_bytes": sum(f["bytes"] for f in files),
         "files": files,

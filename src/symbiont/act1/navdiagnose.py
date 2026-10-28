@@ -50,8 +50,8 @@ def _missing_colours(
     grid: WalkGrid, cell: int, parent: dict[int, int], held: frozenset[str]
 ) -> list[str]:
     on_route = cells_to(cell, parent)
-    colours = {grid.door_colour[grid.door_at[c]] for c in on_route if c in grid.door_at}
-    return sorted(colour for colour in colours if colour is not None and colour not in held)
+    colors = {grid.door_colour[grid.door_at[c]] for c in on_route if c in grid.door_at}
+    return sorted(color for color in colors if color is not None and color not in held)
 
 
 def _closest_approach(

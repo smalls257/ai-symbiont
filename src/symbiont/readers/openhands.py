@@ -26,7 +26,7 @@ from symbiont.records.schema import Kind, Provenance, Record
 HARNESS = "openhands"
 PROVENANCE = Provenance(
     dataset="nebius/SWE-rebench-openhands-trajectories",
-    licence="CC-BY-4.0",
+    license="CC-BY-4.0",
     spark_safe=True,
 )
 

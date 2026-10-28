@@ -12,7 +12,7 @@ from symbiont.records.schema import (
     load_jsonl,
 )
 
-PUBLIC = Provenance(dataset="synthetic", licence="CC-BY-4.0", spark_safe=True)
+PUBLIC = Provenance(dataset="synthetic", license="CC-BY-4.0", spark_safe=True)
 
 
 def make_record(step: int, raw: str = "ok", **overrides) -> Record:
@@ -67,7 +67,7 @@ def test_optional_fields_default_to_unknown():
 
 def test_provenance_required():
     with pytest.raises(TypeError):
-        Provenance(dataset="synthetic", licence="MIT")
+        Provenance(dataset="synthetic", license="MIT")
     with pytest.raises(TypeError):
         Record(harness="h", project="p", session_id="s", step=0, kind=Kind.USER_TURN, raw="x")
 

@@ -160,7 +160,7 @@ def test_index_lists_exits_and_secret_exits():
 
 def test_index_lists_keys_by_thing_type_with_colour_and_kind():
     index = build_index(read_map(sample_wad(), "MAP01"))
-    assert [(k.colour, k.kind, k.x, k.y) for k in index.keys] == [
+    assert [(k.color, k.kind, k.x, k.y) for k in index.keys] == [
         ("blue", "card", 10, 10),
         ("red", "skull", 50, 50),
     ]

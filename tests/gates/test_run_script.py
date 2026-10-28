@@ -120,7 +120,10 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
     bad = gate_repo / "src/symbiont/core/bad.py"
     bad.parent.mkdir(parents=True)
     bad.write_text(
-        "import socket\n\n\ndef handle_it(rows, strict: bool, loud: bool):\n    return rows\n"
+        "import socket\n\n\ndef handle_it(rows, strict: bool, loud: bool):\n"
+        # split so this file itself passes QG-RD-05; the planted file gets the British word
+        '    """Return the rows in one colo'
+        'ur."""\n    return rows\n'
     )
     (gate_repo / "data").mkdir()
     (gate_repo / "data/rows.csv").write_text("a,b\n")
@@ -128,7 +131,7 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
     (gate_repo / "scripts/gates/test-floor.txt").write_text("0\n")
     out = _run(gate_repo)
     assert out.returncode == 1, out.stdout + out.stderr
-    for gate in ("QG-SEC-03", "QG-RD-02", "QG-SAST-02", "QG-GATE-01"):
+    for gate in ("QG-SEC-03", "QG-RD-02", "QG-RD-05", "QG-SAST-02", "QG-GATE-01"):
         assert f"FAIL  {gate}" in out.stdout, gate
     assert "RED:" in out.stdout and "GREEN" not in out.stdout
 

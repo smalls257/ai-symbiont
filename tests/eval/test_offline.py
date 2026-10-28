@@ -204,13 +204,13 @@ def test_table_always_has_all_three_rows():
     table = render_table(rows("counters", "similarity", "fly"))
     for line in ("counters", "similarity", "fly"):
         assert line in table
-    labelled = {
+    labeled = {
         line.split("|")[1].strip(): line for line in table.splitlines()[2:] if line.startswith("|")
     }
-    assert labelled["counters"].split("|")[2].strip() == "reference"
-    assert labelled["similarity"].split("|")[2].strip() == "reference"
-    assert "under test" in labelled["fly"].split("|")[2]
-    assert "random wiring" in labelled["fly"]
+    assert labeled["counters"].split("|")[2].strip() == "reference"
+    assert labeled["similarity"].split("|")[2].strip() == "reference"
+    assert "under test" in labeled["fly"].split("|")[2]
+    assert "random wiring" in labeled["fly"]
     assert "balanced accuracy (AUROC of the binary flag)" in table
 
 

@@ -193,7 +193,7 @@ class OpenDoor:
 
     The result comes from the world, not from the keypress: "opened" means no closed door is left in
     reach after USE. A door that stays shut and needs a key the player does not hold is "locked",
-    with the colour from the map's own linedef special (the engine offers no message API).
+    with the color from the map's own linedef special (the engine offers no message API).
     """
 
     max_tics = 150
@@ -223,9 +223,9 @@ class OpenDoor:
 
     @staticmethod
     def _verdict_for_shut_door(state: GameStateView) -> Done:
-        colour = state.reach_doors[0].key_colour
-        if colour and colour not in held_colours(state.keys_held):
-            return Done(f"locked: needs {colour} key")
+        color = state.reach_doors[0].key_colour
+        if color and color not in held_colours(state.keys_held):
+            return Done(f"locked: needs {color} key")
         held = ", ".join(state.keys_held) or "none"
         return Done(f"did not open: door stayed shut (keys held: {held})")
 

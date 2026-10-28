@@ -10,7 +10,7 @@
 gate_die() { echo "gate error: $*" >&2; exit 2; }
 
 # Silent Fallback guard: with the default core.quotePath git prints a non-ASCII file name as
-# "donn\303\251es.parquet" (quoted, escaped), which no name pattern and no `[ -f ]` recognises, so
+# "donn\303\251es.parquet" (quoted, escaped), which no name pattern and no `[ -f ]` recognizes, so
 # the file was skipped without a word. Every git call in a gate prints raw UTF-8 names; names git
 # still quotes (newline, tab, double quote, backslash) are refused by check_paths.sh, and the
 # scripts that need every name exactly read NUL-delimited (-z) output.

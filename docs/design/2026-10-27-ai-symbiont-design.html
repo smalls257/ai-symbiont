@@ -234,8 +234,8 @@ flowchart LR
   <details class="sub"><summary>Act 1: Freedoom details</summary><div>
     <ul>
       <li>The game pauses each step while the model thinks; the video is sped up. Freedoom levels or ViZDoom scenarios only.</li>
-      <li>The model picks the strategy ("get the blue key, back to the blue door"); simple scripted moves carry it out, labelled as such.</li>
-      <li><b>Both scored and showcase:</b> fixed levels and seeds, all runs reported; the video clip is cut from those runs and labelled "selected episode", with the full scoreboard under it.</li>
+      <li>The model picks the strategy ("get the blue key, back to the blue door"); simple scripted moves carry it out, labeled as such.</li>
+      <li><b>Both scored and showcase:</b> fixed levels and seeds, all runs reported; the video clip is cut from those runs and labeled "selected episode", with the full scoreboard under it.</li>
       <li>Muse Spark plays the scored episodes; Glimmer plays a few for the open-weights angle.</li>
     </ul>
   </div></details>
@@ -245,18 +245,18 @@ flowchart LR
 <!-- 4 -->
 <details class="chunk">
 <summary><div class="num">4</div><div class="head"><h2>Guardrails</h2>
-<p>Licences, data handling, budget and hardware: the rules every part follows.</p></div><div class="chev">▶</div></summary>
+<p>Licenses, data handling, budget and hardware: the rules every part follows.</p></div><div class="chev">▶</div></summary>
 <div class="body">
   <details class="sub"><summary>Data</summary><div>
     <table>
-      <tr><th>Job</th><th>Source</th><th>Licence</th></tr>
+      <tr><th>Job</th><th>Source</th><th>License</th></tr>
       <tr><td>The scored repo + its past agent runs</td><td>nebius SWE-rebench OpenHands trajectories; <b>sqlglot</b> leads (alternatives under review)</td><td>CC-BY-4.0 <span class="t e">established</span></td></tr>
       <tr><td>Real human corrections (miner demo)</td><td>SWE-chat (gated)</td><td>ODC-BY · stays local</td></tr>
       <tr><td>PR review signals (optional)</td><td>AIDev</td><td>CC-BY-4.0 · counts and labels only</td></tr>
     </table>
     <p class="note">Raw data is never committed; it downloads on setup. Real people's text is never sent to a model tier that may train on it.</p>
   </div></details>
-  <details class="sub"><summary>Licences and naming</summary><div>
+  <details class="sub"><summary>Licenses and naming</summary><div>
     <ul>
       <li>ViZDoom is a dependency, never vendored. Freedoom is BSD-3, downloaded on setup.</li>
       <li>"Doom" is a trademark: we say "plays Freedoom via ViZDoom".</li>
@@ -311,7 +311,7 @@ gantt
   <details class="sub"><summary>Open items</summary><div>
     <table>
       <tr><td>Which repo is the "developer's week"</td><td>moto or sqlglot; decide after day-1 timing check</td></tr>
-      <tr><td>Can pre-event code be a dependency?</td><td>asking organisers; assume no</td></tr>
+      <tr><td>Can pre-event code be a dependency?</td><td>asking organizers; assume no</td></tr>
       <tr><td>Does Muse act on notes?</td><td>day 1–2 check</td></tr>
       <tr><td>Freedoom's share of the video</td><td>later</td></tr>
       <tr><td>Scope cuts</td><td>decided as they come up</td></tr>

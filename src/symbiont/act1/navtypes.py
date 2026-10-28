@@ -63,11 +63,11 @@ class NoPath:
 
 
 def held_colours(keys_held: Iterable[str]) -> frozenset[str]:
-    """Key colours from either colour words ("blue") or object names ("BlueCard", "RedSkull")."""
+    """Key colors from either color words ("blue") or object names ("BlueCard", "RedSkull")."""
     held: set[str] = set()
     for key in keys_held:
         lowered = key.lower()
-        held.update(colour for colour in _COLOURS if lowered.startswith(colour))
+        held.update(color for color in _COLOURS if lowered.startswith(color))
     return frozenset(held)
 
 
