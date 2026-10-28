@@ -21,6 +21,7 @@ PURE_FILES = (
     "game_pains.py",
     "episode_records.py",
     "policies.py",
+    "game_lessons.py",
 )
 
 
