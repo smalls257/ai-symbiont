@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `src/symbiont/core/`.
 
-**Purpose.** Decide, from a situation and learned state, whether to warn and what to recall. Fillers: `Counters`, `Similarity`, `Mushroom` (the fly circuit), plus the 86-feature vector and notes in domain prose.
+**Purpose.** Decide, from a situation and learned state, whether to warn and what to recall. Fillers: `Counters`, `Similarity`, `Mushroom` (the fly circuit), `LogisticWarner` (Route A; weights passed in, fitted by `scripts/routea/fit_warner.py`), plus the 86-feature vector, notes in domain prose, option A delivery rules (`note_rules`) and the memory model's prompt and three-part line (`memory_note`).
 
 **Violations prevented: Infected Core and Paper Tiger.** The decision math is a function of (features, state) that passes the Airplane Test, so it runs and is tested with no network, store or harness. The fly learner exists only to be judged beside the counters on the same replay; a tie is reported as a tie.
 

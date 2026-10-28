@@ -7,6 +7,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/service/`.
 **Violation prevented: Black Box.** Failure must be visible from outside, so every call appends a timestamped event (kind, project, latency, outcome) that the dashboard replays. A spark-bound recall that would return a private record answers 409 with "private history withheld from Spark" rather than an empty answer.
 
 ## Invariants
+- Route A (`--warner`, `--memory-url`, `--memory-dir`): the logistic warner decides per step, option A (`core/note_rules`: boundary steps, 2 notes per session, none in the 5 steps after one) rations, and the loopback memory model (`memory_model.py`, `Endpoint.LOCAL_MEMORY_MODEL`) writes the one line. An unusable reply answers 503, which the hook shows as "symbiont offline". Only projects named in the adapter's manifests are answered by the model; the event log carries prompt and note sizes and milliseconds, never the prompt.
 - `/recall` accepts exactly the plain-question payload; extra fields are rejected with 400.
 - An empty store answers "no history for this project yet", never a fake note.
 - No raw history: notes and recall answers come from lessons (what happened, how it was resolved, the check to run); `/observe` has no stored records to recall from.
@@ -15,7 +16,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/service/`.
 - Periphery: sockets, files and the clock live here and in tests marked `periphery`.
 
 ## Imports
-- May import: core, store, miner, records, readers. Must not import eval. Called by delivery over HTTP only.
+- May import: core, store, miner, records, readers, and `egress` for the memory model (Route A). Must not import eval. Called by delivery over HTTP only.
 
 ## Commands
 `uv run pytest tests/service -q`

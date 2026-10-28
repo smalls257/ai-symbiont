@@ -25,7 +25,8 @@ STAND_IN_MODEL = "mlx-community/Qwen2.5-0.5B-Instruct-bf16"
 SERVER_DEFAULT = "default_model"
 # One three-part line fits in well under this; greedy decoding keeps notes repeatable.
 MAX_TOKENS = 160
-TIMEOUT_S = 30.0
+# Under the hook client's 10 s, so a slow model is reported as offline by the service itself.
+TIMEOUT_S = 8.0
 
 
 class MemoryModelOfflineError(ConnectionError):
