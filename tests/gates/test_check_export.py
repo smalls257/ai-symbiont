@@ -31,7 +31,7 @@ def project(tmp_path) -> Path:
         ignore=shutil.ignore_patterns("__pycache__"),
     )
     shutil.copytree(REPO / "scripts" / "publish", root / "scripts" / "publish")
-    shutil.copytree(REPO / ".semgrep", root / ".semgrep")
+    shutil.copytree(REPO / ".semgrep", root / ".semgrep", ignore=shutil.ignore_patterns("registry"))
     for name in (".gitleaks.toml", "pyproject.toml"):
         shutil.copy(REPO / name, root / name)
     (root / ".venv").symlink_to(REPO / ".venv")

@@ -19,6 +19,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
+import baseline_wired  # noqa: E402
 import check_claims  # noqa: E402
 import check_file_length  # noqa: E402
 import check_naming  # noqa: E402
@@ -196,6 +197,7 @@ def measure() -> dict:
         "ruff": ruff_counts(py),
         **structure_counts(py),
         "semgrep": semgrep_counts(py + tracked(".sh")),
+        "semgrep_registry_QG_SAST_01": baseline_wired.registry_counts(tracked("")),
         "claims_untagged_or_forbidden": claims_count(),
         "mypy_errors_src": mypy_errors(),
         "secrets_history_of_base": secrets_findings(),

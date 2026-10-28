@@ -13,9 +13,10 @@ Usage: assert_suite_floor.py REPORT.xml [--update]
 """
 
 import sys
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
+
+from defusedxml.ElementTree import parse as parse_xml_defensively  # QG-SAST-01
 
 FLOOR_FILE = Path(__file__).with_name("test-floor.txt")
 RATCHET_SHARE = 0.95
@@ -35,7 +36,7 @@ class SuiteCounts:
 def read_counts(report: Path) -> SuiteCounts:
     if not report.is_file():
         raise FloorGateError(f"no junit report at {report}: the suite did not run")
-    root = ET.parse(report).getroot()
+    root = parse_xml_defensively(report).getroot()
     suites = [root] if root.tag == "testsuite" else root.findall("testsuite")
     if not suites:
         raise FloorGateError(f"{report} holds no testsuite")
