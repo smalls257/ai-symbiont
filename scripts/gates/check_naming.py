@@ -1,19 +1,7 @@
-"""QG-RD-02 / QG-RD-03 naming and boolean arity. Pure AST checks, one message per Violation.
+"""QG-RD-02 / QG-RD-03: vague names, single-letter names and two-bool functions fail.
 
-* Vague capability words in function, class and module names (handle, process, manage, do,
-  run_it, helper, util(s), misc, data, info, stuff, Manager, Helper, Handler, Processor)
-  matched as whole snake_case / CamelCase words. Forensic Coding: the reader cannot tell what
-  the unit does. Leaky Narrative: a call site that reads `process(data)` says nothing.
-* Single-letter names outside loop and comprehension targets, `x` / `y` and `_`.
-  Forensic Coding.
-* Two or more bool parameters on one function. God Method in larval form, and a Leaky
-  Narrative at every call site. Replace with a StrEnum or two named functions.
-* Advisory (printed, exit 0): is_ / use_ / enable_ parameters that can be passed positionally.
-
-Waivers: `.naming-waivers.txt`, delete-only, entries `path.py:name  # owner, reason, expires
-YYYY-MM-DD`; an entry with no future expiry date is itself an error.
-
-Usage: check_naming.py FILE.py ...   (exit 1 on any finding, 2 if the waiver file is unusable)
+Waivers: delete-only `.naming-waivers.txt`, `path.py:name  # owner, reason, expires YYYY-MM-DD`.
+Usage: check_naming.py FILE.py ...   (exit 1 on a finding, 2 if the waiver file is unusable)
 """
 
 import ast
