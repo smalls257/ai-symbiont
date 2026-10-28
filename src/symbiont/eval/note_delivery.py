@@ -37,12 +37,12 @@ class NoteTrace:
 
     task_id: str
     followed: tuple[bool, ...]
-    risk: tuple[float, ...]
+    step_risk: tuple[float, ...]
     boundary: tuple[bool, ...]
 
     def __post_init__(self) -> None:
         """Refuse a trace whose per-step columns do not line up."""
-        sizes = {len(self.followed), len(self.risk), len(self.boundary)}
+        sizes = {len(self.followed), len(self.step_risk), len(self.boundary)}
         if len(sizes) != 1:
             raise ValueError(f"task {self.task_id}: labels, risks and boundaries differ in length")
 
@@ -81,7 +81,9 @@ def spell_ids(followed: Sequence[bool]) -> np.ndarray:
     return np.where(marks, ids, NO_SPELL)
 
 
-def note_steps(risk: np.ndarray, eligible: np.ndarray, threshold: float, rule: DeliveryRule):
+def note_steps(
+    risk: np.ndarray, eligible: np.ndarray, threshold: float, rule: DeliveryRule
+) -> np.ndarray:
     """Steps that carry a note, spent online in step order.
 
     `eligible` is the gate's mask. A step qualifies when its risk reaches `threshold`; it is
