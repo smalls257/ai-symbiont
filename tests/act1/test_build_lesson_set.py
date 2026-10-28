@@ -100,6 +100,7 @@ def test_episodes_become_lessons_rows_and_counts(tmp_path, capsys):
     ]
     assert situation[1]["content"] == build_prompt("view 2", history)
     assert situation[2]["content"] == "go_to(door)"
+    assert counts["user_chars_max"] == len(situation[1]["content"])
     assert "no door in reach" not in capsys.readouterr().out  # counts only, never lesson text
 
 

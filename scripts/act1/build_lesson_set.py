@@ -92,6 +92,9 @@ def build(episodes: Path, work: Path, args: argparse.Namespace) -> dict[str, Any
         "repeated_selected": sum(lesson.repeats > 1 for lesson in chosen),
         "training_rows": len(rows),
         "situation_rows": len(rows) - 2 * len(chosen),
+        # Route B's check_sets caps its sets at 512 tokens; game prompts run longer, so the
+        # Freedoom set's real token lengths are checked with Glimmer's tokenizer on the Strix.
+        "user_chars_max": max(len(row["messages"][1]["content"]) for row in rows),
         "levels": sorted({lesson.level for lesson in chosen}),
     }
     (data / "build-counts.json").write_text(json.dumps(counts, indent=1))
