@@ -91,6 +91,7 @@ class NotedEnvironment:
     """The inner environment, plus notes on each observation and `symbiont recall` answered here."""
 
     def __init__(self, inner: Any, settings: WrapSettings) -> None:
+        """Wrap the inner environment; commands run there, notes come from the service."""
         self._inner = inner
         self._settings = settings
 
@@ -128,6 +129,7 @@ class NotedEnvironment:
         return result
 
     def _recall_result(self, question: str) -> dict[str, Any]:
+        """Answer a `recall` command locally; empty questions and a down service say so plainly."""
         if not question.strip():
             return _local_result(RECALL_USAGE, returncode=2)
         try:
@@ -139,6 +141,7 @@ class NotedEnvironment:
         return _local_result(answer, returncode=0)
 
     def _notes_for(self, command: str, result: dict[str, Any]) -> str:
+        """Notes the service returns after a finished command, as text to append to its output."""
         data = {
             "session_id": self._settings.session_id,
             "cwd": self._settings.project,
@@ -162,4 +165,5 @@ class NotedEnvironment:
 
 
 def _local_result(text: str, returncode: int) -> dict[str, Any]:
+    """A command result made here, tagged as symbiont output, not run in the inner environment."""
     return {"output": tagged(text), "returncode": returncode, "exception_info": ""}
