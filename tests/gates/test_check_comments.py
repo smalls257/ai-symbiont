@@ -58,3 +58,39 @@ def test_exit_codes_distinguish_findings_from_a_gate_that_cannot_run(tmp_path):
     assert run_gate(str(bad)) == 1
     assert run_gate(str(tmp_path / "absent.py")) == 2
     assert run_gate() == 2
+
+
+def test_framework_vocabulary_in_a_docstring_or_comment_is_refused():
+    doc = 'def f():\n    """Violation prevented: **Distributed Monolith** here."""\n'
+    comment = "# this avoids a Silent Fallback\nx = 1\n"
+    label = "# Sensor -> restore timing\nx = 1\n"
+    for source in (doc, comment, label):
+        assert any("framework term" in p for p in check_comments.problems_in(source, "a.py")), (
+            source
+        )
+
+
+def test_ordinary_use_of_a_principle_word_is_not_vocabulary():
+    source = '"""Filter rows by id; the engine of the sensor loop buffers input."""\n'
+    assert not any("framework" in p for p in check_comments.problems_in(source, "a.py"))
+
+
+def test_docstring_caps_are_three_five_and_six_lines():
+    def doc(lines: int) -> str:
+        return "\n".join(f"line {n}" for n in range(lines))
+
+    def over(source: str) -> bool:
+        return any("docstring over" in p for p in check_comments.problems_in(source, "a.py"))
+
+    func = 'def f():\n    """{}"""\n'
+    klass = 'class C:\n    """{}"""\n'
+    assert over(func.format(doc(4))) and not over(func.format(doc(3)))
+    assert over(klass.format(doc(6))) and not over(klass.format(doc(5)))
+    assert over(f'"""{doc(7)}"""\n') and not over(f'"""{doc(6)}\nUsage: x FILE"""\n')
+
+
+def test_a_comment_block_over_three_lines_is_refused():
+    four = "# why one\n# why two\n# why three\n# why four\nx = 1\n"
+    three = "# why one\n# why two\n# why three\nx = 1\n"
+    assert any("comment block" in p for p in check_comments.problems_in(four, "a.py"))
+    assert not any("comment block" in p for p in check_comments.problems_in(three, "a.py"))

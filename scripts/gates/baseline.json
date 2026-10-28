@@ -1,5 +1,5 @@
 {
-  "measured_at": "2026-10-28T03:04Z",
+  "measured_at": "2026-10-28T03:18Z",
   "commit": "9d2c036c5240b1cdaf93d575c4b26936f58f3d4c",
   "scope": "whole tree, excluding tests/fixtures, spikes, .claude",
   "ruff": {
@@ -44,7 +44,12 @@
     "html_validity_errors": 28
   },
   "comment_policy_QG_RD_04": {
-    "findings": 0
+    "framework_vocabulary": 35,
+    "docstring_over_cap": 59,
+    "comment_block_over_3": 2,
+    "todo_without_owner_date": 0,
+    "restates_next_line_or_signature": 0,
+    "findings": 96
   },
   "mutation_QG_TST_05": {
     "killed_percent": 85.6,

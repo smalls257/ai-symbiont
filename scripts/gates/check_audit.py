@@ -1,17 +1,7 @@
-"""QG-DEP-01 known-vulnerability audit of what the lockfile ships. Prevents Black Box: a
-vulnerable dependency is invisible until someone reads an advisory feed; this reads it for us.
+"""QG-DEP-01: pip-audit over the exported lockfile (network; full only).
 
-Audits `uv export` of uv.lock (never the live venv, so the verdict is about what ships) with
-pip-audit: the runtime closure and the dev group, each reported. Needs the network (PyPI
-advisory data), so it runs in `full` only. pip-audit carries no severity, so ANY runtime
-finding blocks; the standard's "HIGH/CRITICAL only" cannot be told apart from pip-audit's
-output. Dev-group findings are advisory: they are transitive pins of the pinned dev tools (for
-example semgrep pulls mcp) that never ship, and the fix is the owner bumping the tool.
-A finding is waived by an unexpired line in scripts/gates/audit_waivers.txt:
-    <advisory-id> <owner> <expiry YYYY-MM-DD, at most 30 days out> <reason...>
-An expired or malformed waiver line is itself a failure.
-
-Exit 0 clean, 1 findings or bad waivers, 2 the audit could not run (offline, no pip-audit).
+Any runtime finding blocks; dev-group findings are advisory. Waivers: audit_waivers.txt.
+Exit 0 clean, 1 findings or bad waivers, 2 cannot run.
 """
 
 import json
