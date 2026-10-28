@@ -40,6 +40,7 @@ class RepoSteps:
     episode: Episode
     boundary: tuple[np.ndarray, ...]
     counters_risk: tuple[np.ndarray, ...]
+    task_ids: tuple[str, ...] = ()  # per session; stored for the held-out repositories only
 
     def all_features(self) -> np.ndarray:
         """Every step's features, stacked."""
@@ -93,7 +94,8 @@ def load(path: str) -> dict[str, RepoSteps]:
             return tuple(np.split(stored[f"{at}.{key}"], cuts))
 
         episode = Episode(repo, split("x"), split("y"))
-        found[repo] = RepoSteps(episode, split("b"), split("c"))
+        tasks = tuple(stored[f"{index}.t"].tolist()) if f"{index}.t" in stored else ()
+        found[repo] = RepoSteps(episode, split("b"), split("c"), tasks)
     return found
 
 
