@@ -136,7 +136,7 @@ def test_network_cannot_carry_a_speak_decision():
     assert any(".steps[0].picker: matches 0 oneOf" in v for v in _replay_violations(doc))
 
 
-def test_classifier_decision_must_be_labelled_logistic_classifier():
+def test_classifier_decision_must_be_labeled_logistic_classifier():
     doc = _load("demo-replay.json")
     doc["runs"][1]["steps"][1]["classifier"]["who"] = "our network"
     assert _replay_violations(doc)

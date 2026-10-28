@@ -251,15 +251,22 @@
     $("note-stream").replaceChildren(...(items.length ? items : [el("li", "empty", "No notes yet. Each note appears at the step it was delivered.")]));
   }
 
+  // Past the run's last step there is no decision to show: repeating the last verdict
+  // would claim the classifier is still deciding for a run that has ended.
+  function classifierVerdict(run, cur) {
+    if (cur >= run.steps.length) return [el("p", "verdict quiet", "Finished"), el("p", "reason", `The run ended at step ${run.steps.length}: ${run.totals.result}.`)];
+    const step = run.steps[cur];
+    if (!step.classifier) return [el("p", "off", "Not running at this step.")];
+    const speak = step.classifier.speak === "speak";
+    return [el("p", `verdict ${speak ? "speak" : "quiet"}`, speak ? "Speak" : "Stay quiet"), el("p", "reason", step.classifier.reason)];
+  }
+
   function classifierBlock(run, cur) {
     const box = el("div", "decider");
     const head = el("div", "decider-head");
     head.append(el("b", "", "logistic classifier"), el("span", "", "decides whether to speak"));
     box.append(head);
-    const step = run.steps[Math.min(cur, run.steps.length - 1)];
-    if (!step.classifier) return box.append(el("p", "off", "Not running at this step.")), box;
-    const speak = step.classifier.speak === "speak";
-    box.append(el("p", `verdict ${speak ? "speak" : "quiet"}`, speak ? "Speak" : "Stay quiet"), el("p", "reason", step.classifier.reason));
+    box.append(...classifierVerdict(run, cur));
     const hist = el("div", "history");
     hist.setAttribute("aria-hidden", "true");
     seenSteps(run, cur).forEach((s, i) => hist.append(el("i", [s.classifier && s.classifier.speak === "speak" ? "speak" : "", i === cur ? "current" : ""].join(" ").trim())));
@@ -273,7 +280,10 @@
     head.append(el("b", "", "our network"), el("span", "", "picks the adapter"));
     box.append(head);
     const pick = seenSteps(run, cur).filter((s) => s.picker).at(-1);
-    if (!pick) return box.append(el("p", "off", run.adapter ? "No pick yet." : "Not used in this run.")), box;
+    if (!pick) {
+      box.append(el("p", "off", run.adapter ? "No pick yet." : "Not used in this run."));
+      return box;
+    }
     box.append(el("p", "verdict quiet", pick.picker.adapter), el("p", "reason", `Step ${pick.step}: ${pick.picker.reason}`));
     return box;
   }
