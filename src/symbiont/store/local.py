@@ -69,7 +69,8 @@ class Store:
     @classmethod
     def open(cls, path: Path) -> "Store":
         """Open (creating if needed) the store at `path`."""
-        db = sqlite3.connect(path)
+        # The threaded service shares one store; it serializes every call under its own lock.
+        db = sqlite3.connect(path, check_same_thread=False)
         db.executescript(_SCHEMA)
         return cls(db)
 

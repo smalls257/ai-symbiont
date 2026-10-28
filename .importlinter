@@ -90,6 +90,10 @@ forbidden_modules =
 ; Importing symbiont.egress is the sanctioned route, so a chain that ends inside it is fine;
 ; a direct import of a network module from any other package is not.
 allow_indirect_imports = True
+; The one inbound listener (ruling 2026-10-27-service-transport). Unmatched-alerting stays on, so
+; this line fails the day server.py stops importing http.
+ignore_imports =
+    symbiont.service.server -> http
 
 [importlinter:contract:grader-never-calls-the-live-service]
 name = The grader never calls the live service it grades

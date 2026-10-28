@@ -2,6 +2,8 @@
 
 import io
 import json
+import logging
+import threading
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -17,6 +19,7 @@ from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.service.events import EventLog
 from symbiont.store.local import SparkPrivacyViolationError, Store
 
+log = logging.getLogger("symbiont.service")
 SPARK_WITHHELD = "private history withheld from Spark"
 NOTHING_MATCHES = "nothing in this project's history matches that question"
 RECALL_KEYS = frozenset({"question", "project", "spark_bound"})
@@ -68,9 +71,14 @@ class Service:
         self._parts = parts
         self._state = parts.decider.initial_state(0)
         self._prefixes: dict[tuple[str, str], list[Record]] = {}
+        self._one_call_at_a_time = threading.Lock()
 
     def respond(self, route: str, payload: Any) -> Response:
         """Answer one request; a refusal is a status plus a reason, and an event."""
+        with self._one_call_at_a_time:
+            return self._respond_locked(route, payload)
+
+    def _respond_locked(self, route: str, payload: Any) -> Response:
         hook = route.strip("/")
         routes = {"observe": self._observe, "recall": self._recall, "learn": self._learn}
         if hook not in routes:
@@ -83,6 +91,9 @@ class Service:
             return self._refuse(hook, 409, SPARK_WITHHELD)
         except HoldOutViolationError as exc:
             return self._refuse(hook, 409, str(exc))
+        except Exception:
+            log.exception("service call failed: %s", hook)
+            return self._refuse(hook, 500, "internal error; see the service log")
 
     def _refuse(self, hook: str, status: int, reason: str) -> Response:
         self._parts.events.append_failure(hook, status, reason)
