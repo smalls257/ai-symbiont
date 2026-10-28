@@ -70,6 +70,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _add_hook_commands(commands: Any) -> None:
+    """Register `hook`, `install` and `uninstall`; the hook reads its event JSON from stdin."""
     hook = commands.add_parser("hook", help="forward one harness hook event (JSON on stdin)")
     hook.add_argument("event", type=HookEvent, choices=list(HookEvent))
     hook.add_argument("--harness", choices=HARNESSES, required=True)
@@ -116,6 +117,7 @@ def _recall(args: argparse.Namespace) -> int:
 
 
 def _hook(args: argparse.Namespace) -> int:
+    """Forward one hook event; a down service prints the offline notice, not an empty note."""
     try:
         result = run_hook(
             args.event,
@@ -139,6 +141,7 @@ def _hook(args: argparse.Namespace) -> int:
 
 
 def _installation(args: argparse.Namespace) -> int:
+    """Install or uninstall hooks for the chosen harness, showing the diff first."""
     spec: HarnessInstall = INSTALLERS[args.harness](args.notes)
     try:
         if args.command == "uninstall":
@@ -157,11 +160,13 @@ def _installation(args: argparse.Namespace) -> int:
 
 
 def _approve_all(diff: str) -> bool:
+    """Print the diff and accept it, for non-interactive installs."""
     print(diff)
     return True
 
 
 def _ask_before_writing(diff: str) -> bool:
+    """Print the diff and write only on an explicit `y`."""
     print(diff)
     return input("Write these changes? [y/N] ").strip().lower() == "y"
 
