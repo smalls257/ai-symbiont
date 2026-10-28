@@ -63,7 +63,7 @@ def is_tagged(text: str) -> bool:
 
 def recall_question(command: str) -> str | None:
     """The question of a `symbiont recall ...` command, "" if it has none, None for any other."""
-    found = _RECALL_COMMAND.fullmatch(command)
+    found = _RECALL_COMMAND.fullmatch(command.rstrip())
     if found is None:
         return None
     rest = (found.group(1) or "").strip()

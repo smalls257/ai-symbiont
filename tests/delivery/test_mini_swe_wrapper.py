@@ -162,3 +162,11 @@ def test_chained_recall_gets_the_usage_error_not_a_dropped_command(command):
 
 def test_operators_inside_quotes_stay_part_of_the_question():
     assert recall_question('symbiont recall "why a && b?"') == "why a && b?"
+
+
+def test_trailing_whitespace_does_not_stop_recall_being_answered(port):
+    assert recall_question("symbiont recall why\n") == "why"
+    inner, env = wrapped(WrapMode.NOTES, port)
+    result = env.execute({"command": "symbiont recall why \n\n"})
+    assert inner.commands == [] and result["returncode"] == 0
+    assert result["output"].startswith(NOTE_TAG)
