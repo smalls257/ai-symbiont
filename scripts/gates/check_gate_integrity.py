@@ -2,8 +2,9 @@
 can be loosened by the commit that needs the loosening proves nothing.
 
 Every commit in merge-base..HEAD is judged on its own diff against its parent, and so is the
-pending (staged or uncommitted) work against HEAD. A merge of main (or an ancestor of it) is judged
-only on what is new against both parents: main's own gate changes were approved where they landed.
+pending (staged or uncommitted) work against HEAD. A two-parent merge is judged against the tree
+git merge-tree produces for its parents; a conflicted gate file needs the trailer on the resolver.
+Octopus merges are judged against their first parent.
 A change is a loosening when it
   * ADDS a waiver entry to .lizard-whitelist.txt or .naming-waivers.txt (removals pass),
   * LOWERS the test-count floor in scripts/gates/test-floor.txt (raising passes),
@@ -155,28 +156,45 @@ def commits_in_range(root: Path, base: str) -> list[str]:
     return run_git(root, "log", "--reverse", "--format=%H", f"{base}..HEAD").split()
 
 
-def is_ancestor(root: Path, sha: str, of: str) -> bool:
+def merge_expectation(root: Path, ours: str, theirs: str) -> tuple[str, list[str]]:
+    """The tree git's own merge of `ours` and `theirs` yields, plus the paths it could not merge."""
     out = subprocess.run(
-        ["git", "-C", str(root), "merge-base", "--is-ancestor", sha, of], check=False
+        [
+            "git",
+            "-C",
+            str(root),
+            "merge-tree",
+            "--write-tree",
+            "--name-only",
+            "--no-messages",
+            ours,
+            theirs,
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
     )
-    return out.returncode == 0
+    if out.returncode not in (0, 1):
+        raise IntegrityError(f"git merge-tree {ours} {theirs} failed: {out.stderr.strip()}")
+    tree, _, rest = out.stdout.partition("\n")
+    return tree.strip(), [path for path in rest.split("\n") if path]
 
 
 def new_in_merge(root: Path, ours: str, theirs: str, after: str | None) -> list[str]:
-    """Loosenings of a merge result that neither parent already carried."""
-    against_ours = set(violations(root, ours, after))
-    floor_resolved = text_at(root, after, FLOOR_FILE) != text_at(root, ours, FLOOR_FILE)
-    return [
-        line
-        for line in violations(root, theirs, after)
-        if line in against_ours or (line.startswith(FLOOR_FILE) and floor_resolved)
-    ]
+    """Loosenings of a merge result relative to the merge git would have produced."""
+    tree, conflicted = merge_expectation(root, ours, theirs)
+    guarded = sorted(
+        p for p in conflicted if is_protected(p) or p in WAIVER_FILES or p == "pyproject.toml"
+    )
+    if guarded:
+        return [f"{p}: gate file conflicted in merge; resolve it with the trailer" for p in guarded]
+    return violations(root, tree, after)
 
 
-def commit_findings(root: Path, sha: str, gate_base: str) -> list[str]:
-    """A commit's loosenings; a merge that brings in the gate base is judged by new_in_merge."""
+def commit_findings(root: Path, sha: str) -> list[str]:
+    """A commit's loosenings; a two-parent merge is judged against git's own merge result."""
     parents = run_git(root, "rev-list", "--parents", "-n", "1", sha).split()[1:]
-    if len(parents) == 2 and is_ancestor(root, parents[1], gate_base):
+    if len(parents) == 2:
         return new_in_merge(root, parents[0], parents[1], sha)
     return violations(root, f"{sha}^", sha)
 
@@ -191,8 +209,17 @@ def merge_head(root: Path) -> str | None:
     return out.stdout.strip() or None
 
 
+def is_ancestor(root: Path, sha: str, of: str) -> bool:
+    out = subprocess.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", sha, of],
+        capture_output=True,
+        check=False,
+    )
+    return out.returncode == 0
+
+
 def pending_findings(root: Path, gate_base: str) -> list[str]:
-    """Uncommitted work's loosenings; during a merge of the gate base, only what is new."""
+    """Uncommitted work's loosenings; only a merge of the gate base is judged as a merge."""
     theirs = merge_head(root)
     if theirs and is_ancestor(root, theirs, gate_base):
         return new_in_merge(root, "HEAD", theirs, None)
@@ -207,9 +234,8 @@ def unmarked_commits(root: Path, base: str) -> list[str]:
     """One line per loosening in a commit whose own message lacks the trailer."""
     accepted = accepted_commits(root)
     found = []
-    gate_base = gate_base_ref()
     for sha in commits_in_range(root, base):
-        loosenings = commit_findings(root, sha, gate_base)
+        loosenings = commit_findings(root, sha)
         if loosenings and sha not in accepted and not TRAILER.search(message_of(root, sha)):
             found += [f"{sha[:10]}: {line}" for line in loosenings]
     return found
