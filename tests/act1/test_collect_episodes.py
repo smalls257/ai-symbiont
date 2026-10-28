@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import subprocess
 import sys
 from pathlib import Path
 
@@ -197,3 +198,96 @@ def test_a_failure_mid_write_leaves_no_file_at_the_final_path(monkeypatch, tmp_p
     with pytest.raises(OSError, match="disk full"):
         collect(module, tmp_path)
     assert not (tmp_path / "out" / "MAP01" / "MAP01-random-s1.jsonl").exists()
+
+
+def test_two_arms_alternate_on_each_seed_so_server_drift_hits_both(monkeypatch, tmp_path, capsys):
+    module, _ = load_script(monkeypatch, tmp_path)
+    collect(module, tmp_path, "--policies", "random,scripted_explorer", "--seeds", "1-2")
+    order = [
+        (s["seed"], s["policy"]) for s in map(json.loads, capsys.readouterr().out.splitlines())
+    ]
+    assert order == [
+        (1, "random"),
+        (1, "scripted_explorer"),
+        (2, "random"),
+        (2, "scripted_explorer"),
+    ]
+
+
+def test_the_summary_reports_decisions_tokens_and_split(monkeypatch, tmp_path, capsys):
+    module, _ = load_script(monkeypatch, tmp_path)
+    collect(module, tmp_path)
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["split"] == "training" and summary["decisions"] == 0
+    assert summary["tokens_in"] is None and summary["tokens_out"] is None  # no model was called
+
+
+def test_the_decision_log_goes_beside_the_records(monkeypatch, tmp_path):
+    seen = {}
+
+    def play(_game, _reply, _decisions, run_log, *, knowledge):
+        seen["path"] = run_log.path
+        run_log.on_move(one_move())
+        return []
+
+    module, _ = load_script(monkeypatch, tmp_path, play=play)
+    collect(module, tmp_path)
+    assert seen["path"] == tmp_path / "out" / "MAP01" / "MAP01-random-s1.decisions.jsonl"
+
+
+def glimmer_args(module, *extra):
+    return module.parse_arguments(["--policies", "glimmer_plain,glimmer_personal", *extra])
+
+
+def test_glimmer_arms_need_the_server_url_from_the_environment(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path)
+    monkeypatch.delenv("SYMBIONT_GLIMMER_URL", raising=False)
+    with pytest.raises(RuntimeError, match="SYMBIONT_GLIMMER_URL"):
+        module.policy_maker(glimmer_args(module, "--adapters", "1"))
+
+
+def test_the_personal_arm_is_refused_without_an_adapter_server(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path)
+    monkeypatch.setenv("SYMBIONT_GLIMMER_URL", "http://127.0.0.1:8093/v1")
+    with pytest.raises(ValueError, match="glimmer_personal needs --adapters"):
+        module.policy_maker(glimmer_args(module))
+
+
+def test_glimmer_arms_become_policies_named_after_the_arm(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path)
+    monkeypatch.setenv("SYMBIONT_GLIMMER_URL", "http://127.0.0.1:8093/v1")
+    make = module.policy_maker(glimmer_args(module, "--adapters", "1"))
+    assert make("glimmer_personal", 3).name == "glimmer_personal"
+    assert make("random", 3).name == "random"
+
+
+def test_a_held_out_level_needs_a_frozen_prereg(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path)
+    draft = tmp_path / "draft.md"
+    draft.write_text("# Prereg\n\n**DRAFT, not frozen.**\n")
+    with pytest.raises(module.PreregNotFrozenError, match="not frozen"):
+        module.main(["--levels", "MAP04", "--scored", str(draft), "--out", str(tmp_path / "o")])
+    frozen_but_untracked = tmp_path / "frozen.md"
+    frozen_but_untracked.write_text("# Prereg\n\n**FROZEN 2026-10-29.**\n")
+    with pytest.raises(module.PreregNotFrozenError, match="not committed"):
+        module.require_frozen_prereg(frozen_but_untracked)
+
+
+@pytest.mark.periphery  # runs git in a scratch repository
+def test_a_committed_frozen_prereg_returns_its_hash_and_an_edit_is_refused(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path)
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    prereg = repo / "p.md"
+    prereg.write_text("**FROZEN 2026-10-29.**\n")
+
+    def git(*args):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+    git("init", "-q")
+    git("add", "p.md")
+    git("-c", "user.name=t", "-c", "user.email=test", "commit", "-qm", "freeze")
+    assert len(module.require_frozen_prereg(prereg)) == 64
+    prereg.write_text("**FROZEN 2026-10-29.**\nedited\n")
+    with pytest.raises(module.PreregNotFrozenError, match="differs from HEAD"):
+        module.require_frozen_prereg(prereg)

@@ -100,6 +100,9 @@ class Decision:
     reasoning_chars: int
     outcomes: tuple[str, ...]
     model_seconds: float
+    # Server-counted tokens; None for scripted policies, which call no model.
+    tokens_in: int | None = None
+    tokens_out: int | None = None
 
 
 def _classify(reply: Reply, nav: NavMap | None = None) -> tuple[list[Move] | None, str, str | None]:
@@ -229,9 +232,11 @@ def _decide(
     seconds = time.monotonic() - started
     moves, status, rejected = _classify(reply, nav)
     outcomes = _carry_out(moves, rejected, session, history)
+    tokens = reply.tokens
     return Decision(
         number, observation, reply.text, status, rejected, reply.finish_reason,
         reply.reasoning_chars, tuple(outcomes), seconds,
+        None if tokens is None else tokens.prompt, None if tokens is None else tokens.completion,
     )  # fmt: skip
 
 
