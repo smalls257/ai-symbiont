@@ -76,13 +76,19 @@ def test_train_then_score_validation_writes_every_row(runner, tmp_path):
     assert chosen["adapting_classifier"]["calibrator_rate"] in runner.CALIBRATOR_RATES
 
 
-def test_the_scoring_fold_is_refused_without_a_scored_run(runner, tmp_path):
-    episodes, pool = synthetic(tmp_path)
-    with pytest.raises(SystemExit, match="scored"):
-        runner.main(
-            ["score", "--episodes", episodes, "--pool", pool, "--starts", "x.npz"]
-            + ["--on", "scoring", "--out", str(tmp_path / "r.json")]
+def test_the_held_out_repositories_are_refused_without_a_scored_run(tmp_path):
+    sys.path.insert(0, str(SCRIPTS))
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "run_meta_start_scored", SCRIPTS / "run_meta_start_scored.py"
         )
+        scored = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(scored)
+    finally:
+        sys.path.remove(str(SCRIPTS))
+    args = ["--episodes", "e", "--held-out", "h", "--pool", "p", "--starts", "s", "--out", "o"]
+    with pytest.raises(SystemExit, match="scored"):
+        scored.main(args)
 
 
 def test_only_the_fly_and_densenet_are_meta_trained(runner):
@@ -109,3 +115,64 @@ def test_a_restarted_training_run_resumes_each_job_from_its_checkpoint(runner, t
     assert first.keys() == again.keys()
     for key in first:
         np.testing.assert_array_equal(first[key], again[key])
+
+
+def held_out_file(tmp_path):
+    """Three repositories of 14 sessions over 4 tasks, with task ids."""
+    rng = np.random.default_rng(9)
+    repos, arrays = ["x/pillow", "y/dvc", "z/conan"], {}
+    for i, repo in enumerate(repos):
+        x = (rng.random((14 * 8, 86)) < 0.15).astype(np.float64)
+        arrays |= {
+            f"{i}.x": x,
+            f"{i}.y": x[:, 3] > 0,
+            f"{i}.b": np.ones(len(x), dtype=bool),
+            f"{i}.n": np.full(14, 8),
+            f"{i}.c": rng.random(len(x)),
+            f"{i}.t": np.array([f"{repo}-{k % 4}" for k in range(14)]),
+        }
+    path = tmp_path / "held.npz"
+    np.savez(path, repos=np.array(repos), **arrays)
+    path.with_suffix(".json").write_text(json.dumps({r: {"counts": {}} for r in repos}))
+    return str(path)
+
+
+def test_the_scored_runner_writes_both_sets_and_every_comparison(runner, tmp_path, monkeypatch):
+    episodes, pool = synthetic(tmp_path)
+    starts = str(tmp_path / "starts.npz")
+    runner.main(
+        ["train", "--episodes", episodes, "--pool", pool, "--out", starts, "--seeds", "0"]
+        + ["--outer-steps", "10", "--train-repos", "5", "--workers", "4"]
+        + ["--calibrator-rates", "0.1", "0.5"]
+    )
+    sys.path.insert(0, str(SCRIPTS))
+    spec = importlib.util.spec_from_file_location(
+        "run_meta_start_scored", SCRIPTS / "run_meta_start_scored.py"
+    )
+    scored = importlib.util.module_from_spec(spec)
+    sys.modules["run_meta_start_scored"] = scored
+    try:
+        spec.loader.exec_module(scored)
+        monkeypatch.setattr(scored, "run_provenance", lambda **_: {"run_label": "test"})
+        out = tmp_path / "scored.json"
+        scored.main(
+            ["--episodes", episodes, "--held-out", held_out_file(tmp_path), "--pool", pool]
+            + ["--starts", starts, "--out", str(out), "--scored", "--workers", "4"]
+        )
+    finally:
+        sys.modules.pop("run_meta_start_scored", None)
+        sys.path.remove(str(SCRIPTS))
+    document = json.loads(out.read_text())
+    primary = document["primary_held_out"]
+    assert primary["windows"]["first 10 sessions"]["unit"] == "session"
+    assert primary["windows"]["first 10 sessions"]["units"] == 30
+    assert primary["windows"]["after 10 sessions"]["unit"] == "task"
+    block = primary["blocks"][0]
+    assert {c["what"] for c in block["comparisons"]} >= {"H1 fly", "H1 dense", "H4"}
+    assert {c["verdict"] for c in block["comparisons"]} <= {"better", "tie", "worse"}
+    assert (
+        document["secondary_fold_0_reused"]["windows"]["first 10 sessions"]["unit"] == "repository"
+    )
+    rates = {c["calibrator_rate"] for c in document["chosen_on_validation"]["meta"]}
+    cold = {c["calibrator_rate"] for c in document["chosen_on_validation"]["cold"]}
+    assert rates == cold  # one rate per filler, shared by cold and meta

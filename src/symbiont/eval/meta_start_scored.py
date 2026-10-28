@@ -190,22 +190,42 @@ def window_block(rows: Rows, option: Option, lay: Layout) -> dict[str, Any]:
     }
 
 
+@dataclass(frozen=True)
+class Window:
+    """One window's rows, and the repository of each resampling unit in its traces.
+
+    The unit is a trace's `task_id`: a task where a window holds many, a session where it
+    holds only a few tasks (each repository's first 10 sessions come from one or two).
+    """
+
+    rows: Rows
+    repo_of: Mapping[str, str]
+    unit: str
+
+
 def meta_scored_report(
-    windows: Mapping[str, Rows], repo_of: Mapping[str, str], *, seed: int, n_boot: int = 2000
+    windows: Mapping[str, Window], *, seed: int, n_boot: int = 2000
 ) -> dict[str, Any]:
     """Every window under every registered price; the primary price comes first."""
-    lay = Layout.of(repo_of, seed, n_boot)
+    layouts = {name: Layout.of(w.repo_of, seed, n_boot) for name, w in windows.items()}
     blocks = []
     for option in registered_options():
-        for window, rows in windows.items():
+        for name, window in windows.items():
+            lay = layouts[name]
             blocks.append(
-                {"option": option.key, "window": window, **window_block(rows, option, lay)}
+                {"option": option.key, "window": name, **window_block(window.rows, option, lay)}
             )
     return {
         "primary_option": PRIMARY,
-        "repos": lay.repos(),
-        "tasks": len(lay.tasks),
-        "bootstrap": {"draws": n_boot, "seed": seed, "unit": "task within repository"},
+        "windows": {
+            name: {
+                "unit": w.unit,
+                "units": len(layouts[name].tasks),
+                "repos": layouts[name].repos(),
+            }
+            for name, w in windows.items()
+        },
+        "bootstrap": {"draws": n_boot, "seed": seed, "resampled": "units within each repository"},
         "blocks": blocks,
         "table_rows": table_rows(blocks),
     }

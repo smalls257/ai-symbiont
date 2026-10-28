@@ -9,6 +9,7 @@ import pytest
 
 from symbiont.eval.meta_start_scored import (
     ROLES,
+    Window,
     meta_scored_report,
     verdict_word,
 )
@@ -47,6 +48,10 @@ def repo_of():
     return {f"{r}-{i}": r for r in REPOS for i in range(6)}
 
 
+def report(rows, n_boot):
+    return meta_scored_report({"early": Window(rows, repo_of(), "task")}, seed=3, n_boot=n_boot)
+
+
 def primary(body, window_name="early"):
     return next(
         b
@@ -56,7 +61,7 @@ def primary(body, window_name="early"):
 
 
 def test_a_cold_start_that_ranks_trouble_beats_an_uninformative_meta_start_and_the_word_is_worse():
-    body = meta_scored_report({"early": window({"fly cold start"})}, repo_of(), seed=3, n_boot=300)
+    body = report(window({"fly cold start"}), 300)
     h1 = next(c for c in primary(body)["comparisons"] if c["what"] == "H1 fly")
     assert h1["verdict"] == "worse"
     assert h1["ci95_high"] < 0
@@ -64,7 +69,7 @@ def test_a_cold_start_that_ranks_trouble_beats_an_uninformative_meta_start_and_t
 
 
 def test_every_row_has_a_pooled_and_a_per_repository_line_beside_both_floors():
-    body = meta_scored_report({"early": window()}, repo_of(), seed=3, n_boot=50)
+    body = report(window(), 50)
     block = primary(body)
     pooled = {r["arm"] for r in block["rows"] if r["repo"] == "pooled"}
     assert pooled == set(ROLES) | {"warn never", "note at every allowed step"}
@@ -76,9 +81,7 @@ def test_every_row_has_a_pooled_and_a_per_repository_line_beside_both_floors():
 
 def test_settings_come_from_validation_only():
     # Informative on validation, noise on scoring: the setting is still the validation one.
-    body = meta_scored_report(
-        {"early": window({"counters"}, worse={"counters"})}, repo_of(), seed=3, n_boot=50
-    )
+    body = report(window({"counters"}, worse={"counters"}), 50)
     chosen = primary(body)["chosen_on_validation"]["counters"]["seed 0"]
     assert np.isfinite(chosen).any()
 
@@ -87,7 +90,7 @@ def test_a_missing_row_is_refused():
     rows = window()
     del rows["logistic + online calibrator"]
     with pytest.raises(ValueError, match="missing rows"):
-        meta_scored_report({"early": rows}, repo_of(), seed=3, n_boot=10)
+        report(rows, 10)
 
 
 @pytest.mark.parametrize(

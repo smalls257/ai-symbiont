@@ -4,15 +4,14 @@
 repositories, one job per (filler, wiring seed, outer step size), stopping on the
 validation repositories (`symbiont.eval.meta_start`). `score` replays every row online from
 zero on each evaluation repository and writes option A rows per window
-(`symbiont.eval.meta_start_report`). The scoring fold is only read with `--scored` and a
-frozen prereg; the smoke run scores the validation repositories, labeled exploratory.
+(`symbiont.eval.meta_start_report`) on the validation repositories only, labeled
+exploratory. The scored run is `run_meta_start_scored.py`.
 
     meta_start_episodes.py ...                  # once: data/t39-episodes.npz
     run_meta_start.py train --episodes data/t39-episodes.npz --pool results/repo-pool.json \
         --out data/t39-starts.npz
     run_meta_start.py score --episodes ... --pool ... --starts data/t39-starts.npz \
         --on validation --out results/meta-start-smoke.json
-    run_meta_start.py score ... --on scoring --scored --prereg prereg/2026-10-28-meta-start.md
 
 Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
 """
@@ -177,37 +176,53 @@ def prepare(args: argparse.Namespace) -> None:
     DATA.update(eps.load(args.episodes))
 
 
-def chosen_settings(path: str) -> dict[str, dict[tuple[str, int], dict[str, Any]]]:
-    """Per (filler, seed), chosen on validation loss only.
+def calibrator_rate_per_filler(jobs: list[dict[str, Any]]) -> dict[str, float]:
+    """Per filler, the calibrator rate whose best meta start has the lowest validation loss
+    averaged over wiring seeds (prereg: one rate per filler, shared by cold and meta)."""
+    best: dict[tuple[str, int, float], float] = {}
+    for job in jobs:
+        key = (job["kind"], job["seed"], job["calibrator_rate"])
+        best[key] = min(best.get(key, np.inf), min(p[1] for p in job["curve"]))
+    mean: dict[tuple[str, float], list[float]] = {}
+    for (kind, _, rate), loss in best.items():
+        mean.setdefault((kind, rate), []).append(loss)
+    rates = {}
+    for kind in sorted({k for k, _ in mean}):
+        options = {r: float(np.mean(v)) for (k, r), v in mean.items() if k == kind}
+        rates[kind] = min(options, key=lambda rate: (options[rate], rate))
+    return rates
 
-    Meta start: the rule, step size, calibrator rate and check with the lowest loss. Cold start:
-    the calibrator rate whose untrained start (check 0) has the lowest loss.
+
+def chosen_settings(path: str) -> dict[str, dict[tuple[str, int], dict[str, Any]]]:
+    """Per (filler, seed), chosen on validation loss only, at the filler's calibrator rate.
+
+    Meta start: the rule, step size and check with the lowest loss. Cold start: the untrained
+    start (check 0) at the same rate.
     """
     jobs = json.loads(Path(path).with_suffix(".json").read_text())["jobs"]
+    rates = calibrator_rate_per_filler(jobs)
     meta: dict[tuple[str, int], dict[str, Any]] = {}
     cold: dict[tuple[str, int], dict[str, Any]] = {}
-    for job in jobs:
-        key, loss, untrained = (
-            (job["kind"], job["seed"]),
-            min(p[1] for p in job["curve"]),
-            job["curve"][0][1],
-        )
+    for job in (j for j in jobs if j["calibrator_rate"] == rates[j["kind"]]):
+        key, loss = (job["kind"], job["seed"]), min(p[1] for p in job["curve"])
         if key not in meta or loss < meta[key]["validation_loss"]:
             fields = ("rule", "outer_rate", "calibrator_rate", "best_step")
             meta[key] = {f: job[f] for f in fields} | {"validation_loss": loss}
-        if key not in cold or untrained < cold[key]["validation_loss"]:
-            cold[key] = {"calibrator_rate": job["calibrator_rate"], "validation_loss": untrained}
+        untrained = {
+            "calibrator_rate": job["calibrator_rate"],
+            "validation_loss": job["curve"][0][1],
+        }
+        cold[key] = untrained
     return {"meta": meta, "cold": cold}
 
 
 def evaluation_repos(args: argparse.Namespace, settings: dict[str, Any]) -> dict[str, list[str]]:
     """Which repositories are scored; the classifier always fits the starts' training repos.
 
-    The scoring fold is read only in a scored run; a smoke run scores validation.
+    Only the validation repositories: scoring sets are read by `run_meta_start_scored.py`.
     """
     split = SPLIT[0]
-    scored = split.scoring if args.on == "scoring" else split.validation
-    return {"scored": list(scored), "fit": list(split.train[: settings["train_repos"]])}
+    return {"scored": list(split.validation), "fit": list(split.train[: settings["train_repos"]])}
 
 
 def filler_job(job: tuple[str, int, str]) -> dict[str, tuple[np.ndarray, ...]]:
@@ -285,9 +300,7 @@ def all_arms(repos: dict[str, list[str]], seeds: list[int]) -> dict[str, dict[in
 def score(args: argparse.Namespace) -> None:
     """Score every row on the evaluation repositories and write the results file."""
     started = time.time()
-    if args.on == "scoring" and not args.scored:
-        raise SystemExit("the scoring fold is read only with --scored and a frozen prereg")
-    label = run_provenance(scored=args.scored, prereg=args.prereg, expects=PREREG_NAME)
+    label = run_provenance(scored=False, prereg=None, expects=PREREG_NAME)
     prepare(args)
     trained = json.loads(Path(args.starts).with_suffix(".json").read_text())
     stored = np.load(args.starts)
@@ -346,9 +359,7 @@ def parser_of() -> argparse.ArgumentParser:
         "--checkpoints", help="job checkpoint directory (default: next to --out)"
     )
     score_parser.add_argument("--starts", required=True)
-    score_parser.add_argument("--on", choices=("validation", "scoring"), required=True)
-    score_parser.add_argument("--scored", action="store_true")
-    score_parser.add_argument("--prereg")
+    score_parser.add_argument("--on", choices=("validation",), required=True)
     return parser
 
 
