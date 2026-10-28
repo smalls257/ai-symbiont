@@ -18,11 +18,15 @@ SOURCE_LINE = (
     "real runs, one per arm: plain hit the 50-step cap; "
     "lesson in prompt (pilot), not the LoRA; no classifier"
 )
+PLAIN_SUBTITLE = "Glimmer, no adapter, no notes"
+LESSON_LABEL = "Glimmer with a lesson in the prompt (pilot)"
+LESSON_SUBTITLE = "Glimmer, lesson in the prompt (pilot), no adapter"
 SOLVED = "solved"
 NOT_SOLVED = "not solved"
 LESSON_SOURCE = "lesson in prompt (pilot)"
 SUBMIT_MARK = "COMPLETE_TASK_AND_SUBMIT_FINAL_OUTPUT"
 MAX_LABEL_WORDS = 12
+MOST_OF_A_RANGE = 0.5  # share of a re-read line range already seen that counts as a repeat
 
 
 class TrajectoryError(ValueError):
@@ -76,10 +80,10 @@ SCRIPT_FILE = re.compile(r"(?:python3?|cat >)\s+(\S+\.py)")
 
 @dataclass
 class RunMemory:
-    """What this run has already read and which commands already failed."""
+    """What this run has already done since its last source edit."""
 
     reads: dict[str, list[tuple[int, int]]] = field(default_factory=dict)
-    failed: set[str] = field(default_factory=set)
+    commands: set[str] = field(default_factory=set)
 
 
 def _repo_path(command: str) -> str | None:
@@ -125,10 +129,18 @@ def _read_or_search_label(command: str, path: str | None) -> str:
     if "grep" in command:
         return f"Search {path}" if path else "Search the code"
     if re.match(r"(cd \S+ && )?(ls|find)\b", command):
-        return "List the repository files"
+        return _listing_label(command)
     if "git log" in command:
         return "Check the git history"
     return _run_label(command)
+
+
+def _listing_label(command: str) -> str:
+    tokens = _normalized(command).split("|")[0].split()
+    args = [t for t in tokens[1:] if not t.startswith("-")]
+    where = args[0].removeprefix("/testbed").strip("/") if args else ""
+    verb = "Find files in" if tokens[0] == "find" else "List"
+    return f"{verb} {where}" if where and where != "." else f"{verb} the repository root"
 
 
 def _run_label(command: str) -> str:
@@ -152,34 +164,37 @@ def _failed_test_run(command: str, output: str, returncode: int) -> bool:
     return ran_tests and bool(re.search(r"^(FAILED|ERROR)|\nFAILED|\nERROR:|Traceback", output))
 
 
-def _overlaps(low: int, high: int, seen: list[tuple[int, int]]) -> bool:
-    return any(low <= end and start <= high for start, end in seen)
+def _normalized(command: str) -> str:
+    return " ".join(command.removeprefix("cd /testbed &&").split()).replace("/testbed/", "")
 
 
-def _is_reread(command: str, memory: RunMemory) -> bool:
+def _shared_fraction(low: int, high: int, seen: list[tuple[int, int]]) -> float:
+    """How much of the new line range an earlier read of the same file already covered."""
+    covered = {n for start, end in seen for n in range(max(low, start), min(high, end) + 1)}
+    return len(covered) / (high - low + 1)
+
+
+def _rereads_most_of_a_range(command: str, memory: RunMemory) -> bool:
     ranged = SED_RANGE.search(command)
-    if ranged:
-        target = ranged.group(3).removeprefix("/testbed/")
-        low, high = int(ranged.group(1)), int(ranged.group(2))
-        again = _overlaps(low, high, memory.reads.get(target, []))
-        memory.reads.setdefault(target, []).append((low, high))
-        return again
-    whole = re.match(r"(?:cd \S+ && )?cat\s+(\S+\.py)\s*$", command)
-    if not whole:
+    if not ranged:
         return False
-    target = whole.group(1).removeprefix("/testbed/")
-    again = target in memory.reads
-    memory.reads.setdefault(target, []).append((0, 10**9))
+    target = ranged.group(3).removeprefix("/testbed/")
+    low, high = int(ranged.group(1)), int(ranged.group(2))
+    again = _shared_fraction(low, high, memory.reads.get(target, [])) >= MOST_OF_A_RANGE
+    memory.reads.setdefault(target, []).append((low, high))
     return again
 
 
 def mistake_tag(command: str, memory: RunMemory, *, failed: bool) -> str:
-    """repeated / new / none under the heuristics in the module docstring."""
-    reread = _is_reread(command, memory)
-    rerun = failed and command in memory.failed
-    if failed:
-        memory.failed.add(command)
-    if reread or rerun:
+    """repeated / new / none under the definitions in dashboard/AGENTS.md."""
+    key = _normalized(command)
+    rerun = key in memory.commands
+    reread = _rereads_most_of_a_range(command, memory)
+    memory.commands.add(key)
+    if action_label(command).startswith("Edit "):
+        memory.commands.clear()
+        memory.reads.clear()
+    if rerun or reread:
         return "repeated"
     return "new" if failed else "none"
 
@@ -284,11 +299,13 @@ def totals_of(steps: list[dict[str, Any]], result: str) -> dict[str, Any]:
 
 
 def _run_entry(
-    run_id: str, label: str, role: str, steps: list[dict[str, Any]], result: str
+    run_id: str, label: str, subtitle: str, role: str, steps: list[dict[str, Any]]
 ) -> dict[str, Any]:
+    result = SOLVED if steps[-1]["outcome"] == "solved" else NOT_SOLVED
     return {
         "id": run_id,
         "label": label,
+        "subtitle": subtitle,
         "role": role,
         "status": "measured",
         "model": "Glimmer",
@@ -310,14 +327,8 @@ def build_replay(pair: TaskPair, plain: dict[str, Any], lesson: dict[str, Any]) 
         "source": SOURCE_LINE,
         "task": {"id": f"{repo.split('/')[1]}-{number}", "repo": repo, "label": pair.label},
         "runs": [
-            _run_entry("plain", "Plain Glimmer", "floor", plain_steps, result=NOT_SOLVED),
-            _run_entry(
-                "personal",
-                "Glimmer with a lesson in the prompt (pilot)",
-                "under test",
-                lesson_steps,
-                result=SOLVED,
-            ),
+            _run_entry("plain", "Plain Glimmer", PLAIN_SUBTITLE, "floor", plain_steps),
+            _run_entry("personal", LESSON_LABEL, LESSON_SUBTITLE, "under test", lesson_steps),
         ],
     }
 

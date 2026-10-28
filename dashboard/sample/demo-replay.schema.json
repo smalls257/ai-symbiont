@@ -27,10 +27,11 @@
   "run": {
    "type": "object",
    "additionalProperties": false,
-   "required": ["id", "label", "role", "status", "model", "adapter", "steps", "totals"],
+   "required": ["id", "label", "subtitle", "role", "status", "model", "adapter", "steps", "totals"],
    "properties": {
     "id": {"enum": ["plain", "personal"]},
     "label": {"type": "string", "minLength": 1},
+    "subtitle": {"type": "string", "minLength": 1},
     "role": {"enum": ["floor", "ceiling", "reference", "under test"]},
     "status": {"$ref": "#/$defs/status"},
     "model": {"type": "string", "minLength": 1},

@@ -43,7 +43,7 @@ def trajectory(*turns):
 @pytest.mark.parametrize(
     ("command", "label"),
     [
-        ("ls -la", "List the repository files"),
+        ("ls -la", "List the repository root"),
         (
             "python -m unittest tests.dialects.test_duckdb tests.test_parser",
             "Run tests/dialects/test_duckdb.py",
@@ -58,14 +58,40 @@ def test_label_is_public_and_shaped_by_what_the_step_did(command, label):
     assert replay.action_label(command) == label
 
 
-def test_rereading_an_overlapping_range_is_repeated_and_wasted():
-    steps = replay.steps_from_trajectory(
-        trajectory(("sed -n '10,20p' sqlglot/x.py", 0), ("sed -n '15,30p' sqlglot/x.py", 0)),
-        "t",
-        result="not solved",
-    )
-    assert [s["mistake_tag"] for s in steps] == ["none", "repeated"]
+def tags(*turns):
+    steps = replay.steps_from_trajectory(trajectory(*turns), "t", result="not solved")
+    return [s["mistake_tag"] for s in steps]
+
+
+def test_reading_a_different_range_of_a_file_is_not_a_repeat():
+    assert tags(("sed -n '10,20p' sqlglot/x.py", 0), ("sed -n '40,60p' sqlglot/x.py", 0)) == [
+        "none",
+        "none",
+    ]
+
+
+def test_reading_most_of_an_already_read_range_again_is_a_repeat_and_wasted():
+    turns = (("sed -n '10,20p' sqlglot/x.py", 0), ("sed -n '12,22p' sqlglot/x.py", 0))
+    assert tags(*turns) == ["none", "repeated"]
+    steps = replay.steps_from_trajectory(trajectory(*turns), "t", result="not solved")
     assert steps[1]["wasted"] is True
+
+
+def test_listing_different_directories_is_not_a_repeat_but_the_same_listing_is():
+    assert tags(("ls sqlglot", 0), ("ls sqlglot/dialects", 0), ("ls sqlglot", 0)) == [
+        "none",
+        "none",
+        "repeated",
+    ]
+
+
+def test_rerunning_a_command_after_a_source_edit_is_not_a_repeat():
+    turns = (
+        ("python repro.py", 1),
+        ("sed -i 's/a/b/' sqlglot/x.py", 0),
+        ("python repro.py", 0),
+    )
+    assert tags(*turns) == ["new", "none", "none"]
 
 
 def test_first_failure_is_new_and_the_same_failure_again_is_repeated():
@@ -115,3 +141,10 @@ def test_replay_gives_the_lesson_note_only_to_the_lesson_run_and_labels_it_hones
 def test_note_fields_stay_within_twelve_words():
     for pair in replay.PAIRS:
         assert all(len(text.split()) <= 12 for text in pair.note.values())
+
+
+def test_each_run_carries_its_own_subtitle():
+    doc = replay.build_replay(replay.PAIRS[0], trajectory(("ls", 0)), trajectory(("ls", 0)))
+    plain, lesson = doc["runs"]
+    assert plain["subtitle"] == "Glimmer, no adapter, no notes"
+    assert "lesson in the prompt" in lesson["subtitle"] and "no adapter" in lesson["subtitle"]

@@ -11,6 +11,7 @@
   {
    "id": "plain",
    "label": "Plain Glimmer",
+   "subtitle": "Glimmer, no adapter, no notes",
    "role": "floor",
    "status": "measured",
    "model": "Glimmer",
@@ -18,7 +19,7 @@
    "steps": [
     {
      "step": 1,
-     "action": "List the repository files",
+     "action": "Find files in the repository root",
      "outcome": "progress",
      "tokens_in": 1513,
      "tokens_out": 129,
@@ -31,7 +32,7 @@
     },
     {
      "step": 2,
-     "action": "List the repository files",
+     "action": "List the repository root",
      "outcome": "progress",
      "tokens_in": 1857,
      "tokens_out": 47,
@@ -44,7 +45,7 @@
     },
     {
      "step": 3,
-     "action": "List the repository files",
+     "action": "List sqlglot",
      "outcome": "progress",
      "tokens_in": 2415,
      "tokens_out": 50,
@@ -608,8 +609,8 @@
      "tokens_in": 24808,
      "tokens_out": 90,
      "wall_s": 8.1,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
@@ -672,9 +673,9 @@
     "tokens_in": 733493,
     "tokens_out": 11452,
     "wall_s": 1004.6,
-    "repeated_mistakes": 9,
+    "repeated_mistakes": 8,
     "new_mistakes": 3,
-    "wasted_steps": 9,
+    "wasted_steps": 8,
     "notes": 0,
     "result": "not solved"
    }
@@ -682,6 +683,7 @@
   {
    "id": "personal",
    "label": "Glimmer with a lesson in the prompt (pilot)",
+   "subtitle": "Glimmer, lesson in the prompt (pilot), no adapter",
    "role": "under test",
    "status": "measured",
    "model": "Glimmer",
@@ -689,7 +691,7 @@
    "steps": [
     {
      "step": 1,
-     "action": "List the repository files",
+     "action": "Find files in the repository root",
      "outcome": "progress",
      "tokens_in": 1685,
      "tokens_out": 208,
@@ -751,15 +753,15 @@
      "tokens_in": 3104,
      "tokens_out": 60,
      "wall_s": 8.6,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
     },
     {
      "step": 6,
-     "action": "List the repository files",
+     "action": "Find files in the repository root",
      "outcome": "progress",
      "tokens_in": 3286,
      "tokens_out": 231,
@@ -907,8 +909,8 @@
      "tokens_in": 7276,
      "tokens_out": 69,
      "wall_s": 8.4,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
@@ -984,9 +986,9 @@
     "tokens_in": 110845,
     "tokens_out": 3453,
     "wall_s": 467.9,
-    "repeated_mistakes": 4,
+    "repeated_mistakes": 2,
     "new_mistakes": 0,
-    "wasted_steps": 4,
+    "wasted_steps": 2,
     "notes": 1,
     "result": "solved"
    }

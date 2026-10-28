@@ -11,6 +11,7 @@
   {
    "id": "plain",
    "label": "Plain Glimmer",
+   "subtitle": "Glimmer, no adapter, no notes",
    "role": "floor",
    "status": "hypothesis",
    "model": "Glimmer",
@@ -214,6 +215,7 @@
   {
    "id": "personal",
    "label": "Personal Glimmer",
+   "subtitle": "Glimmer with a personal adapter",
    "role": "under test",
    "status": "hypothesis",
    "model": "Glimmer",

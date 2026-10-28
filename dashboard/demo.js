@@ -38,6 +38,7 @@
   // ---- contract: the cross-field rules a JSON schema cannot state ----
 
   function checkRunShape(run) {
+    if (!run.subtitle) fail(`Run ${run.id} carries no subtitle.`);
     if (!ROLES.includes(run.role)) fail(`Run ${run.id} has no valid role label (floor, ceiling, reference, under test).`);
     if (!STATUSES.includes(run.status)) fail(`Run ${run.id} has no claim tag.`);
     run.steps.forEach((s, i) => {
@@ -101,7 +102,7 @@
     const h = el("h2", "", run.label);
     h.id = `h-${run.id}`;
     head.append(h, roleEl(run.role), tagEl(run.status));
-    const sub = el("p", "run-sub", run.adapter ? `${run.model} with ${run.adapter}` : `${run.model}, no adapter, no notes`);
+    const sub = el("p", "run-sub", run.subtitle);
     return [head, sub];
   }
 

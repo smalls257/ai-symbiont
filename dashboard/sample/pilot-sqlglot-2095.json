@@ -11,6 +11,7 @@
   {
    "id": "plain",
    "label": "Plain Glimmer",
+   "subtitle": "Glimmer, no adapter, no notes",
    "role": "floor",
    "status": "measured",
    "model": "Glimmer",
@@ -18,7 +19,7 @@
    "steps": [
     {
      "step": 1,
-     "action": "List the repository files",
+     "action": "Find files in the repository root",
      "outcome": "progress",
      "tokens_in": 1503,
      "tokens_out": 72,
@@ -31,7 +32,7 @@
     },
     {
      "step": 2,
-     "action": "List the repository files",
+     "action": "List the repository root",
      "outcome": "progress",
      "tokens_in": 1769,
      "tokens_out": 48,
@@ -44,7 +45,7 @@
     },
     {
      "step": 3,
-     "action": "List the repository files",
+     "action": "List sqlglot",
      "outcome": "progress",
      "tokens_in": 2328,
      "tokens_out": 67,
@@ -57,7 +58,7 @@
     },
     {
      "step": 4,
-     "action": "List the repository files",
+     "action": "List sqlglot/dialects",
      "outcome": "progress",
      "tokens_in": 3025,
      "tokens_out": 81,
@@ -278,7 +279,7 @@
     },
     {
      "step": 21,
-     "action": "List the repository files",
+     "action": "Find files in tests",
      "outcome": "progress",
      "tokens_in": 16851,
      "tokens_out": 51,
@@ -361,8 +362,8 @@
      "tokens_in": 20062,
      "tokens_out": 147,
      "wall_s": 12.7,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
@@ -374,8 +375,8 @@
      "tokens_in": 20945,
      "tokens_out": 71,
      "wall_s": 8.2,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
@@ -556,8 +557,8 @@
      "tokens_in": 29290,
      "tokens_out": 83,
      "wall_s": 7.8,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
@@ -634,8 +635,8 @@
      "tokens_in": 30961,
      "tokens_out": 70,
      "wall_s": 6.3,
-     "mistake_tag": "repeated",
-     "wasted": true,
+     "mistake_tag": "none",
+     "wasted": false,
      "note": null,
      "classifier": null,
      "picker": null
@@ -672,9 +673,9 @@
     "tokens_in": 949207,
     "tokens_out": 7319,
     "wall_s": 684.1,
-    "repeated_mistakes": 10,
+    "repeated_mistakes": 6,
     "new_mistakes": 3,
-    "wasted_steps": 10,
+    "wasted_steps": 6,
     "notes": 0,
     "result": "not solved"
    }
@@ -682,6 +683,7 @@
   {
    "id": "personal",
    "label": "Glimmer with a lesson in the prompt (pilot)",
+   "subtitle": "Glimmer, lesson in the prompt (pilot), no adapter",
    "role": "under test",
    "status": "measured",
    "model": "Glimmer",
@@ -689,7 +691,7 @@
    "steps": [
     {
      "step": 1,
-     "action": "List the repository files",
+     "action": "List the repository root",
      "outcome": "progress",
      "tokens_in": 1643,
      "tokens_out": 77,
@@ -707,7 +709,7 @@
     },
     {
      "step": 2,
-     "action": "List the repository files",
+     "action": "Find files in sqlglot",
      "outcome": "progress",
      "tokens_in": 2231,
      "tokens_out": 55,
@@ -790,8 +792,8 @@
      "tokens_in": 3409,
      "tokens_out": 45,
      "wall_s": 7.4,
-     "mistake_tag": "none",
-     "wasted": false,
+     "mistake_tag": "repeated",
+     "wasted": true,
      "note": null,
      "classifier": null,
      "picker": null
@@ -945,9 +947,9 @@
     "tokens_in": 70146,
     "tokens_out": 2049,
     "wall_s": 324.5,
-    "repeated_mistakes": 1,
+    "repeated_mistakes": 2,
     "new_mistakes": 0,
-    "wasted_steps": 1,
+    "wasted_steps": 2,
     "notes": 1,
     "result": "solved"
    }
