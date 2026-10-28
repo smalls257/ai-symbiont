@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-symbiont demo: same bug, two runs</title>
+<link rel="stylesheet" href="demo.css">
+</head>
+<body>
+<header class="top">
+  <div class="masthead">
+    <h1>Same bug, two runs</h1>
+    <p class="task"><span id="task-label"></span> <span id="task-id" class="task-id"></span></p>
+  </div>
+  <nav class="controls" aria-label="Replay controls">
+    <button id="play" type="button">Pause</button>
+    <button id="restart" type="button">Restart</button>
+    <label class="speed">Speed
+      <select id="speed">
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="2">2x</option>
+      </select>
+    </label>
+    <label class="scrub">
+      <span class="visually-hidden">Step</span>
+      <input id="scrub" type="range" min="0" max="0" value="0">
+    </label>
+    <output id="step-out" for="scrub" class="step-out"></output>
+  </nav>
+</header>
+
+<p id="banner" class="banner"></p>
+
+<main id="page" hidden>
+  <section id="hook" class="hook" aria-labelledby="h-hook">
+    <h2 id="h-hook">Opening: a model plays Freedoom via ViZDoom</h2>
+    <p>Clip slot for a 20 to 30 second opening. No clip is loaded yet.</p>
+  </section>
+
+  <div class="runs">
+    <section class="run" id="run-plain" aria-labelledby="h-plain"></section>
+    <section class="run" id="run-personal" aria-labelledby="h-personal"></section>
+  </div>
+
+  <section class="panel tokens" aria-labelledby="h-tokens">
+    <div class="panel-head">
+      <h2 id="h-tokens">Tokens read, cumulative</h2>
+      <span id="tokens-tag"></span>
+    </div>
+    <div class="chart-wrap">
+      <svg id="token-chart" viewBox="0 0 1000 230" role="img" aria-label="Cumulative tokens read per run"></svg>
+      <div id="token-tip" class="tip" hidden></div>
+    </div>
+  </section>
+
+  <div class="pair">
+    <section class="panel notes" aria-labelledby="h-notes">
+      <div class="panel-head">
+        <h2 id="h-notes">Notes delivered</h2>
+        <span id="notes-tag"></span>
+      </div>
+      <ol id="note-stream" class="note-stream" aria-live="polite"></ol>
+    </section>
+
+    <section class="panel brain" aria-labelledby="h-brain">
+      <div class="panel-head">
+        <h2 id="h-brain">What decided, this step</h2>
+        <span id="brain-tag"></span>
+      </div>
+      <div id="brain"></div>
+      <p class="fine">Only the classifier decides whether a note is spoken. The network only picks which adapter Glimmer runs with.</p>
+    </section>
+  </div>
+
+  <section class="panel results" aria-labelledby="h-results">
+    <div class="panel-head">
+      <h2 id="h-results">Measured so far</h2>
+      <span id="results-source" class="fine"></span>
+    </div>
+    <div id="headlines" class="headlines"></div>
+  </section>
+</main>
+
+<p id="error" class="error" role="alert" hidden></p>
+<script src="demo.js"></script>
+</body>
+</html>
