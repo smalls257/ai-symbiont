@@ -238,7 +238,7 @@ def score(args: argparse.Namespace) -> None:
         log.info(line)
     document = {
         **label,
-        "asks": "does a meta-learned start adapt better from the first outcomes on new repos",
+        "asks": "does a meta-learned start adapt better on repos never seen",
         "evaluated_on": args.on,
         "code_commit": t36.git_head(),
         "train_code_commit": trained["code_commit"],
