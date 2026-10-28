@@ -88,14 +88,14 @@ flowchart LR
     <li><b>Fix the gate, never suppress it.</b> No <code># noqa</code>, <code># nosemgrep</code>, <code># type: ignore</code> or whitelist line without owner, reason and expiry (section 4). An undated exception is a <b>Fossil Comment</b> that executes.</li>
     <li><b>One definition per gate.</b> The hook, pre-push, and CI call the same script in <code>scripts/gates/</code>. Two spellings of one gate drift into two verdicts, which is a <b>Distributed Monolith</b> in miniature and teaches people to trust neither.</li>
     <li><b>Fast gates first.</b> Pre-commit scans staged files only and stays under 15 s; anything slower moves to pre-push. A slow gate in the inner loop is <b>Computational Friction</b> and is bypassed within a week.</li>
-    <li><b>Stricter in the core.</b> <code>records → miner → core</code> is the pure, airplane-tested centre; thresholds there are tighter than in <code>store</code>, <code>readers</code>, <code>eval</code>, <code>service</code>, <code>delivery</code>, <code>scripts</code>. The core is where an <b>Infected Core</b> or a <b>God Method</b> costs the most to undo.</li>
+    <li><b>Stricter in the core.</b> <code>records → miner → core</code> is the pure, airplane-tested center; thresholds there are tighter than in <code>store</code>, <code>readers</code>, <code>eval</code>, <code>service</code>, <code>delivery</code>, <code>scripts</code>. The core is where an <b>Infected Core</b> or a <b>God Method</b> costs the most to undo.</li>
   </ul>
   <details class="sub"><summary>Scope: what counts as core vs periphery here</summary><div>
     <table>
       <tr><th>Tier</th><th>Paths</th><th>Why the tier differs</th></tr>
       <tr><td><b>Core</b> (pure)</td><td><code>src/symbiont/records</code>, <code>src/symbiont/miner</code>, <code>src/symbiont/core</code></td><td>Must pass the Airplane Test; swapped as a unit (Shield); unit tests need no I/O (Buffer).</td></tr>
       <tr><td><b>Periphery</b></td><td><code>src/symbiont/{store,readers,eval,service,delivery,routeb,act1,wizard}</code>, <code>cli.py</code></td><td>Touches disk, sockets, clocks, subprocesses by design; tests are <code>@pytest.mark.periphery</code>.</td></tr>
-      <tr><td><b>Tooling</b></td><td><code>scripts/</code>, <code>ops/</code>, <code>spikes/</code>, <code>dashboard/</code></td><td>Lint, secrets and licence gates apply; complexity and type gates advisory except where stated.</td></tr>
+      <tr><td><b>Tooling</b></td><td><code>scripts/</code>, <code>ops/</code>, <code>spikes/</code>, <code>dashboard/</code></td><td>Lint, secrets and license gates apply; complexity and type gates advisory except where stated.</td></tr>
     </table>
     <p class="note">Measured on 2026-10-27: 251 tests pass in 2 s on the laptop <span class="t m">measured</span>; <code>tests/test_boundaries.py</code> already enforces the socket block and the import rules. The gates below extend that, they do not replace it.</p>
   </div></details>
@@ -104,7 +104,7 @@ flowchart LR
 
 <!-- 2 -->
 <details class="chunk">
-<summary><div class="num">2</div><div class="head"><h2>The gate catalogue</h2>
+<summary><div class="num">2</div><div class="head"><h2>The gate catalog</h2>
 <p>Forty-three gates in twelve families. Each row: tool and pin, what it checks, the Violation it prevents and the Principle it serves, thresholds, where it runs, blocking or advisory, waiver rule.</p></div><div class="chev">▶</div></summary>
 <div class="body">
   <p class="note">Stage key: <b>E</b> edit-time Claude Code hook · <b>C</b> pre-commit · <b>P</b> pre-push · <b>CI</b> · <b>R</b> release / scored run. Pins are the latest PyPI or GitHub release on 2026-10-27 <span class="t e">established</span>; bump them deliberately, in their own commit.</p>
@@ -124,7 +124,7 @@ flowchart LR
     <div class="gate"><b class="id">QG-SEC-06</b> edit-time secrets and data guard (<code>.claude/hooks/guard_paths.sh</code>) <span class="t b">blocking</span> · <b>E</b><br>
       <span class="why">Silent Fallback → Sensor, earliest stage.</span> The text of every Write, Edit, MultiEdit and NotebookEdit is piped through <code>gitleaks stdin</code> with the repo's <code>.gitleaks.toml</code>, so a key, private address, home path, e-mail or phone number is refused before it reaches the working tree. Missing gitleaks or config denies the write. Weights, datasets (<code>*.jsonl</code> outside fixtures), <code>*.wad</code> and key files are denied by name, case-insensitively.</div>
     <div class="gate"><b class="id">QG-PUB-01</b> publish check (<code>scripts/publish/check_export.sh</code>) <span class="t v">release</span> · <b>R</b><br>
-      <span class="why">Silent Fallback at the publish boundary → Sensor.</span> Exports every file of HEAD with <code>git checkout-index</code> (not <code>git archive</code>, which honours <code>export-ignore</code>) to a temp dir and runs every sensitive-data check on the exported files, not on history and not against a baseline: SEC-03 (tree mode), SEC-01 (gitleaks over every file), SEC-05, SEC-04 and the egress and prompt-logging semgrep rules. The checks and their configuration are those of the exported commit, and the run is refused while a gate file differs from HEAD in the working copy. The exported file count must equal the commit's, and a <code>.gitattributes</code> with <code>export-ignore</code>/<code>export-subst</code> is a finding. A missing <code>src/</code> fails. Any finding exits non-zero. It runs before the first public push and stays red until the tracked files that still name lab addresses and the history baseline are cleaned.</div>
+      <span class="why">Silent Fallback at the publish boundary → Sensor.</span> Exports every file of HEAD with <code>git checkout-index</code> (not <code>git archive</code>, which honors <code>export-ignore</code>) to a temp dir and runs every sensitive-data check on the exported files, not on history and not against a baseline: SEC-03 (tree mode), SEC-01 (gitleaks over every file), SEC-05, SEC-04 and the egress and prompt-logging semgrep rules. The checks and their configuration are those of the exported commit, and the run is refused while a gate file differs from HEAD in the working copy. The exported file count must equal the commit's, and a <code>.gitattributes</code> with <code>export-ignore</code>/<code>export-subst</code> is a finding. A missing <code>src/</code> fails. Any finding exits non-zero. It runs before the first public push and stays red until the tracked files that still name lab addresses and the history baseline are cleaned.</div>
   </div></details>
 
   <details class="sub"><summary>B · SAST and repo-specific semgrep rules (2 gates)</summary><div>
@@ -211,11 +211,11 @@ flowchart LR
       <span class="why">Infected Core → Buffer.</span> Already in place: <code>conftest.py</code> raises <code>AirplaneViolationError</code> on any socket from an unmarked test. Extended by a <code>tmp_path</code>-only rule: unmarked tests that open a path outside <code>tmp_path</code> fail (<code>pytest-socket</code> is not added; the home-grown block is smaller and already tested). Waiver: <code>@pytest.mark.periphery</code>, which is a classification, not an exemption.</div>
   </div></details>
 
-  <details class="sub"><summary>H · Dependencies and licences (3 gates)</summary><div>
+  <details class="sub"><summary>H · Dependencies and licenses (3 gates)</summary><div>
     <div class="gate"><b class="id">QG-DEP-01</b> pip-audit <code>2.10.1</code> (osv-scanner <code>v2.7.0</code> in CI as the second opinion) <span class="t b">blocking</span> on HIGH/CRITICAL, <span class="t a">advisory</span> below · <b>P</b>, <b>CI</b><br>
       <span class="why">Black Box → Sensor.</span> Runs against <code>uv.lock</code> exported requirements, not the live venv, so the verdict is about what ships. Waiver: <code>--ignore-vuln ID</code> in <code>scripts/gates/audit_waivers.txt</code> with owner, reason, expiry ≤ 30 days.</div>
     <div class="gate"><b class="id">QG-DEP-02</b> pip-licenses <code>5.5.5</code> allowlist <span class="t b">blocking</span> · <b>P</b>, <b>CI</b><br>
-      <span class="why">Anchor → the licence story in the README must match the lockfile.</span> Allow: MIT, BSD-2/3, Apache-2.0, ISC, PSF, MPL-2.0, Unlicense, CC0. Fail on: unknown/UNKNOWN, any NC or ND clause, GPL/AGPL (runtime linking), SSPL. Project-specific: <code>vizdoom</code> must appear as a dependency and never under <code>src/</code> or <code>vendor/</code> (path check); FlyWire files must never be tracked (<code>*.feather</code>, <code>*connectome*</code>). <code>pip-licenses --allow-only</code> and <code>--fail-on</code> do the work <span class="t e">established: documented flags</span>.</div>
+      <span class="why">Anchor → the license story in the README must match the lockfile.</span> Allow: MIT, BSD-2/3, Apache-2.0, ISC, PSF, MPL-2.0, Unlicense, CC0. Fail on: unknown/UNKNOWN, any NC or ND clause, GPL/AGPL (runtime linking), SSPL. Project-specific: <code>vizdoom</code> must appear as a dependency and never under <code>src/</code> or <code>vendor/</code> (path check); FlyWire files must never be tracked (<code>*.feather</code>, <code>*connectome*</code>). <code>pip-licenses --allow-only</code> and <code>--fail-on</code> do the work <span class="t e">established: documented flags</span>.</div>
     <div class="gate"><b class="id">QG-DEP-03</b> lockfile drift: <code>uv lock --check</code> (uv <code>0.13.6</code>; works on the installed 0.9.28 <span class="t m">measured: flag present</span>) <span class="t b">blocking</span> · <b>C</b> (when <code>pyproject.toml</code> is staged), <b>CI</b><br>
       <span class="why">Distributed Monolith → Shield.</span> A <code>pyproject</code> edit without a lock update means every worktree resolves differently; parallel agents already run in three worktrees, so drift is a live hazard, not a theory.</div>
   </div></details>
@@ -229,6 +229,8 @@ flowchart LR
       <span class="why">God Method → Shield; Leaky Narrative → Filter.</span> Two or more <code>bool</code> parameters on one function is forbidden; one positional bool is forbidden (<code>FBT001</code>); a positional <code>is_</code> / <code>use_</code> / <code>enable_</code> parameter warns. Replace with a <code>StrEnum</code> or two named functions. Options dicts do not count as a fix.</div>
     <div class="gate"><b class="id">QG-RD-04</b> comment policy (<code>scripts/gates/check_comments.py</code>) <span class="t a">advisory</span> at <b>C</b>, <span class="t b">blocking</span> at <b>CI</b><br>
       <span class="why">Fossil Comments → Anchor.</span> Fails on: commented-out code (ruff <code>ERA001</code>); <code>TODO</code>/<code>FIXME</code> without <code>(owner, YYYY-MM-DD)</code>; a comment that repeats the next line's identifiers verbatim (what, not why; heuristic: ≥ 70% token overlap with the following statement) <span class="t h">hypothesis: the overlap heuristic needs tuning on this tree before it blocks</span>; docstrings that only restate the signature (<code>"""Returns the result."""</code>). Expired TODOs are read by <code>check_expiries.py</code>.</div>
+    <div class="gate"><b class="id">QG-RD-05</b> American spelling (codespell <code>2.4.1</code>, <code>--builtin en-GB_to_en-US</code>, changed text files) <span class="t b">blocking</span> · <b>C</b>, <b>CI</b><br>
+      <span class="why">Leaky Narrative → Filter; Forensic Coding → Anchor.</span> One dialect in names, comments and docs, so a reader never searches for one spelling and misses the other. Owner rule (2026-10-27). Frozen files (<code>prereg/</code>, committed results) are only checked when they change, which they never do.</div>
   </div></details>
 
   <details class="sub"><summary>J · Science and claims gates (3 gates)</summary><div>
@@ -257,12 +259,12 @@ flowchart LR
     <div class="gate"><b class="id">QG-AI-03</b> Claude Code <code>Stop</code> hook: the fast gate set (<code>scripts/gates/fast.sh</code>: ruff, boundary tests, lizard core, semgrep custom, path guard) <span class="t b">blocking</span> · <b>E</b> (end of turn)<br>
       <span class="why">Paper Tiger → an agent reporting "done" with a red tree.</span> Exit 2 keeps the agent working with the failures as context <span class="t h">hypothesis: Stop-event exit-2 semantics ("blocks stopping") per the hooks reference; confirm on the installed version</span>. Budget &lt; 15 s; if the set exceeds it, split, do not raise the timeout.</div>
     <div class="gate"><b class="id">QG-AI-04</b> subagent rules (checked by the lead's review template and QG-AI-02) <span class="t b">blocking</span> at merge<br>
-      Implementers never push, never create the GitHub repo, never dispatch subagents of their own, never approve paid runs. Each task has a per-task spec and a quality review (a second agent, fresh context, given the diff and the spec, not the implementer's summary) before the worktree merges. Model selection: implementation on the default model; quality review and anything touching <code>prereg/</code>, <code>eval/</code> or licences on the strongest available model, since a weak reviewer is a <b>Paper Tiger</b> review. The review checklist is the Self-Audit from the constitution: name ≥ 2 Violations, run the Load-Bearing Test, confirm the API matches the Violation it prevents.</div>
+      Implementers never push, never create the GitHub repo, never dispatch subagents of their own, never approve paid runs. Each task has a per-task spec and a quality review (a second agent, fresh context, given the diff and the spec, not the implementer's summary) before the worktree merges. Model selection: implementation on the default model; quality review and anything touching <code>prereg/</code>, <code>eval/</code> or licenses on the strongest available model, since a weak reviewer is a <b>Paper Tiger</b> review. The review checklist is the Self-Audit from the constitution: name ≥ 2 Violations, run the Load-Bearing Test, confirm the API matches the Violation it prevents.</div>
     <div class="gate"><b class="id">QG-AI-05</b> commit hygiene (<code>commit-msg</code> hook, <code>scripts/hooks/commit-msg</code>) <span class="t b">blocking</span> · <b>C</b><br>
       <span class="why">Anchor.</span> Message ≥ 12 chars of why, not "fix"; explicit-path staging enforced by rejecting commits whose staged set came from <code>git add -A</code> (heuristic: staged untracked files outside the paths named in the message's trailer are rejected) <span class="t h">hypothesis: the heuristic; the reliable form is the PreToolUse Bash guard above</span>; attribution trailer <code>Co-Authored-By:</code> present when <code>CLAUDE_*</code> env is set.</div>
   </div></details>
 
-  <details class="sub"><summary>Catalogue at a glance (all 43)</summary><div>
+  <details class="sub"><summary>Catalog at a glance (all 43)</summary><div>
     <table>
       <tr><th>ID</th><th>Tool · pin</th><th>Violation → Principle</th><th>Stage</th><th>Mode</th></tr>
       <tr><td>SEC-01</td><td>gitleaks v8.30.1 staged</td><td>Silent Fallback → Sensor</td><td>C</td><td>block</td></tr>
@@ -322,7 +324,7 @@ flowchart LR
 flowchart LR
   E["<b>Edit · hooks · &lt; 2 s/file</b><br/>PreToolUse guard: data/, .env,<br/>FROZEN prereg, git rewrite<br/>PostToolUse: ruff · lizard · semgrep<br/>Stop: fast set &lt; 15 s"]
   C["<b>pre-commit · staged · &lt; 15 s</b><br/>gitleaks staged · path guard<br/>ruff · semgrep · lizard · file length · naming<br/>boundary tests + unit tests of the touched packages<br/>claim tags · results · commit-msg: GATE-CHANGE check"]
-  P["<b>pre-push · tree · &lt; 3 min</b><br/>gitleaks full history<br/>whole suite · count floor · run.sh tests<br/>history scan against the baseline<br/>gate integrity per commit · coverage<br/>mypy on changed files · import-linter<br/>uv lock --check · pip-audit · licences"]
+  P["<b>pre-push · tree · &lt; 3 min</b><br/>gitleaks full history<br/>whole suite · count floor · run.sh tests<br/>history scan against the baseline<br/>gate integrity per commit · coverage<br/>mypy on changed files · import-linter<br/>uv lock --check · pip-audit · licenses"]
   CI["<b>CI · clean box · &lt; 10 min</b><br/>all of pre-push, from scratch<br/>osv-scanner · eslint · no-CDN<br/>HTML validity<br/>expiry check on every waiver"]
   R["<b>Release · &lt; 30 min</b><br/>mutmut core ≥ 80% killed<br/>prereg FROZEN + committed<br/>counters row · secrets scan<br/>owner GO"]
   E --> C --> P --> CI --> R
@@ -332,7 +334,7 @@ flowchart LR
       <tr><th>Stage</th><th>Budget</th><th>Measured today</th><th>On overrun</th></tr>
       <tr><td>Edit hook</td><td>2 s / file</td><td>ruff on one file ≈ 0.1 s <span class="t m">measured</span>; semgrep cold start is the risk <span class="t h">hypothesis: 1–3 s</span></td><td>Drop semgrep from E to C; keep ruff + lizard.</td></tr>
       <tr><td>pre-commit</td><td>15 s</td><td>the whole suite is about 45 s <span class="t m">measured</span> once the gate tests exist, so pre-commit runs only the unit tests of the packages a commit touches (4 s typical, 11 s with gate scripts staged <span class="t m">measured</span>)</td><td>Scope to staged files; move mypy to P.</td></tr>
-      <tr><td>pre-push</td><td>3 min</td><td>whole suite and floor, run.sh tests, history scan: about 70 s with coverage <span class="t m">measured</span></td><td>Parallelise independent gates (<code>xargs -P</code>); never skip.</td></tr>
+      <tr><td>pre-push</td><td>3 min</td><td>whole suite and floor, run.sh tests, history scan: about 70 s with coverage <span class="t m">measured</span></td><td>Parallelize independent gates (<code>xargs -P</code>); never skip.</td></tr>
       <tr><td>CI</td><td>10 min</td><td>n/a (no CI yet)</td><td>Split jobs; cache uv and semgrep packs.</td></tr>
       <tr><td>Release</td><td>30 min</td><td>n/a</td><td>mutmut on changed core modules only, full run weekly.</td></tr>
     </table>
@@ -380,7 +382,7 @@ stateDiagram-v2
     <tr><th>Level</th><th>Effect</th><th>Fix by</th><th>Examples</th></tr>
     <tr><td><span class="t b">blocking</span></td><td>Commit, push or merge refused.</td><td>Before the next commit on that path; never carried across a task boundary.</td><td>SEC-*, SAST ERROR, CPX, LINT, TYP core, ARC, TST-01..04, SCI-*, AI-*</td></tr>
     <tr><td><span class="t a">advisory</span></td><td>Printed, exit 0; counted in metrics.</td><td>Within the same task, or converted to a dated waiver.</td><td>SAST WARNING, RD-04 at pre-commit, FE-03, DEP-01 below HIGH</td></tr>
-    <tr><td><span class="t v">release</span></td><td>Tag, publish or scored run refused.</td><td>Before the run starts; no partial runs.</td><td>TST-05 mutation, SCI-01 prereg, DEP-02 licences at publish</td></tr>
+    <tr><td><span class="t v">release</span></td><td>Tag, publish or scored run refused.</td><td>Before the run starts; no partial runs.</td><td>TST-05 mutation, SCI-01 prereg, DEP-02 licenses at publish</td></tr>
   </table>
   <ul>
     <li><b>Security findings</b> (SEC, DEP HIGH+): fix within 24 h; a leaked credential is rotated first, then the gate is made green. Rotation is the fix; history rewriting is not available under the git rules.</li>
@@ -680,7 +682,7 @@ rules:
       - metavariable-regex:
           metavariable: $X
           regex: (?i).*(score|prob|threshold|feature|kc_|activation|auroc|logit).*</pre>
-    <p class="note">Rule-file structure (<code>rules</code>, <code>id</code>, <code>severity</code>, <code>languages</code>, <code>paths.include</code>, <code>pattern-either</code>, <code>metavariable-regex</code>) matches semgrep's documented schema and the reference repo's working rules <span class="t e">established</span>. The <code>f"...{$X}..."</code> f-string pattern and <code>"..." % $X</code> matching behaviour on 1.182 <span class="t h">hypothesis: test each rule against <code>.semgrep/symbiont/tests/</code> with <code>semgrep --test</code> before it blocks</span>. Pin: <code>.semgrep/VERSION</code> = <code>1.182.1</code>; the launcher refuses other versions by name.</p>
+    <p class="note">Rule-file structure (<code>rules</code>, <code>id</code>, <code>severity</code>, <code>languages</code>, <code>paths.include</code>, <code>pattern-either</code>, <code>metavariable-regex</code>) matches semgrep's documented schema and the reference repo's working rules <span class="t e">established</span>. The <code>f"...{$X}..."</code> f-string pattern and <code>"..." % $X</code> matching behavior on 1.182 <span class="t h">hypothesis: test each rule against <code>.semgrep/symbiont/tests/</code> with <code>semgrep --test</code> before it blocks</span>. Pin: <code>.semgrep/VERSION</code> = <code>1.182.1</code>; the launcher refuses other versions by name.</p>
   </div></details>
 
   <details class="sub"><summary>.importlinter · layer and purity contracts</summary><div>
@@ -741,7 +743,7 @@ forbidden_modules =
 ignore_imports =
     symbiont.routeb.** -> symbiont.eval.budget
     symbiont.act1.** -> symbiont.eval.budget</pre>
-    <p class="note">Contract types <code>layers</code> and <code>forbidden</code>, <code>include_external_packages</code>, and the <code>**</code> any-depth wildcard in <code>ignore_imports</code> are documented import-linter features and in use in the reference repo <span class="t e">established</span>. Listing <code>symbiont.eval</code> as both a source and (partly) a forbidden target in one contract is a modelling choice to check with <code>lint-imports --verbose</code> on first run <span class="t h">hypothesis</span>.</p>
+    <p class="note">Contract types <code>layers</code> and <code>forbidden</code>, <code>include_external_packages</code>, and the <code>**</code> any-depth wildcard in <code>ignore_imports</code> are documented import-linter features and in use in the reference repo <span class="t e">established</span>. Listing <code>symbiont.eval</code> as both a source and (partly) a forbidden target in one contract is a modeling choice to check with <code>lint-imports --verbose</code> on first run <span class="t h">hypothesis</span>.</p>
   </div></details>
 
   <details class="sub"><summary>pre-commit hook script (scripts/hooks/pre-commit)</summary><div>
@@ -775,7 +777,7 @@ run QG-SEC-03 scripts/gates/check_paths.sh --staged
 printf '%s\n' "$staged" | grep -q '^results/' && run QG-SCI-03 uv run --no-sync python scripts/gates/check_results.py
 printf '%s\n' "$staged" | grep -qE '^(pyproject\.toml|uv\.lock)$' && run QG-DEP-03 uv lock --check
 exit 0</pre>
-    <p class="note">No <code>|| true</code>, no <code>SKIP_*</code> variable; the only bypass is <code>SYMBIONT_GATE_BYPASS="&lt;id&gt;: reason"</code>, honoured inside <code>run.sh</code>, logged, and refused for SEC-* and TST-01. <code>uv run --no-sync</code> keeps the hook from mutating the venv mid-commit <span class="t e">established flag</span>.</p>
+    <p class="note">No <code>|| true</code>, no <code>SKIP_*</code> variable; the only bypass is <code>SYMBIONT_GATE_BYPASS="&lt;id&gt;: reason"</code>, honored inside <code>run.sh</code>, logged, and refused for SEC-* and TST-01. <code>uv run --no-sync</code> keeps the hook from mutating the venv mid-commit <span class="t e">established flag</span>.</p>
   </div></details>
 
   <details class="sub"><summary>Claude Code hooks (.claude/settings.json)</summary><div>

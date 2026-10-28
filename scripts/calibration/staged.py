@@ -121,7 +121,7 @@ class Driver:
         return False  # every attempt ungraded: counted unsolved; visible as resolved=None records
 
     def _record(self, rec: dict) -> None:
-        """Append, announce and summarise one run; raise BlockedError after too many ungraded."""
+        """Append, announce and summarize one run; raise BlockedError after too many ungraded."""
         self.records.append(rec)
         with self.log.open("a") as handle:
             handle.write(json.dumps(rec) + "\n")

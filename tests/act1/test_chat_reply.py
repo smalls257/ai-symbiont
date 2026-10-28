@@ -1,4 +1,4 @@
-"""chat_reply keeps its behaviour for local Glimmer now that it goes through the egress module."""
+"""chat_reply keeps its behavior for local Glimmer now that it goes through the egress module."""
 
 import io
 import json

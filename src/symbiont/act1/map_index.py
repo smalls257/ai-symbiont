@@ -3,7 +3,7 @@
 Specials come from vanilla Doom's use/cross handlers, as in Chocolate Doom's src/doom/p_switch.c
 (P_UseSpecialLine: manual doors 1, 26-28, 31-34, 117, 118; exit switches 11, 51) and
 src/doom/p_spec.c (P_CrossSpecialLine: exit walkovers 52, 124). Keyed manual doors give their key
-colour statically, so "needs a blue key" never depends on an engine message. Remote switch and
+color statically, so "needs a blue key" never depends on an engine message. Remote switch and
 walkover doors act on a tagged sector and are not listed: open_door presses USE on the door itself.
 """
 
@@ -12,7 +12,7 @@ from dataclasses import dataclass
 
 from symbiont.act1.wad import Linedef, MapGeometry, Sector
 
-# special -> key colour (None: no key needed)
+# special -> key color (None: no key needed)
 DOOR_SPECIALS: dict[int, str | None] = {
     1: None,
     26: "blue",
@@ -26,7 +26,7 @@ DOOR_SPECIALS: dict[int, str | None] = {
     118: None,
 }
 EXIT_SPECIALS = {11: False, 52: False, 51: True, 124: True}  # special -> leads to the secret level
-KEY_THINGS = {  # THINGS type -> (colour, kind)
+KEY_THINGS = {  # THINGS type -> (color, kind)
     5: ("blue", "card"),
     6: ("yellow", "card"),
     13: ("red", "card"),
@@ -60,7 +60,7 @@ class StaticExit:
 class StaticKey:
     """A key pickup as authored in the map."""
 
-    colour: str
+    color: str
     kind: str
     x: int
     y: int

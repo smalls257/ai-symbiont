@@ -5,7 +5,7 @@ from dataclasses import replace
 
 from symbiont.records.schema import Kind, Provenance, Record
 
-PUBLIC = Provenance(dataset="synthetic", licence="CC-BY-4.0", spark_safe=True)
+PUBLIC = Provenance(dataset="synthetic", license="CC-BY-4.0", spark_safe=True)
 
 
 def _record(kind: Kind, raw: str = "", **fields) -> Record:

@@ -10,7 +10,7 @@ def leaks_by_keyword(self_store):
 
 
 def leaks_private_record(record_text):
-    return render_prompt(record_text, Provenance(dataset="private", licence="none", spark_safe=False))  # expect: sym-spark-privacy
+    return render_prompt(record_text, Provenance(dataset="private", license="none", spark_safe=False))  # expect: sym-spark-privacy
 
 
 def safe(store, session):
@@ -22,4 +22,4 @@ def not_spark(store):
 
 
 def safe_prompt(record_text):
-    return render_prompt(record_text, Provenance(dataset="public", licence="MIT", spark_safe=True))
+    return render_prompt(record_text, Provenance(dataset="public", license="MIT", spark_safe=True))

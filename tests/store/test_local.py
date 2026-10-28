@@ -17,7 +17,7 @@ from symbiont.store.local import SparkPrivacyViolationError, Store, StoreConflic
 pytestmark = pytest.mark.periphery
 
 PROJECT = "tobymao/sqlglot"
-SWE_CHAT = Provenance(dataset="SWE-chat", licence="ODC-BY", spark_safe=False)
+SWE_CHAT = Provenance(dataset="SWE-chat", license="ODC-BY", spark_safe=False)
 NO_HOLD_OUT: frozenset[str] = frozenset()
 
 

@@ -1,7 +1,7 @@
 // Dashboard page. Reads one JSON produced by export_dashboard (schema dashboard-v0)
 // and replays it step by step. No network beyond the local sample file.
 // URL options: ?act=freedoom|coding  &autoplay=0  &speed=0.5|1|2|4  &step=12
-// Anything the page cannot honour is shown as an error, never silently replaced.
+// Anything the page cannot honor is shown as an error, never silently replaced.
 "use strict";
 
 const SCHEMA = "dashboard-v0";

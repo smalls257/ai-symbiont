@@ -2,7 +2,7 @@
 
 Two ways to know a user turn is a correction:
 
-- the dataset labelled it (`correction` or `rejection` in the record's tags,
+- the dataset labeled it (`correction` or `rejection` in the record's tags,
   e.g. SWE-chat's pushback mark), or
 - unlabelled: since the previous user turn a test run failed, and the turn
   names a file the agent edited in that stretch ("you broke dialect.py").

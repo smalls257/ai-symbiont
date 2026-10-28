@@ -53,7 +53,7 @@ def continues(indexed: Sequence[object], items: Sequence[object]) -> bool:
 
 
 class Growing:
-    """An append-only numpy array with amortised O(1) append."""
+    """An append-only numpy array with amortized O(1) append."""
 
     def __init__(self, dtype: npt.DTypeLike) -> None:
         self._data = np.empty(16, dtype=dtype)
@@ -76,7 +76,7 @@ class PainPointIndex:
     """Pain points by every element of their signature key, and failed ones by command.
 
     Elements are files, commands and error names; failed commands are also
-    keyed by the normalised command.
+    keyed by the normalized command.
     """
 
     def __init__(self) -> None:
@@ -238,7 +238,7 @@ class TokenIndex:
             return None
         idf = math.log(1 + (collection.documents - holding + 0.5) / (holding + 0.5))
         positions, tf = where.view, how_many.view.astype(np.float64)
-        saturation, normalisation = shape.term_saturation, shape.length_normalisation
+        saturation, normalization = shape.term_saturation, shape.length_normalisation
         lengths = self._lengths.view[positions]
         gain = (
             idf
@@ -247,7 +247,7 @@ class TokenIndex:
             / (
                 tf
                 + saturation
-                * (1 - normalisation + normalisation * lengths / collection.average_length)
+                * (1 - normalization + normalization * lengths / collection.average_length)
             )
         )
         return positions, gain

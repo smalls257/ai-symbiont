@@ -62,10 +62,10 @@ flowchart LR
 <tr><td>W2</td><td>Sidecar</td><td>Mushroom body (86 → 5,177 KC, top 5%, dopamine-like readout). Jobs: flag trouble, pick recall. <b>Counters baseline from day 1.</b> [established]</td><td class="core">core</td></tr>
 <tr><td>W3</td><td>Delivery</td><td>One install: MCP server (<code>recall</code>) + hooks (SessionStart, UserPromptSubmit, PreLLMCall, PostToolUse). Guided terminal wizard (<code>symbiont setup</code>): find history → pick projects (all or a mix) → preview pain points → train.</td><td class="core">core</td></tr>
 <tr><td>W4</td><td>Act 2 eval: coding</td><td>"A developer's week" on one public repo: real runs with the models (the whole point). Glimmer vs Glimmer + fly (mini-SWE-agent; fewer tasks, carries the open-weights claim); Spark Contributor vs Spark + fly (Muse Code; bulk of the runs). Wonder = reference row. Primary metric: repeated-mistake rate; secondary: tests pass. Fly training is CPU-only from mined history and is not limited by Glimmer speed. Spark recalls only from public agent history, never SWE-chat. Pre-registration frozen before scored runs.</td><td class="core">core</td></tr>
-<tr><td>W5</td><td>Act 1: Freedoom</td><td>State → text → sidecar note → Muse picks strategy → scripted moves (labelled). Exploration + light combat. Harder combat only if exploration works by ~Oct 30.</td><td class="core">core (hook)</td></tr>
+<tr><td>W5</td><td>Act 1: Freedoom</td><td>State → text → sidecar note → Muse picks strategy → scripted moves (labeled). Exploration + light combat. Harder combat only if exploration works by ~Oct 30.</td><td class="core">core (hook)</td></tr>
 <tr><td>W6</td><td>Open-weight extras</td><td>LoRA from mined records; vector-injection lab test; one timeboxed per-chunk self-study adapter run.</td><td class="opt">optional</td></tr>
 <tr><td>W7</td><td>Visuals + video</td><td>Live dashboard (racing timelines, fuel gauges, loop spirals, blast-radius / fault map, fly brain, scoreboard). One visual style for both acts. Muse Image hero art; ComfyUI overnight; Kenney CC0 fallback. 3-minute video.</td><td class="core">core</td></tr>
-<tr><td>W8</td><td>Publish</td><td>Licence notes, secrets scan before every push, repo creation only on your go.</td><td class="core">core</td></tr>
+<tr><td>W8</td><td>Publish</td><td>License notes, secrets scan before every push, repo creation only on your go.</td><td class="core">core</td></tr>
 </table>
 
 <h2>4. Timeline</h2>
@@ -96,11 +96,11 @@ gantt
   Secrets scan + publish         :crit, 2026-11-04, 1d
 </div>
 
-<h2>5. Data <span class="tag e">from the licence survey, not yet re-verified</span></h2>
+<h2>5. Data <span class="tag e">from the license survey, not yet re-verified</span></h2>
 <div class="grid">
-  <div class="card"><b>Dev history (miner input)</b><br>SWE-chat v2 (ODC-BY): real sessions with labelled corrections. Gated: you accept terms on Hugging Face. Raw rows stay local; only derived features go to Spark.</div>
+  <div class="card"><b>Dev history (miner input)</b><br>SWE-chat v2 (ODC-BY): real sessions with labeled corrections. Gated: you accept terms on Hugging Face. Raw rows stay local; only derived features go to Spark.</div>
   <div class="card"><b>Scored tasks (one repo)</b><br>nvidia Open-SWE-Traces, Claude Code split (CC-BY-4.0; moto 227, click 193) or nebius SWE-rebench-openhands (CC-BY-4.0; sqlglot 275, Docker images).</div>
-  <div class="card"><b>Avoid</b><br>SWE-bench/experiments (no licence). SWE-smith trajectories (mostly Claude output, keep off Spark).</div>
+  <div class="card"><b>Avoid</b><br>SWE-bench/experiments (no license). SWE-smith trajectories (mostly Claude output, keep off Spark).</div>
 </div>
 
 <h2>6. Risks and what we do about them</h2>
@@ -110,7 +110,7 @@ gantt
 <tr><td>Fly ≤ counters</td><td>Show both rows honestly. The pitch is the personal pipeline, not "the fly beats counting".</td></tr>
 <tr><td>One GPU</td><td>Glimmer runs by day, training and art overnight, one job at a time via gpu_run.</td></tr>
 <tr><td>Scope</td><td>Cuts decided when they come up (your call).</td></tr>
-<tr><td>Licences / privacy</td><td>Download-on-setup, no data/ in repo, no private data to Spark Contributor, Freedoom not "Doom" branding.</td></tr>
+<tr><td>Licenses / privacy</td><td>Download-on-setup, no data/ in repo, no private data to Spark Contributor, Freedoom not "Doom" branding.</td></tr>
 </table>
 
 <h2>7. Open questions</h2>

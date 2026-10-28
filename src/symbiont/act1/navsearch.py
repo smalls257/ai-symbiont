@@ -1,6 +1,6 @@
 """Shortest walking route over a WalkGrid, with the door rules (pure, deterministic).
 
-Rules beyond walls and climbs: a locked door is crossable only with its key colour held, and a shut
+Rules beyond walls and climbs: a locked door is crossable only with its key color held, and a shut
 door is entered only from where its use-special can be pressed (USE works from a line's front side
 only). The two rules can be switched off one at a time, so a failed search can be re-run to learn
 which of them (or neither: plain walls) was the cause.
@@ -72,13 +72,13 @@ class DoorAwareSearch:
                 continue
             if cell in targets:
                 return SearchResult(cell, length, parent, walked)
-            for neighbour, cost in self._moves(cell):
-                if self._blocked_by_doors(cell, neighbour, rules):
+            for neighbor, cost in self._moves(cell):
+                if self._blocked_by_doors(cell, neighbor, rules):
                     continue
-                if length + cost < walked.get(neighbour, math.inf):
-                    walked[neighbour] = length + cost
-                    parent[neighbour] = cell
-                    heapq.heappush(heap, (length + cost, neighbour))
+                if length + cost < walked.get(neighbor, math.inf):
+                    walked[neighbor] = length + cost
+                    parent[neighbor] = cell
+                    heapq.heappush(heap, (length + cost, neighbor))
         return SearchResult(None, math.inf, parent, walked)
 
     def _blocked_by_doors(self, origin: int, cell: int, rules: DoorRules) -> bool:
@@ -87,7 +87,7 @@ class DoorAwareSearch:
         return rules.enforce_faces and not self._enterable(origin, cell, rules.closed)
 
     def _moves(self, cell: int) -> Iterator[tuple[int, float]]:
-        """Neighbouring cells a player can step onto from here, with the step's length."""
+        """Neighboring cells a player can step onto from here, with the step's length."""
         grid = self._grid
         row, col = divmod(cell, grid.cols)
         for dc, dr in _NEIGHBOURS:
@@ -95,10 +95,10 @@ class DoorAwareSearch:
                 continue
             if dc and dr and not (grid.free(col + dc, row) and grid.free(col, row + dr)):
                 continue  # no cutting corners
-            neighbour = (row + dr) * grid.cols + col + dc
+            neighbor = (row + dr) * grid.cols + col + dc
             # a drop is fine, a tall step is not
-            if grid.floor[neighbour] - grid.floor[cell] <= STEP_UP:
-                yield neighbour, _DIAGONAL if dc and dr else CELL
+            if grid.floor[neighbor] - grid.floor[cell] <= STEP_UP:
+                yield neighbor, _DIAGONAL if dc and dr else CELL
 
     def _enterable(self, origin: int, cell: int, closed: frozenset[int] | None) -> bool:
         """Entering a shut door's cell from outside needs a use-face in reach and in front."""
@@ -118,5 +118,5 @@ class DoorAwareSearch:
     def _locked_for(self, cell: int, held: frozenset[str] | None) -> bool:
         if held is None:
             return False
-        colour = self._grid.door_colour.get(self._grid.door_at.get(cell, -1))
-        return colour is not None and colour not in held
+        color = self._grid.door_colour.get(self._grid.door_at.get(cell, -1))
+        return color is not None and color not in held

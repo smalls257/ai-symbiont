@@ -27,12 +27,13 @@ uv run python scripts/gates/measure_baseline.py --write   # how far the unchange
 3. **Spark privacy.** Records with `spark_safe=False` (SWE-chat, the owner's private sessions) never reach a Spark-bound prompt. Spark-bound code receives `Store.spark_view()`, which raises `SparkPrivacyViolationError` and never filters quietly. **One door out:** every outbound HTTP call in `src/` goes through `symbiont.egress.post_json`, which refuses Spark, Contributor and Wonder payloads with undeclared or `spark_safe=False` provenance, a non-https URL or a host other than `api.meta.ai` (`REMOTE_HOSTS`), and logs sizes and provenance, never text. Under `src/` only `symbiont.egress` may import anything outside an explicit allowed set (stdlib minus its network modules, `symbiont`, `numpy`, `vizdoom`; semgrep `sym-single-egress`, `sym-dynamic-import`, `sym-network-subprocess`, plus the import-linter contract `network-only-through-egress`), and no log or print carries prompt text (`sym-no-prompt-logging`, a name heuristic: log `len(prompt)`, not `prompt.text`). Act 1's Glimmer client uses `Endpoint.LOCAL_GLIMMER` (loopback or LAN hosts only).
 4. **Hold-out.** No trajectory of a scored task enters a store that a scored arm reads. `add_records` takes the held-out ids and raises `HoldOutViolationError`.
 5. **Data is never committed.** Raw dataset rows, transcripts and `data/` stay local (gitignored). Publish counts and labels only. Test fixtures are synthetic and hand-written.
-6. **Science tags.** Every claim is tagged `[measured]`, `[established]` or `[hypothesis]`. Every result row is labelled floor, ceiling, reference or under test. The counters row is always printed beside the fly row. No speed-of-learning claims; say "a learner built on the fly's real circuit".
+6. **Science tags.** Every claim is tagged `[measured]`, `[established]` or `[hypothesis]`. Every result row is labeled floor, ceiling, reference or under test. The counters row is always printed beside the fly row. No speed-of-learning claims; say "a learner built on the fly's real circuit".
 7. **Prereg before scored runs.** A scored run needs a frozen, committed file in `prereg/`. Amendments are new dated files, never edits. The runner refuses `--scored` without one.
 8. **Naming.** Say "plays Freedoom via ViZDoom"; never brand the project as Doom. ViZDoom is a dependency, never vendored. FlyWire wiring is an optional user download, never committed.
 9. **Git.** No stash, amend, reset, rebase or force-push; use a temporary WIP commit instead. Commit with explicit paths, never `git add -A` or `git add .`. Never push from an agent worktree. Create the GitHub repo and make the first push only on the owner's go.
 10. **Publish.** Run `ops/secrets_scan.sh` before every push and `scripts/publish/check_export.sh` before the first public one. Never push `data/`, transcripts, private content or secrets. Private addresses, hostnames, user names, MAC addresses, e-mail addresses and phone numbers do not belong in tracked files (gitleaks rules and the owner-terms check enforce it). `results/` holds `.json` files of counts, ids and labels only (value shapes are allowlisted; sentences only under the label fields). Weights, `*.wad` and files over 1 MB are never committed.
 11. **Diagrams** are mermaid only, never ASCII art.
+12. **American spelling** everywhere: names, comments, docs (`license`, `color`, `behavior`, `labeled`, `normalize`). Gate QG-RD-05 (codespell `en-GB_to_en-US`) fails a changed file that strays.
 
 ## The negentropic principles
 
@@ -58,7 +59,7 @@ Software decays. Six Principles push back against ten named decays (Violations).
 | **Forensic Coding** | `git blame` is the only documentation; `MAGIC = 47` | Constants carry the reason (prereg section, source). Public functions state why and what they raise. |
 | **God Class / God Method** | A function with 2+ booleans and a multi-branch switch; a `Manager` with 30 methods | One file per harness reader, one file per signal. Two booleans on one function is forbidden. |
 | **Fossil Comments** | A comment contradicts the code below it; a dated TODO nobody owns | Delete on sight. Commented-out code does not stay. |
-| **Silent Fallback** | `try/except: pass`; retry that returns `None`; a default that masks missing data | The WAD parser raises `WadError`; a reader raises `ReadError` naming file and line; an unrecognised task id raises rather than matching nothing; a down service prints "symbiont offline", never an empty note. |
+| **Silent Fallback** | `try/except: pass`; retry that returns `None`; a default that masks missing data | The WAD parser raises `WadError`; a reader raises `ReadError` naming file and line; an unrecognized task id raises rather than matching nothing; a down service prints "symbiont offline", never an empty note. |
 
 ### The reasoning loop
 
@@ -80,7 +81,7 @@ Redact every Principle and Violation name from your draft. If the advice is iden
 - A function fits in the reader's head; otherwise extract a named helper.
 - Nesting stays shallow: invert conditions, return early, extract.
 - Comments explain why, never what.
-- No new public surface without a test; the test is the first caller and the first defence against Paper Tiger.
+- No new public surface without a test; the test is the first caller and the first defense against Paper Tiger.
 - Names are capabilities in the domain's language: not `handle`, `process`, `manage`, `do`, `Manager`, `Helper`.
 - Booleans at arity 2 or more are forbidden: use named variants or a `StrEnum`. An options dict respells the leak.
 - No silent catches. If you must swallow, log loudly with context and say why.
@@ -110,7 +111,7 @@ There is no carve-out for tooling: the gate scripts obey the caps they enforce. 
 2. **Flag existing violations before extending them.** Do not inherit rot silently.
 3. **Refactor before extend.** Fix a wrong shape first; never stack features on a broken abstraction.
 4. **Engage, do not defer.** Refusing to reason without code is itself a Paper Tiger answer.
-5. **The principles apply to how you work.** A slow or repeated command in your own loop is Computational Friction: scope it down, cache it or parallelise it before running it again.
+5. **The principles apply to how you work.** A slow or repeated command in your own loop is Computational Friction: scope it down, cache it or parallelize it before running it again.
 
 ### Self-audit before closing a technical turn
 
@@ -130,6 +131,7 @@ There is no carve-out for tooling: the gate scripts obey the caps they enforce. 
 | Egress | semgrep `sym-single-egress`, `sym-no-prompt-logging`; `src/symbiont/egress/` | Distributed Monolith, Silent Fallback, Black Box |
 | Publish check | `scripts/publish/check_export.sh` (exported tree, no history, no baseline) | Silent Fallback at the publish boundary |
 | Lint and format | ruff (`pyproject.toml`) | Forensic Coding, Fossil Comments |
+| American spelling | codespell `--builtin en-GB_to_en-US` (QG-RD-05) | Leaky Narrative, Forensic Coding |
 | Complexity, nesting, file length | lizard plus AST checks; delete-only `.lizard-whitelist.txt` | God Method, God Class |
 | Custom rules | semgrep pinned in `.semgrep/VERSION`, rules in `.semgrep/symbiont/` | one rule per Violation |
 | Architecture | import-linter (`.importlinter`) plus `tests/test_boundaries.py` | Infected Core, Distributed Monolith |

@@ -49,7 +49,7 @@ def split(
 
 
 def changed_values(old: dict[str, Any], new: dict[str, Any]) -> list[str]:
-    """Keys whose serialised value differs; per_step is out of the comparison by design."""
+    """Keys whose serialized value differs; per_step is out of the comparison by design."""
     kept = [k for k in old if k != "per_step"]
     problems = [k for k in kept if json.dumps(old[k], indent=1) != json.dumps(new.get(k), indent=1)]
     unexpected = sorted(set(new) - set(kept) - ADDED_KEYS)

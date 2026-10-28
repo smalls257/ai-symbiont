@@ -1,4 +1,4 @@
-"""Rasterise a map's walls, sectors, doors and heights onto a grid (pure).
+"""Rasterize a map's walls, sectors, doors and heights onto a grid (pure).
 
 Reads: the parsed geometry and the door sectors. Produces: plain arrays that `navgrid.WalkGrid`
 wraps. Nothing here searches or routes (Shield: building the grid and walking it change for
@@ -40,8 +40,8 @@ class Frame:
         """Grid column and row containing a map point."""
         return int((x - self.x0) // CELL), int((y - self.y0) // CELL)
 
-    def centre(self, col: int, row: int) -> tuple[float, float]:
-        """Map coordinates of a cell centre."""
+    def center(self, col: int, row: int) -> tuple[float, float]:
+        """Map coordinates of a cell center."""
         return self.x0 + (col + 0.5) * CELL, self.y0 + (row + 0.5) * CELL
 
     def in_bounds(self, col: int, row: int) -> bool:
@@ -71,17 +71,17 @@ def build_frame(geometry: MapGeometry) -> Frame:
 def door_tables(
     geometry: MapGeometry, index: MapIndex
 ) -> tuple[dict[int, str | None], dict[int, tuple[Segment, ...]]]:
-    """Door sector -> key colour, and door sector -> the lines that carry its use-special."""
-    colours: dict[int, str | None] = {}
+    """Door sector -> key color, and door sector -> the lines that carry its use-special."""
+    colors: dict[int, str | None] = {}
     faces: dict[int, tuple[Segment, ...]] = {}
     for door in index.doors:
         if door.sector is None:
             continue
         line = geometry.linedefs[door.line]
         (x1, y1), (x2, y2) = geometry.vertices[line.v1], geometry.vertices[line.v2]
-        colours[door.sector] = door.key_colour
+        colors[door.sector] = door.key_colour
         faces[door.sector] = (*faces.get(door.sector, ()), (x1, y1, x2, y2))
-    return colours, faces
+    return colors, faces
 
 
 # --- walls ------------------------------------------------------------------------------------
@@ -108,7 +108,7 @@ def _block_around(
     high = (max(start[0], end[0]) + reach, max(start[1], end[1]) + reach)
     for cell in frame.cells_in(low, high):
         row, col = divmod(cell, frame.cols)
-        x, y = frame.centre(col, row)
+        x, y = frame.center(col, row)
         if distance_to_segment(x, y, start, end) <= reach:
             blocked[cell] = 1
 
@@ -144,7 +144,7 @@ def _fill_row(
     owner: np.ndarray, frame: Frame, sector: int, segments: list[_Edge], row: int
 ) -> None:
     """Widen spans by half a cell so a sector thinner than a cell still owns its cells."""
-    y = frame.centre(0, row)[1]
+    y = frame.center(0, row)[1]
     crossings = sorted(
         a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1])
         for a, b in segments

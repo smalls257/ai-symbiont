@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `tests/`.
 
-**Purpose.** Prove behaviour and hold the boundaries. The tree mirrors `src/`; `tests/gates/` tests the quality gates themselves.
+**Purpose.** Prove behavior and hold the boundaries. The tree mirrors `src/`; `tests/gates/` tests the quality gates themselves.
 
 **Violation prevented: Paper Tiger and Infected Core.** A suite that collected nothing is green, so the count floor and zero skips are gated. A unit test that needs a network is a core with an infected dependency, so `conftest.py` makes any socket call from an unmarked test raise `AirplaneViolationError`.
 
@@ -17,4 +17,4 @@ See root CLAUDE.md for the repo rules. This file covers `tests/`.
 `uv run pytest -q` (about 45 seconds for the whole suite; the pre-commit hook runs only the tests of the packages a commit touches). Boundary tests: `uv run pytest tests/test_boundaries.py -q`.
 
 ## Review focus
-Does the test fail for the right reason? Does a new test assert behaviour, not that a mock was called?
+Does the test fail for the right reason? Does a new test assert behavior, not that a mock was called?

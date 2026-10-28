@@ -37,7 +37,7 @@ holding_lock=false
 llama_was_running=""   # "true" / "false" once recorded
 job_pid=""
 job_status=0
-signalled=""
+signaled=""
 
 stamp() { date -u +%Y-%m-%dT%H:%M:%SZ; }
 log() { printf '%s %s\n' "$(stamp)" "$*" >>"$LOG"; }
@@ -97,7 +97,7 @@ stop_job() {
 
 finish() {
   local code=$job_status
-  if [ -n "$signalled" ]; then code=$((128 + signalled)); fi
+  if [ -n "$signaled" ]; then code=$((128 + signaled)); fi
   stop_job
   if [ -n "$llama_was_running" ]; then
     if ! restore_llama; then code=70; fi
@@ -109,7 +109,7 @@ finish() {
 
 # The first signal decides the exit code; later ones only re-send TERM.
 on_signal() {
-  [ -n "$signalled" ] || signalled=$1
+  [ -n "$signaled" ] || signaled=$1
   # Negative pid: the job's whole process group, so its children die with it.
   [ -n "$job_pid" ] && kill -TERM -- "-$job_pid" 2>/dev/null
 }
@@ -141,8 +141,8 @@ main() {
     job_status=69
     exit 69
   fi
-  if [ -n "$signalled" ]; then
-    log "signal $signalled before the job started; job not started"
+  if [ -n "$signaled" ]; then
+    log "signal $signaled before the job started; job not started"
     exit   # finish restores llama and releases the lock
   fi
 
@@ -150,7 +150,7 @@ main() {
   set -m   # job control: the job leads its own process group
   "$@" &
   job_pid=$!
-  [ -z "$signalled" ] || kill -TERM -- "-$job_pid" 2>/dev/null   # signal landed before job_pid was set
+  [ -z "$signaled" ] || kill -TERM -- "-$job_pid" 2>/dev/null   # signal landed before job_pid was set
   wait "$job_pid"
   job_status=$?
   exit "$job_status"   # finish: after a signal, stop_job reaps the job first

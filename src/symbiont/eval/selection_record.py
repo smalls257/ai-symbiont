@@ -46,7 +46,7 @@ class FinalScores:
 
 
 def result_rows(final: FinalScores) -> dict[str, dict[str, Any]]:
-    """The results-file rows, each labelled reference or under test."""
+    """The results-file rows, each labeled reference or under test."""
     return {
         "counters": sel.row_summary("reference", [final.counters]),
         "similarity": sel.row_summary("reference", [final.similarity]),

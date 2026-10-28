@@ -6,7 +6,7 @@
 #
 #   scripts/gates/run.sh fast   (pre-commit: scoped unit tests only; pre-push/manual: whole suite)
 #                               changed files vs $SYMBIONT_GATE_BASE (default main): secrets,
-#                               private terms, result-file content, paths, gate integrity, ruff, size, naming, semgrep, the whole
+#                               private terms, result-file content, paths, gate integrity, ruff, size, naming, spelling, semgrep, the whole
 #                               test suite with its count floor, claim tags, result rows
 #   scripts/gates/run.sh full   fast, plus history scan against the baseline, import-linter,
 #                               mypy on changed files, coverage report, lockfile
@@ -28,7 +28,7 @@ require_everything() {
   need_tool uv "https://docs.astral.sh/uv/"
   need_tool gitleaks "brew install gitleaks"
   need_venv
-  for tool in ruff lizard semgrep mypy importlinter pytest_cov; do need_py_tool "$tool"; done
+  for tool in ruff lizard codespell_lib semgrep mypy importlinter pytest_cov; do need_py_tool "$tool"; done
   for cfg in pyproject.toml .naming-waivers.txt .gitleaks.toml .gitleaks-baseline.json .semgrep/VERSION \
              .importlinter .lizard-whitelist.txt scripts/gates/test-floor.txt; do
     need_file "$ROOT/$cfg"
@@ -59,6 +59,9 @@ select_files() {
   # one size and naming bar for src, scripts and ops: no tooling carve-out
   named=$(printf '%s\n' "$py" | grep -E '^(src|scripts|ops)/' || [ $? -eq 1 ]) || gate_die "file selection failed"
   checked=$(printf '%s\n' "$py" | grep -E '^(src|scripts|ops|tests)/' || [ $? -eq 1 ]) || gate_die "file selection failed"
+  # every changed text file: prose, comments and identifiers alike (binaries and lockfiles have no spelling)
+  spelled=$(printf '%s\n' "$all" | grep -vE '\.(lock|png|gif|jpg|svg|wad|ico|woff2?)$' || [ $? -eq 1 ]) \
+    || gate_die "file selection failed"
   docs=$(printf '%s\n' "$all" | grep -E '^(docs/|results/|README\.md$|prereg/)' || [ $? -eq 1 ]) \
     || gate_die "file selection failed"
 }
@@ -112,6 +115,9 @@ fast_gates() {
   fi
   # shellcheck disable=SC2086
   [ -z "$named" ] || gate QG-RD-02 uv run --no-sync python scripts/gates/check_naming.py $named
+  # American spelling (owner rule): one dialect in names, comments and docs
+  # shellcheck disable=SC2086
+  [ -z "$spelled" ] || gate QG-RD-05 uv run --no-sync codespell --builtin en-GB_to_en-US $spelled
   gate QG-SAST-02 scripts/gates/semgrep_pinned.sh
   if [ "$stage" = "pre-commit" ]; then
     gate QG-TST-02 scoped_unit_tests

@@ -56,7 +56,7 @@ DEPTH_AT_UNITS = (
     (400.0, 45.0),
     (880.0, 62.0),
 )
-# A door centre sits behind its door face; only a clearly nearer surface in its column hides it.
+# A door center sits behind its door face; only a clearly nearer surface in its column hides it.
 OCCLUSION_RATIO = 0.6
 DOOR_COLUMN_HALF_WIDTH = 8
 AHEAD_BEARING_DEG = 5.0
@@ -173,9 +173,9 @@ def expected_depth(distance: float) -> float:
 def _depth_at_bearing(depth: np.ndarray, bearing_deg: float) -> float:
     rows, cols = depth.shape
     tan_ratio = math.tan(math.radians(bearing_deg)) / math.tan(math.radians(SCREEN_FOV_HALF_DEG))
-    centre = int(round(cols / 2 * (1 - tan_ratio)))  # positive bearing is left of centre
-    lo = max(0, centre - DOOR_COLUMN_HALF_WIDTH)
-    hi = min(cols, centre + DOOR_COLUMN_HALF_WIDTH + 1)
+    center = int(round(cols / 2 * (1 - tan_ratio)))  # positive bearing is left of center
+    lo = max(0, center - DOOR_COLUMN_HALF_WIDTH)
+    hi = min(cols, center + DOOR_COLUMN_HALF_WIDTH + 1)
     return float(np.median(depth[rows // 3 : 2 * rows // 3, lo:hi]))
 
 

@@ -5,7 +5,7 @@ unit tests but warns no better than "has this gone wrong twice before?" would
 ship as a feature nobody benefits from. So the replay scores every learner on
 the same steps, the table cannot be rendered without the counters and
 similarity rows beside the fly row, and the live-learner choice is a rule
-(`fly_default`) fixed in the pre-registration, not a judgement made after
+(`fly_default`) fixed in the pre-registration, not a judgment made after
 seeing the numbers.
 
 Second guard, **Infected Core**: nothing here reads a file, a clock or a

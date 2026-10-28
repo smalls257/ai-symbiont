@@ -89,7 +89,7 @@ def test_provenance_spark_safe_true(records):
     assert len(provenances) == 1
     (provenance,) = provenances
     assert provenance.dataset == "nebius/SWE-rebench-openhands-trajectories"
-    assert provenance.licence == "CC-BY-4.0"
+    assert provenance.license == "CC-BY-4.0"
     assert provenance.spark_safe is True
 
 

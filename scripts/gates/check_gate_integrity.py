@@ -12,7 +12,7 @@ THAT commit's own message must carry `GATE-CHANGE: <reason>`; a trailer on an ea
 unlocks nothing. The pending work is judged against the message passed with --message-file
 (the commit-msg hook). A commit listed in scripts/gates/accepted-gate-changes.txt (owner
 ledger, itself a protected file) is accepted without a trailer. The Claude hook that denies edits
-to these files is only a first line of defence: a shell edit bypasses it, this check does not.
+to these files is only a first line of defense: a shell edit bypasses it, this check does not.
 
 Usage: check_gate_integrity.py [--message-file FILE | --list]
   (exit 1 on a loosening, 2 if it cannot run; --list prints every GATE-CHANGE commit in range)

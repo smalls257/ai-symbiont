@@ -10,6 +10,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "codespell==2.4.1",
     "coverage[toml]==7.17.0",
     "duckdb==1.5.5",
     "import-linter==2.15",

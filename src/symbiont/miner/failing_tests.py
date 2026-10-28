@@ -35,7 +35,7 @@ def _reports_failure(record: Record) -> bool:
 def _module_path(dotted: str) -> str:
     """Map `tests.dialects.test_duckdb.TestDuckDB.test_cast` to `tests/dialects/test_duckdb.py`.
 
-    The module ends where the class name (capitalised) begins.
+    The module ends where the class name (capitalized) begins.
     """
     module = []
     for part in dotted.split("."):

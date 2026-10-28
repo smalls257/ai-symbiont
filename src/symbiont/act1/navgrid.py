@@ -57,7 +57,7 @@ class WalkGrid:
     def centre_of(self, cell: int) -> tuple[float, float]:
         """Map coordinates of a cell index."""
         row, col = divmod(cell, self.frame.cols)
-        return self.frame.centre(col, row)
+        return self.frame.center(col, row)
 
     def start_cell(self, xy: tuple[float, float]) -> int | None:
         """The free cell nearest a position, searched a few cells out for wall-hugging starts."""
@@ -69,7 +69,7 @@ class WalkGrid:
         if not free_cells:
             return None
         _, cell = min(
-            (math.dist(xy, self.frame.centre(c, r)), r * self.frame.cols + c) for c, r in free_cells
+            (math.dist(xy, self.frame.center(c, r)), r * self.frame.cols + c) for c, r in free_cells
         )
         return cell
 

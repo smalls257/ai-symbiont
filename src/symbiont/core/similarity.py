@@ -1,7 +1,7 @@
 """Similarity: recall of past steps that look like this one. A reference row.
 
 Violation prevented: **Paper Tiger**. Remembering the nearest past work, with
-no judgement at all, is the cheapest thing that could help; the fly network
+no judgment at all, is the cheapest thing that could help; the fly network
 must do better. It flags nothing. Recall returns the stored `Record` objects
 themselves, never text copies, so a note can quote what really happened
 (**Anchor**). Scoring is a pure function of the texts (**Infected Core**).

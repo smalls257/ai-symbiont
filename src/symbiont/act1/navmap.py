@@ -1,10 +1,10 @@
 """Routes over one map's walls and doors: the front door of the nav modules (pure).
 
 Why a grid and not a sector graph: Doom sectors can be concave (pillars, L-shaped halls), so a
-straight line between portal midpoints can cut through a wall. A grid rasterised from the walls
+straight line between portal midpoints can cut through a wall. A grid rasterized from the walls
 cannot.
 
-The work is split along its seams: navbuild rasterises the map, navgrid wraps it, navsearch finds
+The work is split along its seams: navbuild rasterizes the map, navgrid wraps it, navsearch finds
 the shortest walk under the door rules, navroute shapes it into waypoints, navdiagnose explains a
 failure. This module lists what a route can end at (doors, exits, keys) and hands out `Route |
 NoPath`. A NoPath always names what blocks; a route is never guessed.
@@ -66,8 +66,8 @@ class NavMap:
 
     def _key_features(self) -> Iterator[Feature]:
         for k in self._index.keys:
-            label = f"{k.colour.title()}{'Card' if k.kind == 'card' else 'Skull'}"
-            yield Feature("key", label, k.x, k.y, KEY_REACH, key_colour=k.colour)
+            label = f"{k.color.title()}{'Card' if k.kind == 'card' else 'Skull'}"
+            yield Feature("key", label, k.x, k.y, KEY_REACH, key_colour=k.color)
 
     def _door_features(self) -> Iterator[Feature]:
         """One per door sector; a door whose sector the index could not determine is skipped."""
