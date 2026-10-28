@@ -17,6 +17,8 @@ def check_manifest_against_hold_out(manifest_path: Path, held_out_tasks: frozens
     KeyError, ValueError): unreadable evidence is not evidence of a clean run.
     """
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not manifest["export_id"]:
+        raise ValueError(f"manifest {manifest_path} names no export")
     held = {normalise_task_id(t) for t in held_out_tasks}
     for lesson in manifest["lessons"]:
         for task_id in lesson["task_ids"]:

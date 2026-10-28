@@ -43,6 +43,9 @@ class Lesson:
     # Benchmark task ids of those records (none for the developer's own sessions); kept so
     # the record of what trained a model can still be checked against the hold-out.
     task_ids: tuple[str, ...] = ()
+    # Changes made between a failure and its pass that the failure never pointed at,
+    # in plain words: said to have happened, never claimed as the fix.
+    changed_alongside: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -71,30 +74,6 @@ def resolution_coverage(lessons: Iterable[Lesson]) -> dict[Signal, Coverage]:
     return {signal: Coverage(resolved[signal], totals[signal]) for signal in Signal}
 
 
-def training_manifest(project: str, lessons: Sequence[Lesson]) -> dict[str, object]:
-    """What trained a model, as ids and counts only (no text), kept after the lessons are deleted.
-
-    It is the hold-out evidence: a scored run checks that no task id here is held out.
-    """
-    entries = [
-        {
-            "session_id": lesson.pain_point.session_id,
-            "step": lesson.pain_point.step,
-            "signal": lesson.pain_point.signature.signal.value,
-            "sources": [list(ref) for ref in lesson.sources],
-            "task_ids": list(lesson.task_ids),
-        }
-        for lesson in lessons
-    ]
-    sessions = sorted({sid for lesson in lessons for sid, _ in lesson.sources})
-    return {
-        "project": project,
-        "lessons": entries,
-        "source_sessions": sessions,
-        "counts": {"lessons": len(entries), "source_sessions": len(sessions)},
-    }
-
-
 def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
     missing = [ref for ref in pain.record_refs if ref not in by_ref]
     if missing:
@@ -106,7 +85,8 @@ def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
 def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> Lesson:
     found = resolution_of(pain, cited, records)
     steps = found.steps if isinstance(found, Resolution) else ()
-    used = [*cited, *steps]
+    alongside = found.alongside if isinstance(found, Resolution) else ()
+    used = [*cited, *alongside, *steps]
     return Lesson(
         pain_point=pain,
         quote=excerpt(cited[0], QUOTE_CHARS),
@@ -115,6 +95,7 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
         spark_safe=all(r.provenance.spark_safe for r in used),
         sources=tuple(dict.fromkeys((r.session_id, r.step) for r in used)),
         task_ids=tuple(dict.fromkeys(r.task_id for r in used if r.task_id is not None)),
+        changed_alongside=tuple(_step_words(step) for step in alongside),
     )
 
 

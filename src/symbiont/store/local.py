@@ -21,14 +21,16 @@ Guards:
 
 import json
 import logging
+import shlex
 import sqlite3
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
-from symbiont.miner.lessons import Lesson, training_manifest
+from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.trained import lesson_id, refuse_held_out_lessons, training_manifest
 
 log = logging.getLogger("symbiont.store")
 
@@ -42,7 +44,13 @@ CREATE TABLE IF NOT EXISTS lessons (
     spark_safe INTEGER NOT NULL, body TEXT NOT NULL
 );
 CREATE INDEX IF NOT EXISTS lessons_by_project ON lessons (project, spark_safe);
+-- Ids (no text) of lessons a model was trained on, with the export that carried them.
+CREATE TABLE IF NOT EXISTS trained (
+    project TEXT NOT NULL, lesson_id TEXT NOT NULL, export_id TEXT NOT NULL,
+    PRIMARY KEY (project, lesson_id)
+);
 """
+_DELETE_ONE = "DELETE FROM lessons WHERE project=? AND body=?"
 # Tables an older version filled with copied history; read by nothing now.
 _LEGACY_TABLES = ("records", "pain_points")
 
@@ -90,9 +98,18 @@ class Store:
         return [Source(project, reader, path) for reader, path in rows]
 
     def save_mining(
-        self, project: str, new_sources: Iterable[Source], lessons: Sequence[Lesson]
+        self,
+        project: str,
+        new_sources: Iterable[Source],
+        lessons: Sequence[Lesson],
+        *,
+        held_out_tasks: frozenset[str],
     ) -> None:
-        """Register `new_sources` and replace `project`'s lessons, in one transaction."""
+        """Register `new_sources` and replace `project`'s lessons, in one transaction.
+
+        Raises HoldOutViolationError, writing nothing, when a lesson quotes a held-out task.
+        """
+        refuse_held_out_lessons(lessons, held_out_tasks)
         with self._db:
             self._db.executemany(
                 "INSERT OR IGNORE INTO sources VALUES (?, ?, ?)",
@@ -115,26 +132,40 @@ class Store:
         """The pain points behind `project`'s lessons, in the order they were mined."""
         return [lesson.pain_point for lesson in self.lessons(project)]
 
-    def forget_trained(self, project: str, manifest_path: Path) -> int:
-        """Delete `project`'s lessons once training has consumed them; returns how many.
+    def forget_trained(
+        self, project: str, manifest_path: Path, *, exported: Sequence[Lesson]
+    ) -> int:
+        """Delete the `exported` lessons of `project` once a model was trained on them.
 
-        First writes the training manifest (ids and counts, no text) to `manifest_path`,
-        so a scored run can still prove no held-out trajectory trained the model. An
-        existing manifest is never overwritten, and if writing fails nothing is deleted.
+        First writes the training manifest (export id, lesson ids, source sessions,
+        task ids, counts; no text) to `manifest_path`, so a scored run can still prove
+        no held-out trajectory trained the model, and remembers the lesson ids so the
+        memory-model export never offers them again. An existing manifest is never
+        overwritten, and if writing fails nothing is deleted. Returns how many were deleted.
         """
-        manifest = training_manifest(project, self.lessons(project))
+        manifest = training_manifest(project, exported)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
         with manifest_path.open("x", encoding="utf-8") as out:
             json.dump(manifest, out, indent=1)
         with self._db:
-            deleted = self._db.execute("DELETE FROM lessons WHERE project=?", (project,))
-        log.info(
-            "deleted %d trained lessons of %s; manifest %s",
-            deleted.rowcount,
-            project,
-            manifest_path,
-        )
-        return deleted.rowcount
+            deleted = sum(
+                self._db.execute(
+                    "DELETE FROM lessons WHERE project=? AND body=?",
+                    (project, _lesson_json(lesson)),
+                ).rowcount
+                for lesson in exported
+            )
+            self._db.executemany(
+                "INSERT OR REPLACE INTO trained VALUES (?, ?, ?)",
+                [(project, lesson_id(lesson), manifest["export_id"]) for lesson in exported],
+            )
+        log.info("deleted %d trained lessons of %s; manifest %s", deleted, project, manifest_path)
+        return deleted
+
+    def trained_lesson_ids(self, project: str) -> frozenset[str]:
+        """Ids of `project`'s lessons a model has already been trained on."""
+        rows = self._db.execute("SELECT lesson_id FROM trained WHERE project=?", (project,))
+        return frozenset(row[0] for row in rows)
 
     def has_private_lessons(self, project: str) -> bool:
         """True when any lesson of `project` came from a record that is not Spark-safe."""
@@ -171,9 +202,11 @@ def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
     if legacy:
         log.warning(
             "store %s still holds copied history from an older version (tables %s); "
-            "nothing reads it, and it can be deleted",
+            "nothing reads it. Drop it with: sqlite3 %s %s",
             path,
             ", ".join(legacy),
+            shlex.quote(str(path)),
+            shlex.quote(" ".join(f"DROP TABLE {name};" for name in legacy)),
         )
 
 
@@ -182,7 +215,11 @@ def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
 
 def _lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]:
     pain = lesson.pain_point
-    return (project, pain.session_id, pain.step, lesson.spark_safe, json.dumps(asdict(lesson)))
+    return (project, pain.session_id, pain.step, lesson.spark_safe, _lesson_json(lesson))
+
+
+def _lesson_json(lesson: Lesson) -> str:
+    return json.dumps(asdict(lesson))
 
 
 def _lesson_from_json(body: str) -> Lesson:
@@ -195,6 +232,8 @@ def _lesson_from_json(body: str) -> Lesson:
         spark_safe=data["spark_safe"],
         sources=tuple((ref[0], ref[1]) for ref in data["sources"]),
         task_ids=tuple(data["task_ids"]),
+        # Rows written before this field existed recorded no such changes.
+        changed_alongside=tuple(data.get("changed_alongside", ())),
     )
 
 

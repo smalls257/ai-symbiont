@@ -14,6 +14,7 @@ import pytest
 from record_builders import PUBLIC, edit, replace_text, run, session, user
 from symbiont.eval.training_manifest import check_manifest_against_hold_out
 from symbiont.miner.painpoint import Signal
+from symbiont.miner.trained import export_id_of
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.store.local import Source, SparkPrivacyViolationError, Store
@@ -67,7 +68,7 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
     assert Store.open(tmp_path / "store.sqlite").lessons(PROJECT) == [lesson]
     db = sqlite3.connect(tmp_path / "store.sqlite")
     tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert tables == {"sources", "lessons"}
+    assert tables == {"sources", "lessons", "trained"}
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
     assert "fix it" not in body, "only the cited record's bounded quote is kept"
 
@@ -127,12 +128,14 @@ def test_forget_trained_leaves_a_manifest_of_ids_and_counts_only(tmp_path, store
     source = log_of(tmp_path, "a", failing_session())
     remine(store, PROJECT, rules(), adding=[source])
     manifest = tmp_path / "manifests" / "run-1.json"
-    assert store.forget_trained(PROJECT, manifest) == 1
+    exported = lessons_for_memory_model(store, PROJECT)
+    assert store.forget_trained(PROJECT, manifest, exported=exported) == 1
     assert store.lessons(PROJECT) == []
     text = manifest.read_text()
     assert "AssertionError" not in text and "pytest" not in text
     written = json.loads(text)
     assert written["counts"] == {"lessons": 1, "source_sessions": 1}
+    assert written["export_id"] == export_id_of(exported)
     assert written["lessons"][0]["task_ids"] == ["tobymao__sqlglot-1000"]
     assert check_manifest_against_hold_out(manifest, frozenset({"tobymao/sqlglot#9"})) == 1
     with pytest.raises(HoldOutViolationError):
@@ -144,7 +147,7 @@ def test_forget_trained_never_overwrites_a_manifest_and_then_deletes_nothing(tmp
     manifest = tmp_path / "run-1.json"
     manifest.write_text("{}")
     with pytest.raises(FileExistsError):
-        store.forget_trained(PROJECT, manifest)
+        store.forget_trained(PROJECT, manifest, exported=store.lessons(PROJECT))
     assert len(store.lessons(PROJECT)) == 1
 
 
@@ -153,7 +156,7 @@ def test_opening_a_store_with_copied_history_warns(tmp_path, caplog):
     sqlite3.connect(path).execute("CREATE TABLE records (body TEXT)")
     with caplog.at_level(logging.WARNING, logger="symbiont.store"):
         Store.open(path)
-    assert "copied history" in caplog.text
+    assert "copied history" in caplog.text and "DROP TABLE records;" in caplog.text
 
 
 def _edit_session(session_id, old, new, ts):
@@ -181,3 +184,27 @@ def test_untimed_sessions_are_mined_alone(tmp_path, store):
     second = _edit_session("t2", "x = compute_offset(node)", "x = 2", None)
     remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "both", first + second)])
     assert _rework(store) == []
+
+
+def test_forget_trained_deletes_only_the_exported_lessons(tmp_path, store):
+    remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "a", failing_session())])
+    (exported,) = store.lessons(PROJECT)
+    remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "b", failing_session("s2"))])
+    assert store.forget_trained(PROJECT, tmp_path / "m.json", exported=[exported]) == 1
+    assert [p.session_id for p in store.pain_points(PROJECT)] == ["s2"]
+
+
+def test_the_memory_model_is_not_offered_lessons_it_was_trained_on(tmp_path, store):
+    remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "a", failing_session())])
+    store.forget_trained(PROJECT, tmp_path / "m.json", exported=store.lessons(PROJECT))
+    remine(store, PROJECT, rules())  # re-mining recreates the trained lesson
+    assert len(store.lessons(PROJECT)) == 1
+    assert lessons_for_memory_model(store, PROJECT) == []
+    assert len(lessons_for_personal_model(store, PROJECT)) == 1
+
+
+def test_the_write_path_itself_refuses_a_held_out_lesson(tmp_path, store):
+    (lesson,) = remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "a", failing_session())])
+    with pytest.raises(HoldOutViolationError):
+        store.save_mining(PROJECT, [], [lesson], held_out_tasks=frozenset({"tobymao/sqlglot#1000"}))
+    assert store.lessons(PROJECT) == [lesson]

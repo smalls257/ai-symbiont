@@ -59,9 +59,11 @@ def make_store(tmp_path, *sessions):
     return store
 
 
-def make_service(tmp_path, store, mode=ServiceMode.WARN_AND_RECALL, decider=None, held_out=()):
+def make_service(
+    tmp_path, store, mode=ServiceMode.WARN_AND_RECALL, decider=None, held_out=(), readers=READERS
+):
     events = EventLog(tmp_path / "run", "counters")
-    parts = ServiceParts(store, decider or Counters(), events, mode, frozenset(held_out), READERS)
+    parts = ServiceParts(store, decider or Counters(), events, mode, frozenset(held_out), readers)
     return Service(parts), events
 
 
@@ -282,3 +284,25 @@ def test_recall_answer_repeats_no_sentence(tmp_path):
     ]
     sentences = [s for s in answer.split(". ") if s]
     assert len(sentences) == len(set(sentences))
+
+
+def test_an_unrecognised_task_id_is_refused_with_its_reason(tmp_path):
+    odd = [replace(r, task_id="not a benchmark id") for r in failing_session("odd")]
+    log = write_log(tmp_path / "odd.jsonl", odd)
+    service, _ = make_service(tmp_path, make_store(tmp_path), held_out={"tobymao/sqlglot#1"})
+    response = service.respond("/learn", learn_body(log))
+    assert response.status == 422 and "not a benchmark id" in response.body["error"]
+
+
+def test_learn_reads_the_new_log_once(tmp_path):
+    reads = []
+
+    def counting(path, project):
+        reads.append(path.name)
+        return read_records_jsonl(path, project)
+
+    store = make_store(tmp_path, failing_session("a"))
+    service, _ = make_service(tmp_path, store, readers={READER: counting})
+    log = write_log(tmp_path / "new.jsonl", failing_session("new"))
+    assert service.respond("/learn", learn_body(log)).status == 200
+    assert reads.count("new.jsonl") == 1 and reads.count("log0.jsonl") == 1

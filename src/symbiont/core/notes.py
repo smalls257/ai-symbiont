@@ -71,9 +71,13 @@ def _backing_lesson(decision: Decision, lessons: Sequence[Lesson]) -> Lesson | N
 
 
 def _resolved(lesson: Lesson) -> str:
+    meanwhile = ""
+    if lesson.changed_alongside:
+        changed = ", ".join(lesson.changed_alongside)
+        meanwhile = f" Between the failure and the pass you also {changed}."
     if not lesson.resolution:
-        return "No fix was found in the history."
-    return f"Last time it was resolved when you {', then '.join(lesson.resolution)}."
+        return "No fix was found in the history." + meanwhile
+    return f"Last time it was resolved when you {', then '.join(lesson.resolution)}.{meanwhile}"
 
 
 def _times(count: int) -> str:
