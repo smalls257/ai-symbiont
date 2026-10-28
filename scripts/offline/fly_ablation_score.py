@@ -1,9 +1,8 @@
 """Score the T47 ablation's risks: option A rows, paired differences, ranking, refit times.
 
-Violation prevented: **Paper Tiger**. Every arm is scored by the same `note_cost_report.report`
-as T46, in the fly's slot, with the counters run as the reference beside it and the batch
-classifier (R1) in its own slot, so each arm's gap to both is paired on the same bootstrap
-draws. A row without the counters row beside it is never written.
+Every arm is scored by the same `note_cost_report.report` as T46, in the fly's slot, with the
+counters beside it and the batch classifier (R1) in its own slot, so each arm's gap to both is
+paired on the same bootstrap draws. A row without the counters row is never written.
 """
 
 from typing import Any

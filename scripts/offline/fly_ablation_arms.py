@@ -1,11 +1,9 @@
 """The T47 ablation's learners: one row per mechanism, each with its R1 and R2 regimes.
 
-Violation prevented: **Forensic Coding**. A row named "fly H2" means nothing a week later; each
-arm here carries its hypothesis, the biology (or the network fix) it maps to, and how it is
-refit between sessions, so the results file can be read without this code.
-
-Every arm is built from what the training repositories alone fix: the input gain and the
-trouble share. Nothing here reads a scoring repository.
+Each arm carries its hypothesis, the biology (or the network fix) it maps to, and how it is refit
+between sessions, so the results file reads without this code. Every arm is built from what the
+training repositories alone fix: the input gain and the trouble share. Nothing here reads a
+scoring repository.
 """
 
 import time

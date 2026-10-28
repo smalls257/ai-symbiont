@@ -1,15 +1,8 @@
 """Measurements behind the T47 hypotheses: what the fly's cells code and how long they remember.
 
-Violation prevented: **Black Box**. "The fly does not improve with more data" names no cause;
-these numbers do. Each function measures one hypothesis on real steps, so a variant is tried
-because a measurement showed a problem, not because it was the next idea:
-
-- H1 forgetting: `memory_updates` and `cell_memory`. Every update of a cell is an affine map
-  of its weight with slope 1 - rate (trouble) or 1 - rate * relax (calm), so an outcome's
-  influence after k more updates is the product of the slopes; the e-folding length below
-  is exact for that product's expected log.
-- H2 input scaling and H4 code quality: `fly_code_report`.
-- D1 saturation: `saturation_share`.
+Each function measures one hypothesis on real steps, so a variant is tried because a measurement
+showed a problem: H1 forgetting (`memory_updates`, `cell_memory`), H2 input scaling and H4 code
+quality (`fly_code_report`), D1 saturation (`saturation_share`).
 """
 
 from typing import Any
@@ -49,6 +42,7 @@ def cell_memory(
 
 
 def _drive(fly: FlyVariant, state: FlyVariantState, rows: np.ndarray) -> np.ndarray:
+    """Each cell's drive for the rows: the sum of its wired inputs, after gain if any."""
     inputs = rows if fly.gain is None else fly.gain.apply(rows)
     drive: np.ndarray = inputs[:, state.wiring.inputs].sum(axis=2)
     return drive

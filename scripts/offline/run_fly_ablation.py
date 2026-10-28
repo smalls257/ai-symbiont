@@ -1,22 +1,10 @@
 """Why do the fly and DenseNet trail a batch classifier? The T47 ablation (exploratory).
 
-Inside the 100-repository pool only (`results/repo-pool.json`): pool fold 0 is scored, the
-other 80 repositories train. Each arm (`fly_ablation_arms`) learns online over the first N
-training repositories in pool order, then every scoring repository is replayed from that
-shipped state under two regimes (`symbiont.eval.regime_replay`): R1 live-only and R2 refit
-between sessions. The batch classifier and the MLP ceiling probe are fit on the same N
-repositories (the MLP stops early on the last eight). Counters run through the real replay.
-Every row is scored under option A by cross-validation grouped by scoring repository
-(`symbiont.eval.note_cost_report`), the counters row beside it.
-
-The fast path replays features, not records; a check at start replays the existing fly and
-DenseNet through the real `offline.replay` on one training repository and refuses to go on
-unless the risks agree.
-
-    run_fly_ablation.py --pool results/repo-pool.json --data-dir data/nebius-openhands/pool \
-        --part main --out data/fly-ablation-main.json --workers 10
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
+Inside the 100-repository pool only: fold 0 is scored, the other 80 train. Each arm learns online
+over the first N training repositories, then every scoring repository is replayed under two regimes
+(`symbiont.eval.regime_replay`) and scored under option A with counters beside it. A start-up check
+refuses to go on unless the fast path matches `offline.replay`. Set OMP_NUM_THREADS=1.
+Usage: run_fly_ablation.py --pool ... --data-dir ... --part main --out ... --workers 10
 """
 
 import argparse

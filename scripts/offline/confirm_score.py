@@ -1,14 +1,9 @@
 """The scored T48 step: ship from the pool, re-derive the thresholds, count tox, dask and PyBaMM.
 
-Called by `run_confirm_scored.py score --scored --prereg prereg/2026-10-28-confirm.md`. Guards,
-in order, before any confirm metric: the prereg is frozen (`run_provenance` ->
-`require_frozen`); the settings file's sha256 is the pinned one; after the pool jobs, the
-thresholds re-derived from the pool equal the file's, every option, row and seed. Settings are
-re-derived with stacks built per learner, never through the id-keyed `train_stack` cache.
-
-Each job ships one (row, seed) from the 80 pool training repositories and scores one target:
-the pool scoring fold (to re-derive thresholds) or one confirm repository. A forked worker
-points `run_repo_curve.SCORING` at its target, so the T47 job code scores it unchanged.
+Called by `run_confirm_scored.py score --scored --prereg prereg/2026-10-28-confirm.md`. Before any
+confirm metric: the prereg is frozen, the settings file's sha256 is the pinned one, and the
+thresholds re-derived from the pool equal the file's. Each job ships one (row, seed) from the 80
+pool training repositories and scores one target, reusing the T47 job code unchanged.
 """
 
 import hashlib
@@ -220,12 +215,7 @@ def by_row(found: dict) -> dict[str, dict[int, dict[str, list[float]]]]:
 
 
 def t46_self_check(found: dict, settings: dict[str, Any]) -> dict[str, float]:
-    """Counts at the pinned thresholds against T46's scorer on one pool repository.
-
-    T46's `learner_counts` chooses on TRAIN (all 20 pool scoring repositories) and counts TEST
-    (the first of them); this run counts the same TEST at the file's thresholds. Raises unless
-    the per-task counts agree exactly.
-    """
+    """Counts at the pinned thresholds against the T46 scorer on one pool repository."""
     option = next(o for o in registered_options() if o.key == PRIMARY)
     repo, gaps = POOL_SCORING[0], {}
     for row in (cr.COUNTERS, cr.FLY_FIXED):

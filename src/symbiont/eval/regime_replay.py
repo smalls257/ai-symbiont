@@ -1,20 +1,9 @@
 """Two training regimes on one simulated timeline (T47, exploratory).
 
-Violations prevented: **Paper Tiger** and **Silent Fallback**. A regime that peeks at the
-session it scores would earn notes no product could; and a refit that quietly kept the old
-state when it failed would score R1 under R2's name. So the timeline is fixed here, once, for
-every learner: a project is processed session by session in replay order, the state that scores
-session s was built only from the shipped start and sessions before s, and a refit that raises
-stops the run.
-
-- R1 live-only (spec 4.5): ship a start, then only the learner's own per-step rule on the
-  project, applied after each session ends (as `offline.replay` does). A batch model that has
-  no per-step rule stays frozen.
-- R2 refit between sessions: after each session, `refit` builds a new state from the shipped
-  start and the project's sessions so far; the next session is scored with it.
-
-Rows are the learners' 86 features in step order. `encode` runs once per session: it depends
-only on a learner's fixed input side, never on what it learned.
+A project is processed session by session in replay order; the state that scores session s is
+built only from the shipped start and sessions before s, and a refit that raises stops the run. R1
+live-only: the learner's own per-step rule after each session (a batch model stays frozen). R2:
+after each session `refit` builds a new state from the start and the sessions so far.
 """
 
 from collections.abc import Callable, Sequence
@@ -102,6 +91,7 @@ def consolidation(scorer: OnlineScorer, shipped: Any, passes: int) -> Refit:
         raise ValueError(f"consolidation needs at least one pass, got {passes}")
 
     def refit(encoded: Sequence[np.ndarray], followed: Sequence[np.ndarray]) -> Any:
+        """The shipped state taught the sessions so far, `passes` times over."""
         state = shipped
         for _ in range(passes):
             for session, labels in zip(encoded, followed, strict=True):

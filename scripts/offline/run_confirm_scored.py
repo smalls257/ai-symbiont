@@ -1,17 +1,10 @@
 """T48 confirm run on tox, dask and PyBaMM: counts, then the settings shipped from the pool.
 
-prereg/2026-10-28-confirm-DRAFT.md describes the run. Nothing is fit on the confirm
-repositories: every learner is shipped from the 80 T47 pool training repositories, and every
-note threshold is chosen by the registered option A rule on the 20 pool scoring repositories
-(the T47 N = 80 setting), then fixed.
-
-    run_confirm_scored.py counts --confirm-dir data/nebius-openhands/confirm \
-        --out data/t48-counts.json
-    run_confirm_scored.py ship --pool results/repo-pool.json --data-dir data/nebius-openhands/pool \
-        --out results/confirm-shipped-settings.json --workers 10
-
-`counts` reads the confirm files through the OpenHands reader and prints counts only: refused
-rows, tasks, sessions, steps. `ship` reads the pool only. Set OMP_NUM_THREADS=1.
+prereg/2026-10-28-confirm-DRAFT.md describes the run. Nothing is fit on the confirm repositories:
+every learner ships from the 80 pool training repositories and every note threshold is chosen on
+the 20 pool scoring repositories, then fixed. `counts` prints counts only; `ship` reads the pool.
+Set OMP_NUM_THREADS=1.
+Usage: run_confirm_scored.py {counts|ship|score} --confirm-dir ... --pool ... --out ...
 """
 
 import argparse

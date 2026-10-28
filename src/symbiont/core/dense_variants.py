@@ -1,25 +1,10 @@
 """DenseNet variants for the T47 ablation: a fixed random tanh layer, one change at a time.
 
-Violation prevented: **Paper Tiger**. DenseNet is the "any small network" row beside the fly;
-if it trails a batch classifier on the same features for a reason unrelated to being a random
-network (saturated units, a step too small to move, no weight on the rare class), the row
-would judge the architecture for a bug in its training. Each option isolates one cause:
-
-- `gain`, `hidden_scale` (D1, saturation): inputs centered and scaled before the hidden layer
-  (`input_gain`), and the fixed weights multiplied by `hidden_scale` (one over the square root
-  of the input count keeps a unit-variance input from saturating every unit).
-- `rate`, `rate_halflife` (D2, step size): the readout step, optionally decaying as
-  rate / (1 + steps / halflife).
-- `trouble_weight` (D3, class weighting): a trouble step's error counts this many times.
-- `hidden`, `readout_input` (D4, capacity): more hidden units, and a readout over the hidden
-  activity plus the raw inputs, so it can at least match a linear model.
-
-The hidden layer is fixed from the seed (standard-normal weights, activity scaled by one over
-the square root of the width) and drawn exactly as DenseNet draws it, so the default variant
-shares DenseNet's hidden layer. The readout is a logistic unit learned online by the delta
-rule (the log-loss gradient), with no calibrator. A risk scorer for the offline ablation, not
-a live filler: no recall, no kind of trouble. Per session: `encode` once (the hidden layer is
-fixed), `risks` with the state frozen, then `learn` the steps in order.
+Each option isolates one cause of trailing a batch classifier: `gain` and `hidden_scale` (D1,
+saturation), `rate` and `rate_halflife` (D2, step size), `trouble_weight` (D3, class weighting),
+`hidden` and `readout_input` (D4, capacity). The hidden layer is drawn as DenseNet draws it; the
+readout is a logistic unit learned by the delta rule. A risk scorer, not a live filler: no recall.
+Per session: `encode` once, `risks` with the state frozen, then `learn` the steps in order.
 """
 
 from dataclasses import dataclass, replace
@@ -114,5 +99,6 @@ class DenseVariant:
 
 
 def _sigmoid(logit: np.ndarray | float) -> np.ndarray:
+    """Logistic function, clipped so extreme logits do not overflow."""
     result: np.ndarray = 1.0 / (1.0 + np.exp(-np.clip(logit, -30.0, 30.0)))
     return result

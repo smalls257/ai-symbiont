@@ -1,15 +1,9 @@
 """A one-hidden-layer tanh network trained by backprop: the T47 ceiling probe and R2 refits.
 
-Violation prevented: **Paper Tiger**. If no network trained by backprop on the 86 features beats
-the batch logistic regression, the classifier's lead is the ceiling of these features and no
-fly or DenseNet fix can pass it; if one does, there is nonlinear signal a filler could still
-reach. This is a reference row, never a candidate filler: spec 4.5 forbids learned input
-wiring for fillers. The same network, started from a DenseNet variant's fixed layer, is the R2
-"refit the hidden layer too" variant.
-
-The network: gained inputs x, hidden tanh(w_in x + b_in), risk sigmoid(w_out . hidden +
-w_skip . x + bias). The skip makes it at least a logistic regression. Loss: class-weighted log
-loss; Adam steps. Pure numpy, deterministic given the seed.
+A reference row, never a candidate filler (spec 4.5 forbids learned input wiring): if no such
+network beats the batch logistic regression, the classifier's lead is the features' ceiling. Risk
+is sigmoid(w_out . hidden + w_skip . x + bias); the skip makes it at least a logistic regression.
+Class-weighted log loss, Adam steps, pure numpy, deterministic given the seed.
 """
 
 from dataclasses import dataclass, replace
@@ -70,6 +64,7 @@ class NetScorer:
 
 
 def _forward(net: TanhNet, x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Hidden activity and risks for a batch."""
     hidden = np.tanh(x @ net.w_in.T + net.b_in)
     logit = hidden @ net.w_out + x @ net.w_skip + net.bias
     return hidden, 1.0 / (1.0 + np.exp(-np.clip(logit, -30.0, 30.0)))
@@ -91,11 +86,15 @@ def weighted_loss(net: TanhNet, x: np.ndarray, labels: np.ndarray, weights: np.n
 
 
 class _Adam:
+    """Adam optimizer state over one flat parameter vector."""
+
     def __init__(self, size: int, rate: float) -> None:
+        """Zero moments for a vector of `size`."""
         self.rate, self.t = rate, 0
         self.m, self.v = np.zeros(size), np.zeros(size)
 
     def step(self, vector: np.ndarray, grad: np.ndarray) -> np.ndarray:
+        """One Adam update; returns the new vector."""
         self.t += 1
         self.m = 0.9 * self.m + 0.1 * grad
         self.v = 0.999 * self.v + 0.001 * grad**2
@@ -148,6 +147,7 @@ def _epoch(
     data: tuple[np.ndarray, np.ndarray, np.ndarray],
     rng: np.random.Generator,
 ) -> TanhNet:
+    """One epoch of Adam steps over shuffled minibatches; returns the updated net."""
     x, y, weights = data
     vector, order = net.as_vector(), rng.permutation(len(x))
     for start in range(0, len(x), BATCH):

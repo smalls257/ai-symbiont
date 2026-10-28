@@ -1,27 +1,10 @@
 """Fly variants for the T47 ablation: the mushroom body with one mechanism changed at a time.
 
-Violation prevented: **Paper Tiger**. The existing fly ties plain counters and trails a batch
-classifier on the same features; a variant that only looked more like the fly would not say
-why. Each option here maps to one piece of the fly's circuit and one hypothesis, so a row of
-the ablation table can be read as "this mechanism was or was not what held the fly back":
-
-- `rates`: one learning rate per output compartment. The mushroom body's lobes are tiled
-  into compartments, each with its own dopamine neuron and output neuron, that learn and
-  forget on different time scales (gamma lobe fast, alpha/beta slow; Aso et al. 2014, Aso and
-  Rubin 2016) [established]. `(0.1,)` is the existing fly; a second, slower rate adds a
-  long-term memory beside the short-term one (H1, forgetting).
-- `gain`: projection-neuron gain control before the Kenyon cells (H2, `input_gain`).
-- `valence`: avoid output neurons beside the approach ones; punishment depresses the approach
-  side and reward (a calm step) the avoid side (Aso et al. 2014, output neurons of opposite
-  valence) [established]. The risk is avoid minus approach, so a pattern can be learned as
-  safe, not only as not-yet-punished (H3).
-
-The wiring (86 inputs, 5,177 cells, 7 inputs per cell, top 5% fire) and the seeded tie-break
-are the existing fly's, taken from `Mushroom.initial_state`, so the default variant is the
-existing fly step for step (a test holds that). This is a risk scorer for the offline
-ablation, not a live filler: it has no recall and names no kind of trouble. Learning is per
-session: `encode` the session's steps once (the code depends only on the fixed wiring), read
-`risks` with the state frozen, then `learn` the steps in order, as `offline.replay` does.
+Each option maps to one piece of the circuit and one hypothesis: `rates` (a rate per compartment,
+H1 forgetting [established]), `gain` (projection-neuron gain, H2) and `valence` (avoid beside
+approach output neurons, H3 [established]). Wiring is the existing fly's, so the default variant
+is the existing fly step for step. A risk scorer, not a live filler: no recall. Per session:
+`encode`, `risks` with the state frozen, then `learn` in order.
 """
 
 from dataclasses import dataclass, replace

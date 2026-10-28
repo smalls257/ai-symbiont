@@ -1,16 +1,10 @@
 """Export the T48 confirm repositories with the pinned T46 exporter, unchanged (counts only).
 
-The confirm set was declared in commit 47a3a4f (docs/design/2026-10-28-fly-ablation.md), before
-any T47 ablation run, from trajectory counts alone: the next three largest repositories of
-nebius/SWE-rebench-openhands-trajectories after the T46 held-out three, sqlglot, the unreadable
-four and the 100-repository pool. This driver calls `export_nebius_repos.export_held_out` (the
-code of commit d860b8e: pinned dataset revisions, every task, SWE-rebench metadata, refused rows
-counted) with that module's held-out list pointed at the confirm set, so the export code that
-T46 froze is the export code here. It prints counts only; no row text.
-
-    python scripts/datasets/export_confirm_repos.py --out-dir data/nebius-openhands/confirm
-
-Periphery: needs the network and duckdb (the export-only venv).
+The confirm set (commit 47a3a4f, docs/design/2026-10-28-fly-ablation.md) was declared before any
+T47 run, from trajectory counts alone. This driver points `export_nebius_repos.export_held_out` at
+it, so T46's frozen export code is the export code here. Prints counts only; needs the network and
+duckdb (the export-only venv).
+Usage: python scripts/datasets/export_confirm_repos.py --out-dir data/nebius-openhands/confirm
 """
 
 import argparse

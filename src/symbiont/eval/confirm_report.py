@@ -1,14 +1,9 @@
 """The scored T48 confirm run's rules: pool-fixed thresholds, pooled rows, verdict, confirm call.
 
-prereg/2026-10-28-confirm.md fixes every rule here. Unlike T46 nothing is chosen on the scored
-repositories: each (row, seed) arrives with its (note, warning) thresholds already fixed on the
-pool, and every task of every repository is counted at them. Pooled intervals resample tasks
-within each repository with the same draws for every row (T46's `stratified_draws`), so
-differences are paired. Pure functions of traces and thresholds.
-
-Violation prevented: **Silent Fallback** at the claim level. A confirm table that could name a
-new winner without saying the pool's choice failed would be a second selection dressed as a
-confirmation; `confirm_call` states "confirms" or "contradicts" from rules fixed before the run.
+prereg/2026-10-28-confirm.md fixes every rule. Nothing is chosen on the scored repositories: each
+(row, seed) arrives with thresholds fixed on the pool. Pooled intervals resample tasks within each
+repository with the same draws for every row, so differences are paired; `confirm_call` states
+"confirms" or "contradicts" from rules fixed before the run. Pure functions.
 """
 
 from collections.abc import Mapping, Sequence
@@ -108,6 +103,7 @@ class Row(TypedDict):
 
 
 def _row(name: str, role: str, option: Option, repo: str, metrics: dict[str, Any]) -> Row:
+    """One scored row; it earns notes when its interval's lower bound is above 0."""
     low = metrics[NET]["ci95_low"]
     earns = bool(low is not None and low > 0)
     return Row(

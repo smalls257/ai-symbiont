@@ -1,13 +1,9 @@
 """R2 refits for batch readouts: a logistic fit pulled toward the shipped weights (T47).
 
-Violation prevented: **Silent Fallback**. A project's first sessions may hold no trouble at all;
-a plain refit then either fails or learns "never warn". Pulling the fit toward the shipped
-weights (a Gaussian prior centered on them) keeps every refit defined, so no refit is skipped
-quietly, and the weights move only as far as the project's own steps justify.
-
-Used for the batch logistic regression (its standardized features), for a DenseNet variant's
-readout (over its fixed hidden layer), and to turn a DenseNet variant into a `TanhNet` whose
-hidden layer backprop may then refit.
+A project's first sessions may hold no trouble, so a plain refit fails or learns "never warn". A
+Gaussian prior on the shipped weights keeps every refit defined and moves the weights only as far
+as the project's steps justify. Used for the batch logistic regression, a DenseNet variant's
+readout, and to turn a variant into a `TanhNet`.
 """
 
 from dataclasses import replace
