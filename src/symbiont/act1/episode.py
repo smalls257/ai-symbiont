@@ -31,6 +31,7 @@ from symbiont.act1.glimmer import Reply, ReplyFn, chat_reply
 from symbiont.act1.map_index import MapIndex, build_index
 from symbiont.act1.moves import Button, Done
 from symbiont.act1.navmap import NavMap, build_navmap
+from symbiont.act1.steplog import MoveRun, kind_of
 from symbiont.act1.strategy import Move, StrategyError, parse_strategy
 from symbiont.act1.wad import read_map
 
@@ -116,10 +117,15 @@ def _classify(reply: Reply, nav: NavMap | None = None) -> tuple[list[Move] | Non
 
 @dataclass(frozen=True)
 class RunLog:
-    """Where decisions are appended, and what the run header line says. No path: no log file."""
+    """Where decisions are appended, the run header, and who hears of each played move.
+
+    No path: no log file. No `on_move`: no extra observation per move. The observer lives here
+    because `run_episode` is at its five-parameter cap.
+    """
 
     path: Path | None = None
     header: dict[str, Any] = field(default_factory=dict)
+    on_move: Callable[[MoveRun], None] | None = None
 
 
 @dataclass(frozen=True)
@@ -133,8 +139,11 @@ class MapKnowledge:
 class _Session:
     """The live game seen through the key tracker; the two callables the scripted moves need."""
 
-    def __init__(self, game: Any, knowledge: MapKnowledge):
+    def __init__(
+        self, game: Any, knowledge: MapKnowledge, on_move: Callable[[MoveRun], None] | None
+    ):
         self.game, self.knowledge, self.keys = game, knowledge, KeyTracker()
+        self.on_move, self.tics, self.decision = on_move, 0, 0
 
     def observe(self) -> GameStateView | None:
         if self.game.is_episode_finished():
@@ -143,6 +152,7 @@ class _Session:
 
     def act(self, buttons: frozenset[Button]) -> None:
         self.game.make_action(button_vector(buttons))
+        self.tics += 1
 
 
 def _open_run_log(run_log: RunLog, max_decisions: int) -> IO[str] | None:
@@ -167,9 +177,26 @@ def _carry_out(
         return []
     outcomes = []
     for move in moves:
-        outcomes.append(f"{move.label} -> {execute_move(move, session.observe, session.act)}")
+        outcome = _play(move, session)
+        outcomes.append(f"{move.label} -> {outcome}")
         history.append(outcomes[-1])
     return outcomes
+
+
+def _play(move: Move, session: _Session) -> str:
+    """Execute one move; tell the observer, if any, what it did between two observations."""
+    if session.on_move is None:
+        return execute_move(move, session.observe, session.act)
+    before, started = session.observe(), session.tics
+    outcome = execute_move(move, session.observe, session.act)
+    if before is not None:
+        session.on_move(
+            MoveRun(
+                session.decision, move.label, kind_of(move), outcome,
+                session.tics - started, before, session.observe(),
+            )
+        )  # fmt: skip
+    return outcome
 
 
 def _decide(
@@ -179,6 +206,7 @@ def _decide(
     state = session.observe()
     if state is None:
         return None
+    session.decision = number
     nav = session.knowledge.nav
     observation = describe(replace(state, routes=route_hints(nav, state)) if nav else state)
     started = time.monotonic()
@@ -204,7 +232,7 @@ def run_episode(
     run_log = run_log or RunLog()
     game.new_episode()
     check_sector_convention(knowledge.index.sectors, game.get_state().sectors)
-    session = _Session(game, knowledge)
+    session = _Session(game, knowledge, run_log.on_move)
     log = _open_run_log(run_log, max_decisions)
     history: list[str] = []
     decisions: list[Decision] = []

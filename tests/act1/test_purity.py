@@ -17,6 +17,7 @@ PURE_FILES = (
     "navmap.py",
     "levels.py",
     "rooms.py",
+    "steplog.py",
 )
 
 

@@ -16,6 +16,7 @@ from symbiont.act1.engine import (
 from symbiont.act1.episode import MapKnowledge, RunLog, run_episode
 from symbiont.act1.glimmer import Reply, parse_chat_response
 from symbiont.act1.map_index import MapIndex, build_index
+from symbiont.act1.steplog import MoveKind
 from symbiont.act1.wad import Sector, read_map
 from wad_builder import sample_wad
 
@@ -226,3 +227,38 @@ def test_run_episode_with_a_map_adds_routes_to_the_observation_and_parses_go_to_
         "scripted go_to(Banana) -> Banana not visible, "
         "and it is not a door, exit or key on the map",
     )
+
+
+TWO_TURNS_THEN_SHOOT = (
+    Reply("turn(90)\nturn(-90)", "stop", 0),
+    Reply("shoot_nearest()", "stop", 0),
+)
+
+
+def test_run_episode_reports_each_played_move_with_its_tics():
+    game, runs = FakeGame(), []
+    run_episode(
+        game,
+        scripted_replies(*TWO_TURNS_THEN_SHOOT),
+        2,
+        RunLog(on_move=runs.append),
+        knowledge=MapKnowledge(NO_MAP),
+    )
+    assert [r.decision for r in runs] == [0, 0, 1]
+    assert runs[0].kind == MoveKind.TURN and runs[0].label == "scripted turn(90)"
+    assert runs[0].outcome == "timeout after 60 tics"
+    assert runs[2].outcome == "no enemy visible" and runs[2].tics == 0
+    assert sum(r.tics for r in runs) == len(game.actions) == 120
+
+
+def test_run_episode_without_an_observer_behaves_as_before():
+    game = FakeGame()
+    decisions = run_episode(
+        game, scripted_replies(*TWO_TURNS_THEN_SHOOT), 2, knowledge=MapKnowledge(NO_MAP)
+    )
+    assert decisions[0].outcomes == (
+        "scripted turn(90) -> timeout after 60 tics",
+        "scripted turn(-90) -> timeout after 60 tics",
+    )
+    assert decisions[1].outcomes == ("scripted shoot_nearest() -> no enemy visible",)
+    assert len(game.actions) == 120
