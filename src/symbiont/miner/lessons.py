@@ -1,14 +1,10 @@
 """Lessons: a pain point that carries its own evidence, so no raw history needs keeping.
 
-The store keeps lessons, never records: a lesson holds a short verbatim quote of
-what happened, the steps that resolved it (in plain words), whether every record
-it was built from may reach Spark, and the (session, step) ids it came from. The
-records themselves are re-read from the harness's own logs whenever mining runs
-and dropped afterwards. A lesson is training data for the personal model and is
-deleted once training has consumed it.
-
-The privacy flag is computed here, at mining time, from the source records;
-it is never defaulted, because an unknown flag must not read as shareable.
+A lesson holds a short verbatim quote, the steps that resolved it in plain words, whether every
+record it came from may reach Spark, and the (session, step) ids it came from. The flag is
+computed here from the source records and never defaulted: an unknown flag must not read as
+shareable. A lesson is training data for the personal model, deleted once training has consumed
+it.
 """
 
 from collections import Counter
@@ -75,6 +71,7 @@ def resolution_coverage(lessons: Iterable[Lesson]) -> dict[Signal, Coverage]:
 
 
 def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
+    """The records a pain point cites; a missing one raises LookupError."""
     missing = [ref for ref in pain.record_refs if ref not in by_ref]
     if missing:
         session_id, step = missing[0]
@@ -83,6 +80,7 @@ def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
 
 
 def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> Lesson:
+    """One lesson: the pain point, its resolution and the quote it carries."""
     found = resolution_of(pain, cited, records)
     steps = found.steps if isinstance(found, Resolution) else ()
     alongside = found.alongside if isinstance(found, Resolution) else ()
@@ -113,6 +111,7 @@ def excerpt(record: Record, limit: int) -> str:
 
 
 def _step_words(step: Record) -> str:
+    """A resolving step in plain words."""
     if step.kind == Kind.COMMAND:
         return f"ran `{_clip_start(step.command or '', STEP_CHARS)}`"
     if step.kind == Kind.EDIT:
@@ -121,6 +120,7 @@ def _step_words(step: Record) -> str:
 
 
 def _first_new_line(edit: Record) -> str:
+    """` to add <first added line>` for an edit, empty when it adds nothing."""
     for line in (edit.diff or "").splitlines():
         text = line[1:].strip()
         if line.startswith("+") and not line.startswith("+++") and text:
@@ -129,12 +129,14 @@ def _first_new_line(edit: Record) -> str:
 
 
 def _clip_start(text: str, limit: int) -> str:
+    """The text cut to `limit`, keeping its start."""
     if len(text) <= limit:
         return text
     return text[: max(limit - len(_CUT), 0)] + _CUT
 
 
 def _clip_end(text: str, limit: int) -> str:
+    """The text cut to `limit`, keeping its end."""
     if len(text) <= max(limit, 0):
         return text
     if limit <= len(_CUT):

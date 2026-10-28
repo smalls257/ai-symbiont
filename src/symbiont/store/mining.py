@@ -1,14 +1,8 @@
 """Mining: re-read a project's history from the harness's own logs and keep only lessons.
 
-Records live only for the length of one call: every registered log is read
-through its reader, mined as one history, turned into lessons that carry their
-own quote and privacy flag, and dropped. The hold-out check runs here, before a
-lesson is stored, because no record is kept to check later.
-
-A new log is registered only when the mining that includes it succeeds, so a
-held-out or unreadable log never becomes a source that blocks every later run.
-A registered log that has gone missing or no longer parses raises naming the
-file: mining around it would silently drop that history.
+Records live for one call: read through their readers, mined, turned into lessons and dropped. The
+hold-out check runs here, before a lesson is stored. A new log is registered only when mining with
+it succeeds; a registered log that went missing or no longer parses raises naming the file.
 """
 
 from collections.abc import Iterable, Mapping
@@ -27,6 +21,7 @@ class UnknownReaderError(ValueError):
     """A source names a reader that is not installed."""
 
     def __init__(self, reader: str, known: Iterable[str]):
+        """Name the reader and the known ones."""
         super().__init__(f"no reader called {reader!r}; known readers: {', '.join(sorted(known))}")
         self.reader = reader
 
@@ -44,11 +39,10 @@ class MiningRules:
 def remine(
     store: Store, project: str, rules: MiningRules, *, adding: Iterable[Source] = ()
 ) -> list[Lesson]:
-    """Re-read every source of `project` plus `adding`, and replace its lessons.
+    """Re-read every source of `project` plus `adding` and replace its lessons.
 
-    Raises HoldOutViolationError (nothing is stored or registered) when any
-    record belongs to a held-out task; UnknownReaderError, ReadError or OSError
-    when a source cannot be read.
+    Raises HoldOutViolationError (nothing stored) for a held-out record; UnknownReaderError,
+    ReadError or OSError when a source cannot be read.
     """
     known = store.sources(project)
     new = [s for s in dict.fromkeys(adding) if s not in known]

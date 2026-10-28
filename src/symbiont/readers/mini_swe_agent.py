@@ -1,20 +1,9 @@
-"""Reader for mini-SWE-agent trajectories.
+"""Reader for mini-SWE-agent trajectories (JSONL, one trajectory per line).
 
-Input is JSONL, one trajectory per line: `trajectory_id`, `instance_id` and
-`messages`, the chat in mini-SWE-agent's own format. An assistant message holds
-reasoning plus exactly one fenced bash block; the next user message is the
-observation (`<returncode>N</returncode><output>...</output>`). A message with
-no block or several is mini-SWE-agent's format error: it is an agent turn and
-the notice that follows is kept as a tool result.
-
-Three entry points differ only in provenance. `read` is the default and is never
-spark safe; `read_open_swe_traces` is public rows; `read_local_run` is our own
-runs and refuses any task that is not a public benchmark id.
-
-Each command becomes one record carrying its observation as `raw`. A command
-that writes a file through sed -i, a redirect, a heredoc or tee is an edit.
-Anything our delivery layer appended to an observation is cut off and kept as
-its own tagged tool result after the harness's record.
+Each fenced bash command becomes one record carrying its observation as `raw`;
+a command that writes a file is an edit. `read` is never spark safe;
+`read_local_run` refuses any task that is not a public benchmark id. Text our
+delivery layer appended to an observation becomes its own tagged tool result.
 """
 
 import json
@@ -72,6 +61,7 @@ def read_local_run(path: Path, project: str) -> Iterator[Record]:
 def _read(
     path: Path, project: str, provenance: Provenance, *, public_tasks_only: bool
 ) -> Iterator[Record]:
+    """Yield each trajectory's records; a bad line raises ReadError naming file and line."""
     with Path(path).open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             try:
@@ -87,6 +77,8 @@ def _read(
 
 @dataclass
 class _Session:
+    """The records of one trajectory being built."""
+
     project: str
     session_id: str
     task_id: str
@@ -94,6 +86,7 @@ class _Session:
     records: list[Record] = field(default_factory=list)
 
     def add(self, kind: Kind, raw: str, **fields: Any) -> None:
+        """Append a record of the given kind with the session's shared fields."""
         self.records.append(
             Record(
                 harness=HARNESS,
@@ -109,6 +102,7 @@ class _Session:
         )
 
     def add_ours(self, ours: str) -> None:
+        """Keep text our delivery layer appended as its own tagged tool result."""
         if ours:
             self.add(Kind.TOOL_RESULT, ours, tags=(OUR_OUTPUT_RECORD_TAG,))
 
@@ -116,6 +110,7 @@ class _Session:
 def _session_records(
     row: Any, project: str, provenance: Provenance, *, public_tasks_only: bool
 ) -> list[Record]:
+    """All records of one trajectory row."""
     if not isinstance(row, dict):
         raise _MalformedError("a line must hold one trajectory object")
     messages = _require(row, "messages")
@@ -134,6 +129,7 @@ def _session_records(
 
 
 def _require_public_task(task_id: str) -> None:
+    """Raise unless a local run's task is a public benchmark id."""
     try:
         repo = normalise_task_id(task_id).split("#")[0]
     except UnrecognisedTaskIdError as exc:
@@ -146,22 +142,26 @@ def _require_public_task(task_id: str) -> None:
 
 
 def _require(mapping: Any, key: str) -> Any:
+    """The mapping's value for `key`; a missing or null one raises _MalformedError."""
     if not isinstance(mapping, dict) or mapping.get(key) is None:
         raise _MalformedError(f"missing {key!r}")
     return mapping[key]
 
 
 def _require_str(value: Any, field: str) -> str:
+    """The value if it is a string, else _MalformedError naming the field."""
     if not isinstance(value, str):
         raise _MalformedError(f"{field!r} must be a string, got {type(value).__name__}")
     return value
 
 
 def _require_text(mapping: Any, key: str) -> str:
+    """The string under `key` in the mapping; missing or non-string raises _MalformedError."""
     return _require_str(_require(mapping, key), key)
 
 
 def _text(message: Any) -> str:
+    """A message's content, which must be a string."""
     content = _require(message, "content")
     if not isinstance(content, str):
         raise _MalformedError("message 'content' must be a string")
@@ -169,6 +169,7 @@ def _text(message: Any) -> str:
 
 
 def _add_messages(session: _Session, messages: list[Any]) -> None:
+    """Walk the chat, pairing each command with the observation that answers it."""
     index = 0
     seen_task = False
     while index < len(messages):
@@ -190,7 +191,7 @@ def _add_messages(session: _Session, messages: list[Any]) -> None:
 
 
 def _add_stray_observation(session: _Session, text: str) -> None:
-    # An observation with no command before it, e.g. the harness's format-error notice.
+    """Keep an observation with no command before it (e.g. a format-error notice) as a result."""
     own, ours = split_our_output(text)
     session.add(Kind.TOOL_RESULT, own)
     session.add_ours(ours)
@@ -222,6 +223,7 @@ def _add_assistant_message(session: _Session, text: str, following: list[Any]) -
 
 
 def _answering_observation(following: list[Any]) -> str | None:
+    """The observation text if the next message is the user's answer, else None."""
     if not following:
         return None
     message = following[0]
@@ -240,6 +242,7 @@ def _exit_code(observation: str) -> int | None:
 
 
 def _written_files(command: str) -> tuple[str, ...]:
+    """Files a shell command writes via sed -i, a redirect, a heredoc or tee."""
     tokens = _tokens(_without_heredoc_bodies(command))
     files: list[str] = []
     for segment in _segments(tokens):
@@ -248,6 +251,7 @@ def _written_files(command: str) -> tuple[str, ...]:
 
 
 def _without_heredoc_bodies(command: str) -> str:
+    """The command without heredoc bodies, whose text is not shell."""
     kept: list[str] = []
     terminator = None
     for line in command.splitlines():
@@ -261,6 +265,7 @@ def _without_heredoc_bodies(command: str) -> str:
 
 
 def _tokens(text: str) -> list[str]:
+    """Shell tokens with operators split out; unbalanced quoting gives none."""
     lexer = shlex.shlex(text, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     try:
@@ -271,6 +276,7 @@ def _tokens(text: str) -> list[str]:
 
 
 def _segments(tokens: list[str]) -> Iterator[list[str]]:
+    """The command split at shell operators."""
     current: list[str] = []
     for token in tokens:
         if token in _OPERATORS:
@@ -282,6 +288,7 @@ def _segments(tokens: list[str]) -> Iterator[list[str]]:
 
 
 def _segment_writes(segment: list[str]) -> list[str]:
+    """Files one command segment writes to."""
     files = _redirect_targets(segment)
     if segment[:1] == ["sed"] and any(_is_in_place(t) for t in segment):
         files += _sed_files(segment)
@@ -294,6 +301,7 @@ _REDIRECTS = {">", ">>", "<", "<<", "<<<"}
 
 
 def _redirect_targets(segment: list[str]) -> list[str]:
+    """Targets of > and >>, ignoring /dev/ paths."""
     targets = []
     for token, target in zip(segment, segment[1:], strict=False):
         if token in (">", ">>") and not target.startswith("/dev/"):
@@ -302,10 +310,12 @@ def _redirect_targets(segment: list[str]) -> list[str]:
 
 
 def _is_in_place(token: str) -> bool:
+    """True for sed's -i and --in-place flags."""
     return token == "--in-place" or (token.startswith("-i") and not token.startswith("--"))
 
 
 def _sed_files(segment: list[str]) -> list[str]:
+    """The file arguments of a sed call, after its script."""
     positional: list[str] = []
     script_given = False
     skip_next = False
@@ -321,6 +331,7 @@ def _sed_files(segment: list[str]) -> list[str]:
 
 
 def _repo_relative(path: str) -> str:
+    """The path without the benchmark workspace prefix."""
     for prefix in _WORKSPACE_PREFIXES:
         if path.startswith(prefix):
             return path[len(prefix) :]

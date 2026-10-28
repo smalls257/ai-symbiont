@@ -78,6 +78,7 @@ class Service:
     """Observe, recall and learn over one store and one decider."""
 
     def __init__(self, parts: ServiceParts) -> None:
+        """Start with the decider's initial state and no session prefixes."""
         self._parts = parts
         self._state = parts.decider.initial_state(0)
         self._prefixes: dict[tuple[str, str], list[Record]] = {}
@@ -89,6 +90,7 @@ class Service:
             return self._respond_locked(route, payload)
 
     def _respond_locked(self, route: str, payload: Any) -> Response:
+        """Route one request; unknown routes are refused with 404."""
         name = route.strip("/")
         call = Call(name, _hook_of(name, payload))
         routes = {"observe": self._observe, "recall": self._recall, "learn": self._learn}
@@ -109,10 +111,12 @@ class Service:
             return self._refuse(call, 500, "internal error; see the service log")
 
     def _refuse(self, call: Call, status: int, reason: str) -> Response:
+        """Log the failure and return it as an error response."""
         self._parts.events.append_failure(call, status, reason)
         return Response(status, {"error": reason})
 
     def _observe(self, request: dict[str, Any], call: Call) -> Response:
+        """Record one hook observation and answer with the decider's note."""
         _require_keys(request, OBSERVE_KEYS, OBSERVE_REQUIRED)
         project, record = _observed(request["payload"])
         lessons = self._lessons(request, project)
@@ -129,12 +133,14 @@ class Service:
         return Response(200, {"notes": notes})
 
     def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
+        """The project's lessons, through the Spark view when the request is Spark-bound."""
         store = self._parts.store
         if _spark_bound(request):
             return store.spark_view().lessons(project)
         return store.lessons(project)
 
     def _recall(self, request: dict[str, Any], call: Call) -> Response:
+        """Answer a plain question from the project's sessions."""
         _require_keys(request, RECALL_KEYS, frozenset({"question", "project"}))
         project, question = request["project"], request["question"]
         if not (isinstance(project, str) and isinstance(question, str)):
@@ -147,11 +153,13 @@ class Service:
         return self._answered(call, " ".join(notes) or NOTHING_MATCHES, found)
 
     def _answered(self, call: Call, answer: str, found: Sequence[Lesson]) -> Response:
+        """Log the answer with the records it cites and return it."""
         refs = list(dict.fromkeys(ref for lesson in found for ref in lesson.pain_point.record_refs))
         self._parts.events.append(call, None, refs, [answer])
         return Response(200, {"answer": answer, "records": [list(ref) for ref in refs]})
 
     def _learn(self, request: dict[str, Any], call: Call) -> Response:
+        """Load a finished session log into the store and learn from it."""
         _require_keys(request, LEARN_KEYS, LEARN_KEYS)
         source = _source_of(request)
         parts = self._parts
@@ -166,6 +174,7 @@ class Service:
         return Response(200, {"learned_steps": learned})
 
     def _learn_project(self, project: str, records: list[Record]) -> int:
+        """Replay one project's records through the decider; returns the count learned."""
         decider = self._parts.decider
         history = tuple(self._parts.store.pain_points(project))
         troubles = _troubles_by_step(list(history), records)
@@ -192,6 +201,7 @@ def _refuse_untraceable(decision: Decision, lessons: Sequence[Lesson]) -> None:
 
 
 def _outcomes(record: Record, troubles: dict[tuple[str, int], list[PainPoint]]) -> list[Outcome]:
+    """What followed a record: the pain points it hit, or a plain no-trouble outcome."""
     found = troubles.get((record.session_id, record.step), [])
     if not found:
         return [
@@ -213,6 +223,7 @@ def _outcomes(record: Record, troubles: dict[tuple[str, int], list[PainPoint]]) 
 def _troubles_by_step(
     mined: list[PainPoint], records: list[Record]
 ) -> dict[tuple[str, int], list[PainPoint]]:
+    """Pain points mined from the given sessions, keyed by (session, step)."""
     sessions = {r.session_id for r in records}
     by_step: dict[tuple[str, int], list[PainPoint]] = {}
     for pain in mined:
@@ -230,11 +241,13 @@ def _spark_bound(request: dict[str, Any]) -> bool:
 
 
 def _hook_of(route: str, payload: Any) -> str:
+    """The hook name to log: the event for observe, otherwise the route."""
     event = payload.get("event") if isinstance(payload, dict) else None
     return event if route == "observe" and isinstance(event, str) else route
 
 
 def _object(payload: Any) -> dict[str, Any]:
+    """The payload as a dict, or BadRequestError."""
     if not isinstance(payload, dict):
         raise BadRequestError("the request body must be a JSON object")
     return payload
@@ -243,6 +256,7 @@ def _object(payload: Any) -> dict[str, Any]:
 def _require_keys(
     request: dict[str, Any], allowed: frozenset[str], required: frozenset[str]
 ) -> None:
+    """Raise BadRequestError for unexpected or missing request fields."""
     extra = sorted(set(request) - allowed)
     if extra:
         raise BadRequestError(f"unexpected fields: {', '.join(extra)}")
@@ -252,6 +266,7 @@ def _require_keys(
 
 
 def _observed(payload: Any) -> tuple[str, Record]:
+    """The project and record carried by an observe payload."""
     body = _object(payload)
     try:
         record = next(load_jsonl(io.StringIO(json.dumps(body.get("record")))))
@@ -261,6 +276,7 @@ def _observed(payload: Any) -> tuple[str, Record]:
 
 
 def _source_of(request: dict[str, Any]) -> Source:
+    """The log source a learn request names; all three fields must be text."""
     reader, path, project = request["reader"], request["session_log_path"], request["project"]
     if not all(isinstance(value, str) for value in (reader, path, project)):
         raise BadRequestError("reader, session_log_path and project must be text")

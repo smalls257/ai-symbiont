@@ -1,23 +1,9 @@
 """DenseNet: a plain small network built from scratch, the second filler.
 
-Violation prevented: **Paper Tiger**. A fly circuit that beats counters proves
-nothing about the circuit if any small network would have done as well. This
-net sees the same 86 features and has the same contract (readout, calibrator,
-local rule, `MetaLearnable`), so it stands as a fair second row: if the fly
-only ties it, the report says the fly's circuit is not what earns the gain.
-
-Shape, fixed by constants below: 86 inputs, one hidden layer of `N_HIDDEN`
-tanh units with random fixed weights from the seed, a linear readout. Only the
-readout (and the calibrator) learn, by the delta rule: each weight moves by
-its own unit's activity times the shared error, a local rule with no backprop
-through the hidden layer. The hidden layer is fixed for the same reason as the
-fly's wiring: meta-learning the input side is on the spec's "do not build"
-list.
-
-State is passed in and returned (**Infected Core**); `learn` returns a new
-`DenseState`. Recall considers only earlier steps that share a word with the
-current one, scored by the overlap of hidden activity weighted by the trouble
-the readout has learned, as the fly does with its cells.
+Same 86 features and contract as the fly (readout, calibrator, local rule, `MetaLearnable`), so it
+is a fair second row. One hidden layer of `N_HIDDEN` tanh units with fixed seeded weights and a
+linear readout; only the readout and calibrator learn, by the delta rule. State is passed in and
+returned. Recall considers earlier steps sharing a word, scored by hidden-activity overlap.
 """
 
 from dataclasses import dataclass, replace
@@ -27,6 +13,7 @@ import numpy as np
 from symbiont.core.features import N_FEATURES, ScratchFile, featurise, meaningful_history
 from symbiont.core.indexes import PainPointIndex, TokenIndex, continues, tokens
 from symbiont.core.meta import (
+    CALIBRATOR_RATE,
     META_RUN_SEED,
     Calibrator,
     LinearReadoutMeta,
@@ -39,20 +26,13 @@ from symbiont.core.slot import NO_HISTORY, Decision, Outcome, Situation
 from symbiont.miner.painpoint import PainPoint, Signature
 from symbiont.records.schema import Record
 
-# 128 hidden units: enough for a random tanh layer to separate the 86
-# one-hot-ish features linearly, and a readout (128 weights) small enough to
-# move within the first ~10 outcomes of a new domain and to meta-train in
-# seconds. Far smaller than the fly's 5,177 cells on purpose: this row asks
-# whether the circuit's size and sparsity matter, not whether size helps.
+# 128 units separate the 86 features linearly and keep the readout small enough to move within
+# ~10 outcomes of a new domain; far below the fly's 5,177 cells on purpose (size vs. sparsity).
 N_HIDDEN = 128
-# Delta-rule step. Activity is scaled to under unit norm, so 1 moves the raw
-# score by under one logit per outcome: fast enough for ~10 outcomes and
-# stable at false-alarm costs up to 4 (probed; 2 and 4 diverged with the
-# scale-coupled step). Fixed, not tuned.
+# Delta-rule step: under one logit per outcome, stable at false-alarm costs up to 4
+# (2 and 4 diverged with the scale-coupled step). Fixed, not tuned.
 READOUT_RATE = 1.0
-# Flag when calibrated trouble probability passes 0.5. Calibration already
-# weighs a false alarm by its cost, so 0.5 on that scale is the cost-aware
-# Bayes threshold; a prereg may move it.
+# Flag above 0.5 calibrated probability: the cost-aware Bayes threshold; a prereg may move it.
 PLACEHOLDER_THRESHOLD = 0.5
 
 
@@ -83,6 +63,7 @@ class DenseNet(LinearReadoutMeta):
     seed: int
     lr: float = READOUT_RATE
     trouble_threshold: float = PLACEHOLDER_THRESHOLD
+    calibrator_rate: float = CALIBRATOR_RATE  # fixed per run, never self-tuned
     hubs: frozenset[str] = frozenset()
     scratch: frozenset[ScratchFile] = frozenset()
     name = "dense"
@@ -132,13 +113,7 @@ class DenseNet(LinearReadoutMeta):
         return Decision(trouble, why, recalled, None, risk=probability)
 
     def learn(self, x: np.ndarray, outcome: Outcome, state: DenseState) -> DenseState:
-        """Delta rule on the readout, online step on the calibrator.
-
-        The readout step is the weighted error times the unit's activity,
-        without the calibrator's scale: the readout and the calibrator then
-        cannot feed each other into runaway growth, which a plain gradient
-        step on both did at a false-alarm cost of 4.
-        """
+        """Delta rule on the readout (no calibrator scale), online step on the calibrator."""
         view = self.readout_view(x, state)
         raw = view.raw(state.w_out)
         error = weighted_dz(state.calibrator.probability(raw), outcome)
@@ -148,7 +123,7 @@ class DenseNet(LinearReadoutMeta):
         return replace(
             state,
             w_out=state.w_out - state.lr * error * view.phi,
-            calibrator=calibrator_step(state.calibrator, raw, outcome),
+            calibrator=calibrator_step(state.calibrator, raw, outcome, self.calibrator_rate),
             learned=learned,
             updates=state.updates + 1,
         )
@@ -183,6 +158,7 @@ class _CandidateActivity:
     """Candidates held with their hidden activity, computed once each."""
 
     def __init__(self) -> None:
+        """Start empty; rows fill in as `sync` sees candidates."""
         self.tokens = TokenIndex()
         self._hidden_w: np.ndarray | None = None
         self._rows: list[np.ndarray] = []
@@ -194,6 +170,7 @@ class _CandidateActivity:
         hubs: frozenset[str],
         scratch: frozenset[ScratchFile],
     ) -> None:
+        """Extend the per-candidate hidden activity; rebuild when the weights or history change."""
         stale = self._hidden_w is not state.hidden_w
         if stale or not continues(self.tokens._items, situation.candidates):
             self.tokens = TokenIndex()
@@ -235,4 +212,5 @@ def _remember(
 
 
 def _quiet(reason: str, *, risk: float = 0.0) -> Decision:
+    """A decision that says nothing, with the reason and the risk."""
     return Decision(trouble=None, why=(), recall=(), reason_none=reason, risk=risk)

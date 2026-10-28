@@ -1,4 +1,4 @@
-"""Fixture: Black Box on the wrong axis. Every `# expect:` line must be reported."""
+"""Fixture: planted violations. Every `# expect:` line must be reported, nothing else."""
 
 import logging
 

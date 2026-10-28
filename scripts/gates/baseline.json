@@ -1,66 +1,69 @@
 {
-  "measured_at": "2026-10-27T19:39Z",
-  "commit": "0fd247e739dd901c42992f548082417bf874e9f7",
+  "measured_at": "2026-10-28T03:38Z",
+  "commit": "300d685e0f07d2d52251f746a613f91ab313e496",
   "scope": "whole tree, excluding tests/fixtures, spikes, .claude",
   "ruff": {
-    "check_findings": 751,
-    "by_rule": {
-      "E501": 397,
-      "D205": 56,
-      "D102": 55,
-      "D209": 53,
-      "D101": 50,
-      "D103": 37,
-      "I001": 26,
-      "B905": 12,
-      "N818": 10,
-      "F401": 9,
-      "FBT001": 8,
-      "PLR0913": 8,
-      "SIM115": 5,
-      "FBT002": 5,
-      "D105": 4,
-      "T201": 3,
-      "BLE001": 2,
-      "UP047": 2,
-      "D403": 2,
-      "FBT003": 2,
-      "RET503": 1,
-      "UP017": 1,
-      "B007": 1,
-      "RET501": 1,
-      "SIM300": 1
-    },
-    "files_needing_format": 64
+    "check_findings": 0,
+    "by_rule": {},
+    "files_needing_format": 0
   },
-  "lizard_pure_core_over_10ccn_30nloc": 8,
-  "lizard_rest_of_src_scripts_ops_over_12ccn_40nloc": 11,
+  "lizard_pure_core_over_10ccn_30nloc": 0,
+  "lizard_rest_of_src_scripts_ops_over_12ccn_40nloc": 0,
   "lizard_test_functions_over_60nloc": 0,
-  "nesting_functions_over_3": 3,
+  "nesting_functions_over_3": 0,
   "classes_over_200_lines_or_12_public_methods": 0,
-  "files_over_400_src_or_600_test_lines": 2,
+  "files_over_400_src_or_600_test_lines": 0,
   "naming": {
     "vague_name": 0,
-    "single_letter_name": 83,
+    "single_letter_name": 0,
     "two_or_more_bool_params": 0
   },
   "semgrep": {
-    "sym-no-print-in-library": 3
+    "sym-module-docstring-too-long": 44,
+    "sym-no-framework-names-in-comments": 35,
+    "sym-docstring-too-long": 17,
+    "sym-comment-block-too-long": 4,
+    "sym-class-docstring-too-long": 1
   },
-  "claims_untagged_or_forbidden": 28,
-  "mypy_errors_src": 80,
-  "secrets_history_of_base": {
-    "unique_rule_file_pairs": 7,
-    "by_rule": {
-      "personal-home-path": 2,
-      "private-ipv4-address": 5
+  "semgrep_registry_QG_SAST_01": {
+    "by_severity": {
+      "WARNING": 44,
+      "INFO": 330
     },
-    "files": [
-      "docs/standards/quality-gates.html",
-      "docs/superpowers/plans/2026-10-27-ai-symbiont-build-plan.md",
-      "docs/superpowers/specs/2026-10-27-ai-symbiont-design.md",
-      "scripts/calibration/run_calibration.py",
-      "scripts/calibration/sync_results.sh"
-    ]
+    "error_findings": []
+  },
+  "docstrings_QG_RD_01": {
+    "public_api_documented_percent": 62.8,
+    "bar_percent": 90
+  },
+  "type_ignores_QG_TYP_03": {
+    "type_ignore_comments": 0,
+    "malformed": 0
+  },
+  "dependencies_QG_DEP_01_02": {
+    "QG-DEP-01": "OK (advisories: runtime 0, dev 5; waived 0)",
+    "QG-DEP-02": "OK (1 runtime packages; 7 dev-only off the allowlist, advisory)"
+  },
+  "frontend_QG_FE_01_02_03": {
+    "eslint_errors_dashboard": 19,
+    "external_loads": 3,
+    "html_validity_errors": 28
+  },
+  "comment_policy_QG_RD_04": {
+    "todo_without_owner_date": 0,
+    "restates_next_line_or_signature": 0,
+    "findings": 0
+  },
+  "mutation_QG_TST_05": {
+    "killed_percent": 85.6,
+    "mutants": 1741,
+    "survived": 251
+  },
+  "claims_untagged_or_forbidden": 0,
+  "mypy_errors_src": 0,
+  "secrets_history_of_base": {
+    "unique_rule_file_pairs": 0,
+    "by_rule": {},
+    "files": []
   }
 }

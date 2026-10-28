@@ -48,10 +48,12 @@ def render_lesson(lesson: Lesson) -> str:
 
 
 def _recalls(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
+    """One sentence per recalled record."""
     return [_recalled(record) for record in decision.recall]
 
 
 def _warning(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
+    """The warning sentence for the decision's trouble, with the fix when a lesson backs it."""
     if decision.trouble is None:
         return []
     said = _TEMPLATES[decision.trouble.signal](decision.trouble, len(decision.why))
@@ -71,6 +73,7 @@ def _backing_lesson(decision: Decision, lessons: Sequence[Lesson]) -> Lesson | N
 
 
 def _resolved(lesson: Lesson) -> str:
+    """How a lesson was resolved, and what else changed between the failure and the pass."""
     meanwhile = ""
     if lesson.changed_alongside:
         changed = ", ".join(lesson.changed_alongside)
@@ -81,10 +84,12 @@ def _resolved(lesson: Lesson) -> str:
 
 
 def _times(count: int) -> str:
+    """`once` or `N times`, for prose."""
     return "once" if count == 1 else f"{count} times"
 
 
 def _failed_command(signature: Signature, count: int) -> str:
+    """Note for a command that failed the same way before."""
     *target, error = signature.key
     command = " ".join(part for part in target if part != NO_PATH)
     broke = "a non-zero exit" if error.startswith("exit ") else error
@@ -92,26 +97,31 @@ def _failed_command(signature: Signature, count: int) -> str:
 
 
 def _reworked_edit(signature: Signature, count: int) -> str:
+    """Note for a file whose edits were redone before."""
     return f"You have redone your edits to `{signature.key[0]}` {_times(count)} before."
 
 
 def _review_flag(signature: Signature, count: int) -> str:
+    """Note for a file a reviewer flagged before."""
     return f"A reviewer flagged `{signature.key[0]}` {_times(count)} before."
 
 
 def _correction(signature: Signature, count: int) -> str:
+    """Note for an earlier user correction."""
     path, words = signature.key
     where = "" if path == NO_PATH else f" about `{path}`"
     return f"You were corrected{where} {_times(count)} before, on: {words}."
 
 
 def _loop(signature: Signature, count: int) -> str:
+    """Note for an earlier session that went in circles."""
     kind, target = signature.key[0], signature.key[1]
     what = f"the command `{target}`" if kind == "command" else f"`{target}`"
     return f"You went in circles over {what} in an earlier session ({_times(count)})."
 
 
 def _blast_radius(signature: Signature, count: int) -> str:
+    """Note for an edit that broke its dependents' tests before."""
     edited, dependent = signature.key
     return (
         f"You edited `{edited}` before without touching `{dependent}`, "
@@ -120,6 +130,7 @@ def _blast_radius(signature: Signature, count: int) -> str:
 
 
 def _recalled(record: Record) -> str:
+    """A sentence for one recalled record; empty when it has neither command nor file."""
     if record.command:
         return f"Earlier in this project you ran `{record.command}`."
     if record.files:
@@ -128,11 +139,13 @@ def _recalled(record: Record) -> str:
 
 
 def _command_of(signature: Signature) -> str:
+    """The command text of a command signature."""
     *target, _ = signature.key
     return " ".join(part for part in target if part != NO_PATH)
 
 
 def _where(path: str) -> str:
+    """` about <path>` for a path, empty for none."""
     return "" if path == NO_PATH else f" about `{path}`"
 
 
@@ -164,6 +177,7 @@ _CHECKS: dict[Signal, Callable[[Signature], str]] = {
 
 
 def _check(signature: Signature) -> str:
+    """The check to run for a signature."""
     return _CHECKS[signature.signal](signature)
 
 

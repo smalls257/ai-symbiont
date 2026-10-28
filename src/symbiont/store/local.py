@@ -1,22 +1,9 @@
 """Local SQLite store of mined lessons and of where each project's history lives. No raw history.
 
-Memory is the personal model's weights (owner decision 2026-10-28), so the store
-keeps no record rows: the harness's logs stay where the harness wrote them and
-are re-read through the readers each time a project is mined (`store.mining`).
-What is kept:
-
-- Sources: (project, reader, path) pointers to those logs, never their contents.
-- Lessons: each pain point with its own short quote, resolution, privacy flag and
-  the (session, step) ids it came from, until training consumes them;
-  `forget_trained` deletes them after writing a manifest of ids and counts.
-
-Guards:
-
-- Hold-out: checked at mining time, before a lesson is stored (`store.mining`).
-- Spark: `spark_view()` is a read-only view for anything bound for Spark. A read
-  that would return a lesson whose flag is false raises
-  `SparkPrivacyViolationError`. It never filters quietly: a filtered view would
-  make a privacy bug look like "no history".
+Kept: sources (project, reader, path pointers to the harness's logs, re-read on every mining) and
+lessons (each with its own quote, resolution, privacy flag and ids) until training consumes them.
+`spark_view()` raises `SparkPrivacyViolationError` for a private lesson and never filters; hold-
+out is checked at mining time (`store.mining`).
 """
 
 import json
@@ -59,6 +46,7 @@ class SparkPrivacyViolationError(PermissionError):
     """A read would hand a lesson that is not Spark-safe to a Spark-bound prompt."""
 
     def __init__(self, project: str, what: str):
+        """Name the project and what is private."""
         super().__init__(
             f"{what} in project {project!r} is not Spark-safe; "
             "it must not reach a Spark-bound prompt"
@@ -79,6 +67,7 @@ class Store:
     """Lessons and source pointers; the only persistence the rest of the system sees."""
 
     def __init__(self, db: sqlite3.Connection):
+        """Wrap an open SQLite connection."""
         self._db = db
 
     @classmethod
@@ -135,13 +124,10 @@ class Store:
     def forget_trained(
         self, project: str, manifest_path: Path, *, exported: Sequence[Lesson]
     ) -> int:
-        """Delete the `exported` lessons of `project` once a model was trained on them.
+        """Delete the `exported` lessons once a model trained on them; returns the count deleted.
 
-        First writes the training manifest (export id, lesson ids, source sessions,
-        task ids, counts; no text) to `manifest_path`, so a scored run can still prove
-        no held-out trajectory trained the model, and remembers the lesson ids so the
-        memory-model export never offers them again. An existing manifest is never
-        overwritten, and if writing fails nothing is deleted. Returns how many were deleted.
+        First writes the training manifest (ids and counts, no text); never overwrites one, and a
+        failed write deletes nothing.
         """
         manifest = training_manifest(project, exported)
         manifest_path.parent.mkdir(parents=True, exist_ok=True)
@@ -183,6 +169,7 @@ class SparkView:
     """Read-only; every read raises rather than return a private lesson."""
 
     def __init__(self, store: Store):
+        """Wrap the store being viewed."""
         self._store = store
 
     def lessons(self, project: str) -> list[Lesson]:
@@ -197,6 +184,7 @@ class SparkView:
 
 
 def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
+    """Warn when the database still holds copied history from an older version."""
     names = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     legacy = sorted(names & set(_LEGACY_TABLES))
     if legacy:
@@ -214,15 +202,18 @@ def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
 
 
 def _lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]:
+    """The lessons-table row for a lesson."""
     pain = lesson.pain_point
     return (project, pain.session_id, pain.step, lesson.spark_safe, _lesson_json(lesson))
 
 
 def _lesson_json(lesson: Lesson) -> str:
+    """Serialize a lesson for the lessons table."""
     return json.dumps(asdict(lesson))
 
 
 def _lesson_from_json(body: str) -> Lesson:
+    """Rebuild a lesson from its stored JSON."""
     data = json.loads(body)
     return Lesson(
         pain_point=_pain_point_from_dict(data["pain_point"]),
@@ -238,6 +229,7 @@ def _lesson_from_json(body: str) -> Lesson:
 
 
 def _pain_point_from_dict(data: dict[str, Any]) -> PainPoint:
+    """A pain point from its stored dict."""
     signature = data["signature"]
     return PainPoint(
         signature=Signature(Signal(signature["signal"]), tuple(signature["key"])),

@@ -76,6 +76,7 @@ def uninstall(spec: HarnessInstall, project_dir: Path) -> None:
 
 
 def _refuse_edited_since(manifest: dict[str, str] | None, current: dict[str, str | None]) -> None:
+    """Raise InstallError when an installed file no longer matches its recorded digest."""
     for rel, digest in (manifest or {}).items():
         if _digest(current[rel]) != digest:
             raise InstallError(
@@ -86,12 +87,14 @@ def _refuse_edited_since(manifest: dict[str, str] | None, current: dict[str, str
 def _originals(
     spec: HarnessInstall, project_dir: Path, state: Path, manifest: dict[str, str] | None
 ) -> dict[str, str | None]:
+    """Pre-install contents of each edited file: live on first install, saved backups after."""
     if manifest is None:
         return {rel: _read(project_dir / rel) for rel in spec.edits}
     return {rel: _read_backup(state, rel) for rel in spec.edits}
 
 
 def _save_backups(state: Path, project_dir: Path, spec: HarnessInstall) -> None:
+    """Copy each existing file the install will edit into the state directory."""
     for rel in spec.edits:
         original = (project_dir / rel).read_bytes() if (project_dir / rel).exists() else None
         target = state / "backup" / rel
@@ -102,6 +105,7 @@ def _save_backups(state: Path, project_dir: Path, spec: HarnessInstall) -> None:
 
 
 def _restore(state: Path, path: Path, rel: str) -> None:
+    """Put the backed-up bytes back, or delete a file the install created."""
     backup = state / "backup" / rel
     if backup.exists():
         path.write_bytes(backup.read_bytes())
@@ -111,24 +115,29 @@ def _restore(state: Path, path: Path, rel: str) -> None:
 
 
 def _read_backup(state: Path, rel: str) -> str | None:
+    """A saved backup's text, or None when the file did not exist before install."""
     backup = state / "backup" / rel
     return backup.read_bytes().decode() if backup.exists() else None
 
 
 def _read(path: Path) -> str | None:
+    """The file's text, or None when absent."""
     return path.read_bytes().decode() if path.exists() else None
 
 
 def _write(path: Path, text: str) -> None:
+    """Write text, creating parent directories."""
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_bytes(text.encode())
 
 
 def _digest(text: str | None) -> str:
+    """sha256 of the text, or `absent` for a missing file."""
     return "absent" if text is None else hashlib.sha256(text.encode()).hexdigest()
 
 
 def _read_manifest(state: Path) -> dict[str, str] | None:
+    """The recorded digests, or None when nothing is installed."""
     manifest = state / "manifest.json"
     if not manifest.exists():
         return None
@@ -137,12 +146,14 @@ def _read_manifest(state: Path) -> dict[str, str] | None:
 
 
 def _write_manifest(state: Path, digests: dict[str, str]) -> None:
+    """Record the digests; the state directory ignores itself because backups may hold tokens."""
     state.mkdir(parents=True, exist_ok=True)
     (state / ".gitignore").write_text("*\n")  # backups may hold tokens from env blocks
     (state / "manifest.json").write_text(json.dumps(digests, indent=2))
 
 
 def _diff(wanted: dict[str, str], current: dict[str, str | None]) -> str:
+    """A unified diff of the wanted files against the current ones."""
     parts: list[str] = []
     for rel, text in wanted.items():
         before = (current[rel] or "").splitlines(keepends=True)
@@ -152,6 +163,7 @@ def _diff(wanted: dict[str, str], current: dict[str, str | None]) -> str:
 
 
 def _remove_tree(state: Path) -> None:
+    """Delete the state directory and any parents the install left empty."""
     for item in sorted(state.rglob("*"), key=lambda item: len(item.parts), reverse=True):
         item.rmdir() if item.is_dir() else item.unlink()
     state.rmdir()
@@ -159,6 +171,7 @@ def _remove_tree(state: Path) -> None:
 
 
 def _prune_empty_parents(directory: Path, stop: Path) -> None:
+    """Remove empty directories upward until `stop`."""
     while directory != stop and directory.exists() and not any(directory.iterdir()):
         directory.rmdir()
         directory = directory.parent
