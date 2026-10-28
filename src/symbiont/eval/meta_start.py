@@ -20,9 +20,10 @@ Outer steps of first-order MAML use Adam, an optimizer of the trainer, not a fil
 clock, files or environment; the run script logs and stores.
 """
 
-from collections.abc import Sequence
-from dataclasses import dataclass, field
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
+from typing import Any
 
 import numpy as np
 
@@ -244,52 +245,118 @@ def reptile_direction(
     return direction
 
 
-class OuterStep:
-    """One outer move of the start under the configured rule."""
+def outer_move(
+    learner: MetaLearnable, config: MetaConfig, progress: "MetaProgress", batch: Sequence[Episode]
+) -> tuple[MetaStart, Adam]:
+    """The start (and Adam's moments) after one outer move on `batch`."""
+    start, cost = progress.start, config.cost
+    if config.rule == MetaRule.REPTILE:
+        move = config.outer_rate * reptile_direction(learner, start, batch, cost)
+        return start.with_vector(start.as_vector() + move), progress.adam
+    move, adam = progress.adam.step(batch_gradient(learner, start, batch, cost))
+    return start.with_vector(start.as_vector() + move), adam
 
-    def __init__(self, learner: MetaLearnable, size: int, config: MetaConfig) -> None:
-        """Hold the learner, the rule's step size and Adam's moments."""
-        self._learner, self._config = learner, config
-        self._adam = Adam.at(config.outer_rate, size)
 
-    def __call__(self, start: MetaStart, batch: Sequence[Episode]) -> MetaStart:
-        """The start after one move on `batch`."""
-        cost = self._config.cost
-        if self._config.rule == MetaRule.REPTILE:
-            move = self._config.outer_rate * reptile_direction(self._learner, start, batch, cost)
-        else:
-            move, self._adam = self._adam.step(batch_gradient(self._learner, start, batch, cost))
-        return start.with_vector(start.as_vector() + move)
+@dataclass(frozen=True)
+class MetaProgress:
+    """Everything the outer loop needs to resume exactly where a check left it."""
+
+    step: int
+    start: MetaStart
+    best: MetaStart
+    curve: tuple[tuple[int, float], ...]
+    stale: int
+    adam: Adam
+    rng_state: dict[str, Any]
+
+    def finished(self, config: MetaConfig) -> bool:
+        """Out of outer steps, or out of patience."""
+        return self.step >= config.outer_steps or self.stale >= config.patience
+
+    def result(self) -> MetaResult:
+        """The best start so far and the curve that chose it."""
+        best_step = min(self.curve, key=lambda point: (point[1], point[0]))[0]
+        return MetaResult(self.best, best_step, self.curve)
+
+
+def first_progress(
+    learner: MetaLearnable, validation: Sequence[Episode], config: MetaConfig
+) -> MetaProgress:
+    """Step 0: the cold start, its validation loss, fresh Adam and the seeded sampler."""
+    start = cold_start(learner)
+    loss = early_loss(learner, start, validation, config.cost)
+    adam = Adam.at(config.outer_rate, len(start.as_vector()))
+    rng_state = dict(np.random.default_rng(config.seed).bit_generator.state)
+    return MetaProgress(0, start, start, ((0, loss),), 0, adam, rng_state)
+
+
+def checked(progress: MetaProgress, start: MetaStart, loss: float) -> MetaProgress:
+    """Progress after a validation check of `start`."""
+    better = loss < min(point[1] for point in progress.curve)
+    return replace(
+        progress,
+        start=start,
+        best=start if better else progress.best,
+        curve=(*progress.curve, (progress.step, loss)),
+        stale=0 if better else progress.stale + 1,
+    )
+
+
+def train_until_check(
+    learner: MetaLearnable,
+    episodes: tuple[Sequence[Episode], Sequence[Episode]],
+    config: MetaConfig,
+    progress: MetaProgress,
+) -> MetaProgress:
+    """Outer steps up to the next validation check (or the last step), then the check."""
+    train, validation = episodes
+    rng = np.random.default_rng()
+    rng.bit_generator.state = progress.rng_state
+    while True:
+        picked = rng.choice(len(train), size=min(config.batch, len(train)), replace=False)
+        start, adam = outer_move(learner, config, progress, [train[i] for i in picked])
+        progress = replace(progress, step=progress.step + 1, start=start, adam=adam)
+        if progress.step % config.check_every == 0 or progress.step >= config.outer_steps:
+            break
+    progress = replace(progress, rng_state=dict(rng.bit_generator.state))
+    return checked(
+        progress, progress.start, early_loss(learner, progress.start, validation, config.cost)
+    )
+
+
+@dataclass(frozen=True)
+class Checkpoints:
+    """Where a meta-training run resumes from, and who is told at each validation check."""
+
+    resume: MetaProgress | None = None
+    on_check: Callable[[MetaProgress], None] | None = None
 
 
 def meta_train(
-    filler: object, train: Sequence[Episode], validation: Sequence[Episode], config: MetaConfig
+    filler: object,
+    train: Sequence[Episode],
+    validation: Sequence[Episode],
+    config: MetaConfig,
+    checkpoints: "Checkpoints | None" = None,
 ) -> MetaResult:
     """Outer loop over training repositories, stopped on validation repositories.
 
     Step 0 (the cold start) is a candidate like any other, so a meta start that never beats
-    it on validation comes back as the cold start, with `best_step` 0. Raises
-    NotMetaLearnableError for a filler with no start (counters), ValueError with no data.
+    it on validation comes back as the cold start, with `best_step` 0. `on_check` receives the
+    progress after every validation check, and `resume` continues from such a progress with
+    the same result as an uninterrupted run. Raises NotMetaLearnableError for a filler with no
+    start (counters), ValueError with no data.
     """
     learner = require_meta_learnable(filler)
     if not train or not validation:
         raise ValueError("meta-training needs training and validation repositories")
-    rng = np.random.default_rng(config.seed)
-    start = cold_start(learner)
-    best, move = start, OuterStep(learner, len(start.as_vector()), config)
-    curve, stale = [(0, early_loss(learner, start, validation, config.cost))], 0
-    for step in range(1, config.outer_steps + 1):
-        picked = rng.choice(len(train), size=min(config.batch, len(train)), replace=False)
-        start = move(start, [train[i] for i in picked])
-        if step % config.check_every:
-            continue
-        curve.append((step, early_loss(learner, start, validation, config.cost)))
-        stale = 0 if curve[-1][1] < min(c[1] for c in curve[:-1]) else stale + 1
-        best = start if stale == 0 else best
-        if stale >= config.patience:
-            break
-    best_step = min(curve, key=lambda point: (point[1], point[0]))[0]
-    return MetaResult(best, best_step, tuple(curve))
+    hooks = checkpoints or Checkpoints()
+    progress = hooks.resume or first_progress(learner, validation, config)
+    while not progress.finished(config):
+        progress = train_until_check(learner, (train, validation), config, progress)
+        if hooks.on_check is not None:
+            hooks.on_check(progress)
+    return progress.result()
 
 
 def cold_start(learner: MetaLearnable) -> MetaStart:

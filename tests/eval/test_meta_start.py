@@ -17,6 +17,7 @@ from symbiont.core.meta import NotMetaLearnableError
 from symbiont.core.mushroom import Mushroom
 from symbiont.eval.meta_start import (
     EARLY_SESSIONS,
+    Checkpoints,
     Episode,
     MetaConfig,
     MetaRule,
@@ -158,3 +159,16 @@ def test_the_split_scores_fold_zero_and_validates_on_ten_of_the_rest_every_time(
 def test_a_held_out_repository_in_the_pool_is_refused():
     with pytest.raises(ValueError, match="held-out"):
         meta_split([*pool(), {"repo": "iterative/dvc", "fold": 1}])
+
+
+def test_a_run_resumed_from_a_check_ends_exactly_where_an_unbroken_run_ends():
+    filler = DenseNet(seed=1, lr=0.1)
+    train = [toy_repo(f"train{i}", i) for i in range(5)]
+    validation = [toy_repo("val", 50)]
+    config = MetaConfig(0.3, MetaRule.REPTILE, outer_steps=30, batch=2, check_every=10)
+    seen = []
+    whole = meta_train(filler, train, validation, config, Checkpoints(on_check=seen.append))
+    assert [p.step for p in seen] == [10, 20, 30]
+    resumed = meta_train(filler, train, validation, config, Checkpoints(resume=seen[0]))
+    assert resumed.curve == whole.curve and resumed.best_step == whole.best_step
+    np.testing.assert_array_equal(resumed.start.as_vector(), whole.start.as_vector())

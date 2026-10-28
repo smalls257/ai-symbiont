@@ -86,3 +86,21 @@ def test_only_the_fly_and_densenet_are_meta_trained(runner):
     assert runner.filler_of("dense", 2).lr == runner.DENSE_RATE
     with pytest.raises(ValueError, match="counters"):
         runner.filler_of("counters", 0)
+
+
+def test_a_restarted_training_run_resumes_each_job_from_its_checkpoint(runner, tmp_path):
+    episodes, pool = synthetic(tmp_path)
+    starts = str(tmp_path / "starts.npz")
+    args = ["train", "--episodes", episodes, "--pool", pool, "--out", starts, "--seeds", "0"]
+    args += ["--outer-steps", "40", "--train-repos", "5", "--workers", "2"]
+    runner.main(args)
+    first = dict(np.load(starts))
+    jobs = tmp_path / "starts-jobs"
+    for done in jobs.glob("*.done.json"):
+        done.unlink()  # as if the machine died after the last check, before the job ended
+    assert list(jobs.glob("*.progress.json"))
+    runner.main(args)
+    again = dict(np.load(starts))
+    assert first.keys() == again.keys()
+    for key in first:
+        np.testing.assert_array_equal(first[key], again[key])

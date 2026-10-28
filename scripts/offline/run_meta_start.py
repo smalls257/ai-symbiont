@@ -30,12 +30,14 @@ import meta_start_episodes as eps
 import numpy as np
 import run_penalized as t36
 import run_selection as g6
+from meta_start_checkpoints import JobCheckpoint
 
 from symbiont.core.dense import DenseNet
 from symbiont.core.meta import MetaLearnable
 from symbiont.core.mushroom import Mushroom
 from symbiont.eval import selection as sel
 from symbiont.eval.meta_start import (
+    Checkpoints,
     MetaConfig,
     MetaRule,
     MetaSplit,
@@ -82,43 +84,57 @@ def filler_of(kind: str, seed: int) -> MetaLearnable:
 
 
 def train_job(job: tuple[str, int, MetaRule, float]) -> dict[str, Any]:
-    """Meta-train one filler under one rule and step size; the start and its curve."""
+    """Meta-train one filler under one rule and step size, resuming from its checkpoint."""
     kind, seed, rule, rate = job
-    started, split = time.time(), SPLIT[0]
+    filler, split = filler_of(kind, seed), SPLIT[0]
+    saved = JobCheckpoint(SETTINGS["checkpoints"], start_key(kind, seed, rule.name, rate))
+    finished = saved.done()
+    if finished is not None:
+        log.info("%s seed %d %s %g: already done", kind, seed, rule, rate)
+        return finished
+    started, resume = time.time(), saved.resume_from(cold_start(filler))
     train = [DATA[r].episode for r in split.train[: SETTINGS["train_repos"]]]
     validation = [DATA[r].episode for r in split.validation]
     config = MetaConfig(rate, rule, outer_steps=SETTINGS["outer_steps"], seed=seed)
-    result = meta_train(filler_of(kind, seed), train, validation, config)
+    result = meta_train(filler, train, validation, config, Checkpoints(resume, saved.save_progress))
     seconds = time.time() - started
     log.info(
-        "%s seed %d %s %g: best step %d loss %.4f (cold %.4f) %.0fs",
+        "%s seed %d %s %g: best step %d loss %.4f (cold %.4f) %.0fs%s",
         *(kind, seed, rule, rate, result.best_step, result.best_loss, result.curve[0][1], seconds),
+        "" if resume is None else f" (resumed at step {resume.step})",
     )
-    return {
+    document = {
         "kind": kind,
         "seed": seed,
         "rule": rule.name,
         "outer_rate": rate,
         "best_step": result.best_step,
         "curve": [list(c) for c in result.curve],
-        "start": result.start.as_vector(),
+        "start": result.start.as_vector().tolist(),
         "seconds": seconds,
     }
+    saved.save_done(document)
+    return document
 
 
 def train(args: argparse.Namespace) -> None:
-    """Every (filler, seed, outer step size) job; starts to npz, curves to json, both data/."""
+    """Every (filler, seed, rule, step size) job; starts to npz, curves to json."""
     prepare(args)
-    SETTINGS.update(train_repos=args.train_repos, outer_steps=args.outer_steps)
+    checkpoints = args.checkpoints or str(Path(args.out).with_suffix("")) + "-jobs"
+    SETTINGS.update(
+        train_repos=args.train_repos, outer_steps=args.outer_steps, checkpoints=checkpoints
+    )
     grid = [(rule, rate) for rule, rates in OUTER_GRID.items() for rate in rates]
     jobs = [(k, s, *g) for k in FILLERS for s in args.seeds for g in grid]
     jobs.sort(key=lambda job: job[0] != "fly")  # the fly's jobs are the long ones
     done = g6.pool_map(train_job, jobs, args.workers)
     starts = {
-        start_key(d["kind"], d["seed"], d["rule"], d["outer_rate"]): d.pop("start") for d in done
+        start_key(d["kind"], d["seed"], d["rule"], d["outer_rate"]): np.array(d.pop("start"))
+        for d in done
     }
     np.savez(args.out, **starts)
-    summary = {"code_commit": t36.git_head(), **SETTINGS, "jobs": done}
+    kept = {k: SETTINGS[k] for k in ("train_repos", "outer_steps", "checkpoints")}
+    summary = {"code_commit": t36.git_head(), **kept, "jobs": done}
     Path(args.out).with_suffix(".json").write_text(json.dumps(summary, indent=1))
     log.info("wrote %s", args.out)
 
@@ -268,7 +284,10 @@ def parser_of() -> argparse.ArgumentParser:
     train_parser.add_argument("--seeds", type=int, nargs="+", default=list(sel.WIRING_SEEDS))
     train_parser.add_argument("--outer-steps", type=int, default=300)
     train_parser.add_argument("--train-repos", type=int, default=70)
-    train_parser.add_argument("--workers", type=int, default=16)
+    train_parser.add_argument("--workers", type=int, default=10)
+    train_parser.add_argument(
+        "--checkpoints", help="job checkpoint directory (default: next to --out)"
+    )
     score_parser.add_argument("--starts", required=True)
     score_parser.add_argument("--on", choices=("validation", "scoring"), required=True)
     score_parser.add_argument("--scored", action="store_true")
