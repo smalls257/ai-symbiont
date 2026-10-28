@@ -20,12 +20,14 @@ Usage (through launch.py): python launch.py <workdir> --candidates-log runs/cali
         --candidates-log runs-wide/calibration.jsonl --runs-dir runs-cal2 --step-limit 75
 
 Lesson-in-prompt pilot: --fixed-runs N --lessons <id -> lesson JSON> runs the lesson arm
-(lessons.py); every record carries "arm" and "lesson_sha". --workers sets the Glimmer slots used.
+(lessons.py); --adapter <LoRA id> runs personal Glimmer (the served adapter on every call).
+Every record carries "arm", "lesson_sha" and "adapter_id". --workers sets the Glimmer slots.
 """
 
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 import threading
@@ -188,10 +190,22 @@ class CandidateDriver(Driver):
         self.lesson_hashes = {iid: lesson_hash(text) for iid, text in lessons.items()}
         self.header = self.header | {"arm": str(self.arm), "lesson_sha": self.lesson_hashes}
 
+    def use_adapter(self, adapter_id: int) -> None:
+        """Personal-Glimmer arm: every model call carries the LoRA; raises if lessons are set."""
+        if self.arm is not Arm.PLAIN:
+            raise ValueError(f"one arm per run: already {self.arm}, cannot add the adapter")
+        self.low = dataclasses.replace(self.low, adapter_id=adapter_id)
+        self.arm = Arm.PERSONAL_LORA
+        self.header = self.header | {"arm": str(self.arm), "adapter_id": adapter_id}
+
     def _record(self, rec: dict) -> None:
-        """Stamp the arm and the lesson hash on every record before it is logged."""
-        iid = rec["instance_id"]
-        super()._record(rec | {"arm": str(self.arm), "lesson_sha": self.lesson_hashes.get(iid)})
+        """Stamp the arm, the lesson hash and the adapter id on every record before it is logged."""
+        stamp = {
+            "arm": str(self.arm),
+            "lesson_sha": self.lesson_hashes.get(rec["instance_id"]),
+            "adapter_id": self.low.adapter_id,
+        }
+        super()._record(rec | stamp)
 
     def graded_runs(self, iid: str) -> list[dict]:
         """The graded records of one task under the current setting."""
@@ -275,6 +289,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
         "--fixed-runs", type=int, default=0, help="N runs per listed task, in file order, no stop"
     )
     parser.add_argument("--lessons", type=Path, default=None, help="lesson arm: id -> text JSON")
+    parser.add_argument("--adapter", type=int, default=None, help="personal arm: served LoRA id")
     add_limit_arguments(parser)
     return parser.parse_args(argv)
 
@@ -286,4 +301,6 @@ if __name__ == "__main__":
     driver.workers = args.workers
     if args.lessons:
         driver.give_lessons(args.lessons)
+    if args.adapter is not None:
+        driver.use_adapter(args.adapter)
     driver.run()

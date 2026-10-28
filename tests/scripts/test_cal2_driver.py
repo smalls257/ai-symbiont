@@ -5,14 +5,21 @@ import json
 import os
 import sys
 import types
-from collections import namedtuple
+from dataclasses import dataclass
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
 CALIBRATION = Path(__file__).resolve().parents[2] / "scripts" / "calibration"
-Setting = namedtuple("Setting", "reasoning step_limit wall_limit_s")
+
+
+@dataclass(frozen=True)
+class Setting:
+    reasoning: str
+    step_limit: int
+    wall_limit_s: int
+    adapter_id: int | None = None
 
 
 @pytest.fixture(autouse=True)
@@ -319,3 +326,30 @@ def test_without_lessons_every_record_is_the_plain_arm(monkeypatch, tmp_path):
     assert [statement for _, statement in sorted(seen)] == ["bug 0", "bug 1", "bug 2"]
     logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
     assert {(rec["arm"], rec["lesson_sha"]) for rec in logged} == {("plain", None)}
+
+
+def test_adapter_option_puts_the_lora_on_every_model_call_and_plain_has_none(monkeypatch):
+    runner = load_runner(monkeypatch)
+    _, plain = runner.agent_config(runner.Setting("low", 50, 2700))
+    _, personal = runner.agent_config(runner.Setting("low", 50, 2700, adapter_id=0))
+    assert "extra_body" not in plain["model_kwargs"]
+    assert personal["model_kwargs"]["extra_body"] == {"lora": [{"id": 0, "scale": 1}]}
+
+
+def test_adapter_arm_is_stamped_on_every_record_and_cannot_mix_with_lessons(monkeypatch, tmp_path):
+    cal2, driver, seen = lesson_driver(monkeypatch, tmp_path, {"task00": "Edit it."})
+    args = cal2.parse_args(
+        [str(tmp_path), "--runs-dir", "p", "--candidates-log", "one.jsonl"] + ["--adapter", "0"]
+    )
+    driver.use_adapter(args.adapter)
+    driver.run()
+    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    assert {(rec["arm"], rec["adapter_id"]) for rec in logged} == {("personal_lora", 0)}
+    assert [statement for _, statement in sorted(seen)] == ["bug 0", "bug 1", "bug 2"]
+    (tmp_path / "m").mkdir()
+    _, mixed, _ = lesson_driver(
+        monkeypatch, tmp_path / "m", {"task00": "a", "task01": "b", "task02": "c"}
+    )
+    mixed.give_lessons(tmp_path / "m" / "lessons.json")
+    with pytest.raises(ValueError, match="one arm per run"):
+        mixed.use_adapter(0)

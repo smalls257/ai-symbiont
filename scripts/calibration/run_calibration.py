@@ -56,6 +56,7 @@ class Setting:
     reasoning: str  # Glimmer's "Reasoning strength: <x>" system line
     step_limit: int
     wall_limit_s: int
+    adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
 
 
 def glimmer_url() -> str:
@@ -93,9 +94,21 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
             "max_tokens": MAX_TOKENS,
             "drop_params": True,
             "parallel_tool_calls": True,
+            **adapter_body(setting.adapter_id),
         },
     }
     return agent, model
+
+
+def adapter_body(adapter_id: int | None) -> dict:
+    """Request-body field that turns the served LoRA on for this run; nothing for plain Glimmer.
+
+    llama-server applies `"lora": [{"id": N, "scale": 1}]` per request (the router forwards the
+    body to the Glimmer child), so the personal arm and plain calibration share one server.
+    """
+    if adapter_id is None:
+        return {}
+    return {"extra_body": {"lora": [{"id": adapter_id, "scale": 1}]}}
 
 
 def token_counts(messages: list[dict]) -> dict:
