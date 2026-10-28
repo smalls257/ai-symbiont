@@ -58,8 +58,10 @@ class Record:
     files: tuple[str, ...] = ()
     diff: str | None = None
     task_id: str | None = None
-    # Labels the source dataset attached to this record, kept verbatim in
+    # Labels attached to this record. From the source dataset, kept verbatim in
     # meaning, e.g. "correction" for a SWE-chat turn marked as user pushback.
+    # From a reader, "symbiont-output" on a TOOL_RESULT holding text our delivery
+    # layer added to a session; the miner must not learn from such a record.
     tags: tuple[str, ...] = ()
     # For a READ: the (first, last) lines the viewer showed, as the harness
     # gave them (OpenHands uses -1 for "to the end"); None = the whole file

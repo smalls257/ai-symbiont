@@ -1,0 +1,5 @@
+{"type": "user", "sessionId": "sess-t", "timestamp": "2026-01-01T11:00:00Z", "cwd": "/work/app", "message": {"role": "user", "content": "Run the tests."}}
+{"type": "assistant", "sessionId": "sess-t", "timestamp": "2026-01-01T11:00:01Z", "cwd": "/work/app", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "o1", "name": "Bash", "input": {"command": "pytest -q"}}]}}
+{"type": "user", "sessionId": "sess-t", "timestamp": "2026-01-01T11:00:02Z", "cwd": "/work/app", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "o1", "content": "Exit code 1\n1 failed\n[symbiont]\nThis test failed the same way twice; read the traceback first.", "is_error": true}]}}
+{"type": "assistant", "sessionId": "sess-t", "timestamp": "2026-01-01T11:00:03Z", "cwd": "/work/app", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "o2", "name": "Bash", "input": {"command": "pytest -q"}}]}}
+{"type": "user", "sessionId": "sess-t", "timestamp": "2026-01-01T11:00:04Z", "cwd": "/work/app", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "o2", "content": "1 passed"}]}}
