@@ -22,7 +22,10 @@ from mlx_lm import batch_generate, load
 from mlx_lm.models.cache import make_prompt_cache
 
 SYSTEM = "You are a memory model. Answer in one line of plain prose, naming exact commands."
-MAX_TOKENS = 96  # one line of prose with a command fits; longer answers are cut at the newline
+# One line of prose with a command fits. The whole answer is kept, newlines folded to spaces:
+# base Llama puts the command on the line after "The command that worked is:", and cutting at
+# the first newline scored that as a miss [measured, 1B ceiling at 30 lessons].
+MAX_TOKENS = 96
 # Lower LCAP_ANSWER_BATCH if a long ceiling context runs out of memory.
 BATCH = int(os.environ.get("LCAP_ANSWER_BATCH", "16"))
 # Llama 3.x templates stamp today's date into the system turn; a fixed date keeps reruns identical.
@@ -41,9 +44,8 @@ def _prompts(tokenizer, questions: list[dict], context: str | None) -> list[list
     ]
 
 
-def _first_line(text: str) -> str:
-    stripped = text.strip()
-    return stripped.splitlines()[0] if stripped else ""
+def _one_line(text: str) -> str:
+    return " ".join(text.split())
 
 
 def _shared_prefix(prompts: list[list[int]]) -> int:
@@ -75,7 +77,7 @@ def answer_all(model_path: str, adapter: str | None, questions: list[dict], cont
         chunk = [p[shared:] for p in prompts[start : start + BATCH]]
         caches = [copy.deepcopy(cache) for _ in chunk]
         batch = batch_generate(model, tokenizer, chunk, prompt_caches=caches, max_tokens=MAX_TOKENS)
-        answers += [_first_line(text) for text in batch.texts]
+        answers += [_one_line(text) for text in batch.texts]
     return answers
 
 
