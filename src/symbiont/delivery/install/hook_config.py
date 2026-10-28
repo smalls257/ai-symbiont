@@ -18,6 +18,7 @@ def merge_json(path: str, add: dict[str, Any]) -> Transform:
     """A transform that deep-merges `add` into the JSON file, keeping what is there."""
 
     def transform(original: str | None) -> str:
+        """Merge `add` into the file's current JSON and re-serialize."""
         current = _loaded(path, original)
         _merge(current, add)
         return json.dumps(current, indent=2) + "\n"
@@ -38,6 +39,7 @@ def hooks_block(events: tuple[HookEvent, ...], harness: str, style: NoteStyle) -
 
 
 def _loaded(path: str, original: str | None) -> dict[str, Any]:
+    """The file's JSON object; invalid JSON raises InstallError naming the path."""
     if original is None or not original.strip():
         return {}
     try:
@@ -50,6 +52,7 @@ def _loaded(path: str, original: str | None) -> dict[str, Any]:
 
 
 def _merge(target: dict[str, Any], add: dict[str, Any]) -> None:
+    """Deep-merge `add` into `target`; lists append only new items, so reinstalling adds nothing."""
     for key, value in add.items():
         if isinstance(value, dict) and isinstance(target.get(key), dict):
             _merge(target[key], value)

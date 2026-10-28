@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # The one entry point for the quality gates (docs/standards/quality-gates.html). The edit
 # hook, pre-commit, pre-push and CI all call this script, so there is one definition of
-# "green". Prevents Paper Tiger (green that proves nothing) and Silent Fallback (a gate that
-# never ran): a missing tool, config, venv or base ref is a failure, never a skipped check.
+# "green". A gate that never ran is not green: a missing tool, config, venv or base ref is a failure, never a skipped check.
 #
 #   scripts/gates/run.sh fast   (pre-commit: scoped unit tests only; pre-push/manual: whole suite)
 #                               changed files vs $SYMBIONT_GATE_BASE (default main): secrets,
 #                               private terms, result-file content, paths, gate integrity, ruff, size, naming, spelling, semgrep, the whole
 #                               test suite with its count floor, claim tags, result rows
 #   scripts/gates/run.sh full   fast, plus history scan against the baseline, import-linter,
-#                               mypy on changed files, coverage report, lockfile
+#                               mypy on changed files, coverage report and diff-cover,
+#                               interrogate, lockfile, pip-audit and licenses (network)
 #
 # Phase 1 holds changed files to the full bar; existing offenders are counted in
 # scripts/gates/baseline.json and cleaned in phase 2. Exit 0 all green, 1 a gate failed,
@@ -27,10 +27,14 @@ suite_args=""   # full adds a coverage report; the floor is judged on the same s
 require_everything() {
   need_tool uv "https://docs.astral.sh/uv/"
   need_tool gitleaks "brew install gitleaks"
+  need_tool node "brew install node"   # QG-FE-01/03; the pinned npm tools are checked where used
   need_venv
-  for tool in ruff lizard codespell_lib semgrep mypy importlinter pytest_cov; do need_py_tool "$tool"; done
+  for tool in ruff lizard codespell_lib semgrep mypy importlinter pytest_cov defusedxml \
+                  pytest_randomly diff_cover interrogate pip_audit piplicenses; do need_py_tool "$tool"; done
   for cfg in pyproject.toml .naming-waivers.txt .gitleaks.toml .gitleaks-baseline.json .semgrep/VERSION \
-             .importlinter .lizard-whitelist.txt scripts/gates/test-floor.txt; do
+             .importlinter .lizard-whitelist.txt scripts/gates/test-floor.txt \
+             .semgrep/registry/STAMP \
+             scripts/gates/type-ignore-ceiling.txt; do
     need_file "$ROOT/$cfg"
   done
   require_base
@@ -51,6 +55,22 @@ gate() {
   fi
 }
 
+# advisory <id> <command...>: a finding is reported and logged but does not fail the run (exit 1
+# only); a gate that cannot run (exit 2 or more) still fails, so an advisory gate is never skipped.
+advisory() {
+  local id="$1"; shift
+  local started=$SECONDS output rc verdict
+  output=$("$@" 2>&1); rc=$?
+  verdict=pass; [ "$rc" -eq 0 ] || verdict=advisory; [ "$rc" -le 1 ] || verdict=fail
+  printf '{"ts":"%s","gate":"%s","stage":"%s","duration_s":%s,"verdict":"%s"}\n' \
+    "$(date -u +%FT%TZ)" "$id" "$stage" "$((SECONDS - started))" "$verdict" >> "$log"
+  case "$verdict" in
+    pass) echo "ok    $id ($((SECONDS - started))s)" ;;
+    advisory) echo "note  $id (advisory, does not fail the run): $(printf '%s\n' "$output" | tail -n 1)" ;;
+    fail) echo "FAIL  $id"; printf '%s\n' "$output" | sed 's/^/      /'; failed="$failed $id" ;;
+  esac
+}
+
 # Files each gate sees. Fixtures hold deliberate violations; spikes are throwaway probes.
 select_files() {
   all=$(changed_files) || gate_die "cannot list changed files against '$BASE'"
@@ -66,9 +86,16 @@ select_files() {
     || gate_die "file selection failed"
 }
 
+# QG-TST-04 pytest-randomly: tests that pass only in file order share state. The seed is chosen
+# here and printed first, so a failing run's output carries the line that reproduces it
+# (SYMBIONT_RANDOM_SEED=<n> scripts/gates/run.sh fast). Fix the test; never drop the plugin.
+random_seed() { echo "${SYMBIONT_RANDOM_SEED:-$((RANDOM + 1))}"; }
+
 run_suite() {   # the whole suite is seconds, so the floor is always judged on a full run
-  local report; report="$(mktemp "${TMPDIR:-/tmp}/symbiont-junit.XXXXXX")"
-  uv run --no-sync pytest -q -p no:cacheprovider --junitxml="$report" "$@" || { rm -f "$report"; return 1; }
+  local report seed; report="$(mktemp "${TMPDIR:-/tmp}/symbiont-junit.XXXXXX")"; seed="$(random_seed)"
+  echo "QG-TST-04 seed=$seed (rerun: SYMBIONT_RANDOM_SEED=$seed)"
+  uv run --no-sync pytest -q -p no:cacheprovider -p randomly --randomly-seed="$seed" \
+    --junitxml="$report" "$@" || { rm -f "$report"; return 1; }
   uv run --no-sync python scripts/gates/assert_suite_floor.py "$report"; local rc=$?
   rm -f "$report"; return $rc
 }
@@ -82,8 +109,11 @@ scoped_unit_tests() {
     [ -d "tests/$pkg" ] && targets="$targets tests/$pkg"
   done
   targets="$targets $(printf '%s\n' "$all" | grep -E '^tests/.*test_[^/]*\.py$' | tr '\n' ' ')"
+  local seed; seed="$(random_seed)"
+  echo "QG-TST-04 seed=$seed (rerun: SYMBIONT_RANDOM_SEED=$seed)"
   # shellcheck disable=SC2086
-  uv run --no-sync pytest -q -p no:cacheprovider --ignore=tests/gates/test_run_script.py --ignore=tests/gates/test_check_export.py $targets
+  uv run --no-sync pytest -q -p no:cacheprovider -p randomly --randomly-seed="$seed" \
+    --ignore=tests/gates/test_run_script.py --ignore=tests/gates/test_check_export.py $targets
 }
 
 private_terms_in_changed_files() {   # names go NUL-delimited: a space or quote cannot split one
@@ -109,21 +139,29 @@ fast_gates() {
   fi
   if [ -n "$checked" ]; then
     # shellcheck disable=SC2086
-    gate QG-CPX-01 scripts/gates/check_complexity.sh $checked
+    gate QG-CPX-01 scripts/gates/check_complexity.sh $checked   # QG-CPX-02 (rest of src and tests caps) is the same script
     # shellcheck disable=SC2086
     gate QG-CPX-03 uv run --no-sync python scripts/gates/check_file_length.py $checked
   fi
   # shellcheck disable=SC2086
-  [ -z "$named" ] || gate QG-RD-02 uv run --no-sync python scripts/gates/check_naming.py $named
+  [ -z "$named" ] || gate QG-RD-02 uv run --no-sync python scripts/gates/check_naming.py $named   # also QG-RD-03 (bool arity)
   # American spelling (owner rule): one dialect in names, comments and docs
   # shellcheck disable=SC2086
   [ -z "$spelled" ] || gate QG-RD-05 uv run --no-sync codespell --builtin en-GB_to_en-US $spelled
+  # shellcheck disable=SC2086
+  [ -z "$named" ] || gate QG-RD-04 uv run --no-sync python scripts/gates/check_comments.py $named
   gate QG-SAST-02 scripts/gates/semgrep_pinned.sh
+  gate QG-TYP-03 uv run --no-sync python scripts/gates/check_type_ignores.py
+  gate QG-FE-01 scripts/gates/check_js.sh
+  gate QG-FE-02 uv run --no-sync python scripts/gates/check_cdn.py
+  # fast judges the changed files, full the whole tree (the count that goes into baseline.json)
+  if [ "$mode" = "full" ]; then gate QG-SAST-01 scripts/gates/semgrep_registry.sh --tree
+  else gate QG-SAST-01 scripts/gates/semgrep_registry.sh; fi
   if [ "$stage" = "pre-commit" ]; then
     gate QG-TST-02 scoped_unit_tests
   else
     # shellcheck disable=SC2086
-    gate QG-TST-01 run_suite $suite_args
+    gate QG-TST-01 run_suite $suite_args   # also QG-ARC-02 (tests/test_boundaries.py) and QG-TST-06 (airplane conftest)
   fi
   # shellcheck disable=SC2086
   [ -z "$docs" ] || gate QG-SCI-02 uv run --no-sync python scripts/gates/check_claims.py $docs
@@ -136,10 +174,17 @@ full_gates() {
   gate QG-SEC-02 scripts/gates/check_secrets.sh history
   gate QG-ARC-01 uv run --no-sync lint-imports
   gate QG-DEP-03 uv lock --check
+  # network: advisory data from PyPI, so full only and never in the pre-commit set
+  gate QG-DEP-01 uv run --no-sync python scripts/gates/check_audit.py
+  gate QG-DEP-02 uv run --no-sync python scripts/gates/check_licenses.py
+  gate QG-TST-03 scripts/gates/diff_coverage.sh
+  advisory QG-FE-03 scripts/gates/check_html.sh
   local typed; typed=$(printf '%s\n' "$all" | grep -E '^src/symbiont/.*\.py$' || [ $? -eq 1 ]) \
     || gate_die "file selection failed"
   # shellcheck disable=SC2086
-  [ -z "$typed" ] || gate QG-TYP-01 uv run --no-sync mypy $typed
+  [ -z "$typed" ] || gate QG-TYP-01 uv run --no-sync mypy $typed   # also QG-TYP-02: the non-strict periphery
+  # shellcheck disable=SC2086
+  [ -z "$typed" ] || gate QG-RD-01 scripts/gates/check_docstrings.sh $typed
   # every loosening on this branch is listed on every full run, for the human to see
   uv run --no-sync python scripts/gates/check_gate_integrity.py --list \
     || { echo "FAIL  QG-GATE-01 report"; failed="$failed QG-GATE-01-report"; }
@@ -148,7 +193,8 @@ full_gates() {
 require_everything
 select_files
 echo "gates: $mode on $(printf '%s\n' "$all" | grep -c . || true) changed file(s) vs $BASE"
-[ "$mode" = "full" ] && suite_args="--cov --cov-report=term --cov-fail-under=0"
+# full adds the coverage report; diff-cover (QG-TST-03) reads the XML of that same single run
+[ "$mode" = "full" ] && { rm -f "$ROOT/.coverage.xml"; suite_args="--cov --cov-report=term --cov-report=xml:.coverage.xml --cov-fail-under=0"; }
 fast_gates
 [ "$mode" = "full" ] && full_gates
 if [ -n "$failed" ]; then echo "RED:$failed"; exit 1; fi

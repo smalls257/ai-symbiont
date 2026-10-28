@@ -47,6 +47,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _parser() -> argparse.ArgumentParser:
+    """The `symbiont` argument parser: `serve` and `recall`."""
     parser = argparse.ArgumentParser(prog="symbiont")
     commands = parser.add_subparsers(dest="command", required=True)
     serving = commands.add_parser("serve", help="run the local service on 127.0.0.1")
@@ -69,6 +70,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _add_hook_commands(commands: Any) -> None:
+    """Register `hook`, `install` and `uninstall`; the hook reads its event JSON from stdin."""
     hook = commands.add_parser("hook", help="forward one harness hook event (JSON on stdin)")
     hook.add_argument("event", type=HookEvent, choices=list(HookEvent))
     hook.add_argument("--harness", choices=HARNESSES, required=True)
@@ -86,17 +88,20 @@ def _add_hook_commands(commands: Any) -> None:
 
 
 def _serve(args: argparse.Namespace) -> int:
+    """Run the local service until interrupted."""
     serve(open_service(args.data_dir, args.mode), args.port)
     return 0
 
 
 def _mcp(args: argparse.Namespace) -> int:
+    """Serve the single recall tool over stdio, logging to stderr."""
     logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="symbiont-mcp: %(message)s")
     serve_stdio(sys.stdin, sys.stdout, args.project, args.port)
     return 0
 
 
 def _recall(args: argparse.Namespace) -> int:
+    """Print the service's answer, or `symbiont offline: ...` when it is down."""
     try:
         print(recall_answer(args.question, args.project, args.port))
     except ServiceOfflineError as offline:
@@ -112,6 +117,7 @@ def _recall(args: argparse.Namespace) -> int:
 
 
 def _hook(args: argparse.Namespace) -> int:
+    """Forward one hook event; a down service prints the offline notice, not an empty note."""
     try:
         result = run_hook(
             args.event,
@@ -135,6 +141,7 @@ def _hook(args: argparse.Namespace) -> int:
 
 
 def _installation(args: argparse.Namespace) -> int:
+    """Install or uninstall hooks for the chosen harness, showing the diff first."""
     spec: HarnessInstall = INSTALLERS[args.harness](args.notes)
     try:
         if args.command == "uninstall":
@@ -153,11 +160,13 @@ def _installation(args: argparse.Namespace) -> int:
 
 
 def _approve_all(diff: str) -> bool:
+    """Print the diff and accept it, for non-interactive installs."""
     print(diff)
     return True
 
 
 def _ask_before_writing(diff: str) -> bool:
+    """Print the diff and write only on an explicit `y`."""
     print(diff)
     return input("Write these changes? [y/N] ").strip().lower() == "y"
 

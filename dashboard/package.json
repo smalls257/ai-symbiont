@@ -1,0 +1,12 @@
+{
+  "name": "symbiont-dashboard-tooling",
+  "private": true,
+  "description": "Pinned lint and HTML validation for the dashboard and docs (QG-FE-01, QG-FE-03). Dev tooling only; the page itself loads nothing from npm.",
+  "type": "module",
+  "devDependencies": {
+    "@eslint/js": "9.39.5",
+    "eslint": "9.39.5",
+    "globals": "17.13.0",
+    "html-validate": "11.17.0"
+  }
+}

@@ -17,3 +17,7 @@ __pycache__/
 .mypy_cache/
 docs/superpowers/
 .DS_Store
+.semgrep/registry/
+.coverage.xml
+dashboard/node_modules/
+mutants/

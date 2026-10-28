@@ -1,4 +1,5 @@
-"""Airplane mode for unit tests: any socket use outside periphery tests fails loudly."""
+"""QG-TST-06 (network part): airplane mode for unit tests; any socket use outside periphery tests
+fails loudly. The disk and clock parts of the standard are not enforced yet."""
 
 
 class AirplaneViolationError(RuntimeError):
