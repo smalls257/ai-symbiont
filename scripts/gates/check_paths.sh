@@ -27,7 +27,7 @@ unsafe_name() { [ "$1" != "$(printf '%s' "$1" | tr -d '\001-\037"\\')" ]; }
 shopt -s nocasematch
 
 tree=""
-list=$(mktemp -t symbiont-paths) || gate_die "cannot create a temp file"
+list=$(mktemp "${TMPDIR:-/tmp}/symbiont-paths.XXXXXX") || gate_die "cannot create a temp file"
 trap 'rm -f "$list"' EXIT
 if [ "${1:-}" = "tree" ]; then
   tree="${2:-}"; [ -d "$tree" ] || gate_die "check_paths.sh tree needs an existing directory"

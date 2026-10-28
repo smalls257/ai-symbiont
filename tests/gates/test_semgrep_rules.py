@@ -27,15 +27,20 @@ EXPECT = re.compile(r"#\s*expect:\s*((?:sym-[\w-]+[\s,]*)+)")
 pytestmark = pytest.mark.periphery
 
 
+def _marked_lines(path: Path) -> set[tuple[str, int, str]]:
+    marked = set()
+    for number, line in enumerate(path.read_text().splitlines(), start=1):
+        if match := EXPECT.search(line):
+            rel = str(path.relative_to(FIXTURES))
+            marked |= {(rel, number, rule) for rule in re.findall(r"sym-[\w-]+", match.group(1))}
+    return marked
+
+
 def _expected() -> set[tuple[str, int, str]]:
     found = set()
     for path in FIXTURES.rglob("*"):
-        if not path.is_file():
-            continue
-        for number, line in enumerate(path.read_text().splitlines(), start=1):
-            if match := EXPECT.search(line):
-                for rule_id in re.findall(r"sym-[\w-]+", match.group(1)):
-                    found.add((str(path.relative_to(FIXTURES)), number, rule_id))
+        if path.is_file():
+            found |= _marked_lines(path)
     return found
 
 

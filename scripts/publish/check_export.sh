@@ -47,7 +47,7 @@ if [ -n "$dirty" ]; then
   exit 1
 fi
 
-work=$(mktemp -d -t symbiont-export) || gate_die "cannot create a temp dir"
+work=$(mktemp -d "${TMPDIR:-/tmp}/symbiont-export.XXXXXX") || gate_die "cannot create a temp dir"
 trap 'rm -rf "$work"' EXIT
 tree="$work/tree"; anchor="$work/anchor"
 mkdir "$tree" "$anchor" || gate_die "cannot create $tree"

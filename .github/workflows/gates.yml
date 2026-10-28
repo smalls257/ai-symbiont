@@ -1,0 +1,99 @@
+# The same gates as the local hooks, on a clean box: scripts/gates/run.sh is the one
+# definition of green (docs/standards/quality-gates.html, phase 3). Fails closed: a missing
+# secret, tool, checksum or base ref stops the job. Prevents Silent Fallback (a gate that
+# never ran) and Distributed Monolith (CI and hooks drifting into two verdicts).
+name: gates
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: gates-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  GITLEAKS_VERSION: "8.30.1"
+  GITLEAKS_SHA256: "551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+
+jobs:
+  gates:
+    name: gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.9.28"
+
+      - name: Install dev dependencies
+        run: uv sync --group dev
+
+      - name: Install gitleaks (pinned release, checksum verified)
+        run: |
+          set -euo pipefail
+          dir="$(mktemp -d)"
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSL -o "$dir/$archive" \
+            "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/${archive}"
+          echo "${GITLEAKS_SHA256}  $dir/$archive" | sha256sum --check --strict -
+          mkdir -p "$HOME/.local/bin"
+          tar -xzf "$dir/$archive" -C "$HOME/.local/bin" gitleaks
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Resolve and verify the diff base
+        id: base
+        env:
+          EVENT: ${{ github.event_name }}
+          BEFORE: ${{ github.event.before }}
+        run: |
+          set -euo pipefail
+          if [ "$EVENT" = "pull_request" ]; then
+            base=origin/main
+          else
+            base="$BEFORE"
+            if [ -z "$base" ] || [ "$base" = "0000000000000000000000000000000000000000" ]; then
+              echo "push has no usable before-SHA ('$base'); failing closed" >&2
+              exit 2
+            fi
+          fi
+          git rev-parse --verify --quiet "${base}^{commit}" > /dev/null \
+            || { echo "diff base '$base' does not resolve; failing closed" >&2; exit 2; }
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+
+      - name: Provide the owner private terms (QG-SEC-05)
+        env:
+          SYMBIONT_PRIVATE_TERMS: ${{ secrets.SYMBIONT_PRIVATE_TERMS }}
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "${SYMBIONT_PRIVATE_TERMS}" | grep -q '[^[:space:]]'; then
+            echo "repository secret SYMBIONT_PRIVATE_TERMS is unset or blank; failing closed" >&2
+            exit 2
+          fi
+          dest="$HOME/.config/symbiont/private-terms.txt"
+          mkdir -p "$(dirname "$dest")"
+          umask 077
+          printf '%s\n' "${SYMBIONT_PRIVATE_TERMS}" > "$dest"
+          chmod 600 "$dest"
+
+      - name: Arm the hooks (tests assert core.hooksPath)
+        run: scripts/install-hooks.sh
+
+      - name: Run the full gates
+        env:
+          SYMBIONT_GATE_BASE: ${{ steps.base.outputs.base }}
+        run: scripts/gates/run.sh full
