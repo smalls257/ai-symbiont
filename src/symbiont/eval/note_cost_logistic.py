@@ -72,13 +72,29 @@ def predict(model: Logistic, features: np.ndarray) -> np.ndarray:
     return result
 
 
+@dataclass(frozen=True)
+class Steps:
+    """Every TRAIN step: its features, label and task fold."""
+
+    features: np.ndarray
+    labels: np.ndarray
+    fold: np.ndarray
+
+
 def outer_fold_risks(
-    features: np.ndarray, labels: np.ndarray, step_fold: np.ndarray, outer: int, l2: float
+    steps: Steps, outer: int, l2: float, fit_mask: np.ndarray | None = None
 ) -> np.ndarray:
-    """Out-of-sample risk of every step for one outer fold (see the module note)."""
-    risks = np.empty(len(labels))
-    for fold in np.unique(step_fold):
-        held = step_fold == fold
-        fit_on = (step_fold != fold) & (step_fold != outer) if fold != outer else ~held
-        risks[held] = predict(fit_logistic(features[fit_on], labels[fit_on], l2), features[held])
+    """Out-of-sample risk of every step for one outer fold (see the module note).
+
+    `fit_mask` limits which steps any model is fit on (a learning curve on fewer tasks); every
+    step still gets a risk from a model that never saw its fold.
+    """
+    allowed = np.ones(len(steps.labels), dtype=bool) if fit_mask is None else fit_mask
+    risks = np.empty(len(steps.labels))
+    for fold in np.unique(steps.fold):
+        held = steps.fold == fold
+        fit_on = (steps.fold != fold) & (steps.fold != outer) if fold != outer else ~held
+        fit_on &= allowed
+        model = fit_logistic(steps.features[fit_on], steps.labels[fit_on], l2)
+        risks[held] = predict(model, steps.features[held])
     return risks

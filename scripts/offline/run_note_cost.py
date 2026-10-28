@@ -31,9 +31,9 @@ import run_selection as g6
 
 from symbiont.eval import selection as sel
 from symbiont.eval.net_benefit import DENSE_LEARNING_RATES, PRIMARY_COST
-from symbiont.eval.note_cost_logistic import L2_GRID, outer_fold_risks
+from symbiont.eval.note_cost_logistic import L2_GRID, Steps, outer_fold_risks
 from symbiont.eval.note_cost_ranking import ranking
-from symbiont.eval.note_cost_report import Arms, report
+from symbiont.eval.note_cost_report import NESTED, Arms, report
 from symbiont.eval.note_cost_select import FOLDS, task_folds
 from symbiont.eval.note_delivery import NoteTrace, boundary_steps
 from symbiont.eval.offline import Start, replay
@@ -146,43 +146,111 @@ def features(args: argparse.Namespace) -> None:
 FEATURES: np.ndarray = np.empty((0, 0))
 LABELS: np.ndarray = np.empty(0)
 STEP_FOLD: np.ndarray = np.empty(0)
+STEP_TASK: np.ndarray = np.empty(0)
+TASK_FOLD: np.ndarray = np.empty(0)
+DOCUMENT: dict[str, Any] = {}
+FRACTIONS = (0.25, 0.5, 1.0)  # share of each outer fold's training tasks the classifier fits on
+FRACTION_SEEDS = (0, 1, 2)
+FRACTION_L2 = 1000.0  # the strength picked most often on TRAIN folds under option A
+CURVE_OPTIONS = ("a_heads_up_gain_1", "a_tiers_boundary_budget")
+
+
+def load_classifier_inputs(document: dict[str, Any], path: str) -> None:
+    """Features, labels, and the task and fold of every TRAIN step, for forked workers."""
+    global FEATURES, LABELS, STEP_FOLD, STEP_TASK, TASK_FOLD, DOCUMENT
+    columns, DOCUMENT = document["sessions"], document
+    FEATURES = np.load(path)
+    LABELS = np.array([f == "1" for row in columns["followed"] for f in row], dtype=np.float64)
+    if len(FEATURES) != len(LABELS):
+        raise ValueError(f"{len(FEATURES)} feature rows for {len(LABELS)} TRAIN steps")
+    tasks = sorted(set(columns["task_id"]))
+    index = {task: i for i, task in enumerate(tasks)}
+    TASK_FOLD = task_folds(len(tasks), sel.SEED)
+    pairs = zip(columns["task_id"], columns["followed"], strict=True)
+    STEP_TASK = np.concatenate([np.full(len(f), index[t]) for t, f in pairs])
+    STEP_FOLD = TASK_FOLD[STEP_TASK]
 
 
 def classifier_job(job: tuple[int, float]) -> list[float]:
     """Out-of-sample classifier risks for one (outer fold, L2 strength)."""
     outer, l2 = job
     started = time.time()
-    risks = outer_fold_risks(FEATURES, LABELS, STEP_FOLD, outer, l2)
+    risks = outer_fold_risks(Steps(FEATURES, LABELS, STEP_FOLD), outer, l2)
     log.info("classifier fold %d l2 %g (%.0fs)", outer, l2, time.time() - started)
     return risks.tolist()
 
 
 def classifier_risks(document: dict[str, Any], path: str, workers: int) -> dict:
     """Fit the batch classifier per outer fold and L2 strength, in forked workers."""
-    global FEATURES, LABELS, STEP_FOLD
-    columns = document["sessions"]
-    FEATURES = np.load(path)
-    LABELS = np.array([f == "1" for row in columns["followed"] for f in row], dtype=np.float64)
-    if len(FEATURES) != len(LABELS):
-        raise ValueError(f"{len(FEATURES)} feature rows for {len(LABELS)} TRAIN steps")
-    tasks = sorted(set(columns["task_id"]))
-    fold_of = dict(zip(tasks, task_folds(len(tasks), sel.SEED), strict=True))
-    pairs = zip(columns["task_id"], columns["followed"], strict=True)
-    STEP_FOLD = np.concatenate([np.full(len(f), fold_of[t]) for t, f in pairs])
+    load_classifier_inputs(document, path)
     jobs = [(outer, l2) for outer in range(FOLDS) for l2 in L2_GRID]
     return dict(zip(jobs, g6.pool_map(classifier_job, jobs, workers), strict=True))
 
 
+def pooled_held_out(by_outer: dict[int, list[float]]) -> np.ndarray:
+    """Each step's risk from the model of its own outer fold."""
+    pooled = np.empty(len(LABELS))
+    for outer, risks in by_outer.items():
+        held = outer == STEP_FOLD
+        pooled[held] = np.asarray(risks)[held]
+    return pooled
+
+
 def classifier_ranking(risks: dict) -> dict[str, Any]:
-    """Held-out ranking of the classifier per L2 strength: each step scored by its own fold."""
-    found = {}
-    for l2 in L2_GRID:
-        pooled = np.empty(len(LABELS))
-        for outer in range(FOLDS):
-            held = outer == STEP_FOLD
-            pooled[held] = np.asarray(risks[(outer, l2)])[held]
-        found[f"l2 {l2:g}"] = ranking(pooled, LABELS.astype(bool))
-    return found
+    """Held-out ranking of the classifier per L2 strength."""
+    return {
+        f"l2 {l2:g}": ranking(
+            pooled_held_out({o: risks[(o, l2)] for o in range(FOLDS)}), LABELS.astype(bool)
+        )
+        for l2 in L2_GRID
+    }
+
+
+def fraction_job(job: tuple[float, int]) -> dict[str, Any]:
+    """The classifier fit on a sampled share of each outer fold's training tasks, scored."""
+    fraction, seed = job
+    rng, by_outer = np.random.default_rng(seed), {}
+    for outer in range(FOLDS):
+        candidates = np.flatnonzero(outer != TASK_FOLD)
+        keep = rng.choice(candidates, size=max(1, round(fraction * len(candidates))), replace=False)
+        mask = np.isin(STEP_TASK, keep)
+        risks = outer_fold_risks(Steps(FEATURES, LABELS, STEP_FOLD), outer, FRACTION_L2, mask)
+        by_outer[outer] = risks.tolist()
+    traces = {o: {FRACTION_L2: cut_traces(DOCUMENT, r, f"fold {o}")} for o, r in by_outer.items()}
+    arms = arms_of(DOCUMENT, None)
+    body = report(Arms(arms.counters, arms.fly, arms.dense, logistic=traces), seed=sel.SEED)
+    rows = [
+        {**r, "train_task_share": fraction, "sample_seed": seed}
+        for r in body["rows"]
+        if r["arm"] == NESTED and r["option"] in CURVE_OPTIONS
+    ]
+    log.info("classifier fraction %g seed %d done", fraction, seed)
+    return {"rows": rows, "ranking": ranking(pooled_held_out(by_outer), LABELS.astype(bool))}
+
+
+def fractions(args: argparse.Namespace) -> None:
+    """Classifier learning curve over the share of TRAIN tasks it fits on (TRAIN only)."""
+    document = json.loads(Path(args.traces).read_text())
+    if document["split"] != "train":
+        raise ValueError("note-cost traces must come from the TRAIN split only")
+    load_classifier_inputs(document, args.features)
+    jobs = [(f, s) for f in FRACTIONS for s in FRACTION_SEEDS]
+    done = g6.pool_map(fraction_job, jobs, args.workers)
+    out = {
+        "run_label": "exploratory",
+        "question": "does the batch classifier still improve with more TRAIN tasks",
+        "code_commit": t36.git_head(),
+        "l2": FRACTION_L2,
+        "fractions": list(FRACTIONS),
+        "sample_seeds": list(FRACTION_SEEDS),
+        "rows": [r for d in done for r in d["rows"]],
+        "ranking": [
+            {"train_task_share": f, "sample_seed": s, **d["ranking"]}
+            for (f, s), d in zip(jobs, done, strict=True)
+        ],
+    }
+    Path(args.out).write_text(json.dumps(out, indent=1))
+    log.info("wrote %s", args.out)
 
 
 def online_ranking(document: dict[str, Any]) -> dict[str, Any]:
@@ -281,6 +349,10 @@ def main(argv: list[str] | None = None) -> None:
         score_parser.add_argument(f"--{name}", required=True)
     score_parser.add_argument("--features")
     score_parser.add_argument("--workers", type=int, default=13)
+    fractions_parser = sub.add_parser("fractions")
+    for name in ("traces", "features", "out"):
+        fractions_parser.add_argument(f"--{name}", required=True)
+    fractions_parser.add_argument("--workers", type=int, default=9)
     features_parser = sub.add_parser("features")
     for name in ("data", "meta", "out"):
         features_parser.add_argument(f"--{name}", required=True)
@@ -289,7 +361,7 @@ def main(argv: list[str] | None = None) -> None:
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", stream=sys.stderr
     )
-    {"trace": trace, "score": score, "features": features}[args.cmd](args)
+    {"trace": trace, "score": score, "features": features, "fractions": fractions}[args.cmd](args)
 
 
 if __name__ == "__main__":

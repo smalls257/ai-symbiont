@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 
 from symbiont.eval.note_cost_logistic import (
+    Steps,
     class_weights,
     fit_logistic,
     outer_fold_risks,
@@ -41,8 +42,19 @@ def test_the_fit_ranks_trouble_above_calm_and_a_stronger_penalty_shrinks_it():
 def test_no_risk_ever_comes_from_a_model_that_saw_the_outer_fold():
     features, labels = data()
     step_fold = np.arange(len(labels)) % 5
-    before = outer_fold_risks(features, labels, step_fold, outer=2, l2=1.0)
+    before = outer_fold_risks(Steps(features, labels, step_fold), outer=2, l2=1.0)
     flipped = labels.copy()
     flipped[step_fold == 2] = 1 - flipped[step_fold == 2]
-    after = outer_fold_risks(features, flipped, step_fold, outer=2, l2=1.0)
+    after = outer_fold_risks(Steps(features, flipped, step_fold), outer=2, l2=1.0)
+    assert np.allclose(before, after)
+
+
+def test_a_fit_mask_limits_what_the_models_learn_from():
+    features, labels = data()
+    step_fold = np.arange(len(labels)) % 5
+    mask = np.arange(len(labels)) < 300
+    before = outer_fold_risks(Steps(features, labels, step_fold), outer=0, l2=1.0, fit_mask=mask)
+    changed = labels.copy()
+    changed[~mask] = 1 - changed[~mask]  # steps outside the mask cannot move any risk
+    after = outer_fold_risks(Steps(features, changed, step_fold), outer=0, l2=1.0, fit_mask=mask)
     assert np.allclose(before, after)
