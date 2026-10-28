@@ -1,15 +1,9 @@
 """Penalized offline selection run (T36). Periphery script.
 
-The registered rules live in `symbiont.eval.net_benefit` and `symbiont.eval.penalized_report`
-(tested, pure); prereg/2026-10-28-penalized-selection.md fixes them. This script loads the data,
-schedules the replays, and writes the results file. It chooses no threshold itself.
-
-    run_penalized.py run --data ... --meta ... --out results/penalized-selection.json \
-        --scored --prereg prereg/2026-10-28-penalized-selection.md
-    run_penalized.py run ...                      # no --scored: labeled exploratory
-    run_penalized.py run ... --smoke-train-only   # never touches a real test task
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
+The rules live in `symbiont.eval.net_benefit` and `penalized_report` (pure, tested) and
+prereg/2026-10-28-penalized-selection.md; this script loads data, schedules replays and
+writes results, choosing no threshold. Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1.
+Usage: run_penalized.py run --data ... --meta ... --out ... --scored --prereg ...
 """
 
 import argparse

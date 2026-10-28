@@ -1,9 +1,6 @@
-"""Measure how far the whole tree is from the gates, and write scripts/gates/baseline.json.
+"""Measure the whole tree against the gates and write scripts/gates/baseline.json.
 
-Phase 1 holds only changed files to the full bar; this records what the unchanged rest
-would fail today, so phase 2 has a number to drive to zero and a ratchet to hold it
-(Paper Tiger prevention: a cleanup without a baseline cannot show it cleaned anything).
-
+Phase 1 holds changed files to the bar; this counts what the rest would fail, for phase 2.
 Usage: measure_baseline.py [--write]      (default: print only)
 """
 
@@ -19,6 +16,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]
 sys.path.insert(0, str(HERE))
 
+import baseline_wired  # noqa: E402
 import check_claims  # noqa: E402
 import check_file_length  # noqa: E402
 import check_naming  # noqa: E402
@@ -196,6 +194,13 @@ def measure() -> dict:
         "ruff": ruff_counts(py),
         **structure_counts(py),
         "semgrep": semgrep_counts(py + tracked(".sh")),
+        "semgrep_registry_QG_SAST_01": baseline_wired.registry_counts(tracked("")),
+        "docstrings_QG_RD_01": baseline_wired.docstring_coverage(),
+        "type_ignores_QG_TYP_03": baseline_wired.type_ignore_count(),
+        "dependencies_QG_DEP_01_02": baseline_wired.licence_and_audit_summary(),
+        "frontend_QG_FE_01_02_03": baseline_wired.frontend_counts(),
+        "comment_policy_QG_RD_04": baseline_wired.comment_findings(py),
+        "mutation_QG_TST_05": baseline_wired.mutation_score_if_measured(),
         "claims_untagged_or_forbidden": claims_count(),
         "mypy_errors_src": mypy_errors(),
         "secrets_history_of_base": secrets_findings(),

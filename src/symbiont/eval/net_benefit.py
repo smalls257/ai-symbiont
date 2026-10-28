@@ -33,6 +33,7 @@ class TrainChoice:
 def _risks_and_labels(
     risks: Sequence[float | None], followed: Sequence[bool]
 ) -> tuple[np.ndarray, np.ndarray]:
+    """Risks and labels as arrays; a mismatch, no steps or a missing risk raises ValueError."""
     if len(risks) != len(followed):
         raise ValueError(f"{len(risks)} risks for {len(followed)} labels")
     if not len(risks):
@@ -45,12 +46,7 @@ def _risks_and_labels(
 def best_threshold(
     risks: Sequence[float | None], followed: Sequence[bool], cost: float
 ) -> TrainChoice:
-    """The risk threshold with the highest TRAIN net benefit; ties go to the higher one.
-
-    A step warns when its risk is at or above the threshold. If no threshold
-    earns more than 0 the choice is `NEVER` with net benefit 0, because never
-    warning is always available and fewer warnings win a tie.
-    """
+    """The TRAIN threshold with the best net benefit (ties go higher); `NEVER` if none beats 0."""
     values, labels = _risks_and_labels(risks, followed)
     order = np.argsort(-values, kind="stable")
     ranked, hits = values[order], labels[order]
@@ -69,6 +65,7 @@ def interval(point: float, samples: np.ndarray) -> dict[str, Any]:
     low, high = np.percentile(defined, [2.5, 97.5]) if len(defined) else (np.nan, np.nan)
 
     def clean(number: float) -> float | None:
+        """NaN becomes None so the JSON says undefined."""
         return None if np.isnan(number) else float(number)
 
     return {
@@ -127,19 +124,13 @@ SIMPLEST_FIRST = (Warner.COUNTERS, Warner.DENSE, Warner.FLY)
 def live_warner(
     benefit: Mapping[Warner, Mapping[str, Any]], gap_to_counters: Mapping[Warner, Mapping[str, Any]]
 ) -> Warner:
-    """The registered decision rule at c = 0.5.
-
-    `benefit` holds each candidate's net-benefit interval; `gap_to_counters`
-    holds the interval of (candidate - counters) for dense and fly. Only a
-    candidate whose lower bound is above 0 beats never warning; a learner that
-    does not clearly beat counters, when counters also beat never warning,
-    loses to counters.
-    """
+    """The registered rule at c = 0.5: beat never warning, and counters unless clearly better."""
     winners = [w for w in SIMPLEST_FIRST if benefit[w]["ci95_low"] > 0]
     if not winners:
         return Warner.NONE
 
     def rank(candidate: Warner) -> tuple[float, int]:
+        """Highest net benefit first; ties go to the simpler learner."""
         return round(benefit[candidate]["value"], 12), -SIMPLEST_FIRST.index(candidate)
 
     best = max(winners, key=rank)

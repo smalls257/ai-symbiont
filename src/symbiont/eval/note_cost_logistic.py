@@ -1,14 +1,8 @@
 """A plain classifier row for T46: batch logistic regression on the learners' per-step features.
 
-A standard supervised baseline (reference, not under test). It differs from DenseNet in two
-ways that matter: DenseNet passes the 86 features through a fixed random tanh layer and
-learns its readout online, one outcome at a time, with no penalty; this model fits the raw
-features in one batch on whole TRAIN folds, with an L2 penalty and class weights for the
-trouble rate. It answers "would an ordinary fitted classifier earn notes?".
-
-Risks for selection must be out of sample, as the online learners' are: for an outer fold,
-the steps of the other folds get risks from inner models that never saw their fold, and the
-outer fold's steps get risks from a model fit on all other folds. Pure numpy.
+A reference baseline: it fits the raw features in one batch with an L2 penalty and class weights,
+unlike DenseNet's online readout. Risks are out of sample: for an outer fold, other folds' steps
+get risks from inner models that never saw their fold. Pure numpy.
 """
 
 from dataclasses import dataclass
@@ -30,6 +24,7 @@ class Logistic:
 
 
 def _design(features: np.ndarray, mean: np.ndarray, scale: np.ndarray) -> np.ndarray:
+    """Standardized features with an intercept column."""
     standard = (features - mean) / scale
     return np.hstack([np.ones((len(standard), 1)), standard])
 
@@ -43,10 +38,7 @@ def class_weights(labels: np.ndarray) -> np.ndarray:
 
 
 def fit_logistic(features: np.ndarray, labels: np.ndarray, l2: float) -> Logistic:
-    """Newton steps on the class-weighted log loss plus l2/2 times the squared weights.
-
-    The intercept is not penalized. Raises if Newton has not settled within NEWTON_STEPS.
-    """
+    """Newton steps on the class-weighted L2 log loss; raises if they do not settle."""
     mean, scale = features.mean(axis=0), features.std(axis=0)
     scale = np.where(scale > 0, scale, 1.0)
     design, weights = _design(features, mean, scale), class_weights(labels.astype(bool))
@@ -84,11 +76,7 @@ class Steps:
 def outer_fold_risks(
     steps: Steps, outer: int, l2: float, fit_mask: np.ndarray | None = None
 ) -> np.ndarray:
-    """Out-of-sample risk of every step for one outer fold (see the module note).
-
-    `fit_mask` limits which steps any model is fit on (a learning curve on fewer tasks); every
-    step still gets a risk from a model that never saw its fold.
-    """
+    """Out-of-sample risk of each step for one outer fold; `fit_mask` limits fitting."""
     allowed = np.ones(len(steps.labels), dtype=bool) if fit_mask is None else fit_mask
     risks = np.empty(len(steps.labels))
     for fold in np.unique(steps.fold):

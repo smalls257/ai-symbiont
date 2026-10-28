@@ -1,14 +1,14 @@
 """Assemble the scored T46 results (prereg/2026-10-28-note-cost.md). Pure functions of traces.
 
-Input: for each start (repository only, or warm from the pool), learner, seed and held-out
-repository, one (TRAIN traces, TEST traces) pair per block (a DenseNet rate or an L2
-strength). Every setting is chosen on TRAIN and counted on TEST. Rows are pooled over the
-repositories and per repository, with floors, counters beside the fly, and the verdict at the
-primary price for the repository-only start.
+Input is one (TRAIN, TEST) trace pair per block for each start, learner, seed and held-out
+repository. Every setting is chosen on TRAIN and counted on TEST; rows pool over repositories and
+per repository, with floors, counters beside the fly, and the verdict at the primary price for the
+repository-only start.
 """
 
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from enum import StrEnum
 from typing import Any
 
 import numpy as np
@@ -105,15 +105,31 @@ def layout_of(runs: Runs, seed: int) -> Layout:
 
 Choices = dict[str, list[float]]
 Row = dict[str, Any]
-_STACKS: dict[tuple[int, Any, Tiers], Stack] = {}
+
+
+class StackReuse(StrEnum):
+    """Whether TRAIN stacks are shared across options (they depend only on rule and tiers)."""
+
+    CACHED = "cached"
+    FRESH = "fresh"  # recompute every time: the check that the cache changed nothing
+
+
+# The cached value keeps the traces object itself, so a reused id is caught, never served.
+_STACKS: dict[tuple[int, Any, Tiers], tuple[Traces, Stack]] = {}
+_REUSE = [StackReuse.CACHED]
 
 
 def train_stack(train: Traces, option: Option) -> Stack:
     """TRAIN counts of one run, cached: every registered option shares the rule and tiers."""
+    if _REUSE[0] is StackReuse.FRESH:
+        return count_stack(prepare(train, _tasks(train)), option.rule, option.tiers)
     key = (id(train), option.rule, option.tiers)
+    if key in _STACKS and _STACKS[key][0] is not train:
+        raise RuntimeError("a TRAIN stack cache key was reused by another traces object")
     if key not in _STACKS:
-        _STACKS[key] = count_stack(prepare(train, _tasks(train)), option.rule, option.tiers)
-    return _STACKS[key]
+        stack = count_stack(prepare(train, _tasks(train)), option.rule, option.tiers)
+        _STACKS[key] = (train, stack)
+    return _STACKS[key][1]
 
 
 def learner_counts(
@@ -135,6 +151,7 @@ def learner_counts(
 
 
 def _tasks(traces: Traces) -> list[str]:
+    """The distinct task ids of the traces, sorted."""
     return sorted({t.task_id for t in traces})
 
 
@@ -171,6 +188,7 @@ def rows_for(name: str, role: str, held: np.ndarray, where: Where, lay: Layout) 
 
 
 def _row(name: str, role: str, where: Where, repo: str, metrics: dict[str, Any]) -> Row:
+    """One scored results row for an arm in one place."""
     low = metrics[NET]["ci95_low"]
     return {
         "arm": name,
@@ -211,9 +229,21 @@ def differences(held: Mapping[str, np.ndarray], where: Where, lay: Layout) -> li
     return found
 
 
-def scored_report(runs: Runs, *, seed: int) -> dict[str, Any]:
+def scored_report(
+    runs: Runs, *, seed: int, reuse: StackReuse = StackReuse.CACHED
+) -> dict[str, Any]:
     """All registered rows, differences, TRAIN choices and the verdict."""
     _STACKS.clear()
+    _REUSE[0] = reuse
+    try:
+        return _assemble(runs, seed)
+    finally:
+        _STACKS.clear()
+        _REUSE[0] = StackReuse.CACHED
+
+
+def _assemble(runs: Runs, seed: int) -> dict[str, Any]:
+    """Every row, difference, choice and verdict for one seed."""
     lay = layout_of(runs, seed)
     rows: list[Row] = []
     diffs: list[Row] = []

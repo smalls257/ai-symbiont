@@ -48,6 +48,7 @@ class Picked:
 
 
 def _labels(traces: Sequence[RiskTrace]) -> tuple[list[float | None], list[bool]]:
+    """Flat risk scores and followed-by-pain-point labels across traces."""
     return flat_risks(traces), [flag for trace in traces for flag in trace.followed]
 
 
@@ -75,12 +76,14 @@ def pick_dense(by_rate: Mapping[float, ArmTraces], cost: float, tasks: Sequence[
 
 
 def _mean_counts(picks: Sequence[Picked]) -> np.ndarray:
+    """Per-task counts averaged over a learner's runs."""
     return np.mean([p.counts for p in picks], axis=0)
 
 
 def _row(
     arm: str, role: str, cost: float | None, counts: np.ndarray, draws: np.ndarray
 ) -> dict[str, Any]:
+    """One results row; net benefit is only reported when a cost is given."""
     secondary = budget_row(counts, draws)
     metrics: dict[str, Any] = {name: secondary[name] for name in SECONDARY}
     if cost is not None:
@@ -93,6 +96,7 @@ def _row(
 
 
 def _setting(picked: Picked) -> dict[str, Any]:
+    """The train-chosen threshold and learning rate; `warns_never` marks the never-warn choice."""
     never = picked.choice.threshold == NEVER
     return {
         "threshold": None if never else picked.choice.threshold,
@@ -148,6 +152,7 @@ ROLES = {"counters": "reference", "fly": "under_test", "dense": "under_test"}
 
 
 def _role(arm: str) -> str:
+    """The row's label (reference or under_test) from its arm name."""
     return ROLES[arm.split(" ")[0]]
 
 
@@ -191,12 +196,14 @@ def verdict_at_primary(picks: Picks, draws: np.ndarray) -> dict[str, Any]:
 
 
 def _per_task_lines(tasks: Sequence[str], counts: np.ndarray) -> list[str]:
+    """One `task,count,...` line per task."""
     return [
         f"{t},{','.join(str(int(c)) for c in row)}" for t, row in zip(tasks, counts, strict=True)
     ]
 
 
 def _table_line(row: Mapping[str, Any]) -> str:
+    """A markdown-table cell line for one row; an undefined net benefit says so."""
     metrics = row["metrics"]["net_benefit_per_100_steps"]
     if metrics["value"] is None:
         return f"{row['arm']} | c={row['cost']:g} | undefined"

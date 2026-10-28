@@ -1,24 +1,15 @@
 """Scored T46 run on the held-out repositories (prereg/2026-10-28-note-cost.md). Periphery.
 
-The registered rules live in `symbiont.eval.note_cost_scored` and `note_cost_scored_report`
-(pure, tested). This script loads Pillow, dvc and conan, splits each by task, checks out each
-repository's hub commit, replays every learner (TRAIN online, then TEST online), fits the
-classifier, and writes the results file. It chooses nothing itself.
-
-    run_note_cost_scored.py split --data-dir data/nebius-openhands/held-out
-    run_note_cost_scored.py run --data-dir data/nebius-openhands/held-out \
-        --pool results/repo-pool.json --pool-dir data/nebius-openhands/pool \
-        --out results/note-cost.json --scored --prereg prereg/2026-10-28-note-cost.md
-
-At most half the CPU (16 workers). Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1.
+The rules live in `symbiont.eval.note_cost_scored` and `note_cost_scored_report` (pure, tested).
+This script splits Pillow, dvc and conan by task, replays every learner, fits the classifier and
+writes results; it chooses nothing itself. At most 16 workers; set OMP_NUM_THREADS=1.
+Usage: run_note_cost_scored.py {split|run|verify} --data-dir ... --scored --prereg ...
 """
 
 import argparse
 import json
 import logging
-import subprocess
 import sys
-import tempfile
 import time
 from datetime import UTC, datetime
 from pathlib import Path
@@ -29,12 +20,13 @@ import run_note_cost as nc
 import run_repo_curve as rc
 import run_selection as g6
 from export_nebius_repos import TRAJECTORIES_REVISION
+from held_out_inputs import hub_context, split, split_counts, split_repo
 
 from symbiont.core.counters import Counters
 from symbiont.core.dense import DenseNet
 from symbiont.core.mushroom import Mushroom
 from symbiont.eval import selection as sel
-from symbiont.eval.net_benefit import DENSE_LEARNING_RATES, PRIMARY_COST
+from symbiont.eval.net_benefit import DENSE_LEARNING_RATES
 from symbiont.eval.note_cost_logistic import (
     L2_GRID,
     Steps,
@@ -42,128 +34,24 @@ from symbiont.eval.note_cost_logistic import (
     out_of_fold_risks,
     predict,
 )
-from symbiont.eval.note_cost_scored_report import scored_report
+from symbiont.eval.note_cost_scored_report import StackReuse, scored_report
 from symbiont.eval.note_cost_select import task_folds
 from symbiont.eval.note_delivery import NoteTrace, boundary_steps
 from symbiont.eval.offline import (
     History,
     ReplayContext,
     Start,
-    drop_taskless,
-    hub_modules,
     replay,
-    split_by_task,
 )
 from symbiont.eval.prereg_git import run_provenance
 from symbiont.eval.repo_pool import HELD_OUT
 from symbiont.eval.warning_budget_metrics import RiskRecorder
-from symbiont.readers import openhands
-from symbiont.readers.errors import ReadError
-from symbiont.store.references import build_references
 
 log = logging.getLogger("note-cost-scored")
 PREREG_NAME = "2026-10-28-note-cost.md"
 WORKERS_CAP = 16  # half the run host's cores: T39 and a fly study share the CPU
-HUB_CUTOFF = 0.5
 REPO: dict[str, dict[str, Any]] = {}  # held-out repository -> sessions, ctx, columns
 Job = tuple[str, int, float | None, str]
-
-
-def file_of(data_dir: Path, repo: str, suffix: str = ".jsonl") -> Path:
-    """The exported file of one repository."""
-    return data_dir / (repo.replace("/", "__") + suffix)
-
-
-SMOKE_TASKS = 12
-
-
-def split_repo(data_dir: Path, repo: str, *, smoke: bool = False) -> dict[str, Any]:
-    """Sessions of one repository split by task (test fraction 0.3, seed 20261029).
-
-    Smoke keeps a few TRAIN-split tasks and splits them again: no real TEST task is replayed.
-    """
-    records, refused = readable_records(file_of(data_dir, repo), repo)
-    sessions, dropped = drop_taskless(sel.group_sessions(records))
-    train_ids, test_ids = split_by_task(
-        [s[0].task_id for s in sessions], test_fraction=sel.TEST_FRACTION, seed=sel.SEED
-    )
-    if smoke:
-        keep = set(sorted(train_ids)[:SMOKE_TASKS])
-        sessions = [s for s in sessions if s[0].task_id in keep]
-        train_ids, test_ids = split_by_task(
-            sorted(keep), test_fraction=sel.TEST_FRACTION, seed=sel.SEED
-        )
-    ordered = sel.replay_order(sessions)
-    return {
-        "train": [s for s in ordered if s[0].task_id in train_ids],
-        "test": [s for s in ordered if s[0].task_id in test_ids],
-        "train_ids": train_ids,
-        "dropped_taskless": dropped,
-        "refused_by_reader": refused,
-    }
-
-
-def readable_records(path: Path, repo: str) -> tuple[list, int]:
-    """Records of every row the reader reads; refused rows are dropped, counted and logged."""
-    records, refused = [], 0
-    for row in openhands.read_each_row(path, repo):
-        if isinstance(row, ReadError):
-            refused += 1
-            log.warning("dropped a trajectory the reader refuses (prereg rule): %s", row)
-            continue
-        records += row
-    return records, refused
-
-
-def split_counts(parts: dict[str, Any]) -> dict[str, int]:
-    """Tasks, sessions and steps per split: counts only, no label and no metric."""
-    found = {
-        "sessions_dropped_taskless": parts["dropped_taskless"],
-        "trajectories_refused_by_reader": parts["refused_by_reader"],
-    }
-    for name in ("train", "test"):
-        found[f"tasks_{name}"] = len({s[0].task_id for s in parts[name]})
-        found[f"sessions_{name}"] = len(parts[name])
-        found[f"steps_{name}"] = sum(len(s) for s in parts[name])
-    return found
-
-
-def split(args: argparse.Namespace) -> None:
-    """Print the per-split counts the prereg records before any metric exists."""
-    counts = {repo: split_counts(split_repo(Path(args.data_dir), repo)) for repo in HELD_OUT}
-    print(json.dumps(counts, indent=1))
-
-
-def hub_context(data_dir: Path, repo: str, train_ids: frozenset[str]) -> tuple[ReplayContext, dict]:
-    """Check out the median-created TRAIN task's base commit and build the replay context."""
-    meta = json.loads(file_of(data_dir, repo, ".meta.json").read_text())
-    task = sel.median_task({t: m["created_at"] for t, m in meta.items()}, train_ids)
-    commit = meta[task]["base_commit"]
-    with tempfile.TemporaryDirectory(prefix="hub-") as tmp:
-        references = checkout_references(repo, commit, Path(tmp))
-    hubs = hub_modules(references, HUB_CUTOFF)
-    log.info("%s hub checkout: task %s at %s; hubs %s", repo, task, commit, sorted(hubs))
-    ctx = ReplayContext(references=references, hubs=hubs, false_alarm_cost=PRIMARY_COST)
-    return ctx, {
-        "task_id": task,
-        "base_commit": commit,
-        "hub_modules": sorted(hubs),
-        "reference_files": len(references),
-    }
-
-
-def checkout_references(repo: str, commit: str, workdir: Path) -> dict[str, frozenset[str]]:
-    """Fetch one commit by hash (it may be off every branch) and map test references."""
-    dest = workdir / "checkout"
-    dest.mkdir()
-    for step in (
-        ["init", "--quiet"],
-        ["remote", "add", "origin", f"https://github.com/{repo}"],
-        ["fetch", "--quiet", "--depth", "1", "origin", commit],
-        ["checkout", "--quiet", "FETCH_HEAD"],
-    ):
-        subprocess.run(["git", "-C", str(dest), *step], check=True)
-    return build_references(dest)
 
 
 def learner(kind: str, seed: int, param: float | None, hubs: frozenset[str]) -> Any:
@@ -341,11 +229,9 @@ def run(args: argparse.Namespace) -> None:
     started = time.time()
     label = run_provenance(scored=args.scored, prereg=args.prereg, expects=PREREG_NAME)
     hubs = prepare(args)
-    jobs = online_jobs()
-    online = g6.pool_map(online_job, jobs, args.workers)
-    fits = [(r, l2, s) for s in ("repo", "pool") for r in HELD_OUT for l2 in L2_GRID]
-    classifier = dict(zip(fits, g6.pool_map(classifier_job, fits, args.workers), strict=True))
-    body = scored_report(collect(jobs, online, classifier), seed=sel.SEED)
+    jobs, online, runs = replays(args)
+    save_runs(runs, Path(args.out).with_suffix(".traces.json"))
+    body = scored_report(runs, seed=sel.SEED)
     log.info("verdict: %s", body["verdict"]["live_warner"])
     document = {
         **label,
@@ -361,6 +247,68 @@ def run(args: argparse.Namespace) -> None:
     }
     Path(args.out).write_text(json.dumps(document, indent=1))
     log.info("wrote %s (wall clock %.0fs)", args.out, time.time() - started)
+
+
+def replays(args: argparse.Namespace) -> tuple[list[Job], list[dict[str, Any]], dict]:
+    """Every online replay and classifier fit, collected per start, learner, seed and repo."""
+    jobs = online_jobs()
+    online = g6.pool_map(online_job, jobs, args.workers)
+    fits = [(r, l2, s) for s in ("repo", "pool") for r in HELD_OUT for l2 in L2_GRID]
+    classifier = dict(zip(fits, g6.pool_map(classifier_job, fits, args.workers), strict=True))
+    return jobs, online, collect(jobs, online, classifier)
+
+
+def save_runs(runs: dict, path: Path) -> None:
+    """Every TRAIN and TEST trace the report read (labels, risks, boundaries; no text)."""
+
+    def plain(pair: tuple) -> list:
+        return [[[t.task_id, t.followed, t.step_risk, t.boundary] for t in part] for part in pair]
+
+    tree = {
+        start: {
+            name: {
+                str(seed): {repo: [plain(p) for p in pairs] for repo, pairs in by_repo.items()}
+                for seed, by_repo in by_seed.items()
+            }
+            for name, by_seed in by_name.items()
+        }
+        for start, by_name in runs.items()
+    }
+    path.write_text(json.dumps(tree))
+
+
+def load_runs(path: Path) -> dict:
+    """The saved traces, back in the report's shape."""
+
+    def pair(saved: list) -> tuple:
+        return tuple(
+            tuple(NoteTrace(t, tuple(f), tuple(r), tuple(b)) for t, f, r, b in part)
+            for part in saved
+        )
+
+    tree = json.loads(path.read_text())
+    return {
+        start: {
+            name: {
+                int(seed): {repo: [pair(p) for p in pairs] for repo, pairs in by_repo.items()}
+                for seed, by_repo in by_seed.items()
+            }
+            for name, by_seed in by_name.items()
+        }
+        for start, by_name in tree.items()
+    }
+
+
+def verify(args: argparse.Namespace) -> None:
+    """Rebuild the report from saved traces without the TRAIN stack cache and compare; writes
+    nothing.
+    """
+    written = json.loads(Path(args.results).read_text())
+    fresh = scored_report(load_runs(Path(args.traces)), seed=sel.SEED, reuse=StackReuse.FRESH)
+    for key in ("chosen_on_train", "rows", "differences", "verdict"):
+        if json.loads(json.dumps(fresh[key])) != written[key]:
+            raise SystemExit(f"verification failed: {key} differs without the stack cache")
+        log.info("verified %s: identical without the stack cache", key)
 
 
 def online_job(job: Job) -> dict[str, Any]:
@@ -383,15 +331,19 @@ def main() -> None:
     run_parser.add_argument("--prereg")
     run_parser.add_argument("--workers", type=int, default=WORKERS_CAP)
     run_parser.add_argument("--smoke-train-only", action="store_true")
+    verify_parser = sub.add_parser("verify")
+    for name in ("traces", "results"):
+        verify_parser.add_argument(f"--{name}", required=True)
+    verify_parser.add_argument("--workers", type=int, default=1)
     args = parser.parse_args()
     if args.cmd == "run" and args.scored and args.smoke_train_only:
         parser.error("--smoke-train-only never produces a scored result; drop one of the two")
-    if args.cmd == "run" and args.workers > WORKERS_CAP:
+    if args.cmd != "split" and args.workers > WORKERS_CAP:
         parser.error(f"at most {WORKERS_CAP} workers: half the run host is shared")
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", stream=sys.stderr
     )
-    split(args) if args.cmd == "split" else run(args)
+    {"split": split, "run": run, "verify": verify}[args.cmd](args)
 
 
 if __name__ == "__main__":

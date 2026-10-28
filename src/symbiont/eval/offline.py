@@ -1,46 +1,9 @@
-"""Offline replay: replay recorded sessions through a Decider and score it.
+"""Offline replay: replay recorded sessions through a Decider and score each step.
 
-Violation prevented: **Paper Tiger**. A fly-circuit learner that passes its
-unit tests but warns no better than "has this gone wrong twice before?" would
-ship as a feature nobody benefits from. So the replay scores every learner on
-the same steps, the table cannot be rendered without the counters and
-similarity rows beside the fly row, and the live-learner choice is a rule
-(`fly_default`) fixed in the pre-registration, not a judgment made after
-seeing the numbers.
-
-Second guard, **Infected Core**: nothing here reads a file, a clock or a
-network. Sessions, references and history come in as arguments; the run
-script (periphery) loads the data. Tests use synthetic sessions.
-
-What a step is scored on (the pre-registration states the same):
-
-- flag: did the decider name a trouble (`Decision.trouble is not None`)?
-- label: does a pain point (after hub and scratch-file filtering, see
-  `pain_labels`) fall in steps t+1..t+5 of the same session?
-- balanced accuracy (AUROC of the binary flag): flags are binary, so AUROC
-  with ties counted as half equals (true-positive rate + true-negative rate)
-  / 2. It is 0.5 for a decider that never flags.
-- recall@3 (only the first RECALL_SIZE recalled records are looked at): at
-  steps with a next pain point, does any recalled record belong to a history
-  pain point of the same signature as that next pain point? Only reported for
-  a decider that recalled something at some step.
-
-Same filter everywhere: history is stored already filtered by `pain_labels`
-(hub breakage and rework of a session's own scratch files removed), the same
-function that makes the labels, so learners and labels agree by construction.
-
-Replay can resume: it takes a trained state and returns the final one, so a
-learner can replay the train sessions online and then continue through the
-test sessions with what it learned, while only the new sessions are scored.
-
-Leak rule: a decision at step t sees pain points mined from earlier,
-finished sessions only. Pain points of the current session are placed after
-the fact (a blast-radius point sits at the edit but is found when the test
-fails), so reading them mid-session would hand the answer over. Learning
-happens after each session ends.
-
-The verdict rule lives in `offline_verdict`, the markdown table in
-`offline_table`; both read the scores defined here.
+Pure: sessions, references and history come in as arguments. A step is flagged when the
+decider names a trouble, labeled when a pain point falls in steps t+1..t+5 of its session,
+and scored by balanced accuracy and recall@3. A decision sees only pain points of earlier,
+finished sessions; replay resumes from a trained state. Rules are in the pre-registration.
 """
 
 import logging
@@ -285,6 +248,7 @@ def _decide_session(
     targets: Sequence[PainPoint | None],
     ctx: ReplayContext,
 ) -> tuple[list[Decision], list[tuple[np.ndarray, Outcome]]]:
+    """Decide each step of a session; pair its features with its outcome for learning."""
     decisions, learned = [], []
     for situation, target in zip(situations, targets, strict=True):
         features = ctx.features(situation)
@@ -294,6 +258,7 @@ def _decide_session(
 
 
 def _outcome(target: PainPoint | None, false_alarm_cost: float) -> Outcome:
+    """What followed a step: the pain point that came next, or none."""
     if target is None:
         return Outcome(pain_point_followed=False, signature=None, false_alarm_cost=false_alarm_cost)
     return Outcome(
@@ -310,7 +275,10 @@ def _session_scores(
     decisions: Sequence[Decision],
     history: History,
 ) -> SessionScores:
+    """Per-step flags, labels and recall hits of one session."""
+
     def hit(decision: Decision, target: PainPoint | None) -> bool | None:
+        """Whether a recalled record matches the next pain point's signature; None without one."""
         if target is None:
             return None
         return any(
@@ -355,6 +323,7 @@ def hub_modules(references: Mapping[str, frozenset[str]], cutoff: float) -> froz
 
 
 def _is_test(path: str) -> bool:
+    """True for a `test_*` file name."""
     return path.rsplit("/", 1)[-1].startswith("test_")
 
 

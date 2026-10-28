@@ -1,11 +1,9 @@
 """When a note may be shown: boundary steps, a per-session budget, a cooldown and two tiers (T46).
 
-Exploratory, TRAIN only (docs/design/2026-10-28-note-cost.md). T36 counted every warned
-step as its own alarm, so a learner that is right about a trouble spell but says so on five
-steps in a row paid five times. Here a note is spent the way a harness would spend it: online,
-step by step, seeing only the current risk and the notes already shown in this session.
-
-Pure: traces and records come in as arguments.
+Exploratory, TRAIN only (docs/design/2026-10-28-note-cost.md). A note is spent the way a harness
+would: online, step by step, seeing only the current risk and the notes already shown this
+session, so a learner right about one trouble spell does not pay five times. Pure: traces and
+records in.
 """
 
 from collections.abc import Sequence
@@ -57,11 +55,7 @@ class DeliveryRule:
 
 
 def boundary_steps(session: Sequence[Record]) -> tuple[bool, ...]:
-    """Mark the steps a harness hook sees as natural pauses.
-
-    A step is a boundary when its record is a failed command (the miner's own rule, so an empty
-    grep is not a failure) or an edit of a file this session already edited and applied.
-    """
+    """Steps a harness hook sees as natural pauses: a failed command, or a repeat edit of a file."""
     failed = {point.step for point in find_failed_commands(session)}
     edited: set[str] = set()
     marks = []
@@ -84,11 +78,7 @@ def spell_ids(followed: Sequence[bool]) -> np.ndarray:
 def note_steps(
     risk: np.ndarray, eligible: np.ndarray, threshold: float, rule: DeliveryRule
 ) -> np.ndarray:
-    """Steps that carry a note, spent online in step order.
-
-    `eligible` is the gate's mask. A step qualifies when its risk reaches `threshold`; it is
-    shown unless the budget is spent or a note was shown within the cooldown.
-    """
+    """Steps that carry a note, spent online: risk at threshold, within budget and cooldown."""
     candidates = np.flatnonzero(eligible & (risk >= threshold))
     if rule.budget is None and rule.cooldown == 0:
         return candidates

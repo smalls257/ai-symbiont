@@ -1,21 +1,9 @@
 """Offline selection run (Task 14 part 2, the G6 gate). Periphery script.
 
-Violation prevented: **Silent Fallback**. The prereg
-(prereg/2026-10-29-offline-selection.md, frozen) fixes every rule; the pure
-parts live in `symbiont.eval.selection` and `symbiont.eval.offline`, tested.
-This script only fetches metadata, clones the hub checkout, schedules the
-replays across processes and writes the results file. A failed worker, a
-rate limit that does not clear or a missing created_at stops the run with the
-reason; nothing is defaulted.
-
-    run_selection.py fetch-meta --data data/nebius-openhands/sqlglot.jsonl \
-        --out data/nebius-openhands/sqlglot_meta.json
-    run_selection.py run --data ... --meta ... --out results/offline-selection.json \
-        --scored --prereg prereg/2026-10-29-offline-selection.md
-    run_selection.py run ...                      # no --scored: labeled exploratory
-    run_selection.py run ... --smoke-train-only   # dry run that never touches a test task
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 when running: parallelism is by process.
+The rules are fixed by prereg/2026-10-29-offline-selection.md and live in `symbiont.eval.selection`
+and `offline` (pure, tested). This script fetches metadata, schedules replays and writes results;
+a failed worker or a missing created_at stops the run, nothing is defaulted.
+Usage: run_selection.py {fetch-meta|run} ... (run without --scored is exploratory)
 """
 
 import argparse
