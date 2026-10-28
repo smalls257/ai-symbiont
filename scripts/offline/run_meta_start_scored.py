@@ -206,7 +206,8 @@ def run(args: argparse.Namespace) -> None:
         "wall_clock_s": time.time() - started,
         "finished_utc": datetime.now(UTC).isoformat(timespec="seconds"),
     }
-    Path(args.out).write_text(json.dumps(document, indent=1))
+    # Compact: the indented scored file was over the 1 MB limit for tracked files.
+    Path(args.out).write_text(json.dumps(document, separators=(",", ":")) + "\n")
     log.info("wrote %s (%.0fs)", args.out, time.time() - started)
 
 
