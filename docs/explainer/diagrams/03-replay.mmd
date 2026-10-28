@@ -1,0 +1,10 @@
+flowchart TB
+  D["2,678 recorded trajectories on 275 sqlglot problems"] --> SP{"split by task id\nseed 20261029"}
+  SP -- "seven tenths of the ids" --> TR["TRAIN sessions\ncalibrate thresholds here only"]
+  SP -- "three tenths of the ids" --> TE["TEST sessions\n82 test problems, 101,755 steps"]
+  TR --> L1["each learner replays train online\n(learns from outcomes)"]
+  L1 --> L2["continues through test with what it learned\nonly test steps are scored"]
+  TE --> L2
+  L2 --> SC["per step: flag? vs label\n(pain point within the next five steps)"]
+  SC --> T["one table, always with\ncounters beside the fly row"]
+  P["prereg frozen and committed\nbefore any test number exists"] -. "fixes split, metric, rule" .-> SP

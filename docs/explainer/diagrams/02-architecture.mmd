@@ -1,0 +1,30 @@
+flowchart LR
+  subgraph PURE["Pure core: no network, clock, files or harness"]
+    REC["records\nthe one contract"]
+    MIN["miner\none signal per file"]
+    CORE["core\nDecider slot: counters · similarity · mushroom"]
+  end
+  subgraph PERI["Periphery"]
+    RD["readers\none file per harness"]
+    ST[("store\nSQLite, two guards")]
+    SV["service\nlocalhost HTTP, event log"]
+    DL["delivery\nMCP server · hooks · wrapper"]
+    EV["eval\nreplay, scores, prereg guard"]
+    RB["routeb\nLoRA pairs from records"]
+    A1["act1\nFreedoom via ViZDoom"]
+    EG["egress\nthe one door out"]
+  end
+  RD --> REC
+  MIN --> REC
+  CORE --> MIN
+  ST --> MIN
+  ST --> REC
+  SV --> CORE
+  SV --> ST
+  DL -.-> SV
+  EV --> CORE
+  EV --> ST
+  RB --> CORE
+  A1 --> CORE
+  A1 --> EG
+  EV -.-> EG

@@ -1,0 +1,6 @@
+flowchart LR
+  E["edit"] --> H1["Claude hooks\npath guard · gitleaks on text"]
+  H1 --> C["pre-commit: fast\nsecrets · paths · ruff · lizard · semgrep\nnaming · claims · scoped tests"]
+  C --> P["pre-push: full\nwhole suite with count floor\nhistory scan · import-linter · mypy\ngate integrity per commit"]
+  P --> X["publish check\nexported tree, fails closed"]
+  X --> R["public repo"]
