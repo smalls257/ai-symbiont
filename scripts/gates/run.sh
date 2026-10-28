@@ -28,6 +28,7 @@ suite_args=""   # full adds a coverage report; the floor is judged on the same s
 require_everything() {
   need_tool uv "https://docs.astral.sh/uv/"
   need_tool gitleaks "brew install gitleaks"
+  need_tool node "brew install node"   # QG-FE-01/03; the pinned npm tools are checked where used
   need_venv
   for tool in ruff lizard codespell_lib semgrep mypy importlinter pytest_cov defusedxml \
                   pytest_randomly diff_cover interrogate pip_audit piplicenses; do need_py_tool "$tool"; done
@@ -53,6 +54,22 @@ gate() {
   else
     echo "FAIL  $id"; printf '%s\n' "$output" | sed 's/^/      /'; failed="$failed $id"
   fi
+}
+
+# advisory <id> <command...>: a finding is reported and logged but does not fail the run (exit 1
+# only); a gate that cannot run (exit 2 or more) still fails, so an advisory gate is never skipped.
+advisory() {
+  local id="$1"; shift
+  local started=$SECONDS output rc verdict
+  output=$("$@" 2>&1); rc=$?
+  verdict=pass; [ "$rc" -eq 0 ] || verdict=advisory; [ "$rc" -le 1 ] || verdict=fail
+  printf '{"ts":"%s","gate":"%s","stage":"%s","duration_s":%s,"verdict":"%s"}\n' \
+    "$(date -u +%FT%TZ)" "$id" "$stage" "$((SECONDS - started))" "$verdict" >> "$log"
+  case "$verdict" in
+    pass) echo "ok    $id ($((SECONDS - started))s)" ;;
+    advisory) echo "note  $id (advisory, does not fail the run): $(printf '%s\n' "$output" | tail -n 1)" ;;
+    fail) echo "FAIL  $id"; printf '%s\n' "$output" | sed 's/^/      /'; failed="$failed $id" ;;
+  esac
 }
 
 # Files each gate sees. Fixtures hold deliberate violations; spikes are throwaway probes.
@@ -134,6 +151,8 @@ fast_gates() {
   [ -z "$spelled" ] || gate QG-RD-05 uv run --no-sync codespell --builtin en-GB_to_en-US $spelled
   gate QG-SAST-02 scripts/gates/semgrep_pinned.sh
   gate QG-TYP-03 uv run --no-sync python scripts/gates/check_type_ignores.py
+  gate QG-FE-01 scripts/gates/check_js.sh
+  gate QG-FE-02 uv run --no-sync python scripts/gates/check_cdn.py
   # fast judges the changed files, full the whole tree (the count that goes into baseline.json)
   if [ "$mode" = "full" ]; then gate QG-SAST-01 scripts/gates/semgrep_registry.sh --tree
   else gate QG-SAST-01 scripts/gates/semgrep_registry.sh; fi
@@ -158,6 +177,7 @@ full_gates() {
   gate QG-DEP-01 uv run --no-sync python scripts/gates/check_audit.py
   gate QG-DEP-02 uv run --no-sync python scripts/gates/check_licenses.py
   gate QG-TST-03 scripts/gates/diff_coverage.sh
+  advisory QG-FE-03 scripts/gates/check_html.sh
   local typed; typed=$(printf '%s\n' "$all" | grep -E '^src/symbiont/.*\.py$' || [ $? -eq 1 ]) \
     || gate_die "file selection failed"
   # shellcheck disable=SC2086

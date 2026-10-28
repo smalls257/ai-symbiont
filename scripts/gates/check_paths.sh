@@ -19,7 +19,9 @@ LARGE_OK='^(uv\.lock|results/offline-selection\.json)$'
 DATA_EXT='parquet|gguf|safetensors|bin|pt|pth|ckpt|onnx|npy|npz|h5|hdf5|arrow|feather|pkl|pickle|wad|pem|p12|pfx|jks|keystore|key|ndjson|csv|tsv|log|sqlite3?|db|zip|tar|tgz|gz|7z|traj|jsonl'
 FORBIDDEN="(^|/)(data|runs)/|transcript|trajector|adapter_(model|config)|(^|/)id_(rsa|dsa|ecdsa|ed25519)|(^|/)\.env|\.($DATA_EXT)\$"
 JSONL_OK='^tests/fixtures/.*\.jsonl$'
-JSON_OK='^(tests/fixtures/|results/|dashboard/sample/|\.claude/).*\.json$|^(scripts/gates/baseline|\.gitleaks-baseline)\.json$'
+# dashboard/package.json and its lockfile are npm's pinned tooling manifests (QG-FE-01/03): two exact
+# names, never a pattern, so any other dashboard JSON is still refused.
+JSON_OK='^(tests/fixtures/|results/|dashboard/sample/|\.claude/).*\.json$|^(scripts/gates/baseline|\.gitleaks-baseline)\.json$|^dashboard/(package|package-lock)\.json$'
 RESULTS_JSON_ONLY='^(results|dashboard/sample)/'
 BINARY_OK='\.(png|jpe?g|gif|ico|woff2?|pdf)$'
 # unsafe_name NAME: true when NAME holds a control character, a double quote or a backslash

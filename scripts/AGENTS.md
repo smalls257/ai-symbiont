@@ -14,7 +14,7 @@ See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 - Gate scripts (`gates/`): anchored to the git root, fail closed (missing tool or config exits non-zero), one definition per gate, changed files only in phase 1, waiver files delete-only.
 - Spark-bound code receives `Store.spark_view()`; one price table (`eval/budget.py`).
 - Python here is held to the same size, nesting and naming caps as `src/`; gate scripts obey the caps they enforce.
-- A fresh worktree has no `.venv`: every gate fails with `run: uv sync --group dev` until you run it.
+- A fresh worktree has no `.venv`: every gate fails with `run: uv sync --group dev` until you run it. The semgrep registry snapshot (QG-SAST-01) is gitignored: run `scripts/gates/fetch_semgrep_packs.sh` once per checkout (network). The frontend gates need `cd dashboard && npm ci` before they can judge a changed dashboard file.
 - Pre-commit is fast (changed-file checks plus the unit tests of touched packages); the whole suite, the `run.sh` tests and the history scan run at pre-push.
 - `publish/` is a gate directory like `gates/`: protected, owner-edited, `GATE-CHANGE` trailer.
 - Gate files are owner-edited; a change needs a `GATE-CHANGE: <reason>` commit trailer (QG-GATE-01), in that commit's own message.

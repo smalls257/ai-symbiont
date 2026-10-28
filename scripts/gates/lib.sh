@@ -79,3 +79,11 @@ changed_matching() {
   all=$(changed_files) || return 2
   printf '%s\n' "$all" | grep -E "$1" || [ $? -eq 1 ]
 }
+
+# need_node_tool <name>: a pinned npm tool installed under dashboard/ by `npm ci`, never global.
+# Prevents Silent Fallback: a frontend gate whose linter is missing must fail, not report "ok".
+need_node_tool() {
+  need_tool node "brew install node"
+  [ -x "$ROOT/dashboard/node_modules/.bin/$1" ] \
+    || gate_die "frontend tool not installed: $1 (run: cd dashboard && npm ci)"
+}

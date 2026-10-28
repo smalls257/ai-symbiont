@@ -19,3 +19,4 @@ docs/superpowers/
 .DS_Store
 .semgrep/registry/
 .coverage.xml
+dashboard/node_modules/

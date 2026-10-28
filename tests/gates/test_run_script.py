@@ -129,6 +129,10 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
         '    ET.parse("rows.xml")  # type: ignore\n'
         "    return rows\n"
     )
+    (gate_repo / "dashboard").mkdir()
+    (gate_repo / "dashboard/page.html").write_text(
+        '<script src="https://cdn.example.com/x.js"></script>\n'
+    )
     (gate_repo / "data").mkdir()
     (gate_repo / "data/rows.csv").write_text("a,b\n")
     _git(gate_repo, "add", "-f", "data/rows.csv")
@@ -143,6 +147,7 @@ def test_planted_violations_turn_the_matching_gates_red(gate_repo):
         "QG-SAST-02",
         "QG-GATE-01",
         "QG-TYP-03",
+        "QG-FE-02",
     ):
         assert f"FAIL  {gate}" in out.stdout, gate
     assert "RED:" in out.stdout and "GREEN" not in out.stdout

@@ -82,3 +82,36 @@ def licence_and_audit_summary() -> dict:
         verdict = [line for line in out.stdout.splitlines() if line.startswith(f"{key}: ")]
         lines[key] = verdict[-1].removeprefix(f"{key}: ")
     return lines
+
+
+def frontend_counts() -> dict:
+    """QG-FE-01/02/03 over the whole dashboard and docs: what a touch would have to fix."""
+    dash = ROOT / "dashboard"
+    lint = subprocess.run(
+        ["npx", "--no-install", "eslint", "--format", "json", "."],
+        cwd=dash, capture_output=True, text=True, check=False,
+    )  # fmt: skip
+    if not lint.stdout.startswith("["):
+        raise RuntimeError(
+            f"eslint gave no report (run: cd dashboard && npm ci): {lint.stderr[-300:]}"
+        )
+    cdn = run_tool("python", str(ROOT / "scripts/gates/check_cdn.py"))
+    html = run_tool("bash", str(ROOT / "scripts/gates/check_html.sh"), *html_files())
+    if cdn.returncode == 2 or html.returncode == 2:
+        raise RuntimeError(f"frontend gate could not run: {cdn.stderr[-200:]}{html.stderr[-200:]}")
+    return {
+        "eslint_errors_dashboard": sum(f["errorCount"] for f in json.loads(lint.stdout)),
+        "external_loads": sum(line.startswith("QG-FE-02: ") and "external load" in line
+                              for line in cdn.stdout.splitlines()),
+        "html_validity_errors": next(
+            (int(m.group(1)) for m in re.finditer(r"QG-FE-03: (\d+) error", html.stdout)), 0
+        ),
+    }  # fmt: skip
+
+
+def html_files() -> list[str]:
+    out = subprocess.run(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "dashboard", "docs"],
+        cwd=ROOT, capture_output=True, text=True, check=True,
+    )  # fmt: skip
+    return [f for f in out.stdout.splitlines() if f.endswith(".html") and (ROOT / f).is_file()]
