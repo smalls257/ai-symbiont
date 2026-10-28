@@ -37,6 +37,7 @@ class SparkPrivacyViolationError(PermissionError):
     """A read would hand a not-Spark-safe record to a Spark-bound prompt."""
 
     def __init__(self, record: Record):
+        """Name the offending record in the message."""
         super().__init__(
             f"record {record.session_id}:{record.step} comes from {record.provenance.dataset}, "
             "which is not Spark-safe; it must not reach a Spark-bound prompt"
@@ -52,6 +53,7 @@ class Store:
     """SQLite-backed records and pain points; the only persistence the rest of the system sees."""
 
     def __init__(self, db: sqlite3.Connection):
+        """Wrap an open SQLite connection."""
         self._db = db
 
     @classmethod
@@ -77,6 +79,7 @@ class Store:
         return added
 
     def _insert(self, record: Record) -> int:
+        """Insert a record: 1 if new, 0 if identical; StoreConflictError if the key differs."""
         body = _record_json(record)
         key = (record.harness, record.session_id, record.step)
         row = self._db.execute(
@@ -156,6 +159,7 @@ class SparkView:
     """Read-only; every read raises rather than return a private record."""
 
     def __init__(self, store: Store):
+        """Wrap the store being viewed."""
         self._store = store
 
     def sessions(self, project: str) -> list[list[Record]]:
@@ -188,10 +192,12 @@ def _chains(sessions: list[list[Record]]) -> tuple[list[list[Record]], list[list
 
 
 def _started(session: list[Record]) -> str | None:
+    """Earliest timestamp in a session, or None."""
     return min((r.ts for r in session if r.ts is not None), default=None)
 
 
 def _refuse_private(records: Iterable[Record]) -> None:
+    """Raise on the first record that is not Spark-safe."""
     for record in records:
         if not record.provenance.spark_safe:
             raise SparkPrivacyViolationError(record)
@@ -215,21 +221,25 @@ def _check_held_out(records: Sequence[Record], held_out_tasks: frozenset[str]) -
 
 
 def _record_json(record: Record) -> str:
+    """One record as its JSONL line."""
     out = io.StringIO()
     dump_jsonl([record], out)
     return out.getvalue().rstrip("\n")
 
 
 def _record_from_json(body: str) -> Record:
+    """The record in one JSONL line."""
     (record,) = load_jsonl(io.StringIO(body))
     return record
 
 
 def _pain_point_json(pain: PainPoint) -> str:
+    """Serialize a pain point for the pain_points table."""
     return json.dumps(asdict(pain))
 
 
 def _pain_point_from_json(body: str) -> PainPoint:
+    """A pain point from its JSON."""
     data = json.loads(body)
     signature = data["signature"]
     return PainPoint(
