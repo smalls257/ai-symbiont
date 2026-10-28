@@ -15,6 +15,9 @@ from symbiont.miner.painpoint import PainPoint, Signature
 from symbiont.records.schema import Record
 
 NO_HISTORY = "no history for this project yet"
+# A false alarm costs as much as a miss: the balanced case, and the value that
+# leaves a learner's behavior as it was before warnings were penalized.
+BALANCED_FALSE_ALARM_COST = 1.0
 
 
 @dataclass(frozen=True)
@@ -80,6 +83,14 @@ class Outcome:
     # history counts it once. None when the caller cannot say.
     session_id: str | None = None
     step: int | None = None
+    # What a false alarm costs relative to a miss (owner, Oct 27: warnings are
+    # penalized). Only read when `pain_point_followed` is False.
+    false_alarm_cost: float = BALANCED_FALSE_ALARM_COST
+
+    def __post_init__(self) -> None:
+        """Refuse a cost that is not a positive finite number."""
+        if not 0 < self.false_alarm_cost < float("inf"):
+            raise ValueError(f"false_alarm_cost must be positive, got {self.false_alarm_cost}")
 
 
 class Decider(Protocol):

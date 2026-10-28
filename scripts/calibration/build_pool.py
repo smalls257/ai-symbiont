@@ -9,6 +9,8 @@ Pool rule (plan Task 22): sqlglot rows that have a docker image and a gold patch
 MAX_GOLD_LINES changed lines. "Changed lines" = added + removed lines of the diff, headers excluded;
 the raw diff length is recorded too so the cut can be re-argued without re-downloading.
 
+Each pool entry also carries `subsystem` and `size_band` (strata.py) for the stratified screen.
+
 Usage: python build_pool.py <workdir>
 """
 
@@ -17,6 +19,7 @@ import sys
 from pathlib import Path
 
 import duckdb
+from strata import size_band, subsystem_of
 
 SOURCE = "hf://datasets/nebius/SWE-rebench@~parquet/default/filtered/*.parquet"
 REPO = "tobymao/sqlglot"
@@ -41,6 +44,19 @@ def changed_lines(diff: str) -> int:
     )
 
 
+def pool_entry(row: dict, size: int) -> dict:
+    """One pool line: ids, sizes, test counts and the two strata labels (no task text)."""
+    return {
+        "instance_id": row["instance_id"],
+        "gold_changed_lines": size,
+        "gold_diff_lines": len(row["patch"].splitlines()),
+        "n_fail_to_pass": len(row["FAIL_TO_PASS"] or []),
+        "n_pass_to_pass": len(row["PASS_TO_PASS"] or []),
+        "subsystem": subsystem_of(row["patch"]),
+        "size_band": size_band(size),
+    }
+
+
 def main(workdir: Path) -> None:
     con = duckdb.connect()
     con.sql("INSTALL httpfs; LOAD httpfs;")
@@ -62,15 +78,7 @@ def main(workdir: Path) -> None:
         if size >= MAX_GOLD_LINES:
             excluded["too_big"] += 1
             continue
-        pool.append(
-            {
-                "instance_id": row["instance_id"],
-                "gold_changed_lines": size,
-                "gold_diff_lines": len(row["patch"].splitlines()),
-                "n_fail_to_pass": len(row["FAIL_TO_PASS"] or []),
-                "n_pass_to_pass": len(row["PASS_TO_PASS"] or []),
-            }
-        )
+        pool.append(pool_entry(row, size))
     summary = {
         "source": SOURCE,
         "repo": REPO,

@@ -2,7 +2,9 @@
 can be loosened by the commit that needs the loosening proves nothing.
 
 Every commit in merge-base..HEAD is judged on its own diff against its parent, and so is the
-pending (staged or uncommitted) work against HEAD. A change is a loosening when it
+pending (staged or uncommitted) work against HEAD. A merge of main (or an ancestor of it) is judged
+only on what is new against both parents: main's own gate changes were approved where they landed.
+A change is a loosening when it
   * ADDS a waiver entry to .lizard-whitelist.txt or .naming-waivers.txt (removals pass),
   * LOWERS the test-count floor in scripts/gates/test-floor.txt (raising passes),
   * changes any other protected file: gate scripts and hooks, gitleaks config and baseline,
@@ -62,9 +64,12 @@ def run_git(root: Path, *args: str) -> str:
     return out.stdout
 
 
+def gate_base_ref() -> str:
+    return os.environ.get("SYMBIONT_GATE_BASE", "main")
+
+
 def base_commit(root: Path) -> str:
-    base = os.environ.get("SYMBIONT_GATE_BASE", "main")
-    return run_git(root, "merge-base", base, "HEAD").strip()
+    return run_git(root, "merge-base", gate_base_ref(), "HEAD").strip()
 
 
 def text_at(root: Path, ref: str | None, path: str) -> str | None:
@@ -147,7 +152,51 @@ def accepted_commits(root: Path) -> set[str]:
 
 
 def commits_in_range(root: Path, base: str) -> list[str]:
-    return run_git(root, "log", "--no-merges", "--reverse", "--format=%H", f"{base}..HEAD").split()
+    return run_git(root, "log", "--reverse", "--format=%H", f"{base}..HEAD").split()
+
+
+def is_ancestor(root: Path, sha: str, of: str) -> bool:
+    out = subprocess.run(
+        ["git", "-C", str(root), "merge-base", "--is-ancestor", sha, of], check=False
+    )
+    return out.returncode == 0
+
+
+def new_in_merge(root: Path, ours: str, theirs: str, after: str | None) -> list[str]:
+    """Loosenings of a merge result that neither parent already carried."""
+    against_ours = set(violations(root, ours, after))
+    floor_resolved = text_at(root, after, FLOOR_FILE) != text_at(root, ours, FLOOR_FILE)
+    return [
+        line
+        for line in violations(root, theirs, after)
+        if line in against_ours or (line.startswith(FLOOR_FILE) and floor_resolved)
+    ]
+
+
+def commit_findings(root: Path, sha: str, gate_base: str) -> list[str]:
+    """A commit's loosenings; a merge that brings in the gate base is judged by new_in_merge."""
+    parents = run_git(root, "rev-list", "--parents", "-n", "1", sha).split()[1:]
+    if len(parents) == 2 and is_ancestor(root, parents[1], gate_base):
+        return new_in_merge(root, parents[0], parents[1], sha)
+    return violations(root, f"{sha}^", sha)
+
+
+def merge_head(root: Path) -> str | None:
+    out = subprocess.run(
+        ["git", "-C", str(root), "rev-parse", "-q", "--verify", "MERGE_HEAD^{commit}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return out.stdout.strip() or None
+
+
+def pending_findings(root: Path, gate_base: str) -> list[str]:
+    """Uncommitted work's loosenings; during a merge of the gate base, only what is new."""
+    theirs = merge_head(root)
+    if theirs and is_ancestor(root, theirs, gate_base):
+        return new_in_merge(root, "HEAD", theirs, None)
+    return violations(root, "HEAD")
 
 
 def message_of(root: Path, sha: str) -> str:
@@ -158,8 +207,9 @@ def unmarked_commits(root: Path, base: str) -> list[str]:
     """One line per loosening in a commit whose own message lacks the trailer."""
     accepted = accepted_commits(root)
     found = []
+    gate_base = gate_base_ref()
     for sha in commits_in_range(root, base):
-        loosenings = violations(root, f"{sha}^", sha)
+        loosenings = commit_findings(root, sha, gate_base)
         if loosenings and sha not in accepted and not TRAILER.search(message_of(root, sha)):
             found += [f"{sha[:10]}: {line}" for line in loosenings]
     return found
@@ -191,7 +241,7 @@ def main(argv: list[str]) -> int:
     extra = Path(argv[1]).read_text() if argv[:1] == ["--message-file"] else ""
     problems = unmarked_commits(root, base)
     if not TRAILER.search(extra):
-        problems += [f"pending work: {line}" for line in violations(root, "HEAD")]
+        problems += [f"pending work: {line}" for line in pending_findings(root, gate_base_ref())]
     for line in problems:
         print(f"QG-GATE-01: {line}", file=sys.stderr)
     if problems:

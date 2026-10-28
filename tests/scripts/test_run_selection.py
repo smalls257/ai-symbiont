@@ -74,8 +74,28 @@ def test_results_document_keeps_the_prereg_section_order(script):
         (frozenset({"a"}), frozenset({"b"})),
         {"mushroom_final_s": 1.0},
     )
-    args = Namespace(smoke_train_only=True, freeze_commit="abc", workers=2)
-    doc = script.results_document(args, outcome, run_started=0.0)
+    args = Namespace(smoke_train_only=True, workers=2)
+    label = {
+        "prereg": None,
+        "freeze_commit": None,
+        "prereg_sha256": None,
+        "run_label": "exploratory",
+    }
+    doc = script.results_document(args, outcome, 0.0, label)
     assert list(doc)[:3] == ["smoke", "prereg", "freeze_commit"]
     assert list(doc)[-3:] == ["table_markdown", "g6", "per_step"]
     assert doc["smoke"] is True and doc["data"]["tasks_train"] == 1
+
+
+def test_scored_without_a_prereg_refuses_before_any_work(script):
+    from symbiont.eval.prereg import PreregNotFrozenError
+
+    with pytest.raises(PreregNotFrozenError, match="--scored needs --prereg"):
+        script.main(["run", "--data", "d", "--meta", "m", "--out", "o", "--scored"])
+
+
+def test_scored_smoke_is_refused(script):
+    with pytest.raises(SystemExit):
+        script.main(
+            ["run", "--data", "d", "--meta", "m", "--out", "o", "--scored", "--smoke-train-only"]
+        )

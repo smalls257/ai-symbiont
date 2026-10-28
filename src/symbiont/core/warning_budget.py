@@ -35,7 +35,22 @@ FOLLOW_WINDOW = 5
 # The 0.15 budget over 20 steps is 3 warnings; this is the live default.
 DEFAULT_BUDGET = 0.15
 DEFAULT_PER_STEPS = 20
+# What a false alarm costs relative to a miss. 1.0 is balanced; a placeholder
+# like the fly's trouble threshold: the next selection's prereg fixes the real
+# value (owner, Oct 27: warnings are penalized).
+DEFAULT_FALSE_ALARM_COST = 1.0
 _SHARE_ROUNDING = 9  # shares closer than this are ties, so float fuzz cannot decide
+
+
+def warn_probability_threshold(false_alarm_cost: float) -> float:
+    """The trouble probability above which warning beats staying quiet.
+
+    Warning when trouble follows saves a miss (cost 1); warning when it does
+    not costs `false_alarm_cost`. Warn when p * 1 > (1 - p) * cost.
+    """
+    if not 0 < false_alarm_cost < float("inf"):
+        raise ValueError(f"a false alarm cost must be positive, got {false_alarm_cost}")
+    return false_alarm_cost / (1.0 + false_alarm_cost)
 
 
 def calibrate_budget(risks_on_train: Sequence[float | None], budget: float) -> float:
@@ -125,11 +140,18 @@ class WarningBudget:
     max_warnings: int = round(DEFAULT_BUDGET * DEFAULT_PER_STEPS)
     per_steps: int = DEFAULT_PER_STEPS
     repeat_window: int = FOLLOW_WINDOW
+    false_alarm_cost: float = DEFAULT_FALSE_ALARM_COST
 
     @classmethod
-    def for_budget(cls, share: float, *, per_steps: int) -> "WarningBudget":
+    def for_budget(
+        cls, share: float, *, per_steps: int, false_alarm_cost: float = DEFAULT_FALSE_ALARM_COST
+    ) -> "WarningBudget":
         """The cap that spends `share` of `per_steps` steps, at least one warning."""
-        return cls(max_warnings=max(1, round(share * per_steps)), per_steps=per_steps)
+        return cls(
+            max_warnings=max(1, round(share * per_steps)),
+            per_steps=per_steps,
+            false_alarm_cost=false_alarm_cost,
+        )
 
     def admit(
         self, state: BudgetState, step: int, signature: Signature, x: np.ndarray
@@ -161,7 +183,7 @@ class WarningBudget:
         """
         settled, still_open = [], []
         for warned in state.unsettled:
-            lesson = _lesson(warned, step, seen)
+            lesson = _lesson(warned, step, seen, self.false_alarm_cost)
             if lesson is None:
                 still_open.append(warned)
             else:
@@ -169,7 +191,7 @@ class WarningBudget:
         return BudgetState(state.admitted, tuple(still_open)), tuple(settled)
 
 
-def _lesson(warned: Warned, step: int, seen: frozenset[Signature]) -> Settled | None:
+def _lesson(warned: Warned, step: int, seen: frozenset[Signature], cost: float) -> Settled | None:
     elapsed = step - warned.step
     if elapsed <= 0:
         return None
@@ -178,5 +200,8 @@ def _lesson(warned: Warned, step: int, seen: frozenset[Signature]) -> Settled | 
     if elapsed <= FOLLOW_WINDOW and warned.signature in seen:
         return Settled(warned.x, Outcome(pain_point_followed=True, signature=warned.signature))
     if elapsed >= FOLLOW_WINDOW:
-        return Settled(warned.x, Outcome(pain_point_followed=False, signature=warned.signature))
+        false_alarm = Outcome(
+            pain_point_followed=False, signature=warned.signature, false_alarm_cost=cost
+        )
+        return Settled(warned.x, false_alarm)
     return None
