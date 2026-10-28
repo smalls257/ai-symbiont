@@ -2,13 +2,14 @@
 
 The move is a function of the current `GameStateView`, like every move in moves.py, plus the level's
 `NavMap`. It stops, saying why, whenever it cannot go on: no map, no path, a door that will not
-open, no progress, or an exhausted tic budget. It never retries.
+open, no progress, an enemy within reach in view, or an exhausted tic budget. It never retries.
+The enemy stop exists because the strategy, not the walking script, decides whether to fight.
 """
 
 import math
 from dataclasses import dataclass, field
 
-from symbiont.act1.env_text import GameStateView, normalize_degrees
+from symbiont.act1.env_text import GameStateView, SeenObject, normalize_degrees
 from symbiont.act1.moves import (
     DOOR_NAMES,
     FACING_TOLERANCE_DEG,
@@ -29,6 +30,10 @@ WAYPOINT_ARRIVAL_UNITS = 24.0
 STUCK_FORWARD_TICS = 45  # a door needs ~28 tics to rise far enough to walk through
 STUCK_MIN_PROGRESS_UNITS = 16.0
 EXIT_FACING_DEG = 5.0
+# [measured] MAP01, ViZDoom 1.3.2: a clean go_to(exit) walked into monster fire and reached the exit
+# on 5 of 8 seeds; handing control back at 256 units (with shoot_nearest() first) reached it on 8 of
+# 8, while 512 units reached it on 3 of 8 because the move quit for enemies too far away to hit.
+ENEMY_IN_THE_WAY_UNITS = 256.0
 
 
 @dataclass
@@ -36,9 +41,9 @@ class GoTo:
     """Walk a route planned over the map's walls and doors to a door, exit, key or visible object.
 
     Closed doors on the route are opened with OpenDoor; the move stops, saying why, when there is no
-    path, a door will not open, walking makes no progress, or the tic budget runs out. It never
-    retries. At an exit it faces the switch and presses USE, since reaching the wall alone does not
-    end the level.
+    path, a door will not open, walking makes no progress, an enemy is within reach, or the tic
+    budget runs out. It never retries. At an exit it faces the switch and presses USE, since
+    reaching the wall alone does not end the level.
     """
 
     target: str
@@ -65,6 +70,9 @@ class GoTo:
         self._tics += 1
         if self._tics >= self.max_tics:
             return Done(f"out of tic budget ({self.max_tics}) {self._where()}")
+        blocker = _nearest_enemy_in_reach(state)
+        if blocker is not None:
+            return Done(f"enemy in the way: {blocker.name} at {blocker.distance:.0f}")
         if self._waypoints is None:
             planned = self._plan(state)
             if isinstance(planned, Done):
@@ -151,6 +159,13 @@ class GoTo:
         if self._exit_tics > USE_TICS:
             return Done("reached exit and pressed USE, but the level did not end")
         return hold(Button.USE) if self._exit_tics % 2 == 1 else hold()
+
+
+def _nearest_enemy_in_reach(state: GameStateView) -> SeenObject | None:
+    near = [
+        seen for seen in state.objects if seen.is_enemy and seen.distance <= ENEMY_IN_THE_WAY_UNITS
+    ]
+    return min(near, key=lambda seen: seen.distance, default=None)
 
 
 def _bearing_to(state: GameStateView, point: tuple[float, float]) -> float:

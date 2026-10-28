@@ -62,6 +62,13 @@ def test_wall_bump_silent_at_a_locked_door():
     assert GamePain.WALL_BUMP not in tags(locked)[0]
 
 
+def test_enemy_in_the_way_is_not_a_wall_bump():
+    stopped = run(
+        view(IN_ROOM_0), view((30.0, 10.0)), outcome="enemy in the way: Zombieman at 37", tics=5
+    )
+    assert GamePain.WALL_BUMP not in tags(stopped)[0]
+
+
 def test_wall_bump_silent_when_the_walk_never_started():
     never = run(
         view(IN_ROOM_0), view(IN_ROOM_0), outcome="blocked by a wall on the way to x", tics=0
