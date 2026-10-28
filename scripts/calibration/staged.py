@@ -1,7 +1,8 @@
 """Staged Glimmer calibration driver (lead's ruling, 2026-10-27).
 
-Stage 1, screen: the SCREEN_N pool tasks with the smallest gold patches, 1 run each, step limit 50,
-30 min wall cap, reasoning "low".
+Stage 1, screen: SCREEN_N pool tasks chosen by a named ScreenRule (screen_rules.py): SMALLEST (the
+smallest gold patches, the default) or STRATIFIED (spread over subsystem x size cells, skipping the
+ids of an earlier log). 1 run each, step limit 50, 30 min wall cap, reasoning "low".
   Checkpoint after the first CHECKPOINT_N runs: if none solved, the same tasks are run again with
   reasoning "medium"; the setting that solves more is used for the remaining screen tasks (tie ->
   "low"). The decision is logged with its counts.
@@ -9,26 +10,39 @@ Stage 1, screen: the SCREEN_N pool tasks with the smallest gold patches, 1 run e
 Stage 2: every task solved in the screen gets 2 more runs with the same setting. Solved 1 or 2 of 3
   -> band "in_band" (scored pool); otherwise "history".
 
-All records append to <workdir>/runs/calibration.jsonl (resumable: a run counts as done once it has
-a graded record). Runs that could not be graded are retried up to MAX_ATTEMPTS times; 3 ungraded
-runs in a row stop the driver with status "blocked" (Glimmer or Docker down: no point burning the
-night). After every run the summary (no task or trajectory text) is rewritten to
-<workdir>/runs/calibration-glimmer.json; the laptop copies it into results/.
+Up to WORKERS runs go at a time (the Glimmer server has 2 slots); the checkpoint batch finishes
+before the decision. All records append to <workdir>/<runs-dir>/calibration.jsonl (resumable: a
+run counts as done once it has a graded record). Runs that could not be graded are retried up to
+MAX_ATTEMPTS times; 3 ungraded runs in a row stop the driver with status "blocked" (a run
+already in flight on the other worker still lands). After every run the summary (no task or
+trajectory text) is rewritten to <workdir>/<runs-dir>/calibration-glimmer.json.
 
-Usage: python staged.py <workdir>   (start it through launch.py)
+Usage: python staged.py <workdir> [--screen smallest|stratified] [--runs-dir runs]
+                        [--exclude-log runs/calibration.jsonl]
+(start it through launch.py; a stratified run needs its own --runs-dir)
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from run_calibration import IMAGE, MODEL, Setting, run_once
+from screen_rules import (
+    SCREEN_N,
+    STRATIFIED_SEED,
+    ScreenRule,
+    pick_counts,
+    select_screen,
+)
 from staged_summary import build_summary
 
-SCREEN_N = 40
+WORKERS = 2  # the Glimmer server has 2 slots
 CHECKPOINT_N = 10
 GATE_RATE = 0.10
 MAX_ATTEMPTS = 3
@@ -54,9 +68,34 @@ SUMMARY_HEADER = {
         "history-free depth-1 checkout of base_commit per run, no network "
         "(stock per-task images expose future git history incl. the fix)"
     ),
-    "plan": f"screen {SCREEN_N} smallest-gold tasks x1 (checkpoint after {CHECKPOINT_N}), "
+    "plan": f"screen {SCREEN_N} tasks x1 (checkpoint after {CHECKPOINT_N}), "
     "solved tasks x2 more; in band = 1-2 of 3",
 }
+
+
+def screen_header(rule: ScreenRule, pool: list[dict], screen: list[str], excluded: int) -> dict:
+    """Summary header fields for the screen rule: rule, seed, per-cell counts (labels only)."""
+    header = {"screen_rule": str(rule), "screen_excluded_ids": excluded}
+    if rule is ScreenRule.STRATIFIED:
+        header |= {"screen_seed": STRATIFIED_SEED, "screen_cells": pick_counts(pool, screen)}
+    return header
+
+
+def read_logged_ids(log: Path) -> set[str]:
+    """Instance ids present in an earlier calibration.jsonl; raises if the file is missing."""
+    return {json.loads(line)["instance_id"] for line in log.read_text().splitlines() if line}
+
+
+def parse_args(argv: list[str]) -> argparse.Namespace:
+    """Command line; the defaults reproduce the original `staged.py <workdir>` run."""
+    parser = argparse.ArgumentParser(description="Staged Glimmer calibration driver")
+    parser.add_argument("workdir", type=Path)
+    parser.add_argument("--screen", type=ScreenRule, choices=list(ScreenRule), default="smallest")
+    parser.add_argument("--runs-dir", default="runs", help="under workdir; holds this run's log")
+    parser.add_argument(
+        "--exclude-log", default=None, help="under workdir; its task ids are skipped"
+    )
+    return parser.parse_args(argv)
 
 
 class BlockedError(RuntimeError):
@@ -66,19 +105,23 @@ class BlockedError(RuntimeError):
 class Driver:
     """Runs the screen and confirm stages, resumable from the append-only record log."""
 
-    def __init__(self, workdir: Path):
+    def __init__(
+        self,
+        workdir: Path,
+        rule: ScreenRule = ScreenRule.SMALLEST,
+        runs_dir: str = "runs",
+        exclude_log: str | None = None,
+    ):
         self.rows = {
             row["instance_id"]: row
             for row in json.loads((workdir / "data/sqlglot_rows.json").read_text())
         }
         pool = json.loads((workdir / "data/pool.json").read_text())["pool"]
-        self.screen = [
-            entry["instance_id"]
-            for entry in sorted(
-                pool, key=lambda item: (item["gold_changed_lines"], item["instance_id"])
-            )[:SCREEN_N]
-        ]
-        self.runs_dir = workdir / "runs"
+        excluded = read_logged_ids(workdir / exclude_log) if exclude_log else set()
+        self.screen = select_screen(rule, pool, excluded)
+        self.header = SUMMARY_HEADER | screen_header(rule, pool, self.screen, len(excluded))
+        self.runs_dir = workdir / runs_dir
+        self.runs_dir.mkdir(parents=True, exist_ok=True)
         self.log = self.runs_dir / "calibration.jsonl"
         self.summary_path = self.runs_dir / "calibration-glimmer.json"
         self.records = (
@@ -94,6 +137,8 @@ class Driver:
             "started": time.time(),
         }
         self.ungraded_in_a_row = 0
+        self._lock = threading.Lock()
+        self._blocked_reason: str | None = None
 
     # -- records -----------------------------------------------------------------------------------
     def graded(self, iid: str, run: int, setting: Setting) -> dict | None:
@@ -113,6 +158,8 @@ class Driver:
         if done := self.graded(iid, run, setting):
             return done["resolved"]
         for attempt in range(1, MAX_ATTEMPTS + 1):
+            if self._blocked_reason:  # a sibling worker hit the block: no new run may start
+                raise BlockedError(self._blocked_reason)
             rec = run_once(self.rows[iid], run, setting, stage, self.runs_dir / "traj")
             rec = rec | {"attempt": attempt}
             self._record(rec)
@@ -121,18 +168,30 @@ class Driver:
         return False  # every attempt ungraded: counted unsolved; visible as resolved=None records
 
     def _record(self, rec: dict) -> None:
-        """Append, announce and summarize one run; raise BlockedError after too many ungraded."""
-        self.records.append(rec)
-        with self.log.open("a") as handle:
-            handle.write(json.dumps(rec) + "\n")
-        print(json.dumps({key: rec.get(key) for key in ANNOUNCED}), flush=True)
-        graded = rec["resolved"] is not None
-        self.ungraded_in_a_row = 0 if graded else self.ungraded_in_a_row + 1
-        self.write_summary()
-        if self.ungraded_in_a_row >= MAX_UNGRADED_IN_A_ROW:
-            raise BlockedError(
-                f"{self.ungraded_in_a_row} ungraded runs in a row; last error: {rec['error']}"
-            )
+        """Append, announce and summarize one run; raise BlockedError after too many ungraded.
+
+        One lock covers the append, the announce, the counter and the summary write, so two
+        workers never interleave log lines or race the ungraded count.
+        """
+        with self._lock:
+            self.records.append(rec)
+            with self.log.open("a") as handle:
+                handle.write(json.dumps(rec) + "\n")
+            print(json.dumps({key: rec.get(key) for key in ANNOUNCED}), flush=True)
+            graded = rec["resolved"] is not None
+            self.ungraded_in_a_row = 0 if graded else self.ungraded_in_a_row + 1
+            self.write_summary()
+            if self.ungraded_in_a_row >= MAX_UNGRADED_IN_A_ROW:
+                self._blocked_reason = (
+                    f"{self.ungraded_in_a_row} ungraded runs in a row; last error: {rec['error']}"
+                )
+                raise BlockedError(self._blocked_reason)
+
+    def _in_parallel(self, jobs: list) -> list:
+        """Results of zero-argument jobs, WORKERS at a time, in job order; first error re-raised."""
+        with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+            futures = [pool.submit(job) for job in jobs]
+            return [future.result() for future in futures]
 
     def decide(self, what: str, **detail) -> None:
         """Log a decision with its counts, in the summary and on stdout."""
@@ -146,10 +205,12 @@ class Driver:
     def stage1(self) -> Setting:
         """Screen with low reasoning; rerun the checkpoint on medium if low solved none."""
         first = self.screen[:CHECKPOINT_N]
-        low = sum(self.ensure(iid, 1, LOW, "screen") for iid in first)
+        low = sum(self._in_parallel([self._job(iid, 1, LOW, "screen") for iid in first]))
         setting = LOW
         if low == 0:
-            med = sum(self.ensure(iid, 1, MEDIUM, "screen-checkpoint") for iid in first)
+            med = sum(
+                self._in_parallel([self._job(iid, 1, MEDIUM, "screen-checkpoint") for iid in first])
+            )
             setting = MEDIUM if med > low else LOW
             self.decide(
                 "checkpoint",
@@ -168,16 +229,25 @@ class Driver:
                 rule="low solved >= 1 -> keep low",
             )
         self.state["setting"] = setting.reasoning
-        for iid in self.screen[CHECKPOINT_N:]:
-            self.ensure(iid, 1, setting, "screen")
+        self._in_parallel(
+            [self._job(iid, 1, setting, "screen") for iid in self.screen[CHECKPOINT_N:]]
+        )
         return setting
+
+    def _job(self, iid: str, run: int, setting: Setting, stage: str):
+        """A zero-argument job that ensures one (task, run, setting)."""
+        return lambda: self.ensure(iid, run, setting, stage)
 
     def stage2(self, setting: Setting) -> None:
         """Two more runs for every task the screen solved."""
         self.state["stage"] = "confirm"
-        for iid in self.solved_in_screen(setting):
-            for run in (2, 3):
-                self.ensure(iid, run, setting, "confirm")
+        self._in_parallel(
+            [
+                self._job(iid, run, setting, "confirm")
+                for iid in self.solved_in_screen(setting)
+                for run in (2, 3)
+            ]
+        )
 
     def solved_in_screen(self, setting: Setting) -> list[str]:
         """Screen tasks whose run 1 resolved with this setting."""
@@ -219,11 +289,12 @@ class Driver:
 
     def write_summary(self) -> None:
         """Rewrite the summary file atomically so a reader never sees half of it."""
-        out = build_summary(SUMMARY_HEADER, self.state, self.screen, self.records)
+        out = build_summary(self.header, self.state, self.screen, self.records)
         tmp = self.summary_path.with_suffix(".tmp")
         tmp.write_text(json.dumps(out, indent=1))
         tmp.replace(self.summary_path)
 
 
 if __name__ == "__main__":
-    Driver(Path(sys.argv[1])).run()
+    args = parse_args(sys.argv[1:])
+    Driver(args.workdir, args.screen, args.runs_dir, args.exclude_log).run()
