@@ -21,8 +21,10 @@ Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
 import argparse
 import json
 import logging
+import multiprocessing as mp
 import sys
 import time
+from concurrent.futures import ProcessPoolExecutor
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -31,7 +33,6 @@ import embed_steps as es
 import numpy as np
 import run_penalized as t36
 import run_repo_curve as rc
-import run_selection as g6
 import text_ceiling_score as ts
 
 from symbiont.eval import selection as sel
@@ -107,12 +108,23 @@ def fit_all(workers: int) -> dict[str, Any]:
     jobs: list[tuple[str, Any]] = [("counters", None)]
     jobs += [("mlp", (kind, s)) for kind in INPUTS for s in sel.WIRING_SEEDS]
     jobs += [("logistic", kind) for kind in INPUTS]
-    found = dict(g6.pool_map(fit_job, jobs, workers))
+    found = dict(fork_map(fit_job, jobs, workers))
     seeds = {f"logistic {kind}": found[("logistic", kind)]["risks"] for kind in INPUTS}
     for kind in INPUTS:
         seeds[f"MLP {kind}"] = {s: found[("mlp", (kind, s))]["risks"] for s in sel.WIRING_SEEDS}
     chosen = {f"logistic {kind}": found[("logistic", kind)]["chosen"] for kind in INPUTS}
     return {"seeds": seeds, "counters": found[("counters", None)]["risks"], "chosen": chosen}
+
+
+def fork_map(fn: Any, jobs: list[Any], workers: int) -> list[Any]:
+    """Map in forked workers; a killed worker raises BrokenProcessPool instead of hanging.
+
+    `multiprocessing.Pool` replaces a worker the system kills (out of memory) and then waits
+    forever for its job: the first rehearsal hung that way with nothing in the log.
+    """
+    context = mp.get_context("fork")
+    with ProcessPoolExecutor(max_workers=min(workers, len(jobs)), mp_context=context) as pool:
+        return list(pool.map(fn, jobs))
 
 
 def load_embeddings(directory: Path) -> int:
@@ -136,7 +148,7 @@ def score_all(fitted: dict[str, Any], workers: int) -> dict[str, Any]:
     """Option A rows, paired gaps, rankings and the verdict under the frozen bar."""
     reference = fitted["seeds"][ts.REFERENCE][0]
     jobs = [(n, s, fitted["counters"], reference) for n, s in fitted["seeds"].items()]
-    scored = g6.pool_map(ts.score_row, jobs, workers)
+    scored = fork_map(ts.score_row, jobs, workers)
     ranked = {s["name"]: s["ranking"] for s in scored}
     ranked["counters"] = ts.ranks({0: fitted["counters"]})
     auc_gain = ranked[ts.CANDIDATE]["roc_auc"] - ranked[ts.REFERENCE]["roc_auc"]

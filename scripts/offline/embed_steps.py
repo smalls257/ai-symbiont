@@ -21,7 +21,6 @@ from typing import Any
 import numpy as np
 import run_repo_curve as rc
 import run_selection as g6
-from fastembed import TextEmbedding
 from step_text import step_text
 
 log = logging.getLogger("embed-steps")
@@ -29,7 +28,15 @@ MODEL = "sentence-transformers/all-MiniLM-L6-v2"  # 384 dims, 6 layers: cheap on
 DIMS = 384
 BATCH = 64
 SETTINGS: dict[str, Path] = {}
-_EMBEDDER: list[TextEmbedding] = []  # one per forked worker, made on its first job
+_EMBEDDER: list[Any] = []  # one per forked worker, made on its first job
+
+
+def _embedder(threads: int) -> Any:
+    """The embedder, imported here: importing onnxruntime in a parent that later forks numpy
+    workers (run_text_ceiling) crashed them in Accelerate's thread pool (SIGSEGV, T49)."""
+    from fastembed import TextEmbedding
+
+    return TextEmbedding(MODEL, cache_dir=str(SETTINGS["model_dir"]), threads=threads)
 
 
 def embedding_path(out_dir: Path, repo: str) -> Path:
@@ -45,7 +52,7 @@ def embed_repo(repo: str) -> tuple[str, int, float]:
     sessions = rc.load_repo(SETTINGS["data_dir"] / (repo.replace("/", "__") + ".jsonl"), repo)
     texts = [step_text(record) for session in sessions for record in session]
     if not _EMBEDDER:
-        _EMBEDDER.append(TextEmbedding(MODEL, cache_dir=str(SETTINGS["model_dir"]), threads=1))
+        _EMBEDDER.append(_embedder(1))
     matrix = np.asarray(list(_EMBEDDER[0].embed(texts, batch_size=BATCH)), dtype=np.float32)
     if matrix.shape != (len(texts), DIMS):
         raise ValueError(f"{repo}: embedder returned {matrix.shape} for {len(texts)} steps")
@@ -64,9 +71,7 @@ def run(args: argparse.Namespace) -> dict[str, Any]:
         data_dir=Path(args.data_dir), out_dir=Path(args.out_dir), model_dir=Path(args.model_dir)
     )
     SETTINGS["out_dir"].mkdir(parents=True, exist_ok=True)
-    TextEmbedding(
-        MODEL, cache_dir=str(SETTINGS["model_dir"]), threads=1
-    )  # fetch once, not per worker
+    _embedder(1)  # fetch the weights once, not per worker
     repos = [entry["repo"] for entry in json.loads(Path(args.pool).read_text())["repos"]]
     done = g6.pool_map(embed_repo, repos, args.workers)
     manifest = {
