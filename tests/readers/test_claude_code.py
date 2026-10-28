@@ -90,11 +90,63 @@ def test_user_private_sessions_not_spark_safe(records):
 
 def test_symbiont_output_is_tagged_not_mined():
     out = list(read(FIXTURES / "with_our_output.jsonl", PROJECT))
-    tagged, plain = of_kind(out, Kind.COMMAND)
-    assert tagged.tags == ("symbiont-output",)
+    tagged, ours, plain = of_kind(out, Kind.COMMAND)[0], of_kind(out, Kind.TOOL_RESULT)[0], out[-1]
+    assert tagged.tags == ()
     assert tagged.raw == "Exit code 1\n1 failed\n"
     assert tagged.exit_code == 1
-    assert plain.tags == ()
+    assert ours.tags == ("symbiont-output",)
+    assert ours.raw.startswith("[symbiont]\nThis test failed the same way twice")
+    assert plain.tags == () and plain.raw == "1 passed"
+
+
+def test_recall_tool_result_is_ours_entirely():
+    out = list(read(FIXTURES / "recall.jsonl", PROJECT))
+    call, answer = out
+    assert call.kind == Kind.TOOL_RESULT and call.raw == "" and call.tags == ()
+    assert answer.tags == ("symbiont-output",)
+    assert answer.raw == "This command failed twice in an earlier session."
+
+
+def test_multi_edit_write_and_notebook_edit_are_edits():
+    multi, write, notebook = list(read(FIXTURES / "edit_tools.jsonl", PROJECT))
+    assert all(r.kind == Kind.EDIT for r in (multi, write, notebook))
+    assert multi.files == ("a.py",)
+    assert "-x = 1\n+x = 2\n" in multi.diff and "-y = 1\n+y = 2\n" in multi.diff
+    assert write.files == ("new.py",)
+    assert write.diff.startswith("--- /dev/null\n+++ b/new.py\n")
+    assert "+print('hi')\n" in write.diff
+    assert notebook.files == ("n.ipynb",)
+    assert notebook.raw == "edited" and notebook.exit_code == 0
+
+
+def test_metadata_events_are_skipped_and_counted(caplog):
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        out = list(read(FIXTURES / "metadata.jsonl", PROJECT))
+    assert [r.kind for r in out] == [Kind.USER_TURN]
+    assert out[0].step == 0
+    assert "{'zz-bookmark': 2, 'zz-marker': 1}" in caplog.text
+
+
+def test_unknown_type_with_a_message_raises_readerror():
+    path = FIXTURES / "unknown_with_message.jsonl"
+    with pytest.raises(ReadError, match="zz-note") as err:
+        list(read(path, PROJECT))
+    assert err.value.line_no == 1 and err.value.path == path
+
+
+def test_tool_result_content_object_raises_readerror():
+    path = FIXTURES / "object_result.jsonl"
+    with pytest.raises(ReadError, match="tool_result 'content'") as err:
+        list(read(path, PROJECT))
+    assert err.value.path == path
+
+
+@pytest.mark.parametrize("kind", ["user", "assistant"])
+def test_conversation_event_without_message_raises_readerror(tmp_path, kind):
+    path = write_lines(tmp_path, [json.dumps({"type": kind, "sessionId": "s"})])
+    with pytest.raises(ReadError, match=kind) as err:
+        list(read(path, PROJECT))
+    assert err.value.line_no == 1
 
 
 # --- lines the reader cannot parse are named, never skipped -----------------

@@ -1,0 +1,4 @@
+{"type": "zz-bookmark", "sessionId": "sess-m", "label": "a"}
+{"type": "user", "sessionId": "sess-m", "timestamp": "2026-01-01T12:00:00Z", "cwd": "/work/app", "message": {"role": "user", "content": "Hello."}}
+{"type": "zz-marker", "sessionId": "sess-m", "n": 1}
+{"type": "zz-bookmark", "sessionId": "sess-m", "label": "b"}

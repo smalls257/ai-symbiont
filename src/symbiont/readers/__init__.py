@@ -16,5 +16,7 @@ READERS: dict[str, Reader] = {
     "swe-chat": claude_code.read_swe_chat,
     "open-swe-traces-claudecode": claude_code.read_open_swe_traces,
     "mini-swe-agent": mini_swe_agent.read,
+    "open-swe-traces-minisweagent": mini_swe_agent.read_open_swe_traces,
+    "local-run": mini_swe_agent.read_local_run,
     "openhands": openhands.read,
 }

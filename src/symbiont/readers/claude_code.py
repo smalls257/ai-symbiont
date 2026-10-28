@@ -7,20 +7,27 @@ or a list of blocks (`text`, `tool_use`, `tool_result`). A tool result answers
 its `tool_use` by id and travels in that action's `raw`. SWE-chat marks user
 pushback with `prompt_pushback`; it becomes the "correction" tag.
 
+Subagent events share the session id, and meta user lines become user turns.
+Events other than user and assistant that carry no `message` are metadata:
+they are skipped and counted per type, and the counts are logged per file.
+A non-conversation type that does carry a `message` raises ReadError.
+
 Three entry points differ only in provenance. `read` is for the owner's private
 sessions and is the default: unknown privacy is never shareable.
 """
 
 import difflib
 import json
+import logging
 import re
+from collections import Counter
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from symbiont.readers.errors import ReadError
-from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, split_our_output
+from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAME, split_our_output
 from symbiont.records.schema import Kind, Provenance, Record
 
 HARNESS = "claude-code"
@@ -29,8 +36,8 @@ SWE_CHAT = Provenance(dataset="swe-chat", license="see-dataset-card", spark_safe
 OPEN_SWE_TRACES = Provenance(dataset="open-swe-traces", license="see-dataset-card", spark_safe=True)
 
 CORRECTION = "correction"
-# Housekeeping events that carry no turn or action.
-_IGNORED_TYPES = frozenset({"summary", "file-history-snapshot", "system", "queue-operation"})
+_CONVERSATION_TYPES = ("user", "assistant")
+logger = logging.getLogger(__name__)
 _EXIT_CODE = re.compile(r"^Exit code (-?\d+)")
 
 
@@ -54,7 +61,7 @@ def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
 
 
 def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
-    events = _events(Path(path))
+    events = _conversation_events(Path(path))
     results = _results_by_call(path, events)
     source = _Source(project, provenance)
     steps: dict[str, int] = {}
@@ -69,8 +76,10 @@ def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
             raise ReadError(path, line_no, str(exc)) from exc
 
 
-def _events(path: Path) -> list[tuple[int, dict[str, Any]]]:
+def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
+    """User and assistant events; metadata events are counted and logged, not dropped silently."""
     events = []
+    skipped: Counter[str] = Counter()
     with path.open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             try:
@@ -79,8 +88,27 @@ def _events(path: Path) -> list[tuple[int, dict[str, Any]]]:
                 raise ReadError(path, line_no, f"not valid JSON ({exc.msg})") from exc
             if not isinstance(event, dict):
                 raise ReadError(path, line_no, "a line must hold one event object")
-            events.append((line_no, event))
+            if _is_metadata(path, line_no, event):
+                skipped[event["type"]] += 1
+            else:
+                events.append((line_no, event))
+    if skipped:
+        logger.info("skipped metadata events in %s: %s", path, dict(skipped))
     return events
+
+
+def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
+    kind = event.get("type")
+    if not isinstance(kind, str):
+        raise ReadError(path, line_no, "missing 'type'")
+    has_message = event.get("message") is not None
+    if kind in _CONVERSATION_TYPES:
+        if not has_message:
+            raise ReadError(path, line_no, f"{kind!r} event has no 'message'")
+        return False
+    if has_message:
+        raise ReadError(path, line_no, f"unknown event type {kind!r}")
+    return True
 
 
 def _results_by_call(
@@ -110,8 +138,6 @@ def _require(mapping: Any, key: str) -> Any:
 
 
 def _blocks(event: dict[str, Any]) -> list[dict[str, Any]]:
-    if event.get("type") in _IGNORED_TYPES:
-        return []
     content = _require(_require(event, "message"), "content")
     if isinstance(content, str):
         return [{"type": "text", "text": content}]
@@ -146,15 +172,10 @@ def _record(
 def _event_records(
     event: dict[str, Any], results: dict[str, dict[str, Any]]
 ) -> Iterator[dict[str, Any]]:
-    kind = _require(event, "type")
-    if kind in _IGNORED_TYPES:
-        return
-    if kind == "user":
+    if event["type"] == "user":
         yield from _user_turns(event)
-    elif kind == "assistant":
-        yield from _assistant_records(event, results)
     else:
-        raise _MalformedError(f"unknown event type {kind!r}")
+        yield from _assistant_records(event, results)
 
 
 def _user_turns(event: dict[str, Any]) -> Iterator[dict[str, Any]]:
@@ -182,35 +203,39 @@ def _assistant_records(
         if kind == "text":
             yield {"kind": Kind.AGENT_TURN, "raw": _require(block, "text")}
         elif kind == "tool_use":
-            yield _tool_use(block, results.get(_require(block, "id")), cwd)
+            yield from _tool_use(block, results.get(_require(block, "id")), cwd)
         elif kind != "thinking":
             raise _MalformedError(f"unknown assistant block type {kind!r}")
 
 
 def _tool_use(
     block: dict[str, Any], result: dict[str, Any] | None, cwd: str | None
-) -> dict[str, Any]:
+) -> Iterator[dict[str, Any]]:
+    """The harness's action, then our own text from its result as a separate record."""
     name = _require(block, "name")
     args = _require(block, "input")
     if not isinstance(args, dict):
         raise _MalformedError(f"tool input of {name!r} must be an object")
-    raw, ours = _result_text(result)
-    builder = _TOOLS.get(name, _other_tool)
-    fields = builder(name, args, _make_relative(cwd))
-    fields["raw"] = raw
-    fields["tags"] = (OUR_OUTPUT_RECORD_TAG,) if ours else ()
-    fields["exit_code"] = _exit_code(fields["kind"], result, raw)
-    return fields
+    text = _result_content(result)
+    # Our recall answer is ours from the first character.
+    own, ours = ("", text) if name == RECALL_TOOL_NAME else split_our_output(text)
+    fields = _TOOLS.get(name, _other_tool)(name, args, _make_relative(cwd))
+    fields["raw"] = own
+    fields["exit_code"] = _exit_code(fields["kind"], result, own)
+    yield fields
+    if ours:
+        yield {"kind": Kind.TOOL_RESULT, "raw": ours, "tags": (OUR_OUTPUT_RECORD_TAG,)}
 
 
-def _result_text(result: dict[str, Any] | None) -> tuple[str, str]:
-    """The harness's own result text and, apart, anything we appended to it."""
+def _result_content(result: dict[str, Any] | None) -> str:
     if result is None:
-        return "", ""
+        return ""
     content = result.get("content")
-    if isinstance(content, list):
-        content = "\n".join(str(b.get("text", "")) for b in content if isinstance(b, dict))
-    return split_our_output(content or "")
+    if content is None or isinstance(content, str):
+        return content or ""
+    if isinstance(content, list) and all(isinstance(b, dict) for b in content):
+        return "\n".join(str(b.get("text", "")) for b in content)
+    raise _MalformedError("tool_result 'content' must be text or a list of blocks")
 
 
 def _exit_code(kind: Kind, result: dict[str, Any] | None, raw: str) -> int | None:
@@ -283,6 +308,13 @@ def _write(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> d
     }
 
 
+def _notebook_edit(
+    name: str, args: dict[str, Any], relative: Callable[[str], str]
+) -> dict[str, Any]:
+    # The notebook's previous cell text is not logged, so there is no diff.
+    return {"kind": Kind.EDIT, "files": (relative(_require(args, "notebook_path")),)}
+
+
 def _other_tool(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
     """Search, planning and MCP tools: kept as results so nothing is dropped."""
     return {"kind": Kind.TOOL_RESULT, "command": name}
@@ -306,4 +338,5 @@ _TOOLS: dict[str, Callable[[str, dict[str, Any], Callable[[str], str]], dict[str
     "Edit": _edit,
     "MultiEdit": _multi_edit,
     "Write": _write,
+    "NotebookEdit": _notebook_edit,
 }

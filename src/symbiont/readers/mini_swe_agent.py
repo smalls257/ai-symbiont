@@ -3,13 +3,18 @@
 Input is JSONL, one trajectory per line: `trajectory_id`, `instance_id` and
 `messages`, the chat in mini-SWE-agent's own format. An assistant message holds
 reasoning plus exactly one fenced bash block; the next user message is the
-observation (`<returncode>N</returncode><output>...</output>`). Rows are Open-SWE-Traces
-`minisweagent` rows unless they carry `"source": "local-run"`, which marks our
-own runs on public benchmark repos.
+observation (`<returncode>N</returncode><output>...</output>`). A message with
+no block or several is mini-SWE-agent's format error: it is an agent turn and
+the notice that follows is kept as a tool result.
+
+Three entry points differ only in provenance. `read` is the default and is never
+spark safe; `read_open_swe_traces` is public rows; `read_local_run` is our own
+runs and refuses any task that is not a public benchmark id.
 
 Each command becomes one record carrying its observation as `raw`. A command
 that writes a file through sed -i, a redirect, a heredoc or tee is an edit.
-Anything our delivery layer appended to an observation is cut off and tagged.
+Anything our delivery layer appended to an observation is cut off and kept as
+its own tagged tool result after the harness's record.
 """
 
 import json
@@ -21,14 +26,15 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.readers.errors import ReadError
+from symbiont.records.holdout import UnrecognisedTaskIdError, normalise_task_id
 from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, split_our_output
 from symbiont.records.schema import Kind, Provenance, Record
 
 HARNESS = "mini-swe-agent"
+UNLABELED = Provenance(dataset="mini-swe-agent-unlabeled", license="unknown", spark_safe=False)
 OPEN_SWE_TRACES = Provenance(dataset="open-swe-traces", license="see-dataset-card", spark_safe=True)
 # Our own Glimmer runs use public benchmark repos only, so they may reach Spark.
 LOCAL_RUN = Provenance(dataset="local-run", license="own-output", spark_safe=True)
-_SOURCES = {None: OPEN_SWE_TRACES, "local-run": LOCAL_RUN}
 
 _BASH_BLOCK = re.compile(r"```bash[ \t]*\n(.*?)\n?```", re.DOTALL)
 _RETURN_CODE = re.compile(r"<returncode>\s*(-?\d+)\s*</returncode>")
@@ -42,11 +48,29 @@ class _MalformedError(Exception):
 
 
 def read(path: Path, project: str) -> Iterator[Record]:
-    """Yield the records of a mini-SWE-agent trajectory file; a bad line raises ReadError."""
+    """Yield records of a trajectory file of unlabeled origin (never spark safe)."""
+    return _read(path, project, UNLABELED, public_tasks_only=False)
+
+
+def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
+    """Yield records of public Open-SWE-Traces `minisweagent` rows (spark safe)."""
+    return _read(path, project, OPEN_SWE_TRACES, public_tasks_only=False)
+
+
+def read_local_run(path: Path, project: str) -> Iterator[Record]:
+    """Yield records of our own runs; raises unless every task is a public benchmark id."""
+    return _read(path, project, LOCAL_RUN, public_tasks_only=True)
+
+
+def _read(
+    path: Path, project: str, provenance: Provenance, *, public_tasks_only: bool
+) -> Iterator[Record]:
     with Path(path).open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             try:
-                records = _session_records(json.loads(line), project)
+                records = _session_records(
+                    json.loads(line), project, provenance, public_tasks_only=public_tasks_only
+                )
             except json.JSONDecodeError as exc:
                 raise ReadError(path, line_no, f"not valid JSON ({exc.msg})") from exc
             except _MalformedError as exc:
@@ -62,7 +86,7 @@ class _Session:
     provenance: Provenance
     records: list[Record] = field(default_factory=list)
 
-    def add(self, kind: Kind, raw: str, ours: str = "", **fields: Any) -> None:
+    def add(self, kind: Kind, raw: str, **fields: Any) -> None:
         self.records.append(
             Record(
                 harness=HARNESS,
@@ -73,13 +97,18 @@ class _Session:
                 raw=raw,
                 task_id=self.task_id,
                 provenance=self.provenance,
-                tags=(OUR_OUTPUT_RECORD_TAG,) if ours else (),
                 **fields,
             )
         )
 
+    def add_ours(self, ours: str) -> None:
+        if ours:
+            self.add(Kind.TOOL_RESULT, ours, tags=(OUR_OUTPUT_RECORD_TAG,))
 
-def _session_records(row: Any, project: str) -> list[Record]:
+
+def _session_records(
+    row: Any, project: str, provenance: Provenance, *, public_tasks_only: bool
+) -> list[Record]:
     if not isinstance(row, dict):
         raise _MalformedError("a line must hold one trajectory object")
     messages = _require(row, "messages")
@@ -89,16 +118,19 @@ def _session_records(row: Any, project: str) -> list[Record]:
         project=project,
         session_id=_require(row, "trajectory_id"),
         task_id=_require(row, "instance_id"),
-        provenance=_provenance(row.get("source")),
+        provenance=provenance,
     )
+    if public_tasks_only:
+        _require_public_task(session.task_id)
     _add_messages(session, messages)
     return session.records
 
 
-def _provenance(source: Any) -> Provenance:
-    if source not in _SOURCES:
-        raise _MalformedError(f"unknown source {source!r} (known: local-run, or none)")
-    return _SOURCES[source]
+def _require_public_task(task_id: str) -> None:
+    try:
+        normalise_task_id(task_id)
+    except UnrecognisedTaskIdError as exc:
+        raise _MalformedError(f"a local run must be on a public benchmark task: {exc}") from exc
 
 
 def _require(mapping: Any, key: str) -> Any:
@@ -130,11 +162,7 @@ def _add_messages(session: _Session, messages: list[Any]) -> None:
                 session.add(Kind.USER_TURN, _text(message))
             seen_task = True
         elif role == "assistant":
-            observation = None
-            if index < len(messages) and messages[index].get("role") == "user":
-                observation = _text(messages[index])
-                index += 1
-            _add_assistant_message(session, _text(message), observation)
+            index += _add_assistant_message(session, _text(message), messages[index : index + 1])
         else:
             raise _MalformedError(f"unknown message role {role!r}")
 
@@ -142,16 +170,18 @@ def _add_messages(session: _Session, messages: list[Any]) -> None:
 def _add_stray_observation(session: _Session, text: str) -> None:
     # An observation with no command before it, e.g. the harness's format-error notice.
     own, ours = split_our_output(text)
-    session.add(Kind.TOOL_RESULT, own, ours)
+    session.add(Kind.TOOL_RESULT, own)
+    session.add_ours(ours)
 
 
-def _add_assistant_message(session: _Session, text: str, observation: str | None) -> None:
+def _add_assistant_message(session: _Session, text: str, following: list[Any]) -> int:
+    """Add the records of one assistant message; return how many following messages it used."""
     blocks = _BASH_BLOCK.findall(text)
-    if len(blocks) > 1:
-        raise _MalformedError(f"{len(blocks)} bash blocks in one message; expected one action")
-    if not blocks:
+    if len(blocks) != 1:
+        # A format error: the next message is the harness's notice, read as a stray observation.
         session.add(Kind.AGENT_TURN, text)
-        return
+        return 0
+    observation = _answering_observation(following)
     thought = _BASH_BLOCK.sub("", text).strip()
     if thought:
         session.add(Kind.AGENT_TURN, thought)
@@ -161,16 +191,26 @@ def _add_assistant_message(session: _Session, text: str, observation: str | None
     session.add(
         Kind.EDIT if files else Kind.COMMAND,
         own,
-        ours,
         command=command,
         files=files,
-        exit_code=_exit_code(observation and own),
+        exit_code=None if observation is None else _exit_code(own),
     )
+    session.add_ours(ours)
+    return 0 if observation is None else 1
 
 
-def _exit_code(observation: str | None) -> int | None:
+def _answering_observation(following: list[Any]) -> str | None:
+    if not following:
+        return None
+    message = following[0]
+    if not isinstance(message, dict):
+        raise _MalformedError("a message after an assistant message must be an object")
+    return _text(message) if message.get("role") == "user" else None
+
+
+def _exit_code(observation: str) -> int | None:
     """None when there is no observation or no return code: unknown, not success."""
-    found = _RETURN_CODE.search(observation or "")
+    found = _RETURN_CODE.search(observation)
     return int(found.group(1)) if found else None
 
 
