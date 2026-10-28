@@ -159,3 +159,53 @@ def test_an_unknown_base_is_an_error_not_a_pass(repo, monkeypatch):
     monkeypatch.setenv("SYMBIONT_GATE_BASE", "no-such-ref")
     with pytest.raises(integrity.IntegrityError):
         integrity.main([])
+
+
+def _main_moves_on(root: Path, path: str, text: str) -> None:
+    _git(root, "checkout", "-q", "main")
+    _commit(root, path, text, "approved on main\n\nGATE-CHANGE: owner approved")
+    _git(root, "checkout", "-q", "work")
+
+
+def test_merging_main_with_its_approved_gate_change_passes_pending_and_committed(repo):
+    _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    _main_moves_on(repo, "scripts/gates/run.sh", "echo stricter\n")
+    _git(repo, "merge", "-q", "--no-commit", "--no-ff", "main")
+    assert integrity.main([]) == 0
+    _git(repo, "commit", "-q", "-m", "merge main")
+    assert integrity.main([]) == 0
+
+
+def test_a_merge_resolution_that_writes_new_gate_content_fails(repo, capsys):
+    _commit(repo, "src/a.py", "x = 2\n", "branch work")
+    _main_moves_on(repo, "scripts/gates/run.sh", "echo stricter\n")
+    _git(repo, "merge", "-q", "--no-commit", "--no-ff", "main")
+    _write(repo, "scripts/gates/run.sh", "echo something else\n")
+    _git(repo, "add", "scripts/gates/run.sh")
+    assert integrity.main([]) == 1
+    assert "run.sh" in capsys.readouterr().err
+
+
+def test_a_merge_keeping_the_branch_approved_gate_change_passes(repo):
+    _commit(repo, "scripts/gates/run.sh", "echo mine\n", "mine\n\nGATE-CHANGE: owner approved")
+    _main_moves_on(repo, "src/a.py", "x = 3\n")
+    _git(repo, "merge", "-q", "--no-edit", "main")
+    assert integrity.main([]) == 0
+
+
+def test_merging_a_branch_that_is_not_main_gets_no_relief(repo):
+    _git(repo, "checkout", "-q", "-b", "side", "main")
+    _commit(repo, ".naming-waivers.txt", "src/a.py:handle_it  # me, why, 2099-01-01\n", "sneak")
+    _git(repo, "checkout", "-q", "work")
+    _git(repo, "merge", "-q", "--no-commit", "--no-ff", "side")
+    assert integrity.main([]) == 1
+
+
+def test_a_merge_that_lowers_main_floor_in_resolution_fails(repo):
+    _main_moves_on(repo, "scripts/gates/test-floor.txt", "300  # ratchet\n")
+    _commit(repo, "scripts/gates/test-floor.txt", "260  # ratchet\n", "raise\n\nGATE-CHANGE: ok")
+    conflicted = subprocess.run(["git", "-C", str(repo), "merge", "-q", "main"], check=False)
+    assert conflicted.returncode != 0
+    _write(repo, "scripts/gates/test-floor.txt", "250  # ratchet\n")
+    _git(repo, "add", "scripts/gates/test-floor.txt")
+    assert integrity.main([]) == 1
