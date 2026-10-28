@@ -16,7 +16,11 @@ HELD_OUT = ("python-pillow/Pillow", "iterative/dvc", "conan-io/conan")
 # Its T36 test split must not be read, and its TRAIN split is already the T36/T46 data.
 EXCLUDED = ("tobymao/sqlglot",)
 # Repositories whose export the OpenHands reader refuses (found at the first export, 2026-10-28).
-UNREADABLE = {"keras-team/keras-cv": "a tool call without 'command' (ReadError, line 4)"}
+UNREADABLE = {
+    "keras-team/keras-cv": "a tool call without 'command' (ReadError)",
+    "terrapower/armi": "an editor call without 'old_str' (ReadError)",
+    "model-bakers/model_bakery": "editor command 'delete' the reader does not know (ReadError)",
+}
 POOL_SEED = 20261029
 POOL_REPOS = 100  # variety: a hundred projects
 MIN_TASKS = 5  # a repository with fewer tasks says little about its own project
