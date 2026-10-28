@@ -21,6 +21,7 @@ def relevant_records(
 
 
 def _words(record: Record) -> set[str]:
+    """Lowercase words of a record's command and files; empty if it has neither."""
     if not (record.command or record.files):
         return set()
     text = " ".join([record.command or "", *record.files])

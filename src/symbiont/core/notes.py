@@ -30,20 +30,24 @@ def render(
 
 
 def _recalls(decision: Decision) -> list[str]:
+    """One sentence per recalled record."""
     return [_recalled(record) for record in decision.recall]
 
 
 def _warning(decision: Decision) -> list[str]:
+    """The warning sentence for the decision's trouble, if any."""
     if decision.trouble is None:
         return []
     return [_TEMPLATES[decision.trouble.signal](decision.trouble, len(decision.why))]
 
 
 def _times(count: int) -> str:
+    """`once` or `N times`, for prose."""
     return "once" if count == 1 else f"{count} times"
 
 
 def _failed_command(signature: Signature, count: int) -> str:
+    """Note for a command that failed the same way before."""
     *target, error = signature.key
     command = " ".join(part for part in target if part != NO_PATH)
     broke = "a non-zero exit" if error.startswith("exit ") else error
@@ -51,26 +55,31 @@ def _failed_command(signature: Signature, count: int) -> str:
 
 
 def _reworked_edit(signature: Signature, count: int) -> str:
+    """Note for a file whose edits were redone before."""
     return f"You have redone your edits to `{signature.key[0]}` {_times(count)} before."
 
 
 def _review_flag(signature: Signature, count: int) -> str:
+    """Note for a file a reviewer flagged before."""
     return f"A reviewer flagged `{signature.key[0]}` {_times(count)} before."
 
 
 def _correction(signature: Signature, count: int) -> str:
+    """Note for an earlier user correction."""
     path, words = signature.key
     where = "" if path == NO_PATH else f" about `{path}`"
     return f"You were corrected{where} {_times(count)} before, on: {words}."
 
 
 def _loop(signature: Signature, count: int) -> str:
+    """Note for an earlier session that went in circles."""
     kind, target = signature.key[0], signature.key[1]
     what = f"the command `{target}`" if kind == "command" else f"`{target}`"
     return f"You went in circles over {what} in an earlier session ({_times(count)})."
 
 
 def _blast_radius(signature: Signature, count: int) -> str:
+    """Note for an edit that broke its dependents' tests before."""
     edited, dependent = signature.key
     return (
         f"You edited `{edited}` before without touching `{dependent}`, "
@@ -79,6 +88,7 @@ def _blast_radius(signature: Signature, count: int) -> str:
 
 
 def _recalled(record: Record) -> str:
+    """A sentence for one recalled record; empty when it has neither command nor file."""
     if record.command:
         return f"Earlier in this project you ran `{record.command}`."
     if record.files:

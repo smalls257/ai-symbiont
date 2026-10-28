@@ -21,6 +21,7 @@ class EventLog:
     """Appends events to `<run_dir>/events.jsonl`; the file is created on first write."""
 
     def __init__(self, run_dir: Path, filler: str) -> None:
+        """Log to `events.jsonl` under `run_dir`, tagging each line with `filler`."""
         self.path = run_dir / "events.jsonl"
         self.filler = filler
 
@@ -46,6 +47,7 @@ class EventLog:
         self._write(call, {"status": status, "reason": reason})
 
     def _write(self, call: Call, event: dict[str, object]) -> None:
+        """Append one timestamped event line."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         stamped = {"ts": time.time(), "route": call.route, "hook": call.hook, **event}
         line = json.dumps({**stamped, "filler": self.filler})

@@ -1,0 +1,119 @@
+# QG-SAST-02 / QG-RD-04. Comments and docstrings are terse and carry no framework vocabulary:
+# the reasoning about Principles and Violations belongs in the plan or PR, not in the code.
+# Regex rules over the file text (semgrep has no comment nodes); function and class docstrings
+# use the AST so the levels stay apart. Limits: function 3, class 5, module 6 content lines.
+rules:
+  - id: sym-no-framework-names-in-comments
+    severity: ERROR
+    languages: [python]
+    message: >
+      A comment or docstring names "Violation prevented", a Violation, or labels a Principle.
+      Put that reasoning in the plan or PR description; the code states only the why the code
+      cannot show.
+    paths:
+      include: ["/src/", "/scripts/", "/ops/"]
+    pattern-either:
+      - pattern-regex: >-
+          (?m)#[^\n]*(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)
+      - pattern-regex: >-
+          (?s)\A(?:#[^\n]*\n)*\s*[rRuU]?"""(?:(?!""")(?s:.))*?(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)(?:(?!""")(?s:.))*?"""
+      - patterns:
+          - pattern-either:
+              - pattern: |
+                  def $F(...):
+                    $DOC
+                    ...
+              - pattern: |
+                  async def $F(...):
+                    $DOC
+                    ...
+              - pattern: |
+                  class $C:
+                    $DOC
+                    ...
+              - pattern: |
+                  class $C(...):
+                    $DOC
+                    ...
+          - metavariable-regex:
+              metavariable: $DOC
+              regex: '(?s)\A[rRuU]?"""(?:(?!""").)*?(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)'
+          - focus-metavariable: $DOC
+
+  - id: sym-no-framework-names-in-shell-comments
+    severity: ERROR
+    languages: [generic]
+    message: >
+      A shell comment names a Violation or labels a Principle. Put that reasoning in the plan
+      or PR description; the code states only the why the code cannot show.
+    paths:
+      include: ["*.sh"]
+    pattern-regex: >-
+      (?m)#[^\n]*(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)
+
+  - id: sym-docstring-too-long
+    severity: ERROR
+    languages: [python]
+    message: >
+      Function or method docstring over 3 lines. One line by default; a why only when the code
+      cannot show it. Longer design notes belong in the plan or PR.
+    paths:
+      include: ["/src/", "/scripts/", "/ops/"]
+    patterns:
+      - pattern-either:
+          - pattern: |
+              def $F(...):
+                $DOC
+                ...
+          - pattern: |
+              async def $F(...):
+                $DOC
+                ...
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)\A[rRuU]?(?:"""|\x27\x27\x27)\s*[^\n]*[^\s"\x27][^\n]*(?:\n\s*[^\n]*[^\s"\x27][^\n]*){3}'
+
+  - id: sym-class-docstring-too-long
+    severity: ERROR
+    languages: [python]
+    message: >
+      Class docstring over 5 lines. State the invariant in a sentence or two; longer design
+      notes belong in the plan or PR.
+    paths:
+      include: ["/src/", "/scripts/", "/ops/"]
+    patterns:
+      - pattern-either:
+          - pattern: |
+              class $C:
+                $DOC
+                ...
+          - pattern: |
+              class $C(...):
+                $DOC
+                ...
+      - metavariable-regex:
+          metavariable: $DOC
+          regex: '(?s)\A[rRuU]?(?:"""|\x27\x27\x27)\s*[^\n]*[^\s"\x27][^\n]*(?:\n\s*[^\n]*[^\s"\x27][^\n]*){5}'
+
+  - id: sym-module-docstring-too-long
+    severity: ERROR
+    languages: [python]
+    message: >
+      Module docstring over 6 lines (a Usage: line is extra for scripts). Purpose and its one
+      constraint; longer design notes belong in the plan or PR.
+    paths:
+      include: ["/src/", "/scripts/", "/ops/"]
+    pattern-regex: >-
+      (?s)\A(?:#[^\n]*\n)*\s*[rRuU]?"""\s*(?![ \t]*Usage:)(?:(?!""")[^\n])*?[^\s"](?:(?!""")[^\n])*(?:\n\s*(?:[ \t]*Usage:[^\n]*\n\s*)*(?![ \t]*Usage:)(?:(?!""")[^\n])*?[^\s"](?:(?!""")[^\n])*){5}\n\s*(?:[ \t]*Usage:[^\n]*\n\s*)*[^\n]*[^\s"][^\n]*
+
+  - id: sym-comment-block-too-long
+    severity: ERROR
+    languages: [python]
+    message: >
+      More than 3 consecutive comment lines. Say it in the code (a name, a constant, a small
+      function) or move the explanation to the plan or PR. A shebang and a license header are
+      exempt.
+    paths:
+      include: ["/src/", "/scripts/", "/ops/"]
+    pattern-regex: >-
+      (?m)^(?![ \t]*#!)(?![ \t]*#[^\n]*(?:Copyright|SPDX|License))(?:[ \t]*#[^\n]*\n){4,}

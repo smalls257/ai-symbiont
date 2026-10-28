@@ -1,19 +1,7 @@
-"""Local SQLite store of records and mined pain points, with two guards.
+"""Local SQLite store of records and mined pain points.
 
-- Hold-out: a scored task's trajectory must never enter a store a scored arm
-  reads, or `recall` could surface a near-gold patch. `add_records` takes the
-  held-out task ids as a required argument and raises `HoldOutViolationError`
-  naming the task before writing anything from the batch. Ids are compared
-  after normalizing the benchmark spellings (`owner__repo-123`,
-  `owner/repo#123`); an id in neither spelling raises `UnrecognisedTaskIdError`
-  rather than silently matching nothing. Records with no task id cannot be matched and are
-  accepted (the developer's own sessions); the caller states the set per
-  batch, so it can differ for external history and an arm's own sessions.
-- Spark: `spark_view()` is a read-only view for anything bound for Spark.
-  Any read that would return a record with `spark_safe=False` (SWE-chat,
-  private sessions), or a pain point citing one, raises
-  `SparkPrivacyViolationError`. It never filters quietly: a filtered view would
-  make a privacy bug look like "no history".
+Guards: `add_records` raises `HoldOutViolationError` for a scored task id;
+`spark_view()` raises `SparkPrivacyViolationError` rather than filter.
 """
 
 import io
@@ -49,6 +37,7 @@ class SparkPrivacyViolationError(PermissionError):
     """A read would hand a not-Spark-safe record to a Spark-bound prompt."""
 
     def __init__(self, record: Record):
+        """Name the offending record in the message."""
         super().__init__(
             f"record {record.session_id}:{record.step} comes from {record.provenance.dataset}, "
             "which is not Spark-safe; it must not reach a Spark-bound prompt"
@@ -64,6 +53,7 @@ class Store:
     """SQLite-backed records and pain points; the only persistence the rest of the system sees."""
 
     def __init__(self, db: sqlite3.Connection):
+        """Wrap an open SQLite connection."""
         self._db = db
 
     @classmethod
@@ -89,6 +79,7 @@ class Store:
         return added
 
     def _insert(self, record: Record) -> int:
+        """Insert a record: 1 if new, 0 if identical; StoreConflictError if the key differs."""
         body = _record_json(record)
         key = (record.harness, record.session_id, record.step)
         row = self._db.execute(
@@ -108,16 +99,7 @@ class Store:
         return 1
 
     def mine(self, project: str, *, references: Mapping[str, frozenset[str]]) -> int:
-        """Re-mine every session of `project`, replacing its pain points.
-
-        `references` as for blast radius; `{}` when there is no checkout.
-
-        Sessions with timestamps form one chain in the order they started (a
-        developer's history on this repo, so rework across sessions counts).
-        Sessions without any timestamp have no known order; published
-        trajectories are parallel attempts at the same tasks, so each is
-        mined alone. ISO 8601 timestamps in one timezone are assumed.
-        """
+        """Re-mine `project`'s sessions; timed ones chain by start, untimed ones are mined alone."""
         timed, untimed = _chains(self.sessions(project))
         found = mine_chain(timed, references)
         found += [p for session in untimed for p in mine_chain([session], references)]
@@ -177,6 +159,7 @@ class SparkView:
     """Read-only; every read raises rather than return a private record."""
 
     def __init__(self, store: Store):
+        """Wrap the store being viewed."""
         self._store = store
 
     def sessions(self, project: str) -> list[list[Record]]:
@@ -209,10 +192,12 @@ def _chains(sessions: list[list[Record]]) -> tuple[list[list[Record]], list[list
 
 
 def _started(session: list[Record]) -> str | None:
+    """Earliest timestamp in a session, or None."""
     return min((r.ts for r in session if r.ts is not None), default=None)
 
 
 def _refuse_private(records: Iterable[Record]) -> None:
+    """Raise on the first record that is not Spark-safe."""
     for record in records:
         if not record.provenance.spark_safe:
             raise SparkPrivacyViolationError(record)
@@ -236,21 +221,25 @@ def _check_held_out(records: Sequence[Record], held_out_tasks: frozenset[str]) -
 
 
 def _record_json(record: Record) -> str:
+    """One record as its JSONL line."""
     out = io.StringIO()
     dump_jsonl([record], out)
     return out.getvalue().rstrip("\n")
 
 
 def _record_from_json(body: str) -> Record:
+    """The record in one JSONL line."""
     (record,) = load_jsonl(io.StringIO(body))
     return record
 
 
 def _pain_point_json(pain: PainPoint) -> str:
+    """Serialize a pain point for the pain_points table."""
     return json.dumps(asdict(pain))
 
 
 def _pain_point_from_json(body: str) -> PainPoint:
+    """A pain point from its JSON."""
     data = json.loads(body)
     signature = data["signature"]
     return PainPoint(

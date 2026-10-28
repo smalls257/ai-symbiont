@@ -26,6 +26,7 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def _parser() -> argparse.ArgumentParser:
+    """The `symbiont` argument parser: `serve` and `recall`."""
     parser = argparse.ArgumentParser(prog="symbiont")
     commands = parser.add_subparsers(dest="command", required=True)
     serving = commands.add_parser("serve", help="run the local service on 127.0.0.1")
@@ -47,6 +48,7 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def _serve(args: argparse.Namespace) -> int:
+    """Run the local service until interrupted."""
     serve(open_service(args.data_dir, args.mode), args.port)
     return 0
 
@@ -58,6 +60,7 @@ def _mcp(args: argparse.Namespace) -> int:
 
 
 def _recall(args: argparse.Namespace) -> int:
+    """Print the service's answer, or `symbiont offline: ...` when it is down."""
     try:
         print(recall_answer(args.question, args.project, args.port))
     except ServiceOfflineError as offline:
