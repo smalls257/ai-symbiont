@@ -10,6 +10,8 @@ from enum import StrEnum
 from typing import Any
 
 from symbiont.core.features import featurise
+from symbiont.core.memory_note import note_request, recall_request
+from symbiont.core.note_rules import may_speak
 from symbiont.core.notes import NoteKind, render, render_lesson
 from symbiont.core.recall import relevant_lessons
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
@@ -19,7 +21,8 @@ from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
-from symbiont.service.events import Call, EventLog
+from symbiont.service.events import Call, EventLog, MemoryCost
+from symbiont.service.memory_model import MemoryModel, MemoryModelOfflineError, MemoryReply
 from symbiont.store.local import Source, SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine
 
@@ -30,6 +33,7 @@ RECALL_KEYS = frozenset({"question", "project", "spark_bound"})
 OBSERVE_REQUIRED = frozenset({"harness", "session_id", "event", "payload"})
 OBSERVE_KEYS = OBSERVE_REQUIRED | {"spark_bound"}
 LEARN_KEYS = frozenset({"reader", "session_log_path", "project"})
+HELD_BY_RULE = "the note budget is spent or the last note was too recent"
 
 
 class ServiceMode(StrEnum):
@@ -64,6 +68,8 @@ class ServiceParts:
     held_out_tasks: frozenset[str] = frozenset()
     # Reader name -> reader; /learn names one, and mining re-reads every source through them.
     readers: Mapping[str, Reader] = field(default_factory=lambda: dict(READERS))
+    # Route A: when set, notes and answers for the projects it learned come from this model.
+    memory: MemoryModel | None = None
 
 
 class SparkWithheldError(PermissionError):
@@ -81,6 +87,7 @@ class Service:
         self._parts = parts
         self._state = parts.decider.initial_state(0)
         self._prefixes: dict[tuple[str, str], list[Record]] = {}
+        self._spoken: dict[tuple[str, str], list[int]] = {}
         self._one_call_at_a_time = threading.Lock()
 
     def respond(self, route: str, payload: Any) -> Response:
@@ -102,6 +109,8 @@ class Service:
             return self._refuse(call, 409, SPARK_WITHHELD)
         except HoldOutViolationError as exc:
             return self._refuse(call, 409, str(exc))
+        except MemoryModelOfflineError as exc:
+            return self._refuse(call, 503, str(exc))
         except Exception:
             log.exception("service call failed: %s", name)
             return self._refuse(call, 500, "internal error; see the service log")
@@ -114,7 +123,8 @@ class Service:
         _require_keys(request, OBSERVE_KEYS, OBSERVE_REQUIRED)
         project, record = _observed(request["payload"])
         lessons = self._lessons(request, project)
-        prefix = self._prefixes.setdefault((request["harness"], request["session_id"]), [])
+        key = (request["harness"], request["session_id"])
+        prefix = self._prefixes.setdefault(key, [])
         prefix.append(record)
         # No raw history is stored, so there are no earlier records to recall from here.
         history = tuple(lesson.pain_point for lesson in lessons)
@@ -122,9 +132,31 @@ class Service:
         decision = self._parts.decider.decide(featurise(situation), situation, self._state)
         if _spark_bound(request):
             _refuse_untraceable(decision, lessons)
+        memory = self._memory_for(project)
+        if memory is not None and decision.trouble is not None:
+            return self._memory_observe(call, decision, memory, key)
         notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode], lessons=lessons)
         self._parts.events.append_decision(call, decision, notes)
         return Response(200, {"notes": notes})
+
+    def _memory_for(self, project: str) -> MemoryModel | None:
+        memory = self._parts.memory
+        speaks = self._parts.mode is ServiceMode.WARN_AND_RECALL
+        return memory if memory is not None and speaks and memory.knows(project) else None
+
+    def _memory_observe(
+        self, call: Call, decision: Decision, memory: MemoryModel, key: tuple[str, str]
+    ) -> Response:
+        """Option A decides whether to speak; the memory model writes what is said."""
+        position = len(self._prefixes[key]) - 1
+        spoken = self._spoken.setdefault(key, [])
+        if decision.trouble is None or not may_speak(spoken, position):
+            self._parts.events.append_quiet(call, decision, HELD_BY_RULE)
+            return Response(200, {"notes": []})
+        reply = memory.write_line(note_request(self._prefixes[key][-1].project, decision.trouble))
+        spoken.append(position)
+        self._parts.events.append_memory_note(call, decision, reply.line, _cost(reply))
+        return Response(200, {"notes": [reply.line]})
 
     def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
         store = self._parts.store
@@ -138,6 +170,11 @@ class Service:
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
         lessons = self._lessons(request, project)
+        memory = self._parts.memory
+        if memory is not None and memory.knows(project):
+            reply = memory.write_line(recall_request(project, question))
+            self._parts.events.append_memory_note(call, None, reply.line, _cost(reply))
+            return Response(200, {"answer": reply.line, "records": []})
         if not lessons:
             return self._answered(call, NO_HISTORY, [])
         found = relevant_lessons(question, lessons)
@@ -174,6 +211,10 @@ class Service:
             for outcome in _outcomes(record, troubles):
                 self._state = decider.learn(x, outcome, self._state)
         return len(mine)
+
+
+def _cost(reply: MemoryReply) -> MemoryCost:
+    return MemoryCost(reply.prompt_chars, round(reply.elapsed_ms, 1))
 
 
 def _refuse_untraceable(decision: Decision, lessons: Sequence[Lesson]) -> None:

@@ -47,6 +47,23 @@ def render_lesson(lesson: Lesson) -> str:
     return f"What happened: {happened}. {_resolved(lesson)} {_check(signature)}"
 
 
+def happened(signature: Signature) -> str:
+    """What the trouble was, as a clause: "`pytest x` failed with ImportError"."""
+    return _HAPPENED[signature.signal](signature)
+
+
+def check_to_run(signature: Signature) -> str:
+    """The check for this kind of trouble, as a clause without the "Check:" label."""
+    return _check(signature).removeprefix("Check: ").rstrip(".")
+
+
+def resolution_clause(lesson: Lesson) -> str:
+    """How the lesson was resolved, or that the history shows no fix, as a clause."""
+    if not lesson.resolution:
+        return "no fix was found in the history"
+    return f"you {', then '.join(lesson.resolution)}"
+
+
 def _recalls(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
     return [_recalled(record) for record in decision.recall]
 

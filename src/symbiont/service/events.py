@@ -17,6 +17,14 @@ class Call:
     hook: str
 
 
+@dataclass(frozen=True)
+class MemoryCost:
+    """What one memory-model call cost: the prompt's size and the wall-clock milliseconds."""
+
+    prompt_chars: int
+    ms: float
+
+
 class EventLog:
     """Appends events to `<run_dir>/events.jsonl`; the file is created on first write."""
 
@@ -40,6 +48,18 @@ class EventLog:
         refs = [ref for pain in decision.why for ref in pain.record_refs]
         refs += [(r.session_id, r.step) for r in decision.recall]
         self._write(call, {**event_fields(decision), "records": refs, "notes": notes})
+
+    def append_memory_note(
+        self, call: Call, decision: Decision | None, note: str, cost: MemoryCost
+    ) -> None:
+        """Record a note the memory model wrote: sizes and milliseconds, never the prompt."""
+        decided = event_fields(decision) if decision is not None else {"trouble": None}
+        timing = {"prompt_chars": cost.prompt_chars, "note_chars": len(note), "ms": cost.ms}
+        self._write(call, {**decided, "records": [], "notes": [note], "memory_model": timing})
+
+    def append_quiet(self, call: Call, decision: Decision, why: str) -> None:
+        """Record a decision to speak that the delivery rule held back, and why."""
+        self._write(call, {**event_fields(decision), "records": [], "notes": [], "held": why})
 
     def append_failure(self, call: Call, status: int, reason: str) -> None:
         """Record a call that was refused, so a failure is never silent."""

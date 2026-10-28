@@ -6,6 +6,8 @@ from typing import Any
 from symbiont.egress import Destination, EgressRefusedError, Endpoint, post_json
 
 TIMEOUT_S = 10.0
+# The service answers 503 when the memory model behind it cannot give a note: offline to the user.
+UNAVAILABLE = 503
 
 
 class ServiceOfflineError(ConnectionError):
@@ -30,8 +32,11 @@ def call_service(route: str, body: dict[str, object], port: int) -> dict[str, An
     except EgressRefusedError as refusal:
         raise ServiceRefusedError(f"egress policy refused the call: {refusal}") from refusal
     except OSError as exc:
-        if getattr(exc, "code", None) is None:
+        code = getattr(exc, "code", None)
+        if code is None:
             raise ServiceOfflineError(f"could not reach the local service at {url}") from exc
+        if code == UNAVAILABLE:
+            raise ServiceOfflineError(_reason(exc)) from exc
         raise ServiceRefusedError(_reason(exc)) from exc
     if not isinstance(reply, dict):
         raise ServiceReplyError("the local service sent a reply that is not an object")

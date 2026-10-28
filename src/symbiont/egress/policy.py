@@ -30,6 +30,7 @@ class Endpoint(StrEnum):
 
     LOCAL_GLIMMER = "local_glimmer"  # the owner's own llama.cpp server (loopback or LAN)
     LOCAL_SERVICE = "local_service"  # the symbiont service on loopback
+    LOCAL_MEMORY_MODEL = "local_memory_model"  # Route A's memory model (mlx_lm.server), loopback
     SPARK = "spark"
     CONTRIBUTOR = "contributor"
     WONDER = "wonder"
@@ -81,6 +82,9 @@ def _check_destination(destination: Destination) -> None:
     _refuse_unless(endpoint, "not an http(s) url with a host", holds=is_http)
     if endpoint is Endpoint.LOCAL_SERVICE:
         _refuse_unless(endpoint, "the local service is loopback only", holds=_is_loopback(host))
+    elif endpoint is Endpoint.LOCAL_MEMORY_MODEL:
+        # The memory model reads private session steps, so it may not sit even on the LAN.
+        _refuse_unless(endpoint, "the memory model is loopback only", holds=_is_loopback(host))
     elif endpoint is Endpoint.LOCAL_GLIMMER:
         _refuse_unless(endpoint, "a Glimmer host must be loopback or LAN", holds=_is_lan(host))
     else:

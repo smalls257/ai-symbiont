@@ -7,6 +7,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+from symbiont.core.warner import WarnerWeightsError
 from symbiont.delivery.hooks import HookEvent, HookInputError, HookSettings, NoteStyle, run_hook
 from symbiont.delivery.install.claude_code import claude_code_install
 from symbiont.delivery.install.muse_code import muse_code_install
@@ -25,8 +26,14 @@ from symbiont.delivery.recall import (
 )
 from symbiont.readers import READERS
 from symbiont.service.app import ServiceMode
+from symbiont.service.memory_model import MemoryModel
 from symbiont.service.server import SERVICE_PORT, serve
-from symbiont.service.wiring import open_service
+from symbiont.service.wiring import (
+    MemorySetupError,
+    load_warner,
+    open_service,
+    trained_projects,
+)
 from symbiont.store.local import Source, Store
 from symbiont.store.mining import MiningRules, coverage_lines, remine
 
@@ -59,6 +66,15 @@ def _parser() -> argparse.ArgumentParser:
     serving.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
     serving.add_argument(
         "--mode", type=ServiceMode, choices=list(ServiceMode), default=ServiceMode.WARN_AND_RECALL
+    )
+    serving.add_argument(
+        "--warner", type=Path, help="weights from scripts/routea/fit_warner.py; else counters"
+    )
+    serving.add_argument(
+        "--memory-url", help="loopback mlx_lm.server of the memory model (scripts/routea)"
+    )
+    serving.add_argument(
+        "--memory-dir", type=Path, help="what train_memory.py wrote: adapter/ and manifests/"
     )
     asking = commands.add_parser("recall", help="ask the local service one question")
     asking.add_argument("question")
@@ -129,7 +145,18 @@ def _add_hook_commands(commands: Any) -> None:
 
 
 def _serve(args: argparse.Namespace) -> int:
-    serve(open_service(args.data_dir, args.mode), args.port)
+    if (args.memory_url is None) != (args.memory_dir is None):
+        print("symbiont serve: --memory-url and --memory-dir go together", file=sys.stderr)
+        return 1
+    try:
+        warner = load_warner(args.warner) if args.warner else None
+        memory = None
+        if args.memory_url:
+            memory = MemoryModel(args.memory_url, trained_projects(args.memory_dir))
+    except (OSError, WarnerWeightsError, MemorySetupError) as unusable:
+        print(f"symbiont serve: {unusable}", file=sys.stderr)
+        return 1
+    serve(open_service(args.data_dir, args.mode, warner, memory), args.port)
     return 0
 
 
