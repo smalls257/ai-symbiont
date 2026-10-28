@@ -8,12 +8,13 @@ import json
 import os
 import subprocess
 import time
+import uuid
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "calibration" / "sync_results.sh"
 
 
-def _fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
+def _fixture(tmp_path: Path, driver_token: str) -> tuple[dict[str, str], Path]:
     shims = tmp_path / "shims"
     shims.mkdir()
     desktop = tmp_path / "desktop"
@@ -31,6 +32,8 @@ def _fixture(tmp_path: Path) -> tuple[dict[str, str], Path]:
         "PATH": f"{shims}:{env['PATH']}",
         "SYMBIONT_DESKTOP_SSH": "user@desktop.example.invalid",
         "SYMBIONT_DESKTOP_WORKDIR": str(desktop),
+        # Unique per test: no other process on the host can match the driver probe.
+        "SYMBIONT_DRIVER_PATTERN": f"launch.py-{driver_token}",
     }
     return env, repo
 
@@ -46,7 +49,7 @@ def _start(env: dict[str, str], repo: Path) -> subprocess.Popen:
 
 
 def test_probe_reports_dead_driver(tmp_path):
-    env, repo = _fixture(tmp_path)
+    env, repo = _fixture(tmp_path, uuid.uuid4().hex)
     proc = _start(env, repo)
     proc.wait(timeout=30)
     assert proc.returncode == 3
@@ -54,8 +57,9 @@ def test_probe_reports_dead_driver(tmp_path):
 
 
 def test_probe_sees_live_driver(tmp_path):
-    env, repo = _fixture(tmp_path)
-    driver = subprocess.Popen(["bash", "-c", "/bin/sleep 300; true", "launch.py"])
+    token = uuid.uuid4().hex
+    env, repo = _fixture(tmp_path, token)
+    driver = subprocess.Popen(["bash", "-c", "/bin/sleep 300; true", f"launch.py-{token}"])
     proc = _start(env, repo)
     try:
         time.sleep(2)
