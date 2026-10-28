@@ -1,15 +1,12 @@
 """Every pain-point signal, in one call.
 
-The store and the wizard call this rather than each signal, so adding a
-signal is one line here and nothing changes downstream.
-
-A chain is a developer's sessions on one repo in the order they ran. Most
-signals look inside one session; reworked edits also look across the chain
-(Tuesday's session takes out what Monday's put in). Parallel attempts at the
-same task are not a chain: pass each as a chain of one.
+Callers use this rather than each signal, so a new signal is one line here. A chain is a
+developer's sessions on one repo in the order they ran; most signals look inside one session,
+reworked edits also look across the chain. Parallel attempts at the same task are not a chain:
+pass each alone.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 
 from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.signals.blast_radius import find_blast_radius
@@ -40,6 +37,7 @@ def mine_session(session: Sequence[Record], references: References) -> list[Pain
 
 
 def _within_session(session: Sequence[Record], references: References) -> list[PainPoint]:
+    """Every signal that looks inside one session."""
     return [
         *find_failed_commands(session),
         *find_loops(session),
@@ -47,3 +45,27 @@ def _within_session(session: Sequence[Record], references: References) -> list[P
         *find_corrections(session),
         *find_review_flags(session),
     ]
+
+
+def sessions_of(records: Iterable[Record]) -> list[list[Record]]:
+    """Group records into sessions (one per harness and session id), each in step order."""
+    grouped: dict[tuple[str, str], list[Record]] = {}
+    for record in records:
+        grouped.setdefault((record.harness, record.session_id), []).append(record)
+    return [sorted(steps, key=lambda record: record.step) for _, steps in sorted(grouped.items())]
+
+
+def mine_history(sessions: Sequence[Sequence[Record]], references: References) -> list[PainPoint]:
+    """Mine a project's history: timed sessions form one chain, untimed ones are mined alone."""
+    timed = sorted(
+        ((start, s) for s in sessions if (start := _started(s)) is not None),
+        key=lambda pair: pair[0],
+    )
+    found = mine_chain([s for _, s in timed], references)
+    untimed = [s for s in sessions if _started(s) is None]
+    return found + [p for session in untimed for p in mine_session(session, references)]
+
+
+def _started(session: Sequence[Record]) -> str | None:
+    """Earliest timestamp in a session, or None."""
+    return min((record.ts for record in session if record.ts is not None), default=None)

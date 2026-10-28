@@ -9,8 +9,8 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/routeb/`.
 ## Invariants
 - Not mistakes, so never examples: breakage of a hub module, rework of a file the session made for itself (same rule the learners use).
 - Hold-out ids are enforced: `HoldOutViolationError` before any scored task's trajectory becomes an example.
-- Route A trains only on lessons from `spark_view()`; a `spark_safe=False` lesson never trains a model whose notes can reach Spark. Route B (local Glimmer) may train on all lessons.
-- Lessons are training data only: deleted after training, never kept as raw history.
+- Correction targets come from `miner.resolutions`, shared with lessons: a failed command's target is what changed before it passed, then the passing run.
+- No raw history is stored: records reach `dataset` re-read from the harness logs; stored lessons reach training only through `store.training` (`lessons_for_personal_model` here, `lessons_for_memory_model` for anything Spark can reach).
 - GPU jobs run only through `ops/gpu_run.sh`, one at a time. No sudo, no touching the docker stack.
 - Size limits are the pure-core ones (30 lines, CCN 10) even for periphery files here.
 

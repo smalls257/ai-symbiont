@@ -9,7 +9,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/core/`.
 ## Invariants
 - `Decider` protocol: `decide(x, situation, state)`, `learn(x, outcome, state)`, `initial_state(seed)`. State is passed in and returned; no hidden mutation, deterministic given the seed.
 - A `Decision` that stays quiet carries a `reason_none`, so a silent learner differs from a broken one.
-- Notes are domain prose: no scores, feature names, thresholds or activations.
+- Notes are domain prose: no scores, feature names, thresholds or activations. A lesson renders as what happened, how it was resolved (or that no fix was found), and the check to run.
 - No claim about speed of learning; "a learner built on the fly's real circuit".
 
 ## Imports

@@ -4,20 +4,24 @@ import io
 import json
 import logging
 import threading
-from dataclasses import dataclass
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass, field
 from enum import StrEnum
-from pathlib import Path
 from typing import Any
 
 from symbiont.core.features import featurise
-from symbiont.core.notes import NoteKind, render
-from symbiont.core.recall import relevant_records
+from symbiont.core.notes import NoteKind, render, render_lesson
+from symbiont.core.recall import relevant_lessons
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
+from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint
-from symbiont.records.holdout import HoldOutViolationError
+from symbiont.readers import READERS, Reader
+from symbiont.readers.errors import ReadError
+from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.service.events import Call, EventLog
-from symbiont.store.local import SparkPrivacyViolationError, SparkView, Store
+from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
 
 log = logging.getLogger("symbiont.service")
 SPARK_WITHHELD = "private history withheld from Spark"
@@ -25,7 +29,7 @@ NOTHING_MATCHES = "nothing in this project's history matches that question"
 RECALL_KEYS = frozenset({"question", "project", "spark_bound"})
 OBSERVE_REQUIRED = frozenset({"harness", "session_id", "event", "payload"})
 OBSERVE_KEYS = OBSERVE_REQUIRED | {"spark_bound"}
-LEARN_KEYS = frozenset({"session_log_path"})
+LEARN_KEYS = frozenset({"reader", "session_log_path", "project"})
 
 
 class ServiceMode(StrEnum):
@@ -58,6 +62,8 @@ class ServiceParts:
     events: EventLog
     mode: ServiceMode = ServiceMode.WARN_AND_RECALL
     held_out_tasks: frozenset[str] = frozenset()
+    # Reader name -> reader; /learn names one, and mining re-reads every source through them.
+    readers: Mapping[str, Reader] = field(default_factory=lambda: dict(READERS))
 
 
 class SparkWithheldError(PermissionError):
@@ -98,6 +104,8 @@ class Service:
             return self._refuse(call, 409, SPARK_WITHHELD)
         except HoldOutViolationError as exc:
             return self._refuse(call, 409, str(exc))
+        except UnrecognisedTaskIdError as exc:
+            return self._refuse(call, 422, str(exc))
         except Exception:
             log.exception("service call failed: %s", name)
             return self._refuse(call, 500, "internal error; see the service log")
@@ -111,38 +119,25 @@ class Service:
         """Record one hook observation and answer with the decider's note."""
         _require_keys(request, OBSERVE_KEYS, OBSERVE_REQUIRED)
         project, record = _observed(request["payload"])
-        reader = self._reader(request)
+        lessons = self._lessons(request, project)
         prefix = self._prefixes.setdefault((request["harness"], request["session_id"]), [])
         prefix.append(record)
-        earlier = tuple(
-            r
-            for session in reader.sessions(project)
-            for r in session
-            if r.session_id != request["session_id"]
-        )
-        history = tuple(self._parts.store.pain_points(project))
-        situation = Situation(project, tuple(prefix), history, earlier)
+        # No raw history is stored, so there are no earlier records to recall from here.
+        history = tuple(lesson.pain_point for lesson in lessons)
+        situation = Situation(project, tuple(prefix), history, ())
         decision = self._parts.decider.decide(featurise(situation), situation, self._state)
         if _spark_bound(request):
-            self._refuse_untraceable(decision)
-        notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode])
+            _refuse_untraceable(decision, lessons)
+        notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode], lessons=lessons)
         self._parts.events.append_decision(call, decision, notes)
         return Response(200, {"notes": notes})
 
-    def _reader(self, request: dict[str, Any]) -> Store | SparkView:
-        """The store, or its Spark view when the request is Spark-bound."""
+    def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
+        """The project's lessons, through the Spark view when the request is Spark-bound."""
         store = self._parts.store
-        return store.spark_view() if _spark_bound(request) else store
-
-    def _refuse_untraceable(self, decision: Decision) -> None:
-        """A trouble with no cited records cannot be shown to rest on Spark-safe ones."""
-        if decision.trouble is not None and not (
-            decision.why and all(p.record_refs for p in decision.why)
-        ):
-            raise SparkWithheldError
-        cited = [ref for pain in decision.why for ref in pain.record_refs]
-        cited += [(r.session_id, r.step) for r in decision.recall]
-        self._parts.store.spark_view().records_for(cited)
+        if _spark_bound(request):
+            return store.spark_view().lessons(project)
+        return store.lessons(project)
 
     def _recall(self, request: dict[str, Any], call: Call) -> Response:
         """Answer a plain question from the project's sessions."""
@@ -150,38 +145,39 @@ class Service:
         project, question = request["project"], request["question"]
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
-        sessions = self._reader(request).sessions(project)
-        if not sessions:
+        lessons = self._lessons(request, project)
+        if not lessons:
             return self._answered(call, NO_HISTORY, [])
-        found = relevant_records(question, (r for s in sessions for r in s))
-        quiet = Decision(None, (), tuple(found), None if found else NOTHING_MATCHES)
-        notes = list(dict.fromkeys(render(quiet, kinds=[NoteKind.RECALL])))
+        found = relevant_lessons(question, lessons)
+        notes = list(dict.fromkeys(render_lesson(lesson) for lesson in found))
         return self._answered(call, " ".join(notes) or NOTHING_MATCHES, found)
 
-    def _answered(self, call: Call, answer: str, found: list[Record]) -> Response:
+    def _answered(self, call: Call, answer: str, found: Sequence[Lesson]) -> Response:
         """Log the answer with the records it cites and return it."""
-        refs = [(r.session_id, r.step) for r in found]
+        refs = list(dict.fromkeys(ref for lesson in found for ref in lesson.pain_point.record_refs))
         self._parts.events.append(call, None, refs, [answer])
         return Response(200, {"answer": answer, "records": [list(ref) for ref in refs]})
 
     def _learn(self, request: dict[str, Any], call: Call) -> Response:
         """Load a finished session log into the store and learn from it."""
         _require_keys(request, LEARN_KEYS, LEARN_KEYS)
-        records = _read_session_log(request["session_log_path"])
+        source = _source_of(request)
         parts = self._parts
-        parts.store.add_records(records, held_out_tasks=parts.held_out_tasks)
-        learned = 0
-        for project in sorted({r.project for r in records}):
-            parts.store.mine(project, references={})
-            learned += self._learn_project(project, records)
+        rules = MiningRules(parts.readers, parts.held_out_tasks)
+        try:
+            records = read_source(source, parts.readers)
+            remine_with_read(parts.store, source.project, rules, {source: records})
+        except (OSError, ReadError, UnknownReaderError) as exc:
+            raise BadRequestError(f"cannot read the session log: {exc}") from exc
+        learned = self._learn_project(source.project, records)
         parts.events.append(call, None, [], [f"learned from {learned} steps"])
         return Response(200, {"learned_steps": learned})
 
     def _learn_project(self, project: str, records: list[Record]) -> int:
         """Replay one project's records through the decider; returns the count learned."""
         decider = self._parts.decider
-        troubles = _troubles_by_step(self._parts.store.pain_points(project), records)
         history = tuple(self._parts.store.pain_points(project))
+        troubles = _troubles_by_step(list(history), records)
         mine = [r for r in records if r.project == project]
         for i, record in enumerate(mine):
             situation = Situation(project, tuple(mine[: i + 1]), history, ())
@@ -189,6 +185,19 @@ class Service:
             for outcome in _outcomes(record, troubles):
                 self._state = decider.learn(x, outcome, self._state)
         return len(mine)
+
+
+def _refuse_untraceable(decision: Decision, lessons: Sequence[Lesson]) -> None:
+    """A Spark-bound note must rest only on lessons the Spark view returned.
+
+    A trouble with no cited pain point, a pain point no such lesson backs (learned
+    from another project), or a recalled record cannot be shown to be Spark-safe.
+    """
+    backed = {lesson.pain_point for lesson in lessons}
+    if decision.trouble is not None and not decision.why:
+        raise SparkWithheldError
+    if decision.recall or any(pain not in backed for pain in decision.why):
+        raise SparkWithheldError
 
 
 def _outcomes(record: Record, troubles: dict[tuple[str, int], list[PainPoint]]) -> list[Outcome]:
@@ -221,13 +230,6 @@ def _troubles_by_step(
         if pain.session_id in sessions:
             by_step.setdefault((pain.session_id, pain.step), []).append(pain)
     return by_step
-
-
-def _lacks_citations(decision: Decision) -> bool:
-    """True when a warning cites no mined pain point or record."""
-    if decision.trouble is None:
-        return False
-    return not decision.why or any(not pain.record_refs for pain in decision.why)
 
 
 def _spark_bound(request: dict[str, Any]) -> bool:
@@ -273,12 +275,9 @@ def _observed(payload: Any) -> tuple[str, Record]:
     return record.project, record
 
 
-def _read_session_log(path: str) -> list[Record]:
-    """Records of a session log file; unreadable files raise BadRequestError."""
-    try:
-        with Path(path).open(encoding="utf-8") as log:
-            return list(load_jsonl(log))
-    except OSError as exc:
-        raise BadRequestError(f"cannot read the session log: {exc}") from exc
-    except RecordFormatError as exc:
-        raise BadRequestError(f"the session log is not records: {exc}") from exc
+def _source_of(request: dict[str, Any]) -> Source:
+    """The log source a learn request names; all three fields must be text."""
+    reader, path, project = request["reader"], request["session_log_path"], request["project"]
+    if not all(isinstance(value, str) for value in (reader, path, project)):
+        raise BadRequestError("reader, session_log_path and project must be text")
+    return Source(project, reader, path)

@@ -8,9 +8,8 @@ words, not what happened. Pure: records in, text out.
 
 from collections.abc import Callable, Sequence
 
-from symbiont.miner.commands import normalise_command
-from symbiont.miner.diffs import added_lines, removed_lines
 from symbiont.miner.painpoint import PainPoint, Signal
+from symbiont.miner.resolutions import is_action, resolution_of
 from symbiont.records.schema import Kind, Record
 
 _OMITTED = "[...]\n"
@@ -54,11 +53,13 @@ def quote_record(record: Record, limit: int) -> str:
 
 
 def _recall_failed_command(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a failed command."""
     (failed,) = cited
     return f"What broke last time I ran `{failed.command}`?", quote(failed)
 
 
 def _recall_reworked_edit(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a reworked edit."""
     path = pain.signature.key[0]
     first, last = cited[0], cited[-1]
     return (
@@ -68,16 +69,19 @@ def _recall_reworked_edit(pain: PainPoint, cited: list[Record], quote: Quote) ->
 
 
 def _recall_review_flag(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a review flag."""
     return f"What did the reviewer flag in {pain.signature.key[0]}?", quote(cited[0])
 
 
 def _recall_correction(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a user correction."""
     path = pain.signature.key[0]
     where = "last time" if path == "-" else f"in {path}"
     return f"What did I correct you on {where}?", quote(cited[0])
 
 
 def _recall_loop(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a loop."""
     return (
         "Where did I get stuck going round in circles?",
         f"{len(cited)} times in a row:\n{quote(cited[0])}",
@@ -85,6 +89,7 @@ def _recall_loop(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[st
 
 
 def _recall_blast_radius(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
+    """Question and answer for a broken dependent."""
     path, dependent = pain.signature.key
     edit, failure = cited
     return (
@@ -110,36 +115,27 @@ RECALL_BY_SIGNAL: dict[Signal, RecallText] = {
 def _fix_failed_command(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The target is what changed between the failure and the pass, then the passing run."""
     (failed,) = cited
-    fix = _later_success_of(failed, records)
-    if fix is None:
-        return "no later command with exit 0 on the same program and target followed the failure"
+    found = resolution_of(pain, cited, records)
+    if isinstance(found, str):
+        return found
     return (
         f"This command failed:\n{quote(failed)}\nWhat should I run instead?",
-        fix.command or "",
-        [failed, fix],
+        "\n".join(_action_text(step) for step in found.steps),
+        [failed, *found.steps],
     )
-
-
-def _later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
-    wanted = normalise_command(failed.command or "")
-    for later in _session_after(failed, records):
-        if (
-            later.kind == Kind.COMMAND
-            and later.exit_code == 0
-            and normalise_command(later.command or "") == wanted
-        ):
-            return later
-    return None
 
 
 def _fix_correction(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target after a user correction, or why there is none."""
     (turn,) = cited
-    action = next((r for r in _session_from(turn, records)[1:] if _is_action(r)), None)
-    if action is None:
-        return "no edit or command followed the correction"
+    found = resolution_of(pain, cited, records)
+    if isinstance(found, str):
+        return found
+    (action,) = found.steps
     corrected = _last_action_before(turn, records)
     before = f"What I was doing:\n{quote(corrected)}\n" if corrected else ""
     situation = f"{before}The developer said:\n{quote(turn)}\nWhat should I do next?"
@@ -147,16 +143,21 @@ def _fix_correction(
 
 
 def _last_action_before(turn: Record, records: Sequence[Record]) -> Record | None:
+    """The last action in the turn's session before it, or None."""
     earlier = [r for r in records if r.session_id == turn.session_id and r.step < turn.step]
-    return next((r for r in reversed(earlier) if _is_action(r)), None)
+    return next((r for r in reversed(earlier) if is_action(r)), None)
 
 
 def _fix_reworked_edit(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target for a reworked edit."""
     path = pain.signature.key[0]
-    *discarded, rework = cited
-    survivor = _last_version(rework, path, records)
+    found = resolution_of(pain, cited, records)
+    if isinstance(found, str):
+        return found
+    *discarded, _ = cited
+    (survivor,) = found.steps
     return (
         f"This edit to {path} was later redone:\n{quote(discarded[0])}\nWhat should the edit be?",
         _action_text(survivor),
@@ -164,25 +165,10 @@ def _fix_reworked_edit(
     )
 
 
-def _last_version(rework: Record, path: str, records: Sequence[Record]) -> Record:
-    """Follow the edit forward to the version nobody redid.
-
-    A later edit on `path` that takes out lines the current one put in replaces it.
-    """
-    current = rework
-    for later in records[_index_of(rework, records) + 1 :]:
-        if (
-            _applied_edit(later)
-            and path in later.files
-            and removed_lines(later.diff or "") & added_lines(current.diff or "")
-        ):
-            current = later
-    return current
-
-
 def _fix_blast_radius(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target for a broken dependent."""
     path, dependent = pain.signature.key
     edit, failure = cited
     return (
@@ -196,6 +182,7 @@ def _fix_blast_radius(
 def _fix_review_flag(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """The correction target for a review flag."""
     comment, answer = cited
     return (
         f"A reviewer flagged this:\n{quote(comment)}\nWhat should the change be?",
@@ -207,6 +194,7 @@ def _fix_review_flag(
 def _no_fix_in_loop(
     pain: PainPoint, cited: list[Record], records: Sequence[Record], quote: Quote
 ) -> Correction | NoCorrection:
+    """A loop has no correction source: always a stated reason."""
     return "a loop has no correction source: nothing in the history says what to do instead"
 
 
@@ -223,31 +211,8 @@ CORRECTION_BY_SIGNAL: dict[Signal, CorrectionText] = {
 # --- what the agent did, in the records ------------------------------------------
 
 
-def _is_action(record: Record) -> bool:
-    return record.kind == Kind.COMMAND or _applied_edit(record)
-
-
-def _applied_edit(record: Record) -> bool:
-    return record.kind == Kind.EDIT and record.exit_code != 1 and record.diff is not None
-
-
 def _action_text(record: Record) -> str:
+    """An action as text: the command, or the files and diff."""
     if record.kind == Kind.COMMAND:
         return record.command or ""
     return f"{', '.join(record.files)}\n{record.diff}"
-
-
-def _index_of(record: Record, records: Sequence[Record]) -> int:
-    return next(
-        position
-        for position, candidate in enumerate(records)
-        if (candidate.session_id, candidate.step) == (record.session_id, record.step)
-    )
-
-
-def _session_after(record: Record, records: Sequence[Record]) -> list[Record]:
-    return [r for r in records if r.session_id == record.session_id and r.step > record.step]
-
-
-def _session_from(record: Record, records: Sequence[Record]) -> list[Record]:
-    return [r for r in records if r.session_id == record.session_id and r.step >= record.step]
