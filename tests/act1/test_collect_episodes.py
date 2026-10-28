@@ -264,7 +264,7 @@ def test_glimmer_arms_become_policies_named_after_the_arm(monkeypatch, tmp_path)
 def test_a_held_out_level_needs_a_frozen_prereg(monkeypatch, tmp_path):
     module, _ = load_script(monkeypatch, tmp_path)
     draft = tmp_path / "draft.md"
-    draft.write_text("# Prereg\n\n**DRAFT, not frozen.**\n")
+    draft.write_text("# Prereg\n\n**DRAFT.** The freeze writes **FROZEN <date>.** here.\n")
     with pytest.raises(module.PreregNotFrozenError, match="not frozen"):
         module.main(["--levels", "MAP04", "--scored", str(draft), "--out", str(tmp_path / "o")])
     frozen_but_untracked = tmp_path / "frozen.md"

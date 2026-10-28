@@ -112,12 +112,17 @@ def policy_maker(args: argparse.Namespace) -> Callable[[str, int], Policy]:
     return make
 
 
+def status_line(text: str) -> str:
+    """The prereg's first bold line; a draft that only mentions the mark is not frozen."""
+    return next((line for line in text.splitlines() if line.startswith("**")), "")
+
+
 def require_frozen_prereg(prereg: Path) -> str:
     """The prereg's sha256 when it is frozen, committed and unchanged; raises otherwise."""
     if not prereg.is_file():
         raise PreregNotFrozenError(f"{prereg} does not exist")
-    if FROZEN_MARK not in prereg.read_text(encoding="utf-8"):
-        raise PreregNotFrozenError(f"{prereg} is not frozen (no {FROZEN_MARK} status line)")
+    if not status_line(prereg.read_text(encoding="utf-8")).startswith(FROZEN_MARK):
+        raise PreregNotFrozenError(f"{prereg} is not frozen (its status line is not {FROZEN_MARK})")
     where = {"cwd": prereg.parent, "capture_output": True, "check": False}
     tracked = subprocess.run(["git", "ls-files", "--error-unmatch", prereg.name], **where)
     changed = subprocess.run(["git", "diff", "--quiet", "HEAD", "--", prereg.name], **where)
