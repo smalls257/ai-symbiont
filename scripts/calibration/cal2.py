@@ -4,11 +4,17 @@ Violation prevented: **Paper Tiger**. The first calibration screened tasks at a 
 nearly every unsolved run simply ran out of steps, so its "history" band mixed hard tasks with
 tasks the cap cut off. CAL2 re-measures every screened task, three runs each, at a raised cap and
 keeps those plain Glimmer solves 1 or 2 times of 3 (about 20-60%). Unlike staged.py there is no
-screen gate: a task that fails run 1 may still land in band, so every candidate gets all 3 runs.
+screen gate: a task that fails run 1 may still land in band.
 
-Runs go run-major (run 1 of every task, then run 2, then run 3) so a partial log is already a
-fair, same-depth sample of every task. The log is resumable (staged.Driver.graded). The summary
-holds ids, counts and labels only.
+The schedule is adaptive because 240 fixed runs cost about 40 hours (coordinator ruling,
+2026-10-28). Tasks already solved on every old-cap run (2 of 2, 3 of 3) are above band and
+skipped. The rest go in priority order: solved at least once at the old cap, then cut off by the
+old step limit, then the rest. Each task runs to a verdict before the worker takes the next:
+runs 1 and 2; run 3 only when exactly one of the two solved; 2 of 2 is above band, 0 of 2 below.
+The driver stops once TARGET_IN_BAND tasks are in band across MIN_STRATA strata, or after
+BARREN_LIMIT finished tasks in a row without a new in-band one. The log is resumable
+(staged.Driver.graded) and the stop rule is recomputed from it. The summary holds ids, counts
+and labels only.
 
 Usage (through launch.py): python launch.py <workdir> --candidates-log runs/calibration.jsonl
         --candidates-log runs-wide/calibration.jsonl --runs-dir runs-cal2 --step-limit 75
@@ -19,42 +25,89 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import threading
 import time
 from pathlib import Path
 
 from screen_rules import cells_of
-from staged import (
-    BlockedError,
-    Driver,
-    add_limit_arguments,
-    read_logged_ids,
-    settings_for,
-)
+from staged import BlockedError, Driver, add_limit_arguments, settings_for
 from staged_summary import RUN_FIELDS, RUNS_PER_TASK, run_totals
 
+TARGET_IN_BAND = 15  # coordinator ruling 2026-10-28: enough in-band tasks for the scored pool
+MIN_STRATA = 3  # spread them over this many strata, as far as the candidates allow
+BARREN_LIMIT = 20  # finished tasks in a row with no new in-band task end the search
+ABOVE_BAND = "above_band"
 REASONING = "low"  # every earlier screen run used "low"; no medium run exists to compare with
-BANDS = ("in_band", "too_easy", "too_hard", "pending")
+BANDS = ("in_band", "too_easy", "too_hard", "pending")  # + ABOVE_BAND skips, counted apart
 
 
 def band_of_candidate(graded_runs: list[dict]) -> str:
-    """Where a candidate stands: in_band when 1 or 2 of its 3 runs solved, else too easy or hard.
+    """Where a candidate stands after its graded runs.
 
-    "pending" until all RUNS_PER_TASK runs are graded; a partial log never claims a band.
+    "pending" before 2 runs. With 2 or more: no solve is too_hard, every run solved is too_easy,
+    anything between is in_band (1 of 2 is in band whatever run 3 does).
     """
-    if len({rec["run"] for rec in graded_runs}) < RUNS_PER_TASK:
+    count = len({rec["run"] for rec in graded_runs})
+    if count < 2:
         return "pending"
     solved = sum(rec["resolved"] for rec in graded_runs)
     if solved == 0:
         return "too_hard"
-    return "too_easy" if solved == RUNS_PER_TASK else "in_band"
+    return "too_easy" if solved == count else "in_band"
 
 
-def candidate_ids(workdir: Path, logs: list[str]) -> list[str]:
-    """Sorted ids of every task in the given earlier logs; raises if a log is missing."""
-    ids: set[str] = set()
-    for log in logs:
-        ids |= read_logged_ids(workdir / log)
-    return sorted(ids)
+def is_complete(graded_runs: list[dict]) -> bool:
+    """A task has its verdict: 2 runs agree (0 or 2 solved), or all 3 runs are graded."""
+    count = len({rec["run"] for rec in graded_runs})
+    solved = sum(rec["resolved"] for rec in graded_runs)
+    return count >= RUNS_PER_TASK or (count == 2 and solved != 1)
+
+
+def prior_tier(old_runs: list[dict]) -> int | str:
+    """Old-cap evidence: ABOVE_BAND, or 0 solved at least once, 1 step-limit cut-off, 2 the rest."""
+    graded = [rec for rec in old_runs if rec["resolved"] is not None]
+    solved = sum(rec["resolved"] for rec in graded)
+    if len(graded) >= 2 and solved == len(graded):
+        return ABOVE_BAND
+    if solved:
+        return 0
+    return 1 if any(rec.get("exit_status") == "LimitsExceeded" for rec in graded) else 2
+
+
+def priority_order(old_records: list[dict]) -> tuple[list[str], list[str]]:
+    """(ids to measure, most informative first; ids skipped as above band at the old cap)."""
+    by_task: dict[str, list[dict]] = {}
+    for rec in old_records:
+        by_task.setdefault(rec["instance_id"], []).append(rec)
+    tiers = {iid: prior_tier(runs) for iid, runs in by_task.items()}
+    skipped = sorted(iid for iid, tier in tiers.items() if tier == ABOVE_BAND)
+    todo = sorted((tier, iid) for iid, tier in tiers.items() if tier != ABOVE_BAND)
+    return [iid for _, iid in todo], skipped
+
+
+def stop_reason(finished: list[tuple[str, str]]) -> str | None:
+    """Why the search ends, from (stratum, band) of finished tasks in priority order, else None."""
+    in_band = [stratum for stratum, band in finished if band == "in_band"]
+    if len(in_band) >= TARGET_IN_BAND and len(set(in_band)) >= MIN_STRATA:
+        return f"{len(in_band)} in band over {len(set(in_band))} strata"
+    barren = 0
+    for _, band in reversed(finished):
+        if band == "in_band":
+            break
+        barren += 1
+    if barren >= BARREN_LIMIT:
+        return f"{barren} finished tasks in a row without a new in-band task"
+    return None
+
+
+def prior_records(workdir: Path, logs: list[str]) -> list[dict]:
+    """Every record of the given earlier logs; raises if a log is missing."""
+    return [
+        json.loads(line)
+        for log in logs
+        for line in (workdir / log).read_text().splitlines()
+        if line
+    ]
 
 
 def stratum_labels(pool: list[dict], ids: list[str]) -> dict[str, str]:
@@ -91,29 +144,64 @@ def per_stratum(entries: list[dict]) -> dict[str, dict[str, int]]:
 
 
 class CandidateDriver(Driver):
-    """Three runs of every candidate at one setting; summary by band and stratum."""
+    """Adaptive measurement of the candidates at one setting; summary by band and stratum."""
 
     def __init__(self, workdir: Path, runs_dir: str, logs: list[str]):
         super().__init__(workdir, runs_dir=runs_dir)
         pool = json.loads((workdir / "data/pool.json").read_text())["pool"]
-        self.screen = candidate_ids(workdir, logs)
-        self.strata = stratum_labels(pool, self.screen)
+        self.screen, self.skipped = priority_order(prior_records(workdir, logs))
+        self.strata = stratum_labels(pool, self.screen + self.skipped)
         self.header = self.header | {
-            "plan": f"CAL2: {len(self.screen)} candidates x {RUNS_PER_TASK} runs, run-major; "
-            "in band = 1-2 of 3",
+            "plan": f"CAL2 adaptive: {len(self.screen)} candidates in priority order, "
+            f"{len(self.skipped)} skipped above band at the old cap; runs 1-2, run 3 only at "
+            f"1 of 2; stop at {TARGET_IN_BAND} in band over {MIN_STRATA} strata "
+            f"or {BARREN_LIMIT} barren",
             "candidate_logs": logs,
+            "skipped_above_band": self.skipped,
         }
         self.state["stage"] = "cal2"
         self.state["setting"] = REASONING
+        self.stop: str | None = None
+        self._lock = threading.RLock()  # decide() and _record() both write the summary
+
+    def graded_runs(self, iid: str) -> list[dict]:
+        """The graded records of one task under the current setting."""
+        return [
+            rec
+            for rec in self.records
+            if rec["instance_id"] == iid
+            and rec["step_limit"] == self.low.step_limit
+            and rec["resolved"] is not None
+        ]
+
+    def finished_tasks(self) -> list[tuple[str, str]]:
+        """(stratum, band) of every task with its verdict, in priority order."""
+        graded = {iid: self.graded_runs(iid) for iid in self.screen}
+        return [
+            (self.strata[iid], band_of_candidate(runs))
+            for iid, runs in graded.items()
+            if is_complete(runs)
+        ]
+
+    def measure(self, iid: str) -> None:
+        """Runs 1 and 2 of one task, run 3 only if they split; then re-check the stop rule."""
+        if self.stop:
+            return
+        solved = [self.ensure(iid, run, self.low, "cal2") for run in (1, 2)]
+        if sum(solved) == 1:
+            self.ensure(iid, 3, self.low, "cal2")
+        with self._lock:
+            self.stop = self.stop or stop_reason(self.finished_tasks())
+        if self.stop:
+            self.decide("stop", reason=self.stop)
 
     def run(self) -> None:
-        """Run 1, then 2, then 3 for every candidate; always write the final summary."""
-        setting = self.low
+        """Measure candidates in priority order until a stop rule fires; always write a summary."""
         try:
-            for run in range(1, RUNS_PER_TASK + 1):
-                self.decide("run_round", run=run, tasks=len(self.screen))
-                self._in_parallel([self._job(iid, run, setting, "cal2") for iid in self.screen])
+            self.stop = stop_reason(self.finished_tasks())
+            self._in_parallel([lambda iid=iid: self.measure(iid) for iid in self.screen])
             self.state["status"] = "done"
+            self.state["stop_reason"] = self.stop or "all candidates measured"
         except BlockedError as err:
             self.state["status"] = "blocked"
             self.state["blocked_reason"] = str(err)[-600:]
@@ -133,12 +221,14 @@ class CandidateDriver(Driver):
             **self.state,
             **run_totals(self.records),
             "band_counts": {band: sum(e["band"] == band for e in entries) for band in BANDS},
+            "not_started": len(self.screen) - len(entries),
             "per_stratum": per_stratum(entries),
             "tasks": entries,
         }
         tmp = self.summary_path.with_suffix(".tmp")
-        tmp.write_text(json.dumps(out, indent=1))
-        tmp.replace(self.summary_path)
+        with self._lock:  # one writer at a time: the tmp file name is shared
+            tmp.write_text(json.dumps(out, indent=1))
+            tmp.replace(self.summary_path)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:

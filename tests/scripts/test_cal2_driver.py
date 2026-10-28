@@ -39,7 +39,7 @@ def load_cal2(monkeypatch, run_once=None):
 
 
 def make_workdir(tmp_path, n_tasks=6):
-    (tmp_path / "data").mkdir()
+    (tmp_path / "data").mkdir(exist_ok=True)
     ids = [f"task{n:02d}" for n in range(n_tasks)]
     pool = [
         {
@@ -54,10 +54,21 @@ def make_workdir(tmp_path, n_tasks=6):
         json.dumps([{"instance_id": iid} for iid in ids])
     )
     (tmp_path / "data/pool.json").write_text(json.dumps({"pool": pool}))
-    for name, members in (("one", ids[:4]), ("two", ids[2:])):  # overlap: ids deduplicated
-        (tmp_path / f"{name}.jsonl").write_text(
-            "".join(json.dumps({"instance_id": iid}) + "\n" for iid in members)
-        )
+    old = {  # old-cap evidence: id -> list of (resolved, exit_status)
+        "task00": [(True, "Submitted"), (True, "Submitted"), (True, "Submitted")],  # above band
+        "task01": [(True, "Submitted")],  # tier 0
+        "task02": [(False, "LimitsExceeded")],  # tier 1
+        "task03": [(False, "Submitted")],  # tier 2
+        "task04": [(True, "Submitted"), (False, "Submitted")],  # tier 0
+        "task05": [(False, "LimitsExceeded")],  # tier 1
+    }
+    for name, members in (("one", ids[:3]), ("two", ids[3:])):
+        lines = [
+            json.dumps({"instance_id": iid, "resolved": r, "exit_status": e})
+            for iid in members
+            for r, e in old[iid]
+        ]
+        (tmp_path / f"{name}.jsonl").write_text("".join(line + "\n" for line in lines))
     return tmp_path
 
 
@@ -91,38 +102,76 @@ def run_driver(monkeypatch, tmp_path, solves):
     return json.loads(driver.summary_path.read_text()), calls
 
 
-def test_band_waits_for_three_runs_then_splits_hard_band_easy(monkeypatch):
+def test_band_needs_two_runs_then_splits_hard_band_easy(monkeypatch):
     cal2 = load_cal2(monkeypatch)
 
     def runs(*solved):
         return [{"run": n, "resolved": s} for n, s in enumerate(solved, 1)]
 
-    assert cal2.band_of_candidate(runs(True, True)) == "pending"
-    assert cal2.band_of_candidate(runs(False, False, False)) == "too_hard"
-    assert cal2.band_of_candidate(runs(False, False, True)) == "in_band"
-    assert cal2.band_of_candidate(runs(True, True, False)) == "in_band"
-    assert cal2.band_of_candidate(runs(True, True, True)) == "too_easy"
+    assert cal2.band_of_candidate(runs(True)) == "pending"
+    assert cal2.band_of_candidate(runs(False, False)) == "too_hard"
+    assert cal2.band_of_candidate(runs(True, True)) == "too_easy"
+    assert cal2.band_of_candidate(runs(True, False)) == "in_band"
+    assert cal2.band_of_candidate(runs(False, True, False)) == "in_band"
+    assert [cal2.is_complete(runs(*r)) for r in ([True], [True, True], [True, False])] == [
+        False,
+        True,
+        False,
+    ]
+    assert cal2.is_complete(runs(True, False, False))
 
 
-def test_every_candidate_gets_three_runs_even_after_failing_run_one(monkeypatch, tmp_path):
-    summary, calls = run_driver(
-        monkeypatch, tmp_path, lambda iid, run: iid == "task00" and run == 3
+def test_priority_puts_solved_then_cut_off_then_rest_and_skips_above_band(monkeypatch, tmp_path):
+    cal2 = load_cal2(monkeypatch)
+    workdir = make_workdir(tmp_path)
+    order, skipped = cal2.priority_order(cal2.prior_records(workdir, ["one.jsonl", "two.jsonl"]))
+    assert skipped == ["task00"]
+    assert order == ["task01", "task04", "task02", "task05", "task03"]
+
+
+def test_stop_rule_needs_target_over_enough_strata_or_a_barren_streak(monkeypatch):
+    cal2 = load_cal2(monkeypatch)
+    one_stratum = [("a", "in_band")] * cal2.TARGET_IN_BAND
+    assert cal2.stop_reason(one_stratum) is None
+    spread = one_stratum[:-2] + [("b", "in_band"), ("c", "in_band")]
+    assert "strata" in cal2.stop_reason(spread)
+    barren = [("a", "in_band")] + [("a", "too_hard")] * cal2.BARREN_LIMIT
+    assert "in a row" in cal2.stop_reason(barren)
+    assert cal2.stop_reason(barren[:-1]) is None
+
+
+def test_two_runs_decide_unless_they_split_and_a_split_gets_run_three(monkeypatch, tmp_path):
+    def solves(iid, run):
+        return {"task01": True, "task02": run == 1}.get(iid, False)  # easy, split, hard...
+
+    summary, calls = run_driver(monkeypatch, tmp_path, solves)
+    runs_of = {iid: [r for r, i, *_ in calls if i == iid] for iid in {i for _, i, *_ in calls}}
+    assert runs_of["task01"] == [1, 2] and runs_of["task02"] == [1, 2, 3]
+    assert runs_of["task03"] == [1, 2] and "task00" not in runs_of
+    assert summary["skipped_above_band"] == ["task00"] and summary["status"] == "done"
+    assert summary["band_counts"]["in_band"] == 1 and summary["band_counts"]["too_easy"] == 1
+
+
+def test_the_driver_stops_starting_tasks_once_the_target_is_met(monkeypatch, tmp_path):
+    run_once, calls = graded_run(lambda iid, run: run == 1)
+    cal2 = load_cal2(monkeypatch, run_once)
+    monkeypatch.setattr(cal2, "TARGET_IN_BAND", 1)
+    monkeypatch.setattr(cal2, "MIN_STRATA", 1)
+    args = cal2.parse_args(
+        [str(make_workdir(tmp_path)), "--runs-dir", "out", "--candidates-log", "one.jsonl"]
+        + ["--candidates-log", "two.jsonl", "--step-limit", "75"]
     )
-    assert summary["status"] == "done" and len(calls) == 6 * 3
-    assert summary["band_counts"] == {"in_band": 1, "too_easy": 0, "too_hard": 5, "pending": 0}
+    driver = cal2.CandidateDriver(args.workdir, args.runs_dir, args.logs)
+    driver.low = cal2.settings_for("low", args)
+    driver.run()
+    summary = json.loads(driver.summary_path.read_text())
+    assert "in band" in summary["stop_reason"] and summary["not_started"] >= 1
 
 
-def test_runs_go_round_by_round_under_the_launcher_caps(monkeypatch, tmp_path):
-    _, calls = run_driver(monkeypatch, tmp_path, lambda iid, run: False)
-    assert [run for run, *_ in calls] == sorted(run for run, *_ in calls)
-    assert {(steps, wall) for _, _, steps, wall in calls} == {(75, 25 * 60)}
-
-
-def test_summary_counts_bands_per_stratum_and_keeps_no_task_text(monkeypatch, tmp_path):
-    summary, _ = run_driver(monkeypatch, tmp_path, lambda iid, run: iid == "task01")
-    assert summary["per_stratum"]["parser/small"]["too_easy"] == 1
-    assert summary["per_stratum"]["dialect/small"]["too_hard"] == 3
-    assert {task["stratum"] for task in summary["tasks"]} == {"parser/small", "dialect/small"}
+def test_a_restarted_driver_keeps_graded_runs_and_the_stop_verdict(monkeypatch, tmp_path):
+    _, first = run_driver(monkeypatch, tmp_path, lambda iid, run: iid == "task01")
+    _, second = run_driver(monkeypatch, tmp_path, lambda iid, run: iid == "task01")
+    assert first and second == []
 
 
 def test_a_candidate_missing_from_the_pool_raises(monkeypatch):
