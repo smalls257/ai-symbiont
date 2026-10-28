@@ -31,6 +31,7 @@ class _Answer:
     refused: bool = False
 
 
+_BAD_ARGUMENTS = _Answer("recall needs exactly one argument: question, a string", refused=True)
 log = logging.getLogger("symbiont.mcp")
 
 
@@ -98,11 +99,11 @@ def _call_tool(params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
     if not isinstance(params, dict) or params.get("name") != "recall":
         raise _RpcError(INVALID_PARAMS, "unknown tool; the only tool is recall")
     arguments = params.get("arguments")
-    question = arguments.get("question") if isinstance(arguments, dict) else None
-    if not isinstance(question, str) or arguments.keys() != {"question"}:
-        return _tool_result(
-            _Answer("recall needs exactly one argument: question, a string", refused=True)
-        )
+    if not isinstance(arguments, dict) or arguments.keys() != {"question"}:
+        return _tool_result(_BAD_ARGUMENTS)
+    question = arguments["question"]
+    if not isinstance(question, str):
+        return _tool_result(_BAD_ARGUMENTS)
     log.info("recall question of %d chars", len(question))
     return _tool_result(_answer(ask, question))
 
