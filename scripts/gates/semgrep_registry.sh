@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# QG-SAST-01 semgrep registry packs p/python, p/bandit, p/secrets. Prevents Forensic Coding
-# (pinned semgrep version and a stamped snapshot, so the verdict names what judged it) and
-# Silent Fallback (a missing or foreign snapshot is a failure, never a skipped scan).
+# QG-SAST-01 semgrep registry packs p/python, p/bandit, p/secrets. Pinned semgrep version and a
+# stamped, hash-verified snapshot, so the verdict names what judged it; a missing or foreign
+# snapshot is a failure, never a skipped scan.
 # Blocks on ERROR, advisory on WARNING (check_registry_findings.py). No network: the snapshot
 # comes from fetch_semgrep_packs.sh and is gitignored (see the reason there).
 #   semgrep_registry.sh            changed files vs $BASE (fast)
@@ -21,6 +21,13 @@ case "$stamp" in
   "semgrep=$SEMGREP_PINNED "*) ;;
   *) gate_die "snapshot was fetched under another semgrep ($stamp); pinned $SEMGREP_PINNED; refetch" ;;
 esac
+
+for pack in python bandit secrets; do
+  want="$(printf '%s\n' "$stamp" | tr ' ' '\n' | sed -n "s/^$pack=[0-9]*rules://p")"
+  have="$(shasum -a 256 "$PACKS/$pack.yaml" | cut -c1-12)"
+  [ -n "$want" ] && [ "$want" = "$have" ] \
+    || gate_die "pack $pack does not match its stamped hash (stamp '$want', file '$have'): refetch with scripts/gates/fetch_semgrep_packs.sh"
+done
 
 skip='^(tests/fixtures/|spikes/|uv\.lock$|\.semgrep/registry/|$)'   # fixtures hold planted violations
 if [ "${1:-}" = "--tree" ]; then

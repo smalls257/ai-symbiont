@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # QG-SEC-03 data, transcript, weights and large-file path guard. Prevents a private dataset,
-# transcript, model weight or run log from reaching the public repo (Leaky Narrative at the repo
-# boundary) and fails closed: it looks at every tracked and staged path, not only changed
+# transcript, model weight or run log from reaching the public repo
+# (the repo boundary) and fails closed: it looks at every tracked and staged path, not only changed
 # ones, because a published transcript cannot be un-published. No waiver.
 #   check_paths.sh            tracked and staged paths of this repo
 #   check_paths.sh tree DIR   every file under DIR (an exported tree: scripts/publish/check_export.sh)
 # Names are read NUL-delimited and matched case-insensitively, one at a time, so a non-ASCII name,
-# a space or an upper-case extension cannot slip past a pattern (Silent Fallback). A name with a
+# a space or an upper-case extension cannot slip past a pattern. A name with a
 # control character, double quote or backslash is itself a finding: it cannot be handled safely.
 set -uo pipefail
 . "$(dirname "${BASH_SOURCE[0]}")/lib.sh"

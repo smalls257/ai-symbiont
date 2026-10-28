@@ -1,6 +1,7 @@
 """QG-SAST-01: the registry-pack gate. Prevents Silent Fallback: a missing snapshot, a foreign
 semgrep version or a report with scan errors must be a failure, never "no findings"."""
 
+import hashlib
 import json
 import shutil
 import subprocess
@@ -54,17 +55,43 @@ def test_a_missing_or_garbled_report_cannot_judge(tmp_path):
     assert verdict.main(["x", str(garbled)]) == verdict.EXIT_CANNOT_JUDGE
 
 
-@pytest.mark.periphery
-def test_a_missing_snapshot_exits_2_naming_the_fetch_script(tmp_path):
+def _shadow_repo(tmp_path: Path) -> Path:
     shadow = tmp_path / "repo"
     shutil.copytree(GATES, shadow / "scripts/gates", ignore=shutil.ignore_patterns("__pycache__"))
     (shadow / ".semgrep").mkdir()
     shutil.copy(REPO / ".semgrep/VERSION", shadow / ".semgrep/VERSION")
     (shadow / ".venv").symlink_to(REPO / ".venv")
     subprocess.run(["git", "init", "-q", str(shadow)], check=True)
-    out = subprocess.run(
+    return shadow
+
+
+def _run_tree_gate(shadow: Path) -> subprocess.CompletedProcess:
+    return subprocess.run(
         ["bash", str(shadow / "scripts/gates/semgrep_registry.sh"), "--tree"],
         cwd=shadow, capture_output=True, text=True, check=False,
     )  # fmt: skip
+
+
+@pytest.mark.periphery
+def test_a_missing_snapshot_exits_2_naming_the_fetch_script(tmp_path):
+    out = _run_tree_gate(_shadow_repo(tmp_path))
     assert out.returncode == 2
     assert "fetch_semgrep_packs.sh" in out.stderr
+
+
+@pytest.mark.periphery
+def test_a_pack_that_differs_from_its_stamped_hash_exits_2_naming_the_pack(tmp_path):
+    shadow = _shadow_repo(tmp_path)
+    packs = shadow / ".semgrep/registry"
+    packs.mkdir()
+    pinned = (shadow / ".semgrep/VERSION").read_text().strip()
+    fields = []
+    for name in ("python", "bandit", "secrets"):
+        (packs / f"{name}.yaml").write_text("rules:\n- id: a\n")
+        digest = hashlib.sha256((packs / f"{name}.yaml").read_bytes()).hexdigest()[:12]
+        fields.append(f"{name}=1rules:{digest}")
+    (packs / "STAMP").write_text(f"semgrep={pinned} fetched=now {' '.join(fields)}\n")
+    (packs / "bandit.yaml").write_text("rules: []\n")
+    out = _run_tree_gate(shadow)
+    assert out.returncode == 2
+    assert "pack bandit does not match its stamped hash" in out.stderr

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# QG-TST-03 diff coverage. Prevents Paper Tiger: global coverage can stay flat while every new
+# QG-TST-03 diff coverage. Global coverage can stay flat while every new
 # function ships untested; changed lines in src/ must be >= 90% covered, judged against $BASE.
 # Fails closed: a missing coverage report means the suite did not run with --cov (exit 2).
 #   diff_coverage.sh [COVERAGE.xml]     default: .coverage.xml written by `run.sh full`

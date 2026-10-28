@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Shared by every gate script. Prevents Silent Fallback: a gate that cannot find its
+# Shared by every gate script. A gate that cannot find its
 # tool, its config, its base ref or the repo root must fail, never report "nothing to check".
 # Source it: `. "$(dirname "${BASH_SOURCE[0]}")/lib.sh"`.
 #
@@ -9,7 +9,7 @@
 
 gate_die() { echo "gate error: $*" >&2; exit 2; }
 
-# Silent Fallback guard: with the default core.quotePath git prints a non-ASCII file name as
+# With the default core.quotePath git prints a non-ASCII file name as
 # "donn\303\251es.parquet" (quoted, escaped), which no name pattern and no `[ -f ]` recognizes, so
 # the file was skipped without a word. Every git call in a gate prints raw UTF-8 names; names git
 # still quotes (newline, tab, double quote, backslash) are refused by check_paths.sh, and the
@@ -35,7 +35,7 @@ need_py_tool() {
 need_file() { [ -s "$1" ] || gate_die "missing or empty config: $1 (a gate without its config checks nothing)"; }
 
 # require_pinned_semgrep: QG-SAST-01 and QG-SAST-02 share one definition of "the pinned version".
-# Prevents Forensic Coding: a semgrep update that changes the verdict with no commit saying why.
+# A semgrep update that changes the verdict with no commit saying why.
 require_pinned_semgrep() {
   need_file "$ROOT/.semgrep/VERSION"
   need_py_tool semgrep
@@ -81,7 +81,7 @@ changed_matching() {
 }
 
 # need_node_tool <name>: a pinned npm tool installed under dashboard/ by `npm ci`, never global.
-# Prevents Silent Fallback: a frontend gate whose linter is missing must fail, not report "ok".
+# A frontend gate whose linter is missing must fail, not report "ok".
 need_node_tool() {
   need_tool node "brew install node"
   [ -x "$ROOT/dashboard/node_modules/.bin/$1" ] \

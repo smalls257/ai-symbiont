@@ -1,7 +1,8 @@
 """QG-FE-02: no external load in dashboard/ or docs/**/*.html (docs/explainer/ is built offline).
 
 Counts script/link/img-style tags, CSS @import and url(), JS fetch and import; <a href> passes.
-Pages listed in cdn-legacy-pages.txt load mermaid from a CDN today: reported, not failed.
+Entries `path host` in cdn-legacy-pages.txt load mermaid from a CDN today: reported, not failed;
+a stale entry is reported.
 Exit 0 clean, 1 findings, 2 cannot run.
 Usage: check_cdn.py [FILE ...]   default: every tracked file in scope
 """
@@ -62,15 +63,20 @@ def host_of(url: str) -> str:
     return urlparse(url if not url.startswith("//") else "https:" + url).hostname or ""
 
 
-def problems_in(path: str, text: str) -> list[str]:
+def offending_loads(path: str, text: str) -> list[tuple[int, str]]:
+    """(line, url) for each external load whose host this path does not allow."""
     allowed = policy_for(path)
     if allowed is None:
         return []
-    return [
-        f"{path}:{line}: external load of {url} (allowed hosts here: {sorted(allowed) or 'none'})"
-        for line, url in references(text)
-        if host_of(url) not in allowed
-    ]
+    return [(line, url) for line, url in references(text) if host_of(url) not in allowed]
+
+
+def describe(path: str, line: int, url: str) -> str:
+    return f"{path}:{line}: external load of {url} (allowed hosts here: none)"
+
+
+def problems_in(path: str, text: str) -> list[str]:
+    return [describe(path, line, url) for line, url in offending_loads(path, text)]
 
 
 def tracked_in_scope() -> list[str]:
@@ -83,26 +89,44 @@ def tracked_in_scope() -> list[str]:
     return [f for f in out.stdout.splitlines() if policy_for(f) is not None]
 
 
-def findings_in(files: list[str]) -> list[str]:
+def findings_in(files: list[str]) -> list[tuple[str, int, str]]:
     return [
-        p
+        (name, line, url)
         for name in files
         if (ROOT / name).is_file()
-        for p in problems_in(name, (ROOT / name).read_text())
+        for line, url in offending_loads(name, (ROOT / name).read_text())
     ]
+
+
+def legacy_pairs() -> set[tuple[str, str]]:
+    """(path, host) pairs from cdn-legacy-pages.txt; a line is `path host`."""
+    if not LEGACY_FILE.is_file():
+        return set()
+    pairs = set()
+    for line in LEGACY_FILE.read_text().splitlines():
+        fields = line.partition("#")[0].split()
+        if not fields:
+            continue
+        if len(fields) != 2:
+            raise GateError(f"{LEGACY_FILE.name}: expected 'path host', got '{line}'")
+        pairs.add((fields[0], fields[1]))
+    return pairs
 
 
 def main(argv: list[str]) -> int:
     try:
-        legacy = set(LEGACY_FILE.read_text().split()) if LEGACY_FILE.is_file() else set()
+        legacy = legacy_pairs()
         files = argv[1:] or tracked_in_scope()
         found = findings_in(files)
     except (GateError, OSError, UnicodeDecodeError) as err:
         print(f"QG-FE-02 cannot judge: {err}", file=sys.stderr)
         return 2
-    failing = [p for p in found if p.split(":")[0] not in legacy]
-    for problem in found:
-        print(f"QG-FE-02: {'' if problem in failing else 'legacy, not failing: '}{problem}")
+    failing = [f for f in found if (f[0], host_of(f[2])) not in legacy]
+    for item in found:
+        print(f"QG-FE-02: {'' if item in failing else 'legacy, not failing: '}{describe(*item)}")
+    seen = {(name, host_of(url)) for name, _, url in found}
+    for path, host in sorted(legacy - seen if not argv[1:] else ()):
+        print(f"QG-FE-02: stale legacy entry (no load of {host} in {path}): delete the line")
     if not failing:
         print(f"QG-FE-02: OK ({len(files)} file(s) checked)")
     return 1 if failing else 0

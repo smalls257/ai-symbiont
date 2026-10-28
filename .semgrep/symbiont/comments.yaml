@@ -14,9 +14,9 @@ rules:
       include: ["/src/", "/scripts/", "/ops/"]
     pattern-either:
       - pattern-regex: >-
-          (?m)#[^\n]*(?:Violation prevented|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)
+          (?m)#[^\n]*(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)
       - pattern-regex: >-
-          (?s)\A(?:#[^\n]*\n)*\s*[rRuU]?"""(?:(?!""")(?s:.))*?(?:Violation prevented|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)(?:(?!""")(?s:.))*?"""
+          (?s)\A(?:#[^\n]*\n)*\s*[rRuU]?"""(?:(?!""")(?s:.))*?(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)(?:(?!""")(?s:.))*?"""
       - patterns:
           - pattern-either:
               - pattern: |
@@ -37,8 +37,19 @@ rules:
                     ...
           - metavariable-regex:
               metavariable: $DOC
-              regex: '(?s)\A[rRuU]?"""(?:(?!""").)*?(?:Violation prevented|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)'
+              regex: '(?s)\A[rRuU]?"""(?:(?!""").)*?(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)'
           - focus-metavariable: $DOC
+
+  - id: sym-no-framework-names-in-shell-comments
+    severity: ERROR
+    languages: [generic]
+    message: >
+      A shell comment names a Violation or labels a Principle. Put that reasoning in the plan
+      or PR description; the code states only the why the code cannot show.
+    paths:
+      include: ["*.sh"]
+    pattern-regex: >-
+      (?m)#[^\n]*(?:Violations?\s+(?:this shape\s+)?prevent|\b(?:Paper Tiger|Distributed Monolith|Leaky Narrative|Infected Core|Black Box|Computational Friction|Forensic Coding|God Class|God Method|Fossil Comments|Silent Fallback)\b|\*\*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\*\*|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s*(?:→|->)|(?:→|->)\s*(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\b|\b(?:Anchor|Shield|Filter|Buffer|Sensor|Engine)\s+[Pp]rinciple)
 
   - id: sym-docstring-too-long
     severity: ERROR

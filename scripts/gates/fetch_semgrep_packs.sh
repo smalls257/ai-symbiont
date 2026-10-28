@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# QG-SAST-01 pack fetch. Prevents Forensic Coding: registry packs change under a fixed semgrep
+# QG-SAST-01 pack fetch. Registry packs change under a fixed semgrep
 # version, so the verdict must name the snapshot it was judged against. The snapshot lives in
 # .semgrep/registry/ and is GITIGNORED on purpose: the p/secrets pack carries secret-shaped
 # example strings that gitleaks (QG-SEC-01/02, publish check) rightly flags, and an allowlist

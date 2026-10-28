@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# QG-TST-05 mutation testing of the pure core (core/ and miner/signals/) with mutmut. Prevents
-# Paper Tiger: tests that run the code and assert nothing. A release and weekly-CI target, NOT
+# QG-TST-05 mutation testing of the pure core (core/ and miner/signals/) with mutmut. Catches
+# tests that run the code and assert nothing. A release and weekly-CI target, NOT
 # part of run.sh: a run is minutes, and the inner loop is seconds.
 #   scripts/gates/mutation.sh        fresh run, prints the killed share and the survivors;
 #                                    exits 1 under the 80% bar, 2 if mutmut could not run

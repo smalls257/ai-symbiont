@@ -60,11 +60,30 @@ def test_legacy_pages_are_reported_but_a_new_page_with_the_same_load_fails(tmp_p
     for name in ("old.html", "new.html"):
         (tmp_path / "docs" / name).write_text(load)
     legacy = tmp_path / "legacy.txt"
-    legacy.write_text("docs/old.html\n")
+    legacy.write_text("docs/old.html cdn.jsdelivr.net\n")
     monkeypatch.setattr(check_cdn, "ROOT", tmp_path)
     monkeypatch.setattr(check_cdn, "LEGACY_FILE", legacy)
     assert check_cdn.main(["x", "docs/old.html"]) == 0
     assert check_cdn.main(["x", "docs/new.html"]) == 1
+
+
+def test_a_new_host_on_a_legacy_page_fails_and_a_stale_entry_is_reported(
+    tmp_path, monkeypatch, capsys
+):
+    (tmp_path / "docs").mkdir()
+    page = tmp_path / "docs" / "old.html"
+    page.write_text('<script src="https://cdn.jsdelivr.net/npm/mermaid"></script>\n')
+    legacy = tmp_path / "legacy.txt"
+    legacy.write_text("docs/old.html cdn.jsdelivr.net\ndocs/gone.html cdn.jsdelivr.net\n")
+    monkeypatch.setattr(check_cdn, "ROOT", tmp_path)
+    monkeypatch.setattr(check_cdn, "LEGACY_FILE", legacy)
+    assert check_cdn.main(["x", "docs/old.html"]) == 0
+    page.write_text('<script src="https://analytics.example.com/a.js"></script>\n')
+    assert check_cdn.main(["x", "docs/old.html"]) == 1
+    monkeypatch.setattr(check_cdn, "tracked_in_scope", lambda: ["docs/old.html"])
+    page.write_text("<p>no loads</p>\n")
+    assert check_cdn.main(["x"]) == 0
+    assert "stale legacy entry" in capsys.readouterr().out
 
 
 def test_the_reported_line_is_the_line_of_the_tag():

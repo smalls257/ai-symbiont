@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
 # The one entry point for the quality gates (docs/standards/quality-gates.html). The edit
 # hook, pre-commit, pre-push and CI all call this script, so there is one definition of
-# "green". Prevents Paper Tiger (green that proves nothing) and Silent Fallback (a gate that
-# never ran): a missing tool, config, venv or base ref is a failure, never a skipped check.
+# "green". A gate that never ran is not green: a missing tool, config, venv or base ref is a failure, never a skipped check.
 #
 #   scripts/gates/run.sh fast   (pre-commit: scoped unit tests only; pre-push/manual: whole suite)
 #                               changed files vs $SYMBIONT_GATE_BASE (default main): secrets,

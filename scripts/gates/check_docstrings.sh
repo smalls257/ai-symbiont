@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 # QG-RD-01 docstring coverage on the public API (interrogate, config in pyproject.toml).
-# Prevents Forensic Coding: a public function whose why and failure mode live only in its
-# author's head. The changed src files must reach the fail-under bar together; the whole-tree
+# Public functions must state their why and failure mode. The changed src files must reach the fail-under bar together; the whole-tree
 # figure is counted in baseline.json. Fails closed: no interrogate or config exits 2.
 #   check_docstrings.sh FILE ...        default: changed src/symbiont python files
 set -uo pipefail
