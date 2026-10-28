@@ -14,11 +14,19 @@ T36 found no learner that earns a warning when every warned step is its own alar
 
 ## Data
 
-Scored set: `python-pillow/Pillow`, `iterative/dvc`, `conan-io/conan` from `nebius/SWE-rebench-openhands-trajectories` at revision `35455389ab51bf5e2306bfd436ef72d0f98bf882`, every task, exported by `scripts/datasets/export_nebius_repos.py export-held-out` at commit `733a00c`; task metadata (created_at, base_commit) from `nebius/SWE-rebench` at revision `89cdfbab4ab1bd8f5a658bb212d1b63624f4f881`. Their hold-out was declared in commit `cb12d83`, before any cross-repository training; none was read by G6, T36 or T46 except as counts. A trajectory the OpenHands reader refuses (`read_each_row` returns a ReadError for its line) is dropped before the split; the per-repository drop counts are recorded below and printed in the results. The one known case is a file-editor call with only `path` and `new_str` and no `command` (1 Pillow trajectory of 1,328 [measured], counts only); guessing the command would be a silent default, so it is dropped, not repaired. Each repository is split by task (test fraction 0.3, seed 20261029, `split_by_task`), sessions in the seeded replay order. Hubs per repository from a checkout of the median-created TRAIN task's base commit, cutoff 0.5, as G6. Labels: a filtered pain point within the next 5 steps of the same session, 86 features and the leak rule as G6. Learners learn with false_alarm_cost 0.5, as T36.
+Scored set: `python-pillow/Pillow`, `iterative/dvc`, `conan-io/conan` from `nebius/SWE-rebench-openhands-trajectories` at revision `35455389ab51bf5e2306bfd436ef72d0f98bf882`, every task, exported by `scripts/datasets/export_nebius_repos.py export-held-out` at commit `d860b8e`; task metadata (created_at, base_commit) from `nebius/SWE-rebench` at revision `89cdfbab4ab1bd8f5a658bb212d1b63624f4f881`. Their hold-out was declared in commit `cb12d83`, before any cross-repository training; none was read by G6, T36 or T46 except as counts. A trajectory the OpenHands reader refuses (`read_each_row` returns a ReadError for its line) is dropped before the split; the per-repository drop counts are recorded below and printed in the results. The one known case is a file-editor call with only `path` and `new_str` and no `command` (1 Pillow trajectory of 1,328 [measured], counts only); guessing the command would be a silent default, so it is dropped, not repaired. Each repository is split by task (test fraction 0.3, seed 20261029, `split_by_task`), sessions in the seeded replay order. Hubs per repository from a checkout of the median-created TRAIN task's base commit, cutoff 0.5, as G6. Labels: a filtered pain point within the next 5 steps of the same session, 86 features and the leak rule as G6. Learners learn with false_alarm_cost 0.5, as T36.
 
 ## Split counts (recorded before any metric)
 
-SPLIT_COUNTS
+Counted on the exported files before any label, risk or metric was computed [measured] (`run_note_cost_scored.py split`, counts only).
+
+| repository | trajectories refused by the reader | TRAIN tasks | TRAIN sessions | TRAIN steps | TEST tasks | TEST sessions | TEST steps |
+|---|---|---|---|---|---|---|---|
+| `python-pillow/Pillow` | 1 | 88 | 922 | 109,193 | 38 | 405 | 50,588 |
+| `iterative/dvc` | 0 | 48 | 624 | 71,557 | 20 | 222 | 25,215 |
+| `conan-io/conan` | 0 | 47 | 491 | 55,005 | 20 | 201 | 24,112 |
+
+No session lacked a task id in any repository [measured].
 
 ## Delivery and prices
 
