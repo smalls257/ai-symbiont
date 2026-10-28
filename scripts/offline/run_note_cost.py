@@ -32,6 +32,7 @@ import run_selection as g6
 from symbiont.eval import selection as sel
 from symbiont.eval.net_benefit import DENSE_LEARNING_RATES, PRIMARY_COST
 from symbiont.eval.note_cost_logistic import L2_GRID, outer_fold_risks
+from symbiont.eval.note_cost_ranking import ranking
 from symbiont.eval.note_cost_report import Arms, report
 from symbiont.eval.note_cost_select import FOLDS, task_folds
 from symbiont.eval.note_delivery import NoteTrace, boundary_steps
@@ -156,7 +157,7 @@ def classifier_job(job: tuple[int, float]) -> list[float]:
     return risks.tolist()
 
 
-def classifier_traces(document: dict[str, Any], path: str, workers: int) -> dict:
+def classifier_risks(document: dict[str, Any], path: str, workers: int) -> dict:
     """Fit the batch classifier per outer fold and L2 strength, in forked workers."""
     global FEATURES, LABELS, STEP_FOLD
     columns = document["sessions"]
@@ -166,20 +167,28 @@ def classifier_traces(document: dict[str, Any], path: str, workers: int) -> dict
         raise ValueError(f"{len(FEATURES)} feature rows for {len(LABELS)} TRAIN steps")
     tasks = sorted(set(columns["task_id"]))
     fold_of = dict(zip(tasks, task_folds(len(tasks), sel.SEED), strict=True))
-    STEP_FOLD = np.concatenate(
-        [
-            np.full(len(f), fold_of[t])
-            for t, f in zip(columns["task_id"], columns["followed"], strict=True)
-        ]
-    )
+    pairs = zip(columns["task_id"], columns["followed"], strict=True)
+    STEP_FOLD = np.concatenate([np.full(len(f), fold_of[t]) for t, f in pairs])
     jobs = [(outer, l2) for outer in range(FOLDS) for l2 in L2_GRID]
-    risks = dict(zip(jobs, g6.pool_map(classifier_job, jobs, workers), strict=True))
-    return {
-        outer: {
-            l2: cut_traces(document, risks[(outer, l2)], f"classifier {outer}") for l2 in L2_GRID
-        }
-        for outer in range(FOLDS)
-    }
+    return dict(zip(jobs, g6.pool_map(classifier_job, jobs, workers), strict=True))
+
+
+def classifier_ranking(risks: dict) -> dict[str, Any]:
+    """Held-out ranking of the classifier per L2 strength: each step scored by its own fold."""
+    found = {}
+    for l2 in L2_GRID:
+        pooled = np.empty(len(LABELS))
+        for outer in range(FOLDS):
+            held = outer == STEP_FOLD
+            pooled[held] = np.asarray(risks[(outer, l2)])[held]
+        found[f"l2 {l2:g}"] = ranking(pooled, LABELS.astype(bool))
+    return found
+
+
+def online_ranking(document: dict[str, Any]) -> dict[str, Any]:
+    """Ranking of each online learner's prequential TRAIN risks."""
+    followed = np.array([f == "1" for row in document["sessions"]["followed"] for f in row])
+    return {key: ranking(np.asarray(r), followed) for key, r in document["risk"].items()}
 
 
 def note_traces(document: dict[str, Any], key: str) -> tuple[NoteTrace, ...]:
@@ -207,26 +216,33 @@ def cut_traces(document: dict[str, Any], risks: list[float], key: str) -> tuple[
     return tuple(traces)
 
 
+def arms_of(document: dict[str, Any], risks: dict | None) -> Arms:
+    """Every learner's TRAIN traces; the classifier's per outer fold and L2 strength."""
+    classifier = None
+    if risks is not None:
+        classifier = {
+            outer: {l2: cut_traces(document, risks[(outer, l2)], f"fold {outer}") for l2 in L2_GRID}
+            for outer in range(FOLDS)
+        }
+    rates = DENSE_LEARNING_RATES
+    return Arms(
+        counters=note_traces(document, "counters seed 0"),
+        fly={s: note_traces(document, f"mushroom seed {s}") for s in sel.WIRING_SEEDS},
+        dense={
+            s: {lr: note_traces(document, f"dense seed {s} lr {lr:g}") for lr in rates}
+            for s in sel.WIRING_SEEDS
+        },
+        logistic=classifier,
+    )
+
+
 def score(args: argparse.Namespace) -> None:
     """Cross-validate every option over the TRAIN traces and write the results file."""
     document = json.loads(Path(args.traces).read_text())
     if document["split"] != "train":
         raise ValueError("note-cost traces must come from the TRAIN split only")
-    arms = Arms(
-        counters=note_traces(document, "counters seed 0"),
-        fly={s: note_traces(document, f"mushroom seed {s}") for s in sel.WIRING_SEEDS},
-        dense={
-            s: {
-                lr: note_traces(document, f"dense seed {s} lr {lr:g}")
-                for lr in DENSE_LEARNING_RATES
-            }
-            for s in sel.WIRING_SEEDS
-        },
-        logistic=classifier_traces(document, args.features, args.workers)
-        if args.features
-        else None,
-    )
-    body = report(arms, seed=sel.SEED)
+    risks = classifier_risks(document, args.features, args.workers) if args.features else None
+    body = report(arms_of(document, risks), seed=sel.SEED)
     for line in body["table_rows"]:
         log.info(line)
     out = {
@@ -240,6 +256,10 @@ def score(args: argparse.Namespace) -> None:
         "hub_task": document["hub_task"],
         "finished_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         **body,
+        "ranking": {
+            "online_prequential": online_ranking(document),
+            "classifier_held_out": None if risks is None else classifier_ranking(risks),
+        },
     }
     Path(args.out).write_text(json.dumps(out, indent=1))
     log.info("wrote %s", args.out)
