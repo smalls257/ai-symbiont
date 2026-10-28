@@ -49,7 +49,7 @@ from symbiont.core.features import (
     featurise,
     meaningful_history,
 )
-from symbiont.core.indexes import Growing, PainPointIndex, TokenIndex, continues, tokens
+from symbiont.core.indexes import Growing, InputMemo, PainPointIndex, TokenIndex, continues, tokens
 from symbiont.core.meta import (
     CALIBRATOR_RATE,
     META_RUN_SEED,
@@ -114,16 +114,19 @@ class Mushroom(LinearReadoutMeta):
         """Set up the private memos; they are never read for anything but speed."""
         self._hubs = self.hubs
         self._scratch = self.scratch
-        # For the dashboard only: which cells fired on the last decide. No
-        # decision ever reads it.
+        # For the dashboard only: cells fired on the last decide. No decision reads it.
         self.last_activity: np.ndarray | None = None
-        # A memo of each candidate's cell code, never read for anything but
-        # speed: a candidate's code is fixed once it is in history.
+        # Each candidate's cell code: fixed once it is in history.
         self._recall_index = _RecallIndex()
         self._history_index = PainPointIndex()
         self._packed_for: tuple[tuple[Signature, np.ndarray], ...] | None = None
         self._packed = np.zeros((0, 0), np.uint8)
         self._meta_base: MushroomState | None = None
+        self._codes = InputMemo()
+
+    def _code(self, x: np.ndarray, state: MushroomState) -> np.ndarray:
+        """`kc_code`, remembered per input for the wiring of `state`."""
+        return self._codes.lookup(x, state.inputs, lambda: kc_code(x, state))
 
     def base_state(self) -> MushroomState:
         """Fixed wiring of the meta-learnable fly: never meta-learned (spec 4.5)."""
@@ -133,7 +136,7 @@ class Mushroom(LinearReadoutMeta):
 
     def readout_view(self, x: np.ndarray, state: MushroomState) -> Readout:
         """The score is `1 - mean(w_out[active])`, which is linear in `w_out`."""
-        return Readout(phi=-kc_code(x, state).astype(np.float64) / N_ACTIVE, offset=1.0)
+        return Readout(phi=-self._code(x, state).astype(np.float64) / N_ACTIVE, offset=1.0)
 
     def initial_state(self, seed: int) -> MushroomState:
         """Fresh weights (all 1) with wiring from the learner's seed and `seed`."""
@@ -150,7 +153,7 @@ class Mushroom(LinearReadoutMeta):
             return _quiet(NO_HISTORY)
         if not situation.session_prefix:
             return _quiet("the session has not started")
-        code = kc_code(x, state)
+        code = self._code(x, state)
         self.last_activity = code
         score = float(state.w_out[code].sum()) / N_ACTIVE
         recalled = self._recall(code, situation, state)
@@ -172,7 +175,7 @@ class Mushroom(LinearReadoutMeta):
         A false alarm relaxes `false_alarm_cost` times as hard (capped at a
         full return to 1.0); the balanced cost of 1 is the original rule.
         """
-        code = kc_code(x, state)
+        code = self._code(x, state)
         raw = 1.0 - float(state.w_out[code].sum()) / N_ACTIVE
         weights = state.w_out.copy()
         if outcome.pain_point_followed:

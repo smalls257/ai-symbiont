@@ -16,7 +16,7 @@ It never decides anything; an index and a plain scan give the same answer
 import math
 import re
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any, NamedTuple
 
@@ -265,3 +265,28 @@ def best_first(scores: np.ndarray, size: int) -> list[int]:
         positive, values = positive[keep], values[keep]
     order = np.lexsort((positive, -values))
     return [int(positive[i]) for i in order[:size]]
+
+
+class InputMemo:
+    """A boolean mask per input vector, remembered for one owner object (such as a wiring).
+
+    Meta-training asks a filler for the same step's cells thousands of times. The memo keeps
+    the active positions only and forgets everything when the owner changes.
+    """
+
+    def __init__(self) -> None:
+        self._owner: object | None = None
+        self._found: dict[bytes, tuple[int, np.ndarray]] = {}
+
+    def lookup(self, x: np.ndarray, owner: object, compute: Callable[[], np.ndarray]) -> np.ndarray:
+        """The mask `compute()` gives for `x` under `owner`, computed once."""
+        if self._owner is not owner:
+            self._owner, self._found = owner, {}
+        key = np.asarray(x, dtype=np.float64).tobytes()
+        if key not in self._found:
+            mask = compute()
+            self._found[key] = (len(mask), np.flatnonzero(mask))
+        size, positions = self._found[key]
+        result = np.zeros(size, dtype=bool)
+        result[positions] = True
+        return result
