@@ -92,3 +92,9 @@ def test_gain_changes_which_cells_fire():
 def test_no_compartment_is_refused():
     with pytest.raises(ValueError, match="compartment"):
         FlyVariant(seed=0, rates=())
+
+
+def test_relax_ratio_is_public_on_mushroom():
+    from symbiont.core.mushroom import RELAX_RATIO
+
+    assert 0 < RELAX_RATIO < 1

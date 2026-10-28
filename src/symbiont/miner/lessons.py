@@ -12,7 +12,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
-from symbiont.miner.resolutions import Resolution, resolution_of
+from symbiont.miner.resolutions import Resolution, Unresolved, resolution_of
 from symbiont.records.privacy import OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Kind, Record
 
@@ -87,7 +87,7 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
     """One lesson: the pain point, its resolution and the quote it carries."""
     found = resolution_of(pain, cited, records)
     steps = found.steps if isinstance(found, Resolution) else ()
-    alongside = found.alongside if isinstance(found, Resolution) else ()
+    alongside = found.alongside if isinstance(found, Resolution | Unresolved) else ()
     used = [*cited, *alongside, *steps]
     return Lesson(
         pain_point=pain,

@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS trained (
     PRIMARY KEY (project, lesson_id)
 );
 """
-_DELETE_ONE = "DELETE FROM lessons WHERE project=? AND body=?"
 # Tables an older version filled with copied history; read by nothing now.
 _LEGACY_TABLES = ("records", "pain_points")
 

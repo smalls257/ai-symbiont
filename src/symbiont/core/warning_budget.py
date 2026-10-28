@@ -1,23 +1,10 @@
 """Warning budget: how often a learner may speak, and what a wrong warning teaches.
 
-Violation prevented: **Paper Tiger**. The G6 selection judged learners on
-balanced accuracy, which let each learner's own operating point decide how
-many warnings to spend (the fly warned on most steps). A learner that is
-"accurate" while the user drowns in false warnings meets the spec and fails
-the need. So the operating point is a budget: a share of steps allowed to
-warn, fixed on TRAIN (`calibrate_budget`) and enforced live (`WarningBudget`).
-
-Second guard, **Silent Fallback**: a warning nobody checked again teaches the
-learner nothing. `WarningBudget.settle` turns every admitted warning into an
-`Outcome` (followed, or a false alarm after 5 steps) for the learner to learn
-from. The policy is a function of (state, step), passed in and returned: no
-clock, no hidden mutation (**Infected Core**).
-
-The learn rule's direction, which the tests pin: a false alarm is a calm
-outcome for the pattern that warned, so the fly relaxes that pattern's output
-weights and its risk falls. It relaxes at a tenth of the strength of a
-punishment (`mushroom._RELAX`), so one false alarm only partly undoes one
-miss. Counters have no such decay: a false alarm leaves their tally alone.
+Balanced accuracy let each learner pick its own operating point (the fly
+warned on most steps), so the budget is a share of steps fixed on TRAIN (`calibrate_budget`) and
+enforced live (`WarningBudget`). `settle` turns every admitted warning
+into an `Outcome`; a false alarm relaxes the fly's pattern at `mushroom.RELAX_RATIO`, counters keep
+their tally. The policy is a function of (state, step): no clock, no hidden mutation.
 """
 
 from collections.abc import Sequence
@@ -54,14 +41,9 @@ def warn_probability_threshold(false_alarm_cost: float) -> float:
 
 
 def calibrate_budget(risks_on_train: Sequence[float | None], budget: float) -> float:
-    """The risk threshold that flags `budget` of the TRAIN steps.
+    """The risk threshold nearest to flagging `budget` of TRAIN steps (ties go higher).
 
-    A step is flagged when its risk is at or above the threshold. Risks come
-    in a few discrete values for counters, so the exact share may be
-    unreachable: the closest achievable share wins, ties going to the higher
-    threshold (fewer warnings). Raises on a budget outside (0, 1), no steps,
-    or a missing risk, so a learner without a risk score cannot be given an
-    operating point.
+    Raises on a budget outside (0, 1), no steps, or a missing risk.
     """
     if not 0 < budget < 1:
         raise ValueError(f"a warning budget is a share strictly between 0 and 1, got {budget}")
@@ -175,12 +157,7 @@ class WarningBudget:
     def settle(
         self, state: BudgetState, step: int, seen: frozenset[Signature]
     ) -> tuple[BudgetState, tuple[Settled, ...]]:
-        """Close warnings at `step`, given the kinds of trouble seen at this step.
-
-        Trouble within the next FOLLOW_WINDOW steps (not on the warning step
-        itself) means followed; otherwise the warning is a false alarm once
-        the window has run out.
-        """
+        """Close warnings at `step`: followed if trouble came within FOLLOW_WINDOW, else false."""
         settled, still_open = [], []
         for warned in state.unsettled:
             lesson = _lesson(warned, step, seen, self.false_alarm_cost)

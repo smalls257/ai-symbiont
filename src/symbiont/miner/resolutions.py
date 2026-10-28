@@ -21,6 +21,11 @@ NO_LATER_SUCCESS = (
     "no later command with exit 0 on the same program and target followed the failure"
 )
 NOTHING_CHANGED = "the same command passed later with nothing changed in between"
+ONLY_UNRELATED_CHANGED = (
+    "the same command passed later; only changes to files it never names came between, "
+    "so what made it pass is not known"
+)
+_SCRIPT_RUNNERS = ("run", "run-script")  # `npm run <script>`: the script is part of the subcommand
 _BARE_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
@@ -37,6 +42,21 @@ class Resolution:
         """Refuse an empty resolution: no steps means no resolution, which needs a reason."""
         if not self.steps:
             raise ValueError("a resolution needs at least one step")
+
+
+class Unresolved(str):
+    """A reason for no resolution that keeps the unrelated changes seen meanwhile.
+
+    A `str`, so every caller that only wants the reason is unaffected.
+    """
+
+    alongside: tuple[Record, ...]
+
+    def __new__(cls, reason: str, alongside: tuple[Record, ...] = ()) -> "Unresolved":
+        """The reason, carrying the changes reported alongside it."""
+        self = super().__new__(cls, reason)
+        self.alongside = alongside
+        return self
 
 
 NoResolution = str  # why the history holds no resolution
@@ -73,7 +93,7 @@ def _failed_command(
         return NO_LATER_SUCCESS
     fixes, others = _changes_between(failed, success, records)
     if not fixes and success.command == failed.command:
-        return NOTHING_CHANGED
+        return Unresolved(ONLY_UNRELATED_CHANGED, others) if others else NOTHING_CHANGED
     return Resolution((*fixes, success), others)
 
 
@@ -93,8 +113,7 @@ def _changes_between(
 def _later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
     """The first later pass of the same command: same program, subcommand and target.
 
-    The subcommand is compared before normalization drops it, so `git status`
-    passing never counts as the fix for `git push` failing.
+    The subcommand (and the script of `npm run`) is compared before normalization drops it.
     """
     wanted = (normalise_command(failed.command or ""), _subcommand(failed.command or ""))
     return next(
@@ -115,8 +134,12 @@ def _subcommand(command: str) -> str:
     Paths and node ids are left to `normalise_command`, which already compares the target.
     """
     _, args = program_words(command)
-    first = next((arg for arg in args if not arg.startswith("-")), "-")
-    return first if _BARE_WORD.match(first) else "-"
+    words = [arg for arg in args if not arg.startswith("-")] or ["-"]
+    if not _BARE_WORD.match(words[0]):
+        return "-"
+    if words[0] in _SCRIPT_RUNNERS and len(words) > 1:
+        return f"{words[0]} {words[1]}"
+    return words[0]
 
 
 def _bears_on(change: Record, failed: Record) -> bool:
