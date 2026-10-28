@@ -2,9 +2,9 @@
 
 See root CLAUDE.md for the repo rules. This file covers `src/symbiont/core/`.
 
-**Purpose.** Decide, from a situation and learned state, whether to warn and what to recall. Fillers: `Counters`, `Similarity`, `Mushroom` (the fly circuit), plus the 86-feature vector and notes in domain prose.
+**Purpose.** Decide, from a situation and learned state, whether to warn and what to recall. The logistic classifier on the 86-feature vector is the live warner; the fillers (`Counters`, `Similarity`, `Mushroom` (the fly circuit)) are a swappable slot with no loyalty to the fly, each judged against it. Notes are domain prose and structured: what happened, how it was resolved, the check to run.
 
-**Violations prevented: Infected Core and Paper Tiger.** The decision math is a function of (features, state) that passes the Airplane Test, so it runs and is tested with no network, store or harness. The fly learner exists only to be judged beside the counters on the same replay; a tie is reported as a tie.
+**Violations prevented: Infected Core and Paper Tiger.** The decision math is a function of (features, state) that passes the Airplane Test, so it runs and is tested with no network, store or harness. A network gets a job only where it beats the simple option (likely the adapter picker); on the same replay a tie is reported as a tie, and the brain is never shown deciding what the classifier decides.
 
 ## Invariants
 - `Decider` protocol: `decide(x, situation, state)`, `learn(x, outcome, state)`, `initial_state(seed)`. State is passed in and returned; no hidden mutation, deterministic given the seed.
