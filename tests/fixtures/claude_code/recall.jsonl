@@ -1,0 +1,2 @@
+{"type": "assistant", "sessionId": "sess-r", "timestamp": "2026-01-01T14:00:00Z", "cwd": "/work/app", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "r1", "name": "mcp__symbiont__recall", "input": {"question": "Has this failed before?"}}]}}
+{"type": "user", "sessionId": "sess-r", "timestamp": "2026-01-01T14:00:01Z", "cwd": "/work/app", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "r1", "content": "This command failed twice in an earlier session."}]}}

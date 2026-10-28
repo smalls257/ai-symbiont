@@ -1,26 +1,14 @@
 """Exploratory warning-budget run (Task 14c). Periphery script.
 
-Violation prevented: **Silent Fallback** at the claim level. The analysis
-(prereg/2026-10-28-warning-budget-exploratory.md, frozen first, EXPLORATORY /
-POST-HOC) cannot change the G6 verdict. This script replays the same learners
-on the same split as `run_selection.py`, reads the G6 settings from its results
-file, and hands the risk traces to the tested pure code in
-`symbiont.eval.warning_budget_report`. It loads, schedules and writes; it
-chooses no threshold itself.
-
-    run_warning_budget.py run --data ... --meta ... --g6-results results/offline-selection.json \
-        --out results/warning-budget-exploratory.json \
-        --scored --prereg prereg/2026-10-28-warning-budget-exploratory.md
-    run_warning_budget.py run ...                      # no --scored: labeled exploratory
-    run_warning_budget.py run ... --smoke-train-only   # never touches a real test task
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
+Post-hoc analysis (prereg/2026-10-28-warning-budget-exploratory.md); it cannot change the G6
+verdict. It replays the same learners on the same split as `run_selection.py` and hands the risk
+traces to `symbiont.eval.warning_budget_report`; it chooses no threshold itself.
+Usage: run_warning_budget.py run --data ... --meta ... --g6-results ... --out ...
 """
 
 import argparse
 import json
 import logging
-import platform
 import sys
 import tempfile
 import time
@@ -118,7 +106,6 @@ def provenance(
         "g6_prereg": "prereg/2026-10-29-offline-selection.md",
         "g6_freeze_commit": settings.freeze_commit,
         "run_host": {
-            "hostname": platform.node(),
             "python": sys.version.split()[0],
             "numpy": np.__version__,
             "workers": args.workers,

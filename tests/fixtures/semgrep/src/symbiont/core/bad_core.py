@@ -1,4 +1,4 @@
-"""Fixture: an Infected Core. Every `# expect:` line must be reported, nothing else."""
+"""Fixture: planted violations. Every `# expect:` line must be reported, nothing else."""
 
 import os
 import socket  # expect: sym-core-no-env sym-single-egress
