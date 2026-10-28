@@ -6,11 +6,17 @@ raises: a baseline of zeros from a broken scan would let phase 2 "clean" nothing
 """
 
 import json
+import re
 import subprocess
+import sys
 from collections import Counter
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import check_type_ignores  # noqa: E402
+
 SKIP = ("tests/fixtures/", "spikes/", ".claude/", ".venv/", "uv.lock")
 
 
@@ -47,3 +53,32 @@ def registry_counts(files: list[str]) -> dict:
             if h["extra"]["severity"] == "ERROR"
         ),
     }
+
+
+def docstring_coverage(src: str = "src/symbiont") -> dict:
+    """QG-RD-01 whole-tree figure: interrogate's own percentage over the public API."""
+    out = run_tool("interrogate", "--fail-under", "0", src)
+    match = re.search(r"actual: ([0-9.]+)%", out.stdout)
+    if match is None:
+        raise RuntimeError(
+            f"interrogate gave no percentage: {out.stdout[-300:]}{out.stderr[-300:]}"
+        )
+    return {"public_api_documented_percent": float(match.group(1)), "bar_percent": 90}
+
+
+def type_ignore_count() -> dict:
+    """QG-TYP-03 tree-wide count against its ceiling."""
+    total, bad = check_type_ignores.audit(check_type_ignores.tracked_python())
+    return {"type_ignore_comments": total, "malformed": len(bad)}
+
+
+def licence_and_audit_summary() -> dict:
+    """QG-DEP-01/02 as the scripts print them; the baseline records the verdict lines."""
+    lines = {}
+    for key, script in (("QG-DEP-01", "check_audit.py"), ("QG-DEP-02", "check_licenses.py")):
+        out = run_tool("python", str(ROOT / "scripts/gates" / script))
+        if out.returncode == 2:
+            raise RuntimeError(f"{script} could not run: {out.stderr[-300:]}")
+        verdict = [line for line in out.stdout.splitlines() if line.startswith(f"{key}: ")]
+        lines[key] = verdict[-1].removeprefix(f"{key}: ")
+    return lines

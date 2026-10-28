@@ -18,3 +18,4 @@ __pycache__/
 docs/superpowers/
 .DS_Store
 .semgrep/registry/
+.coverage.xml
