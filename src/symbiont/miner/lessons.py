@@ -12,7 +12,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
-from symbiont.miner.resolutions import Resolution, Unresolved, resolution_of
+from symbiont.miner.resolutions import Resolution, Unresolved, reason_of, resolution_of
 from symbiont.records.privacy import OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Kind, Record
 
@@ -93,7 +93,7 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
         pain_point=pain,
         quote=excerpt(cited[0], QUOTE_CHARS),
         resolution=tuple(_step_words(step) for step in steps),
-        unresolved_because=found if isinstance(found, str) else None,
+        unresolved_because=reason_of(found),
         spark_safe=all(r.provenance.spark_safe for r in used),
         sources=tuple(dict.fromkeys((r.session_id, r.step) for r in used)),
         task_ids=tuple(dict.fromkeys(r.task_id for r in used if r.task_id is not None)),

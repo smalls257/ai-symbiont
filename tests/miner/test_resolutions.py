@@ -139,7 +139,7 @@ def test_an_edit_to_a_file_the_failure_never_names_is_alongside_not_the_fix():
 def test_only_unrelated_edits_before_an_unchanged_pass_is_no_fix_but_is_kept():
     records = session(run(TEST, 1, BROKE), edit("docs/changelog.md"), run(TEST, 0, "ok"))
     found = resolve(records)
-    assert found == ONLY_UNRELATED_CHANGED
+    assert found.reason == ONLY_UNRELATED_CHANGED
     assert [r.files for r in found.alongside] == [("docs/changelog.md",)]
 
 
@@ -151,3 +151,15 @@ def test_another_npm_script_passing_is_not_the_fix():
 def test_the_same_npm_script_passing_later_still_matches():
     records = session(run("npm run build", 1, BROKE), run("npm run build", 0, "ok"))
     assert resolve(records) == NOTHING_CHANGED
+
+
+@pytest.mark.parametrize("tool", ["uv run", "docker run", "cargo run"])
+def test_other_run_commands_compare_as_before(tool):
+    records = session(run(f"{tool} app", 1, BROKE), run(f"{tool} other", 0, "ok"))
+    assert steps_of(resolve(records)) == [f"{tool} other"]
+
+
+@pytest.mark.parametrize("tool", ["npm", "yarn", "pnpm"])
+def test_the_script_is_part_of_the_subcommand_for_js_tools(tool):
+    records = session(run(f"{tool} run build", 1, BROKE), run(f"{tool} run lint", 0, "ok"))
+    assert resolve(records) == NO_LATER_SUCCESS

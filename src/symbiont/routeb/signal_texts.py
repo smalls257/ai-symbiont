@@ -9,7 +9,7 @@ words, not what happened. Pure: records in, text out.
 from collections.abc import Callable, Sequence
 
 from symbiont.miner.painpoint import PainPoint, Signal
-from symbiont.miner.resolutions import is_action, resolution_of
+from symbiont.miner.resolutions import Resolution, is_action, reason_of, resolution_of
 from symbiont.records.schema import Kind, Record
 
 _OMITTED = "[...]\n"
@@ -118,8 +118,8 @@ def _fix_failed_command(
     """The target is what changed between the failure and the pass, then the passing run."""
     (failed,) = cited
     found = resolution_of(pain, cited, records)
-    if isinstance(found, str):
-        return found
+    if not isinstance(found, Resolution):
+        return reason_of(found) or ""
     return (
         f"This command failed:\n{quote(failed)}\nWhat should I run instead?",
         "\n".join(_action_text(step) for step in found.steps),
@@ -133,8 +133,8 @@ def _fix_correction(
     """The correction target after a user correction, or why there is none."""
     (turn,) = cited
     found = resolution_of(pain, cited, records)
-    if isinstance(found, str):
-        return found
+    if not isinstance(found, Resolution):
+        return reason_of(found) or ""
     (action,) = found.steps
     corrected = _last_action_before(turn, records)
     before = f"What I was doing:\n{quote(corrected)}\n" if corrected else ""
@@ -154,8 +154,8 @@ def _fix_reworked_edit(
     """The correction target for a reworked edit."""
     path = pain.signature.key[0]
     found = resolution_of(pain, cited, records)
-    if isinstance(found, str):
-        return found
+    if not isinstance(found, Resolution):
+        return reason_of(found) or ""
     *discarded, _ = cited
     (survivor,) = found.steps
     return (

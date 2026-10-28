@@ -1,10 +1,10 @@
 """Warning budget: how often a learner may speak, and what a wrong warning teaches.
 
-Balanced accuracy let each learner pick its own operating point (the fly
-warned on most steps), so the budget is a share of steps fixed on TRAIN (`calibrate_budget`) and
-enforced live (`WarningBudget`). `settle` turns every admitted warning
-into an `Outcome`; a false alarm relaxes the fly's pattern at `mushroom.RELAX_RATIO`, counters keep
-their tally. The policy is a function of (state, step): no clock, no hidden mutation.
+Balanced accuracy let each learner pick its own operating point (the fly warned on most steps), so
+the budget is a share of steps fixed on TRAIN (`calibrate_budget`) and enforced live
+(`WarningBudget`). `settle` turns every admitted warning into an `Outcome`; a false alarm relaxes
+the fly's pattern at `mushroom.RELAX_RATIO`, counters keep their tally. The policy is a function
+of (state, step): no clock, no hidden mutation. A wrong warning must cost, or it teaches nothing.
 """
 
 from collections.abc import Sequence

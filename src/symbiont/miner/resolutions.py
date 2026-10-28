@@ -25,7 +25,12 @@ ONLY_UNRELATED_CHANGED = (
     "the same command passed later; only changes to files it never names came between, "
     "so what made it pass is not known"
 )
-_SCRIPT_RUNNERS = ("run", "run-script")  # `npm run <script>`: the script is part of the subcommand
+_SCRIPT_TOOLS = (
+    "npm",
+    "yarn",
+    "pnpm",
+)  # `<tool> run <script>`: the script is part of the subcommand
+_SCRIPT_RUNNERS = ("run", "run-script")
 _BARE_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
@@ -44,23 +49,26 @@ class Resolution:
             raise ValueError("a resolution needs at least one step")
 
 
-class Unresolved(str):
-    """A reason for no resolution that keeps the unrelated changes seen meanwhile.
+@dataclass(frozen=True)
+class Unresolved:
+    """No resolution, with the unrelated changes seen meanwhile.
 
-    A `str`, so every caller that only wants the reason is unaffected.
+    Lives only inside mining: a Lesson keeps the reason and short step words, never these Records.
     """
 
+    reason: str
     alongside: tuple[Record, ...]
 
-    def __new__(cls, reason: str, alongside: tuple[Record, ...] = ()) -> "Unresolved":
-        """The reason, carrying the changes reported alongside it."""
-        self = super().__new__(cls, reason)
-        self.alongside = alongside
-        return self
 
-
-NoResolution = str  # why the history holds no resolution
+NoResolution = str | Unresolved  # why the history holds no resolution (a bare str has no extras)
 Finder = Callable[[PainPoint, list[Record], Sequence[Record]], Resolution | NoResolution]
+
+
+def reason_of(found: Resolution | NoResolution) -> str | None:
+    """The stated reason when `found` is not a resolution, else None."""
+    if isinstance(found, Unresolved):
+        return found.reason
+    return found if isinstance(found, str) else None
 
 
 def resolution_of(
@@ -133,11 +141,11 @@ def _subcommand(command: str) -> str:
 
     Paths and node ids are left to `normalise_command`, which already compares the target.
     """
-    _, args = program_words(command)
+    program, args = program_words(command)
     words = [arg for arg in args if not arg.startswith("-")] or ["-"]
     if not _BARE_WORD.match(words[0]):
         return "-"
-    if words[0] in _SCRIPT_RUNNERS and len(words) > 1:
+    if program in _SCRIPT_TOOLS and words[0] in _SCRIPT_RUNNERS and len(words) > 1:
         return f"{words[0]} {words[1]}"
     return words[0]
 
