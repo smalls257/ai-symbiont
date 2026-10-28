@@ -50,3 +50,16 @@ def test_settings_are_the_chosen_g6_values(script, tmp_path):
 def test_a_smoke_g6_file_is_refused(script, tmp_path):
     with pytest.raises(ValueError, match="smoke"):
         script.g6_settings(g6_file(tmp_path, smoke=True))
+
+
+def test_an_exploratory_g6_file_is_refused(script, tmp_path):
+    with pytest.raises(ValueError, match="exploratory"):
+        script.g6_settings(g6_file(tmp_path, freeze_commit=None))
+
+
+def test_scored_without_a_prereg_refuses_before_any_work(script):
+    from symbiont.eval.prereg import PreregNotFrozenError
+
+    argv = ["run", "--data", "d", "--meta", "m", "--g6-results", "g", "--out", "o", "--scored"]
+    with pytest.raises(PreregNotFrozenError, match="--scored needs --prereg"):
+        script.main(argv)
