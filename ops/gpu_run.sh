@@ -4,8 +4,8 @@
 #
 #   ops/gpu_run.sh -- <command> [args...]
 #
-# Exists to prevent a Silent Fallback: a crashed or interrupted overnight job
-# that leaves Glimmer stopped, with nobody told. Every exit path (normal,
+# Exists because a crashed or interrupted overnight job can leave Glimmer stopped, with
+# nobody told. Every exit path (normal,
 # job failure, INT, TERM) restores the recorded state and releases the lock.
 # SIGKILL cannot be trapped; it leaves the lock behind on purpose, and the
 # next run refuses and prints the recorded state so a human restores it.

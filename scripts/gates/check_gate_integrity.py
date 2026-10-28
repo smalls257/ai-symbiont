@@ -1,21 +1,9 @@
-"""QG-GATE-01 gate integrity. Prevents Paper Tiger: a gate whose thresholds, waivers or floor
-can be loosened by the commit that needs the loosening proves nothing.
+"""QG-GATE-01 gate integrity: a commit may not loosen a gate without its own GATE-CHANGE trailer.
 
-Every commit in merge-base..HEAD is judged on its own diff against its parent, and so is the
-pending (staged or uncommitted) work against HEAD. A two-parent merge is judged against the tree
-git merge-tree produces for its parents; a conflicted gate file needs the trailer on the resolver.
-Octopus merges are judged against their first parent.
-A change is a loosening when it
-  * ADDS a waiver entry to .lizard-whitelist.txt or .naming-waivers.txt (removals pass),
-  * LOWERS the test-count floor in scripts/gates/test-floor.txt (raising passes),
-  * changes any other protected file: gate scripts and hooks, gitleaks config and baseline,
-    semgrep rules, .importlinter, Claude hook scripts, or the ruff/mypy/coverage/pytest tables
-    in pyproject.toml.
-THAT commit's own message must carry `GATE-CHANGE: <reason>`; a trailer on an earlier commit
-unlocks nothing. The pending work is judged against the message passed with --message-file
-(the commit-msg hook). A commit listed in scripts/gates/accepted-gate-changes.txt (owner
-ledger, itself a protected file) is accepted without a trailer. The Claude hook that denies edits
-to these files is only a first line of defense: a shell edit bypasses it, this check does not.
+Each commit in merge-base..HEAD is judged on its own diff, and so is the pending work.
+A two-parent merge is judged against the tree git merge-tree builds for its parents.
+Loosening: an added waiver, a lowered test floor, or any other protected-file change.
+A trailer on an earlier commit unlocks nothing; the owner ledger accepts a named commit.
 
 Usage: check_gate_integrity.py [--message-file FILE | --list]
   (exit 1 on a loosening, 2 if it cannot run; --list prints every GATE-CHANGE commit in range)
@@ -43,9 +31,18 @@ PROTECTED_FILES = frozenset(
         ".gitattributes",
         ".claude/settings.json",
         ".claude/settings.json.proposed",
+        "dashboard/eslint.config.js",
+        "dashboard/.htmlvalidate.mjs",
+        "dashboard/package.json",
+        "dashboard/package-lock.json",
     }
 )
-WAIVER_FILES = (".lizard-whitelist.txt", ".naming-waivers.txt")
+WAIVER_FILES = (
+    ".lizard-whitelist.txt",
+    ".naming-waivers.txt",
+    "scripts/gates/audit_waivers.txt",
+    "scripts/gates/cdn-legacy-pages.txt",
+)
 FLOOR_FILE = "scripts/gates/test-floor.txt"
 LEDGER = "scripts/gates/accepted-gate-changes.txt"
 TOOL_TABLES = ("ruff", "mypy", "coverage", "pytest")
