@@ -7,7 +7,6 @@
  "code_commit": "87785860134e3a09b6f0b171fbf3883ba9159357",
  "g6_prereg": "prereg/2026-10-29-offline-selection.md",
  "run_host": {
-  "hostname": "framework",
   "python": "3.12.3",
   "numpy": "2.5.4",
   "workers": 14

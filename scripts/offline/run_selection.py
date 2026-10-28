@@ -22,7 +22,6 @@ import argparse
 import json
 import logging
 import multiprocessing as mp
-import platform
 import subprocess
 import sys
 import tempfile
@@ -277,7 +276,6 @@ def final_replays(cal: Calibration, workers: int, timings: dict[str, float]) -> 
 def run_host_record(workers: int) -> dict[str, Any]:
     """Where and with what the run happened."""
     return {
-        "hostname": platform.node(),
         "python": sys.version.split()[0],
         "numpy": np.__version__,
         "workers": workers,

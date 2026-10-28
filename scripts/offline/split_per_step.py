@@ -66,7 +66,6 @@ def load_per_step(summary_path: Path, root: Path) -> dict[str, list]:
 
 def _run_section(src: dict[str, Any], log_path: Path) -> dict[str, Any]:
     return {
-        "host": src["run_host"]["hostname"],
         "started_utc": "2026-10-27T19:24:26+00:00",
         "finished_utc": src["finished_utc"],
         "wall_clock_s": src["wall_clock_s"],

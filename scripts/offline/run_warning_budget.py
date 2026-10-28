@@ -20,7 +20,6 @@ Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
 import argparse
 import json
 import logging
-import platform
 import sys
 import tempfile
 import time
@@ -118,7 +117,6 @@ def provenance(
         "g6_prereg": "prereg/2026-10-29-offline-selection.md",
         "g6_freeze_commit": settings.freeze_commit,
         "run_host": {
-            "hostname": platform.node(),
             "python": sys.version.split()[0],
             "numpy": np.__version__,
             "workers": args.workers,
