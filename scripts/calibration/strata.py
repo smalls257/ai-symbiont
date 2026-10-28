@@ -1,16 +1,8 @@
-"""Strata labels for pool tasks: which sqlglot subsystem a gold patch touches, and how big it is.
-
-Violation prevented: **Paper Tiger** in the Act 2 pool. A screen that takes the smallest gold
-patches meets "run 40 tasks" and fails the need (one developer's varied week), because the
-smallest patches are near-identical one-line dialect fixes. The labels let the screen see variety.
-
-Pure functions over a diff string and a number: no disk, no network. Deployed next to staged.py.
-"""
+"""Strata for pool tasks: the sqlglot subsystem a gold patch touches, and its size band."""
 
 import re
 
-# Order matters only for readability: a path belongs to the first matching label. Reason for the
-# grouping: sqlglot's top-level modules that a maintainer thinks of as one "area" of work.
+# a path takes the first matching label
 SUBSYSTEM_PATTERNS = (
     ("dialects", re.compile(r"(^|/)dialects/")),
     ("parser", re.compile(r"(^|/)(parser|tokens)\.py$")),
@@ -22,8 +14,7 @@ SUBSYSTEM_PATTERNS = (
 OTHER = "other"
 MULTI = "multi"  # two or more non-expressions areas touched by one patch
 EXPRESSIONS = "expressions"
-# Size bands on changed lines (added + removed). The pool cap is 60 (build_pool.MAX_GOLD_LINES):
-# below 10 is a one-liner, 10-29 a small fix, 30-59 a real change.
+# changed lines: one-liner, small fix, real change (the pool caps at 60)
 SMALL_BELOW = 10
 LARGE_FROM = 30
 
@@ -38,12 +29,7 @@ def _label_of_path(path: str) -> str:
 
 
 def subsystem_of(patch: str) -> str:
-    """The subsystem label of a gold patch, read from its `+++ b/<path>` lines.
-
-    expressions.py is ignored when any other path is present (it only carries the node class a
-    change in another area needs). Two or more other labels give "multi". A patch with no
-    recognizable path is "other", not an error: the label is a stratum, not a claim.
-    """
+    """The area a gold patch touches; expressions.py counts only when it is the sole file."""
     labels = {_label_of_path(path) for path in _NEW_PATH.findall(patch)}
     if not labels:
         return OTHER

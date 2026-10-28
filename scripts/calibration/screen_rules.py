@@ -1,12 +1,4 @@
-"""How the screen stage picks its tasks: two named rules, no flags.
-
-Violation prevented: **Paper Tiger**. SMALLEST meets "screen 40 tasks" but yields near-identical
-one-line dialect bugs; STRATIFIED spreads the screen over (subsystem, size_band) cells so Act 2
-reads as one developer's varied week on one codebase. **Leaky Narrative** is the other: the rule
-is a `ScreenRule` name at the call site, not a pair of booleans.
-
-Pure: pool entries in, ids out. Deployed next to staged.py.
-"""
+"""How the screen picks its tasks: the smallest gold patches, or a seeded spread over strata."""
 
 import random
 from enum import StrEnum

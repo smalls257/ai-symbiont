@@ -13,15 +13,13 @@ Stage 2: every task solved in the screen gets 2 more runs with the same setting.
 Up to WORKERS runs go at a time (the Glimmer server has 2 slots); the checkpoint batch finishes
 before the decision. All records append to <workdir>/<runs-dir>/calibration.jsonl (resumable: a
 run counts as done once it has a graded record). Runs that could not be graded are retried up to
-MAX_ATTEMPTS times; 3 ungraded runs in a row stop the driver with status "blocked" (Glimmer or
-Docker down: no point burning the night; a run already in flight on the other worker still
-lands). After every run the summary (no task or trajectory text) is rewritten
-to <workdir>/<runs-dir>/calibration-glimmer.json; the laptop copies it into results/.
+MAX_ATTEMPTS times; 3 ungraded runs in a row stop the driver with status "blocked" (a run
+already in flight on the other worker still lands). After every run the summary (no task or
+trajectory text) is rewritten to <workdir>/<runs-dir>/calibration-glimmer.json.
 
 Usage: python staged.py <workdir> [--screen smallest|stratified] [--runs-dir runs]
                         [--exclude-log runs/calibration.jsonl]
-(start it through launch.py). A stratified run needs its own --runs-dir: it must not share the log
-of a SMALLEST run in progress.
+(start it through launch.py; a stratified run needs its own --runs-dir)
 """
 
 from __future__ import annotations

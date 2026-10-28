@@ -1,10 +1,4 @@
-"""Add `subsystem` and `size_band` to an existing pool.json from its rows file, offline.
-
-Violation prevented: **Distributed Monolith** between the pool and the screen. The desktop already
-holds data/pool.json and data/sqlglot_rows.json; rebuilding the pool from Hugging Face to get two
-labels would change the pool under a run in progress. This reads the two local files only.
-
-Raises SystemExit naming the instance id if a pool entry has no row (a mismatched pair of files).
+"""Add `subsystem` and `size_band` to an existing pool.json offline, without rebuilding it.
 
 Usage: python label_pool.py <workdir>
 """
