@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `scripts/`.
 
-**Purpose.** `calibration/` (task pool and calibration runs), `datasets/` (dataset exporters), `gates/` (quality-gate checks), `hooks/` (tracked git hooks), `publish/` (the pre-publication export check), `install-hooks.sh`.
+**Purpose.** `calibration/` (task pool and calibration runs), `datasets/` (dataset exporters), `gates/` (quality-gate checks), `hooks/` (tracked git hooks), `publish/` (the pre-publication export check), `routea/` (the lesson-capacity probe: lessons from public trajectories, MLX LoRA runs on the laptop, deterministic scoring; its MLX half runs in a venv outside the repo), `install-hooks.sh`.
 
 **Violation prevented: Infected Core.** Anything that reads a dataset, shells out or talks to a machine lives here, so `src/` stays pure and nothing in `src/` imports from `scripts/`.
 
