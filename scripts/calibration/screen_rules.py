@@ -38,11 +38,9 @@ def cells_of(pool: list[dict]) -> dict[str, list[str]]:
 def stratified_screen(
     pool: list[dict], excluded: set[str], seed: int = STRATIFIED_SEED, count: int = SCREEN_N
 ) -> list[str]:
-    """Up to `count` ids: round-robin over non-empty cells, so a small cell gives all it has.
+    """Up to `count` ids, round-robin over non-empty cells; `excluded` (already run) is dropped.
 
-    Tasks in `excluded` (already run) are dropped first. Within a cell the order is a seeded
-    shuffle of the sorted ids; the cell order is a seeded shuffle of the sorted cell names, so
-    the same pool, exclusions and seed always give the same list. The list is in pick order: any
+    Seeded, so the same pool, exclusions and seed give the same list. Pick order matters: any
     prefix (the checkpoint's first 10) already mixes cells.
     """
     cells = cells_of([entry for entry in pool if entry["instance_id"] not in excluded])

@@ -1,18 +1,18 @@
 # Repo candidates for "a developer's week on one repo" (2026-10-27)
 
-Follows [2026-10-27-public-data-survey.md](2026-10-27-public-data-survey.md). This file does not redo that survey's license work. It picks the one repo to run on.
+This note picks the one repository we'll run "a developer's week" on. It follows [the public data survey](2026-10-27-public-data-survey.md) and leans on that survey's license work rather than redoing it.
 
-How this was checked: DuckDB remote reads of column aggregates only (repo, instance id, `resolved`, teacher model, image name, patch line counts, test-list lengths) from HF parquet. No message content was read and nothing was kept on disk. Licenses and stars come from the GitHub API. Gotchas come from each repo's own `AGENTS.md`, Makefile or contributor docs. Tags: **[established]** = seen in the source or measured; **[hypothesis]** = inferred.
+We read column aggregates from the HF parquet files with DuckDB: repo, instance id, `resolved`, teacher model, image name, patch line counts and test-list lengths. We didn't read any message content and kept nothing on disk. Licenses and stars come from the GitHub API. The traps come from each repo's own `AGENTS.md`, Makefile or contributor docs. Tags: **[established]** = seen in the source or measured; **[hypothesis]** = inferred.
 
-Gaps: anonymous HF rate limits (HTTP 429) blocked these reads. Open-SWE-Traces v1.0, v1.1, v1.2 and the v2.0 `openhands`/`sweagent` splits were **not** measured; only v2.0 `claudecode`, `minisweagent` and `opencode` were. The SWE-smith per-repo counts are the survey's numbers. No test was run and no test runtime was timed.
+Some reads didn't happen, because anonymous HF rate limits (HTTP 429) blocked them. We did **not** measure Open-SWE-Traces v1.0, v1.1, v1.2 or the v2.0 `openhands`/`sweagent` splits; we measured only v2.0 `claudecode`, `minisweagent` and `opencode`. The SWE-smith per-repo counts are the survey's numbers. We ran no test and timed no test suite.
 
 ## What decides the choice
 
-The learner can only learn what recurs. So the repo must have (a) enough open-model history to mine, (b) enough executable tasks left over for live runs, and (c) traps that are the same across tasks: a shared registry, a generated file, or a base class that many modules inherit. If (c) is missing, the paired comparison is a **Paper Tiger**. Tests pass in both arms, the "repeated mistakes" count is near zero, and the sidecar shows nothing. That is why column 5 (repeat-mistake potential) weighs more than raw task counts.
+The learner can only learn what comes back. So the repo needs three things: enough open-model history to mine, enough runnable tasks left over for live runs, and traps that recur across tasks, such as a shared registry, a generated file, or a base class many modules inherit. Without the traps the paired comparison is what the repo's rules call a **Paper Tiger**: tests pass in both arms, the "repeated mistakes" count sits near zero, and the sidecar shows nothing. That's why column 5, repeat-mistake potential, weighs more than raw task counts.
 
 ## Comparison
 
-Patch = median gold-patch diff lines, headers included. P2P = median `PASS_TO_PASS` count, a proxy for test-run size. Q-res = mean `resolved` for the Qwen history.
+In the table, Patch is the median gold-patch diff in lines, headers included. P2P is the median `PASS_TO_PASS` count, our stand-in for test-run size. Q-res is the mean `resolved` for the Qwen history.
 
 | Repo (license, stars) | 1. Executable tasks + images | 2. Open-model history (license, model) | 3. SWE-chat / AIDev overlap | 4. Shortness | 5. Repeat-mistake potential | 7. Demo recognisability | Verdict |
 |---|---|---|---|---|---|---|---|
@@ -26,20 +26,20 @@ Patch = median gold-patch diff lines, headers included. P2P = median `PASS_TO_PA
 | python-pillow/Pillow | **0 images** in SWE-rebench v1; not in V2 [established] | nebius: 126 / 1,328 [established] | - | Patch 32 | - | High | **Fast no**: history can't be replayed live |
 | django / sympy | SWE-bench | Absent from the measured Open-SWE-Traces v2.0 splits and from nebius's top repos. Public history is mostly closed-model leaderboard runs with no license [established, survey #6] | - | - | - | High | **Fast no** for the Spark tier |
 
-Point 6 (repo license) is in the first column. Every row that passed is MIT, Apache-2.0 or BSD [established, GitHub API].
+Point 6, the repo license, sits in the first column. Every row that passed is MIT, Apache-2.0 or BSD [established, GitHub API].
 
 ## Notes
 
-- **SWE-chat overlap is nil.** None of these repos appears in SWE-chat v1 (`repositories.parquet`, 205 repos; metadata only) [established]. v2 is gated and was not checked. Real human corrections on a benchmark repo are therefore not available. The only human-review signal is AIDev on sqlfluff (32 human review comments) [established] or pandas.
-- **Harness match is a new finding.** Open-SWE-Traces v2.0 has a `minisweagent` split [established]. For moto and click, past history exists in **the same bash-only harness** that Glimmer will run in. Pain points mined from it (failing commands, re-edits) then use the same action vocabulary at replay time. sqlglot's history is OpenHands-only, so its `str_replace_editor` actions would need translating into bash-world warnings [hypothesis on translation cost].
-- **Depth shape differs.** sqlglot has ~10 runs on each of 275 tasks: good for "same task, same mistake", but that is overlap, not a developer's week. moto has 1 run per harness on each of ~240 tasks, plus 343 separate SWE-Gym tasks [measured]. That allows a clean split: mine the Open-SWE-Traces tasks, then replay **unseen** SWE-Gym tasks [hypothesis]. It measures cross-task recurrence, which is what the sidecar claims to do [hypothesis: SWE-Gym and V2 moto instance ids overlap only partly; check before splitting].
-- **Model terms.** nebius history = Qwen3-Coder-480B (Apache-2.0). Open-SWE-Traces v2.0 = Qwen3.8-Flash-Next (`qwen-community-1.0`) [established]. Both are Spark-safe in our reading [hypothesis]. Exclude SWE-smith rows (Claude) everywhere.
+- **SWE-chat overlap is nil.** None of these repos appears in SWE-chat v1 (`repositories.parquet`, 205 repos; metadata only) [established]. v2 is gated and we didn't check it. So we can't get real human corrections on a benchmark repo. The only human-review signal is AIDev on sqlfluff (32 human review comments) [established] or pandas.
+- **The harness match is new.** Open-SWE-Traces v2.0 has a `minisweagent` split [established]. For moto and click, past history exists in **the same bash-only harness** Glimmer will run in, so the pain points we mine from it (failing commands, re-edits) speak the same action vocabulary at replay time. sqlglot's history is OpenHands-only, so its `str_replace_editor` actions would need translating into bash-world warnings [hypothesis on translation cost].
+- **The depth has a different shape.** sqlglot has about 10 runs on each of 275 tasks. That's good for "same task, same mistake", but it's overlap, not a developer's week. moto has 1 run per harness on each of about 240 tasks, plus 343 separate SWE-Gym tasks [measured]. That allows a clean split: mine the Open-SWE-Traces tasks, then replay **unseen** SWE-Gym tasks [hypothesis]. It measures recurrence across tasks, which is what the sidecar claims to catch [hypothesis: SWE-Gym and V2 moto instance ids overlap only partly; check before splitting].
+- **Model terms.** The nebius history comes from Qwen3-Coder-480B (Apache-2.0). Open-SWE-Traces v2.0 comes from Qwen3.8-Flash-Next (`qwen-community-1.0`) [established]. We read both as safe for Spark [hypothesis]. SWE-smith rows (Claude) stay out everywhere.
 
 ## Ranked top 2
 
-1. **getmoto/moto.** It is the only candidate that has all of the following on one Apache-2.0 repo [established]: ~240 tasks of Qwen history **in mini-SWE-agent itself**, plus two more harnesses; 249 V2 + 343 SWE-Gym tasks [measured] with prebuilt images, so history and live tasks can be split without overlap; and documented traps that recur across tasks (generated `backend_index.py`, the `responses`/`models` split, lint+mypy gating `make test`, server mode) [established]. Cost: patches are about twice sqlglot's. So pick the short end (for example gold patch < 60 lines) for the 12 tok/s Glimmer arm. [hypothesis]
-2. **tobymao/sqlglot (baseline).** It has the shortest patches (47 lines), the deepest per-task history (2,678 runs) and the strongest single trap: base-dialect changes break sibling dialects, and the tokenizer lives in both Python and Rust. Weak points: the history is OpenHands-only, there are no unseen-task sources beyond SWE-rebench v1, and AIDev overlap is nil.
+1. **getmoto/moto.** It's the only candidate with all of this on one Apache-2.0 repo [established]: about 240 tasks of Qwen history **in mini-SWE-agent itself**, plus two more harnesses; 249 V2 + 343 SWE-Gym tasks [measured] with prebuilt images, so we can split history from live tasks without overlap; and documented traps that recur across tasks (the generated `backend_index.py`, the `responses`/`models` split, lint and mypy in front of `make test`, server mode) [established]. The cost is patch size, about twice sqlglot's. So we'd pick the short end (say, gold patch under 60 lines) for the 12 tok/s Glimmer arm. [hypothesis]
+2. **tobymao/sqlglot (baseline).** It has the shortest patches (47 lines), the deepest per-task history (2,678 runs) and the strongest single trap: a base-dialect change breaks sibling dialects, and the tokenizer lives in both Python and Rust. Its weak points: the history is OpenHands-only, there's no unseen-task source beyond SWE-rebench v1, and AIDev overlap is nil.
 
-Side stream, either way: **sqlfluff** AIDev review comments, for "a reviewer flagged it, a later commit reworked it" labels (USE WITH CARE as in the survey).
+Either way, **sqlfluff**'s AIDev review comments come along as a side stream, for "a reviewer flagged it, a later commit reworked it" labels (USE WITH CARE, as in the survey).
 
-**Blockers to clear before committing:** (a) measure the moto `PASS_TO_PASS` size and time one image's test run. (b) Check overlap between the moto instance ids in SWE-Gym, V2 and Open-SWE-Traces. (c) Measure Open-SWE-Traces v1.x splits; it needs an HF token, because anonymous reads hit 429.
+**Three things to clear before we commit to a repo.** Measure the moto `PASS_TO_PASS` size and time one image's test run. Check how far the moto instance ids in SWE-Gym, V2 and Open-SWE-Traces overlap. Measure the Open-SWE-Traces v1.x splits, which needs an HF token, because anonymous reads hit 429.

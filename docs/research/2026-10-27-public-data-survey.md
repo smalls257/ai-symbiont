@@ -1,16 +1,16 @@
 # Public data survey: "one developer's week on one repo" (2026-10-27)
 
-Purpose: find data we may legally use in a **public** hackathon repo to mine an agent-coding history for pain points and train a small learner that warns the agent before it repeats them.
+We need agent-coding history we may legally use in a **public** hackathon repo: history to mine for pain points, and to train a small learner that warns the agent before it repeats one. This survey lists what's out there and what each set's terms let us do with it.
 
-How this was checked: each license was read from the Hugging Face API (`/api/datasets/<id>` `cardData.license`), from the dataset card's own text, or from the GitHub API `license.spdx_id`. Per-repo depth was counted with DuckDB column-only remote reads of the parquet files (aggregates only, no message content read, nothing kept on disk). Tags: **[established]** means I saw it in the source or measured it. **[hypothesis]** means inference, not checked.
+We read each license from the Hugging Face API (`/api/datasets/<id>` `cardData.license`), from the dataset card's own text, or from the GitHub API `license.spdx_id`. We counted per-repo depth with DuckDB remote reads of the parquet files, columns and aggregates only. We didn't read any message content and kept nothing on disk. Tags: **[established]** means we saw it in the source or measured it. **[hypothesis]** means we inferred it and haven't checked.
 
-The main risk in this survey is a **Silent Fallback** on license. "The HF tag says MIT/CC-BY" can hide three other layers of terms: the license of each source repo, the terms of the model that produced the outputs, and GitHub or site terms for scraped content. So every row below records the declared license and, separately, the inherited layers. A row passes only if all of them are acceptable for our use.
+The main risk here is a quiet license failure, what the repo's rules call a **Silent Fallback**. "The HF tag says MIT/CC-BY" can hide three more layers of terms: the license of each source repo, the terms of the model that wrote the outputs, and GitHub or site terms for scraped content. So every row below records the declared license and, in its own column, the inherited layers. A row passes only when all of them work for us.
 
 ## License layers that recur
 
-- **Per-repo code license.** All SWE-style sets embed code and issue text from GitHub repos. Nebius, NVIDIA and SWE-chat ship a per-row license field (`license_name`, `license`, `license_type`) so we can filter for permissive repos. [established]
-- **Model-output terms for the Spark tier.** Anthropic's Commercial Terms D.4(a): the customer may not "access the Services to build a competing product or service, including to train competing AI models" ([source](https://www.anthropic.com/legal/commercial-terms)). [established] That clause binds whoever generated the outputs, not us as downstream licensees. Even so, sending raw Claude-generated text to an API tier whose traffic may train Meta models is the case to avoid [hypothesis: legal risk, not a certain breach]. OpenAI's terms likely have a similar clause [hypothesis: the page returned 403 to my fetch]. Qwen3-Coder-480B and Qwen3.8-27B are Apache-2.0 ([HF API](https://huggingface.co/api/models/Qwen/Qwen3.8-27B)). [established] Llama 3.1 outputs fall under the Llama 3.1 license, which the nebius card points to. [established]
-- **Real people.** Human prompts, review comments and logins are personal data even after redaction. **Rule: do not commit raw rows. Download on setup, and publish only counts and labels.**
+- **Per-repo code license.** Every SWE-style set carries code and issue text from GitHub repos. Nebius, NVIDIA and SWE-chat ship a per-row license field (`license_name`, `license`, `license_type`), so we can keep only the permissive repos. [established]
+- **Model-output terms for the Spark tier.** Anthropic's Commercial Terms D.4(a) say the customer may not "access the Services to build a competing product or service, including to train competing AI models" ([source](https://www.anthropic.com/legal/commercial-terms)). [established] That clause binds whoever generated the outputs, and we're downstream licensees. Even so, we won't send raw Claude-written text to an API tier whose traffic may train Meta models; that's the case to avoid [hypothesis: legal risk, not a certain breach]. OpenAI's terms likely carry a similar clause [hypothesis: the page returned 403 to our fetch]. Qwen3-Coder-480B and Qwen3.8-27B are Apache-2.0 ([HF API](https://huggingface.co/api/models/Qwen/Qwen3.8-27B)). [established] Llama 3.1 outputs fall under the Llama 3.1 license, which the nebius card points to. [established]
+- **Real people.** Human prompts, review comments and logins stay personal data even after redaction. **So we don't commit raw rows. We download on setup and publish counts and labels only.**
 
 ## Candidates
 
@@ -36,14 +36,14 @@ The main risk in this survey is a **Silent Fallback** on license. "The HF tag sa
 
 ## Notes
 
-- **Priority 3 (human corrections) is no longer rare.** SWE-chat v1 has 24,390 pushback-labelled prompts: 18,937 correction, 4,382 failure_report, 636 rejection, 435 takeover. That is about 39% of prompts [established], with 33,854 non_pushback and 4,299 unlabelled [established, measured on v1 mirror]. The labels are LLM-annotated [established, card], so they are noisy ground truth.
-- **AGPL/GPL repos in SWE-chat.** Avoid them for anything we commit, even derived snippets. Counts and labels are fine [hypothesis: facts and statistics are not copyrightable expression].
-- **Do not accept the SWE-chat gate on the user's behalf.** It is click-through (`gated: auto`) and needs the owner's HF login. Nothing was downloaded.
+- **Human corrections aren't rare anymore.** SWE-chat v1 has 24,390 prompts labeled as pushback: 18,937 correction, 4,382 failure_report, 636 rejection, 435 takeover. That's about 39% of prompts [established], beside 33,854 non_pushback and 4,299 unlabeled [established, measured on v1 mirror]. A model wrote the labels [established, card], so they're noisy ground truth.
+- **AGPL/GPL repos in SWE-chat.** We keep them out of anything we commit, even derived snippets. Counts and labels are fine [hypothesis: facts and statistics aren't copyrightable expression].
+- **Nobody accepts the SWE-chat gate for the owner.** It's click-through (`gated: auto`) and needs the owner's own HF login. We downloaded nothing.
 
 ## Top 3 for "simulate one developer's week on one repo"
 
-1. **SWE-chat v2, one MIT single-committer repo** (candidate: `dayhaysoos/nimbus`: 650 sessions, 740 pushback prompts in v1; re-check in v2). This is real history, ordered in time, with human corrections and the commits that followed. ODC-BY → **USE WITH CARE**: gate, PII, and Claude-output terms. Keep raw text local, and send only derived features to Spark.
-2. **nvidia/Open-SWE-Traces `claudecode` split on one repo** (`getmoto/moto` 227 or `pallets/click` 193 tasks [measured]). Same Claude Code transcript shape as SWE-chat, open-model outputs, CC-BY-4.0 "commercial use" → **USE**. Fully redistributable as derived artifacts and Spark-safe. No human turns: synthesize "developer pushback" from failing tests. [established]
-3. **nebius/SWE-rebench-openhands-trajectories on `tobymao/sqlglot`** (275 tasks, 2,678 runs [measured], MIT repo, Qwen outputs) with SWE-rebench Docker images for live replay. CC-BY-4.0 → **USE**. It has the deepest same-repo agent history with a clean license stack. [established]
+1. **SWE-chat v2, one MIT repo with one committer** (candidate: `dayhaysoos/nimbus`: 650 sessions, 740 pushback prompts in v1; we'll re-check in v2). This is real history in time order, with human corrections and the commits that followed. ODC-BY, so **USE WITH CARE**: the gate, personal data, and the Claude-output terms. Raw text stays local, and only derived features go to Spark.
+2. **nvidia/Open-SWE-Traces `claudecode` split on one repo** (`getmoto/moto` 227 or `pallets/click` 193 tasks [measured]). It has the same Claude Code transcript shape as SWE-chat, with open-model outputs, under CC-BY-4.0 "commercial use", so **USE**. We can share derived artifacts and send it to Spark. It has no human turns, so "developer pushback" would have to come from failing tests. [established]
+3. **nebius/SWE-rebench-openhands-trajectories on `tobymao/sqlglot`** (275 tasks, 2,678 runs [measured], MIT repo, Qwen outputs), with the SWE-rebench Docker images for live replay. CC-BY-4.0, so **USE**. It's the deepest same-repo agent history we found, and its license stack is clean. [established]
 
-Add AIDev (dotnet/runtime or mlflow) as a side stream for review-flag → rework labels, USE WITH CARE.
+AIDev (dotnet/runtime or mlflow) joins as a side stream for "a reviewer flagged it, a later commit reworked it" labels, USE WITH CARE.

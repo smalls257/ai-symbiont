@@ -1,15 +1,9 @@
 """Build the sqlglot calibration pool from nebius/SWE-rebench (v1, `filtered` split).
 
-Runs on the desktop (needs duckdb + network). Writes:
-  <workdir>/data/sqlglot_rows.json   full task rows (problem text, patches): stays on the
-                                     desktop, never committed
-  <workdir>/data/pool.json           pool ids + sizes (no task text)
-
-Pool rule (plan Task 22): sqlglot rows that have a docker image and a gold patch under
-MAX_GOLD_LINES changed lines. "Changed lines" = added + removed lines of the diff, headers excluded;
-the raw diff length is recorded too so the cut can be re-argued without re-downloading.
-
-Each pool entry also carries `subsystem` and `size_band` (strata.py) for the stratified screen.
+Runs on the desktop (needs duckdb + network). Writes `data/sqlglot_rows.json` (full task rows,
+never committed) and `data/pool.json` (pool ids and sizes, no task text).
+Pool rule (plan Task 22): rows with a docker image and a gold patch under MAX_GOLD_LINES changed
+lines (added + removed, headers excluded); the raw diff length is kept so the cut can be re-argued.
 
 Usage: python build_pool.py <workdir>
 """

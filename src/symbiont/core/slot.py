@@ -58,11 +58,9 @@ class Decision:
 
 
 def event_fields(decision: Decision) -> dict[str, object]:
-    """The sanctioned dict of a Decision for logs and events.
+    """The sanctioned dict of a Decision for logs and events, never carrying the risk.
 
-    Names what happened (the kind of trouble, how much evidence, why quiet)
-    and never the risk: `dataclasses.asdict` walks every field and would carry
-    it, so no log or export builds a dict from a Decision any other way.
+    `dataclasses.asdict` would walk every field, risk included, so nothing else builds it.
     """
     trouble = decision.trouble
     return {
