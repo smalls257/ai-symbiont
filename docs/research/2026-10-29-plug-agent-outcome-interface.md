@@ -1,6 +1,6 @@
 # Plug agent outcome, phase 1: interface spec for the build
 
-For the Core agent, who runs mini-SWE-agent on plain Glimmer. The design and its fixed words are in `prereg/2026-10-29-plug-agent-outcome-DRAFT.md`. This page says what to build and which existing code to call. Nothing here changes round 3 (`prereg/2026-10-29-plug-judge.md`), and the build never touches its 40 scored repos.
+For the Core agent, who runs mini-SWE-agent on plain Glimmer. The design and its fixed words are in `prereg/2026-10-29-plug-agent-outcome.md`. This page says what to build and which existing code to call. Nothing here changes round 3 (`prereg/2026-10-29-plug-judge.md`), and the build never touches its 40 scored repos.
 
 ## Inputs
 
