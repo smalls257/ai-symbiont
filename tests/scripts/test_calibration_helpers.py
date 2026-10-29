@@ -89,3 +89,16 @@ def test_compare_record_drops_per_test_status_from_the_grades(monkeypatch, label
     grade = grade_of(taskenv, {"a": "PASSED"})
     record = verify.compare_record("id", label, grade, grade)
     assert "status" not in record["stock"] and record["patch"] == label
+
+
+def test_install_script_reinstalls_only_rows_that_install(monkeypatch):
+    import importlib.util as util
+
+    path = Path(__file__).resolve().parents[2] / "scripts" / "calibration" / "taskenv.py"
+    spec = util.spec_from_file_location("taskenv_install", path)
+    module = util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, "taskenv_install", module)
+    spec.loader.exec_module(module)
+    assert "--no-deps" in module.install_script({"install_config": {"install": "pip install -e ."}})
+    assert module.install_script({"install_config": {"install": ""}}) is None
+    assert module.install_script({}) is None

@@ -152,6 +152,8 @@ def test_the_wrapper_counts_failures_and_appends_the_arms_note(mods, monkeypatch
     for name in ("Setting", "agent_config", "agent_model", "classify", "token_counts"):
         setattr(sys.modules["run_calibration"], name, None)
     sys.modules["taskenv"].TaskEnvError, sys.modules["taskenv"].grade = Exception, None
+    sys.modules["taskenv"].install_script = None
+    sys.modules["taskenv"].history_scrub_script = None
     sys.modules["teacher_model"].Teacher, sys.modules["teacher_model"].teacher_model = None, None
     import plug_agent_env as env_module
 

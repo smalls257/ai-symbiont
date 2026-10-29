@@ -20,7 +20,7 @@ from minisweagent.agents.default import DefaultAgent  # noqa: E402
 from minisweagent.environments.docker import DockerEnvironment  # noqa: E402
 from plug_agent_notes import NoteSource, failure_of, known_mistake  # noqa: E402
 from run_calibration import Setting, agent_config, agent_model, classify, token_counts  # noqa: E402
-from taskenv import TaskEnvError, grade  # noqa: E402
+from taskenv import TaskEnvError, grade, history_scrub_script, install_script  # noqa: E402
 from teacher_model import Teacher, teacher_model  # noqa: E402
 
 from symbiont.delivery.mini_swe_wrapper import tagged  # noqa: E402
@@ -111,6 +111,12 @@ def _agent_run(
     env = None
     try:
         env = _environment(row["docker_image"])
+        scrubbed = env.execute({"command": history_scrub_script()}, timeout=600)
+        if scrubbed["returncode"] != 0:  # a future commit would show the agent the gold fix
+            raise TaskEnvError(f"history scrub failed rc={scrubbed['returncode']}")
+        install = install_script(row)
+        if install:  # the agent works in the same installed checkout the grader tests
+            env.execute({"command": install}, timeout=600)
         model, agent_cfg = _model(row, source, config)
         wrapped = LocalNotedEnvironment(env, source, log)
         agent = DefaultAgent(model, wrapped, output_path=traj, **agent_cfg)
