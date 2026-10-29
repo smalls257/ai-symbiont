@@ -130,6 +130,7 @@ def apply_mechanism(
 def _moved(
     geometry: MapGeometry, states: list[SectorState], sector: int, mechanism: Mechanism
 ) -> SectorState:
+    """One sector's state after the mechanism ran; raises nothing for effects it does not move."""
     state = states[sector]
     effect = mechanism.special.effect
     if effect in OPENING_EFFECTS:
@@ -152,6 +153,7 @@ def _floor_moved(
     mechanism: Mechanism,
     around: list[int],
 ) -> SectorState:
+    """A floor mover's end state from the neighbors' current heights, capped at the ceiling."""
     state = states[sector]
     special = mechanism.special
     floors = [states[n].floor_out for n in around]

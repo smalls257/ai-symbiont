@@ -42,6 +42,7 @@ class WalkGrid:
     def __init__(
         self, geometry: MapGeometry, index: MapIndex, mechanisms: tuple[Mechanism, ...] = ()
     ) -> None:
+        """Rasterize the map once; the sector-height-dependent parts are settled per world."""
         self.frame = build_frame(geometry)
         self.door_colour, self.door_faces = door_tables(geometry, index)
         walls = block_walls(geometry, self.frame)
@@ -135,6 +136,7 @@ class WalkGrid:
         return cells
 
     def _cells_reaching(self, feature: Feature) -> list[int]:
+        """Free, non-door cells near a feature, on its use-face side and at a pickable height."""
         span = feature.reach + CELL
         low, high = (feature.x - span, feature.y - span), (feature.x + span, feature.y + span)
         reaching = []

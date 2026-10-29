@@ -47,6 +47,7 @@ def waypoints_for(grid: WalkGrid, cells: list[int]) -> tuple[list[Waypoint], int
 
 
 def _runs(grid: WalkGrid, cells: list[int]) -> list[tuple[int | None, list[int]]]:
+    """Group path cells into runs of plain floor and runs inside one door sector."""
     runs: list[tuple[int | None, list[int]]] = []
     for cell in cells:
         sector = grid.door_at.get(cell)

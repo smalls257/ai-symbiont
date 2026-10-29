@@ -83,6 +83,7 @@ class _Goal:
 
 
 def _sector_neighbors(geometry: MapGeometry) -> dict[int, set[int]]:
+    """Sectors that share a two-sided line, both ways."""
     found: dict[int, set[int]] = {}
     for line in geometry.linedefs:
         if line.front_sector is None or line.back_sector is None:
@@ -98,6 +99,7 @@ class RoutePlanner:
     def __init__(
         self, geometry: MapGeometry, grid: WalkGrid, mechanisms: Iterable[Mechanism]
     ) -> None:
+        """Hold the map, its grid and the mechanisms the planner may press."""
         self._geometry, self._grid = geometry, grid
         self._mechanisms = tuple(m for m in mechanisms if m.special.effect in FIRABLE_EFFECTS)
         self._neighbors = _sector_neighbors(geometry)
@@ -316,6 +318,7 @@ class _Part:
 
 
 def _split_at_jumps(grid: WalkGrid, cells: list[int]) -> list[_Part]:
+    """Cut a path into walks at each teleport jump."""
     parts: list[_Part] = []
     begin = 0
     for at in range(len(cells) - 1):

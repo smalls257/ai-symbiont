@@ -79,10 +79,12 @@ def _door_window(leg: Leg, later: list[Leg]) -> list[str]:
 
 
 def _late(mech: Mechanism, distance: int) -> str:
+    """The hazard line for a timed door the walker reaches after it shut."""
     return f"special {mech.number} opens a door that shuts again {distance} units before arrival"
 
 
 def _gap(start: tuple[float, float], end: tuple[float, float]) -> float:
+    """Chebyshev distance between two points; more than a step means a teleport jump."""
     return max(abs(start[0] - end[0]), abs(start[1] - end[1]))
 
 
@@ -96,6 +98,7 @@ def _lost(before: list[SectorState], after: list[SectorState], mech: Mechanism) 
 
 
 def _still_to_walk(grid: WalkGrid, rest: list[int], later: list[Leg]) -> set[int]:
+    """Sectors the rest of this leg and every later leg still walk through."""
     sectors = grid.sectors_in(rest) if rest else set()
     for leg in later:
         sectors |= leg.grid.sectors_in(leg.cells)
@@ -103,6 +106,7 @@ def _still_to_walk(grid: WalkGrid, rest: list[int], later: list[Leg]) -> set[int
 
 
 def _reason(mech: Mechanism, sectors: list[int]) -> str:
+    """The hazard line as a sentence for the route's report."""
     return (
         f"crosses line {mech.line} (special {mech.number}) which shuts sector "
         f"{', '.join(map(str, sectors))} that the route walks through afterwards"
