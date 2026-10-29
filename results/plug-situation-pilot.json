@@ -1,0 +1,445 @@
+{
+ "answer_scripts_sha256": [
+  "b15cb8f892ac6aa6684e0745e689c31751407748fbf8fabe4ef61d73d4ae829e",
+  "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e"
+ ],
+ "prompt_60": {
+  "a1_pick_item_abstention": 0.09523809523809523,
+  "a2v_pick_item_abstention": 1.0,
+  "per_repo_rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 0.5,
+    "useful": 0.0,
+    "wrong_pick": 0.125
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.25
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.125
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.1111111111111111
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.25
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   }
+  ],
+  "rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 0.05,
+    "silence_ci95": [
+     0.0,
+     0.15
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0861,
+    "wrong_pick_ci95": [
+     0.025,
+     0.1486
+    ]
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 1.0,
+    "silence_ci95": [
+     1.0,
+     1.0
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0,
+    "wrong_pick_ci95": [
+     0.0,
+     0.0
+    ]
+   }
+  ]
+ },
+ "ranker": {
+  "recall_at_1": 0.746031746031746,
+  "recall_at_10": 1.0,
+  "recall_at_3": 0.9365079365079365,
+  "recall_at_5": 0.9841269841269841
+ },
+ "status": "exploratory pilot on the 10 validation repos, no prereg",
+ "top_5": {
+  "a1_pick_item_abstention": 0.9365079365079365,
+  "a2v_pick_item_abstention": 1.0,
+  "per_repo_rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   }
+  ],
+  "rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 0.9,
+    "silence_ci95": [
+     0.7,
+     1.0
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0,
+    "wrong_pick_ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 1.0,
+    "silence_ci95": [
+     1.0,
+     1.0
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0,
+    "wrong_pick_ci95": [
+     0.0,
+     0.0
+    ]
+   }
+  ]
+ }
+}

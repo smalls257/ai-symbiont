@@ -238,6 +238,37 @@ def test_more_replay_must_also_keep_habits_near_a2(plug_a3):
     assert lost == {"a3_more_replay": "hold"}
 
 
+@pytest.fixture
+def distract(monkeypatch, plug):
+    spec = importlib.util.spec_from_file_location("plug_distract", ROUTEA / "plug_distract.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["plug_distract"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_distract_rows_mix_own_and_other_lessons_and_abstain_without_own(plug, distract):
+    by_repo = {
+        "org/a": repo_of(plug, "org/a", 2, "a"),
+        "org/b": repo_of(plug, "org/b", 3, "b"),
+    }
+    rows = distract.distract_rows(by_repo)
+    abstain = [r for r in rows if r["messages"][2]["content"] == distract.ABSTAIN]
+    answered = [r for r in rows if r["messages"][2]["content"] != distract.ABSTAIN]
+    assert len(abstain) == 5  # one per lesson
+    for row in answered:
+        prompt = row["messages"][0]["content"]
+        assert "In org/a" in prompt and "In org/b" in prompt  # own and another repo's lessons
+
+
+def test_mixed_context_is_one_fixed_order(plug, distract):
+    own = repo_of(plug, "org/a", 2, "a")
+    wrong = repo_of(plug, "org/b", 2, "b")
+    first = distract.mixed_context(own, wrong)
+    assert first == distract.mixed_context(own, wrong)
+    assert first.count("In org/a") == 2 and first.count("In org/b") == 2
+
+
 def test_paired_gives_arm_minus_reference_per_repo(plug_a3):
     def cell(no_lessons, new, habits):
         return {"no_lessons": no_lessons, "new_lessons": new, "habits_ranked": habits}

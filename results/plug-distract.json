@@ -1,0 +1,639 @@
+{
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+ "per_repo_rows": [
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.44,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.32,
+   "mixed_confabulation": 0.04,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.32,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.2,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.32,
+   "new_lessons": 0.4,
+   "no_lessons": 0.0,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.2,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.24,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.0,
+   "repo": "aws/chalice",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.16,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.16,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.36,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.36,
+   "mixed_confabulation": 0.12,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.44,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.0,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.12
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.16,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.32,
+   "new_lessons": 0.4,
+   "no_lessons": 0.0,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.36,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.4,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.12,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.32,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.4,
+   "new_lessons": 0.4,
+   "no_lessons": 0.08,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.08
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.4,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.32,
+   "new_lessons": 0.2667,
+   "no_lessons": 0.0,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.52,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.16,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.32,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.12,
+   "mixed_lessons": 0.24,
+   "new_lessons": 0.4,
+   "no_lessons": 0.0,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.52,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.04,
+   "mixed_lessons": 0.28,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.32,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.08,
+   "mixed_lessons": 0.2,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.4,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.16,
+   "mixed_lessons": 0.36,
+   "new_lessons": 0.4,
+   "no_lessons": 0.0,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.16,
+   "mixed_lessons": 0.24,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.0,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.4,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.16,
+   "mixed_lessons": 0.12,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.2,
+   "mixed_lessons": 0.32,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.16,
+   "mixed_lessons": 0.24,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_ranked": 0.8182,
+   "lessons_in_prompt": 0.36,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.2,
+   "mixed_lessons": 0.36,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.56,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.08,
+   "mixed_lessons": 0.6,
+   "new_lessons": 0.8,
+   "no_lessons": 0.0,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.48,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.52,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.8,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.8,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.64,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.0,
+   "mixed_lessons": 0.64,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.56,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.08,
+   "mixed_lessons": 0.6,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.76,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.04,
+   "mixed_lessons": 0.8,
+   "new_lessons": 0.8,
+   "no_lessons": 0.0,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.4,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.04,
+   "mixed_lessons": 0.4,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.04,
+   "mixed_lessons": 0.52,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.0,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.68,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.08,
+   "mixed_lessons": 0.68,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.0,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.44,
+   "mixed_confabulation": 0.0,
+   "mixed_false_abstention": 0.04,
+   "mixed_lessons": 0.52,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  }
+ ],
+ "rows": [
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_keyword_ci95": [
+    0.5,
+    0.5
+   ],
+   "habits_ranked": 0.2045,
+   "habits_ranked_ci95": [
+    0.2045,
+    0.2045
+   ],
+   "lessons_in_prompt": 0.372,
+   "lessons_in_prompt_ci95": [
+    0.324,
+    0.412
+   ],
+   "mixed_confabulation": 0.048,
+   "mixed_confabulation_ci95": [
+    0.012,
+    0.092
+   ],
+   "mixed_false_abstention": 0.0,
+   "mixed_false_abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_lessons": 0.356,
+   "mixed_lessons_ci95": [
+    0.32,
+    0.392
+   ],
+   "new_lessons": 0.4533,
+   "new_lessons_ci95": [
+    0.4,
+    0.5067
+   ],
+   "no_lessons": 0.008,
+   "no_lessons_ci95": [
+    0.0,
+    0.024
+   ],
+   "repos": 10,
+   "role": "reference",
+   "wrong_abstention": 0.0,
+   "wrong_abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_confabulation": 0.048,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.096
+   ],
+   "wrong_lessons": 0.02,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.048
+   ]
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_keyword_ci95": [
+    0.6364,
+    0.6364
+   ],
+   "habits_ranked": 0.9545,
+   "habits_ranked_ci95": [
+    0.9545,
+    0.9545
+   ],
+   "lessons_in_prompt": 0.576,
+   "lessons_in_prompt_ci95": [
+    0.496,
+    0.66
+   ],
+   "mixed_confabulation": 0.0,
+   "mixed_confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_false_abstention": 0.04,
+   "mixed_false_abstention_ci95": [
+    0.02,
+    0.06
+   ],
+   "mixed_lessons": 0.608,
+   "mixed_lessons_ci95": [
+    0.536,
+    0.684
+   ],
+   "new_lessons": 0.7067,
+   "new_lessons_ci95": [
+    0.6467,
+    0.7533
+   ],
+   "no_lessons": 0.0,
+   "no_lessons_ci95": [
+    0.0,
+    0.0
+   ],
+   "repos": 10,
+   "role": "reference",
+   "wrong_abstention": 1.0,
+   "wrong_abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "wrong_confabulation": 0.0,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "arm": "a2d",
+   "habits_keyword": 0.4091,
+   "habits_keyword_ci95": [
+    0.4091,
+    0.4091
+   ],
+   "habits_ranked": 0.8182,
+   "habits_ranked_ci95": [
+    0.8182,
+    0.8182
+   ],
+   "lessons_in_prompt": 0.416,
+   "lessons_in_prompt_ci95": [
+    0.376,
+    0.456
+   ],
+   "mixed_confabulation": 0.0,
+   "mixed_confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "mixed_false_abstention": 0.128,
+   "mixed_false_abstention_ci95": [
+    0.084,
+    0.164
+   ],
+   "mixed_lessons": 0.252,
+   "mixed_lessons_ci95": [
+    0.204,
+    0.3
+   ],
+   "new_lessons": 0.5533,
+   "new_lessons_ci95": [
+    0.4933,
+    0.6067
+   ],
+   "no_lessons": 0.0,
+   "no_lessons_ci95": [
+    0.0,
+    0.0
+   ],
+   "repos": 10,
+   "role": "under_test",
+   "wrong_abstention": 1.0,
+   "wrong_abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "wrong_confabulation": 0.0,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
+  }
+ ],
+ "status": "exploratory, no prereg; Llama 3.2 1B MLX on the laptop"
+}
