@@ -1,8 +1,8 @@
 """A chat message that carries its own provenance.
 
-Each system, user or tool message declares where it came from, so one private tool observation
-cannot ride along under a history-wide declaration. Assistant messages are the model's own
-earlier output, derived only from messages that already passed the policy.
+Every message, assistant turns included, declares where it came from, so one private
+observation or a replayed private transcript cannot ride along under a history-wide declaration.
+An assistant turn takes the provenance of the history it answered (`Message.assistant`).
 """
 
 from collections.abc import Mapping, Sequence
@@ -11,8 +11,6 @@ from typing import Any
 
 from symbiont.egress.policy import EgressRefusedError
 from symbiont.records.schema import Provenance
-
-SELF_AUTHORED_ROLES = frozenset({"assistant"})
 
 
 @dataclass(frozen=True)
@@ -24,6 +22,17 @@ class Message:
     provenance: tuple[Provenance, ...] = ()
     extra: Mapping[str, Any] = field(default_factory=dict)
 
+    @classmethod
+    def assistant(
+        cls,
+        content: str | None,
+        history: Sequence["Message"],
+        extra: Mapping[str, Any] | None = None,
+    ) -> "Message":
+        """The model's reply, carrying every record of the history it was derived from."""
+        records = tuple(record for message in history for record in message.provenance)
+        return cls("assistant", content, records, extra or {})
+
     def wire(self) -> dict[str, Any]:
         """The JSON the API takes: provenance stays on this side of the door."""
         return {"role": self.role, "content": self.content, **self.extra}
@@ -32,12 +41,12 @@ class Message:
 def declared_provenance(messages: Sequence[Message]) -> list[Provenance]:
     """Every declared record of the history, in order.
 
-    Raises EgressRefusedError (naming the message index and role, never its text) for a system,
-    user or tool message that declares none.
+    Raises EgressRefusedError (naming the message index and role, never its text) for any
+    message that declares none.
     """
     declared: list[Provenance] = []
     for index, message in enumerate(messages):
-        if not message.provenance and message.role not in SELF_AUTHORED_ROLES:
+        if not message.provenance:
             raise EgressRefusedError(
                 f"egress refused: message {index} ({message.role}) declares no provenance "
                 "(unknown privacy is never shareable)"

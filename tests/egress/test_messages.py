@@ -36,13 +36,13 @@ def spark(tmp_path, transport):
     )  # fmt: skip
 
 
-def history(tool_provenance=(PUBLIC,)):
-    return [
-        Message("system", "fix the issue", (PUBLIC,)),
-        Message("user", "the issue", (PUBLIC,)),
-        Message("assistant", None, (), {"tool_calls": [CALL]}),
-        Message("tool", "file contents", tool_provenance, {"tool_call_id": "c1"}),
-    ]
+def history(tool_provenance=(PUBLIC,), assistant_provenance=None):
+    start = [Message("system", "fix the issue", (PUBLIC,)), Message("user", "the issue", (PUBLIC,))]
+    if assistant_provenance is None:
+        call = Message.assistant(None, start, {"tool_calls": [CALL]})
+    else:
+        call = Message("assistant", None, assistant_provenance, {"tool_calls": [CALL]})
+    return [*start, call, Message("tool", "file contents", tool_provenance, {"tool_call_id": "c1"})]
 
 
 def test_a_message_goes_on_the_wire_with_its_extra_fields_and_no_provenance():
@@ -51,7 +51,7 @@ def test_a_message_goes_on_the_wire_with_its_extra_fields_and_no_provenance():
 
 
 def test_every_declared_dataset_is_collected_for_the_policy():
-    assert declared_provenance(history()) == [PUBLIC, PUBLIC, PUBLIC]
+    assert declared_provenance(history()) == [PUBLIC, PUBLIC, PUBLIC, PUBLIC, PUBLIC]
 
 
 def test_an_undeclared_tool_result_is_refused_before_anything_is_sent(tmp_path):
@@ -73,3 +73,28 @@ def test_a_private_tool_result_among_public_ones_still_refuses_the_whole_turn(tm
     with pytest.raises(EgressRefusedError):
         spark(tmp_path, transport).converse(history((PUBLIC, PRIVATE)), [], Effort.LOW, "x")
     assert transport.requests == []
+
+
+def test_an_assistant_turn_with_no_provenance_is_refused(tmp_path):
+    transport = FakeTransport()
+    with pytest.raises(EgressRefusedError, match=r"message 2 \(assistant\)"):
+        spark(tmp_path, transport).converse(history(assistant_provenance=()), [], Effort.LOW, "x")
+    assert transport.requests == []
+
+
+def test_a_replayed_private_transcript_is_refused_through_its_assistant_turns(tmp_path):
+    private_start = [Message("user", "private question", (PRIVATE,))]
+    replay = [*private_start, Message.assistant("private answer", private_start)]
+    transport = FakeTransport()
+    with pytest.raises(EgressRefusedError, match="owner-sessions"):
+        spark(tmp_path, transport).converse(replay, [], Effort.LOW, "x")
+    assert transport.requests == []
+
+
+def test_an_assistant_turn_inherits_the_records_of_the_history_it_answered():
+    start = [Message("user", "q", (PUBLIC,)), Message("tool", "t", (PRIVATE,))]
+    answer = Message.assistant("a", start)
+    assert answer.provenance == (PUBLIC, PRIVATE) and answer.wire() == {
+        "role": "assistant",
+        "content": "a",
+    }

@@ -1,8 +1,8 @@
-"""The spend ledger and its caps: every priced remote call is recorded, and a cap stops the next.
+"""The spend ledger and its caps: every call that leaves is recorded, and a cap stops the next.
 
-`check_before_call` raises `SpendCapError` before the request is built, and an unreadable ledger
-line raises rather than under-counting. Counts, model and cost only, never prompt or reply text.
-With several games in flight a cap can be overshot by the calls already on the wire; never skipped.
+`Ledger.reserve` holds a call's worst-case cost under a file lock together with the cap check,
+so concurrent callers cannot overshoot; `settle` records the real or estimated cost. An
+unreadable ledger line raises rather than under-counting. Counts, model and cost only, never text.
 """
 
 import fcntl
