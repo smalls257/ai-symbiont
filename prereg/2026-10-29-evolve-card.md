@@ -106,7 +106,7 @@ The clips are the first three held-out maps in map order, MAP04, MAP08 and MAP12
 
 ## Stop rules and spend
 
-- The ledger cap is 15 dollars in all and raises at the cap, and the run stops and reports [established] (owner decision; this run's own cap is 2 dollars). Planned spend is about 1.5 dollars for 294 games at about 0.005 dollars a game [hypothesis] (run 2), plus replays of at most 10% more.
+- The ledger cap is 15 dollars in all and raises at the cap, and the run stops and reports [established] (owner decision; this run's own cap is 3 dollars). Planned spend is about 1.5 dollars for 294 games at about 0.005 dollars a game [hypothesis] (run 2), plus replays of at most 10% more, so about 1.95 dollars at worst.
 - The runner stops, reports and does not continue if a card hash differs from the one above or the code differs from the pin.
 
 ## Amendments

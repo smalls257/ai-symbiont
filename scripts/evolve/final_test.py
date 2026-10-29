@@ -36,7 +36,7 @@ CARD_BLOCK = re.compile(
     re.DOTALL,
 )
 RESULTS_SCHEMA = "evolve-card-v1"
-SPEND_CAP = 2.0  # dollars for this run's ledger name; the planned spend is 1.5 plus replays
+SPEND_CAP = 3.0  # dollars for this run's ledger name; the planned spend is 1.5 plus replays
 MAX_REPLAYS = 3  # an ungraded game is replayed at most this many times
 DROP_LIMIT = 0.10  # more than this share of cases dropped: the run is incomplete, never scored
 Git = Callable[[Sequence[str]], str]
