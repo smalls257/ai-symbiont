@@ -8,6 +8,7 @@ run: neither may be read as a lost game.
 import collections
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -32,9 +33,10 @@ from symbiont.act1.game_pains import tag_pains  # noqa: E402
 from symbiont.act1.glimmer import GlimmerReplyError, ReplyFn  # noqa: E402
 from symbiont.act1.levels import require_training  # noqa: E402
 from symbiont.act1.move_cuts import cuts_for  # noqa: E402
+from symbiont.act1.navmap import NavMap  # noqa: E402
 from symbiont.act1.rooms import RoomFinder  # noqa: E402
 from symbiont.act1.steplog import MoveRun  # noqa: E402
-from symbiont.eval.prereg import FrozenPrereg  # noqa: E402
+from symbiont.eval.prereg import FrozenPrereg, PreregNotFrozenError  # noqa: E402
 
 CUT_PREFIX = "cut short after"
 Loaded = tuple[Any, MapKnowledge, RoomFinder]
@@ -60,6 +62,21 @@ def kill_count(game: Any) -> int:
     return int(game.get_game_variable(vzd.GameVariable.KILLCOUNT))
 
 
+class RunMode(StrEnum):
+    """What the games are for. Only FINAL_TEST may touch a held-out level."""
+
+    TRAINING = "training"
+    FINAL_TEST = "final_test"
+
+
+class NotInFinalTestError(ValueError):
+    """A level outside the frozen prereg's held-out list was asked for in a final test."""
+
+
+class MissingMapError(RuntimeError):
+    """A level loaded without map data: route share cannot be measured, so it is not graded."""
+
+
 @dataclass(frozen=True)
 class EngineSetup:
     """Where the WAD and decision logs live, and which errors mark a game ungraded."""
@@ -68,7 +85,11 @@ class EngineSetup:
     episodes: Path
     decisions: int = 16
     ungradable: tuple[type[Exception], ...] = (GlimmerReplyError,)
+    mode: RunMode = RunMode.TRAINING
+    # FINAL_TEST only: the prereg and the held-out levels it names. A frozen prereg alone opens
+    # nothing; training mode ignores both.
     frozen_prereg: FrozenPrereg | None = None
+    final_levels: frozenset[str] = frozenset()
     loader: Callable[[Path, Case], Loaded] = field(default=load_case_level)
     kills: Callable[[Any], int] = field(default=kill_count)
 
@@ -88,21 +109,33 @@ class EnginePlayer:
 
     def play(self, card: Card, case: Case) -> GameResult:
         """Play one game. Raises HeldOutLevelError before any engine call for a held-out level."""
-        if self.setup.frozen_prereg is None:
-            require_training(case.level)
+        self._require_allowed(case.level)
         loaded = self.setup.loader(self.setup.wad, case)
         try:
             return self._play_loaded(card, case, loaded)
         finally:
             loaded[0].close()
 
+    def _require_allowed(self, level: str) -> None:
+        """Training mode plays training levels only; the final test plays its frozen list only."""
+        setup = self.setup
+        if setup.mode == RunMode.TRAINING:
+            require_training(level)
+            return
+        if setup.frozen_prereg is None:
+            raise PreregNotFrozenError("final test", "no frozen prereg was given")
+        if level not in setup.final_levels:
+            raise NotInFinalTestError(f"{level} is not in the final test's list")
+
     def _play_loaded(self, card: Card, case: Case, loaded: Loaded) -> GameResult:
         """Run the episode on a loaded level and grade it, or mark it ungraded."""
         game, knowledge, rooms = loaded
         nav = knowledge.nav
+        if nav is None:
+            raise MissingMapError(f"{case.level} has no map data: refusing to grade it")
         game.new_episode()
         start = tuple(game.get_state().game_variables[2:4])
-        start_units = remaining_route_units(nav, start) if nav else 0.0
+        start_units = remaining_route_units(nav, start)
         runs: list[MoveRun] = []
         reply = with_card(self.reply_for(card, case), card)
         log = self.setup.episodes / f"{card.card_id}-{case.level}-s{case.seed}.jsonl"
@@ -129,11 +162,11 @@ class EnginePlayer:
         )
 
     @staticmethod
-    def _share(nav: Any, runs: list[MoveRun], start_units: float, ended: EpisodeEnd) -> float:
+    def _share(nav: NavMap, runs: list[MoveRun], start_units: float, ended: EpisodeEnd) -> float:
         """Route share from where the player stood last; 1 at an exit, 0 with no move played."""
         if ended == EpisodeEnd.EXITED:
             return 1.0
-        if not runs or nav is None:
+        if not runs:
             return 0.0
         last = runs[-1].after or runs[-1].before
         return route_share(start_units, remaining_route_units(nav, last.position))

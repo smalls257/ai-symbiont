@@ -23,6 +23,7 @@ from symbiont.act1.move_cuts import CutSetting, MoveCuts  # noqa: E402
 from symbiont.act1.navmap import build_navmap  # noqa: E402
 from symbiont.act1.rooms import RoomFinder  # noqa: E402
 from symbiont.act1.wad import Sector  # noqa: E402
+from symbiont.eval.prereg import PreregNotFrozenError  # noqa: E402
 
 pytestmark = pytest.mark.periphery
 CASE = Case("MAP01", 7, 3, CutSetting.NONE)
@@ -174,3 +175,56 @@ def test_the_card_text_reaches_the_model_before_the_game_prompt(tmp_path):
 def test_the_decision_log_goes_under_the_episodes_directory(tmp_path):
     player(tmp_path, FakeGame(), turn).play(CARD, CASE)
     assert (tmp_path / "episodes" / f"{CARD.card_id}-MAP01-s7.jsonl").is_file()
+
+
+HELD_OUT_CASE = Case("MAP04", 1001, 3, CutSetting.NONE)
+FROZEN = SimpleNamespace(path="prereg/x.md", commit="abc", sha256="def")
+
+
+def final_test_player(tmp_path, calls, **setup_extra):
+    return player(tmp_path, FakeGame(), turn, calls, **setup_extra)
+
+
+def test_a_frozen_prereg_alone_does_not_open_a_held_out_level(tmp_path):
+    calls = []
+    with pytest.raises(HeldOutLevelError):
+        final_test_player(tmp_path, calls, frozen_prereg=FROZEN).play(CARD, HELD_OUT_CASE)
+    assert calls == []
+
+
+def test_the_final_test_mode_needs_a_frozen_prereg(tmp_path):
+    calls = []
+    with pytest.raises(PreregNotFrozenError):
+        final_test_player(
+            tmp_path, calls, mode=play_case.RunMode.FINAL_TEST, final_levels=frozenset({"MAP04"})
+        ).play(CARD, HELD_OUT_CASE)
+    assert calls == []
+
+
+def test_the_final_test_plays_only_the_levels_the_prereg_names(tmp_path):
+    calls = []
+    setup = {
+        "mode": play_case.RunMode.FINAL_TEST,
+        "frozen_prereg": FROZEN,
+        "final_levels": frozenset({"MAP04"}),
+    }
+    with pytest.raises(play_case.NotInFinalTestError):
+        final_test_player(tmp_path, calls, **setup).play(
+            CARD, Case("MAP08", 1001, 3, CutSetting.NONE)
+        )
+    assert calls == []
+    result = final_test_player(tmp_path, calls, **setup).play(CARD, HELD_OUT_CASE)
+    assert result.grade is Grade.GRADED and calls == ["MAP04"]
+
+
+def test_a_level_with_no_map_data_raises_and_closes_the_game_never_a_graded_zero(tmp_path):
+    game = FakeGame()
+    no_nav = MapKnowledge(MapIndex((), (), (), (Sector(16, 128),)), None)
+    setup = play_case.EngineSetup(
+        wad=tmp_path / "x.wad",
+        episodes=tmp_path / "episodes",
+        loader=lambda wad, case: (game, no_nav, RoomFinder(two_rooms())),
+    )
+    with pytest.raises(play_case.MissingMapError, match="MAP01"):
+        play_case.EnginePlayer(lambda card, case: turn, setup).play(CARD, CASE)
+    assert game.closed
