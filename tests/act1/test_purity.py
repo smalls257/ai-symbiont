@@ -40,6 +40,7 @@ PURE_FILES = (
     "generation.py",
     "evolution.py",
     "run_summary.py",
+    "duel.py",
 )
 
 
