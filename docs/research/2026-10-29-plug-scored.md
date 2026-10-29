@@ -23,7 +23,7 @@ All rows are [measured]. At 10 lessons the interval is above 0 but the mean gain
 
 | Row | Label | Reworded recall | Verbatim | Abstention | Confabulation |
 |---|---|---|---|---|---|
-| plain 1B, no lessons | floor | 0.00 | 0.02 | 0.00 | n/a |
+| plain 1B, no lessons | floor | 0.003 | 0.02 | 0.00 | n/a |
 | a2, no lessons | floor | 0.00 | 0.00 | 1.00 | n/a |
 | a1: plain 1B, lessons in the prompt | reference | 0.34 | 0.29 | 0.00 | n/a |
 | per-repo adapter from plain 1B | reference | 0.62 | 0.78 | 0.00 | n/a |
@@ -31,12 +31,26 @@ All rows are [measured]. At 10 lessons the interval is above 0 but the mean gain
 | a2 with the wrong repo's lessons | control | 0.00 | 0.00 | 1.00 | 0.00 |
 | a1 with the wrong repo's lessons | control | 0.03 | 0.04 | 0.00 | 0.06 |
 
-All rows are [measured]. Habits kept by ranked choice: plain 1B 0.20, a2 0.80, the per-repo adapters 0.23 on average [measured].
+## Rows (means over 13 repos, 10 lessons)
+
+| Row | Label | Reworded recall | Verbatim | Abstention | Confabulation |
+|---|---|---|---|---|---|
+| plain 1B, no lessons | floor | 0.008 | 0.01 | 0.00 | n/a |
+| a2, no lessons | floor | 0.00 | 0.00 | 1.00 | n/a |
+| a1: plain 1B, lessons in the prompt | reference | 0.34 | 0.30 | 0.00 | n/a |
+| per-repo adapter from plain 1B | reference | 0.58 | 0.75 | 0.00 | n/a |
+| a2: meta-trained, lessons in the prompt | under test | 0.37 | 0.71 | 0.16 | n/a |
+| a2 with the wrong repo's lessons | control | 0.00 | 0.00 | 1.00 | 0.00 |
+| a1 with the wrong repo's lessons | control | 0.05 | 0.06 | 0.00 | 0.10 |
+
+All rows in both tables are [measured]. Habits kept by ranked choice: plain 1B 0.20, a2 0.80, the per-repo adapters 0.23 on average [measured].
 
 ## Reading
 
-- On the primary measure a2 recalls 0.40 of the reworded probes against 0.34 for the plain model. The gap is not resolved at 13 repos, and the prereg's bet that a third of the feasibility gap (+0.32) would survive did not hold [measured].
-- On the training wordings a2 is close to a per-repo adapter (0.77 against 0.78), with no training for the repo. It does not carry that over to the unseen rewordings (0.40 against 0.62) [measured].
-- a2 never states another repo's fix as this one's: confabulation 0.00, abstaining on every wrong-lesson probe. The plain model confabulates on 0.06 of them [measured]. The cost is 0.13 false abstention on its own repo's probes [measured].
-- a2 keeps the AIDev habits (0.80 ranked against 0.20) [measured].
+- On the primary measure a2 recalls 0.40 of the reworded probes against 0.34 for the plain model: a tie by the rule [measured]. The prereg's expectation of about a third of the feasibility gap (+0.11) lies inside the interval [−0.01, +0.13], so it is neither confirmed nor ruled out [measured].
+
+The findings below are secondary and exploratory; none of them decides:
+- Secondary: on the training wordings a2 is close to a per-repo adapter (0.77 against 0.78), with no training for the repo. It does not carry that over to the unseen rewordings (0.40 against 0.62) [measured].
+- Secondary: a2 never states another repo's fix as this one's: confabulation 0.00, abstaining on every wrong-lesson probe. The plain model confabulates on 0.06 of them [measured]. The cost is 0.13 false abstention on its own repo's probes [measured].
+- Secondary (exploratory habits check): a2 keeps the AIDev habits (0.80 ranked against 0.20) [measured].
 - One seed per arm and 13 repos, so seed variance is not estimated [hypothesis that it is smaller than the repo spread].
