@@ -234,7 +234,7 @@ class CandidateDriver(Driver):
             raise ValueError(
                 f"teacher runs on test-set tasks refused: {sorted(held & set(self.screen))}"
             )
-        self.low = dataclasses.replace(self.low, teacher=teacher)
+        self.low = dataclasses.replace(self.low, teacher=teacher, model=f"teacher/{teacher}")
         self.arm = Arm.TEACHER
         self.header = self.header | {"arm": str(self.arm), "teacher": teacher}
 

@@ -165,7 +165,7 @@ def _new_record(row: dict, run: int, setting: Setting, stage: str) -> dict:
         "run": run,
         **asdict(setting),
         "image": IMAGE,
-        "model": f"teacher/{setting.teacher}" if setting.teacher else setting.model,
+        "model": setting.model,
         "error_kind": None,
         "error": None,
         "started": time.time(),

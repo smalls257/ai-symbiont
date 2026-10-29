@@ -517,6 +517,7 @@ def test_teacher_arm_refuses_test_set_tasks_and_stamps_records(monkeypatch, tmp_
     test_set.write_text(json.dumps({"test": [{"task": "elsewhere"}]}))
     driver.use_teacher("spark", test_set)
     assert driver.low.teacher == "spark" and driver.header["arm"] == "teacher"
+    assert driver.low.model == "teacher/spark"
     (tmp_path / "m").mkdir()
     _, held, _ = lesson_driver(monkeypatch, tmp_path / "m", {"task00": "a"})
     test_set.write_text(json.dumps({"test": [{"task": held.screen[0]}]}))
