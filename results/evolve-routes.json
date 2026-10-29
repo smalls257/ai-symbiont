@@ -24,7 +24,7 @@
    "split": "held_out",
    "static": "pass",
    "unmodeled": [],
-   "walk": "not_played"
+   "walk": "played_in_development"
   },
   "MAP05": {
    "split": "training",
@@ -52,7 +52,7 @@
    "unmodeled": [
     "triggered by shooting"
    ],
-   "walk": "not_played"
+   "walk": "played_in_development"
   },
   "MAP09": {
    "split": "training",
@@ -83,7 +83,7 @@
    "unmodeled": [
     "triggered by shooting"
    ],
-   "walk": "not_played"
+   "walk": "played_in_development"
   },
   "MAP13": {
    "split": "training",
@@ -111,7 +111,7 @@
    "split": "held_out",
    "static": "pass",
    "unmodeled": [],
-   "walk": "not_played"
+   "walk": "played_in_development"
   },
   "MAP17": {
    "split": "training",
@@ -140,7 +140,7 @@
     "builds stairs",
     "triggered by shooting"
    ],
-   "walk": "not_played"
+   "walk": "played_in_development"
   },
   "MAP21": {
    "split": "training",
@@ -164,7 +164,7 @@
    "split": "held_out",
    "static": "pass",
    "unmodeled": [],
-   "walk": "not_played"
+   "walk": "played_in_development"
   },
   "MAP25": {
    "split": "training",
@@ -196,7 +196,7 @@
    "unmodeled": [
     "triggered by shooting"
    ],
-   "walk": "not_played"
+   "walk": "played_in_development"
   },
   "MAP29": {
    "split": "training",
@@ -226,7 +226,7 @@
    "unmodeled": [
     "triggered by shooting"
    ],
-   "walk": "not_played"
+   "walk": "played_in_development"
   }
  },
  "counts": {
@@ -236,7 +236,7 @@
   "training_no_path": 14,
   "blocker_void": 7,
   "held_out_static_pass": 7,
-  "held_out_not_played": 8,
+  "held_out_played_in_development": 8,
   "blocker_wall": 2,
   "training_tic_budget": 1,
   "training_stuck": 2,
