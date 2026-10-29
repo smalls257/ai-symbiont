@@ -111,6 +111,17 @@ def require_scored_ready(
     require_frozen(prereg)
 
 
+def read_smoke(path: Path) -> dict[str, SmokeResult]:
+    """Smoke results from the local file (reasons) or the published one (pass or drop labels)."""
+    raw = json.loads(path.read_text())
+    if "levels" in raw:
+        return {
+            level: SmokeResult(passed=label == "pass", reason="" if label == "pass" else label)
+            for level, label in raw["levels"].items()
+        }
+    return {level: SmokeResult(**result) for level, result in raw.items()}
+
+
 def split_for(args: argparse.Namespace) -> EvolveSplit:
     """The exploratory split for --pool, else the split from a smoke-test file, else all pass."""
     if args.pool:
@@ -118,8 +129,7 @@ def split_for(args: argparse.Namespace) -> EvolveSplit:
     every = levels_in(LevelSplit.TRAINING) + levels_in(LevelSplit.HELD_OUT)
     if args.levels is None:
         return EvolveSplit.of({level: SmokeResult(passed=True, reason="") for level in every})
-    raw = json.loads(args.levels.read_text())
-    return EvolveSplit.of({k: SmokeResult(**v) for k, v in raw.items()})
+    return EvolveSplit.of(read_smoke(args.levels))
 
 
 def build_player(args: argparse.Namespace, episodes: Path) -> Player:

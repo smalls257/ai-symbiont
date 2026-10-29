@@ -7,7 +7,6 @@ from symbiont.act1.evolve_split import (
     MissingSmokeResultError,
     NotEnoughLevelsForExplorationError,
     NotSelectionLevelError,
-    NoValidationLevelError,
     SmokeResult,
     condition_of,
     final_cases,
@@ -31,26 +30,40 @@ def test_held_out_is_every_fourth_map_and_a_failure_is_dropped_with_its_reason()
     assert split.dropped == {"MAP12": "no route"}
 
 
-def test_validation_is_map07_15_23_31_when_all_pass():
-    assert EvolveSplit.of(smoke()).validation == ("MAP07", "MAP15", "MAP23", "MAP31")
+NAVIGABLE_TRAINING = (
+    "MAP01",
+    "MAP02",
+    "MAP05",
+    "MAP06",
+    "MAP09",
+    "MAP10",
+    "MAP11",
+    "MAP14",
+    "MAP29",
+    "MAP31",
+)
 
 
-def test_a_failing_validation_level_is_replaced_by_the_next_passing_training_map():
-    split = EvolveSplit.of(smoke(MAP07="crash", MAP09="crash"))
-    assert split.validation == ("MAP10", "MAP15", "MAP23", "MAP31")
-    assert set(split.dropped) == {"MAP07", "MAP09"}
+def only_these_training_maps_pass(passing):
+    """A smoke dict where just these training maps (and every held-out map) pass."""
+    failing = {m: "no route" for m in levels_in(LevelSplit.TRAINING) if m not in passing}
+    return smoke(**failing)
 
 
-def test_a_replacement_never_takes_another_validation_level():
-    split = EvolveSplit.of(smoke(MAP13="crash", MAP14="crash", MAP15="crash"))
-    assert "MAP15" not in split.validation
-    assert split.validation[1] == "MAP17"
+def test_four_validation_maps_are_spread_over_the_24_when_all_pass():
+    split = EvolveSplit.of(smoke())
+    assert split.validation == ("MAP05", "MAP13", "MAP21", "MAP29")
 
 
-def test_no_replacement_left_raises():
-    failing = {m: "crash" for m in EVERY_MAP if m > "MAP31" or m == "MAP31"}
-    with pytest.raises(NoValidationLevelError, match="MAP31"):
-        EvolveSplit.of(smoke(**failing))
+def test_the_ten_navigable_training_maps_give_three_validation_maps_and_seven_for_selection():
+    split = EvolveSplit.of(only_these_training_maps_pass(NAVIGABLE_TRAINING))
+    assert split.validation == ("MAP02", "MAP10", "MAP29")
+    assert split.selection == ("MAP01", "MAP05", "MAP06", "MAP09", "MAP11", "MAP14", "MAP31")
+
+
+def test_too_few_passing_training_maps_to_leave_four_for_selection_raise():
+    with pytest.raises(NotEnoughLevelsForExplorationError, match="fewer than 4"):
+        EvolveSplit.of(only_these_training_maps_pass(NAVIGABLE_TRAINING[:6]))
 
 
 def test_selection_has_twenty_levels_and_no_overlap_with_the_other_two():
@@ -63,7 +76,8 @@ def test_selection_has_twenty_levels_and_no_overlap_with_the_other_two():
 
 def test_a_training_level_that_failed_the_smoke_test_is_not_in_selection():
     split = EvolveSplit.of(smoke(MAP02="crash"))
-    assert "MAP02" not in split.selection and len(split.selection) == 19
+    assert "MAP02" not in split.selection and "MAP02" not in split.validation
+    assert len(split.selection) == 20  # 23 pass: three validation maps
 
 
 def test_a_missing_smoke_result_raises_instead_of_assuming_a_pass():
@@ -76,7 +90,7 @@ def test_a_missing_smoke_result_raises_instead_of_assuming_a_pass():
 def test_require_selection_refuses_validation_and_held_out_levels():
     split = EvolveSplit.of(smoke())
     split.require_selection("MAP01")
-    for level in ("MAP07", "MAP08"):
+    for level in ("MAP05", "MAP08"):
         with pytest.raises(NotSelectionLevelError, match=level):
             split.require_selection(level)
 

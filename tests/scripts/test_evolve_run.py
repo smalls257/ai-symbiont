@@ -291,3 +291,14 @@ def test_an_ungraded_game_in_the_state_file_is_played_again_on_resume(tmp_path):
     assert player.play(card, case).grade is Grade.UNGRADED
     assert player.play(card, case).grade is Grade.GRADED  # played again, not served as ungraded
     assert player.play(card, case).grade is Grade.GRADED and flaky.calls == 2  # now stored
+
+
+def test_the_published_smoke_file_makes_the_three_way_split_of_the_navigable_maps(tmp_path):
+    published = Path(__file__).resolve().parents[2] / "results" / "evolve-levels.json"
+    args = run_evolve.parse_arguments(
+        ["--run", "r", "--player", "fake", "--dry-run", "--levels", str(published)]
+    )
+    split = run_evolve.split_for(args)
+    assert split.validation == ("MAP02", "MAP10", "MAP29") and len(split.selection) == 7
+    assert "MAP24" in split.held_out and "MAP20" not in split.held_out
+    assert set(split.selection).isdisjoint(split.validation)

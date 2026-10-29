@@ -15,9 +15,9 @@ from symbiont.act1.game_fitness import Case
 from symbiont.act1.levels import LevelSplit, levels_in, require_training
 from symbiont.act1.move_cuts import HARDER_SKILL, NORMAL_SKILL, CutSetting
 
-# Plan ruling 10: validation is every sixth training map; a failing one is replaced by the next
-# passing training map after it.
-VALIDATION_BASE = ("MAP07", "MAP15", "MAP23", "MAP31")
+# Validation is spread over the maps that pass the smoke test (a sixth of them, at least three):
+# with all 24 training maps passing that is 4, with the 10 that pass now it is 3.
+VALIDATION_FLOOR = 3
 LEVELS_PER_GENERATION = 4  # design section 4
 TRAINING_SKILLS = (2, 3, 4)  # design section 5.2
 # Plan ruling 2: skill 4 plus cuts is the final test's harder condition, so training never has it.
@@ -39,10 +39,6 @@ class Condition(StrEnum):
 
 class MissingSmokeResultError(ValueError):
     """A level has no smoke-test result; a pass is never assumed."""
-
-
-class NoValidationLevelError(ValueError):
-    """A validation level failed its smoke test and no later training map can replace it."""
 
 
 class NotEnoughLevelsForExplorationError(ValueError):
@@ -79,7 +75,7 @@ class EvolveSplit:
             raise MissingSmokeResultError(f"no smoke result for {', '.join(missing)}")
         dropped = {m: smoke[m].reason for m in sorted(every) if not smoke[m].passed}
         passing = [m for m in levels_in(LevelSplit.TRAINING) if m not in dropped]
-        validation = _validation_levels(passing, dropped)
+        validation = _validation_levels(passing)
         selection = tuple(m for m in passing if m not in validation)
         held_out = tuple(m for m in levels_in(LevelSplit.HELD_OUT) if m not in dropped)
         return cls(held_out, validation, selection, dropped)
@@ -105,20 +101,19 @@ class EvolveSplit:
             raise NotSelectionLevelError(f"{level} is not a selection level of this run")
 
 
-def _validation_levels(passing: list[str], dropped: Mapping[str, str]) -> tuple[str, ...]:
-    """The base validation levels; a dropped one gives way to the next free passing training map."""
-    training = levels_in(LevelSplit.TRAINING)
-    chosen: list[str] = []
-    for base in VALIDATION_BASE:
-        if base not in dropped:
-            chosen.append(base)
-            continue
-        later = training[training.index(base) + 1 :]
-        free = [m for m in later if m in passing and m not in VALIDATION_BASE and m not in chosen]
-        if not free:
-            raise NoValidationLevelError(f"{base} failed its smoke test and no map can replace it")
-        chosen.append(free[0])
-    return tuple(chosen)
+def _validation_levels(passing: list[str]) -> tuple[str, ...]:
+    """Validation maps spread evenly over the passing training maps in map order.
+
+    The count is the larger of VALIDATION_FLOOR and a sixth of the passing maps; each is the map
+    in the middle of one of that many equal parts of the list.
+    """
+    count = max(VALIDATION_FLOOR, len(passing) // 6)
+    if len(passing) - count < LEVELS_PER_GENERATION:
+        raise NotEnoughLevelsForExplorationError(
+            f"{len(passing)} passing training maps leave fewer than {LEVELS_PER_GENERATION} "
+            f"for selection after {count} validation maps"
+        )
+    return tuple(passing[len(passing) * (2 * k + 1) // (2 * count)] for k in range(count))
 
 
 def _draw(split: EvolveSplit, generation: int, run_seed: int) -> tuple[list[str], int, CutSetting]:
