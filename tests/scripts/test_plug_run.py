@@ -45,17 +45,70 @@ def test_confabulation_control_has_an_absolute_bar(run):
     assert not worse["passes"]
 
 
-def test_plan_must_match_the_prereg_table(run):
-    plan = {
+def prereg_plan(run):
+    names = sorted(run.SCORED)
+    return {
         "test_repos": dict(run.SCORED),
+        "control_of": {repo: names[(i + 1) % len(names)] for i, repo in enumerate(names)},
         "meta_train_repos": ["r"] * run.META_REPOS,
         "meta_train_rows": run.META_ROWS,
+        "meta_rows_dropped_too_long": run.META_DROPPED,
+        "shared_key_lesson_ids": ["x"] * run.SHARED_KEY_LESSONS,
     }
+
+
+def test_plan_must_match_the_prereg_table(run):
+    plan = prereg_plan(run)
     run.check_plan(plan)
-    with pytest.raises(run.PlanMismatchError):
-        run.check_plan({**plan, "test_repos": {**run.SCORED, "org/extra": 10}})
-    with pytest.raises(run.PlanMismatchError):
-        run.check_plan({**plan, "meta_train_rows": run.META_ROWS - 1})
+    changes = {
+        "test_repos": {**run.SCORED, "org/extra": 10},
+        "meta_train_rows": run.META_ROWS - 1,
+        "meta_rows_dropped_too_long": 0,
+        "shared_key_lesson_ids": [],
+        "control_of": {**plan["control_of"], "hylang/hy": "scipp/plopp"},
+    }
+    for key, value in changes.items():
+        with pytest.raises(run.PlanMismatchError, match=key.replace("_lesson_ids", "_lessons")):
+            run.check_plan({**plan, key: value})
+
+
+def decisions_with(h1, *, control_passes=True, works=False):
+    return {
+        "h1_a2_vs_a1_at_5": {
+            "decision": h1[0],
+            "mean_gain": h1[1],
+            "ci95_low": h1[2],
+            "ci95_high": h1[3],
+        },
+        "confabulation_control_at_5": {"passes": control_passes},
+        "plug_and_play_works": works,
+    }
+
+
+ROWS_AT_5 = [
+    {"row": "a2", "budget": 5, "reworded": 0.61},
+    {"row": "a1", "budget": 5, "reworded": 0.32},
+]
+
+
+def test_verdict_sentence_follows_the_prereg_wording(run):
+    habits = {"a2": {"ranked": 0.9}, "plain": {"ranked": 0.2}}
+    works = run.verdict_sentence(
+        decisions_with(("better", 0.29, 0.2, 0.38), works=True), ROWS_AT_5, habits
+    )
+    assert works.startswith("recalls 0.61 of the reworded probes with 5 lessons in the prompt")
+    assert "against 0.32 for the plain model, without per-repo training" in works
+    tie = run.verdict_sentence(decisions_with(("tie", 0.03, -0.05, 0.11)), ROWS_AT_5, habits)
+    assert tie.startswith("a meta-trained reader did not measurably beat the plain model")
+    assert "+0.03" in tie
+
+
+def test_verdict_sentence_names_a_failed_control_and_lost_habits(run):
+    habits = {"a2": {"ranked": 0.1}, "plain": {"ranked": 0.2}}
+    found = decisions_with(("better", 0.29, 0.2, 0.38), control_passes=False)
+    sentence = run.verdict_sentence(found, ROWS_AT_5, habits)
+    assert "recalls more and confabulates more" in sentence
+    assert "recalls more and keeps fewer habits" in sentence
 
 
 def lesson(run, lesson_id, added, error="TypeError"):
