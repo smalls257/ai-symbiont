@@ -144,8 +144,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--state", type=Path)
     parser.add_argument("--cards-out", type=Path)
     parser.add_argument("--results-out", type=Path)
+    parser.add_argument("--noise-from", type=Path, help="replace the run's noise block")
+    parser.add_argument("--label", help="replace the run's label (at most 120 characters)")
     args = parser.parse_args(argv)
-    document = export(json.loads(args.summary.read_text()))
+    summary = json.loads(args.summary.read_text())
+    if args.noise_from:
+        summary["noise"] = json.loads(args.noise_from.read_text())
+    if args.label:
+        summary["label"] = args.label
+    document = export(summary)
     args.out.write_text(json.dumps(document, indent=1) + "\n")
     if args.results_out:
         args.results_out.write_text(json.dumps(results_document(document), indent=1) + "\n")

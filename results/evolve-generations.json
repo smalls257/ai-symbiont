@@ -1,6 +1,6 @@
 {
  "schema": "evolve-generations-v1",
- "label": "exploratory, spark player, 5 training maps; validation = held-back seeds (weaker than validation levels)",
+ "label": "exploratory, 5 maps; selection at 1 game/case, noise verdict DOUBLE_GAMES: not interpretable",
  "claim": "exploratory",
  "validation": [
   {
@@ -26,11 +26,15 @@
   }
  ],
  "noise": {
-  "verdict": "select",
+  "verdict": "double_games",
   "within_variance": 0.038926314889934595,
   "between_variance": 0.005376106257363211,
   "standard_error": 0.09874140370964982,
-  "games_per_case": 1
+  "selection_games": 4,
+  "games_per_mean": 8,
+  "pairs_used": 12,
+  "true_between_variance": 0.0005103168961213865,
+  "games_needed": 77
  },
  "stop_reason": null,
  "spend": {

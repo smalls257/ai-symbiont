@@ -1,6 +1,6 @@
 {
  "schema": "evolve-gen0-v1",
- "label": "exploratory generation 0, Muse Spark at low reasoning [measured]",
+ "label": "exploratory generation 0, Spark low reasoning; noise judged at 4 games/card [measured]",
  "rows": [
   {
    "label": "empty card",
@@ -24,20 +24,24 @@
   }
  ],
  "card_means": {
-  "051b4ed7e374": -0.1851,
+  "051b4ed7e374": -0.212,
   "34d42d7524cd": -0.3689,
   "3bdba6b6ea47": -0.2247,
   "5984390e1d7c": -0.1268,
   "e3b0c44298fc": -0.3506,
-  "ff12d87f9807": -0.1654
+  "ff12d87f9807": -0.1901
  },
  "fitness_spread": 0.2421,
  "noise": {
   "verdict": "double_games",
-  "within_variance": 0.05086762003472055,
-  "between_variance": 0.004145570172425639,
-  "standard_error": 0.10957070417603662,
-  "games_per_case": 2
+  "within_variance": 0.038926314889934595,
+  "between_variance": 0.005376106257363211,
+  "standard_error": 0.09874140370964982,
+  "selection_games": 4,
+  "games_per_mean": 8,
+  "pairs_used": 12,
+  "true_between_variance": 0.0005103168961213865,
+  "games_needed": 77
  },
  "gaming_check": "passed"
 }

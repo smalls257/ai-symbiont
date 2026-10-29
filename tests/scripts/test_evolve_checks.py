@@ -114,3 +114,18 @@ def test_stored_games_with_no_complete_level_raise():
     state = stored_run(shares, shares, ungraded={(0, 0), (0, 1), (0, 2), (0, 3)})
     with pytest.raises(check_noise.IncompleteNoiseGamesError):
         check_noise.report_from_state(state, POOL, 1, 4)
+
+
+def test_gaming_means_can_be_reused_from_an_earlier_results_file(tmp_path):
+    earlier = tmp_path / "gen0.json"
+    earlier.write_text(
+        json.dumps(
+            {
+                "rows": [
+                    {"label": "empty card", "role": "reference", "mean_fitness": -0.3},
+                    {"label": "spin", "role": "floor", "mean_fitness": -0.9},
+                ]
+            }
+        )
+    )
+    assert check_fitness.reused_gaming(earlier) == {"spin": -0.9}

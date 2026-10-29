@@ -50,6 +50,12 @@ def gaming_means(cases: list[Case], wad: Path, workers: int, episodes: Path) -> 
     return means
 
 
+def reused_gaming(path: Path) -> dict[str, float]:
+    """The gaming policies' means from an earlier results file (the games are not replayed)."""
+    rows = json.loads(path.read_text())["rows"]
+    return {row["label"]: row["mean_fitness"] for row in rows if row["role"] == "floor"}
+
+
 def require_below(empty_mean: float, means: dict[str, float]) -> None:
     """Raises GamingBeatsEmptyError naming every policy at or above the empty card."""
     bad = {name: m for name, m in means.items() if m >= empty_mean}
@@ -98,6 +104,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--seed", type=int, default=1)
     parser.add_argument("--workers", type=int, default=4)
+    parser.add_argument("--noise-from", type=Path, help="noise report JSON (check_noise.py)")
+    parser.add_argument("--gaming-from", type=Path, help="reuse the floor rows of an earlier file")
     args = parser.parse_args(argv)
     directory = args.root / args.run
     state = json.loads((directory / "state.json").read_text())
@@ -106,11 +114,16 @@ def main(argv: list[str] | None = None) -> int:
     cases = list(generation_cases(split, 0, args.seed, 1))[:BLOCK]
     cards = card_means(state["games"], cases)
     empty = Card.of([]).card_id
-    gaming = gaming_means(cases, args.wad, args.workers, directory / "episodes")
+    gaming = (
+        reused_gaming(args.gaming_from)
+        if args.gaming_from
+        else gaming_means(cases, args.wad, args.workers, directory / "episodes")
+    )
+    noise = json.loads(args.noise_from.read_text()) if args.noise_from else summary["noise"]
     print(f"empty card {cards[empty]:.3f}; " + "; ".join(f"{n} {m:.3f}" for n, m in gaming.items()))
     require_below(cards[empty], gaming)
     args.out.write_text(
-        json.dumps(results_document(cards[empty], gaming, cards, summary["noise"]), indent=1) + "\n"
+        json.dumps(results_document(cards[empty], gaming, cards, noise), indent=1) + "\n"
     )
     return 0
 

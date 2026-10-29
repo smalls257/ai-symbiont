@@ -44,16 +44,21 @@ Non-goals: general recursive self-improvement; speed-of-learning claims. Anti-go
 - Per game: 1.0 for the exit, plus 0.5 times the furthest share of the walking route to the exit reached, minus 0.02 per tagged mistake, minus 0.5 for dying [hypothesis] (the weights are a judgment call). Kills are reported, never scored. A shot fired with no enemy in view is a wasted move.
 - Fitness check on real generation-0 games [measured]: the empty card scored -0.351, stand still -0.620, fire in place -0.915, spin -0.905, so each gaming policy scores below the empty card (results/evolve-gen0.json).
 - Picking each arm's card: highest mean training fitness over the last two good generations, among cards with at least 8 graded games in them; validation games are never used. A lesson stays only if the card does at least as well with it as without it on cross-level cases that are no lesson's source level.
-- Noise check in generation 0 [measured]: within-card seed variance 0.0509, between-card variance 0.0041, so games per case doubled; the standard error of a 4-game mean is 0.110 (results/evolve-gen0.json).
-- Gap rule: the training-minus-validation gap rising by more than that standard error two generations in a row stops evolution and keeps the last good generation.
+- Noise check in generation 0 [measured], from the final graded games (12 card-and-level seed pairs of the three noise cards; results/evolve-gen0.json): one game's variance across seeds 0.0389, the variance of the card means over 8 games 0.0054, so the true spread between cards is about 0.0005 after removing the luck left in an 8-game mean. Selection averaged 4 games per card, where luck is 0.0389 / 4 = 0.0097, above 0.0054: the verdict is DOUBLE_GAMES, and doubling alone does not clear it either. By the same numbers selection needs about 77 games per card before luck falls below the true spread.
+- The standard error of a 4-game mean is 0.099 [measured].
+- Gap rule: the training-minus-validation gap rising by more than that standard error (0.099 [measured]) two generations in a row stops evolution and keeps the last good generation.
 
 ## Bootstrap and decision words
 
-Resample held-out levels with replacement, keeping each level's games together; 10,000 draws, fixed seed; 95% percentile interval [established] (as in earlier preregs). Better if the interval's low end is above 0, worse if its high end is below 0, else tie. C4 holds if the low end is above minus the standard error of a held-out arm mean (0.110 [measured], from generation 0).
+Resample held-out levels with replacement, keeping each level's games together; 10,000 draws, fixed seed; 95% percentile interval [established] (as in earlier preregs). Better if the interval's low end is above 0, worse if its high end is below 0, else tie. C4 holds if the low end is above minus the standard error of a held-out arm mean (0.099 [measured], from generation 0).
 
 ## Expected interval width
 
-From generation-0 seed noise (variance 0.0509 per game [measured]): a level mean over 4 games has a standard error of 0.113 [hypothesis]; the difference of two arms on one level, 0.160 [hypothesis]; over 8 levels the standard error is 0.057 and the 95% half-width about 0.11 [hypothesis], ignoring card-by-level interaction. A true difference smaller than that reads as a tie.
+From generation-0 seed noise (variance 0.0389 per game [measured]): a level mean over 4 games has variance 0.0097 and the difference of two arms on one level 0.0195, a standard deviation of 0.140 [hypothesis]; over 8 levels the standard error is 0.049 and the 95% half-width about 0.097 [hypothesis], ignoring card-by-level interaction. The true spread between cards in generation 0 is a standard deviation of about 0.023 [measured], far below that width: unless evolution produces differences several times larger than the generation-0 spread, C1 reads as a tie.
+
+## Exploratory evidence before this draft
+
+Generations 1 to 3 on the five maps that passed the first smoke test were run with selection at 1 game per case, while the corrected noise verdict for that setting is DOUBLE_GAMES, so their comparison of the evolved arm with the no-selection arm is not interpretable and carries that label (results/evolve-generations.json). They show that the loop runs end to end, not that selection works. A run that is to count needs the games per card the noise check asks for, or a different way to cut the noise (more levels and seeds per generation, or cards compared on paired cases only).
 
 ## Before and after clip
 
@@ -68,4 +73,4 @@ The first passing held-out level in map order, seed 1001, normal condition, no-c
 
 ## Spend
 
-Planning figures [hypothesis]: about 0.25 dollars for generation 0 and the checks [measured], about 0.5 dollars per evolution generation with doubled games, about 1 dollar for the Spark final test, and Glimmer arms and the adapter on local hardware.
+Planning figures [hypothesis]: about 0.25 dollars for generation 0 and the checks [measured], about 0.3 dollars per evolution generation at 1 game per case (more at the 77 games per card the noise check asks for), about 1 dollar for the Spark final test, and Glimmer arms and the adapter on local hardware.
