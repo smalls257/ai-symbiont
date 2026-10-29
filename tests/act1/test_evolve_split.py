@@ -5,6 +5,7 @@ import pytest
 from symbiont.act1.evolve_split import (
     EvolveSplit,
     MissingSmokeResultError,
+    NotEnoughLevelsForExplorationError,
     NotSelectionLevelError,
     NoValidationLevelError,
     SmokeResult,
@@ -158,3 +159,27 @@ def test_final_cases_use_normal_skill_three_and_harder_skill_four_with_cuts():
 
 def test_a_dropped_held_out_level_shrinks_the_final_test():
     assert len(final_cases(EvolveSplit.of(smoke(MAP08="no route")))) == 28
+
+
+FIVE = ("MAP01", "MAP02", "MAP05", "MAP06", "MAP29")
+
+
+def test_the_exploratory_split_uses_the_given_levels_for_both_roles_and_has_no_held_out():
+    split = EvolveSplit.exploratory(FIVE)
+    assert split.selection == split.validation == FIVE and split.held_out == ()
+
+
+def test_the_exploratory_split_refuses_a_held_out_level_and_too_few_levels():
+    with pytest.raises(Exception, match="MAP24"):
+        EvolveSplit.exploratory([*FIVE, "MAP24"])
+    with pytest.raises(NotEnoughLevelsForExplorationError):
+        EvolveSplit.exploratory(FIVE[:3])
+
+
+def test_exploratory_training_and_validation_seeds_never_meet():
+    split = EvolveSplit.exploratory(FIVE)
+    training = {c.seed for g in range(7) for c in generation_cases(split, g, 1, 2)}
+    held_back = {c.seed for g in range(7) for c in validation_cases(split, g, 1)}
+    assert training.isdisjoint(held_back)
+    assert {1001, 1002}.isdisjoint(training | held_back)
+    assert len(validation_cases(split, 1, 1)) == 5

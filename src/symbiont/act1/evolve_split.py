@@ -7,12 +7,12 @@ functions of (run seed, generation), so any generation can be replayed and audit
 """
 
 import random
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
 from symbiont.act1.game_fitness import Case
-from symbiont.act1.levels import LevelSplit, levels_in
+from symbiont.act1.levels import LevelSplit, levels_in, require_training
 from symbiont.act1.move_cuts import HARDER_SKILL, NORMAL_SKILL, CutSetting
 
 # Plan ruling 10: validation is every sixth training map; a failing one is replaced by the next
@@ -43,6 +43,10 @@ class MissingSmokeResultError(ValueError):
 
 class NoValidationLevelError(ValueError):
     """A validation level failed its smoke test and no later training map can replace it."""
+
+
+class NotEnoughLevelsForExplorationError(ValueError):
+    """Fewer levels than a generation draws were given to the exploratory split."""
 
 
 class NotSelectionLevelError(ValueError):
@@ -79,6 +83,21 @@ class EvolveSplit:
         selection = tuple(m for m in passing if m not in validation)
         held_out = tuple(m for m in levels_in(LevelSplit.HELD_OUT) if m not in dropped)
         return cls(held_out, validation, selection, dropped)
+
+    @classmethod
+    def exploratory(cls, levels: Sequence[str]) -> "EvolveSplit":
+        """Stand-in split for too few navigable levels: one pool, validation told apart by seeds.
+
+        Weaker than validation levels (a card can still learn these maps), so runs on it are
+        exploratory; there is no held-out list.
+        """
+        for level in levels:
+            require_training(level)
+        if len(levels) < LEVELS_PER_GENERATION:
+            raise NotEnoughLevelsForExplorationError(
+                f"{len(levels)} level(s); a generation draws {LEVELS_PER_GENERATION}"
+            )
+        return cls((), tuple(levels), tuple(levels), {})
 
     def require_selection(self, level: str) -> None:
         """Raises NotSelectionLevelError unless the level may feed selection."""
