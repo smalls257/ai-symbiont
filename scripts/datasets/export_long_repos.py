@@ -55,6 +55,18 @@ def listed(counts: dict, pool: Path, meta2: Path, plan: dict) -> list[dict]:
     return found
 
 
+def rest(counts: dict, exported: list[Path]) -> list[dict]:
+    """Repositories no export on disk holds, with at least 2 tasks (a recurrence needs a later,
+    different task), every task listed."""
+    on_disk = set().union(*(repo_names(directory) for directory in exported))
+    blocked = set(HELD_OUT) | set(EXCLUDED) | set(UNREADABLE) | on_disk
+    return [
+        {"repo": repo, "set": "rest", "meta2_exported": False, "tasks": sorted(tasks)}
+        for repo, tasks in sorted(counts.items())
+        if repo not in blocked and len(tasks) >= 2
+    ]
+
+
 def pool_tasks(pool: Path) -> dict[str, set[str]]:
     """The tasks each plug-pool repository already exported (its instance ids)."""
     found: dict[str, set[str]] = {}
@@ -96,10 +108,19 @@ def main() -> None:
     one = stages.add_parser("list")
     for flag in ("--counts", "--pool-dir", "--meta2-dir", "--plan", "--out"):
         one.add_argument(flag, type=Path, required=True)
+    three = stages.add_parser("list-rest")
+    three.add_argument("--counts", type=Path, required=True)
+    three.add_argument("--exported", type=Path, nargs="+", required=True)
+    three.add_argument("--out", type=Path, required=True)
     two = stages.add_parser("export")
     for flag in ("--list", "--out-dir"):
         two.add_argument(flag, type=Path, required=True)
     args = parser.parse_args()
+    if args.stage == "list-rest":
+        entries = rest(json.loads(args.counts.read_text()), args.exported)
+        args.out.write_text(json.dumps({"rule": ">= 2 tasks, on no disk export", "repos": entries}))
+        print(json.dumps({"repos": len(entries), "tasks": sum(len(e["tasks"]) for e in entries)}))
+        return
     if args.stage == "export":
         export(json.loads(args.list.read_text())["repos"], args.out_dir)
         return
