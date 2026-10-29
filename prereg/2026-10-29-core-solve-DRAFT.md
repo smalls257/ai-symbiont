@@ -27,6 +27,20 @@ Rules for the test set:
 - The collection manifest leaves out every test-task run and prints the count.
 - The `sqlglot-all` adapter, the general and habits adapters and the old task-specific lessons all saw some of these tasks. They are never scored here [established].
 
+## Django ceiling rule (set 2026-10-29 11:05 PT, before any plain result on these tasks and before any adapter result)
+
+**Why.** On the earlier Django tasks, plain Glimmer passed both runs on 15 of 18 tasks. Of the 16 tasks it passed once, it passed again on 15 [measured]. So one plain pass on a Django task marks a near-certain pass, and such a task cannot show a gain [hypothesis].
+
+The rule:
+
+1. Each of the 25 later Django test tasks gets 1 plain run at cap 75. A task whose run passes is dropped from the test set. A task whose run fails stays. A run that ends on an infra, model_api or context error is rerun once; if it errors again, the task stays.
+2. Replacement candidates are SWE-bench Verified Django tasks created after the last history task (2019-12-12), labeled "15 min - 1 hour", and not in SWE-Bench-CL. They are taken in date order, 30 listed (12262 to 13810).
+   - Each must pass the scorer check: gold resolves, no-patch fails and the scrub is clean.
+   - Each then gets 1 plain run at cap 75, and it is kept only if that run fails.
+   - Candidates are added until Django is back at 25 tasks or the list runs out. The count is reported either way. [established]
+3. These plain screening runs are never training data and never a scored arm.
+4. The scored plain arm runs fresh on the final set.
+
 ## Order of work (owner redirect 2026-10-29)
 
 1. **Measure the plain spread first.** Plain Glimmer runs 2 times on about 30 earlier tasks (about 60 runs, collection below). The per-task disagreement rate (tasks whose two runs differ) gives v for the MDE [established].
