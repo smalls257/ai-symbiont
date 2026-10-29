@@ -50,4 +50,4 @@ The keyword score marks a hit when an answer names its kind's key term anywhere,
 
 ## Next
 
-The scored Plug run is `prereg/2026-10-28-l2l-a2-DRAFT.md`: 13 unseen repos, a2 trained again with those repos held out by check, a1 as the plug-and-play baseline, and a confabulation control. The feasibility a2 saw those repos, so it is discarded [measured]. These results are one recipe on 1B and one seed per arm [hypothesis that seeds matter less than repo spread].
+The scored Plug run is `prereg/2026-10-29-l2l-a2.md`: 13 unseen repos, a2 trained again with those repos held out by check, a1 as the plug-and-play baseline, and a confabulation control. The feasibility a2 saw those repos, so it is discarded [measured]. These results are one recipe on 1B and one seed per arm [hypothesis that seeds matter less than repo spread].

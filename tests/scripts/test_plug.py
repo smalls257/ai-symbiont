@@ -3,6 +3,7 @@
 import importlib.util
 import sys
 from pathlib import Path
+from subprocess import CompletedProcess
 
 import pytest
 
@@ -172,11 +173,11 @@ def test_a_scored_run_needs_the_prereg_frozen_under_its_final_name(plug, monkeyp
         plug.scored_run_label(str(draft))
     seen = {}
     monkeypatch.setattr(plug, "run_provenance", lambda **kwargs: seen.update(kwargs) or {})
-    plug.scored_run_label("prereg/2026-10-28-l2l-a2.md")
+    plug.scored_run_label("prereg/2026-10-29-l2l-a2.md")
     assert seen == {
         "scored": True,
-        "prereg": "prereg/2026-10-28-l2l-a2.md",
-        "expects": "2026-10-28-l2l-a2.md",
+        "prereg": "prereg/2026-10-29-l2l-a2.md",
+        "expects": "2026-10-29-l2l-a2.md",
     }
 
 
@@ -266,3 +267,40 @@ def test_mixed_context_is_one_fixed_order(plug, distract):
     first = distract.mixed_context(own, wrong)
     assert first == distract.mixed_context(own, wrong)
     assert first.count("In org/a") == 2 and first.count("In org/b") == 2
+
+
+class FakeGit:
+    """Answers the three git calls the code guard makes."""
+
+    def __init__(self, *, differs=False, dirty=""):
+        self.differs, self.dirty, self.calls = differs, dirty, []
+
+    def __call__(self, root, *args):
+        self.calls.append(args)
+        if args[0] == "rev-parse":
+            return CompletedProcess(args, 0, stdout="abc123\n", stderr="")
+        if args[0] == "diff":
+            return CompletedProcess(args, 1 if self.differs else 0, stdout="", stderr="")
+        return CompletedProcess(args, 0, stdout=self.dirty, stderr="")
+
+
+def test_code_guard_returns_head_when_code_matches_the_freeze_commit(plug, tmp_path):
+    git = FakeGit()
+    assert plug.pinned_code_commit(tmp_path, "f00d", git) == "abc123"
+    diff = next(call for call in git.calls if call[0] == "diff")
+    assert diff[:4] == ("diff", "--quiet", "f00d", "HEAD")
+    assert set(diff[5:]) == set(plug.GUARDED_CODE)
+
+
+def test_code_guard_refuses_changed_or_uncommitted_code(plug, tmp_path):
+    with pytest.raises(plug.CodeNotPinnedError, match="differs"):
+        plug.pinned_code_commit(tmp_path, "f00d", FakeGit(differs=True))
+    with pytest.raises(plug.CodeNotPinnedError, match="uncommitted"):
+        plug.pinned_code_commit(tmp_path, "f00d", FakeGit(dirty=" M scripts/routea/plug.py\n"))
+
+
+def test_scored_provenance_records_the_code_commit(plug, monkeypatch, tmp_path):
+    label = {"freeze_commit": "f00d", "prereg_sha256": "beef", "run_label": "scored"}
+    monkeypatch.setattr(plug, "scored_run_label", lambda prereg: dict(label))
+    found = plug.scored_provenance("prereg/x.md", tmp_path, FakeGit())
+    assert found == {**label, "code_commit": "abc123"}
