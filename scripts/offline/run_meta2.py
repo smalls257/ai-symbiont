@@ -62,12 +62,10 @@ def named_pairs() -> list[tuple[str, str]]:
         pairs += [
             (f"{name} MAML start", f"{name} cold"),
             (f"{name} broad + fine-tune", f"{name} broad"),
+            (f"{name} in-domain", f"{name} broad"),
         ]
-        for row in ("cold", "MAML start", "broad + fine-tune"):
-            pairs += [
-                (f"{name} {row}", ref)
-                for ref in ("counters", "logistic own tasks", "logistic broad + refit")
-            ]
+        for row in sc.UNDER_TEST:
+            pairs += [(f"{name} {row}", ref) for ref in sc.REFERENCES]
     return pairs
 
 
@@ -164,6 +162,16 @@ def report_body(scorer: ms.Scorer, rows: dict[str, Any], counters: dict) -> dict
     }
 
 
+def scored_body(scorer: ms.Scorer, rows: dict[str, Any], counters: dict) -> dict[str, Any]:
+    """The report body plus the registered verdicts (H1 to H5, the slot, the claim)."""
+    body = report_body(scorer, rows, counters)
+    early = {
+        name: rep.value_of(counted["windows"][rep.Window.EARLY], scorer.option)[NET]
+        for name, counted in rows.items()
+    }
+    return {"verdicts": sc.verdicts(body["differences"], early, scorer, rows), **body}
+
+
 def pin(args: argparse.Namespace) -> None:
     """The settings file a prereg pins, from the exploratory run and its saved starts."""
     explore_doc = json.loads(Path(args.explore).read_text())
@@ -195,8 +203,8 @@ def score(args: argparse.Namespace) -> None:
     ]
     found = dict(g6.pool_map(sc.scored_job, [*jobs, ("logistic",)], args.workers))
     scorer = ms.Scorer(held)
-    body = report_body(scorer, sc.scored_rows(scorer, found, counters, settings), counters)
-    for line in body["table"]:
+    body = scored_body(scorer, sc.scored_rows(scorer, found, counters, settings), counters)
+    for line in [*body["verdicts"]["lines"], *body["table"]]:
         log.info(line)
     document = {
         **label,

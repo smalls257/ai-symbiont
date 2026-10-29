@@ -15,10 +15,18 @@ import meta2_inputs as md
 import meta2_jobs as mj
 import torch
 
+from symbiont.eval import meta2_report as rep
+
 PREREG_NAME = "2026-10-28-meta2.md"
 # sha256 of results/meta2-settings.json as committed with the prereg draft.
 SETTINGS_SHA256 = "267f2ae1e7cf6520313683992484e3362a25a090c48eba6abb933a59c53ca688"
 SEEDS = (0, 1, 2)
+UNDER_TEST = ("cold", "MAML start", "broad + fine-tune")  # per network: the six candidate rows
+LIVE = "logistic broad"  # the live warner
+REFERENCES = ("counters", "logistic own tasks", "logistic broad + refit", LIVE)
+# The prereg's tie order for the slot, plainest first (rule 6).
+SLOT_ORDER = tuple(f"{name} {row}" for name in (md.DENSE, md.FLY) for row in UNDER_TEST)
+EARLY = "first 10 tasks"
 
 
 def file_sha(path: Path) -> str:
@@ -122,3 +130,100 @@ def scored_rows(scorer: Any, found: dict, counters: dict, settings: dict) -> dic
             risks = {seed: res[row] for seed, res in per_seed.items()}
             rows[label] = scorer.counted(risks, thresholds(settings, label))
     return rows
+
+
+def word(differences: dict, first: str, second: str) -> dict[str, Any]:
+    """The early-window paired difference `first minus second` and its word."""
+    return differences[f"{first} minus {second}"][EARLY]
+
+
+def line(name: str, found: dict[str, Any]) -> str:
+    """A verdict's first line: the word, then the interval."""
+    return (
+        f"{name}: {found['standing']} {found['value']:.3f} "
+        f"[{found['ci95_low']:.3f}, {found['ci95_high']:.3f}]"
+    )
+
+
+def eligible(differences: dict, early: dict, row: str) -> bool:
+    """Rule 6: earns, beats counters, and is not worse than the live warner."""
+    return (
+        early[row]["ci95_low"] > 0
+        and word(differences, row, "counters")["standing"] == "better"
+        and word(differences, row, LIVE)["standing"] != "worse"
+    )
+
+
+def best_of(rows: list[str], early: dict) -> str | None:
+    """Highest early point estimate, ties to the plainest (rule 6 order)."""
+    if not rows:
+        return None
+    return max(rows, key=lambda row: (round(early[row]["value"], 12), -SLOT_ORDER.index(row)))
+
+
+def compare_networks(fly: str, dense: str, scorer: Any, rows: dict) -> dict[str, Any]:
+    """Rule 6's one comparison: best fly row minus best DenseNet row; a tie stays with the fly."""
+    window = rep.Window.EARLY
+    compared = rep.difference(
+        rows[fly]["windows"][window], rows[dense]["windows"][window], scorer.option
+    )
+    words = {"tie": "not distinguishable at this size", "better": "better", "worse": "better"}
+    winner = md.DENSE if compared["standing"] == "worse" else md.FLY
+    return {"slot": winner, "words": words[compared["standing"]], "fly_minus_dense": compared}
+
+
+def slot(differences: dict, early: dict, scorer: Any, rows: dict) -> dict[str, Any]:
+    """Rule 6: which network fills the slot, from eligible rows only."""
+    ok = [r for r in SLOT_ORDER if eligible(differences, early, r)]
+    fly = best_of([r for r in ok if r.startswith(md.FLY)], early)
+    dense = best_of([r for r in ok if r.startswith(md.DENSE)], early)
+    if fly is None and dense is None:
+        found = {"slot": "empty", "words": "counters or the classifier are the warner at this size"}
+    elif fly is None or dense is None:
+        only = md.FLY if dense is None else md.DENSE
+        found = {"slot": only, "words": "the only eligible network"}
+    else:
+        found = compare_networks(fly, dense, scorer, rows)
+    return {"eligible": ok, **found}
+
+
+def verdicts(differences: dict, early: dict, scorer: Any, rows: dict) -> dict[str, Any]:
+    """H1 to H5, the slot and the "meta learner works" claim, by the frozen rules."""
+    found = {
+        "H1 fly MAML start minus fly cold": word(
+            differences, f"{md.FLY} MAML start", f"{md.FLY} cold"
+        ),
+        "H2 DenseNet MAML start minus DenseNet cold": word(
+            differences, f"{md.DENSE} MAML start", f"{md.DENSE} cold"
+        ),
+    }
+    for name in md.NETWORKS:
+        found[f"H3 {name} broad + fine-tune minus broad"] = word(
+            differences, f"{name} broad + fine-tune", f"{name} broad"
+        )
+        found[f"H4 {name} MAML start minus counters"] = word(
+            differences, f"{name} MAML start", "counters"
+        )
+    beats = [r for r in SLOT_ORDER if word(differences, r, LIVE)["standing"] == "better"]
+    fly_maml = f"{md.FLY} MAML start"
+    works = (
+        found["H1 fly MAML start minus fly cold"]["standing"] == "better"
+        and word(differences, fly_maml, "counters")["standing"] == "better"
+        and word(differences, fly_maml, LIVE)["standing"] != "worse"
+    )
+    claim = (
+        "the meta learner works"
+        if works
+        else ("a meta-learned start did not measurably help on new issues at this size")
+    )
+    lines = [line(k, v) for k, v in found.items()]
+    lines.append(
+        f"H5 no under-test row beats the live warner: {'holds' if not beats else 'fails'} {beats}"
+    )
+    return {
+        "lines": [*lines, f"claim: {claim}"],
+        "words": found,
+        "H5_rows_better_than_live_warner": beats,
+        "slot": slot(differences, early, scorer, rows),
+        "claim": claim,
+    }
