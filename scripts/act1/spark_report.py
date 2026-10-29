@@ -25,16 +25,19 @@ from symbiont.egress.spend import Ledger
 ALL_KEYS = ("blue", "red", "yellow")  # route length ignores locked doors: progress, not key logic
 
 
-def route_progress(nav: NavMap, start: tuple[float, float], end: tuple[float, float]) -> float:
+def route_progress(
+    nav: NavMap, start: tuple[float, float], end: tuple[float, float]
+) -> float | None:
     """Share of the walking distance to the exit covered between start and end, clamped to 0..1.
 
-    Raises ValueError when no route to an exit exists from the start.
+    None when the navigation graph has no route from the start to any exit (MAP03 today): the
+    table then shows null, never a made-up zero.
     """
     exits = nav.features("exit")
     first = nav.nearest(start, list(exits), ALL_KEYS)
     last = nav.nearest(end, list(exits), ALL_KEYS)
     if not isinstance(first, tuple):
-        raise ValueError("no route to an exit from the start position")
+        return None
     if not isinstance(last, tuple):
         return 0.0
     return max(0.0, min(1.0, 1.0 - last[1].length / first[1].length))
@@ -76,6 +79,11 @@ def ledger_by_game(ledger: Ledger, run: str) -> dict[str, list[dict[str, Any]]]:
     return rows
 
 
+def rounded(progress: float | None) -> float | None:
+    """Two decimals, keeping None (no route in the graph) as None."""
+    return None if progress is None else round(progress, 2)
+
+
 def arm_summary(games: list[dict[str, Any]], calls: list[dict[str, Any]]) -> dict[str, Any]:
     """One arm's table row from its games and its ledger rows; raises ValueError with no calls."""
     if not calls:
@@ -88,7 +96,8 @@ def arm_summary(games: list[dict[str, Any]], calls: list[dict[str, Any]]) -> dic
     return {
         "games": len(games), "exits": sum(g["ended"] == "exited" for g in games),
         "died": sum(g["died"] for g in games), "pains": [g["pains"] for g in games],
-        "progress": [round(g["progress"], 2) for g in games], "kills": [g["kills"] for g in games],
+        "progress": [rounded(g["progress"]) for g in games],
+        "kills": [g["kills"] for g in games],
         "sec_median": round(statistics.median(seconds), 1),
         "sec_p90": round(percentile(seconds, 0.9), 1),
         "tokens_per_move": tokens,
