@@ -45,7 +45,7 @@
 <section class="hero" id="top">
   <p class="kicker">Meta Global AI Developer Hackathon · solo entry · explainer</p>
   <h1>The frontier is for everyone. Symbiont makes it yours.</h1>
-  <p class="lede">A self-improvement loop for your own projects: it mines your agent's history for what went wrong and how it was fixed, learns overnight, and brings those lessons back the next time you work. It remembers what went wrong, so your agent doesn't repeat it.</p>
+  <p class="lede">A self-improvement loop for your own projects: it mines your agent's history for what went wrong and how it was fixed, learns overnight, and brings those lessons back the next time you work. It remembers what went wrong, so your agent can avoid repeating it.</p>
   <div class="callout">
     <p><b>The frontier is for everyone; this tool makes it yours.</b> A frontier model is the same model for every developer. Your project has its own habits, its own traps and its own corrections. Symbiont learns those from your history, on your machine, and hands them back in plain sentences.</p>
   </div>
@@ -167,7 +167,7 @@
   <p>Each part is a different place the same loop runs. Each carries its own scored test, with a frozen plan written before the result existed.</p>
   <div class="cards">
     <div class="card">
-      <span class="status">round 1 scored: a tie. Round 2 pre-registered and running</span>
+      <span class="status">round 1 scored: a tie. Round 2: pre-registration in review; runs once frozen</span>
       <h4>Plug: for any coding agent</h4>
       <p>Route A. Notes reach any agent through an MCP tool and hooks. A small Llama 3.2 1B reader sits behind a no-model ranker, and it updates itself nightly on a 16 GB GPU. When it is handed the wrong repository's lessons, it says it doesn't know instead of inventing a fix.</p>
       <ul>
@@ -779,7 +779,7 @@
     <caption class="visually-hidden">Status of each part and its scored test</caption>
     <thead><tr><th>part</th><th>built</th><th>scored test</th><th>result</th></tr></thead>
     <tbody>
-      <tr><td>Plug (Route A)</td><td>service, MCP tool, hooks, 1B reader, ranker</td><td>round 1 done; round 2 pre-registered, running</td><td>round 1: a tie on the primary measure (<code>results/l2l-a2.json</code>). Round 2: <b>pending</b></td></tr>
+      <tr><td>Plug (Route A)</td><td>service, MCP tool, hooks, 1B reader, ranker</td><td>round 1 done; round 2: pre-registration in review; runs once frozen</td><td>round 1: a tie on the primary measure (<code>results/l2l-a2.json</code>). Round 2: <b>pending</b></td></tr>
       <tr><td>Plug nightly update</td><td>CUDA training path</td><td>timing on a 16 GB card</td><td><b>pending</b>: report and number added when merged</td></tr>
       <tr><td>Core (Route B)</td><td>dataset derivation; teacher-run plumbing</td><td>new issues solved: pending</td><td><b>pending</b></td></tr>
       <tr><td>Evolve</td><td>episode runner, strict parser, navigation, lesson cards</td><td>held-out maps: running</td><td>evolution tied so far (source pending, link added when merged); held-out: <b>pending</b></td></tr>
@@ -815,7 +815,7 @@
         <li>Warning learner: <code>prereg/2026-10-29-offline-selection.md</code>, <code>results/offline-selection.json</code>.</li>
         <li>Rules and gates: <code>CLAUDE.md</code>, <code>docs/standards/quality-gates.html</code>.</li>
       </ul>
-      <p>Impact, plainly: the benefit is an agent that stops repeating your project's mistakes. Whether the loop delivers that is what the pending slots will say.</p>
+      <p>Impact, plainly: the benefit is an agent that is warned before it repeats your project's mistakes. Whether the loop delivers that is what the pending slots will say.</p>
     </div>
   </details>
 </section>
