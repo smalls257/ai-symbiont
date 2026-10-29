@@ -16,6 +16,9 @@ from symbiont.act1.card_genome import Card
 from symbiont.act1.game_fitness import Case, GameResult, Grade, fitness
 from symbiont.act1.move_cuts import NORMAL_SKILL, CutSetting
 
+# A card that arrived in the last generation has played 4 games, not 8: its mean is a thinner
+# sample than the elites' and a lucky draw would win. Both generations' 4 cases are required.
+MIN_PICK_GAMES = 8
 TieKey = Callable[[str], tuple[int, str]]
 # Cross-level games draw seeds here, apart from generation draws and the final test's 1001, 1002.
 CROSS_LEVEL_SEEDS = (3000, 3999)
@@ -58,6 +61,8 @@ def pick_best(
 ) -> str:
     """The card with the highest mean fitness over its graded games in the two generations.
 
+    Only a card with at least MIN_PICK_GAMES graded games in them is eligible.
+
     Raises ValidationUsedForPickingError if any validation game is passed in at all.
     """
     for played in games:
@@ -69,8 +74,11 @@ def pick_best(
     for played in games:
         if played.generation in last_generations and played.result.grade == Grade.GRADED:
             scores[played.result.card_id].append(fitness(played.result))
+    scores = {card: values for card, values in scores.items() if len(values) >= MIN_PICK_GAMES}
     if not scores:
-        raise NoGamesToPickError(f"no graded game in generations {last_generations}")
+        raise NoGamesToPickError(
+            f"no card has {MIN_PICK_GAMES} graded games in generations {last_generations}"
+        )
     return min(scores, key=lambda card: (-statistics.fmean(scores[card]), tie_key(card)))
 
 

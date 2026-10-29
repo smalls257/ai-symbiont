@@ -7,6 +7,7 @@ import pytest
 from symbiont.act1.card_genome import Card, Lesson
 from symbiont.act1.card_picking import (
     GameRole,
+    NoGamesToPickError,
     NoSharedCaseError,
     NotEnoughLevelsError,
     PlayedGame,
@@ -36,30 +37,47 @@ def by_id(card):
     return (len(card), card)
 
 
+def eight(card, shares, first=3):
+    """Eight games of a card: four levels in each of two generations."""
+    return [
+        played(card, first + g, shares[i], f"MAP{i + 1:02d}", seed=g)
+        for g in range(2)
+        for i in range(4)
+    ]
+
+
 def test_a_card_with_one_high_game_loses_to_a_steadier_card():
-    games = [
-        played("lucky", 3, 1.0), played("lucky", 3, 0.0, "MAP02"),
-        played("lucky", 4, 0.0, "MAP03"), played("steady", 3, 0.4),
-        played("steady", 3, 0.4, "MAP02"), played("steady", 4, 0.4, "MAP03"),
-    ]  # fmt: skip
+    games = eight("lucky", [1.0, 0.0, 0.0, 0.0]) + eight("steady", [0.4] * 4)
     assert pick_best(games, (3, 4), by_id) == "steady"
 
 
 def test_equal_means_pick_the_shorter_card():
-    games = [played("long-card", 3, 0.5), played("x", 3, 0.5)]
+    games = eight("long-card", [0.5] * 4) + eight("x", [0.5] * 4)
     assert pick_best(games, (3, 4), by_id) == "x"
 
 
 def test_only_the_last_two_generations_count_and_ungraded_games_are_left_out():
-    games = [
-        played("a", 1, 1.0), played("a", 3, 0.2), played("b", 3, 0.3),
-        PlayedGame(game("a", "MAP04", 0.0, grade=Grade.UNGRADED), 3, GameRole.SELECTION),
-    ]  # fmt: skip
+    games = eight("a", [0.2] * 4) + eight("b", [0.3] * 4) + [played("a", 1, 1.0)]
+    games += [PlayedGame(game("a", "MAP04", 0.0, grade=Grade.UNGRADED), 3, GameRole.SELECTION)]
     assert pick_best(games, (3, 4), by_id) == "b"
 
 
+def test_a_card_with_fewer_than_eight_graded_games_is_not_eligible():
+    newcomer = [played("new", 4, 1.0, f"MAP{i:02d}") for i in range(1, 5)]
+    assert pick_best(newcomer + eight("old", [0.1] * 4), (3, 4), by_id) == "old"
+    with pytest.raises(NoGamesToPickError, match="8 graded games"):
+        pick_best(newcomer, (3, 4), by_id)
+
+
+def test_ungraded_games_do_not_count_toward_eligibility():
+    games = eight("a", [0.2] * 4)
+    games[0] = PlayedGame(game("a", "MAP01", 0.0, grade=Grade.UNGRADED), 3, GameRole.SELECTION)
+    with pytest.raises(NoGamesToPickError):
+        pick_best(games, (3, 4), by_id)
+
+
 def test_a_validation_result_raises_even_outside_the_picked_generations():
-    games = [played("a", 3, 0.5), played("a", 1, 0.9, "MAP07", GameRole.VALIDATION)]
+    games = eight("a", [0.5] * 4) + [played("a", 1, 0.9, "MAP07", GameRole.VALIDATION)]
     with pytest.raises(ValidationUsedForPickingError, match="MAP07"):
         pick_best(games, (3, 4), by_id)
 
