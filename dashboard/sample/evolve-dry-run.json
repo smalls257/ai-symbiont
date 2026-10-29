@@ -1,0 +1,301 @@
+{
+ "schema": "evolve-progress-v1",
+ "label": "dry run, fake player",
+ "claim": "exploratory",
+ "dry_run": true,
+ "curves": [
+  {
+   "generation": 0,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.2658480392156863,
+   "best_fitness": 0.32209803921568625,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 1,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.33405882352941174,
+   "best_fitness": 0.3765588235294118,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 2,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.393313725490196,
+   "best_fitness": 0.4216470588235294,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 3,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.3951225490196078,
+   "best_fitness": 0.4163725490196078,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 4,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.39415686274509804,
+   "best_fitness": 0.4474901960784313,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 5,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.4314313725490196,
+   "best_fitness": 0.4514313725490196,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 0,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.2658480392156863,
+   "best_fitness": 0.32209803921568625,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 1,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.31280882352941175,
+   "best_fitness": 0.3765588235294118,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 2,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.33664705882352935,
+   "best_fitness": 0.3791470588235294,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 3,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.3455392156862745,
+   "best_fitness": 0.37387254901960787,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 4,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.3608235294117647,
+   "best_fitness": 0.40749019607843134,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 5,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.37143137254901953,
+   "best_fitness": 0.41143137254901957,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  }
+ ],
+ "floor": {
+  "role": "floor",
+  "card": "no card",
+  "mean_fitness": 0.2470980392156863,
+  "label": "exploratory"
+ },
+ "validation": [
+  {
+   "generation": 1,
+   "training_mean": 0.3765588235294118,
+   "validation_mean": 0.36549019607843136,
+   "gap": 0.011068627450980417,
+   "label": "exploratory"
+  },
+  {
+   "generation": 2,
+   "training_mean": 0.4216470588235294,
+   "validation_mean": 0.4097647058823529,
+   "gap": 0.011882352941176455,
+   "label": "exploratory"
+  },
+  {
+   "generation": 3,
+   "training_mean": 0.4163725490196078,
+   "validation_mean": 0.4087843137254902,
+   "gap": 0.007588235294117618,
+   "label": "exploratory"
+  },
+  {
+   "generation": 4,
+   "training_mean": 0.4474901960784313,
+   "validation_mean": 0.44935294117647057,
+   "gap": -0.0018627450980392424,
+   "label": "exploratory"
+  },
+  {
+   "generation": 5,
+   "training_mean": 0.4514313725490196,
+   "validation_mean": 0.45216666666666666,
+   "gap": -0.0007352941176470562,
+   "label": "exploratory"
+  }
+ ],
+ "ungraded": [
+  {
+   "generation": 0,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 1,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 2,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 3,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 4,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 5,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 0,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 1,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 2,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 3,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 4,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 5,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  }
+ ],
+ "noise": {
+  "verdict": "select",
+  "within_variance": 5.19953863898506e-06,
+  "between_variance": 0.0014062499999999984,
+  "standard_error": 0.01631881954740265,
+  "games_per_case": 1
+ },
+ "stop_reason": null,
+ "spend": {
+  "calls": 0,
+  "label": "no Spark calls in a dry run"
+ },
+ "picks": {
+  "evolved": "4fad163d97ec",
+  "no_selection": "b477a3e6394f"
+ },
+ "family_tree": [
+  {
+   "card_id": "4fad163d97ec",
+   "generation": 4,
+   "operator": "add",
+   "parents": [
+    "b9a879ce1b96"
+   ]
+  },
+  {
+   "card_id": "b9a879ce1b96",
+   "generation": 3,
+   "operator": "rewrite",
+   "parents": [
+    "716785d16d41"
+   ]
+  },
+  {
+   "card_id": "716785d16d41",
+   "generation": 2,
+   "operator": "add",
+   "parents": [
+    "47a65bc22136"
+   ]
+  },
+  {
+   "card_id": "47a65bc22136",
+   "generation": 1,
+   "operator": "delete",
+   "parents": [
+    "b1540acc3d37"
+   ]
+  },
+  {
+   "card_id": "b1540acc3d37",
+   "generation": 0,
+   "operator": "seed",
+   "parents": []
+  }
+ ]
+}

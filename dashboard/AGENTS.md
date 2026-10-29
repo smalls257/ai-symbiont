@@ -27,6 +27,10 @@ A second page, independent of `index.html`: it replays `sample/<replay>.json` (s
 - `totals`: computed from the steps by the emitter, never typed by hand.
 `demo-headlines.json` is copied from `results/*.json` and names its source file and commit per headline.
 
+## Evolve page (`evolve.html`)
+
+Reads `sample/<run>.json` (schema `evolve-progress-v1`, written by `scripts/evolve/export_progress.py`) and draws the evolved arm beside the no-selection arm and the no-card floor. **Violation prevented: Paper Tiger.** The exporter and the page both refuse a run without the control arm or the floor, and every point carries a label (exploratory or scored). A dry run says so in the banner. It holds ids, counts and labels only, never card text. `?run=<name>` picks the file.
+
 ## Commands
 Open `dashboard/index.html` through a local static server; `cd dashboard && npm ci` once per worktree (pinned eslint and html-validate, local only), then `scripts/gates/check_js.sh` (QG-FE-01), `uv run python scripts/gates/check_cdn.py` (QG-FE-02) and `scripts/gates/check_html.sh` (QG-FE-03, advisory).
 

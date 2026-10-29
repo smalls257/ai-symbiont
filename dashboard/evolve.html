@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-symbiont: Evolve progress</title>
+<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="evolve.css">
+</head>
+<body>
+<header class="bar">
+  <h1>Evolving lesson cards</h1>
+  <p id="banner" class="source"></p>
+</header>
+<p id="error" class="evolve-error" role="alert" hidden></p>
+<main id="page" hidden>
+  <section class="panel">
+    <h2>Fitness by generation</h2>
+    <svg id="curves" viewBox="0 0 640 260" role="img" aria-label="Mean fitness by generation for the evolved arm, the no-selection arm and the no-card floor"></svg>
+    <ul id="legend" class="legend"></ul>
+  </section>
+  <section class="panel">
+    <h2>Generalization gap (training minus validation, evolved arm)</h2>
+    <ul id="gap" class="rows"></ul>
+  </section>
+  <section class="panel">
+    <h2>Guards</h2>
+    <ul id="guards" class="rows"></ul>
+  </section>
+  <section class="panel">
+    <h2>Family tree of the evolved arm's pick</h2>
+    <ol id="tree" class="rows"></ol>
+  </section>
+</main>
+<script src="evolve.js"></script>
+</body>
+</html>
