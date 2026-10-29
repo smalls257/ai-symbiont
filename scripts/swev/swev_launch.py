@@ -31,7 +31,17 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--runs-dir", required=True, help="under workdir; holds the log")
     parser.add_argument("--step-limit", type=int, default=DEFAULT_STEP_LIMIT)
     parser.add_argument("--wall-limit-min", type=int, default=DEFAULT_WALL_LIMIT_MIN)
+    parser.add_argument("--teacher", choices=("spark", "wonder"), default=None)
     return parser.parse_args(argv)
+
+
+def teacher_of(args: argparse.Namespace) -> str | None:
+    """The teacher model; SystemExit unless a teacher arm runs alone on the history phase."""
+    if Arm.TEACHER not in args.arm:
+        return None
+    if args.phase != HISTORY or args.teacher is None or len(args.arm) > 1:
+        raise SystemExit("--arm teacher runs alone, on --phase history, with --teacher NAME")
+    return args.teacher
 
 
 def main(argv: list[str]) -> None:
@@ -40,7 +50,8 @@ def main(argv: list[str]) -> None:
         endpoint(arm)  # SystemExit naming the unset variable
     listed = json.loads((args.workdir / "data/swev-django-tasks.json").read_text())
     jobs = schedule(phase_ids(listed, args.phase), args.phase, args.arm, args.runs)
-    setting = Setting(REASONING, args.step_limit, args.wall_limit_min * 60)
+    teacher = teacher_of(args)
+    setting = Setting(REASONING, args.step_limit, args.wall_limit_min * 60, teacher=teacher)
     SwevDriver(args.workdir, args.workdir / args.runs_dir, jobs, setting).run()
 
 

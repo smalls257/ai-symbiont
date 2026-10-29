@@ -37,8 +37,8 @@ def test_keeps_resolved_runs_and_leaves_out_test_tasks(tmp_path):
         ],
     )
     found, skipped = module.manifest({"test": [{"task": "held"}]}, [tmp_path / "work" / "runs-a"])
-    assert [(e["task"], e["run"], e["source"]) for e in found] == [
-        ("early", 1, str(tmp_path / "work" / "runs-a"))
+    assert [(e["task"], e["run"], e["run_dir"], e["source"]) for e in found] == [
+        ("early", 1, str(tmp_path / "work" / "runs-a"), "glimmer")
     ]
     assert skipped == 1
 

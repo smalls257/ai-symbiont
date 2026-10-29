@@ -45,12 +45,14 @@ def passing_runs(run_dir: Path) -> list[dict]:
                     "task": row["instance_id"],
                     "run": row["run"],
                     "arm": row.get("arm") or "plain",
+                    "model": row.get("model"),
+                    "source": f"teacher/{row['teacher']}" if row.get("teacher") else "glimmer",
                     "passed": True,
                     "steps": row.get("steps"),
                     "step_limit": row.get("step_limit"),
                     "prompt_tokens": row.get("prompt_tokens"),
                     "completion_tokens": row.get("completion_tokens"),
-                    "source": str(run_dir),
+                    "run_dir": str(run_dir),
                     "trajectory": str(trajectory),
                 }
             )
@@ -74,7 +76,7 @@ def main() -> None:
     test_set = json.loads(args.test_set.read_text())
     found, skipped = manifest(test_set, args.dirs)
     args.out.write_text("".join(json.dumps(entry) + "\n" for entry in found))
-    by = Counter((entry["source"], entry["arm"]) for entry in found)
+    by = Counter((entry["run_dir"], entry["source"]) for entry in found)
     print(
         json.dumps(
             {
