@@ -1,7 +1,7 @@
 """Plug round 2's scored run: guard, plan check, no-lesson items, and the frozen decision rule.
 
 Usage: uv run python scripts/routea/plug_r2_score.py check --pool P --habit-rows H --aidev-lessons L
-Usage:   --prereg prereg/2026-10-29-plug-sit-seeds.md --work W
+Usage:   --prereg prereg/2026-10-29-plug-sit-cuda.md --work W
 Usage: uv run python scripts/routea/plug_r2_score.py bare --work W  |  score --work W --out F
 
 `check` refuses unless the inputs match their pins and the code at HEAD is the freeze commit's.
@@ -26,7 +26,7 @@ from warm_start import _jsonl, _read_jsonl, answerer_provenance, paired_gain  # 
 
 from symbiont.eval.prereg_git import run_provenance  # noqa: E402
 
-PREREG_NAME = "2026-10-29-plug-sit-seeds.md"
+PREREG_NAME = "2026-10-29-plug-sit-cuda.md"
 PINNED = {
     "pool_index_sha256": "a14f22f0158a2ac568f84ffdbbbafaa01059cf22abebc5f4370679623cd258ff",
     "habit_rows_sha256": "fa863cb3f13bf66907a16d076cf4d2ffab705272ef785d16ea93c19a271c06ea",
@@ -228,6 +228,7 @@ def main() -> None:
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--out", type=Path)
     parser.add_argument("--selected", help="the selection amendment's variant, or floor")
+    parser.add_argument("--backend", help="mlx or cuda: where the reader trained and answered")
     args = parser.parse_args()
     if args.stage == "check":
         print(json.dumps(check(args), indent=1))
@@ -236,7 +237,8 @@ def main() -> None:
         _jsonl(args.work / "bare" / "items.jsonl", bare_records(records))
         print(json.dumps({"items": len(records)}))
     else:
-        text = json.dumps(score(args.work, args.selected), indent=1, sort_keys=True)
+        document = {**score(args.work, args.selected), "backend": args.backend}
+        text = json.dumps(document, indent=1, sort_keys=True)
         args.out.write_text(text + "\n")
         print(text)
 

@@ -6,6 +6,7 @@ its docstring) and the tests pin the numbers. Pure: no torch, no clock, no files
 """
 
 import math
+import os
 
 import numpy as np
 
@@ -15,7 +16,8 @@ WARMUP = 20
 WARMUP_INIT = 1.0e-6
 END_LR = 1.0e-6
 PAD_TO = 32  # mlx-lm iterate_batches pads each batch to one plus a multiple of 32
-MAX_SEQ = 512  # run_lcap.sh max_seq_length
+# run_lcap.sh max_seq_length; LORA_MAX_LENGTH overrides it, as in train_lora.sh (round 2: 1024).
+MAX_SEQ = int(os.environ.get("LORA_MAX_LENGTH", "512"))
 
 
 def warmup_for(iters: int) -> int:

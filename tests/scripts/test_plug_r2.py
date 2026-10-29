@@ -201,3 +201,21 @@ def test_seed_mean_averages_each_repos_rates_over_seeds(monkeypatch):
     found = select.seed_mean(seeds)
     assert found["r"]["pick"] == pytest.approx(0.6) and found["r"]["silence"] == pytest.approx(0.8)
     assert select.SEEDS == (0, 1, 2)
+
+
+def test_backend_is_mlx_or_cuda_and_never_falls_back(monkeypatch):
+    backend = load(monkeypatch, "plug_r2_backend")
+    assert backend.backend_of("cuda") is backend.TrainerBackend.CUDA
+    assert backend.backend_of("mlx") is backend.TrainerBackend.MLX
+    with pytest.raises(ValueError, match="unknown TRAINER_BACKEND"):
+        backend.backend_of("gpu")
+    assert backend.iters_for(2117) == 529
+    with pytest.raises(ValueError):
+        backend.iters_for(3)
+
+
+def test_cuda_window_follows_lora_max_length(monkeypatch):
+    monkeypatch.setenv("LORA_MAX_LENGTH", "1024")
+    recipe = load(monkeypatch, "mlx_lora_recipe")
+    assert recipe.MAX_SEQ == 1024
+    assert recipe.padded_width([2000]) == 1024

@@ -142,6 +142,7 @@ def main() -> None:
         "--scored-items", type=float, required=True, help="mean pick items per scored repo"
     )
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--backend", required=True, help="mlx or cuda: where the variants trained")
     args = parser.parse_args()
     arms = ["floor", *args.order]
     # Every listed arm needs answers: a missing file raises in per_repo, never reads as "not run".
@@ -149,7 +150,7 @@ def main() -> None:
         arm: per_repo(args.work, arm) if arm == "floor" else per_repo_seeds(args.work, arm)
         for arm in arms
     }
-    result = select(cells, args.order)
+    result = {**select(cells, args.order), "backend": args.backend}
     if result["selected"] != "floor":
         chosen, floor = cells[result["selected"]], cells["floor"]
         gains = [chosen[r]["pick"] - floor[r]["pick"] for r in sorted(chosen)]

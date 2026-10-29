@@ -4,7 +4,9 @@
 #   scripts/routea/plug_r2.sh validate WORK   # variants in the frozen order on the validation repos
 #   scripts/routea/plug_r2.sh score WORK      # after the selection amendment: the scored run, once
 # Environment: PY (MLX venv python), MODEL_1B, MODEL_3B, POOL, HABIT_SPLIT, HABIT_ROWS, AIDEV_LESSONS,
-# ROUND1_PLAN and VALIDATION_PLAN (the earlier plans that define which repos are fresh).
+# ROUND1_PLAN and VALIDATION_PLAN (the earlier plans that define which repos are fresh), and
+# TRAINER_BACKEND: mlx (default, laptop) or cuda (PyTorch + PEFT on the 5080 desktop, where PY is the
+# desktop venv's python with torch, transformers and peft).
 # A trained adapter (its timing line) and an answer file are reused, so a stopped run resumes.
 set -euo pipefail
 
@@ -16,10 +18,11 @@ done
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
 LOGS="$WORK/logs"
-PREREG=prereg/2026-10-29-plug-sit-seeds.md
+PREREG=prereg/2026-10-29-plug-sit-cuda.md
 SEEDS=(0 1 2)  # each variant trains with every seed; every rule reads the per-repo seed mean
 mkdir -p "$LOGS"
 pure() { (cd "$ROOT" && uv run --no-sync python "$@"); }
+BACKEND=$(python3 "$HERE/plug_r2_backend.py" check "${TRAINER_BACKEND:-mlx}")
 
 [[ -f $WORK/plan.json ]] || pure scripts/routea/plug_round2.py plan --pool "$POOL" \
   --round1 "$ROUND1_PLAN" --validation "$VALIDATION_PLAN" --work "$WORK" >"$LOGS/plan.log"
@@ -34,7 +37,9 @@ answer() {  # answer OUT ITEMS MODEL ADAPTER ("-" for none)
   local adapter=()
   [[ $4 != - ]] && adapter=(--adapter "$4")
   mkdir -p "$(dirname "$1")"
-  "$PY" "$HERE/answer_contexts.py" --model "$3" ${adapter[@]+"${adapter[@]}"} --questions "$2" \
+  local script=answer_contexts.py
+  [[ $BACKEND == cuda ]] && script=answer_contexts_torch.py
+  "$PY" "$HERE/$script" --model "$3" ${adapter[@]+"${adapter[@]}"} --questions "$2" \
     --out "$1.tmp" 2>>"$LOGS/answers.log"
   mv "$1.tmp" "$1"
 }
@@ -53,8 +58,17 @@ train_variant() {  # train_variant VARIANT MODEL ROWS_DIR SEED
   local name="$1-s$4" adapter="$WORK/adapters/$1-s$4"
   grep -qx "train-$name [0-9]*" "$LOGS/timing.txt" 2>/dev/null && return 0
   rm -rf "$adapter" && mkdir -p "$adapter"
-  LORA_EPOCHS=1 LORA_MAX_LENGTH=1024 LORA_SEED=$4 "$HERE/train_lora.sh" "$PY" "$2" "$3" "$adapter" \
-    "$LOGS" "$name"
+  if [[ $BACKEND == cuda ]]; then
+    local iters start
+    iters=$(python3 "$HERE/plug_r2_backend.py" iters "$3/train.jsonl" 1)
+    start=$(date +%s)
+    LORA_MAX_LENGTH=1024 "$PY" "$HERE/train_lora_torch.py" --model "$2" --data "$3" --iters "$iters" \
+      --adapter "$adapter" --seed "$4" >"$LOGS/train-$name.log" 2>&1
+    echo "train-$name $(($(date +%s) - start))" >>"$LOGS/timing.txt"
+  else
+    LORA_EPOCHS=1 LORA_MAX_LENGTH=1024 LORA_SEED=$4 "$HERE/train_lora.sh" "$PY" "$2" "$3" \
+      "$adapter" "$LOGS" "$name"
+  fi
 }
 
 run_variant() {  # run_variant VARIANT MODEL ROWS_DIR: train and answer validation for every seed
@@ -76,7 +90,7 @@ rows() {  # rows VARIANT: build and fit the variant's rows
 
 selected() {  # selected ORDER...: run the selection rule; print the current best
   pure scripts/routea/plug_r2_select.py --work "$WORK/val/top5" --order "$@" \
-    --scored-items "$SCORED_ITEMS" --out "$WORK/selection.json" >/dev/null
+    --scored-items "$SCORED_ITEMS" --backend "$BACKEND" --out "$WORK/selection.json" >/dev/null
   "$PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))["selected"])' "$WORK/selection.json"
 }
 
@@ -117,7 +131,7 @@ score() {
   fi
   cp "$WORK/answerer.sha256" "$WORK/scored/answerer.sha256"
   cp "$WORK/provenance.json" "$WORK/scored/provenance.json"
-  pure scripts/routea/plug_r2_score.py score --work "$WORK/scored" --selected "$best" \
+  pure scripts/routea/plug_r2_score.py score --work "$WORK/scored" --selected "$best" --backend "$BACKEND" \
     --out "$ROOT/results/plug-situations.json"
 }
 
