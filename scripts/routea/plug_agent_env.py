@@ -18,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "calibration"))
 
 from minisweagent.agents.default import DefaultAgent  # noqa: E402
 from minisweagent.environments.docker import DockerEnvironment  # noqa: E402
-from plug_agent_notes import NoteSource, failure_of, known_mistake  # noqa: E402
+from plug_agent_notes import JudgeDownError, NoteSource, failure_of, known_mistake  # noqa: E402
 from run_calibration import Setting, agent_config, agent_model, classify, token_counts  # noqa: E402
 from taskenv import TaskEnvError, grade, history_scrub_script, install_script  # noqa: E402
 from teacher_model import Teacher, teacher_model  # noqa: E402
@@ -87,6 +87,8 @@ def run_task(row: dict, source: NoteSource, config: dict, traj: Path) -> dict:
     log, started = RunLog(), time.time()
     try:
         patch, fields = _agent_run(row, source, config, traj, log)
+    except JudgeDownError:
+        raise  # stops the whole run (plug_agent_run), never a void record
     except Exception as error:  # noqa: BLE001  a container that never started: void, re-queued
         patch, fields = (
             "",
@@ -147,6 +149,8 @@ def _agent_exit(agent: DefaultAgent, row: dict, rec: dict) -> dict:
     """The agent's exit info; an exception is recorded with its kind, never a silent pass."""
     try:
         return agent.run(row["problem_statement"])
+    except JudgeDownError:
+        raise  # fail closed: a judge arm with no judge is a none run under the judge's name
     except Exception as error:  # noqa: BLE001  recorded with its kind
         rec |= {
             "error_kind": classify(error),

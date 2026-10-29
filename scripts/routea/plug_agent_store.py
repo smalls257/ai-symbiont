@@ -24,6 +24,10 @@ class Store:
     removed_own_instance: int
     removed_later_or_undated: int
 
+    def removed_counts(self) -> list[int]:
+        """[scored repos, own instance, later or undated]: the per-rule counts the report logs."""
+        return [self.removed_scored_repo, self.removed_own_instance, self.removed_later_or_undated]
+
 
 def _earlier(instance: str | None, cutoff: str, dates: Mapping[str, str | None]) -> bool:
     created = dates.get(instance) if instance else None

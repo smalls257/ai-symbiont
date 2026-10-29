@@ -13,6 +13,7 @@ import json
 import os
 import re
 from collections import Counter
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -21,7 +22,7 @@ import build_lessons
 from lessons import lessons_in_session
 from plug import distinct
 from plug_agent_env import run_task
-from plug_agent_notes import NoteArm, NoteSource, Scorer, judge_client
+from plug_agent_notes import JudgeDownError, NoteArm, NoteSource, Scorer, judge_client
 from plug_agent_store import Store, store_for
 
 from symbiont.egress.spend import Ledger
@@ -110,24 +111,76 @@ class Plan:
         return NoteSource(arm, row["repo"], store.candidates, ranker, judged, judge)
 
 
+def run_until_graded(run_once: Callable[[], dict], requeues: int) -> tuple[dict | None, list[dict]]:
+    """(the graded record or None, the void records). A void run is retried `requeues` times.
+
+    Void = resolved None (infra, model_api, grader error): never scored, never silently dropped.
+    """
+    voids: list[dict] = []
+    for _ in range(requeues + 1):
+        rec = run_once()
+        if rec.get("resolved") is not None:
+            return rec, voids
+        voids.append(rec)
+    return None, voids
+
+
+def append_jsonl(path: Path, row: dict) -> None:
+    with path.open("a") as log:
+        log.write(json.dumps(row) + "\n")
+
+
+def dropped_tasks(out: Path) -> set[str]:
+    """Tasks that stayed void after their requeue: excluded from all five runs in the analysis."""
+    log = out / "dropped.jsonl"
+    if not log.is_file():
+        return set()
+    return {json.loads(line)["instance_id"] for line in log.read_text().splitlines() if line}
+
+
+def scored_records(out: Path) -> list[dict]:
+    """The graded records of tasks that were not dropped."""
+    log = out / "runs.jsonl"
+    rows = [json.loads(line) for line in log.read_text().splitlines() if line.strip()]
+    gone = dropped_tasks(out)
+    return [r for r in rows if r.get("resolved") is not None and r["instance_id"] not in gone]
+
+
+def run_arm(plan: Plan, task: str, row: dict, arm: NoteArm, store: Store) -> bool:
+    """One arm: graded record written (True), or void after its requeues, task dropped (False)."""
+    traj = plan.out / "traj" / task / f"{arm}.traj.json"
+    extra = {"store": len(store.candidates), "removed": store.removed_counts()}
+    rec, voids = run_until_graded(
+        lambda: run_task(row, plan.source(arm, row, store), plan.config, traj),
+        plan.config["void_requeue_cap"],
+    )
+    for void in voids:
+        append_jsonl(plan.out / "voids.jsonl", void | extra)
+    if rec is not None:
+        append_jsonl(plan.out / "runs.jsonl", rec | extra)
+        return True
+    last = voids[-1]
+    reason = last.get("error_kind") or last.get("grade_error") or "ungraded"
+    append_jsonl(
+        plan.out / "dropped.jsonl", {"instance_id": task, "arm": str(arm), "reason": reason}
+    )
+    return False
+
+
 def run_arms(plan: Plan, task: str, row: dict, finished: set[tuple[str, str]]) -> None:
-    """All five runs of one task (none twice), in the prereg's arm order."""
+    """All five runs of one task (none twice), in the prereg's arm order.
+
+    An arm that stays void after its requeue drops the task from all five runs (dropped.jsonl) and
+    no later arm runs. A down judge raises JudgeDownError out of here and stops the whole phase.
+    """
     store = plan.store(task, row)
-    removed = [
-        store.removed_scored_repo,
-        store.removed_own_instance,
-        store.removed_later_or_undated,
-    ]
     for arm in sorted(NoteArm, key=lambda arm: order_key(task, arm)):
         if (task, str(arm)) in finished:
             continue
         if plan.mode is Mode.DRY:
-            print(task, arm, len(store.candidates), removed)
-            continue
-        traj = plan.out / "traj" / task / f"{arm}.traj.json"
-        rec = run_task(row, plan.source(arm, row, store), plan.config, traj)
-        with (plan.out / "runs.jsonl").open("a") as log:
-            log.write(json.dumps(rec | {"store": len(store.candidates), "removed": removed}) + "\n")
+            print(task, arm, len(store.candidates), store.removed_counts())
+        elif not run_arm(plan, task, row, arm, store):
+            return
 
 
 def main() -> None:
@@ -152,11 +205,21 @@ def main() -> None:
     rows = {row["instance_id"]: row for row in json.loads(args.rows.read_text())}
     args.out.mkdir(parents=True, exist_ok=True)
     finished = done(args.out)
+    dropped = dropped_tasks(args.out)
     for task in sorted(json.loads(args.tasks.read_text())["kept"], key=order_key):
-        if spark and phase_spent() >= config["phase_cap_usd"] - config["per_run_cap_usd"] * 4:
+        if task in dropped:
+            continue
+        if spark and phase_spent() >= config["phase_cap_usd"] - config["per_run_cap_usd"] * len(
+            NoteArm
+        ):
             print(f"spend cap reached before {task}; stopping")
             break
-        run_arms(plan, task, rows[task], finished)
+        try:
+            run_arms(plan, task, rows[task], finished)
+        except JudgeDownError as error:
+            raise SystemExit(
+                f"STOPPED at {task}: {error}; no arm runs without its judge"
+            ) from error
 
 
 def parse_args() -> argparse.Namespace:

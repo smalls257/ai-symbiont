@@ -50,7 +50,7 @@ config sha256: `f5018960b94238243ffad9a6ecbe31a2fef587585c7ca4fce7d9a11bad3dc4ea
 
 Tasks run in the order of sha256 of `plug-agent-1:<instance_id>`. For each task all five runs (`none`, `none2`, `rag`, `ranker`, `judge`) run, in the order of sha256 of `plug-agent-1:<instance_id>:<arm>`, before the next task starts. The cost cap is checked only between tasks, so every finished task has all five runs.
 
-**Outcomes and voids.**
+**Outcomes and voids.** Implemented in `scripts/routea/plug_agent_run.py` (tests: `tests/scripts/test_plug_agent_run_wiring.py`); the runner writes `voids.jsonl` and `dropped.jsonl` for the report.
 
 - A run that hits the step or wall cap counts as unsolved, in every arm alike.
 - **Wall-cap hits are reported per arm**, with the server's slot count at the time, because Glimmer contention with Core can lengthen a run. Solved is reported as scored; the report states each arm's wall-cap hits and whether dropping them changes any contrast [established].
@@ -68,7 +68,7 @@ Tasks run in the order of sha256 of `plug-agent-1:<instance_id>`. For each task 
 | `ranker` | the ranker's top lesson if its top score reaches the thresholded ranker's round-3 validation threshold | exploratory reference |
 | `judge` | the judge's top shortlisted lesson if its seed-mean P(yes) reaches the judge's round-3 validation threshold | under test |
 
-`none` and `none2` are identical in everything but the run. Their difference is the A/A noise floor: the spread any other contrast must be read against, and the test of whether temperature 0 repeats [hypothesis]. Each contrast against the floor uses the mean of the two floor runs.
+`none` and `none2` are identical in everything but the run. Their difference is the A/A noise floor: the spread any other contrast must be read against, and the test of whether temperature 0 repeats [hypothesis]. The primary contrast uses the mean of the two floor runs. The exploratory contrasts (`rag`, `ranker`) use `none` alone, so they are noisier than the primary.
 
 Thresholds and adapters are the ones `plug_r3_run.py fit` wrote into round 3's validation amendment (`selection.json`, amendment 1 at 1b6a655), with round 3's frozen selection rule [established]:
 
@@ -88,7 +88,7 @@ Nothing is tuned on these tasks. Notes are each lesson's stored text, verbatim.
 - A **repeat** is a known mistake whose key already failed earlier in the same run. The note arms show their note at the first occurrence, so a repeat is a mistake the note was there to stop.
 - Per run, count the repeats. The count is made from the logged failure keys and the task's store, the same way in every arm [established, by construction].
 
-**A lesson applies to a task** when some stored lesson's key matches a failure made in ANY of the five runs of that task. The set is the same for every arm, so no arm chooses it. It still depends on outcomes: a task where no run made a known mistake has nothing to repeat. The report gives how many of the 29 tasks it holds [established].
+**A lesson applies to a task** when some stored lesson's key matches a failure made in ANY of the five runs of that task. The set is the same for every arm, so the floor arm no longer chooses it. It is still mildly arm-influenced: it includes the `judge` run's own failures, and a task where no run made a known mistake has nothing to repeat [established]. The report gives how many of the 29 tasks it holds [established].
 
 **Primary: repeats per run, on the tasks where a lesson applies.** Secondary: the same count over all 29 tasks, which is not selected on any run. If fewer than 10 tasks apply, the all-tasks count becomes the headline and the subset is secondary [established].
 
@@ -103,7 +103,7 @@ Nothing is tuned on these tasks. Notes are each lesson's stored text, verbatim.
 
 **The single primary contrast: `judge` minus the mean of `none` and `none2`, in repeats per run, on the tasks where a lesson applies.** Everything else is exploratory: `rag` and `ranker` against `none`, `judge` against `ranker` and `rag`, and solve rate over all 29 tasks. No exploratory contrast supports a claim. Each contrast has a percentile bootstrap interval over tasks (10,000 resamples, seed 0) [established]. Every row prints beside `none`, and the A/A difference (`none` minus `none2`) prints beside every contrast.
 
-**Pilot, and its size** [hypothesis]. With 29 tasks, a paired difference in solve rate can only be told from zero if it is about 30 points or more. A pilot of this size is not powered below that. The repeat count has no stated minimum yet: the A/A spread sets it, and PLUG-AGENT-2 is sized from it.
+**Pilot, and its size** [hypothesis]. With 29 tasks, a paired difference in solve rate can only be told from zero if it is about 30 points or more. A pilot of this size is not powered below that. **There is no minimum detectable difference for the repeat-count primary.** The 30 points holds only for solve rate. The repeat count's spread is unknown until the A/A runs show it, and PLUG-AGENT-2 is sized from that spread [established].
 
 **Claim template (fixed now).** "In a pilot of N tasks, on the repos that set its thresholds, the judge's repeats per run differ from no note by [estimate, interval]; not powered below about 30 points." The report never says "the judge helps agents".
 

@@ -279,3 +279,37 @@ def test_task_check_resumes_from_its_progress_log(monkeypatch, tmp_path):
     assert tasks.checked(rows, log, 1) == {"a": None, "b": str(tasks.Drop.NO_IMAGE)}
     assert len(log.read_text().splitlines()) == 2
     sys.modules.pop("plug_agent_tasks", None)
+
+
+def test_a_down_judge_is_not_recorded_as_a_void_run(mods, monkeypatch):
+    stub_modules(monkeypatch, ("minisweagent", "minisweagent.agents", "minisweagent.agents.default",
+                               "minisweagent.environments", "minisweagent.environments.docker",
+                               "run_calibration", "taskenv", "teacher_model"))  # fmt: skip
+    sys.modules["minisweagent.agents.default"].DefaultAgent = None
+    sys.modules["minisweagent.environments.docker"].DockerEnvironment = None
+    for name in ("Setting", "agent_config", "agent_model", "classify", "token_counts"):
+        setattr(sys.modules["run_calibration"], name, None)
+    sys.modules["run_calibration"].classify = lambda error: "infra"
+    sys.modules["taskenv"].TaskEnvError, sys.modules["taskenv"].grade = Exception, None
+    sys.modules["taskenv"].install_script = sys.modules["taskenv"].history_scrub_script = None
+    sys.modules["teacher_model"].Teacher, sys.modules["teacher_model"].teacher_model = None, None
+    import plug_agent_env as env_module
+
+    class Agent:
+        def __init__(self, error):
+            self.error = error
+
+        def run(self, task):
+            raise self.error
+
+    with pytest.raises(mods["notes"].JudgeDownError):
+        env_module._agent_exit(
+            Agent(mods["notes"].JudgeDownError("down")), {"problem_statement": ""}, {}
+        )
+    rec: dict = {}
+    assert (
+        env_module._agent_exit(Agent(OSError("net")), {"problem_statement": ""}, rec)["submission"]
+        == ""
+    )
+    assert rec["error_kind"] == "infra"
+    sys.modules.pop("plug_agent_env", None)
