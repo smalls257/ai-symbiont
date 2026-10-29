@@ -74,7 +74,7 @@ def analyze(scores: Mapping[str, Mapping[Case, float]]) -> dict[str, Any]:
     claims = {name: compare(scores[a], scores[b]) for name, a, b in COMPARISONS}
     c1 = claims["C1"]
     claims["C1"]["supports_the_card"] = c1["word"] == "better" and c1["mean_difference"] >= MIN_GAIN
-    return {"claims": claims, "sentence": verdict_sentence(claims)}
+    return {"claims": claims, "result": verdict_sentence(claims)}
 
 
 def _range(interval: Sequence[float]) -> str:

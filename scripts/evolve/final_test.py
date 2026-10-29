@@ -286,7 +286,7 @@ def main(argv: list[str] | None = None) -> int:
         raise ScoredRefusalError("run needs --scored and --wad")
     document = run_scored(args, report)
     args.out.write_text(json.dumps(document, indent=1) + "\n")
-    print(document["sentence"])
+    print(document["result"])
     return 0
 
 

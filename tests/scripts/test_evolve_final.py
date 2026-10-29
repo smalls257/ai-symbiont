@@ -217,6 +217,18 @@ def test_the_results_file_holds_ids_labels_and_intervals_and_no_card_text():
     assert set(document["claims"]["C1"]["per_map"]) == set(fc.HELD_OUT_MAPS)
 
 
+def test_the_results_document_passes_the_results_content_gate():
+    cases = fc.scored_cases()
+    scores = ft.play_scored(FakeSpark(), cases, batch_cases=7)
+    document = ft.results_document(report(), scores, cases, {"model": "m", "spend": {"calls": 0}})
+    gate_path = Path(__file__).resolve().parents[2] / "scripts" / "gates"
+    sys.path.insert(0, str(gate_path))
+    import check_results_content as gate  # noqa: PLC0415 - the gate script lives outside src
+
+    assert gate.findings_in("evolve-card.json", json.loads(json.dumps(document))) == []
+    assert "result" in document and "sentence" not in document
+
+
 def per_case(gain, noise_by_map=None):
     cases = fc.scored_cases()
     base = {c: 0.0 for c in cases}
@@ -250,12 +262,12 @@ def test_a_gain_on_five_maps_that_reverses_on_two_reads_tie_not_better():
 def test_the_sentence_never_uses_the_words_the_pitch_may_not_use_and_names_the_interval():
     none, mined = per_case(0.3)
     strong = {c: 0.1 for c in none}
-    supported = sf.analyze({"none": none, "mined": mined, "strong": strong})["sentence"]
+    supported = sf.analyze({"none": none, "mined": mined, "strong": strong})["result"]
     assert "raised Muse Spark's fitness by 0.30" in supported and "interval" in supported
     assert "against 0.10 for a hand-written card" in supported
-    flat = sf.analyze({"none": none, "mined": none, "strong": strong})["sentence"]
+    flat = sf.analyze({"none": none, "mined": none, "strong": strong})["result"]
     assert flat.startswith("A mined card did not measurably beat no card at this size")
-    worse = sf.analyze({"none": mined, "mined": none, "strong": strong})["sentence"]
+    worse = sf.analyze({"none": mined, "mined": none, "strong": strong})["result"]
     assert "scored below no card" in worse
     for sentence in (supported, flat, worse):
         assert not any(word in sentence.lower() for word in FORBIDDEN)
@@ -269,7 +281,7 @@ def test_a_tie_with_a_mean_between_five_and_ten_hundredths_says_no_measurable_ga
     none = {c: 0.0 for c in cases}
     result = sf.compare(mined, none)
     assert 0.05 <= result["mean_difference"] < 0.10 and result["word"] == "tie"
-    sentence = sf.analyze({"none": none, "mined": mined, "strong": none})["sentence"]
+    sentence = sf.analyze({"none": none, "mined": mined, "strong": none})["result"]
     assert "No measurable gain at this size." in sentence and "trend" not in sentence.lower()
 
 
