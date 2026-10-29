@@ -42,6 +42,22 @@ class Lesson:
             if not text.strip():
                 raise LessonFormError(f"lesson part {part!r} is empty")
 
+    def to_json(self) -> dict[str, str | None]:
+        """The lesson as plain JSON (for the run's own state file, never for publishing)."""
+        return {
+            "went_wrong": self.went_wrong,
+            "instead": self.instead,
+            "check": self.check,
+            "source_level": self.source_level,
+        }
+
+    @classmethod
+    def from_json(cls, data: dict[str, str | None]) -> "Lesson":
+        """The inverse of to_json; raises LessonFormError for an empty part."""
+        return cls(
+            str(data["went_wrong"]), str(data["instead"]), str(data["check"]), data["source_level"]
+        )
+
     def words(self) -> int:
         """Words over the three parts."""
         return sum(len(part.split()) for part in (self.went_wrong, self.instead, self.check))
@@ -70,6 +86,15 @@ class Card:
     def of(cls, lessons: Sequence[Lesson]) -> "Card":
         """A card from lessons; raises CardCapError when over a cap."""
         return cls(tuple(lessons))
+
+    def to_json(self) -> list[dict[str, str | None]]:
+        """The card as plain JSON."""
+        return [lesson.to_json() for lesson in self.lessons]
+
+    @classmethod
+    def from_json(cls, data: list[dict[str, str | None]]) -> "Card":
+        """The inverse of to_json; raises CardCapError or LessonFormError for a bad card."""
+        return cls.of([Lesson.from_json(item) for item in data])
 
     def words(self) -> int:
         """Words over every lesson."""

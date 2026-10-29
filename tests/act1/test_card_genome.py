@@ -80,3 +80,15 @@ def test_render_holds_no_digits_except_lesson_numbers():
     text = Card.of([lesson(), lesson(went_wrong="Fired with no enemy in view")]).render()
     assert not re.search(r"\d", re.sub(r"^\d+\. ", "", text, flags=re.M))
     assert text.splitlines()[1].startswith("2. ")
+
+
+def test_a_card_survives_the_json_round_trip_with_its_source_levels():
+    card = Card.of([Lesson("a", "b", "c", "MAP02"), lesson()])
+    assert Card.from_json(card.to_json()) == card
+    assert Card.from_json(card.to_json()).card_id == card.card_id
+
+
+def test_a_stored_card_over_the_cap_still_raises_when_read_back():
+    stored = [lesson().to_json() for _ in range(MAX_LESSONS + 1)]
+    with pytest.raises(CardCapError):
+        Card.from_json(stored)

@@ -251,7 +251,7 @@ def next_population(
         Population(population.generation + 1, population.arm, cards),
         tuple(run.births),
         table,
-        _archive_offers(table, by_id),
+        archive_offers(table, by_id),
         tuple(run.verdicts),
         run.duplicates,
     )
@@ -265,7 +265,7 @@ def _elite_birth(population: Population, card_id: str) -> Birth:
     )  # fmt: skip
 
 
-def _archive_offers(
+def archive_offers(
     table: FitnessTable, by_id: Mapping[str, Card]
 ) -> tuple[tuple[Card, float], ...]:
     """Every card of the table with its mean fitness, for the niche archive."""

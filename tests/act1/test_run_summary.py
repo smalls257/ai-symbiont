@@ -44,7 +44,7 @@ def test_no_lesson_text_reaches_the_summary():
     for card in record.cards.values():
         for lesson in card.lessons:
             assert lesson.instead not in text and lesson.went_wrong not in text
-    assert Card.of([]).card_id in text  # ids are fine
+    assert record.picks[Arm.EVOLVED] in text  # ids are fine
 
 
 def test_a_run_without_the_empty_card_has_no_floor():

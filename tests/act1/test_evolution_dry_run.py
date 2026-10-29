@@ -96,3 +96,75 @@ def test_the_births_make_a_lineage_that_walks_back_to_generation_zero():
         if birth.arm == Arm.EVOLVED:
             lineage.add(birth)
     assert lineage.ancestors(record.picks[Arm.EVOLVED])[-1].generation == 0
+
+
+def control_parent_ranks(record):
+    """For each generation, the fitness rank (0 = best) of the first parent of each child."""
+    ranks = {}
+    for generation in range(1, record.last_played + 1):
+        table = record.tables[Arm.NO_SELECTION][generation - 1]
+        order = sorted(
+            table.cards,
+            key=lambda cid: -sum(table.scores[(cid, case)] for case in table.cases),
+        )
+        ranks[generation] = [
+            order.index(b.parents[0])
+            for b in record.births
+            if b.arm == Arm.NO_SELECTION
+            and b.generation == generation
+            and b.operator.value not in ("elite", "seed_empty")
+            and b.parents
+            and b.parents[0] in order
+        ]
+    return ranks
+
+
+def test_the_control_arms_parent_choices_differ_across_generations_and_ignore_fitness_rank():
+    pooled = []
+    for seed in range(8):
+        ranks = control_parent_ranks(run(seed=seed, generations=6))
+        firsts = [r[0] for r in ranks.values() if r]
+        assert len(set(firsts)) > 1, (seed, firsts)  # not the same position every generation
+        pooled.extend(rank for r in ranks.values() for rank in r)
+    mean_rank = sum(pooled) / len(pooled)
+    assert 1.5 < mean_rank < 3.5, mean_rank  # a random pick of six cards averages 2.5
+
+
+def test_the_chance_source_of_a_generation_does_not_depend_on_the_other_generations():
+    first = run(generations=3)
+    longer = run(generations=5)
+    early = [b for b in longer.births if b.generation <= 3]
+    assert [b for b in first.births if b.generation <= 3] == early
+
+
+def test_the_same_seed_gives_identical_output_twice():
+    one, two = run(seed=4, generations=4), run(seed=4, generations=4)
+    assert one.births == two.births and one.picks == two.picks and one.gaps == two.gaps
+    assert [t.scores for t in one.tables[Arm.EVOLVED]] == [
+        t.scores for t in two.tables[Arm.EVOLVED]
+    ]
+
+
+def test_the_authors_state_is_not_reset_between_generations():
+    from symbiont.act1.offline_author import OfflineAuthor as Author
+
+    author = Author()
+    calls = []
+
+    class Spy(Author):
+        def vary(self, operator, parents, summary):
+            calls.append(self.calls)
+            return super().vary(operator, parents, summary)
+
+    spy = Spy()
+    from evolve_world import VariationTools as Tools
+
+    record = evolve(
+        seeds(),
+        SPLIT,
+        FakePlayer(),
+        Tools(spy, tools().judge, tools().rng, tools().schedule, {}),
+        RunRules(3, 1, 1, SpendRoom(10.0, 1.0)),
+    )
+    assert record.last_played == 3 and author.calls == 0
+    assert calls == sorted(calls) and len(set(calls)) == len(calls)  # one counter, never reset

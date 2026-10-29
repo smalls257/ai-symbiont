@@ -5,7 +5,6 @@ drives it with the engine player in scripts/evolve. Held-out levels never reach 
 `evolve` plays selection and validation cases only, and the final test is a separate run.
 """
 
-import copy
 import random
 import statistics
 from collections.abc import Mapping, Sequence
@@ -18,7 +17,13 @@ from symbiont.act1.card_picking import GameRole, PlayedGame, pick_best
 from symbiont.act1.evolve_split import EvolveSplit, generation_cases, validation_cases
 from symbiont.act1.game_fitness import Case, GameResult, Grade, fitness
 from symbiont.act1.game_summary import summarize_games
-from symbiont.act1.generation import ParentChoice, Population, VariationTools, next_population
+from symbiont.act1.generation import (
+    ParentChoice,
+    Population,
+    VariationTools,
+    archive_offers,
+    next_population,
+)
 from symbiont.act1.lexicase import FitnessTable
 from symbiont.act1.lineage import Arm, Birth
 from symbiont.act1.run_guards import (
@@ -48,6 +53,24 @@ class UnexpectedLevelError(ValueError):
     """A case on a level that is neither a selection nor a validation level."""
 
 
+class Journal(Protocol):
+    """Where a generation's children are written down before any game of it is played.
+
+    On a resume the stored children are reused: an author that is not deterministic must not
+    write new children for a generation that already has some.
+    """
+
+    def load(self, arm: Arm, generation: int) -> tuple[tuple[Card, ...], tuple[Birth, ...]] | None:
+        """The stored children (the generation's whole population) and births, or None."""
+        ...
+
+    def save(
+        self, arm: Arm, generation: int, cards: tuple[Card, ...], births: tuple[Birth, ...]
+    ) -> None:
+        """Store them."""
+        ...
+
+
 @dataclass(frozen=True)
 class RunRules:
     """What a run is told before it starts."""
@@ -56,6 +79,7 @@ class RunRules:
     run_seed: int
     games_per_case: int
     spend_room: SpendRoom
+    journal: Journal | None = None
 
 
 @dataclass
@@ -189,21 +213,42 @@ class _Run:
             self.split, generation, self.rules.run_seed, self.record.games_per_case
         )
         for arm, state in arms.items():
-            own = replace(
-                copy.deepcopy(tools),
-                rng=random.Random(f"{self.rules.run_seed}:{arm}"),
-                summaries=_summaries(state.results, state.population.cards),
-            )
-            step = next_population(state.population, state.results, CHOICE[arm], own)
-            self.record.births.extend(step.births)
-            for card, mean in step.archive_offers:
-                self.record.archives.setdefault(arm, Archive()).offer(card, mean)
-            state.population = step.population
-            state.card_ids.update(card.card_id for card in step.population.cards)
-            state.results = self.play(step.population.cards, cases, generation, GameRole.SELECTION)
+            cards = self._children(arm, state, generation, tools)
+            state.population = Population(generation, arm, cards)
+            state.card_ids.update(card.card_id for card in cards)
+            state.results = self.play(cards, cases, generation, GameRole.SELECTION)
             require_graded_share(state.results)
             self.record.tables.setdefault(arm, []).append(FitnessTable.of(state.results))
         self.record.last_played = generation
+
+    def _children(
+        self, arm: Arm, state: _ArmState, generation: int, tools: VariationTools
+    ) -> tuple[Card, ...]:
+        """The arm's next population: from the journal if stored, else written and stored now.
+
+        The chance source is seeded by run seed, arm and generation, so a generation's draws are
+        independent of the others and of fitness rank, and a resume draws the same numbers.
+        """
+        journal = self.rules.journal
+        stored = journal.load(arm, generation) if journal else None
+        if stored is not None:
+            cards, births = stored
+            table = FitnessTable.of(state.results)
+            offers = archive_offers(table, {c.card_id: c for c in state.population.cards})
+        else:
+            own = replace(
+                tools,
+                rng=random.Random(f"{self.rules.run_seed}:{arm}:{generation}"),
+                summaries=_summaries(state.results, state.population.cards),
+            )
+            step = next_population(state.population, state.results, CHOICE[arm], own)
+            cards, births, offers = step.population.cards, step.births, step.archive_offers
+            if journal:
+                journal.save(arm, generation, cards, births)
+        self.record.births.extend(births)
+        for card, mean in offers:
+            self.record.archives.setdefault(arm, Archive()).offer(card, mean)
+        return cards
 
     def validate(self, generation: int, state: _ArmState) -> None:
         """The evolved arm's best card of this generation plays the validation levels."""

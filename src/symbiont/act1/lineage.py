@@ -57,6 +57,33 @@ class Birth:
     rejection: Rejection | None
 
 
+def birth_to_json(birth: Birth) -> dict[str, Any]:
+    """A birth as plain JSON: the published form."""
+    return {
+        "card_id": birth.card_id,
+        "generation": birth.generation,
+        "arm": birth.arm.value,
+        "operator": birth.operator.value,
+        "parents": list(birth.parents),
+        "author": birth.author,
+        "rejection": None if birth.rejection is None else birth.rejection.value,
+    }
+
+
+def birth_from_json(data: dict[str, Any]) -> Birth:
+    """The inverse of birth_to_json."""
+    rejection = data["rejection"]
+    return Birth(
+        data["card_id"],
+        data["generation"],
+        Arm(data["arm"]),
+        Operator(data["operator"]),
+        tuple(data["parents"]),
+        data["author"],
+        None if rejection is None else Rejection(rejection),
+    )
+
+
 def _expected_parents(operator: Operator) -> int:
     """Seeds have none, crossover two, every other operator one."""
     if operator in SEEDS:
@@ -103,17 +130,4 @@ class Lineage:
 
     def publishable(self) -> dict[str, Any]:
         """Ids, generations, operators and rejection labels: nothing a lesson says."""
-        return {
-            "births": [
-                {
-                    "card_id": b.card_id,
-                    "generation": b.generation,
-                    "arm": b.arm.value,
-                    "operator": b.operator.value,
-                    "parents": list(b.parents),
-                    "author": b.author,
-                    "rejection": None if b.rejection is None else b.rejection.value,
-                }
-                for b in self.births
-            ]
-        }
+        return {"births": [birth_to_json(b) for b in self.births]}

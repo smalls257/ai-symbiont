@@ -15,6 +15,8 @@ from symbiont.act1.lineage import (
     LineageError,
     Operator,
     UnknownCardError,
+    birth_from_json,
+    birth_to_json,
 )
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -103,3 +105,10 @@ def test_publishable_passes_the_results_content_gate(tmp_path):
         [sys.executable, str(gate), str(target)], cwd=ROOT, capture_output=True, text=True
     )
     assert done.returncode == 0, done.stdout + done.stderr
+
+
+def test_a_birth_survives_the_json_round_trip_including_a_rejection():
+    rejected = birth("bad", Operator.ADD, ["seed1"], 1, Rejection.MAP_NAME)
+    assert birth_from_json(birth_to_json(rejected)) == rejected
+    plain = birth("kid", Operator.CROSSOVER, ["a", "b"], 2)
+    assert birth_from_json(birth_to_json(plain)) == plain
