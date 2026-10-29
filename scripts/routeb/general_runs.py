@@ -5,7 +5,7 @@ was steered by a task-specific lesson. A graded run without its trajectory raise
 """
 
 import json
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -32,9 +32,12 @@ def _rows(path: Path) -> list[dict]:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line]
 
 
-def plain_runs(src: Path) -> Iterator[PlainRun]:
-    """Every graded run in the plain logs under `src`, in log order."""
-    for log in PLAIN_LOGS:
+def plain_runs(src: Path, logs: Sequence[str] = PLAIN_LOGS) -> Iterator[PlainRun]:
+    """Every graded run in `logs` (the plain logs by default) under `src`, in log order.
+
+    The recursive loop adds its own rounds' training-attempt logs; never an evaluation log.
+    """
+    for log in logs:
         for row in _rows(src / log / "calibration.jsonl"):
             if row.get("resolved") is None:
                 continue

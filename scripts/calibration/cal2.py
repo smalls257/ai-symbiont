@@ -3,7 +3,7 @@
 The 50-step screen mixed hard tasks with tasks the cap cut off; CAL2 re-measures them at a raised
 cap, adaptively (priority order, sequential stopping, TARGET_IN_BAND / MIN_STRATA / BARREN_LIMIT
 stop rules), keeps tasks solved 1 or 2 of 3, and resumes from its log. Summary: ids, counts, labels.
---fixed-runs/--lessons runs the lesson arm, --adapter personal Glimmer; records carry the arm.
+--lessons runs the lesson arm, --adapter or --model personal Glimmer; records carry arm and model.
 Usage: python launch.py <workdir> --candidates-log runs/calibration.jsonl --runs-dir runs-cal2
 """
 
@@ -205,12 +205,24 @@ class CandidateDriver(Driver):
             "lesson_sha": self.lesson_hashes.get(rec["instance_id"]),
             "lesson_check": _label(self.lesson_checks.get(rec["instance_id"])),
             "adapter_id": self.low.adapter_id,
+            "model": self.low.model,
         }
         super()._record(rec | stamp)
 
-    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None]:
-        """This run's arm, adapter id and the task's lesson hash: the resume key's arm part."""
-        return str(self.arm), self.low.adapter_id, self.lesson_hashes.get(iid)
+    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None, str]:
+        """This run's arm, adapter id, the task's lesson hash and the model: the resume key."""
+        return str(self.arm), self.low.adapter_id, self.lesson_hashes.get(iid), self.low.model
+
+    def use_model(self, name: str) -> None:
+        """Personal Glimmer by router name (the loop's Muse-Glimmer-30B-<domain>-r<N>).
+
+        Combines with --lessons (the loop's with-card ablation runs); refuses --adapter, which
+        names a personal Glimmer the other way.
+        """
+        if self.low.adapter_id is not None:
+            raise ValueError("--model and --adapter both name a personal Glimmer; pick one")
+        self.low = dataclasses.replace(self.low, model=f"openai/{name}")
+        self.header = self.header | {"model": self.low.model}
 
     def arm_records(self, iid: str) -> list[dict]:
         """Every logged record of one task under this run's arm, graded or not."""
@@ -307,6 +319,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--lessons", type=Path, default=None, help="lesson arm: id -> text JSON")
     parser.add_argument("--adapter", type=int, default=None, help="personal arm: served LoRA id")
+    parser.add_argument("--model", default=None, help="a router model name instead of plain")
     add_limit_arguments(parser)
     return parser.parse_args(argv)
 
@@ -320,6 +333,8 @@ if __name__ == "__main__":
         driver.give_lessons(args.lessons)
     if args.adapter is not None:
         driver.use_adapter(args.adapter)
+    if args.model:
+        driver.use_model(args.model)
     from run_calibration import preflight
 
     preflight(driver.low)

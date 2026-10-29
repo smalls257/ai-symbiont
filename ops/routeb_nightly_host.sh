@@ -3,7 +3,7 @@
 #
 #   ops/routeb_nightly_host.sh --env FILE train   WORK SET [START_FROM]
 #   ops/routeb_nightly_host.sh --env FILE install NAME SET
-#   ops/routeb_nightly_host.sh --env FILE verify  WORK NAME
+#   ops/routeb_nightly_host.sh --env FILE verify  WORK NAME [SET]
 #   ops/routeb_nightly_host.sh --env FILE restore
 #   ops/routeb_nightly_host.sh --env FILE ensure-up
 #   ops/routeb_nightly_host.sh --env FILE clean   WORK
@@ -126,13 +126,15 @@ install() {
   say "installed $name ($gguf); the router lists it beside $ROUTEB_PLAIN_MODEL"
 }
 
-verify() {
-  [[ $# -eq 2 ]] || die 64 "usage: verify WORK NAME"
+verify() {  # SET (the loop passes it): the adapter child must load exactly glimmer-SET.gguf
+  [[ $# -ge 2 && $# -le 3 ]] || die 64 "usage: verify WORK NAME [SET]"
+  local gguf=()
+  [[ -z ${3:-} ]] || gguf=(--gguf "glimmer-$3.gguf")
   [[ -f $1/questions.jsonl && -f $1/system.txt ]] || die 66 "missing questions or system in $1"
   PYTHONPATH="$ROOT/scripts/routeb" HF_HUB_OFFLINE=1 "$ROUTEB_PY" \
     "$ROOT/scripts/routeb/verify_glimmer_models.py" --server "$ROUTEB_GLIMMER_URL" \
     --snapshot "$ROUTEB_SNAPSHOT" --work "$1" --plain "$ROUTEB_PLAIN_MODEL" --adapter "$2" \
-    --system "$1/system.txt" || { say "verify failed for $2"; exit 1; }
+    --system "$1/system.txt" ${gguf[@]+"${gguf[@]}"} || { say "verify failed for $2"; exit 1; }
 }
 
 clean() {

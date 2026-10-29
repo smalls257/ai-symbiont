@@ -176,7 +176,7 @@ def install(night: Night) -> None:
 def verify(night: Night) -> None:
     """Plain answers plain, the personal name answers with a lesson card."""
     night.begin("verify", f"plain has no adapter; {night.model} answers with a lesson card")
-    night.host.step("verify", night.host_work, night.model)
+    night.host.step("verify", night.host_work, night.model, night.adapter_set)
 
 
 def forget(night: Night) -> None:

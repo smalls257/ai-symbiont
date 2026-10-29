@@ -21,6 +21,7 @@ class Setting:
     step_limit: int
     wall_limit_s: int
     adapter_id: int | None = None
+    model: str = "model"
 
 
 @pytest.fixture(autouse=True)
@@ -363,6 +364,21 @@ def test_adapter_arm_is_stamped_on_every_record_and_cannot_mix_with_lessons(monk
     mixed.give_lessons(tmp_path / "m" / "lessons.json")
     with pytest.raises(ValueError, match="one arm per run"):
         mixed.use_adapter(0)
+
+
+def test_a_named_model_is_stamped_and_a_plain_record_is_not_its_run(monkeypatch, tmp_path):
+    write_prior_log(tmp_path)
+    _, driver, seen = lesson_driver(monkeypatch, tmp_path, {})
+    driver.use_model("Muse-Glimmer-30B-coding-sqlglot-r1")
+    driver.run()
+    assert sorted(iid for iid, _ in seen) == ["task00", "task01", "task02"]
+    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    assert {rec["model"] for rec in logged[3:]} == {"openai/Muse-Glimmer-30B-coding-sqlglot-r1"}
+    (tmp_path / "m").mkdir()
+    _, both, _ = lesson_driver(monkeypatch, tmp_path / "m", {})
+    both.use_adapter(0)
+    with pytest.raises(ValueError, match="pick one"):
+        both.use_model("Muse-Glimmer-30B-coding-sqlglot-r1")
 
 
 def write_prior_log(tmp_path, extra=None):

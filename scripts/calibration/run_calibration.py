@@ -50,6 +50,7 @@ class Setting:
     step_limit: int
     wall_limit_s: int
     adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
+    model: str = MODEL  # a router name of its own serves a personal Glimmer (the loop's rounds)
 
 
 def glimmer_url() -> str:
@@ -85,7 +86,7 @@ def preflight(setting: Setting) -> None:
     listing_url = f"{root}/models"  # the configured Glimmer server only, never a typed host
     with urlopen(listing_url, timeout=PREFLIGHT_TIMEOUT_S) as response:  # noqa: S310  see above
         listing = json.loads(response.read())
-    problem = missing_on_server(listing, MODEL.removeprefix("openai/"), setting.adapter_id)
+    problem = missing_on_server(listing, setting.model.removeprefix("openai/"), setting.adapter_id)
     if problem:
         raise SystemExit(f"preflight failed, no run started: {problem}")
 
@@ -107,7 +108,7 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
         f"Reasoning strength: {setting.reasoning}\n" + agent["system_template"]
     )
     model = cfg["model"] | {
-        "model_name": MODEL,
+        "model_name": setting.model,
         "cost_tracking": "ignore_errors",  # local model: cost is 0 by construction
         "model_kwargs": {
             "api_base": glimmer_url(),
@@ -158,7 +159,7 @@ def _new_record(row: dict, run: int, setting: Setting, stage: str) -> dict:
         "run": run,
         **asdict(setting),
         "image": IMAGE,
-        "model": MODEL,
+        "model": setting.model,
         "error_kind": None,
         "error": None,
         "started": time.time(),
