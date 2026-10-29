@@ -1,19 +1,11 @@
 """Plug situation test: an agent's current situation and many lessons; pick, note, or stay silent.
 
-Usage: uv run python scripts/routea/plug_situation.py build --pool P --test-repos PLAN --work W
-Usage: uv run python scripts/routea/plug_situation.py score --work W --arms a1 a2v --out F
-Usage: uv run python scripts/routea/plug_situation.py narrow --source W --keep 5 --work W5
-Usage: uv run python scripts/routea/plug_situation.py pilot-report --source W --work W5 --arms A
-Usage: uv run python scripts/routea/plug_situation.py ranker-answers --work W
-
 Each lesson gives a pick item (its situation, PROMPT_LESSONS lessons including it) and a silence
 item (the same prompt without it). Distractors never share the lesson's failure key; the ranker's
 top lessons are shuffled per item so their order gives nothing away. Scoring is whole-token
-containment of a fix, excusing lessons the right fix itself names, plus abstention.
+containment of a fix, excusing lessons the right note itself names, plus abstention.
 """
 
-import argparse
-import json
 import math
 import random
 import re
@@ -28,9 +20,8 @@ sys.path.insert(0, str(HERE.parents[1] / "src"))
 sys.path.insert(0, str(HERE))
 
 from lessons import Lesson  # noqa: E402
-from plug import abstains, distinct, fold  # noqa: E402
+from plug import abstains, fold  # noqa: E402
 from questions import lessons_prompt  # noqa: E402
-from warm_start import _jsonl, _read_jsonl, paired_gain  # noqa: E402
 
 PROMPT_LESSONS = 60  # within the 50-100 range the owner set; fits the 1B context at ~5k tokens
 _EDGE = ".,;:!?()[]{}<>"  # punctuation stripped from token edges before whole-token matching
@@ -48,7 +39,7 @@ class Item:
     situation: str
     prompt_lessons: tuple[Lesson, ...]
     applies: Lesson | None
-    excused: tuple[str, ...] = ()  # lessons the applicable fix itself names: never a wrong pick
+    excused: tuple[str, ...] = ()  # lessons the applicable note itself names: never a wrong pick
 
 
 def situation_of(lesson: Lesson) -> str:
@@ -67,7 +58,7 @@ def build_items(test: dict[str, list[Lesson]], pool: Sequence[Lesson], seed: int
             shown = _shown(lesson, lessons, others, rng)
             silent = tuple(other for other in shown if other is not lesson)
             situation = situation_of(lesson)
-            excused = tuple(o.lesson_id for o in silent if names_fix(lesson.fix, o))
+            excused = tuple(o.lesson_id for o in silent if names_fix(lesson.text(), o))
             items.append(Item(f"{lesson.lesson_id}-pick", situation, shown, lesson, excused))
             items.append(Item(f"{lesson.lesson_id}-silence", situation, silent, None))
     return items
@@ -198,7 +189,8 @@ def item_record(item: Item) -> dict:
     }
 
 
-def _shown_applies(record: dict) -> bool:
+def shows_applicable(record: dict) -> bool:
+    """The record's prompt still holds its applicable lesson (a narrowed prompt may drop it)."""
     if record["applies"] is None:
         return False
     return any(
@@ -220,71 +212,12 @@ def item_from(record: dict) -> Item:
     return Item(record["question_id"], record["situation"], shown, applies, excused)
 
 
-def build(pool: Path, test_repos: list[str], out: Path) -> dict:
-    """Items for the given test repos, distractors from every other repo's lessons."""
-    import build_lessons  # noqa: PLC0415  (reads the pool)
-
-    candidates, _, _ = build_lessons._candidates(pool, [])
-    by_repo = distinct(candidates)
-    test = {repo: by_repo[repo] for repo in test_repos}
-    others = [lesson for repo, items in by_repo.items() if repo not in test for lesson in items]
-    items = build_items(test, others)
-    _jsonl(
-        out / "items.jsonl", [item_record(item) | {"repo": _repo_of(item, test)} for item in items]
+def own_note_misses(items: Sequence[Item]) -> int:
+    """Pick items whose own correct note (the applicable lesson's text) would not score as a pick.
+    The scorer is passable only if this is 0."""
+    return sum(
+        1 for item in items if item.applies and not verdict(item, item.applies.text())["pick"]
     )
-    silent = sum(item.applies is None for item in items)
-    (out / "collisions.json").write_text(json.dumps(collisions(test, others, items), indent=1))
-    return {
-        "items": len(items),
-        "silence_items": silent,
-        "repos": len(test),
-        "distractor_pool": len(others),
-    }
-
-
-def collisions(
-    test: dict[str, list[Lesson]], pool: Sequence[Lesson], items: Sequence[Item]
-) -> dict:
-    """Per repo: pool lessons kept out for sharing a test lesson's key, and lessons excused."""
-    found = {}
-    for repo, lessons in sorted(test.items()):
-        keys = {key_of(lesson) for lesson in lessons}
-        shared = sum(1 for other in pool if other.repo != repo and key_of(other) in keys)
-        mine = {lesson.lesson_id for lesson in lessons}
-        excused = sum(len(i.excused) for i in items if i.applies and i.applies.lesson_id in mine)
-        found[repo] = {
-            "shared_key_distractors_kept_out": shared,
-            "excused_in_pick_prompts": excused,
-        }
-    return found
-
-
-def _repo_of(item: Item, test: dict[str, list[Lesson]]) -> str:
-    lesson_id = item.item_id.rsplit("-", 1)[0]
-    return next(
-        repo for repo, items in test.items() if any(i.lesson_id == lesson_id for i in items)
-    )
-
-
-def score(work: Path, arms: list[str]) -> dict:
-    """Per arm: mean rates over repos with a bootstrap interval, and per-repo rates."""
-    records = _read_jsonl(work / "items.jsonl")
-    by_repo: dict[str, list[Item]] = {}
-    for record in records:
-        by_repo.setdefault(record["repo"], []).append(item_from(record))
-    rows, per_repo = [], []
-    for arm in arms:
-        rows_of = _read_jsonl(work / "answers" / f"{arm}.jsonl")
-        answers = {row["question_id"]: row["answer"] for row in rows_of}
-        found = {repo: rates(items, answers) for repo, items in sorted(by_repo.items())}
-        row = {"arm": arm, "repos": len(found)}
-        for measure in ("pick", "useful", "wrong_pick", "silence"):
-            interval = paired_gain([cell[measure] for cell in found.values()])
-            row[measure] = interval["mean_gain"]
-            row[f"{measure}_ci95"] = [interval["ci95_low"], interval["ci95_high"]]
-        rows.append(row)
-        per_repo.extend({"arm": arm, "repo": repo, **cell} for repo, cell in found.items())
-    return {"rows": rows, "per_repo_rows": per_repo}
 
 
 def ranker_recall(items: Sequence[Item], depths: Sequence[int] = (1, 3, 5, 10)) -> dict[str, float]:
@@ -303,82 +236,3 @@ def pick_item_abstention(items: Sequence[Item], answers: dict[str, str]) -> floa
     """Share of pick items the reader answered by saying no lesson applies."""
     picks = [item for item in items if item.applies is not None]
     return sum(abstains(answers[item.item_id]) for item in picks) / len(picks)
-
-
-def pilot_report(full: Path, top: Path, arms: list[str]) -> dict:
-    """The pilot's results: both prompt sizes, the ranker, and pick-item abstention per arm."""
-    full_items = [item_from(r) for r in _read_jsonl(full / "items.jsonl")]
-    top_items = [item_from(r) for r in _read_jsonl(top / "items.jsonl")]
-    report = {
-        "ranker": ranker_recall(full_items),
-        "prompt_60": score(full, arms),
-        "top_5": score(top, arms),
-    }
-    for label, work, items in (("prompt_60", full, full_items), ("top_5", top, top_items)):
-        for arm in arms:
-            answers = {
-                r["question_id"]: r["answer"]
-                for r in _read_jsonl(work / "answers" / f"{arm}.jsonl")
-            }
-            report[label][f"{arm}_pick_item_abstention"] = pick_item_abstention(items, answers)
-    report["answer_scripts_sha256"] = (top / "answerer.sha256s").read_text().split()[::2]
-    report["collisions"] = json.loads((full / "collisions.json").read_text())
-    report["status"] = "exploratory pilot on the 10 validation repos, no prereg"
-    return report
-
-
-def _emit(document: dict, out: Path | None) -> None:
-    text = json.dumps(document, indent=1, sort_keys=True)
-    if out:
-        out.write_text(text + "\n")
-    print(text)
-
-
-def _stage_build(args: argparse.Namespace) -> None:
-    repos = sorted(json.loads(args.test_repos.read_text())["test_repos"])
-    print(json.dumps(build(args.pool, repos, args.work), indent=1))
-
-
-def _stage_narrow(args: argparse.Namespace) -> None:
-    records = _read_jsonl(args.source / "items.jsonl")
-    rows = [item_record(narrowed(item_from(r), args.keep)) | {"repo": r["repo"]} for r in records]
-    _jsonl(args.work / "items.jsonl", rows)
-    kept = sum(1 for row in rows if _shown_applies(row))
-    print(json.dumps({"items": len(rows), "applicable_kept": kept}))
-
-
-def _stage_ranker(args: argparse.Namespace) -> None:
-    rows = [
-        {"question_id": r["question_id"], "answer": ranker_answer(item_from(r))}
-        for r in _read_jsonl(args.work / "items.jsonl")
-    ]
-    _jsonl(args.work / "answers" / "ranker.jsonl", rows)
-    print(json.dumps({"answers": len(rows)}))
-
-
-STAGES = {
-    "build": _stage_build,
-    "narrow": _stage_narrow,
-    "ranker-answers": _stage_ranker,
-    "score": lambda args: _emit(score(args.work, args.arms), args.out),
-    "pilot-report": lambda args: _emit(pilot_report(args.source, args.work, args.arms), args.out),
-}
-
-
-def main() -> None:
-    """Run one stage; see the module docstring for each stage's arguments."""
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("stage", choices=sorted(STAGES))
-    parser.add_argument("--source", type=Path, help="work dir whose items `narrow` reads")
-    parser.add_argument("--keep", type=int, default=5, help="lessons the ranker passes on")
-    parser.add_argument("--pool", type=Path)
-    parser.add_argument("--test-repos", type=Path, help="plan.json whose test_repos are tested")
-    parser.add_argument("--arms", nargs="+", default=[])
-    parser.add_argument("--work", type=Path, required=True)
-    parser.add_argument("--out", type=Path)
-    args = parser.parse_args()
-    STAGES[args.stage](args)
-
-
-if __name__ == "__main__":
-    main()

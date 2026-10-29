@@ -1,6 +1,6 @@
 # Plug situation pilot: untrained readers on agent situations (2026-10-29)
 
-Exploratory; no prereg. Laptop MLX, Llama 3.2 1B Instruct, on the 10 validation repos (the a3 rerun's). Results: `results/plug-situation-pilot.json`. Code: `scripts/routea/plug_situation.py` (items, ranker, scorer) and `scripts/routea/answer_contexts.py` (one model load, a system prompt per row); tests in `tests/scripts/test_plug_situation.py`.
+Exploratory; no prereg. Laptop MLX, Llama 3.2 1B Instruct, on the 10 validation repos (the a3 rerun's). Results: `results/plug-situation-pilot.json`. Code: `scripts/routea/plug_situation.py` (items, ranker, scorer), `scripts/routea/plug_situation_cli.py` (build, score, reports) and `scripts/routea/answer_contexts.py` (one model load, a system prompt per row); tests in `tests/scripts/test_plug_situation.py`.
 
 ## Design
 
@@ -33,18 +33,18 @@ After the owner-proxy review (`.superpowers/rulings/2026-10-29-plug-situations.m
 - **Items.** One pick and one silence item per lesson, 166 items in all [measured].
 - **Shuffled top 5.** Shuffled per item, so the applicable lesson came first in 13 of 83 prompts, against 0.73 in ranker order [measured].
 - **No shared keys.** Distractors never share the lesson's failure key [measured: 23 kept out].
-- **Whole-token scorer.** It excuses lessons the right fix itself names [measured: 30 excused].
+- **Whole-token scorer.** It excuses lessons the right note itself names [measured: 46 excused]. Every pick item's own correct note scores as a pick: 0 misses at both prompt sizes [measured].
 
 | Prompt | Row | Pick | Silence | Wrong pick | Says "no lesson" on pick items |
 |---|---|---|---|---|---|
-| 60 lessons | plain 1B | 0.00 | 0.05 | 0.02 | 0.11 |
+| 60 lessons | plain 1B | 0.00 | 0.05 | 0.01 | 0.11 |
 | 60 lessons | a2v | 0.00 | 1.00 | 0.00 | 1.00 |
-| 60 lessons | ranker alone (top-1 note) | 0.58 | 0.00 | 0.70 | 0.00 |
+| 60 lessons | ranker alone (top-1 note) | 0.74 | 0.00 | 0.62 | 0.00 |
 | shuffled top 5 | plain 1B | 0.00 | 0.94 | 0.00 | 0.94 |
 | shuffled top 5 | a2v | 0.00 | 1.00 | 0.00 | 1.00 |
-| shuffled top 5 | ranker alone (top-1 note) | 0.67 | 0.00 | 0.65 | 0.00 |
+| shuffled top 5 | ranker alone (the full prompt's top-1 note) | 0.74 | 0.00 | 0.62 | 0.00 |
 
 All rows are [measured].
-- **The scorer can be passed.** The ranker-alone row quotes a lesson's own note and scores pick 0.67 when that lesson applies [measured].
+- **The scorer can be passed.** The ranker-alone row quotes its top lesson's note and scores pick 0.74, equal to the ranker's recall at 1 (0.735) [measured].
 - **Untrained readers still never state the fix.** Plain 1B answers "no lesson" to 0.94 of pick items on the short prompt [measured].
-- **The ranker-alone row is the bar** a trained reader must exceed, as the draft's secondary rule says. It states a fix even when none applies, hence its wrong pick of 0.65 [measured].
+- **The ranker-alone row is the bar** a trained reader must exceed, as the draft's secondary rule says. It states a fix even when none applies, hence its wrong pick of 0.62 [measured].

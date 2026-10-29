@@ -5,7 +5,7 @@
  ],
  "collisions": {
   "KIT-IAI/pyWATTS": {
-   "excused_in_pick_prompts": 1,
+   "excused_in_pick_prompts": 3,
    "shared_key_distractors_kept_out": 5
   },
   "PMEAL/OpenPNM": {
@@ -13,11 +13,11 @@
    "shared_key_distractors_kept_out": 0
   },
   "acorg/dark-matter": {
-   "excused_in_pick_prompts": 2,
+   "excused_in_pick_prompts": 4,
    "shared_key_distractors_kept_out": 5
   },
   "aws/chalice": {
-   "excused_in_pick_prompts": 2,
+   "excused_in_pick_prompts": 3,
    "shared_key_distractors_kept_out": 0
   },
   "marshmallow-code/marshmallow": {
@@ -25,25 +25,29 @@
    "shared_key_distractors_kept_out": 0
   },
   "pydap/pydap": {
-   "excused_in_pick_prompts": 0,
+   "excused_in_pick_prompts": 3,
    "shared_key_distractors_kept_out": 4
   },
   "robotframework/SeleniumLibrary": {
-   "excused_in_pick_prompts": 5,
+   "excused_in_pick_prompts": 7,
    "shared_key_distractors_kept_out": 4
   },
   "vertexproject/synapse": {
-   "excused_in_pick_prompts": 5,
+   "excused_in_pick_prompts": 6,
    "shared_key_distractors_kept_out": 0
   },
   "yukinarit/pyserde": {
-   "excused_in_pick_prompts": 5,
+   "excused_in_pick_prompts": 7,
    "shared_key_distractors_kept_out": 5
   },
   "zopefoundation/zope.schema": {
-   "excused_in_pick_prompts": 3,
+   "excused_in_pick_prompts": 6,
    "shared_key_distractors_kept_out": 0
   }
+ },
+ "own_note_misses": {
+  "prompt_60": 0,
+  "top_5": 0
  },
  "prompt_60": {
   "a1_pick_item_abstention": 0.10843373493975904,
@@ -71,7 +75,7 @@
     "repo": "acorg/dark-matter",
     "silence": 0.375,
     "useful": 0.0,
-    "wrong_pick": 0.0625
+    "wrong_pick": 0.0
    },
    {
     "arm": "a1",
@@ -95,7 +99,7 @@
     "repo": "pydap/pydap",
     "silence": 0.0,
     "useful": 0.0,
-    "wrong_pick": 0.0625
+    "wrong_pick": 0.0
    },
    {
     "arm": "a1",
@@ -211,11 +215,11 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.625,
+    "pick": 0.875,
     "repo": "KIT-IAI/pyWATTS",
     "silence": 0.0,
-    "useful": 0.625,
-    "wrong_pick": 0.6875
+    "useful": 0.875,
+    "wrong_pick": 0.5625
    },
    {
     "arm": "ranker",
@@ -227,19 +231,19 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.5,
-    "repo": "acorg/dark-matter",
-    "silence": 0.0,
-    "useful": 0.5,
-    "wrong_pick": 0.75
-   },
-   {
-    "arm": "ranker",
     "pick": 0.625,
-    "repo": "aws/chalice",
+    "repo": "acorg/dark-matter",
     "silence": 0.0,
     "useful": 0.625,
     "wrong_pick": 0.6875
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "aws/chalice",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.625
    },
    {
     "arm": "ranker",
@@ -251,19 +255,19 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.375,
+    "pick": 0.75,
     "repo": "pydap/pydap",
     "silence": 0.0,
-    "useful": 0.375,
-    "wrong_pick": 0.8125
+    "useful": 0.75,
+    "wrong_pick": 0.625
    },
    {
     "arm": "ranker",
-    "pick": 0.5,
+    "pick": 0.75,
     "repo": "robotframework/SeleniumLibrary",
     "silence": 0.0,
-    "useful": 0.5,
-    "wrong_pick": 0.75
+    "useful": 0.75,
+    "wrong_pick": 0.625
    },
    {
     "arm": "ranker",
@@ -275,19 +279,19 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.5,
+    "pick": 0.75,
     "repo": "yukinarit/pyserde",
     "silence": 0.0,
-    "useful": 0.5,
-    "wrong_pick": 0.625
+    "useful": 0.75,
+    "wrong_pick": 0.5
    },
    {
     "arm": "ranker",
-    "pick": 0.3333333333333333,
+    "pick": 0.5555555555555556,
     "repo": "zopefoundation/zope.schema",
     "silence": 0.0,
-    "useful": 0.3333333333333333,
-    "wrong_pick": 0.8333333333333334
+    "useful": 0.5555555555555556,
+    "wrong_pick": 0.7222222222222222
    }
   ],
   "ranker_pick_item_abstention": 0.0,
@@ -310,10 +314,10 @@
      0.0,
      0.0
     ],
-    "wrong_pick": 0.0187,
+    "wrong_pick": 0.0063,
     "wrong_pick_ci95": [
      0.0,
-     0.0375
+     0.0187
     ]
    },
    {
@@ -342,10 +346,10 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.575,
+    "pick": 0.7347,
     "pick_ci95": [
-     0.4792,
-     0.6806
+     0.6694,
+     0.7958
     ],
     "repos": 10,
     "silence": 0.0,
@@ -353,15 +357,15 @@
      0.0,
      0.0
     ],
-    "useful": 0.575,
+    "useful": 0.7347,
     "useful_ci95": [
-     0.4792,
-     0.6806
+     0.6694,
+     0.7958
     ],
-    "wrong_pick": 0.7,
+    "wrong_pick": 0.6201,
     "wrong_pick_ci95": [
-     0.6472,
-     0.7521
+     0.5792,
+     0.6597
     ]
    }
   ]
@@ -539,19 +543,19 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.75,
+    "pick": 0.875,
     "repo": "KIT-IAI/pyWATTS",
     "silence": 0.0,
-    "useful": 0.75,
-    "wrong_pick": 0.625
+    "useful": 0.875,
+    "wrong_pick": 0.5625
    },
    {
     "arm": "ranker",
-    "pick": 0.7777777777777778,
+    "pick": 0.8888888888888888,
     "repo": "PMEAL/OpenPNM",
     "silence": 0.0,
-    "useful": 0.7777777777777778,
-    "wrong_pick": 0.6111111111111112
+    "useful": 0.8888888888888888,
+    "wrong_pick": 0.5555555555555556
    },
    {
     "arm": "ranker",
@@ -563,19 +567,19 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.5,
+    "pick": 0.75,
     "repo": "aws/chalice",
     "silence": 0.0,
-    "useful": 0.5,
-    "wrong_pick": 0.75
+    "useful": 0.75,
+    "wrong_pick": 0.625
    },
    {
     "arm": "ranker",
-    "pick": 0.5,
+    "pick": 0.625,
     "repo": "marshmallow-code/marshmallow",
     "silence": 0.0,
-    "useful": 0.5,
-    "wrong_pick": 0.75
+    "useful": 0.625,
+    "wrong_pick": 0.6875
    },
    {
     "arm": "ranker",
@@ -670,10 +674,10 @@
    },
    {
     "arm": "ranker",
-    "pick": 0.6736,
+    "pick": 0.7347,
     "pick_ci95": [
-     0.6014,
-     0.7389
+     0.6694,
+     0.7958
     ],
     "repos": 10,
     "silence": 0.0,
@@ -681,15 +685,15 @@
      0.0,
      0.0
     ],
-    "useful": 0.6736,
+    "useful": 0.7347,
     "useful_ci95": [
-     0.6014,
-     0.7389
+     0.6694,
+     0.7958
     ],
-    "wrong_pick": 0.6507,
+    "wrong_pick": 0.6201,
     "wrong_pick_ci95": [
-     0.6035,
-     0.6958
+     0.5792,
+     0.6597
     ]
    }
   ]

@@ -181,3 +181,25 @@ def test_round2_split_takes_the_lowest_name_hashes(monkeypatch, sit):
     assert sorted(split["meta_join"]) == sorted(eligible[2:])
     with pytest.raises(ValueError):
         r2.split_round2(by_repo, used=set(by_repo))
+
+
+def test_every_pick_items_own_note_scores_as_a_pick(sit):
+    right = fixed(sit, "org/r", 1, "pytest -x src", ("-x",))
+    # The note quotes the failed command `tox`, which is another lesson's whole fix.
+    tox = fixed(sit, "org/x", 2, "tox", ("tox",), error="KeyError")
+    items = sit.build_items({"org/r": [right]}, [tox, *pool(sit)])
+    assert sit.own_note_misses(items) == 0
+    assert sit.verdict(items[0], right.text())["pick"]
+
+
+def test_build_refuses_an_unpassable_item(monkeypatch, sit):
+    spec = importlib.util.spec_from_file_location(
+        "plug_situation_cli", ROUTEA / "plug_situation_cli.py"
+    )
+    cli = importlib.util.module_from_spec(spec)
+    sys.modules["plug_situation_cli"] = cli
+    spec.loader.exec_module(cli)
+    monkeypatch.setattr(cli, "own_note_misses", lambda items: 1)
+    monkeypatch.setattr(cli, "_jsonl", lambda *a: None)
+    with pytest.raises(ValueError, match="own correct note"):
+        cli.build(Path("unused"), [], Path("unused"))

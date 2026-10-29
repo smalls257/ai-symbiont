@@ -20,10 +20,11 @@ An agent is in a situation: a command it is running, a file and an error. The me
 
 ## What the pilot already saw (exploratory, validation repos only)
 
-All on the 10 validation repos (`results/plug-situation-pilot.json`, `docs/research/2026-10-29-plug-situation-pilot.md`):
-- **Untrained readers fail.** With 60 lessons in the prompt, plain 1B and a2v (a reader trained on questions, not situations) picked the applicable lesson on 0 of 63 items [measured]. With the ranker's top 5 they still picked 0 of 63. They said no lesson applies on 59 and 63 of the 63 items where one does [measured].
-- **The ranker** (`plug_situation.lexical_rank`, word overlap weighted by inverse document frequency) put the applicable lesson first in 0.75 of pick items and in the top 5 in 0.98 [measured]. That first-place rate is an order leak if the top 5 reach the reader in ranker order, so they are shuffled (below).
-- The pilot used one silence item in four; it stays reported as the pilot. This round uses one pick and one silence item per lesson.
+All on the 10 validation repos (`results/plug-situation-pilot-v2.json`, the reviewed design; the first pilot, `results/plug-situation-pilot.json`, stays reported):
+- **Untrained readers fail.** With 60 lessons or with the shuffled top 5, plain 1B and a2v (a reader trained on questions, not situations) pick 0.00 [measured]. On the top 5 they say no lesson applies on 0.94 and 1.00 of pick items [measured].
+- **The ranker** (`plug_situation.lexical_rank`, word overlap weighted by inverse document frequency) puts the applicable lesson first in 0.735 of pick items and in the top 5 in 0.976 [measured].
+- **The ranker-alone row** (its top-1 note as the answer) picks 0.735 and states a wrong fix on 0.62 of items. This is the bar for a trained reader [measured].
+- **The scorer can be passed.** No pick item scores its own correct note as a miss (0 at both prompt sizes) [measured].
 
 ## Data and split
 
@@ -80,14 +81,14 @@ All on the 10 validation repos (`results/plug-situation-pilot.json`, `docs/resea
 
 ## Items
 
-`plug_situation.build_items` gives each lesson one pick item and one silence item. The pick prompt holds 60 lessons: the lesson, the repo's other lessons, then lessons of other repos. Distractors never share the lesson's `(error class, fix tokens)` key; 23 such lessons were kept out on the validation repos [measured]. The silence prompt is the pick prompt without that lesson, with the same distractor sample. The ranker's top 5 of each prompt go to the reader in an order shuffled per item (seed 0, `plug_situation.narrowed`). In validation the applicable lesson came first in 13 of 83 shuffled prompts, against 0.75 in ranker order [measured]. Every repo therefore has as many silence items as pick items.
+`plug_situation.build_items` gives each lesson one pick item and one silence item. The pick prompt holds 60 lessons: the lesson, the repo's other lessons, then lessons of other repos. Distractors never share the lesson's `(error class, fix tokens)` key; 23 such lessons were kept out on the validation repos [measured]. The silence prompt is the pick prompt without that lesson, with the same distractor sample. The ranker's top 5 of each prompt go to the reader in an order shuffled per item (seed 0, `plug_situation.narrowed`). In validation the applicable lesson came first in 13 of 83 shuffled prompts, against 0.735 in ranker order [measured]. Every repo therefore has as many silence items as pick items.
 
 ## Scorer
 
 `plug_situation.verdict`, per item:
 - **Matching.** Answer text is folded (quotes stripped, whitespace collapsed), split on whitespace, and stripped of edge punctuation. A lesson's fix counts as stated when every token in `added` occurs as a whole token, or the fix command occurs as a contiguous run of whole tokens.
 - **Pick (primary).** The note states the applicable lesson's fix and no other shown lesson's fix.
-- **Wrong pick.** The note states the fix of a shown lesson that does not apply. Lessons the applicable fix itself names are excused: 30 in the validation pick prompts, printed per repo [measured].
+- **Wrong pick.** The note states the fix of a shown lesson that does not apply. Lessons the applicable lesson's note (`Lesson.text()`) itself names are excused: 46 in the validation pick prompts, printed per repo [measured]. `plug_situation_cli.build` refuses any item whose own correct note would not score as a pick.
 - **Useful note.** Pick, and the note names the error class.
 - **Silence.** On a silence item the answer abstains (`plug.abstains`) and states no shown lesson's fix.
 - **Pick-item abstention.** Printed for every row. A reader that abstains everywhere passes silence and fails H1; that is the intended trap.
@@ -148,11 +149,11 @@ Let s be the per-repo standard deviation of the selected variant's validation pi
 
 ## Known limits
 
-- **Order leak.** It is closed by the per-item shuffle, but the ranker-alone row remains the number the reader must exceed: 0.75 of pick items are its top 1 [measured].
+- **Order leak.** It is closed by the per-item shuffle, but the ranker-alone row remains the number the reader must exceed: 0.735 of pick items are its top 1 [measured].
 - **Ranker tuning.** The lexical ranker is tuned to situations that quote the lesson's own fields; a paraphrased situation is untested.
 - **Coarse per-repo pick.** 40 small repos give per-repo pick in steps of 1/3 to 1/7 [measured].
 - **Forking paths.** One seed per variant, and up to four variants on 10 validation repos, bounded by the fixed order and the frozen selection rule.
-- **Containment scoring.** The scorer matches whole tokens and excuses lessons the right fix names. An answer that quotes several fixes is a wrong pick.
+- **Containment scoring.** The scorer matches whole tokens and excuses lessons the right note names. An answer that quotes several fixes is a wrong pick.
 - **Multiplicity.** About five intervals at 95% with no correction (H1, ranker alone, useful note, silence, wrong pick) [established].
 
 ## Spend and machine
