@@ -103,7 +103,14 @@ def run_cap_usd() -> float:
         raise ValueError(f"{RUN_CAP_VARIABLE} must be dollars, got {raw!r}") from None
 
 
-def teacher_model(teacher: Teacher, run_label: str, model_cfg: dict) -> TeacherAgentModel:
+def teacher_model(
+    teacher: Teacher,
+    run_label: str,
+    model_cfg: dict,
+    *,
+    temperature: float | None = None,
+    reply_tokens: int = MAX_TOKENS,
+) -> TeacherAgentModel:
     """A capped teacher model for one run; the ledger run name is `run_label`."""
     spec = SPECS[teacher]
     session = SparkSession(
@@ -114,7 +121,8 @@ def teacher_model(teacher: Teacher, run_label: str, model_cfg: dict) -> TeacherA
         key=load_meta_key(),
         provenance=(PUBLIC_ROWS,),
         endpoint=spec.endpoint,
-        turn_max_tokens=MAX_TOKENS,
+        turn_max_tokens=reply_tokens,
+        temperature=temperature,
     )
     config = model_cfg | {"model_name": spec.model, "model_kwargs": {}}
     return TeacherAgentModel(session=session, label=run_label, **config)
