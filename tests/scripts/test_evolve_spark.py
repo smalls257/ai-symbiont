@@ -118,7 +118,7 @@ def test_the_judge_maps_landmark_to_the_landmark_rejection_and_general_to_genera
     )
 
 
-@pytest.mark.parametrize("reply", ["Probably general.", "LANDMARK:", "general", ""])
+@pytest.mark.parametrize("reply", ["Probably general.", "general", "GENERALLY fine", ""])
 def test_any_other_judge_reply_raises(tmp_path, reply):
     with pytest.raises(spark_judge.JudgeReplyError):
         spark_judge.SparkJudge(session(tmp_path, reply), Effort.MEDIUM).landmark(PARENT.lessons[0])
@@ -148,3 +148,13 @@ def test_no_log_line_holds_the_prompt_text(tmp_path, caplog):
     assert (
         "UNIQUE-SUMMARY" not in caplog.text and "Shoot only at a visible enemy" not in caplog.text
     )
+
+
+def test_a_reason_after_general_is_accepted_and_a_bare_landmark_is_a_landmark(tmp_path):
+    lesson = PARENT.lessons[0]
+    general = spark_judge.SparkJudge(
+        session(tmp_path, "GENERAL: a habit that works anywhere"), Effort.MEDIUM
+    )
+    assert general.landmark(lesson).general
+    bare = spark_judge.SparkJudge(session(tmp_path, "LANDMARK"), Effort.MEDIUM).landmark(lesson)
+    assert not bare.general and bare.evidence == "no reason given"

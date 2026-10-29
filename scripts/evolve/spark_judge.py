@@ -1,8 +1,8 @@
 """The landmark judge: Muse Spark says whether a lesson points at a place instead of a habit.
 
-The reply is `GENERAL` or `LANDMARK: <reason>`; anything else raises `JudgeReplyError`, so a
-lesson is never waved through on a reply nobody understood. Spend is recorded under the label
-`evolve/<run>/judge`.
+A reply starts with `GENERAL` or `LANDMARK` (a reason may follow); anything else raises
+`JudgeReplyError`, so a lesson is never waved through on a reply nobody understood. Spend is
+recorded under the label `evolve/<run>/judge`.
 """
 
 from dataclasses import dataclass
@@ -21,15 +21,15 @@ class JudgeReplyError(ValueError):
 
 
 def parse_verdict(text: str) -> Verdict:
-    """The reply as a verdict. Raises JudgeReplyError."""
-    reply = text.strip()
-    if reply == prompts.GENERAL_REPLY:
+    """The reply as a verdict: GENERAL or LANDMARK first, a reason may follow."""
+    head, _, rest = text.strip().partition(":")
+    word = head.strip()
+    if word == prompts.GENERAL_REPLY:
         return Verdict(general=True, rejection=None, evidence="")
-    if reply.startswith(prompts.LANDMARK_PREFIX):
-        reason = reply.removeprefix(prompts.LANDMARK_PREFIX).strip()[:MAX_REASON_CHARS]
-        if reason:
-            return Verdict(general=False, rejection=Rejection.LANDMARK, evidence=reason)
-    raise JudgeReplyError("the reply is neither GENERAL nor LANDMARK with a reason")
+    if word == prompts.LANDMARK_PREFIX.removesuffix(":"):
+        reason = rest.strip()[:MAX_REASON_CHARS] or "no reason given"
+        return Verdict(general=False, rejection=Rejection.LANDMARK, evidence=reason)
+    raise JudgeReplyError("the reply does not start with GENERAL or LANDMARK")
 
 
 @dataclass(frozen=True)
