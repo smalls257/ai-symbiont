@@ -3,7 +3,7 @@
 Route B trains Glimmer itself (an adapter installed as `Muse-Glimmer-30B-<domain>[-habits]-r<N>`);
 Route A trains the warner and the Llama 1B memory model, and its arm is the unchanged user model
 plus notes. `Start` is plain or a shared cross-repo habits base, so the loop can measure rounds
-and lessons needed to beat each start on unseen work (`ledger.learning_speed`).
+and lessons needed to beat each start on unseen work (`ledger.rounds_to_improve`).
 """
 
 from __future__ import annotations

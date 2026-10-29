@@ -9,20 +9,28 @@ fixes; every text is scanned against held-out gold lines. Route A is not wired f
 from __future__ import annotations
 
 import json
-import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import general_habits as habits
-from attempts import Attempt, Outcome, Split
+from attempts import Attempt, Outcome, Split, mined_ids
+from coding_runs import (
+    PLAIN_GLIMMER,
+    CodingPaths,
+    attempt_log,
+    attempts_from_log,
+    cal2_command,
+    mined_evidence,
+    slug,
+)
 from domain import Harvest
-from general_evidence import Evidence, load_evidence
+from general_evidence import Evidence, SourceTask, load_evidence
 from general_leakage import conventions, leaking_keys, name_hits, specific_names
 from general_lesson import GeneralLesson, LessonKind
 from general_places import task_place_kinds
 from general_rows import action_rows
-from general_runs import PLAIN_LOGS, PlainRun
+from general_runs import PLAIN_LOGS, PlainRun, plain_runs
 from general_split import evaluation_ids
 from learners import RouteNotWiredError
 from loop_cards import LessonCard, Resolution, ResolutionSource
@@ -32,9 +40,7 @@ from sqlglot_rows import MEMORY_SYSTEM
 from training_plan import Row
 from utility import AblationPair, Mark
 
-PLAIN_GLIMMER = "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M"
 LOOP_DIR = "loop/coding-sqlglot"  # under the CAL2 workdir, beside the plain logs
-STEP_LIMIT, WALL_LIMIT_MIN, WORKERS = 50, 45, 4  # the general pilot's settings
 BATCH = 24  # training tasks per round (estimate.py)
 ABLATION_LESSONS, ABLATION_TASKS = 2, 3  # with-card runs per round: 6
 MAX_ROW_CHARS = 2048  # about 512 tokens: Route B's row check and the post-stall cap
@@ -83,19 +89,8 @@ HABIT_MARKS: dict[str, tuple[Shows, Shows]] = {
 }
 
 
-@dataclass(frozen=True)
-class CodingPaths:
-    """The CAL2 workdir (data/, calibration-v2/launch.py, the plain logs), split and clone."""
-
-    workdir: Path
-    split: Path
-    clone: Path
-    python: str = "python"
-
-
-def slug(model: str) -> str:
-    """A model name as a directory name."""
-    return re.sub(r"[^A-Za-z0-9._-]", "_", model)
+class MissingTrajectoryError(FileNotFoundError):
+    """A graded attempt whose trajectory cannot be read; it is never marked not applicable."""
 
 
 @dataclass
@@ -109,8 +104,11 @@ class CodingSqlglot:
     subject: str = "In sqlglot"
     memory_system: str = MEMORY_SYSTEM
     max_row_chars: int = MAX_ROW_CHARS
-    evidence: Evidence | None = None
+    evidence: Evidence | None = None  # mined only: what lessons are built from
     lessons: dict[str, GeneralLesson] = field(default_factory=dict)
+    tasks: dict[str, SourceTask] = field(default_factory=dict)  # every training task, for marks
+    facts: dict[str, PlainRun] = field(default_factory=dict)  # attempt id -> run, for marks
+    loaded_logs: set[str] = field(default_factory=set)
 
     def held_out(self) -> frozenset[str]:
         """The 18 tasks of results/general-split.json."""
@@ -156,11 +154,14 @@ class CodingSqlglot:
         known: Mapping[str, LessonCard],
         quotas: Mapping[str, int],
     ) -> Harvest:
-        """General lessons over the plain logs plus the loop's training logs, as cards."""
+        """General lessons from allow-listed attempts and plain history off the baseline half."""
         from build_general_lessons import lessons_from
 
+        allowed = mined_ids(attempts)
         logs = list(PLAIN_LOGS) + sorted({attempt_log(a) for a in attempts})
-        self.evidence = load_evidence(self.paths.workdir, self.paths.split, self.paths.clone, logs)
+        loaded = load_evidence(self.paths.workdir, self.paths.split, self.paths.clone, logs)
+        self.tasks = dict(loaded.tasks)
+        self.evidence = mined_evidence(loaded, allowed)
         self.lessons = {x.lesson_id: x for x in lessons_from(self.evidence)}
         cards = [self._card(x, known.get(x.lesson_id), attempts) for x in self.lessons.values()]
         return Harvest(tuple(cards), self._action_rows(), (), sum(c.is_open for c in cards))
@@ -206,15 +207,13 @@ class CodingSqlglot:
 
     def mark(self, card: LessonCard, attempt: Attempt) -> Mark:
         """Habits by their run predicates; repo knowledge by the place kinds the fix lands in."""
-        if self.evidence is None:
-            raise RuntimeError("mark before harvest: the run facts are loaded by harvest")
+        if not self.tasks:
+            raise RuntimeError("mark before harvest: the task places are loaded by harvest")
         run = self._run_of(attempt)
-        if run is None:
-            return Mark.NOT_APPLICABLE  # ungraded runs have no trajectory to read
-        gold = {t.task: t.gold_files for t in self.evidence.tasks.values()}
+        gold = {t.task: t.gold_files for t in self.tasks.values()}
         if card.lesson_id in HABIT_MARKS:
             return _habit_mark(card.lesson_id, run, gold)
-        task = self.evidence.tasks.get(run.task)
+        task = self.tasks.get(run.task)
         lesson = self.lessons.get(card.lesson_id)
         if task is None or lesson is None:
             return Mark.NOT_APPLICABLE
@@ -224,11 +223,16 @@ class CodingSqlglot:
         missed = not set(run.facts.edited) & set(task.gold_files)
         return Mark.REPEATED if missed else Mark.AVOIDED
 
-    def _run_of(self, attempt: Attempt) -> PlainRun | None:
-        assert self.evidence is not None
-        run_id = attempt.attempt_id.rsplit("/", 1)[0]
-        return next((r for r in self.evidence.runs
-                     if r.facts.run_id == run_id and r.task == attempt.task_id), None)  # fmt: skip
+    def _run_of(self, attempt: Attempt) -> PlainRun:
+        """The graded run's facts, read from its log once; a missing trajectory raises."""
+        log = attempt_log(attempt)
+        if log not in self.loaded_logs:
+            for run in plain_runs(self.paths.workdir, [log]):
+                self.facts[f"{run.facts.run_id}/{run.task}"] = run
+            self.loaded_logs.add(log)
+        if attempt.attempt_id not in self.facts:
+            raise MissingTrajectoryError(f"no graded trajectory for {attempt.attempt_id}")
+        return self.facts[attempt.attempt_id]
 
     def ablate(
         self, model: str, cards: Sequence[LessonCard], attempts: Sequence[Attempt]
@@ -283,43 +287,3 @@ def _habit_mark(card_id: str, run: PlainRun, gold: habits.Gold) -> Mark:
     if not arose(run, gold):
         return Mark.NOT_APPLICABLE
     return Mark.REPEATED if mistake(run, gold) else Mark.AVOIDED
-
-
-def cal2_command(paths: CodingPaths, model: str, runs_dir: str, lessons: Path | None) -> list[str]:
-    """The CAL2 launch line for one batch: one run per task, the round's model by name."""
-    argv = [paths.python, "-u", "calibration-v2/launch.py", str(paths.workdir),
-            "--runs-dir", runs_dir, "--candidates-log", f"{runs_dir}/tasks.jsonl",
-            "--fixed-runs", "1", "--workers", str(WORKERS), "--step-limit", str(STEP_LIMIT),
-            "--wall-limit-min", str(WALL_LIMIT_MIN)]  # fmt: skip
-    if model != PLAIN_GLIMMER:
-        argv += ["--model", model]
-    return argv + (["--lessons", str(lessons)] if lessons else [])
-
-
-def attempt_log(attempt: Attempt) -> str:
-    """The runs-dir an attempt was logged in (its id is <runs-dir>/<run name>/<task>)."""
-    return attempt.attempt_id.rsplit("/", 2)[0]
-
-
-def attempts_from_log(
-    log_dir: Path, runs_dir: str, tasks: Sequence[str], model: str,
-    context: tuple[int, Split, frozenset[str]],
-) -> list[Attempt]:  # fmt: skip
-    """One attempt per task from CAL2's log; a task with no graded record is UNGRADED."""
-    round_index, split, trained = context
-    path = log_dir / "calibration.jsonl"
-    if not path.is_file():
-        raise FileNotFoundError(f"CAL2 wrote no log at {path}")
-    rows = [json.loads(line) for line in path.read_text().splitlines() if line]
-    found = []
-    for task in tasks:
-        graded = [r for r in rows if r["instance_id"] == task and r.get("resolved") is not None]
-        if graded:
-            rec = graded[-1]
-            name = f"{rec['stage']}-run{rec['run']}-{rec['reasoning']}"
-            outcome = Outcome.PASSED if rec["resolved"] else Outcome.FAILED
-            attempt_id = f"{runs_dir}/{name}/{task}"
-        else:
-            outcome, attempt_id = Outcome.UNGRADED, f"{runs_dir}/ungraded/{task}"
-        found.append(Attempt(attempt_id, task, round_index, model, split, outcome, trained))
-    return found

@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from utility import in_baseline
+
 # A round with more than a quarter of its attempts ungraded is an outage, not a round
 # (the 2026-10-28 hang left whole batches ungraded); its lessons would come from the outage.
 MAX_UNGRADED_SHARE = 0.25
@@ -38,6 +40,10 @@ class UnverifiableRoundError(RuntimeError):
 
 class HeldOutMiningError(ValueError):
     """A held-out attempt reached the harvest or the lesson-utility step."""
+
+
+class BaselineMiningError(ValueError):
+    """A task of the judged-only baseline half reached a harvest."""
 
 
 @dataclass(frozen=True)
@@ -110,6 +116,22 @@ def training_only(attempts: Iterable[Attempt], held_out: frozenset[str]) -> list
     if leaked:
         raise HeldOutMiningError(f"held-out attempts offered for mining: {leaked}")
     return found
+
+
+def mined_ids(attempts: Iterable[Attempt]) -> frozenset[str]:
+    """The harvest allow-list: the attempts' ids; raises if any is in the judged-only half."""
+    found = list(attempts)
+    judged = sorted(a.attempt_id for a in found if in_baseline(a.task_id))
+    if judged:
+        raise BaselineMiningError(f"judged-only baseline attempts offered for mining: {judged}")
+    return frozenset(a.attempt_id for a in found)
+
+
+def refuse_baseline_tasks(task_ids: Iterable[str], where: str) -> None:
+    """Raise if any task id is in the judged-only baseline half."""
+    judged = sorted(t for t in task_ids if in_baseline(t))
+    if judged:
+        raise BaselineMiningError(f"{where} holds judged-only baseline tasks: {judged}")
 
 
 def pass_rate(attempts: Sequence[Attempt]) -> float | None:

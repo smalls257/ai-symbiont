@@ -66,7 +66,7 @@ def compare_starts(rounds: int, route: Route, state: Path) -> dict:
     for start in Start:
         result = dry_run(DryRun(rounds, route, start), state, say=lambda _line: None)
         found[str(start)] = {
-            "learning_speed": result["curve"]["learning_speed"],
+            "rounds_to_improve": result["curve"]["rounds_to_improve"],
             "held_out_by_round": [
                 (r["start_passed"], r["adapter_passed"], r["adapter_graded"])
                 for r in result["curve"]["rounds"]

@@ -29,7 +29,7 @@ def mod(name):
 
 def coding(tmp_path, held=("t3",)):
     cs = mod("coding_sqlglot")
-    (tmp_path / "data").mkdir()
+    (tmp_path / "data").mkdir(parents=True)
     pool = {"pool": [{"instance_id": f"t{n}"} for n in range(6)]}
     (tmp_path / "data" / "pool.json").write_text(json.dumps(pool))
     split = tmp_path / "split.json"
@@ -139,11 +139,13 @@ def test_freedoom_cards_pool_by_check_and_marks_follow_the_moves_played(tmp_path
                              pain, 2, f"`go_to(key)` changed nothing in {room}.",
                              "Go_to(exit) took you on.", "Check the key is listed.")  # fmt: skip
 
-    assert fd.card_id(lesson("a", "start room")) == fd.card_id(lesson("b", "third room"))
-    key = fd.card_id(lesson("a", "start room"))
+    one, two = "MAP01-glimmer_plain-s1", "MAP01-glimmer_plain-s2"
+    assert fd.card_id(lesson(one, "start room")) == fd.card_id(lesson(two, "third room"))
+    key = fd.card_id(lesson(one, "start room"))
     assert key.startswith("freedoom/wasted_move/go_to/")
-    card = fd._card(key, [lesson("a", "start room")], None, 0)
+    card = fd._card(key, [lesson(one, "start room")], None, 0)
     assert str(card.resolution.source) == "engine-observed progress"
+    assert card.source_tasks == ("MAP01/s1",)
     attempt = mod("attempts").Attempt("r0/x.jsonl", "MAP01/s1", 0, "m",
                                       mod("attempts").Split.TRAINING,
                                       mod("attempts").Outcome.FAILED)  # fmt: skip
@@ -157,3 +159,91 @@ def test_freedoom_cards_pool_by_check_and_marks_follow_the_moves_played(tmp_path
 def test_a_text_naming_a_held_out_level_is_a_leak(tmp_path):
     hits = freedoom(tmp_path).leak_hits({"a": "Seen in MAP04 near the door.", "b": "MAP05 too."})
     assert hits == {"a": ["MAP04"]}
+
+
+# -- the judged-only baseline half never reaches a real plugin's harvest ---------------------------
+
+
+def split_tasks(names):
+    """(a judged-only baseline task, a mined task) among `names`."""
+    in_baseline = mod("utility").in_baseline
+    return next(t for t in names if in_baseline(t)), next(t for t in names if not in_baseline(t))
+
+
+def write_cal2_log(root, log, tasks):
+    """A CAL2 log with one graded run per task and an empty trajectory for each."""
+    (root / log).mkdir(parents=True)
+    rows = [{"instance_id": t, "stage": "fixed", "run": 1, "reasoning": "low", "step_limit": 50,
+             "resolved": False, "exit_status": "LimitsExceeded"} for t in tasks]  # fmt: skip
+    (root / log / "calibration.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    for task in tasks:
+        traj = root / log / "traj" / task / "fixed-run1-low.traj.json"
+        traj.parent.mkdir(parents=True)
+        traj.write_text(json.dumps({"messages": []}))
+
+
+def test_coding_lesson_evidence_holds_only_allow_listed_runs_and_no_judged_task(tmp_path):
+    at, runs, ev = mod("attempts"), mod("general_runs"), mod("general_evidence")
+    judged, mined = split_tasks([f"t{i}" for i in range(100)])
+    write_cal2_log(tmp_path, "runs", [judged, mined])
+    write_cal2_log(tmp_path, "loop/r0-m", [judged, mined])
+    loaded = tuple(runs.plain_runs(tmp_path, ["runs", "loop/r0-m"]))
+    evidence = ev.Evidence({judged: None, mined: None}, loaded, frozenset(), {}, {})
+    found = mod("coding_runs").attempts_from_log(
+        tmp_path / "loop/r0-m", "loop/r0-m", [judged, mined], "m", (0, at.Split.TRAINING, set())
+    )
+    allowed = at.mined_ids([a for a in found if a.task_id == mined])
+    kept = mod("coding_runs").mined_evidence(evidence, allowed)
+    assert {(run.log, run.task) for run in kept.runs} == {("runs", mined), ("loop/r0-m", mined)}
+    assert set(kept.tasks) == {mined}
+    with pytest.raises(at.BaselineMiningError):
+        at.mined_ids(found)
+    domain = coding(tmp_path / "w")
+    with pytest.raises(at.BaselineMiningError):
+        domain.harvest(found, {}, {})
+
+
+def test_coding_marks_raise_for_a_graded_attempt_without_a_trajectory(tmp_path):
+    at = mod("attempts")
+    write_cal2_log(tmp_path, "loop/r0-m", ["t1"])
+    domain = coding(tmp_path / "w")
+    domain.paths = mod("coding_runs").CodingPaths(tmp_path, tmp_path / "s", tmp_path / "c")
+    domain.tasks = {"t1": None}
+    ghost = at.Attempt("loop/r0-m/fixed-run2-low/t1", "t1", 0, "m", at.Split.TRAINING,
+                       at.Outcome.FAILED)  # fmt: skip
+    card = mod("loop_cards").LessonCard("habit-edit-once-found", "coding-sqlglot", "habit",
+                                        "s", "h", "c", (), 0)  # fmt: skip
+    with pytest.raises(mod("coding_sqlglot").MissingTrajectoryError):
+        domain.mark(card, ghost)
+
+
+def write_episode(where, session):
+    schema = mod("symbiont.records.schema")
+    record = schema.Record(
+        harness="vizdoom", project="freedoom2", session_id=session, step=0,
+        kind=schema.Kind.COMMAND, raw=json.dumps({"level": "MAP01", "ended": "exited"}),
+        provenance=schema.Provenance(dataset="synthetic", license="none", spark_safe=True),
+        command="scripted go_to(exit)",
+    )  # fmt: skip
+    with (where / f"{session}.jsonl").open("w") as handle:
+        schema.dump_jsonl([record], handle)
+    (where / f"{session}.decisions.jsonl").write_text("")
+
+
+def test_freedoom_history_holds_only_allow_listed_episodes_and_no_judged_task(tmp_path):
+    at, fd = mod("attempts"), mod("freedoom")
+    judged, mined = split_tasks([fd.task_id("MAP01", seed) for seed in range(1, 40)])
+    level_dir = tmp_path / "episodes" / "r0" / "m" / "MAP01"
+    level_dir.mkdir(parents=True)
+    sessions = {task: f"MAP01-glimmer_plain-s{task.split('/s')[1]}" for task in (judged, mined)}
+    for session in sessions.values():
+        write_episode(level_dir, session)
+
+    def attempt_at(task):
+        path = f"r0/m/MAP01/{sessions[task]}.jsonl"
+        return at.Attempt(path, task, 0, "m", at.Split.TRAINING, at.Outcome.PASSED)
+
+    records, _ = freedoom(tmp_path).mined_history([attempt_at(mined)])
+    assert {record.session_id for record in records} == {sessions[mined]}
+    with pytest.raises(at.BaselineMiningError):
+        freedoom(tmp_path).harvest([attempt_at(judged), attempt_at(mined)], {}, {})

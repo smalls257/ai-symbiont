@@ -12,7 +12,13 @@ from collections import Counter
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 
-from attempts import Attempt, HeldOutMiningError, Outcome, training_only, verified
+from attempts import (
+    Attempt,
+    HeldOutMiningError,
+    refuse_baseline_tasks,
+    training_only,
+    verified,
+)
 from card_rows import card_rows, verify_questions
 from domain import Domain, Harvest, LessonLeakError
 from learners import Learner, LearnJob
@@ -105,6 +111,8 @@ def _harvest(ctx: RoundContext) -> Harvest:
     live = {k: c for k, c in ledger.cards.items() if k not in ledger.retired}
     mined = [a for a in ledger.attempts if not in_baseline(a.task_id)]
     harvest = ctx.domain.harvest(mined, live, quotas)
+    for card in harvest.cards:
+        refuse_baseline_tasks(card.source_tasks, f"card {card.lesson_id}")
     added = _admit(ledger, harvest.cards, quotas, ctx.settings.base_quota)
     _refuse_leaks(ctx.domain, harvest, ledger.cards)
     ctx.say(
@@ -145,21 +153,26 @@ def _row_text(row: Row) -> str:
 
 
 def _utility(ctx: RoundContext, served: str, graded: Sequence[Attempt]) -> list[LessonUtility]:
-    """Mark every live card on every graded attempt once, ablate where cheap, judge, retire."""
+    """Mark every live card on every graded attempt once, ablate on the baseline half, judge."""
     ledger = ctx.ledger
     live = [c for k, c in ledger.cards.items() if k not in ledger.retired]
     for card in live:
         for attempt in ledger.attempts:
             if not ledger.has_exposure(card.lesson_id, attempt.attempt_id):
                 ledger.record_exposure(card.lesson_id, attempt, ctx.domain.mark(card, attempt))
-    pairs = ctx.domain.ablate(served, live, graded)
+    judged_only = [a for a in graded if in_baseline(a.task_id)]
+    pairs = ctx.domain.ablate(served, live, judged_only)
+    ledger.pairs.extend(pairs)
     records = [
         LessonRecord(c.lesson_id, c.kind, ledger.rounds_trained.get(c.lesson_id, 0)) for c in live
     ]
-    table = judge_lessons(records, ledger.exposures.values(), pairs)
+    table = judge_lessons(records, ledger.exposures.values(), ledger.pairs)
     ledger.retired |= {row.lesson_id for row in table if row.decision is Decision.DROP}
     tally = Counter(str(row.decision) for row in table)
-    ctx.say(f"[4/6] utility: {dict(sorted(tally.items()))}, {len(pairs)} ablation pairs")
+    ctx.say(
+        f"[4/6] utility: {dict(sorted(tally.items()))}, {len(pairs)} new ablation pairs "
+        f"({len(ledger.pairs)} pooled)"
+    )
     return table
 
 
@@ -235,9 +248,9 @@ def _references(ctx: RoundContext, index: int) -> dict[str, int]:
 
 
 def _passed_of(attempts: Sequence[Attempt]) -> tuple[int, int]:
-    """(passed, graded); ungraded attempts count in neither."""
-    graded = [a for a in attempts if a.outcome is not Outcome.UNGRADED]
-    return sum(a.passed for a in graded), len(graded)
+    """(passed, graded); a mostly ungraded held-out run raises instead of scoring an outage."""
+    batch = verified(attempts)
+    return len(batch.passed), len(batch.graded)
 
 
 def _counts(graded: Sequence[Attempt]) -> dict[str, int]:

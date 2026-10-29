@@ -17,11 +17,10 @@ from typing import Any
 from attempts import Attempt
 from learners import Installed
 from loop_cards import LessonCard
-from utility import Exposure, Mark
+from utility import AblationPair, Exposure, Mark
 
-# Learning to learn is read as "rounds (and lessons) until the held-out pass count beats the
-# start by this share of the held-out tasks" (at least one task); a smaller gain is noise at
-# 18-24 held-out tasks.
+# "Improved" means the held-out pass rate beats the start's by this much; a smaller gain is
+# noise at 18-24 held-out tasks.
 IMPROVE_SHARE = 0.10
 
 
@@ -47,6 +46,7 @@ class Ledger:
     retired: set[str] = field(default_factory=set)
     attempts: list[Attempt] = field(default_factory=list)
     exposures: dict[str, Exposure] = field(default_factory=dict)  # "lesson|attempt" -> exposure
+    pairs: list[AblationPair] = field(default_factory=list)  # every round's, pooled for judging
     rounds: list[dict[str, Any]] = field(default_factory=list)
     rounds_trained: dict[str, int] = field(default_factory=dict)
 
@@ -110,6 +110,7 @@ class Ledger:
             "retired": sorted(self.retired),
             "attempts": [attempt.to_json() for attempt in self.attempts],
             "exposures": [{**e.__dict__, "mark": str(e.mark)} for e in self.exposures.values()],
+            "pairs": [p.__dict__ for p in self.pairs],
             "rounds": self.rounds,
             "rounds_trained": self.rounds_trained,
         }
@@ -129,6 +130,7 @@ class Ledger:
             ledger.exposures[f"{exposure.lesson_id}|{exposure.attempt_id}"] = exposure
         ledger.rounds = raw["rounds"]
         ledger.rounds_trained = raw["rounds_trained"]
+        ledger.pairs = [AblationPair(**p) for p in raw["pairs"]]
         return ledger
 
 
@@ -154,21 +156,25 @@ def save(state_dir: Path, ledger: Ledger) -> Path:
     return path
 
 
-def learning_speed(ledger: Ledger, versus: str) -> dict[str, Any]:
-    """Rounds and lessons until the round's arm beats `versus` ("start" or "plain") on held-out.
+def _rate(found: dict[str, int], arm: str) -> float:
+    """Pass rate of one held-out arm; graded counts differ when attempts went ungraded."""
+    graded = found[f"{arm}_graded"]
+    return found[f"{arm}_passed"] / graded if graded else 0.0
 
-    None when no round has beaten it yet; a later dip is visible in the curve, not hidden here.
+
+def rounds_to_improve(ledger: Ledger, versus: str) -> dict[str, Any]:
+    """Rounds and lessons until the round's held-out pass rate beats `versus` by IMPROVE_SHARE.
+
+    `versus` is "start" or "plain"; None when no round has beaten it yet.
     """
     for entry in ledger.rounds:
         found = entry["eval"]
-        graded = found["adapter_graded"]
-        needed = max(1, round(IMPROVE_SHARE * graded))
-        if found["adapter_passed"] - found[f"{versus}_passed"] >= needed:
+        if _rate(found, "adapter") - _rate(found, versus) >= IMPROVE_SHARE:
             return {
                 "versus": versus,
                 "rounds_to_improve": entry["round"] + 1,
                 "lessons_to_improve": len(entry["trained_lessons"]),
-                "needed_gain": needed,
+                "needed_rate_gain": IMPROVE_SHARE,
             }
     return {"versus": versus, "rounds_to_improve": None, "lessons_to_improve": None}
 
@@ -182,7 +188,7 @@ def curve(ledger: Ledger) -> dict[str, Any]:
         "start": ledger.start,
         "held_out_declared": ledger.declared_held_out,
         "held_out_tasks": ledger.held_out_count,
-        "learning_speed": [learning_speed(ledger, "start"), learning_speed(ledger, "plain")],
+        "rounds_to_improve": [rounds_to_improve(ledger, arm) for arm in ("start", "plain")],
         "rounds": [
             {
                 "round": entry["round"],

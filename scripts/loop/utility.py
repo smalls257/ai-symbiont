@@ -2,8 +2,9 @@
 
 Ablation (card in the prompt or not, same model and tasks) wins when there are enough pairs;
 otherwise a difference in differences on the never-mined baseline half of training tasks (pass
-gap applied vs not, trained vs untrained, averaged with the drop in mistake repeats). Thin
-evidence means probation; per-kind means set the next round's harvest quotas.
+gap applied vs not, trained vs untrained, averaged with the drop in mistake repeats). Only harm
+confirmed by MIN_DROP_PAIRS pairs and a 95% bound drops a lesson for good; a weaker bad score
+down-weights it, reversibly. Per-kind means set the next round's harvest quotas.
 """
 
 from __future__ import annotations
@@ -18,7 +19,11 @@ from enum import StrEnum
 MIN_EXPOSURES = 3  # applicable attempts needed on each side before a lesson is judged at all
 MIN_ABLATION_PAIRS = 3  # with/without pairs needed before the ablation overrides observation
 PROBATION_ROUNDS = 2  # trained rounds a lesson may stay unjudged or neutral at full weight
-DROP_BELOW = -0.10  # a score this low is harm, not noise, at the sample sizes above
+HARM_BELOW = -0.10  # a score this low down-weights, reversibly; it never drops on its own
+# A permanent drop needs at least this many with/without pairs (all rounds pooled) and a 95%
+# upper bound on the mean difference below zero: 3 pairs once dropped a lesson that helps.
+MIN_DROP_PAIRS = 8
+Z_95 = 1.96
 KEEP_ABOVE = 0.05  # a score this high earns full weight
 BASELINE_EVERY = 2  # one training task in this many is judged, never mined
 QUOTA_STEP = 0.5  # a kind's harvest quota moves by this share of the base per judged sign
@@ -132,10 +137,21 @@ def _observational(trained: Sequence[Exposure], untrained: Sequence[Exposure]) -
     return parts
 
 
-def decide(score: float | None, rounds_trained: int) -> Decision:
-    """The decision for a score; unjudged or neutral lessons get PROBATION_ROUNDS of grace."""
-    if score is not None and score <= DROP_BELOW:
+def harm_confirmed(pairs: Sequence[AblationPair]) -> bool:
+    """MIN_DROP_PAIRS or more pairs whose 95% upper bound on with-minus-without is below zero."""
+    if len(pairs) < MIN_DROP_PAIRS:
+        return False
+    gaps = [p.passed_with - p.passed_without for p in pairs]
+    bound = Z_95 * statistics.stdev(gaps) / len(gaps) ** 0.5
+    return statistics.fmean(gaps) + bound < 0
+
+
+def decide(score: float | None, rounds_trained: int, *, confirmed_harm: bool) -> Decision:
+    """DROP only on confirmed harm; a bad score down-weights; neutral gets probation first."""
+    if confirmed_harm:
         return Decision.DROP
+    if score is not None and score <= HARM_BELOW:
+        return Decision.DOWN_WEIGHT
     if score is not None and score >= KEEP_ABOVE:
         return Decision.KEEP
     return Decision.PROBATION if rounds_trained < PROBATION_ROUNDS else Decision.DOWN_WEIGHT
@@ -162,8 +178,9 @@ def _applied(exposures: Sequence[Exposure]) -> int:
 def judge_lesson(
     lesson: LessonRecord, exposures: Sequence[Exposure], pairs: Sequence[AblationPair]
 ) -> LessonUtility:
-    """Score one lesson and decide its weight, on baseline-half exposures only."""
+    """Score one lesson and decide its weight, on baseline-half exposures and pairs only."""
     judged = [e for e in exposures if in_baseline(e.task_id)]
+    pairs = [p for p in pairs if in_baseline(p.task_id)]
     trained = [e for e in judged if e.trained]
     untrained = [e for e in judged if not e.trained]
     estimator, score = _score(_observational(trained, untrained), pairs)
@@ -178,7 +195,7 @@ def judge_lesson(
         ablation_pairs=len(pairs),
         estimator=estimator,
         score=score,
-        decision=decide(score, lesson.rounds_trained),
+        decision=decide(score, lesson.rounds_trained, confirmed_harm=harm_confirmed(pairs)),
     )
 
 

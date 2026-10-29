@@ -15,7 +15,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from attempts import Attempt, Outcome, Split
+from attempts import Attempt, Outcome, Split, mined_ids, refuse_baseline_tasks
 from build_lesson_set import read_history
 from domain import Harvest
 from learners import RouteNotWiredError
@@ -62,6 +62,12 @@ class FreedoomPaths:
 def task_id(level: str, seed: int) -> str:
     """`MAP02/s3`."""
     return f"{level}/s{seed}"
+
+
+def session_task(session_id: str) -> str:
+    """`MAP01-glimmer_plain-s3` -> `MAP01/s3` (the collector's session id names level and seed)."""
+    level, _, seed = session_id.rpartition("-s")
+    return task_id(level.split("-")[0], int(seed))
 
 
 def card_id(lesson: GameLesson) -> str:
@@ -145,13 +151,8 @@ class Freedoom:
         known: Mapping[str, LessonCard],
         quotas: Mapping[str, int],
     ) -> Harvest:
-        """Game lessons from every graded training episode, pooled into cards by check."""
-        dirs = sorted({(self.paths.episodes / a.attempt_id).parent.parent for a in attempts})
-        records, situations = [], {}
-        for where in dirs:
-            found, more = read_history(where)
-            records += found
-            situations |= more
+        """Game lessons from the allow-listed episodes only, pooled into cards by check."""
+        records, situations = self.mined_history(attempts)
         lessons = lessons_from_history(records)
         grouped: dict[str, list[GameLesson]] = defaultdict(list)
         for lesson in sorted(lessons.lessons, key=lambda x: -x.repeats):
@@ -161,6 +162,19 @@ class Freedoom:
         cards = [_card(k, group, known.get(k), first) for k, group in grouped.items()]
         rows = {k: _situation_rows(group, situations) for k, group in grouped.items()}
         return Harvest(tuple(cards), rows, (), sum(lessons.unresolved.values()))
+
+    def mined_history(self, attempts: Sequence[Attempt]) -> tuple[list, dict]:
+        """Records and situations of the allow-listed episodes; their directories hold more."""
+        allowed = mined_ids(attempts)
+        sessions = {Path(i).name.removesuffix(".jsonl") for i in allowed}
+        dirs = sorted({(self.paths.episodes / i).parent.parent for i in allowed})
+        records, situations = [], {}
+        for where in dirs:
+            found, more = read_history(where)
+            records += [r for r in found if r.session_id in sessions]
+            situations |= {k: v for k, v in more.items() if k[0] in sessions}
+        refuse_baseline_tasks({session_task(r.session_id) for r in records}, "Freedoom history")
+        return records, situations
 
     def mark(self, card: LessonCard, attempt: Attempt) -> Mark:
         """Applies when the episode played the card's verb (any move, for room pains)."""
@@ -195,9 +209,10 @@ def _card(
 ) -> LessonCard:
     top = group[0]
     sessions = tuple(sorted({lesson.session_id for lesson in group}))
+    tasks = tuple(sorted({session_task(session) for session in sessions}))
     card = LessonCard(
         key, "freedoom", top.pain.value, SITUATION[top.pain], top.what_happened, top.check,
-        sessions, earlier.first_round if earlier else first,
+        tasks, earlier.first_round if earlier else first,
     )  # fmt: skip
     proof = Resolution(ResolutionSource.ENGINE_PROGRESS, sessions)
     return card.resolved_by(proof, top.how_resolved)

@@ -120,7 +120,7 @@ HELPS_BEFORE = [("repeated", False)] * 3 + [("avoided", False)] + [("not applica
 HELPS_AFTER = [("avoided", True)] * 4 + [("not applicable", True)] * 4
 
 
-def test_a_lesson_that_cut_its_mistake_is_kept_and_one_that_raised_it_is_dropped():
+def test_a_lesson_that_cut_its_mistake_is_kept_and_one_that_raised_it_only_down_weighted():
     ut = mod("utility")
     helps = exposures("good", False, HELPS_BEFORE) + exposures("good", True, HELPS_AFTER)
     hurts = exposures("bad", False, HELPS_AFTER) + exposures("bad", True, HELPS_BEFORE)
@@ -129,31 +129,44 @@ def test_a_lesson_that_cut_its_mistake_is_kept_and_one_that_raised_it_is_dropped
     )
     assert [(row.decision, row.estimator) for row in table] == [
         (ut.Decision.KEEP, ut.Estimator.OBSERVATIONAL),
-        (ut.Decision.DROP, ut.Estimator.OBSERVATIONAL),
+        (ut.Decision.DOWN_WEIGHT, ut.Estimator.OBSERVATIONAL),  # observation never drops
     ]
     assert table[0].repeat_before == 0.75 and table[0].repeat_after == 0.0
 
 
 def test_an_unjudged_lesson_is_on_probation_then_down_weighted():
     ut = mod("utility")
-    assert ut.decide(None, 0) is ut.Decision.PROBATION
-    assert ut.decide(0.0, ut.PROBATION_ROUNDS) is ut.Decision.DOWN_WEIGHT
+    assert ut.decide(None, 0, confirmed_harm=False) is ut.Decision.PROBATION
+    assert ut.decide(0.0, ut.PROBATION_ROUNDS, confirmed_harm=False) is ut.Decision.DOWN_WEIGHT
 
 
-def test_enough_ablation_pairs_override_the_observational_score():
+def pairs_for(lesson_id, gaps):
+    """Baseline-half pairs with these with-minus-without differences (-1, 0 or 1)."""
     ut = mod("utility")
+    shape = {-1: (False, True), 0: (True, True), 1: (True, False)}
+    tasks = baseline_tasks(len(gaps), start=5000)
+    return [ut.AblationPair(lesson_id, t, *shape[g]) for t, g in zip(tasks, gaps, strict=True)]
+
+
+def test_ablation_overrides_observation_but_drops_only_on_confirmed_harm():
+    ut = mod("utility")
+    record = [ut.LessonRecord("x", "habit", 1)]
     helps = exposures("x", False, HELPS_BEFORE) + exposures("x", True, HELPS_AFTER)
-    pairs = [ut.AblationPair("x", f"t{i}", False, True) for i in range(ut.MIN_ABLATION_PAIRS)]
-    row = ut.judge_lessons([ut.LessonRecord("x", "habit", 1)], helps, pairs)[0]
-    assert row.estimator is ut.Estimator.ABLATION and row.decision is ut.Decision.DROP
+    few = ut.judge_lessons(record, helps, pairs_for("x", [-1] * 3))[0]
+    assert few.estimator is ut.Estimator.ABLATION and few.decision is ut.Decision.DOWN_WEIGHT
+    many = ut.judge_lessons(record, [], pairs_for("x", [-1] * ut.MIN_DROP_PAIRS))[0]
+    assert many.decision is ut.Decision.DROP
+    assert not ut.harm_confirmed(pairs_for("x", [-1, -1, -1, 1, 0, 0, -1, 1]))
 
 
-def test_only_the_never_mined_baseline_half_is_judged():
+def test_pairs_and_exposures_off_the_baseline_half_are_ignored():
     ut = mod("utility")
-    mined = [t for t in (f"task{i}" for i in range(200)) if not ut.in_baseline(t)][:8]
+    mined = [t for t in (f"task{i}" for i in range(400)) if not ut.in_baseline(t)][:10]
     rows = [ut.Exposure("x", t, t, ut.Mark.REPEATED, False, False) for t in mined]
-    row = ut.judge_lessons([ut.LessonRecord("x", "habit", 0)], rows)[0]
-    assert row.applied_untrained == 0 and row.estimator is ut.Estimator.NONE
+    pairs = [ut.AblationPair("x", t, False, True) for t in mined]
+    row = ut.judge_lessons([ut.LessonRecord("x", "habit", 0)], rows, pairs)[0]
+    assert row.applied_untrained == 0 and row.ablation_pairs == 0
+    assert row.estimator is ut.Estimator.NONE
 
 
 def test_harvest_quotas_follow_each_kinds_judged_utility():
@@ -221,7 +234,7 @@ def test_the_held_out_set_is_fixed_at_declaration_and_state_round_trips(tmp_path
     assert again.cards == ledger.cards and again.exposures == ledger.exposures
 
 
-def test_learning_speed_counts_rounds_and_lessons_until_the_start_is_beaten():
+def test_rounds_to_improve_counts_rounds_and_lessons_until_the_start_rate_is_beaten():
     lg = mod("ledger")
     ledger = lg.Ledger.declare("fake", frozenset({"h1"}), "route-b", "plain")
     for index, passed in enumerate((10, 11, 14)):
@@ -230,5 +243,5 @@ def test_learning_speed_counts_rounds_and_lessons_until_the_start_is_beaten():
             "eval": {"plain_passed": 10, "plain_graded": 20, "start_passed": 10,
                      "start_graded": 20, "adapter_passed": passed, "adapter_graded": 20},
         })  # fmt: skip
-    speed = lg.learning_speed(ledger, "start")
+    speed = lg.rounds_to_improve(ledger, "start")
     assert speed["rounds_to_improve"] == 3 and speed["lessons_to_improve"] == 4

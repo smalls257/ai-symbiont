@@ -13,7 +13,7 @@ import hashlib
 from collections.abc import Mapping, MutableMapping, Sequence
 from dataclasses import dataclass, field
 
-from attempts import Attempt, Outcome, Split
+from attempts import Attempt, Outcome, Split, mined_ids
 from domain import Harvest
 from loop_cards import LessonCard, Resolution, ResolutionSource
 from training_plan import SUCCESS_SOURCE, Row
@@ -137,6 +137,7 @@ class FakeDomain:
         quotas: Mapping[str, int],
     ) -> Harvest:
         """A card per trap someone fell into; closed once a passed attempt got past that trap."""
+        mined_ids(attempts)
         cards = [card for trap in TRAPS if (card := self._card(trap, attempts, known))]
         passed = [a for a in attempts if a.passed][:20]
         success = tuple(

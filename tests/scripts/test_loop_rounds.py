@@ -27,20 +27,26 @@ def quiet(_line):
     return None
 
 
-def test_three_simulated_rounds_learn_drop_the_misleading_lesson_and_never_mine_held_out(tmp_path):
+def test_simulated_rounds_learn_down_weight_the_misleading_lesson_and_never_mine(tmp_path):
     run_loop = mod("run_loop")
     result = run_loop.dry_run(run_loop.DryRun(3), tmp_path, quiet)
     rounds = result["curve"]["rounds"]
     assert [r["model"] for r in rounds] == [f"Muse-Glimmer-30B-fake-r{n}" for n in (1, 2, 3)]
     assert {r["plain_passed"] for r in rounds} == {rounds[0]["plain_passed"]}
     assert all(r["adapter_passed"] > r["plain_passed"] for r in rounds)
-    assert "fake-scratch-first" in result["retired"]
+    decisions = {row["lesson_id"]: row["decision"] for row in result["last_utility"]}
+    assert decisions["fake-scratch-first"] == "down-weight"  # too few pairs to drop for good
+    assert result["retired"] == []
     ledger = mod("ledger").load(tmp_path, "fake/route-b-glimmer-adapter/plain")
+    in_baseline = mod("utility").in_baseline
+    assert len(ledger.pairs) > 20 and all(in_baseline(p.task_id) for p in ledger.pairs)
+    judged = {a.task_id for a in ledger.attempts if in_baseline(a.task_id)}
+    sources = {t for card in ledger.cards.values() for t in card.source_tasks}
+    assert judged and not judged & sources
     assert {str(a.split) for a in ledger.attempts} == {"training"}
     assert not {a.task_id for a in ledger.attempts} & mod("fake_domain").FakeDomain().held_out()
     manifest = ledger.rounds[-1]["manifest"]
     assert manifest["train_mode"] == "from-scratch" and manifest["rows"] > 0
-    assert "fake-scratch-first" not in ledger.rounds[-1]["trained_lessons"]
 
 
 def test_route_a_trains_the_warner_and_memory_and_names_its_arm_apart(tmp_path):
@@ -50,14 +56,14 @@ def test_route_a_trains_the_warner_and_memory_and_names_its_arm_apart(tmp_path):
     assert rounds[-1]["model"] == "user-model+symbiont-fake-r2"
 
 
-def test_compare_starts_reports_learning_speed_from_plain_and_from_shared_habits(tmp_path):
+def test_compare_starts_reports_rounds_to_improve_from_plain_and_from_shared_habits(tmp_path):
     run_loop, learners = mod("run_loop"), mod("learners")
     found = run_loop.compare_starts(3, learners.Route.GLIMMER_ADAPTER, tmp_path)
     assert set(found) >= {"plain", "shared-habits"}
     plain_start = found["plain"]["held_out_by_round"][0][0]
     habits_start = found["shared-habits"]["held_out_by_round"][0][0]
     assert habits_start > plain_start  # the base already holds two habit lessons
-    assert found["plain"]["learning_speed"][0]["rounds_to_improve"] == 1
+    assert found["plain"]["rounds_to_improve"][0]["rounds_to_improve"] == 1
 
 
 def test_continued_mode_starts_each_adapter_from_the_last(tmp_path):
@@ -93,6 +99,28 @@ def test_a_lesson_text_naming_a_held_out_task_stops_the_round_before_training(tm
     with pytest.raises(dm.LessonLeakError, match="held-out"):
         rr.run_round(ctx)
     assert ctx.ledger.rounds == [] and ctx.learner.learned == {}
+
+
+def test_a_harvest_handed_a_judged_only_attempt_refuses_it():
+    fake, at, ut = mod("fake_domain"), mod("attempts"), mod("utility")
+    task = next(t for t in (f"t{i:03d}" for i in range(200)) if ut.in_baseline(t))
+    judged = at.Attempt(f"r0/{task}", task, 0, "m", at.Split.TRAINING, at.Outcome.FAILED)
+    with pytest.raises(at.BaselineMiningError):
+        fake.FakeDomain().harvest([judged], {}, {})
+
+
+def test_a_mostly_ungraded_held_out_evaluation_stops_the_round(tmp_path):
+    fake, at, rr = mod("fake_domain"), mod("attempts"), mod("round_runner")
+
+    class Outage(fake.FakeDomain):
+        def evaluate(self, model, round_index, trained):
+            found = super().evaluate(model, round_index, trained)
+            return [a.__class__(**{**a.__dict__, "outcome": at.Outcome.UNGRADED}) for a in found]
+
+    ctx = context(tmp_path, Outage())
+    with pytest.raises(at.UnverifiableRoundError):
+        rr.run_round(ctx)
+    assert ctx.ledger.rounds == []
 
 
 def test_a_changed_held_out_set_stops_the_next_round(tmp_path):
