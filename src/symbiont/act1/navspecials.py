@@ -25,7 +25,8 @@ class Trigger(StrEnum):
 class Effect(StrEnum):
     """What a special does to the sectors carrying its tag, as far as walking is concerned."""
 
-    OPEN_DOOR = "open_door"  # the ceiling rises: a shut sector becomes a passage
+    OPEN_DOOR = "open_door"  # the ceiling rises and stays: a shut sector becomes a passage
+    OPEN_DOOR_TIMED = "open_door_timed"  # opens, waits about 150 tics, shuts again
     LIFT = "lift"  # the floor lowers to the lowest neighbor, waits, and rises again
     LOWER_FLOOR_LOWEST = "lower_floor_lowest"
     LOWER_FLOOR_HIGHEST = "lower_floor_highest"  # to the highest neighboring floor
@@ -70,8 +71,10 @@ def _build_table() -> dict[int, Special]:
     table.update(
         _group((1, 26, 27, 28, 31, 32, 33, 34, 117, 118), Trigger.MANUAL, Effect.OPEN_DOOR)
     )
-    table.update(_group((2, 4, 105, 106, 108, 109, 86, 90, 40), walk, Effect.OPEN_DOOR))
-    table.update(_group((29, 61, 63, 103, 111, 112, 114, 115), use, Effect.OPEN_DOOR))
+    table.update(_group((2, 106, 109, 86, 40), walk, Effect.OPEN_DOOR))
+    table.update(_group((61, 103, 112, 115), use, Effect.OPEN_DOOR))
+    table.update(_group((4, 90, 105, 108), walk, Effect.OPEN_DOOR_TIMED))
+    table.update(_group((29, 63, 111, 114), use, Effect.OPEN_DOOR_TIMED))
     table.update(_group((46,), shoot, Effect.OPEN_DOOR))
     table.update(_keyed_switch_doors())
     table.update(_group((10, 88, 120, 121), walk, Effect.LIFT))

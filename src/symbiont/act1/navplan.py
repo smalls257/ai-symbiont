@@ -7,14 +7,14 @@ search runs again, so each leg is a plain walk in one world.
 """
 
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from symbiont.act1.navbuild import SectorState
 from symbiont.act1.navgrid import WalkGrid
 from symbiont.act1.navmech import FIRABLE_EFFECTS, Mechanism, apply_mechanism
 from symbiont.act1.navroute import cells_to, ending_on, waypoints_for
 from symbiont.act1.navsearch import DoorAwareSearch, DoorRules, SearchResult
-from symbiont.act1.navspecials import Trigger
+from symbiont.act1.navspecials import Effect, Trigger
 from symbiont.act1.navtele import TeleportEdge, through_point
 from symbiont.act1.navtypes import (
     Action,
@@ -39,6 +39,8 @@ class Firing:
     mechanism: Mechanism
     cell: int  # where the walker stands to set it off
     through: tuple[float, float] | None  # walkover: the point to walk to, across the line
+    # a timed door: the sectors it opens and the states they go back to when it shuts again
+    shuts_again: tuple[tuple[int, SectorState], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -113,41 +115,54 @@ class RoutePlanner:
         result = DoorAwareSearch(grid).run(start, grid.target_cells(candidates), rules)
         legs: list[Leg] = []
         used: set[int] = set()
+        closing: tuple[tuple[int, SectorState], ...] = ()
         for _ in range(MAX_FIRINGS + 1):
             if result.cell is not None:
                 legs.append(Leg(grid, cells_to(result.cell, result.parent), result.length, None))
                 reached = candidates[grid.target_cells(candidates)[result.cell]]
                 return Planned(legs, reached)
-            picked = self._choose(Stage(grid, start, result), goal, used)
+            picked = self._choose(Stage(grid, start, result), goal, (used, closing))
             if picked is None:
                 break
             firing, stage = picked
             cells = cells_to(firing.cell, result.parent)
             legs.append(Leg(grid, cells, result.explored[firing.cell], firing))
             used.add(firing.mechanism.line)
+            closing = firing.shuts_again
             grid, start, result = stage.grid, stage.start, stage.result
         return Stage(grid, start, result)
 
     # --- choosing what to press next --------------------------------------------------------
 
-    def _choose(self, stuck: Stage, goal: _Goal, used: set[int]) -> tuple[Firing, Stage] | None:
-        """The nearest mechanism whose firing frees the walker to go further, and the new stage."""
+    def _choose(
+        self, stuck: Stage, goal: _Goal, past: tuple[set[int], tuple[tuple[int, SectorState], ...]]
+    ) -> tuple[Firing, Stage] | None:
+        """The nearest mechanism whose firing frees the walker to go further, and the new stage.
+
+        `past` is the lines already used and the doors the last firing left to shut again: they
+        have shut by the time the next switch is pressed, and a one-shot cannot reopen them.
+        """
+        used, closing = past
         grid, result = stuck.grid, stuck.result
         options = []
         for mech in self._relevant(grid, result, goal.rules, used):
             firing = _approach(grid, mech, result.explored)
             if firing is not None:
                 options.append((result.explored[firing.cell], firing))
+        shut = list(grid.states)
+        for sector, state in closing:
+            shut[sector] = state
         for _, firing in sorted(options, key=lambda option: (option[0], option[1].mechanism.line)):
-            after = apply_mechanism(self._geometry, grid.states, firing.mechanism)
-            if after == grid.states:
+            after = apply_mechanism(self._geometry, shut, firing.mechanism)
+            if after == shut:
                 continue
             world = grid.in_world(after)
             began = _cell_after(world, firing)
-            if began is None:
+            if began is None or not _opens_frontier(
+                world, firing.mechanism, result.explored, goal.rules
+            ):
                 continue
-            if not _opens_frontier(world, firing.mechanism, result.explored, goal.rules):
-                continue
+            firing = _remembering_the_close(firing, shut)
             targets = world.target_cells(goal.candidates)
             outcome = DoorAwareSearch(world).run(began, targets, goal.rules)
             if outcome.cell is not None or len(outcome.explored) > len(result.explored):
@@ -198,6 +213,13 @@ def _opens_frontier(
 
 
 # --- where to stand to set a mechanism off ------------------------------------------------------
+
+
+def _remembering_the_close(firing: Firing, before: list[SectorState]) -> Firing:
+    """A timed door's firing, tagged with the states its sectors return to."""
+    if firing.mechanism.special.effect != Effect.OPEN_DOOR_TIMED:
+        return firing
+    return replace(firing, shuts_again=tuple((s, before[s]) for s in firing.mechanism.sectors))
 
 
 def _cell_after(world: WalkGrid, firing: Firing) -> int | None:

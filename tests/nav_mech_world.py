@@ -131,3 +131,48 @@ def closing_door(closer: int = 3, opener: int = 103) -> MapGeometry:
     ]
     sectors = [Sector(0, 128), Sector(0, 0, TAG), Sector(0, 128), Sector(0, 128)]
     return MapGeometry(verts.points, lines, sectors, [Thing(1, 1, 1)])
+
+
+def door_chain(first: int = 29, second_switch_in_a: bool = True) -> MapGeometry:
+    """A | D1 | B | D2 | C, the exit in C. A holds the switch `first` for D1 (tag 7) and, with
+    `second_switch_in_a`, the switch for D2 (tag 8): after D1 is crossed the walker must come back.
+    """
+    verts = _Vertices()
+    lines = [
+        line(verts, (0, 0), (0, 256), 0),
+        line(verts, (0, 256), (100, 256), 0),
+        line(verts, (100, 256), (140, 256), 0, special=first, tag=TAG),
+        line(verts, (140, 256), (150, 256), 0),
+        line(verts, (150, 256), (190, 256), 0, special=103 if second_switch_in_a else 0, tag=8),
+        line(verts, (190, 256), (256, 256), 0),
+        line(verts, (256, 256), (256, 160), 0),
+        line(verts, (256, 96), (256, 0), 0),
+        line(verts, (256, 0), (0, 0), 0),
+    ]
+    lines += [
+        line(verts, (272, 160), (272, 256), 2),
+        line(verts, (272, 256), (528, 256), 2),
+        line(verts, (528, 256), (528, 160), 2),
+        line(verts, (528, 96), (528, 0), 2),
+        line(verts, (528, 0), (272, 0), 2),
+        line(verts, (272, 0), (272, 96), 2),
+    ]
+    lines += _far_room(verts, 4, 560)
+    lines += [  # D1 between A and B, D2 between B and C
+        line(verts, (256, 160), (256, 96), 0, 1),
+        line(verts, (256, 160), (272, 160), 1),
+        line(verts, (272, 96), (256, 96), 1),
+        line(verts, (272, 96), (272, 160), 2, 1),
+        line(verts, (528, 160), (528, 96), 2, 3),
+        line(verts, (528, 160), (544, 160), 3),
+        line(verts, (544, 96), (528, 96), 3),
+        line(verts, (544, 96), (544, 160), 4, 3),
+    ]
+    sectors = [
+        Sector(0, 128),
+        Sector(0, 0, TAG),
+        Sector(0, 128),
+        Sector(0, 0, 8),
+        Sector(0, 128),
+    ]
+    return MapGeometry(verts.points, lines, sectors, [Thing(1, 1, 1)])

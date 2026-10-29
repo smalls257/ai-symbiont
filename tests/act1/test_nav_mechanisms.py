@@ -2,7 +2,16 @@ import math
 
 import pytest
 
-from nav_mech_world import START, TAG, closing_door, lift, pedestal_key, switch_door, teleport
+from nav_mech_world import (
+    START,
+    TAG,
+    closing_door,
+    door_chain,
+    lift,
+    pedestal_key,
+    switch_door,
+    teleport,
+)
 from symbiont.act1.map_index import build_index
 from symbiont.act1.navmap import NoPath, Route, build_navmap
 from symbiont.act1.navmech import apply_mechanism, build_mechanisms
@@ -129,3 +138,20 @@ def test_a_walkover_line_that_shuts_the_door_makes_the_route_fragile_and_says_wh
 def test_a_ceiling_lowering_walkover_is_a_hazard_too_and_a_harmless_line_is_not():
     assert "special 44" in way_to_exit(closing_door(closer=44)).hazards[0]
     assert way_to_exit(closing_door(closer=12)).hazards == ()  # a light change
+
+
+def test_a_door_that_opens_and_shuts_again_cannot_be_walked_back_through():
+    # D1 opens for a while (29, one shot); the switch for D2 is back in room A, behind D1
+    assert isinstance(way_to_exit(door_chain(first=29)), NoPath)
+
+
+def test_a_door_that_stays_open_can_be_walked_back_through():
+    assert isinstance(way_to_exit(door_chain(first=103)), Route)
+
+
+def test_a_timed_door_the_walker_reaches_late_makes_the_route_fragile(monkeypatch):
+    geometry = switch_door(switch=29)
+    assert way_to_exit(geometry).hazards == ()
+    monkeypatch.setattr("symbiont.act1.navhazard.TIMED_WINDOW_UNITS", 20)
+    (reason,) = way_to_exit(geometry).hazards
+    assert "special 29" in reason and "shuts again" in reason

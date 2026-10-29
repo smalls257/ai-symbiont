@@ -15,6 +15,9 @@ from symbiont.act1.navtypes import CELL, Segment
 from symbiont.act1.wad import MapGeometry
 
 HAZARD_EFFECTS = frozenset({Effect.CLOSE_DOOR, Effect.LOWER_CEILING})
+# A timed door stays open about 150 tics after it has risen. The scripted walker covered 640 units
+# in 150 tics [measured, MAP10 trace]; half of that is the allowance.
+TIMED_WINDOW_UNITS = 320
 JUMP_CELLS = 2  # consecutive path cells farther apart than this are a teleport, not a step
 
 
@@ -32,6 +35,7 @@ def audit_route(
     for number, leg in enumerate(planned.legs):
         later = planned.legs[number + 1 :]
         reasons.extend(_crossings(geometry, lines, leg, later, running))
+        reasons.extend(_door_window(leg, later))
         if leg.firing is not None:
             running = apply_mechanism(geometry, running, leg.firing.mechanism)
     return tuple(reasons)
@@ -60,6 +64,22 @@ def _crossings(
                 found.append(_reason(mech, sorted(lost)))
             running[:] = after
     return found
+
+
+def _door_window(leg: Leg, later: list[Leg]) -> list[str]:
+    """A timed door shuts again: the next leg must reach it while it is open."""
+    if leg.firing is None or not leg.firing.shuts_again or not later:
+        return []
+    doors = {sector for sector, _ in leg.firing.shuts_again}
+    for step, cell in enumerate(later[0].cells):
+        if later[0].grid.sectors_in([cell]) & doors:
+            distance = step * CELL
+            return [_late(leg.firing.mechanism, distance)] if distance > TIMED_WINDOW_UNITS else []
+    return []
+
+
+def _late(mech: Mechanism, distance: int) -> str:
+    return f"special {mech.number} opens a door that shuts again {distance} units before arrival"
 
 
 def _gap(start: tuple[float, float], end: tuple[float, float]) -> float:

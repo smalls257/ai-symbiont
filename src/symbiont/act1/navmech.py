@@ -21,6 +21,7 @@ CRUSHING_RAISERS = frozenset({55, 56, 65, 94})
 _ROUTED_EFFECTS = frozenset(
     {
         Effect.OPEN_DOOR,
+        Effect.OPEN_DOOR_TIMED,
         Effect.LIFT,
         Effect.LOWER_FLOOR_LOWEST,
         Effect.LOWER_FLOOR_HIGHEST,
@@ -34,6 +35,7 @@ _ROUTED_EFFECTS = frozenset(
 )
 # what the planner may press on purpose; the rest are only crossed by accident (see navhazard)
 FIRABLE_EFFECTS = _ROUTED_EFFECTS - {Effect.CLOSE_DOOR, Effect.LOWER_CEILING}
+OPENING_EFFECTS = frozenset({Effect.OPEN_DOOR, Effect.OPEN_DOOR_TIMED})
 _PLAYER_TRIGGERS = frozenset({Trigger.USE, Trigger.WALK})
 
 
@@ -130,7 +132,7 @@ def _moved(
 ) -> SectorState:
     state = states[sector]
     effect = mechanism.special.effect
-    if effect == Effect.OPEN_DOOR:
+    if effect in OPENING_EFFECTS:
         return replace(state, ceiling=OPEN_DOOR_CEILING)
     if effect == Effect.CLOSE_DOOR:
         return replace(state, ceiling=state.floor_out)
@@ -209,7 +211,7 @@ def _state_now(
     if effect == Effect.LIFT:
         called = floor < base[sector].floor_out
         return _moved(geometry, base, sector, mech) if called else base[sector]
-    if effect == Effect.OPEN_DOOR:
+    if effect in OPENING_EFFECTS:
         opened = ceiling - floor >= PLAYER_HEIGHT
         return replace(base[sector], ceiling=OPEN_DOOR_CEILING if opened else ceiling)
     return SectorState(floor, floor, ceiling)
