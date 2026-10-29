@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # LCAP: train every adapter for one model and answer every arm. Runs on the laptop (MLX).
 #
-# Each training and answering step logs to its own file under
-# $WORK/logs/<tag>/ and appends "<step> <seconds>" to timing.txt, so a slow or dead step is
-# visible from the outside; set -e stops the run at the first failed step, never past it.
+# Each step logs to its own file under $WORK/logs/<tag>/ and appends "<step> <seconds>" to
+# timing.txt; set -e stops the run at the first failed step.
 #
-# Same budget for every size (a bigger set must not get fewer passes):
-# EPOCHS passes over the training rows, batch BATCH, so iters = rows * EPOCHS / BATCH.
+# Same budget for every size, so a bigger set does not get fewer passes: EPOCHS passes
+# over the training rows, batch 4 (train_lora.sh), so iters = rows * EPOCHS / 4.
 #
 # MATRIX full: floor, ceiling and one adapter at 10/30/100 plus the grouped adapters.
 # MATRIX top: floor, ceiling and one adapter at 100 only (the 1B-vs-3B comparison).
@@ -29,32 +28,7 @@ LOGS="$WORK/logs/$TAG"
 ADAPTERS="$WORK/adapters/$TAG"
 ANSWERS="$WORK/answers/$TAG"
 EPOCHS=${LCAP_EPOCHS:-8}
-BATCH=4
 mkdir -p "$LOGS" "$ADAPTERS" "$ANSWERS"
-
-lora_yaml() {  # lora_yaml <iters>: one schedule shape for every size, stretched to its iters
-  cat <<YAML
-fine_tune_type: lora
-num_layers: -1
-batch_size: $BATCH
-learning_rate: 1.0e-4
-mask_prompt: true
-max_seq_length: 512
-steps_per_report: 20
-steps_per_eval: 100000
-seed: 0
-# Constant 2e-4 diverged on the 30-lesson set; warmup plus cosine decay did not [measured].
-lr_schedule:
-  name: cosine_decay
-  warmup: 20
-  warmup_init: 1.0e-6
-  arguments: [1.0e-4, $1, 1.0e-6]
-lora_parameters:
-  rank: 16
-  scale: 2.0  # alpha 32 at rank 16; scale 20 (the mlx default) diverged at lr 2e-4 [measured]
-  dropout: 0.0
-YAML
-}
 
 timed() {  # timed <step name> <log file> <command...>
   local name=$1 log=$2 start
@@ -64,17 +38,11 @@ timed() {  # timed <step name> <log file> <command...>
   echo "$name $(($(date +%s) - start))" >>"$LOGS/timing.txt"
 }
 
-train() {  # train <condition>
-  local rows iters
-  rows=$(wc -l <"$DATA/train/$1/train.jsonl")
-  iters=$((rows * EPOCHS / BATCH))
+train() {  # train <condition>: the shared recipe in train_lora.sh
   # resume: mlx-lm writes adapters.safetensors mid-run too, so only .done marks a finished run
   [[ -f "$ADAPTERS/$1/.done" ]] && return 0
-  echo "train-$1 iters=$iters rows=$rows" >>"$LOGS/budget.txt"
-  lora_yaml "$iters" >"$LOGS/lora-$1.yaml"
-  timed "train-$1" "$LOGS/train-$1.log" "$PY" -m mlx_lm lora -c "$LOGS/lora-$1.yaml" \
-    --model "$MODEL" --train --data "$DATA/train/$1" --iters "$iters" \
-    --adapter-path "$ADAPTERS/$1"
+  LORA_EPOCHS=$EPOCHS "$HERE/train_lora.sh" "$PY" "$MODEL" "$DATA/train/$1" "$ADAPTERS/$1" \
+    "$LOGS" "$1"
   touch "$ADAPTERS/$1/.done"
 }
 

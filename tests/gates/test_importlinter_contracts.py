@@ -78,7 +78,10 @@ def _network_contract_section() -> str:
 def _only_act1_as_source(section: str) -> str:
     """The real contract names every package; the tiny tree here has only act1 and egress."""
     head, rest = section.split("source_modules =\n", 1)
-    return head + "source_modules =\n    symbiont.act1\n" + rest[rest.index("forbidden_modules") :]
+    kept = rest[rest.index("forbidden_modules") :]
+    # The tiny tree has no listener module, and an unmatched exception is an error by design.
+    kept = kept.split("ignore_imports =")[0]
+    return head + "source_modules =\n    symbiont.act1\n" + kept
 
 
 def _run_linter_on(tmp_path: Path, body_of_act1_module: str) -> subprocess.CompletedProcess:
@@ -108,3 +111,11 @@ def test_a_direct_network_import_outside_egress_breaks_the_network_contract(tmp_
 def test_going_through_egress_keeps_the_network_contract(tmp_path):
     out = _run_linter_on(tmp_path, "from symbiont.egress import client\n")
     assert out.returncode == 0, out.stdout
+
+
+def test_the_network_contract_excepts_exactly_the_listener():
+    section = _network_contract_section()
+    ignored = section.split("ignore_imports =", 1)[1].split("\n[", 1)[0]
+    lines = [ln.strip() for ln in ignored.splitlines() if ln.strip() and not ln.startswith(";")]
+    assert lines == ["symbiont.service.server -> http"]
+    assert "unmatched_ignore_imports_alerting" not in section, "the default (error) must stay"

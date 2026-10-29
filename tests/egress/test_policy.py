@@ -70,6 +70,14 @@ def test_local_service_is_loopback_only():
         )
 
 
+@pytest.mark.parametrize("url", ["http://" + "192.168." + "0.9:8090/v1", "https://api.meta.ai"])
+def test_the_memory_model_is_loopback_only(url):
+    memory = Endpoint.LOCAL_MEMORY_MODEL
+    check_outbound(Destination(memory, "http://127.0.0.1:8090/v1/chat/completions"), [PRIVATE])
+    with pytest.raises(EgressRefusedError, match="loopback only"):
+        check_outbound(Destination(memory, url))
+
+
 @pytest.mark.parametrize(
     "url",
     [

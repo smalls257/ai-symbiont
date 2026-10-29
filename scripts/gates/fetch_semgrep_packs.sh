@@ -21,7 +21,9 @@ stamp="semgrep=$SEMGREP_PINNED fetched=$(date -u +%FT%TZ)"
 for pack in $PACKS; do
   curl -fsS --max-time 120 -o "$tmp/$pack.yaml" "https://semgrep.dev/c/p/$pack" \
     || gate_die "download of registry pack p/$pack failed"
-  rules=$(grep -c '^- id:' "$tmp/$pack.yaml" || true)
+  # The registry serves a pack as YAML or as JSON (valid YAML too); count rules either way.
+  rules=$(python3 -c 'import json,sys; print(len(json.load(open(sys.argv[1]))["rules"]))' "$tmp/$pack.yaml" 2>/dev/null \
+    || grep -c '^- id:' "$tmp/$pack.yaml" || true)
   [ "$rules" -gt 0 ] || gate_die "registry pack p/$pack holds no rules"
   stamp="$stamp $pack=${rules}rules:$(shasum -a 256 "$tmp/$pack.yaml" | cut -c1-12)"
 done

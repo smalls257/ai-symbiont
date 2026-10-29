@@ -1,0 +1,1978 @@
+{
+ "prereg": null,
+ "freeze_commit": null,
+ "prereg_sha256": null,
+ "run_label": "exploratory",
+ "asks": "does a meta-learned start adapt better on repos never seen",
+ "evaluated_on": "validation",
+ "code_commit": "1b588239efc5bcf9a565ef7255028da3d1858410",
+ "train_code_commit": "1b588239efc5bcf9a565ef7255028da3d1858410",
+ "split": {
+  "train": 70,
+  "validation": 10,
+  "scoring": 20
+ },
+ "meta_train_repos": 20,
+ "outer_steps_max": 40,
+ "classifier_fit_repos": 20,
+ "chosen_starts": [
+  {
+   "filler": "dense",
+   "seed": 0,
+   "rule": "REPTILE",
+   "outer_rate": 0.03,
+   "best_step": 20,
+   "validation_loss": 0.4082452769541588,
+   "cold_validation_loss": 0.4136667832543101
+  },
+  {
+   "filler": "fly",
+   "seed": 0,
+   "rule": "REPTILE",
+   "outer_rate": 0.03,
+   "best_step": 20,
+   "validation_loss": 0.4317659554282415,
+   "cold_validation_loss": 0.43614112581910447
+  }
+ ],
+ "options": {
+  "a_heads_up_gain_1": "primary",
+  "a_tiers_boundary_budget": "sensitivity heads-up gain 0.75"
+ },
+ "windows": [
+  "first 10 sessions",
+  "after 10 sessions"
+ ],
+ "early_sessions": 10,
+ "repos": 10,
+ "bootstrap": {
+  "draws": 2000,
+  "seed": 20261029,
+  "unit": "repository",
+  "ci": "95% percentile"
+ },
+ "rows": [
+  {
+   "arm": "warn never",
+   "role": "floor",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "notes_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "spells_hit_share": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "counters",
+   "role": "reference",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.012933264355923435,
+     "ci95_low": -0.011367647838629077,
+     "ci95_high": 0.04526553150617322,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3333333333333333,
+     "ci95_low": 0.22580645161290322,
+     "ci95_high": 0.7142857142857143,
+     "undefined_draws": 11
+    },
+    "notes_per_100_steps": {
+     "value": 0.18623900672529747,
+     "ci95_low": 0.03663382661611871,
+     "ci95_high": 0.3729694279083846,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.18,
+     "ci95_low": 0.03,
+     "ci95_high": 0.37,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.12,
+     "ci95_low": 0.02,
+     "ci95_high": 0.28,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 0.9444444444444444,
+     "ci95_low": 0.896551724137931,
+     "ci95_high": 1.0,
+     "undefined_draws": 11
+    },
+    "spells_hit_share": {
+     "value": 0.020338983050847456,
+     "ci95_low": 0.004565176966466249,
+     "ci95_high": 0.032345449628834864,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic",
+   "role": "reference",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.04397309881013968,
+     "ci95_low": -0.01827631009031923,
+     "ci95_high": 0.10651921450165569,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3333333333333333,
+     "ci95_low": 0.2631578947368421,
+     "ci95_high": 0.4594729729729729,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7759958613554061,
+     "ci95_low": 0.3959508478773839,
+     "ci95_high": 1.1261576642684132,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.75,
+     "ci95_low": 0.34,
+     "ci95_high": 1.23,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.5,
+     "ci95_low": 0.2,
+     "ci95_high": 0.86,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 0.8133333333333334,
+     "ci95_low": 0.6,
+     "ci95_high": 0.9642962184873949,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.08135593220338982,
+     "ci95_low": 0.05114341085271318,
+     "ci95_high": 0.10137184832241412,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic + online calibrator",
+   "role": "reference",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": -0.005173305742369374,
+     "ci95_low": -0.06407595742952461,
+     "ci95_high": 0.05388609970332175,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.24324324324324326,
+     "ci95_low": 0.17238916256157638,
+     "ci95_high": 0.32468344155844153,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7656492498706674,
+     "ci95_low": 0.561821892266483,
+     "ci95_high": 0.9752472953352133,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.74,
+     "ci95_low": 0.51,
+     "ci95_high": 0.98,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.56,
+     "ci95_low": 0.38,
+     "ci95_high": 0.77,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.061016949152542375,
+     "ci95_low": 0.03772782697984854,
+     "ci95_high": 0.0929278536073196,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly cold start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": -0.038552482779891026,
+     "ci95_high": 0.038932905276398366,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.25,
+     "ci95_low": 0.15151515151515152,
+     "ci95_high": 0.3461956521739128,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.4138644593895499,
+     "ci95_low": 0.2155099867064997,
+     "ci95_high": 0.6335156468437174,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.4,
+     "ci95_low": 0.22,
+     "ci95_high": 0.58,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.3,
+     "ci95_low": 0.16,
+     "ci95_high": 0.44,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.03389830508474576,
+     "ci95_low": 0.014183894882767766,
+     "ci95_high": 0.05688951045277863,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly meta start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": -0.012933264355923435,
+     "ci95_low": -0.042366154089782795,
+     "ci95_high": 0.012081939049105464,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.21621621621621623,
+     "ci95_low": 0.15384615384615385,
+     "ci95_high": 0.2858082706766912,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.3828246249353337,
+     "ci95_low": 0.24924490044186048,
+     "ci95_high": 0.5367487206803412,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.37,
+     "ci95_low": 0.22,
+     "ci95_high": 0.53,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.29,
+     "ci95_low": 0.17,
+     "ci95_high": 0.42,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.02711864406779661,
+     "ci95_low": 0.016609236429532413,
+     "ci95_high": 0.03802281368821293,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense cold start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.056906363166063116,
+     "ci95_low": -0.015298862023608924,
+     "ci95_high": 0.12388714766721622,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3333333333333333,
+     "ci95_low": 0.22448979591836735,
+     "ci95_high": 0.43333333333333335,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.6828763579927574,
+     "ci95_low": 0.4909274060541473,
+     "ci95_high": 0.8682885914454144,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.66,
+     "ci95_low": 0.43,
+     "ci95_high": 0.9202499999999987,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.44,
+     "ci95_low": 0.27975000000000005,
+     "ci95_high": 0.62,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07457627118644068,
+     "ci95_low": 0.047619047619047616,
+     "ci95_high": 0.09686631944444443,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense meta start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.012933264355923435,
+     "ci95_low": -0.04539724041917006,
+     "ci95_high": 0.07261520187024945,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2676056338028169,
+     "ci95_low": 0.17647058823529413,
+     "ci95_high": 0.3472222222222222,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7346094154164511,
+     "ci95_low": 0.5422470412344674,
+     "ci95_high": 0.9822254782703417,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.71,
+     "ci95_low": 0.47,
+     "ci95_high": 1.0102499999999985,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.52,
+     "ci95_low": 0.35,
+     "ci95_high": 0.73,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.06440677966101695,
+     "ci95_low": 0.04017012307911213,
+     "ci95_high": 0.08783886158886159,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn never",
+   "role": "floor",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "notes_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "spells_hit_share": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "counters",
+   "role": "reference",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": true,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.023296377711937304,
+     "ci95_low": 0.001874457769126225,
+     "ci95_high": 0.046062539403182806,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.31756756756756754,
+     "ci95_low": 0.2559888888888889,
+     "ci95_high": 0.45208154965753405,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.35362706680684314,
+     "ci95_low": 0.1404528223524128,
+     "ci95_high": 0.6699093050414744,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.40437158469945356,
+     "ci95_low": 0.16290993925660152,
+     "ci95_high": 0.760488594444026,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.27595628415300544,
+     "ci95_low": 0.09729542042042043,
+     "ci95_high": 0.5440426592797782,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 0.8040540540540541,
+     "ci95_low": 0.6641476605735368,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.038860103626943004,
+     "ci95_low": 0.017274016749497797,
+     "ci95_high": 0.06465967018885696,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic",
+   "role": "reference",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.05017681353340342,
+     "ci95_low": -0.012811092266557073,
+     "ci95_high": 0.11324707681862038,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.30357142857142855,
+     "ci95_low": 0.2364961253962663,
+     "ci95_high": 0.3629210952981445,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.9366338526235305,
+     "ci95_low": 0.7888723518038766,
+     "ci95_high": 1.0730188242002434,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.0710382513661203,
+     "ci95_low": 0.8347211611917494,
+     "ci95_high": 1.3281628722299166,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.7459016393442623,
+     "ci95_low": 0.5856303294798582,
+     "ci95_high": 0.9180439237348539,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09844559585492228,
+     "ci95_low": 0.07338890132020587,
+     "ci95_high": 0.12229727935709986,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic + online calibrator",
+   "role": "reference",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": -0.010154831310331645,
+     "ci95_low": -0.04020102944961665,
+     "ci95_high": 0.017069827739191353,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.1917808219178082,
+     "ci95_low": 0.08821387778412336,
+     "ci95_high": 0.3703968253968252,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.17442416133040237,
+     "ci95_low": 0.0768945998490828,
+     "ci95_high": 0.3090308696049516,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.1994535519125683,
+     "ci95_low": 0.08285182998819363,
+     "ci95_high": 0.3624577153265677,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.16120218579234974,
+     "ci95_low": 0.06575342465753424,
+     "ci95_high": 0.3064622802526028,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.011226252158894647,
+     "ci95_low": 0.004001085633738695,
+     "ci95_high": 0.019709229542489493,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly cold start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "notes_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "spells_hit_share": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly meta start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "notes_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "spells_hit_share": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense cold start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.021504348657172895,
+     "ci95_low": -0.011019783272668955,
+     "ci95_high": 0.055664676090139684,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2808219178082192,
+     "ci95_low": 0.23344391134463605,
+     "ci95_high": 0.3268623973114264,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.6976966453216095,
+     "ci95_low": 0.5982382747753034,
+     "ci95_high": 0.7843491931833096,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.7978142076502732,
+     "ci95_low": 0.6363516430798752,
+     "ci95_high": 0.9544191919191919,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.5737704918032787,
+     "ci95_low": 0.4572982498784638,
+     "ci95_high": 0.6845108434699103,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.06994818652849741,
+     "ci95_low": 0.05675862450243255,
+     "ci95_high": 0.08382769792332241,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense meta start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.025685749784956514,
+     "ci95_low": -0.008907330224116243,
+     "ci95_high": 0.060632645304361056,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.28619528619528617,
+     "ci95_low": 0.23666482649842271,
+     "ci95_high": 0.3333333333333333,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7096435056867055,
+     "ci95_low": 0.6164792162077114,
+     "ci95_high": 0.7946307672915794,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8114754098360656,
+     "ci95_low": 0.6522439900948875,
+     "ci95_high": 0.9669466772331031,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.5792349726775956,
+     "ci95_low": 0.46152291105121296,
+     "ci95_high": 0.6916937016093301,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07167530224525043,
+     "ci95_low": 0.05755334818439665,
+     "ci95_high": 0.08537810071637,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn never",
+   "role": "floor",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "notes_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "spells_hit_share": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "counters",
+   "role": "reference",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.02586652871184687,
+     "ci95_low": -0.018962396367842135,
+     "ci95_high": 0.0759094220466886,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.24444444444444444,
+     "ci95_low": 0.15,
+     "ci95_high": 0.3225806451612903,
+     "undefined_draws": 1
+    },
+    "notes_per_100_steps": {
+     "value": 0.4655975168132437,
+     "ci95_low": 0.19354747583023488,
+     "ci95_high": 0.6915662231331842,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.45,
+     "ci95_low": 0.16,
+     "ci95_high": 0.7502499999999986,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.34,
+     "ci95_low": 0.13,
+     "ci95_high": 0.57,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 1
+    },
+    "spells_hit_share": {
+     "value": 0.03728813559322034,
+     "ci95_low": 0.013331858407079646,
+     "ci95_high": 0.056784931713859337,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic",
+   "role": "reference",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": true,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.1396792550439731,
+     "ci95_low": 0.07856695289261119,
+     "ci95_high": 0.20577281605900313,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3125,
+     "ci95_low": 0.2641509433962264,
+     "ci95_high": 0.3809680451127819,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.9932747025349198,
+     "ci95_low": 0.6572218158437723,
+     "ci95_high": 1.262645886317299,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.96,
+     "ci95_low": 0.57,
+     "ci95_high": 1.3702499999999986,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.66,
+     "ci95_low": 0.38,
+     "ci95_high": 0.97,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09830508474576272,
+     "ci95_low": 0.07822863520408163,
+     "ci95_high": 0.11448149112905559,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic + online calibrator",
+   "role": "reference",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.08535954474909467,
+     "ci95_low": -0.007925148799599355,
+     "ci95_high": 0.16911056709757882,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.25892857142857145,
+     "ci95_low": 0.1941747572815534,
+     "ci95_high": 0.3230808080808081,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.1588204862907399,
+     "ci95_low": 0.9158330248494925,
+     "ci95_high": 1.3904964727924698,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.12,
+     "ci95_low": 0.79,
+     "ci95_high": 1.47,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.83,
+     "ci95_low": 0.59,
+     "ci95_high": 1.11,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09830508474576272,
+     "ci95_low": 0.0703125,
+     "ci95_high": 0.1305845130020003,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly cold start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.06466632177961718,
+     "ci95_low": -0.0027706288179813613,
+     "ci95_high": 0.12523880326314077,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2833333333333333,
+     "ci95_low": 0.19607843137254902,
+     "ci95_high": 0.3484936575052854,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.6207966890843248,
+     "ci95_low": 0.4508448912341944,
+     "ci95_high": 0.7917702978069177,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.6,
+     "ci95_low": 0.4,
+     "ci95_high": 0.84,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.43,
+     "ci95_low": 0.29,
+     "ci95_high": 0.59,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.0576271186440678,
+     "ci95_low": 0.03741417127598703,
+     "ci95_high": 0.07556782576641888,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly meta start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.010346611484738748,
+     "ci95_low": -0.024737975088283435,
+     "ci95_high": 0.047931594080406204,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.21951219512195122,
+     "ci95_low": 0.1568627450980392,
+     "ci95_high": 0.30303030303030304,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.42421107087428866,
+     "ci95_low": 0.30703613972740634,
+     "ci95_high": 0.5626870946941434,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.41,
+     "ci95_low": 0.27,
+     "ci95_high": 0.55,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.32,
+     "ci95_low": 0.2,
+     "ci95_high": 0.45,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.030508474576271188,
+     "ci95_low": 0.020618556701030927,
+     "ci95_high": 0.043478260869565216,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense cold start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": true,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.11381272633212623,
+     "ci95_low": 0.017863351910429204,
+     "ci95_high": 0.2014724902994727,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3333333333333333,
+     "ci95_low": 0.22448979591836735,
+     "ci95_high": 0.43333333333333335,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.6828763579927574,
+     "ci95_low": 0.4909274060541473,
+     "ci95_high": 0.8682885914454144,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.66,
+     "ci95_low": 0.43,
+     "ci95_high": 0.9202499999999987,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.44,
+     "ci95_low": 0.27975000000000005,
+     "ci95_high": 0.62,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07457627118644068,
+     "ci95_low": 0.047619047619047616,
+     "ci95_high": 0.09686631944444443,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense meta start",
+   "role": "under_test",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0775995861355406,
+     "ci95_low": -0.021217117337574944,
+     "ci95_high": 0.183711873979802,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.275,
+     "ci95_low": 0.17307692307692307,
+     "ci95_high": 0.35789473684210527,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.8277289187790998,
+     "ci95_low": 0.6081273448655258,
+     "ci95_high": 1.0696881795027424,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8,
+     "ci95_low": 0.53,
+     "ci95_high": 1.11,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.58,
+     "ci95_low": 0.40975,
+     "ci95_high": 0.79,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.0711864406779661,
+     "ci95_low": 0.0425531914893617,
+     "ci95_high": 0.09872709758590863,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "warn never",
+   "role": "floor",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "notes_per_100_steps": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": null,
+     "ci95_low": null,
+     "ci95_high": null,
+     "undefined_draws": 2000
+    },
+    "spells_hit_share": {
+     "value": 0.0,
+     "ci95_low": 0.0,
+     "ci95_high": 0.0,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "counters",
+   "role": "reference",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": true,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.054955557679441845,
+     "ci95_low": 0.010690131504626747,
+     "ci95_high": 0.10194017586453334,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2727272727272727,
+     "ci95_low": 0.21300318852132324,
+     "ci95_high": 0.3835637977082795,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.6045111344738603,
+     "ci95_low": 0.35046002945233323,
+     "ci95_high": 0.921594266872266,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.6912568306010929,
+     "ci95_low": 0.4060624006660108,
+     "ci95_high": 1.0485307402483897,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.5027322404371585,
+     "ci95_low": 0.25866067415730337,
+     "ci95_high": 0.8069778108946035,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.05785837651122625,
+     "ci95_low": 0.03987756608077284,
+     "ci95_high": 0.07763469658992299,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic",
+   "role": "reference",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": true,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.13081812099780177,
+     "ci95_low": 0.061048679738027606,
+     "ci95_high": 0.1998141726452578,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.30162412993039445,
+     "ci95_low": 0.24788061703554662,
+     "ci95_high": 0.351237874036517,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0298193634712798,
+     "ci95_low": 0.8512383460655059,
+     "ci95_high": 1.1909036346325472,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.1775956284153006,
+     "ci95_low": 0.8999740932642487,
+     "ci95_high": 1.4528607853136153,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.8224043715846995,
+     "ci95_low": 0.6282930304989128,
+     "ci95_high": 1.0133351206434318,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.10880829015544041,
+     "ci95_low": 0.08734023586110476,
+     "ci95_high": 0.1275663608681736,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "logistic + online calibrator",
+   "role": "reference",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.008960145273822039,
+     "ci95_low": -0.03442518550989315,
+     "ci95_high": 0.05571185684649193,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.20967741935483872,
+     "ci95_low": 0.1641337386018237,
+     "ci95_high": 0.2648221343873518,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7407053426359552,
+     "ci95_low": 0.5301705411334976,
+     "ci95_high": 0.925095605786584,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8469945355191257,
+     "ci95_low": 0.5769125683060109,
+     "ci95_high": 1.0973877914281724,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.6693989071038251,
+     "ci95_low": 0.44097496604519076,
+     "ci95_high": 0.8776775445658423,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.05267702936096719,
+     "ci95_low": 0.038266733803289696,
+     "ci95_high": 0.07211120764552563,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly cold start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.003584058109528816,
+     "ci95_low": -0.053341664623053106,
+     "ci95_high": 0.05684357575720379,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.20261437908496732,
+     "ci95_low": 0.16243607594936707,
+     "ci95_high": 0.24381618144888284,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0967217815158177,
+     "ci95_low": 0.821703083789379,
+     "ci95_high": 1.3164096153533928,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.2540983606557377,
+     "ci95_low": 0.8985843876820244,
+     "ci95_high": 1.568079585385473,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.0,
+     "ci95_low": 0.7032350613375544,
+     "ci95_high": 1.2658204861609061,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07858376511226252,
+     "ci95_low": 0.056542185104625185,
+     "ci95_high": 0.10361500547645126,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "fly meta start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.007765459237312434,
+     "ci95_low": -0.04925722625431546,
+     "ci95_high": 0.059585916831713465,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.20568927789934355,
+     "ci95_low": 0.1659281697130097,
+     "ci95_high": 0.2471416539537249,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0919430373697792,
+     "ci95_low": 0.8183547550237869,
+     "ci95_high": 1.3146595417433773,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.2486338797814207,
+     "ci95_low": 0.8885789865193102,
+     "ci95_high": 1.569115106001196,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.9918032786885246,
+     "ci95_low": 0.6903117018806595,
+     "ci95_high": 1.2608986282259937,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07944732297063903,
+     "ci95_low": 0.05826886107074997,
+     "ci95_high": 0.10438175599033697,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense cold start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.037632610150052564,
+     "ci95_low": -0.023645137377527502,
+     "ci95_high": 0.10000169816888518,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.23433242506811988,
+     "ci95_low": 0.1794871794871795,
+     "ci95_high": 0.296398891966759,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.8768995507980503,
+     "ci95_low": 0.6711221814361353,
+     "ci95_high": 1.0870877465169348,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.0027322404371584,
+     "ci95_low": 0.7182987226022617,
+     "ci95_high": 1.2955608596028327,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.76775956284153,
+     "ci95_low": 0.5336747763915825,
+     "ci95_high": 1.0240790052010842,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07253886010362694,
+     "ci95_low": 0.05504587155963303,
+     "ci95_high": 0.08764607679465776,
+     "undefined_draws": 0
+    }
+   }
+  },
+  {
+   "arm": "dense meta start",
+   "role": "under_test",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "earns_notes": false,
+   "metrics": {
+    "net_value_per_100_steps": {
+     "value": 0.04898212749689382,
+     "ci95_low": -0.007838124874157876,
+     "ci95_high": 0.10646426369945751,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.24645892351274787,
+     "ci95_low": 0.19353304698457222,
+     "ci95_high": 0.3127080793749125,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.8434483417757813,
+     "ci95_low": 0.6523377696239269,
+     "ci95_high": 1.0643867685212371,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.9644808743169399,
+     "ci95_low": 0.7048826830453803,
+     "ci95_high": 1.243837287003007,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.726775956284153,
+     "ci95_low": 0.5067097456670029,
+     "ci95_high": 0.9700916352506436,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07340241796200346,
+     "ci95_low": 0.05793023821098687,
+     "ci95_high": 0.08817262886838093,
+     "undefined_draws": 0
+    }
+   }
+  }
+ ],
+ "differences": [
+  {
+   "what": "fly meta start minus fly cold start",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": -0.012933264355923435,
+   "ci95_low": -0.04030169213489641,
+   "ci95_high": 0.008423963945938502,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus dense cold start",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": -0.04397309881013968,
+   "ci95_low": -0.06669369022867076,
+   "ci95_high": -0.014656399303298793,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus logistic + online calibrator",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": -0.007759958613554061,
+   "ci95_low": -0.060256911128424046,
+   "ci95_high": 0.04371787664632182,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus logistic + online calibrator",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": 0.018106570098292807,
+   "ci95_low": -0.03477415676645869,
+   "ci95_high": 0.07220873169522746,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus counters",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": -0.02586652871184687,
+   "ci95_low": -0.07101912660374358,
+   "ci95_high": 0.01744647636347353,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus counters",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": 0.0,
+   "ci95_low": -0.07191464231588734,
+   "ci95_high": 0.0750451025556603,
+   "undefined_draws": 0
+  },
+  {
+   "what": "logistic + online calibrator minus logistic",
+   "window": "first 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": -0.04914640455250906,
+   "ci95_low": -0.11844875643922867,
+   "ci95_high": 0.021787231458427116,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus fly cold start",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": 0.0,
+   "ci95_low": 0.0,
+   "ci95_high": 0.0,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus dense cold start",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": 0.004181401127783618,
+   "ci95_low": -0.004900506174856812,
+   "ci95_high": 0.014163813755699342,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus logistic + online calibrator",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": 0.010154831310331645,
+   "ci95_low": -0.017069827739191388,
+   "ci95_high": 0.04020102944961664,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus logistic + online calibrator",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": 0.03584058109528816,
+   "ci95_low": 0.01210906139628854,
+   "ci95_high": 0.06347364117864016,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus counters",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": -0.023296377711937304,
+   "ci95_low": -0.04606253940318282,
+   "ci95_high": -0.0018744577691262314,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus counters",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": 0.0023893720730192095,
+   "ci95_low": -0.03709554216193252,
+   "ci95_high": 0.040678368617881454,
+   "undefined_draws": 0
+  },
+  {
+   "what": "logistic + online calibrator minus logistic",
+   "window": "after 10 sessions",
+   "option": "a_tiers_boundary_budget",
+   "value": -0.060331644843735065,
+   "ci95_low": -0.105745488188117,
+   "ci95_high": -0.014079474937965259,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus fly cold start",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.05431971029487843,
+   "ci95_low": -0.10770821375666544,
+   "ci95_high": -0.008934847144415234,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus dense cold start",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.03621314019658563,
+   "ci95_low": -0.06669240676736102,
+   "ci95_high": -0.002716926591183701,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus logistic + online calibrator",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.07501293326435593,
+   "ci95_low": -0.1388029571843436,
+   "ci95_high": 0.0,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus logistic + online calibrator",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.007759958613554066,
+   "ci95_low": -0.09464912936625126,
+   "ci95_high": 0.07858945560684769,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus counters",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.015519917227108122,
+   "ci95_low": -0.07921540495160216,
+   "ci95_high": 0.04229311334136489,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus counters",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": 0.05173305742369373,
+   "ci95_low": -0.06047664062368364,
+   "ci95_high": 0.18180010868835908,
+   "undefined_draws": 0
+  },
+  {
+   "what": "logistic + online calibrator minus logistic",
+   "window": "first 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.054319710294878434,
+   "ci95_low": -0.14203280311185326,
+   "ci95_high": 0.029437899345074528,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus fly cold start",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": 0.004181401127783618,
+   "ci95_low": -0.0005963497489315415,
+   "ci95_high": 0.010957777905733223,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus dense cold start",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": 0.011349517346841254,
+   "ci95_low": -0.005800332516460076,
+   "ci95_high": 0.030479235876685676,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus logistic + online calibrator",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.0011946860365096047,
+   "ci95_low": -0.04571447159755061,
+   "ci95_high": 0.04030027271993886,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus logistic + online calibrator",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": 0.04002198222307178,
+   "ci95_low": -0.0034810770250774314,
+   "ci95_high": 0.08943712290549764,
+   "undefined_draws": 0
+  },
+  {
+   "what": "fly meta start minus counters",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.04719009844212941,
+   "ci95_low": -0.11057060949435274,
+   "ci95_high": 0.014180961825903152,
+   "undefined_draws": 0
+  },
+  {
+   "what": "dense meta start minus counters",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.005973430182548027,
+   "ci95_low": -0.03914487444699983,
+   "ci95_high": 0.032231506056001454,
+   "undefined_draws": 0
+  },
+  {
+   "what": "logistic + online calibrator minus logistic",
+   "window": "after 10 sessions",
+   "option": "a_heads_up_gain_1",
+   "value": -0.12185797572397973,
+   "ci95_low": -0.21249492601877193,
+   "ci95_high": -0.044963562409649105,
+   "undefined_draws": 0
+  }
+ ],
+ "table_rows": [
+  "a_tiers_boundary_budget | first 10 sessions | warn never (floor) | 0.000 [0.000, 0.000]",
+  "a_tiers_boundary_budget | first 10 sessions | counters (reference) | 0.013 [-0.011, 0.045]",
+  "a_tiers_boundary_budget | first 10 sessions | logistic (reference) | 0.044 [-0.018, 0.107]",
+  "a_tiers_boundary_budget | first 10 sessions | logistic + online calibrator (reference) | -0.005 [-0.064, 0.054]",
+  "a_tiers_boundary_budget | first 10 sessions | fly cold start (under_test) | 0.000 [-0.039, 0.039]",
+  "a_tiers_boundary_budget | first 10 sessions | fly meta start (under_test) | -0.013 [-0.042, 0.012]",
+  "a_tiers_boundary_budget | first 10 sessions | dense cold start (under_test) | 0.057 [-0.015, 0.124]",
+  "a_tiers_boundary_budget | first 10 sessions | dense meta start (under_test) | 0.013 [-0.045, 0.073]",
+  "a_tiers_boundary_budget | after 10 sessions | warn never (floor) | 0.000 [0.000, 0.000]",
+  "a_tiers_boundary_budget | after 10 sessions | counters (reference) | 0.023 [0.002, 0.046]",
+  "a_tiers_boundary_budget | after 10 sessions | logistic (reference) | 0.050 [-0.013, 0.113]",
+  "a_tiers_boundary_budget | after 10 sessions | logistic + online calibrator (reference) | -0.010 [-0.040, 0.017]",
+  "a_tiers_boundary_budget | after 10 sessions | fly cold start (under_test) | 0.000 [0.000, 0.000]",
+  "a_tiers_boundary_budget | after 10 sessions | fly meta start (under_test) | 0.000 [0.000, 0.000]",
+  "a_tiers_boundary_budget | after 10 sessions | dense cold start (under_test) | 0.022 [-0.011, 0.056]",
+  "a_tiers_boundary_budget | after 10 sessions | dense meta start (under_test) | 0.026 [-0.009, 0.061]",
+  "a_heads_up_gain_1 | first 10 sessions | warn never (floor) | 0.000 [0.000, 0.000]",
+  "a_heads_up_gain_1 | first 10 sessions | counters (reference) | 0.026 [-0.019, 0.076]",
+  "a_heads_up_gain_1 | first 10 sessions | logistic (reference) | 0.140 [0.079, 0.206]",
+  "a_heads_up_gain_1 | first 10 sessions | logistic + online calibrator (reference) | 0.085 [-0.008, 0.169]",
+  "a_heads_up_gain_1 | first 10 sessions | fly cold start (under_test) | 0.065 [-0.003, 0.125]",
+  "a_heads_up_gain_1 | first 10 sessions | fly meta start (under_test) | 0.010 [-0.025, 0.048]",
+  "a_heads_up_gain_1 | first 10 sessions | dense cold start (under_test) | 0.114 [0.018, 0.201]",
+  "a_heads_up_gain_1 | first 10 sessions | dense meta start (under_test) | 0.078 [-0.021, 0.184]",
+  "a_heads_up_gain_1 | after 10 sessions | warn never (floor) | 0.000 [0.000, 0.000]",
+  "a_heads_up_gain_1 | after 10 sessions | counters (reference) | 0.055 [0.011, 0.102]",
+  "a_heads_up_gain_1 | after 10 sessions | logistic (reference) | 0.131 [0.061, 0.200]",
+  "a_heads_up_gain_1 | after 10 sessions | logistic + online calibrator (reference) | 0.009 [-0.034, 0.056]",
+  "a_heads_up_gain_1 | after 10 sessions | fly cold start (under_test) | 0.004 [-0.053, 0.057]",
+  "a_heads_up_gain_1 | after 10 sessions | fly meta start (under_test) | 0.008 [-0.049, 0.060]",
+  "a_heads_up_gain_1 | after 10 sessions | dense cold start (under_test) | 0.038 [-0.024, 0.100]",
+  "a_heads_up_gain_1 | after 10 sessions | dense meta start (under_test) | 0.049 [-0.008, 0.106]"
+ ],
+ "wall_clock_s": 21.41754388809204,
+ "finished_utc": "2026-10-28T12:37:04+00:00"
+}

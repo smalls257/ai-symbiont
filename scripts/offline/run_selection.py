@@ -1,33 +1,21 @@
 """Offline selection run (Task 14 part 2, the G6 gate). Periphery script.
 
-Violation prevented: **Silent Fallback**. The prereg
-(prereg/2026-10-29-offline-selection.md, frozen) fixes every rule; the pure
-parts live in `symbiont.eval.selection` and `symbiont.eval.offline`, tested.
-This script only fetches metadata, clones the hub checkout, schedules the
-replays across processes and writes the results file. A failed worker, a
-rate limit that does not clear or a missing created_at stops the run with the
-reason; nothing is defaulted.
-
-    run_selection.py fetch-meta --data data/nebius-openhands/sqlglot.jsonl \
-        --out data/nebius-openhands/sqlglot_meta.json
-    run_selection.py run --data ... --meta ... --out results/offline-selection.json \
-        --scored --prereg prereg/2026-10-29-offline-selection.md
-    run_selection.py run ...                      # no --scored: labeled exploratory
-    run_selection.py run ... --smoke-train-only   # dry run that never touches a test task
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 when running: parallelism is by process.
+The rules are fixed by prereg/2026-10-29-offline-selection.md and live in `symbiont.eval.selection`
+and `offline` (pure, tested). This script fetches metadata, schedules replays and writes results;
+a failed worker or a missing created_at stops the run, nothing is defaulted.
+Usage: run_selection.py {fetch-meta|run} ... (run without --scored is exploratory)
 """
 
 import argparse
 import json
 import logging
 import multiprocessing as mp
-import platform
 import subprocess
 import sys
 import tempfile
 import time
 from collections.abc import Callable
+from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -192,9 +180,13 @@ def final_job(job: tuple[str, int, float | int | None]) -> OfflineScores:
 
 
 def pool_map(fn, jobs, workers: int):
-    """Map `fn` over `jobs` in forked workers so they inherit the module-level state."""
-    with mp.get_context("fork").Pool(min(workers, len(jobs))) as pool:
-        return pool.map(fn, jobs, chunksize=1)
+    """Map `fn` over `jobs` in forked workers so they inherit the module-level state.
+
+    A worker that dies raises BrokenProcessPool here; `multiprocessing.Pool` would hang.
+    """
+    context = mp.get_context("fork")
+    with ProcessPoolExecutor(min(workers, len(jobs)), mp_context=context) as executor:
+        return list(executor.map(fn, jobs))
 
 
 def prepare_sessions(data: Path, *, smoke: bool):
@@ -277,7 +269,6 @@ def final_replays(cal: Calibration, workers: int, timings: dict[str, float]) -> 
 def run_host_record(workers: int) -> dict[str, Any]:
     """Where and with what the run happened."""
     return {
-        "hostname": platform.node(),
         "python": sys.version.split()[0],
         "numpy": np.__version__,
         "workers": workers,

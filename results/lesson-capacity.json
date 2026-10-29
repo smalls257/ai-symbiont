@@ -2,7 +2,7 @@
  "probe": "lcap",
  "exploratory": true,
  "prereg": null,
- "status": "stand-in model only: Llama 3.2 weights are gated and await the owner's login",
+ "status": "stand-in model only (Qwen2.5 0.5B); Llama 3.2 1B/3B runs (ungated MLX copies, approved 2026-10-28) report separately",
  "machine": "laptop Apple M4 Pro 48 GB, MLX",
  "model_ids": {
   "qwen-0.5b-standin": "mlx-community/Qwen2.5-0.5B-Instruct-bf16"

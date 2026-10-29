@@ -109,6 +109,14 @@ def _unusable(failed: Record, fix: Record) -> str | None:
     return None
 
 
+def _error_class(error: str) -> str:
+    """The exception class named in the error line; a line without one raises ValueError."""
+    found = ERROR_CLASS.search(error)
+    if found is None:
+        raise ValueError(f"no error class in {error!r}")
+    return found.group(1)
+
+
 def _build(failed: Record, fix: Record) -> Lesson:
     before, after = shown_command(failed.command or ""), shown_command(fix.command or "")
     error = error_line(failed.raw) or ""

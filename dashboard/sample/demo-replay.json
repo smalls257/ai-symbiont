@@ -1,0 +1,394 @@
+{
+ "schema": "demo-replay-v1",
+ "status": "hypothesis",
+ "source": "synthetic replay, hand-written for layout; no run produced these numbers",
+ "task": {
+  "id": "synthetic__sqlglot-0001",
+  "repo": "tobymao/sqlglot",
+  "label": "DuckDB output drops the type from a Snowflake TRY_CAST"
+ },
+ "runs": [
+  {
+   "id": "plain",
+   "label": "Plain Glimmer",
+   "subtitle": "Glimmer, no adapter, no notes",
+   "shown_run": 1,
+   "runs_solved": 0,
+   "runs_total": 1,
+   "role": "floor",
+   "status": "hypothesis",
+   "model": "Glimmer",
+   "adapter": null,
+   "steps": [
+    {
+     "step": 1,
+     "action": "Read the issue and find TRY_CAST in the DuckDB dialect",
+     "outcome": "progress",
+     "tokens_in": 5200,
+     "tokens_out": 310,
+     "wall_s": 14.2,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 2,
+     "action": "Reproduce: transpile a Snowflake TRY_CAST to DuckDB",
+     "outcome": "progress",
+     "tokens_in": 6900,
+     "tokens_out": 280,
+     "wall_s": 11.8,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 3,
+     "action": "Edit the parser to keep the cast type",
+     "outcome": "progress",
+     "tokens_in": 8300,
+     "tokens_out": 520,
+     "wall_s": 19.5,
+     "mistake_tag": "new",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 4,
+     "action": "Run the whole test suite",
+     "outcome": "failed",
+     "tokens_in": 9800,
+     "tokens_out": 190,
+     "wall_s": 120.0,
+     "mistake_tag": "new",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 5,
+     "action": "Reproduce again: the type is still dropped",
+     "outcome": "failed",
+     "tokens_in": 15900,
+     "tokens_out": 240,
+     "wall_s": 12.1,
+     "mistake_tag": "none",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 6,
+     "action": "Edit the parser a second way",
+     "outcome": "progress",
+     "tokens_in": 17200,
+     "tokens_out": 560,
+     "wall_s": 21.7,
+     "mistake_tag": "repeated",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 7,
+     "action": "Run the whole test suite again",
+     "outcome": "failed",
+     "tokens_in": 18800,
+     "tokens_out": 180,
+     "wall_s": 120.0,
+     "mistake_tag": "repeated",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 8,
+     "action": "Read the DuckDB generator",
+     "outcome": "progress",
+     "tokens_in": 24900,
+     "tokens_out": 330,
+     "wall_s": 13.4,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 9,
+     "action": "Add a TRY_CAST rule to the DuckDB generator",
+     "outcome": "progress",
+     "tokens_in": 26600,
+     "tokens_out": 610,
+     "wall_s": 23.9,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 10,
+     "action": "Run the whole test suite a third time",
+     "outcome": "failed",
+     "tokens_in": 28100,
+     "tokens_out": 170,
+     "wall_s": 120.0,
+     "mistake_tag": "repeated",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 11,
+     "action": "Run dialect tests: the parser edit broke two Snowflake tests",
+     "outcome": "failed",
+     "tokens_in": 34400,
+     "tokens_out": 260,
+     "wall_s": 31.6,
+     "mistake_tag": "none",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 12,
+     "action": "Revert both parser edits",
+     "outcome": "progress",
+     "tokens_in": 36100,
+     "tokens_out": 340,
+     "wall_s": 16.0,
+     "mistake_tag": "none",
+     "wasted": true,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 13,
+     "action": "Run the DuckDB and Snowflake dialect tests",
+     "outcome": "progress",
+     "tokens_in": 37300,
+     "tokens_out": 220,
+     "wall_s": 29.8,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    },
+    {
+     "step": 14,
+     "action": "Submit the patch",
+     "outcome": "solved",
+     "tokens_in": 38500,
+     "tokens_out": 150,
+     "wall_s": 6.3,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": null,
+     "picker": null
+    }
+   ],
+   "totals": {
+    "steps": 14,
+    "tokens_in": 308000,
+    "tokens_out": 4360,
+    "wall_s": 560.3,
+    "repeated_mistakes": 3,
+    "new_mistakes": 2,
+    "wasted_steps": 8,
+    "notes": 0,
+    "result": "solved"
+   }
+  },
+  {
+   "id": "personal",
+   "label": "Personal Glimmer",
+   "subtitle": "Glimmer with a personal adapter",
+   "shown_run": 1,
+   "runs_solved": 1,
+   "runs_total": 1,
+   "role": "under test",
+   "status": "hypothesis",
+   "model": "Glimmer",
+   "adapter": "your sqlglot lessons",
+   "steps": [
+    {
+     "step": 1,
+     "action": "Read the issue and find TRY_CAST in the DuckDB dialect",
+     "outcome": "progress",
+     "tokens_in": 5300,
+     "tokens_out": 300,
+     "wall_s": 14.0,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "stay quiet",
+      "reason": "Nothing in this step resembles a past mistake"
+     },
+     "picker": {
+      "who": "our network",
+      "adapter": "your sqlglot lessons",
+      "reason": "The task repo matches the adapter trained on your sqlglot sessions"
+     }
+    },
+    {
+     "step": 2,
+     "action": "Reproduce: transpile a Snowflake TRY_CAST to DuckDB",
+     "outcome": "progress",
+     "tokens_in": 7400,
+     "tokens_out": 290,
+     "wall_s": 12.3,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": {
+      "what": "Last time, a TRY_CAST fix in the parser changed nothing",
+      "resolved": "Fixed in the DuckDB generator, not the parser",
+      "check": "Transpile one TRY_CAST and read the DuckDB output",
+      "source": "classifier fired"
+     },
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "speak",
+      "reason": "Reproducing a cast bug matched a past dead end"
+     },
+     "picker": null
+    },
+    {
+     "step": 3,
+     "action": "Read the DuckDB generator",
+     "outcome": "progress",
+     "tokens_in": 8900,
+     "tokens_out": 340,
+     "wall_s": 13.1,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "stay quiet",
+      "reason": "Reading code; no warning needed"
+     },
+     "picker": null
+    },
+    {
+     "step": 4,
+     "action": "Add a TRY_CAST rule to the DuckDB generator",
+     "outcome": "progress",
+     "tokens_in": 10300,
+     "tokens_out": 590,
+     "wall_s": 22.8,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "stay quiet",
+      "reason": "The edit lands where the lesson pointed"
+     },
+     "picker": null
+    },
+    {
+     "step": 5,
+     "action": "Run dialect tests: one DuckDB expectation is out of date",
+     "outcome": "failed",
+     "tokens_in": 12100,
+     "tokens_out": 200,
+     "wall_s": 30.4,
+     "mistake_tag": "new",
+     "wasted": false,
+     "note": {
+      "what": "A whole-suite pytest run hit the 120 s step timeout",
+      "resolved": "Ran only the two dialect test files",
+      "check": "pytest tests/dialects/test_duckdb.py tests/dialects/test_snowflake.py",
+      "source": "Glimmer recalled"
+     },
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "stay quiet",
+      "reason": "A first test failure; nothing repeats yet"
+     },
+     "picker": null
+    },
+    {
+     "step": 6,
+     "action": "Update the expected DuckDB output in the test",
+     "outcome": "progress",
+     "tokens_in": 13900,
+     "tokens_out": 310,
+     "wall_s": 15.2,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "stay quiet",
+      "reason": "Fixing a test expectation; no warning needed"
+     },
+     "picker": null
+    },
+    {
+     "step": 7,
+     "action": "Run the DuckDB and Snowflake dialect tests",
+     "outcome": "progress",
+     "tokens_in": 15200,
+     "tokens_out": 210,
+     "wall_s": 28.7,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "stay quiet",
+      "reason": "The same test files as before; no warning needed"
+     },
+     "picker": null
+    },
+    {
+     "step": 8,
+     "action": "Submit the patch",
+     "outcome": "solved",
+     "tokens_in": 16400,
+     "tokens_out": 150,
+     "wall_s": 6.1,
+     "mistake_tag": "none",
+     "wasted": false,
+     "note": null,
+     "classifier": {
+      "who": "logistic classifier",
+      "speak": "stay quiet",
+      "reason": "Submitting; nothing left to warn about"
+     },
+     "picker": null
+    }
+   ],
+   "totals": {
+    "steps": 8,
+    "tokens_in": 89500,
+    "tokens_out": 2390,
+    "wall_s": 142.6,
+    "repeated_mistakes": 0,
+    "new_mistakes": 1,
+    "wasted_steps": 0,
+    "notes": 2,
+    "result": "solved"
+   }
+  }
+ ]
+}

@@ -1,10 +1,8 @@
 """What may leave this machine, decided without touching a network.
 
-Violation this shape prevents: Silent Fallback at the privacy boundary. A private record
-(`spark_safe=False`, SWE-chat, the owner's sessions) bound for a remote model must raise, never be
-filtered quietly or sent with unknown provenance. The policy is a pure function over
-(endpoint, url, provenance), so it passes the Airplane Test (Buffer); the thin client in
-`client.py` owns the socket.
+A private record (`spark_safe=False`) bound for a remote model raises, never filtered quietly or
+sent with unknown provenance. The policy is a pure function over (endpoint, url, provenance); the
+thin client in `client.py` owns the socket.
 """
 
 import ipaddress
@@ -30,6 +28,7 @@ class Endpoint(StrEnum):
 
     LOCAL_GLIMMER = "local_glimmer"  # the owner's own llama.cpp server (loopback or LAN)
     LOCAL_SERVICE = "local_service"  # the symbiont service on loopback
+    LOCAL_MEMORY_MODEL = "local_memory_model"  # Route A's memory model (mlx_lm.server), loopback
     SPARK = "spark"
     CONTRIBUTOR = "contributor"
     WONDER = "wonder"
@@ -43,6 +42,7 @@ class EgressRefusedError(PermissionError):
 
 
 def _is_loopback(host: str) -> bool:
+    """True for localhost and loopback addresses."""
     if host == "localhost":
         return True
     try:
@@ -52,6 +52,7 @@ def _is_loopback(host: str) -> bool:
 
 
 def _is_lan(host: str) -> bool:
+    """True for loopback and private LAN addresses."""
     if _is_loopback(host):
         return True
     try:
@@ -62,6 +63,7 @@ def _is_lan(host: str) -> bool:
 
 
 def _refuse_unless(endpoint: Endpoint, reason: str, *, holds: bool) -> None:
+    """Raise EgressRefusedError naming the endpoint and reason unless `holds`."""
     if not holds:
         raise EgressRefusedError(f"egress to {endpoint.value} refused: {reason}")
 
@@ -75,12 +77,16 @@ class Destination:
 
 
 def _check_destination(destination: Destination) -> None:
+    """Refuse a url the endpoint may not reach."""
     endpoint, parts = destination.endpoint, urlsplit(destination.url)
     host = (parts.hostname or "").lower().rstrip(".")
     is_http = parts.scheme in ("http", "https") and bool(host)
     _refuse_unless(endpoint, "not an http(s) url with a host", holds=is_http)
     if endpoint is Endpoint.LOCAL_SERVICE:
         _refuse_unless(endpoint, "the local service is loopback only", holds=_is_loopback(host))
+    elif endpoint is Endpoint.LOCAL_MEMORY_MODEL:
+        # The memory model reads private session steps, so it may not sit even on the LAN.
+        _refuse_unless(endpoint, "the memory model is loopback only", holds=_is_loopback(host))
     elif endpoint is Endpoint.LOCAL_GLIMMER:
         _refuse_unless(endpoint, "a Glimmer host must be loopback or LAN", holds=_is_lan(host))
     else:
@@ -94,6 +100,7 @@ def _check_destination(destination: Destination) -> None:
 
 
 def _check_provenance(endpoint: Endpoint, provenance: Iterable[Provenance]) -> None:
+    """Refuse payloads with no provenance or provenance the endpoint may not carry."""
     declared = list(provenance)
     no_provenance = "no provenance declared (unknown privacy is never shareable)"
     _refuse_unless(endpoint, no_provenance, holds=bool(declared))

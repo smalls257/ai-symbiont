@@ -123,3 +123,22 @@ def test_waiver_without_a_future_expiry_is_refused(tmp_path):
         naming.read_waivers(file, today)
     file.write_text("src/a.py:handle_it  # me, legacy, expires 2026-12-31\n")
     assert naming.read_waivers(file, today) == {"src/a.py:handle_it"}
+
+
+@pytest.mark.parametrize("base", ["BaseHTTPRequestHandler", "http.server.SimpleHTTPRequestHandler"])
+def test_http_verb_method_of_a_stdlib_request_handler_is_exempt(base):
+    assert errors(f"class Routes({base}):\n    def do_POST(self): ...\n") == []
+
+
+@pytest.mark.parametrize(
+    "source",
+    [
+        "class Routes(BaseHTTPRequestHandler):\n    def do_stuff(self): ...\n",
+        "class Routes(BaseHTTPRequestHandler):\n    def do_post(self): ...\n",
+        "class Other:\n    def do_POST(self): ...\n",
+        "class Other(object):\n    def do_POST(self): ...\n",
+        "def do_POST(): ...\n",
+    ],
+)
+def test_do_names_outside_the_stdlib_http_contract_still_fire(source):
+    assert any("vague word 'do'" in message for message in errors(source))
