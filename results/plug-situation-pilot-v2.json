@@ -1,0 +1,701 @@
+{
+ "answer_scripts_sha256": [
+  "b15cb8f892ac6aa6684e0745e689c31751407748fbf8fabe4ef61d73d4ae829e",
+  "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e"
+ ],
+ "collisions": {
+  "KIT-IAI/pyWATTS": {
+   "excused_in_pick_prompts": 3,
+   "shared_key_distractors_kept_out": 5
+  },
+  "PMEAL/OpenPNM": {
+   "excused_in_pick_prompts": 2,
+   "shared_key_distractors_kept_out": 0
+  },
+  "acorg/dark-matter": {
+   "excused_in_pick_prompts": 4,
+   "shared_key_distractors_kept_out": 5
+  },
+  "aws/chalice": {
+   "excused_in_pick_prompts": 3,
+   "shared_key_distractors_kept_out": 0
+  },
+  "marshmallow-code/marshmallow": {
+   "excused_in_pick_prompts": 5,
+   "shared_key_distractors_kept_out": 0
+  },
+  "pydap/pydap": {
+   "excused_in_pick_prompts": 3,
+   "shared_key_distractors_kept_out": 4
+  },
+  "robotframework/SeleniumLibrary": {
+   "excused_in_pick_prompts": 7,
+   "shared_key_distractors_kept_out": 4
+  },
+  "vertexproject/synapse": {
+   "excused_in_pick_prompts": 6,
+   "shared_key_distractors_kept_out": 0
+  },
+  "yukinarit/pyserde": {
+   "excused_in_pick_prompts": 7,
+   "shared_key_distractors_kept_out": 5
+  },
+  "zopefoundation/zope.schema": {
+   "excused_in_pick_prompts": 6,
+   "shared_key_distractors_kept_out": 0
+  }
+ },
+ "own_note_misses": {
+  "prompt_60": 0,
+  "top_5": 0
+ },
+ "prompt_60": {
+  "a1_pick_item_abstention": 0.10843373493975904,
+  "a2v_pick_item_abstention": 1.0,
+  "per_repo_rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 0.375,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 0.1111111111111111,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0625
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 0.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.875,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 0.0,
+    "useful": 0.875,
+    "wrong_pick": 0.5625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.8888888888888888,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 0.0,
+    "useful": 0.8888888888888888,
+    "wrong_pick": 0.5555555555555556
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.625,
+    "repo": "acorg/dark-matter",
+    "silence": 0.0,
+    "useful": 0.625,
+    "wrong_pick": 0.6875
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "aws/chalice",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.625,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 0.0,
+    "useful": 0.625,
+    "wrong_pick": 0.6875
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "pydap/pydap",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.7777777777777778,
+    "repo": "vertexproject/synapse",
+    "silence": 0.0,
+    "useful": 0.7777777777777778,
+    "wrong_pick": 0.6111111111111112
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "yukinarit/pyserde",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.5
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.5555555555555556,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 0.0,
+    "useful": 0.5555555555555556,
+    "wrong_pick": 0.7222222222222222
+   }
+  ],
+  "ranker_pick_item_abstention": 0.0,
+  "rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 0.0486,
+    "silence_ci95": [
+     0.0,
+     0.1236
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0063,
+    "wrong_pick_ci95": [
+     0.0,
+     0.0187
+    ]
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 1.0,
+    "silence_ci95": [
+     1.0,
+     1.0
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0,
+    "wrong_pick_ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.7347,
+    "pick_ci95": [
+     0.6694,
+     0.7958
+    ],
+    "repos": 10,
+    "silence": 0.0,
+    "silence_ci95": [
+     0.0,
+     0.0
+    ],
+    "useful": 0.7347,
+    "useful_ci95": [
+     0.6694,
+     0.7958
+    ],
+    "wrong_pick": 0.6201,
+    "wrong_pick_ci95": [
+     0.5792,
+     0.6597
+    ]
+   }
+  ]
+ },
+ "ranker": {
+  "recall_at_1": 0.7349397590361446,
+  "recall_at_10": 1.0,
+  "recall_at_3": 0.927710843373494,
+  "recall_at_5": 0.9759036144578314
+ },
+ "status": "exploratory pilot on the 10 validation repos, no prereg",
+ "top_5": {
+  "a1_pick_item_abstention": 0.9397590361445783,
+  "a2v_pick_item_abstention": 1.0,
+  "per_repo_rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 0.4444444444444444,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "acorg/dark-matter",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "aws/chalice",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "pydap/pydap",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "vertexproject/synapse",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "yukinarit/pyserde",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 1.0,
+    "useful": 0.0,
+    "wrong_pick": 0.0
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.875,
+    "repo": "KIT-IAI/pyWATTS",
+    "silence": 0.0,
+    "useful": 0.875,
+    "wrong_pick": 0.5625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.8888888888888888,
+    "repo": "PMEAL/OpenPNM",
+    "silence": 0.0,
+    "useful": 0.8888888888888888,
+    "wrong_pick": 0.5555555555555556
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.625,
+    "repo": "acorg/dark-matter",
+    "silence": 0.0,
+    "useful": 0.625,
+    "wrong_pick": 0.6875
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "aws/chalice",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.625,
+    "repo": "marshmallow-code/marshmallow",
+    "silence": 0.0,
+    "useful": 0.625,
+    "wrong_pick": 0.6875
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "pydap/pydap",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "robotframework/SeleniumLibrary",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.625
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.7777777777777778,
+    "repo": "vertexproject/synapse",
+    "silence": 0.0,
+    "useful": 0.7777777777777778,
+    "wrong_pick": 0.6111111111111112
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.75,
+    "repo": "yukinarit/pyserde",
+    "silence": 0.0,
+    "useful": 0.75,
+    "wrong_pick": 0.5
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.5555555555555556,
+    "repo": "zopefoundation/zope.schema",
+    "silence": 0.0,
+    "useful": 0.5555555555555556,
+    "wrong_pick": 0.7222222222222222
+   }
+  ],
+  "ranker_pick_item_abstention": 0.0,
+  "rows": [
+   {
+    "arm": "a1",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 0.9444,
+    "silence_ci95": [
+     0.8333,
+     1.0
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0,
+    "wrong_pick_ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "arm": "a2v",
+    "pick": 0.0,
+    "pick_ci95": [
+     0.0,
+     0.0
+    ],
+    "repos": 10,
+    "silence": 1.0,
+    "silence_ci95": [
+     1.0,
+     1.0
+    ],
+    "useful": 0.0,
+    "useful_ci95": [
+     0.0,
+     0.0
+    ],
+    "wrong_pick": 0.0,
+    "wrong_pick_ci95": [
+     0.0,
+     0.0
+    ]
+   },
+   {
+    "arm": "ranker",
+    "pick": 0.7347,
+    "pick_ci95": [
+     0.6694,
+     0.7958
+    ],
+    "repos": 10,
+    "silence": 0.0,
+    "silence_ci95": [
+     0.0,
+     0.0
+    ],
+    "useful": 0.7347,
+    "useful_ci95": [
+     0.6694,
+     0.7958
+    ],
+    "wrong_pick": 0.6201,
+    "wrong_pick_ci95": [
+     0.5792,
+     0.6597
+    ]
+   }
+  ]
+ }
+}
