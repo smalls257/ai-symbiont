@@ -16,7 +16,7 @@ A coding agent (mini-SWE-agent driven by plain Glimmer, the owner's local model)
 
 ## Tasks and store
 
-- **Tasks.** The SWE-rebench task instances of round 3's 10 validation repos: 51 instances [measured]. An instance stays if its image pulls and its hidden tests pass with the gold patch and fail with none; the expected count is 30 to 40 [hypothesis]. The build lists every dropped instance with its reason.
+- **Tasks.** The SWE-rebench task instances of round 3's 10 validation repos: 51 instances [measured]. An instance stays if its image pulls and its hidden tests pass with the gold patch and fail with none; the task check kept **29** [measured]: 17 dropped for no SWE-rebench image, 3 because the gold patch does not resolve, 2 for a grader error (no pytest summary). The check ran after the package-reinstall fix; an earlier check on unfixed images was voided. `plug_agent_tasks.py` lists every dropped instance with its reason.
 - **These repos set both thresholds.** The judge's and the thresholded ranker's thresholds were fitted on these same 10 repos' situation items (round 3's validation fit) [established]. The agent tasks differ from those items, but the arms are not tested on repos their thresholds never saw; phase 2 is.
 - **Never touched.** Round 3's 40 scored repos are excluded: no task, no lesson, no distractor. That keeps this phase out of the judge's scored run [established, by construction].
 - **Store per task (only earlier instances).** Every lesson of the pool except the 40 scored repos' lessons, the lessons mined from the task's own instance, and the lessons mined from any instance created after the task's own (SWE-rebench `created_at`; an instance without a date is left out). A lesson is never shown on its own task or on a task that predates it [established, by construction]. The build logs, per task, how many lessons each rule removed.
@@ -57,7 +57,7 @@ Thresholds and adapters are the ones `plug_r3_run.py fit` wrote into round 3's v
 
 Nothing is tuned on these tasks. Notes are each lesson's stored text, verbatim.
 
-**Store size** [hypothesis]. The earlier-instances-only rule leaves early tasks fewer than `PROMPT_LESSONS` candidates: 12 to 60 in the dry run over the 34 imaged tasks. The ranker's inverse-document-frequency weights are computed over the store, so on a small store its top score, and with it the 15.0 threshold, may mean something different. The report gives each task's store size beside its arms.
+**Store size** [hypothesis]. The earlier-instances-only rule leaves early tasks fewer than `PROMPT_LESSONS` candidates: 12 to 60 in the dry run over 34 imaged tasks (29 after the check). The ranker's inverse-document-frequency weights are computed over the store, so on a small store its top score, and with it the 15.0 threshold, may mean something different. The report gives each task's store size beside its arms.
 
 ## Measures
 
@@ -76,9 +76,9 @@ Primary: on the tasks where a lesson applies, the paired difference in repeats p
 
 ## Spend and machine
 
-- **Runs.** 4 arms times the kept tasks, in the order above: about 120 to 160 runs [hypothesis].
+- **Runs.** 4 arms times the kept tasks, in the order above: 116 runs (29 tasks times 4 arms) [established].
 - **Endpoint.** Plain Glimmer on the owner's Strix server over the LAN, the Core agent's mini-SWE-agent harness. No paid API call.
-- **Glimmer time.** Core's plain Glimmer runs take about 6 minutes of wall time per run at 4 parallel slots [measured]. 4 arms times 34 tasks is about 136 runs, about 13-14 Glimmer hours [hypothesis].
+- **Glimmer time.** Core's plain Glimmer runs take about 6 minutes of wall time per run at 4 parallel slots [measured]. 4 arms times 29 tasks is 116 runs, about 11-12 slot-hours [hypothesis].
   - The phase shares Glimmer with Core and runs when the coordinator schedules it.
   - The runner stops between tasks at the hour budget the coordinator sets, and reports the tasks it finished.
   - No paid API is used [established].

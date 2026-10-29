@@ -45,6 +45,7 @@ def test_patch_assigned_before_a_raise_is_still_returned(monkeypatch, tmp_path):
     agent.run.return_value = {"exit_status": "Submitted", "submission": ExplodingPatch("diff")}
     monkeypatch.setattr(module, "DefaultAgent", lambda *args, **kwargs: agent)
     monkeypatch.setattr(module, "agent_config", lambda setting: ({}, {}))
+    monkeypatch.setattr(module, "agent_model", lambda setting, model_cfg, rec: MagicMock())
     monkeypatch.setattr(module, "_open_environment", MagicMock)
     monkeypatch.setattr(module, "_prepare_checkout", lambda env, row: None)
     rec: dict = {}

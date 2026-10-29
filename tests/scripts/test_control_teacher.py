@@ -53,3 +53,16 @@ def test_control_refuses_held_tasks_and_stops_at_cap_or_target(monkeypatch, tmp_
     assert module.stop_reason(records, args) == "token target reached"
     monkeypatch.setattr(module, "phase_spent", lambda: 2.9)
     assert module.stop_reason([], args) == "phase cap reached"
+
+
+def test_core_teacher_runs_refuse_later_candidates_not_core_repositories(monkeypatch, tmp_path):
+    module = load(monkeypatch, "control_teacher")
+    test_set = tmp_path / "t.json"
+    test_set.write_text(json.dumps({"test": []}))
+    split = tmp_path / "split.json"
+    split.write_text(json.dumps({"a__a": {"keep_ids": ["a-9"]}, "b__b": {"keep_ids": []}}))
+    later = module.later_candidate_ids(split)
+    assert later == {"a-9"}
+    module.refuse_held([{"instance_id": "a-1", "repo": "django/django"}], test_set, later)
+    with pytest.raises(ValueError, match="later-candidate"):
+        module.refuse_held([{"instance_id": "a-9", "repo": "a/a"}], test_set, later)

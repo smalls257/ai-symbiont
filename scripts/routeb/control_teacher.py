@@ -49,12 +49,28 @@ def phase_spent() -> float:
     )
 
 
-def refuse_held(rows: list[dict], test_set: Path) -> None:
-    """Raise if any row is a test task or from a Core repository."""
+def later_candidate_ids(path: Path) -> set[str]:
+    """Every later candidate named in split-check.json (the tasks no training run may touch)."""
+    return {task for repo in json.loads(path.read_text()).values() for task in repo["keep_ids"]}
+
+
+def refuse_held(rows: list[dict], test_set: Path, later: set[str] | None = None) -> None:
+    """Raise if any row is a test task, a later candidate, or (control runs) a Core repository.
+
+    Control runs (later is None) must come from other repositories. Core's own teacher runs
+    (later given) are on Core repositories by design, so the guard is the later-candidate list.
+    """
     held = {entry["task"] for entry in json.loads(test_set.read_text())["test"]}
-    bad = [r["instance_id"] for r in rows if r["instance_id"] in held or r["repo"] in CORE_REPOS]
+    if later is None:
+        bad = [
+            r["instance_id"] for r in rows if r["instance_id"] in held or r["repo"] in CORE_REPOS
+        ]
+        if bad:
+            raise ValueError(f"control rows include held-out or Core tasks: {bad[:5]}")
+        return
+    bad = [r["instance_id"] for r in rows if r["instance_id"] in held | later]
     if bad:
-        raise ValueError(f"control rows include held-out or Core tasks: {bad[:5]}")
+        raise ValueError(f"teacher rows include held-out or later-candidate tasks: {bad[:5]}")
 
 
 def passing_tokens(records: list[dict], out: Path) -> int:
@@ -111,7 +127,8 @@ def main() -> None:
         row = next(r for r in rows if r["instance_id"] == args.one)
         print(json.dumps(run_one(row, args.out) | {"repo": row["repo"]}))
         return
-    refuse_held(rows, args.test_set)
+    later = later_candidate_ids(args.later_candidates) if args.later_candidates else None
+    refuse_held(rows, args.test_set, later)
     args.out.mkdir(parents=True, exist_ok=True)
     log = args.out / "runs.jsonl"
     records = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
@@ -145,6 +162,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cap-usd", type=float, default=3.0)
     parser.add_argument("--target-tokens", type=int, default=1_200_000)
     parser.add_argument("--one", default=None, help="internal: run one task in this process")
+    parser.add_argument(
+        "--later-candidates", type=Path, default=None,
+        help="split-check.json: a Core earlier-task run that refuses these later tasks",
+    )  # fmt: skip
     parser.add_argument("--label", default=LABEL, help="ledger run-name prefix of this phase")
     parser.add_argument("--workers", type=int, default=1, help="tasks run at once")
     return parser.parse_args()
