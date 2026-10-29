@@ -20,7 +20,7 @@ MISTAKE_WEIGHT = 0.02
 DEATH_WEIGHT = 0.5
 # Ruling 9 of the plan: remaining distance is measured with every key held, so locked doors do not
 # make a level unroutable.
-ALL_KEY_COLOURS = ("blue", "yellow", "red")
+ALL_KEY_COLORS = ("blue", "yellow", "red")
 
 
 class Grade(StrEnum):
@@ -93,7 +93,7 @@ def remaining_route_units(nav: NavMap, position: tuple[float, float]) -> float:
 
     Raises NoRouteError, with the nav's own reason, when no exit can be reached.
     """
-    found = nav.nearest(position, nav.features("exit"), ALL_KEY_COLOURS, closed=frozenset())
+    found = nav.nearest(position, nav.features("exit"), ALL_KEY_COLORS, closed=frozenset())
     if isinstance(found, NoPath):
         raise NoRouteError(f"no route to the exit: {found.reason}")
     return found[1].length
