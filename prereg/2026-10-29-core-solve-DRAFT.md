@@ -66,9 +66,37 @@ What enters training:
 - Submitted-but-wrong patches.
 - Repeated identical commands per run.
 
+## Minimum detectable effect (alpha 0.05, power 0.8, paired by task)
+
+Computed by `scripts/routeb/core_mde.py` from the plain runs we have.
+
+Model:
+
+- Per task, (adapter mean minus plain mean) over r runs per arm has variance 2v/r, where v is the mean over tasks of p(1-p) [established].
+- MDE = (1.96 + 0.84) x sqrt(2v / (r x n)), with n = 45 [established].
+- This assumes the adapter shifts every task's rate equally. Real heterogeneity would make the MDE larger [hypothesis].
+
+Source of v (all [measured]):
+
+| Source of v | v | Tasks | MDE, 2 runs/arm | MDE, 4 runs/arm | Runs per arm for 5 points | Runs per arm for 10 points |
+|---|---|---|---|---|---|---|
+| plain run 1 vs run 2, 18 split tasks (unselected) | 0.056 | 18 | 9.8 points | 7.0 | 8 | 2 |
+| plain repeats at cap 50, test-set sqlglot tasks | 0.126 | 18 | 14.8 | 10.5 | 18 | 5 |
+| plain repeats at cap 75, test-set sqlglot tasks | 0.188 | 8 | 18.1 | 12.8 | 27 | 7 |
+
+How to read the sources:
+
+- The repeat rows come from tasks that were picked because they had solved once, so they overstate v [hypothesis].
+- The unselected run-1-versus-run-2 row is the best guess. **With 2 runs per arm, the design detects about 10-15 points, not 5.**
+- No Django plain data exists yet, so Django is assumed to vary like sqlglot [hypothesis].
+
+**What 5 points would cost.** It needs 8-27 runs per arm per task, which is 720-2,430 runs over 45 tasks [measured from the table]. Measured Glimmer throughput at 4 slots was 4.8-5.7 min of wall time per run at cap 50 (pilot and overnight) [measured]. Cap 75 assumed about 6-7 min [hypothesis]. That makes 72-280 Glimmer hours, which is not feasible here [hypothesis].
+
+**Proposal.** 4 runs per arm on the 45 tasks: 360 runs, about 36-42 Glimmer hours, MDE about 7-13 points. The fallback is the planned 2 runs per arm: 180 runs, about 18-21 h, MDE about 10-18 points. In either case the decision rule stays the task-bootstrap CI, and the claim is reported with its MDE beside it [hypothesis].
+
 ## Known limits
 
-- **Small n.** 45 tasks with 2 runs each. [hypothesis] Only a difference of about 15 points or more is likely to clear the CI.
+- **Small n.** 45 tasks with 2 runs each detect about 10-15 points (MDE above) [measured].
 - **sqlglot "later" is not strictly by date.** The 18 split tasks were chosen by plain record, not created after every collection task. Django is strictly later (CL order).
 - **The sqlglot estimates mix caps.** 12 of 20 come from cap-50 runs, which are a floor at cap 75: CAL2 found tasks solved once at cap 50 mostly solve twice at cap 75 [measured]. The test set may be easier than the 0.38 estimate suggests.
 - **Django has no plain Glimmer data yet.** The plain arm of this run is its first measurement.
@@ -77,4 +105,4 @@ What enters training:
 ## Cost [hypothesis]
 
 - **Collection:** 80 sqlglot runs and 48 Django runs, 2 workers each, side by side, at about 15-20 min per run. That is about 10-11 h of wall time.
-- **Scored evaluation:** 180 runs at 4 slots, about 12-14 h.
+- **Scored evaluation:** 180 runs at 4 slots, about 18-21 h at the measured 4.8-5.7 min per run, or 36-42 h at 4 runs per arm.
