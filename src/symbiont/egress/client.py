@@ -36,11 +36,13 @@ _OPENER = urllib.request.build_opener(_RefuseRedirects)
 
 
 def _urlopen(request: urllib.request.Request, timeout_s: float) -> bytes:
+    """The default transport: one request, no redirects; raises HTTPError on a 3xx, 4xx or 5xx."""
     with _OPENER.open(request, timeout=timeout_s) as response:
         return bytes(response.read())
 
 
 def _describe(destination: Destination, size: int, provenance: list[Provenance]) -> str:
+    """The log line for a send: endpoint, host, size and dataset names, never the payload."""
     datasets = sorted({p.dataset for p in provenance})
     return (
         f"endpoint={destination.endpoint.value} host={urlsplit(destination.url).hostname} "

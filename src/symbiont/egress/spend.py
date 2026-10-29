@@ -140,6 +140,7 @@ class Ledger:
     """
 
     def __init__(self, path: Path = DEFAULT_LEDGER):
+        """Point at the shared ledger file; nothing is created until the first write."""
         self._path = path
         self._lock = threading.Lock()
 
@@ -155,11 +156,13 @@ class Ledger:
                 fcntl.flock(guard, fcntl.LOCK_UN)
 
     def _append(self, line: dict[str, Any]) -> None:
+        """Add one JSON line; callers hold the lock so lines never interleave."""
         with self._path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(line) + "\n")
 
     @staticmethod
     def _row(entry: LedgerEntry, call: str, phase: str) -> dict[str, Any]:
+        """The ledger line for one entry: counts, cost and status, never any text."""
         row = {"ts": round(time.time(), 3), "call": call, "phase": phase, "run": entry.run,
                "label": entry.label, "model": entry.model, "tier": entry.tier.value,
                **asdict(entry.usage), "cost_usd": entry.cost_usd,

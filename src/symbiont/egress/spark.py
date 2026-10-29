@@ -51,6 +51,7 @@ class SparkReplyError(RuntimeError):
     """The server answered, but not with a usable reply (no content, no usage, not JSON)."""
 
     def __init__(self, message: str, reason: str = "bad_reply"):
+        """Keep `reason` so the ledger can record why the reply was unusable."""
         super().__init__(message)
         self.reason = reason  # the ledger's error field for this failure
 
@@ -221,6 +222,7 @@ class SparkSession:
     def _send(
         self, destination: Destination, body: dict[str, Any], provenance: list[Provenance]
     ) -> dict[str, Any]:
+        """Send via post_json; raises SparkApiError (HTTP error) or SparkReplyError (bad JSON)."""
         try:
             return post_json(destination, body, provenance=provenance, transport=self.transport)
         except urllib.error.HTTPError as error:
