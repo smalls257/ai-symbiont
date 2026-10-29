@@ -272,3 +272,25 @@ def test_a_dry_run_on_the_exploratory_pool_finishes(tmp_path):
     )  # fmt: skip
     record = run_evolve.run(args)
     assert record.last_played == 2 and record.stop_reason is None
+
+
+def test_an_ungraded_game_in_the_state_file_is_played_again_on_resume(tmp_path):
+    from symbiont.act1.card_genome import Card
+
+    class Flaky:
+        def __init__(self):
+            self.calls = 0
+
+        def play(self, card, case):
+            self.calls += 1
+            grade = Grade.UNGRADED if self.calls == 1 else Grade.GRADED
+            reason = "SparkApiError: status 503" if grade == Grade.UNGRADED else None
+            return GameResult(case, card.card_id, grade, False, 0.1, 0, False, 0, 0, reason)
+
+    store = run_evolve.RunStore(tmp_path / "r")
+    flaky = Flaky()
+    player = run_evolve.ResumingPlayer(flaky, store)
+    card, case = Card.of([]), Case("MAP01", 1, 3, CutSetting.NONE)
+    assert player.play(card, case).grade is Grade.UNGRADED
+    assert player.play(card, case).grade is Grade.GRADED  # played again, not served as ungraded
+    assert player.play(card, case).grade is Grade.GRADED and flaky.calls == 2  # now stored

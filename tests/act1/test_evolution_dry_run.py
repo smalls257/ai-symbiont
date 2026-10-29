@@ -185,3 +185,11 @@ def test_a_player_that_can_play_a_batch_gets_the_missing_pairs_at_once_and_the_r
     assert max(batch.batches) >= 12 and batch.batches[0] == 24
     assert batched.picks == plain.picks and batched.gaps == plain.gaps
     assert [g.result.case for g in batched.games] == [g.result.case for g in plain.games]
+
+
+def test_ungraded_games_of_the_noise_block_count_toward_the_generation_zero_limit():
+    # 2 of the 24 first-block games (8%) pass the limit alone; 3 more in the 12-game noise block
+    # make 5 of 36 (14%), which stops the run in generation 0.
+    with pytest.raises(TooManyUngradedError):
+        run(FakePlayer(ungraded_calls={1, 2, 25, 26, 27}))
+    run(FakePlayer(ungraded_calls={1, 2, 25}))  # 3 of 36 (8%) is within the limit

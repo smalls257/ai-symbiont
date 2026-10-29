@@ -196,7 +196,8 @@ class _Run:
         results = self.play(seeds, first, 0, GameRole.SELECTION)
         require_graded_share(results)
         noisy = list(seeds[:NOISE_CARDS])
-        self.play(noisy, second, 0, GameRole.SELECTION)
+        replay_results = self.play(noisy, second, 0, GameRole.SELECTION)
+        require_graded_share([*results, *replay_results])
         noise = noise_check(self._replays(noisy, first, second), rules.spend_room)
         self.record.noise = noise
         if noise.verdict == NoiseVerdict.STOP:

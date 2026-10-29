@@ -121,7 +121,8 @@ def test_a_glimmer_error_makes_the_game_ungraded_with_the_error_class_as_its_rea
         raise GlimmerReplyError("no usage")
 
     result = player(tmp_path, FakeGame(), broken).play(CARD, CASE)
-    assert result.grade is Grade.UNGRADED and result.ungraded_reason == "GlimmerReplyError"
+    assert result.grade is Grade.UNGRADED
+    assert result.ungraded_reason == "GlimmerReplyError: no usage"
     assert not result.exit_reached and result.route_share == 0.0
 
 

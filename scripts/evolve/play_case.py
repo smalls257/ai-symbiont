@@ -42,6 +42,7 @@ from symbiont.act1.steplog import MoveRun  # noqa: E402
 from symbiont.eval.prereg import FrozenPrereg, PreregNotFrozenError  # noqa: E402
 
 CUT_PREFIX = "cut short after"
+REASON_CHARS = 160  # the error class and the start of its message: why a game is ungraded
 Loaded = tuple[Any, MapKnowledge, RoomFinder]
 
 
@@ -184,7 +185,9 @@ class EnginePlayer:
         try:
             run_episode(game, reply, self.setup.decisions, run_log, knowledge=knowledge)
         except self.setup.ungradable as error:
-            return self._ungraded(card, case, type(error).__name__)
+            return self._ungraded(
+                card, case, f"{type(error).__name__}: {str(error)[:REASON_CHARS]}"
+            )
         ended = collect_episodes.how_it_ended(game)
         share = self._share(nav, runs, start_units, ended)
         pains = _pain_counts(runs, rooms)

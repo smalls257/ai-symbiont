@@ -168,8 +168,8 @@ class ResumingPlayer:
     def _stored(self, card: Card, case: Case) -> GameResult | None:
         """The game from the state file, or None."""
         found = self.store.games.get(game_key(card.card_id, case))
-        if found is None:
-            return None
+        if found is None or found["grade"] == Grade.UNGRADED.value:
+            return None  # an ungraded game was a model or network error: play it again
         self.replayed += 1
         return result_from_json({k: v for k, v in found.items() if k != "player"})
 
