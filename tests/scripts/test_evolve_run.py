@@ -137,3 +137,101 @@ def test_a_game_result_survives_the_json_round_trip():
 def test_the_dry_run_seed_cards_are_six_distinct_cards_starting_with_the_empty_one():
     cards = fake_author.dry_run_seed_cards()
     assert len({c.card_id for c in cards}) == 6 and cards[0].lessons == ()
+
+
+def test_the_fake_player_without_dry_run_is_refused_not_published_as_exploratory(tmp_path):
+    args = run_evolve.parse_arguments(
+        ["--run", "r", "--player", "fake", "--generations", "1", "--root", str(tmp_path)]
+    )
+    with pytest.raises(run_evolve.FakePlayerNeedsDryRunError):
+        run_evolve.run(args)
+    assert not (tmp_path / "r").exists()
+
+
+def test_the_dry_run_output_says_simulated_at_the_top_and_the_bottom(tmp_path, capsys):
+    argv = ["--run", "r", "--player", "fake", "--generations", "1", "--root", str(tmp_path)]
+    run_evolve.main([*argv, "--dry-run"])
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0].startswith("SIMULATED") and lines[-1].startswith("SIMULATED")
+
+
+class Wobbly(fake_author.OfflineAuthor):
+    """An author that is not deterministic: a different start every time it is built."""
+
+    instances = 0
+
+    def __init__(self):
+        super().__init__()
+        Wobbly.instances += 1
+        self.calls = 1000 * Wobbly.instances
+
+
+def test_a_resume_reuses_the_stored_children_even_when_the_author_would_write_new_ones(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(
+        run_evolve, "build_tools", lambda author, seed: run_evolve_tools(Wobbly(), seed)
+    )
+    monkeypatch.setattr(run_evolve, "build_player", lambda *_: Watching(die_on=40))
+    with pytest.raises(KilledError):
+        run_evolve.run(args_for(tmp_path))
+    stored = json.loads((tmp_path / "r1" / "state.json").read_text())["generations"]
+    assert set(stored) == {"evolved:1"}  # written before the first game of generation 1
+    monkeypatch.setattr(run_evolve, "build_player", lambda *_: Watching())
+    resumed = run_evolve.run(args_for(tmp_path))
+    kept = {b["card_id"] for b in stored["evolved:1"]["births"]}
+    assert kept <= {b.card_id for b in resumed.births}
+
+
+def run_evolve_tools(author, seed):
+    import random
+
+    from symbiont.act1.generation import OperatorSchedule, VariationTools
+
+    return VariationTools(
+        author, fake_author.AllowAllJudge(), random.Random(seed), OperatorSchedule(seed), {}
+    )
+
+
+def test_a_resume_with_a_different_player_or_model_is_refused(tmp_path):
+    run_evolve.run(args_for(tmp_path))
+    with pytest.raises(run_evolve.PlayerChangedError):
+        run_evolve.run(args_for(tmp_path, more=["--model", "other-model"]))
+    with pytest.raises(run_evolve.PlayerChangedError):
+        run_evolve.run(args_for(tmp_path, more=["--reasoning", "high"]))
+
+
+def test_every_stored_game_says_who_played_it(tmp_path):
+    run_evolve.run(args_for(tmp_path, more=["--model", "m1", "--reasoning", "low"]))
+    games = json.loads((tmp_path / "r1" / "state.json").read_text())["games"]
+    assert games
+    assert {json.dumps(g["player"], sort_keys=True) for g in games.values()} == {
+        json.dumps(
+            {"player": "fake", "author": "fake", "model": "m1", "reasoning": "low"}, sort_keys=True
+        )
+    }
+
+
+def test_the_summary_spend_comes_from_the_ledger_snapshot(tmp_path):
+    run_evolve.run(args_for(tmp_path))
+    summary = json.loads((tmp_path / "r1" / "summary.json").read_text())
+    assert summary["spend"] == run_evolve.NullLedger().snapshot()
+
+
+def test_the_same_seed_gives_identical_output_under_different_hash_seeds(tmp_path):
+    import os
+    import subprocess
+
+    script = Path(__file__).resolve().parents[2] / "scripts" / "evolve" / "run_evolve.py"
+    outputs = []
+    for hash_seed in ("1", "2", "random"):
+        root = tmp_path / hash_seed
+        env = {**os.environ, "PYTHONHASHSEED": hash_seed}
+        argv = [sys.executable, str(script), "--run", "d", "--player", "fake", "--dry-run"]
+        done = subprocess.run(
+            [*argv, "--generations", "3", "--root", str(root)],
+            env=env, capture_output=True, text=True, check=True,
+        )  # fmt: skip
+        summary = json.loads((root / "d" / "summary.json").read_text())
+        outputs.append((done.stdout, summary["curves"], summary["picks"], summary["births"]))
+    assert outputs[0] == outputs[1] == outputs[2]

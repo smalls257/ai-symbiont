@@ -27,6 +27,10 @@ class MissingFloorError(ValueError):
     """The run has no no-card floor."""
 
 
+class MissingSpendError(ValueError):
+    """The run summary carries no ledger snapshot, so the page would have to invent a spend."""
+
+
 class UnlabeledRunError(ValueError):
     """The run's claim is neither exploratory nor scored."""
 
@@ -80,6 +84,9 @@ def export(summary: dict[str, Any]) -> dict[str, Any]:
     claim = summary["claim"]
     if claim not in LABELS:
         raise UnlabeledRunError(f"claim {claim!r} is not one of {LABELS}")
+    spend = summary.get("spend")
+    if not spend or not {"calls", "dollars", "source"} <= set(spend):
+        raise MissingSpendError("the run summary has no ledger snapshot (calls, dollars, source)")
     _require_arms(summary["curves"])
     if summary["floor"] is None:
         raise MissingFloorError("the run has no no-card floor (the empty card did not play)")
@@ -105,7 +112,7 @@ def export(summary: dict[str, Any]) -> dict[str, Any]:
         "ungraded": ungraded,
         "noise": summary["noise"],
         "stop_reason": summary["stop_reason"],
-        "spend": {"calls": 0, "label": "no Spark calls in a dry run"},
+        "spend": dict(spend),
         "picks": summary["picks"],
         "family_tree": family_tree(summary["births"], pick) if pick else [],
     }

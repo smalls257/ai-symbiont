@@ -53,8 +53,11 @@ def _floor(record: RunRecord) -> dict[str, Any] | None:
     return {"role": "floor", "card": "no card", "mean_fitness": _card_mean(first, empty)}
 
 
-def summary_of(record: RunRecord, label: str, claim: str) -> dict[str, Any]:
-    """The run's counts, ids and labels. `claim` is 'exploratory' or 'scored'."""
+def summary_of(record: RunRecord, label: str, claim: str, spend: dict[str, Any]) -> dict[str, Any]:
+    """The run's counts, ids and labels. `claim` is 'exploratory' or 'scored'.
+
+    `spend` is the run's ledger snapshot (calls, dollars, source), copied and never made up.
+    """
     noise = record.noise
     lineage = Lineage()
     lineage.births = list(record.births)
@@ -62,6 +65,7 @@ def summary_of(record: RunRecord, label: str, claim: str) -> dict[str, Any]:
         "schema": SCHEMA,
         "label": label,
         "claim": claim,
+        "spend": dict(spend),
         "noise": None
         if noise is None
         else {

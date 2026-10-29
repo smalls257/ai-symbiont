@@ -18,6 +18,7 @@ from symbiont.act1.run_summary import summary_of  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 pytestmark = pytest.mark.periphery
+SPEND = {"calls": 3, "dollars": 0.001, "source": "ledger"}
 
 
 @pytest.fixture(scope="module")
@@ -26,7 +27,7 @@ def record():
 
 
 def summary(record, label="dry run, fake player", claim="exploratory"):
-    return summary_of(record, label, claim)
+    return summary_of(record, label, claim, SPEND)
 
 
 def test_export_without_the_control_arm_raises(record):
@@ -63,7 +64,7 @@ def test_every_curve_point_names_its_generation_arm_and_label(record):
     for point in document["curves"] + document["validation"] + [document["floor"]]:
         assert point["label"] == "exploratory"
     assert all({"generation", "arm"} <= set(p) for p in document["curves"])
-    assert document["spend"]["calls"] == 0
+    assert document["spend"] == SPEND
 
 
 def test_the_family_tree_of_the_pick_reaches_a_seed(record):
@@ -120,3 +121,10 @@ def test_a_card_found_again_later_does_not_make_the_family_tree_cycle():
     births = [birth("b", 1, "add", ["a"]), birth("a", 5, "delete", ["b"])]
     tree = export_progress.family_tree(births, "b")
     assert [(n["card_id"], n["operator"]) for n in tree] == [("b", "add"), ("a", "seed")]
+
+
+def test_a_summary_without_a_ledger_snapshot_is_refused_not_given_a_made_up_spend(record):
+    broken = summary(record)
+    del broken["spend"]
+    with pytest.raises(export_progress.MissingSpendError):
+        export_progress.export(broken)

@@ -24,6 +24,9 @@
 
   function check(doc) {
     if (doc.schema !== SCHEMA) fail(`unknown schema ${doc.schema}`);
+    if (typeof doc.dry_run !== "boolean") fail("dry_run is missing: refusing to say what this is");
+    if (/^dry run/i.test(doc.label) && !doc.dry_run) fail("a dry-run label without dry_run: refusing");
+    if (!doc.spend || typeof doc.spend.calls !== "number") fail("no ledger spend in the file");
     if (!LABELS.includes(doc.claim)) fail(`claim ${doc.claim} is neither exploratory nor scored`);
     for (const arm of Object.keys(ARMS)) {
       if (!doc.curves.some((p) => p.arm === arm)) fail(`no curve for the ${arm} arm: refusing to draw`);
@@ -84,7 +87,14 @@
   }
 
   function render(doc) {
-    $("banner").textContent = `${doc.label} | claim: ${doc.claim} | Spark: ${doc.spend.label}`;
+    const prefix = doc.dry_run ? "SIMULATED, NOT A RESULT: " : "";
+    $("banner").textContent = `${prefix}${doc.label} | claim: ${doc.claim} | Spark: ${doc.spend.calls} calls, ${doc.spend.dollars} dollars (${doc.spend.source})`;
+    if (doc.dry_run) {
+      document.body.classList.add("simulated");
+      document.title = `SIMULATED ${document.title}`;
+      $("curves").append(svgEl("text", { x: W / 2, y: 20, "text-anchor": "middle", class: "stamp" }));
+      $("curves").lastChild.textContent = "SIMULATED: a dry run, not a result";
+    }
     drawCurves(doc);
     addLegend(doc);
     addRows("gap", doc.validation.map((v) => `gen ${v.generation}: training ${v.training_mean.toFixed(3)}, validation ${v.validation_mean.toFixed(3)}, gap ${v.gap.toFixed(3)} (${v.label})`));

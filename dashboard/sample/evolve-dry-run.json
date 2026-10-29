@@ -28,7 +28,7 @@
    "generation": 2,
    "arm": "evolved",
    "role": "under test",
-   "mean_fitness": 0.393313725490196,
+   "mean_fitness": 0.372063725490196,
    "best_fitness": 0.4216470588235294,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
@@ -48,7 +48,7 @@
    "generation": 4,
    "arm": "evolved",
    "role": "under test",
-   "mean_fitness": 0.39415686274509804,
+   "mean_fitness": 0.40082352941176463,
    "best_fitness": 0.4474901960784313,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
@@ -58,8 +58,8 @@
    "generation": 5,
    "arm": "evolved",
    "role": "under test",
-   "mean_fitness": 0.4314313725490196,
-   "best_fitness": 0.4514313725490196,
+   "mean_fitness": 0.4295228758169934,
+   "best_fitness": 0.4799803921568627,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
    "label": "exploratory"
@@ -78,8 +78,8 @@
    "generation": 1,
    "arm": "no_selection",
    "role": "reference (equal compute)",
-   "mean_fitness": 0.31280882352941175,
-   "best_fitness": 0.3765588235294118,
+   "mean_fitness": 0.29155882352941176,
+   "best_fitness": 0.33405882352941174,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
    "label": "exploratory"
@@ -88,8 +88,8 @@
    "generation": 2,
    "arm": "no_selection",
    "role": "reference (equal compute)",
-   "mean_fitness": 0.33664705882352935,
-   "best_fitness": 0.3791470588235294,
+   "mean_fitness": 0.3012303921568627,
+   "best_fitness": 0.33664705882352935,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
    "label": "exploratory"
@@ -98,8 +98,8 @@
    "generation": 3,
    "arm": "no_selection",
    "role": "reference (equal compute)",
-   "mean_fitness": 0.3455392156862745,
-   "best_fitness": 0.37387254901960787,
+   "mean_fitness": 0.2959558823529412,
+   "best_fitness": 0.33137254901960783,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
    "label": "exploratory"
@@ -108,8 +108,8 @@
    "generation": 4,
    "arm": "no_selection",
    "role": "reference (equal compute)",
-   "mean_fitness": 0.3608235294117647,
-   "best_fitness": 0.40749019607843134,
+   "mean_fitness": 0.32749019607843133,
+   "best_fitness": 0.36749019607843136,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
    "label": "exploratory"
@@ -118,8 +118,8 @@
    "generation": 5,
    "arm": "no_selection",
    "role": "reference (equal compute)",
-   "mean_fitness": 0.37143137254901953,
-   "best_fitness": 0.41143137254901957,
+   "mean_fitness": 0.3447647058823529,
+   "best_fitness": 0.3714313725490196,
    "cases_kept": 4,
    "cases_dropped_ungraded": 0,
    "label": "exploratory"
@@ -162,9 +162,9 @@
   },
   {
    "generation": 5,
-   "training_mean": 0.4514313725490196,
-   "validation_mean": 0.45216666666666666,
-   "gap": -0.0007352941176470562,
+   "training_mean": 0.4799803921568627,
+   "validation_mean": 0.4796666666666667,
+   "gap": 0.00031372549019603735,
    "label": "exploratory"
   }
  ],
@@ -252,31 +252,32 @@
  "stop_reason": null,
  "spend": {
   "calls": 0,
-  "label": "no Spark calls in a dry run"
+  "dollars": 0.0,
+  "source": "ledger: this run makes no paid calls"
  },
  "picks": {
-  "evolved": "4fad163d97ec",
-  "no_selection": "b477a3e6394f"
+  "evolved": "d59833d8ce15",
+  "no_selection": "b9729139c655"
  },
  "family_tree": [
   {
-   "card_id": "4fad163d97ec",
+   "card_id": "d59833d8ce15",
    "generation": 4,
    "operator": "add",
    "parents": [
-    "b9a879ce1b96"
+    "b3c744c9bef4"
    ]
   },
   {
-   "card_id": "b9a879ce1b96",
+   "card_id": "b3c744c9bef4",
    "generation": 3,
    "operator": "rewrite",
    "parents": [
-    "716785d16d41"
+    "3e3e2c6c2395"
    ]
   },
   {
-   "card_id": "716785d16d41",
+   "card_id": "3e3e2c6c2395",
    "generation": 2,
    "operator": "add",
    "parents": [

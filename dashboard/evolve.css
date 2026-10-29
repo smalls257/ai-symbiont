@@ -8,3 +8,5 @@
 ol.rows { counter-reset: tree; }
 svg text { fill: var(--dim); font-size: 11px; }
 svg .axis { stroke: var(--line); }
+body.simulated .source { color: var(--bad); border: 2px solid var(--bad); font-weight: 700; }
+svg text.stamp { fill: var(--bad); font-size: 14px; font-weight: 700; }
