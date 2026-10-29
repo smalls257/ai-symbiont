@@ -23,6 +23,7 @@ import script_paths
 script_paths.add_script_dirs()
 
 from symbiont.act1 import goto  # noqa: E402 - path set above
+from symbiont.act1.engine import Wads  # noqa: E402
 from symbiont.act1.episode import MapKnowledge, RunLog, run_episode  # noqa: E402
 from symbiont.act1.game_fitness import ALL_KEY_COLORS  # noqa: E402
 from symbiont.act1.glimmer import Reply  # noqa: E402
@@ -107,13 +108,14 @@ def _watch(outcomes: list[str]) -> Callable[[MoveRun], None]:
     return record
 
 
-def verify_level(wad: Path, level: str) -> RouteCheck:
-    """Play one level with the walking moves only; True when the level ended by its exit."""
+def verify_level(wad: Path | Wads, level: str) -> RouteCheck:
+    """Play one level with the walking moves only; a `Wads` is a generated map (a PWAD)."""
     from symbiont.act1.engine import make_game
 
-    require_training(level)  # no episode on a held-out level before the freeze (plan ruling 3)
+    if not isinstance(wad, Wads):
+        require_training(level)  # no episode on a held-out level before the freeze (plan ruling 3)
     goto.ENEMY_IN_THE_WAY_UNITS = 0.0  # monsters are removed; a leftover must not stop the walk
-    geometry = read_map(wad.read_bytes(), level)
+    geometry = read_map((wad.pwad if isinstance(wad, Wads) else wad).read_bytes(), level)
     index = build_index(geometry)
     knowledge = MapKnowledge(index, _KeysInHand(build_navmap(geometry, index)))
     game = make_game(wad, level)

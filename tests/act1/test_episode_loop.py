@@ -438,3 +438,37 @@ def test_a_cap_at_or_above_the_moves_own_limit_is_a_timeout_not_a_cut():
     )
     outcome = execute_move(move, observe, lambda buttons: None, max_tics=move.max_tics + 5)
     assert outcome == f"timeout after {move.max_tics} tics"
+
+
+@pytest.mark.periphery
+def test_make_game_loads_a_generated_map_as_a_pwad_on_top_of_the_iwad(monkeypatch):
+    import sys
+    from pathlib import Path
+    from types import SimpleNamespace
+
+    from symbiont.act1.engine import Wads, make_game
+
+    class Anything:
+        def __getattr__(self, name):
+            return name
+
+    class RecordingGame:
+        def __init__(self):
+            self.calls = {}
+
+        def __getattr__(self, name):
+            return lambda *args: self.calls.setdefault(name, args)
+
+    created = []
+
+    def new_game():
+        created.append(RecordingGame())
+        return created[-1]
+
+    fake = SimpleNamespace(DoomGame=new_game, ScreenResolution=Anything(), Mode=Anything())
+    monkeypatch.setitem(sys.modules, "vizdoom", fake)
+    monkeypatch.setattr("symbiont.act1.engine._declare_inputs", lambda *_: None)
+    make_game(Wads(Path("iwad.wad"), Path("gen.wad")), "MAP01")
+    make_game(Path("iwad.wad"), "MAP01")
+    assert created[0].calls["set_doom_scenario_path"] == ("gen.wad",)
+    assert "set_doom_scenario_path" not in created[1].calls

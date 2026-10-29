@@ -89,14 +89,24 @@ class Start:
     skill: int = NORMAL_SKILL
 
 
+@dataclass(frozen=True)
+class Wads:
+    """A game's IWAD and the generated PWAD whose map is played on top of it."""
+
+    iwad: Path
+    pwad: Path
+
+
 def make_game(
-    wad: Path,
+    wad: "Path | Wads",
     map_name: str = "MAP01",
     start: Start = Start(),  # noqa: B008 - Start is frozen, so one shared default is safe
     frame_size: FrameSize = FrameSize.PLAY,
     hud: HudStyle = HudStyle.OFF,
 ) -> Any:
     """A synchronous, windowless ViZDoom game on the given WAD map.
+
+    `wad` is the game's IWAD, or a `Wads` when a generated map (a PWAD) loads on top of it.
 
     Raises ValueError for a skill outside 1 to 5.
     """
@@ -106,11 +116,14 @@ def make_game(
     import vizdoom as vzd
 
     game = vzd.DoomGame()
-    game.set_doom_game_path(str(wad))
+    iwad, pwad = (wad.iwad, wad.pwad) if isinstance(wad, Wads) else (wad, None)
+    game.set_doom_game_path(str(iwad))
+    if pwad is not None:
+        game.set_doom_scenario_path(str(pwad))
     game.set_doom_map(map_name)
     # ViZDoom writes _vizdoom.ini (home path, user name) into the cwd by default; keep it in the
     # gitignored WAD directory so no run leaves a file the secrets gates must flag.
-    game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
+    game.set_doom_config_path(str(iwad.parent / "_vizdoom.ini"))
     game.set_seed(seed)
     game.set_doom_skill(skill)
     game.set_screen_resolution(getattr(vzd.ScreenResolution, frame_size.value))
