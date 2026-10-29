@@ -1,13 +1,9 @@
 """Routes over one map's walls and doors: the front door of the nav modules (pure).
 
-Why a grid and not a sector graph: Doom sectors can be concave (pillars, L-shaped halls), so a
-straight line between portal midpoints can cut through a wall. A grid rasterized from the walls
-cannot.
-
-The work is split along its seams: navbuild rasterizes the map, navgrid wraps it, navsearch finds
-the shortest walk under the door rules, navroute shapes it into waypoints, navdiagnose explains a
-failure. This module lists what a route can end at (doors, exits, keys) and hands out `Route |
-NoPath`. A NoPath always names what blocks; a route is never guessed.
+A grid rasterized from the walls, not a sector graph, because Doom sectors can be concave and a
+straight line between portal midpoints can cut through a wall. navbuild, navgrid, navsearch,
+navroute and navdiagnose do the work; this module lists doors, exits and keys and hands out
+`Route | NoPath`. A NoPath always names what blocks; a route is never guessed.
 """
 
 from collections.abc import Iterable, Iterator, Sequence

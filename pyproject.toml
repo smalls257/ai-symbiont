@@ -24,6 +24,7 @@ dev = [
     "lizard==1.24.3",
     "mutmut==3.8.0",
     "mypy==2.4.0",
+    "pillow>=13",
     "pip-audit==2.10.1",
     "pip-licenses==5.5.5",
     "pytest>=8",

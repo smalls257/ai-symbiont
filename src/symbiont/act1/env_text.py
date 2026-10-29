@@ -1,11 +1,8 @@
 """State to text: what the player sees, written for a language model.
 
-ViZDoom's object labels leave out walls, doors and openings, so a label-only
-description reads "nothing notable" in a third of observations (day-1 probe:
-12 of 40). The layout is therefore derived from the depth buffer and the door
-list from sector heights. Everything here is pure over plain data: the
-periphery (episode.py) builds a `GameStateView` from the engine, this module
-never touches the engine. Bearings are degrees, positive to the left.
+ViZDoom's object labels leave out walls, doors and openings, so the layout is derived from the
+depth buffer and the door list from sector heights. Everything here is pure over plain data:
+episode.py builds a `GameStateView` from the engine. Bearings are degrees, positive to the left.
 """
 
 import math

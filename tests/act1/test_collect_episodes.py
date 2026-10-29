@@ -249,7 +249,7 @@ def test_glimmer_arms_need_the_server_url_from_the_environment(monkeypatch, tmp_
 def test_the_personal_arm_is_refused_without_an_adapter_server(monkeypatch, tmp_path):
     module, _ = load_script(monkeypatch, tmp_path)
     monkeypatch.setenv("SYMBIONT_GLIMMER_URL", "http://127.0.0.1:8093/v1")
-    with pytest.raises(ValueError, match="glimmer_personal needs --adapters"):
+    with pytest.raises(ValueError, match="glimmer_personal needs --personal-model"):
         module.policy_maker(glimmer_args(module))
 
 
@@ -291,3 +291,14 @@ def test_a_committed_frozen_prereg_returns_its_hash_and_an_edit_is_refused(monke
     prereg.write_text("**FROZEN 2026-10-29.**\nedited\n")
     with pytest.raises(module.PreregNotFrozenError, match="differs from HEAD"):
         module.require_frozen_prereg(prereg)
+
+
+def test_the_personal_arm_asks_its_own_model_by_name(monkeypatch, tmp_path):
+    module, _ = load_script(monkeypatch, tmp_path)
+    monkeypatch.setenv("SYMBIONT_GLIMMER_URL", "http://127.0.0.1:8093/v1")
+    arms = module.glimmer_arms(glimmer_args(module, "--personal-model", "glimmer-freedoom"))
+    assert (arms["glimmer_plain"].model, arms["glimmer_personal"].model) == (
+        module.DEFAULT_MODEL,
+        "glimmer-freedoom",
+    )
+    assert not arms["glimmer_personal"].lora_scales

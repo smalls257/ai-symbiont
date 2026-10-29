@@ -421,10 +421,10 @@ def test_a_cut_replays_identically_for_the_same_seed():
 def test_make_game_refuses_a_skill_outside_one_to_five():
     from pathlib import Path
 
-    from symbiont.act1.engine import make_game
+    from symbiont.act1.engine import Start, make_game
 
     with pytest.raises(ValueError, match="skill 6"):
-        make_game(Path("no-such.wad"), skill=6)
+        make_game(Path("no-such.wad"), start=Start(skill=6))
 
 
 def test_a_cap_at_or_above_the_moves_own_limit_is_a_timeout_not_a_cut():

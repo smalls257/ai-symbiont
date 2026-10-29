@@ -23,6 +23,21 @@ BANNER_FRAMES = 24
 
 
 @dataclass(frozen=True)
+class PlayerStats:
+    """The game's own counters after a move, as ViZDoom reports them; the panel computes none."""
+
+    health: int
+    armor: int
+    ammo: int
+    kills: int
+    damage_dealt: int
+    damage_taken: int
+    items: int
+    secrets: int
+    dead: bool
+
+
+@dataclass(frozen=True)
 class MoveCard:
     """The panel text for one move: its step, the scripted move chosen, how it ended, its pains."""
 
@@ -30,11 +45,14 @@ class MoveCard:
     move: str
     outcome: str
     pains: tuple[str, ...]
+    stats: PlayerStats | None = None  # None for a clip that does not read game variables
 
 
-def card_for(step: int, run: MoveRun, pains: Sequence[GamePain]) -> MoveCard:
+def card_for(
+    step: int, run: MoveRun, pains: Sequence[GamePain], stats: PlayerStats | None = None
+) -> MoveCard:
     """Panel text from the played move and the tagger's verdict. Raises KeyError for a new pain."""
-    return MoveCard(step, run.label, run.outcome, tuple(PAIN_LABELS[pain] for pain in pains))
+    return MoveCard(step, run.label, run.outcome, tuple(PAIN_LABELS[pain] for pain in pains), stats)
 
 
 def banner_start(frame_count: int) -> int:

@@ -19,7 +19,7 @@ from typing import Any
 
 from symbiont.act1.episode import MapKnowledge, RunLog, run_episode
 from symbiont.act1.episode_records import Episode, EpisodeEnd, episode_records
-from symbiont.act1.glimmer import GlimmerArm, plain_and_personal
+from symbiont.act1.glimmer import GlimmerArm, plain_and_personal, plain_and_personal_by_model
 from symbiont.act1.levels import LevelSplit, levels_in, require_training, split_of
 from symbiont.act1.map_index import build_index
 from symbiont.act1.navmap import build_navmap
@@ -70,6 +70,9 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
     parser.add_argument(
         "--adapters", type=int, default=0, help="adapters the Glimmer server holds; 0: none"
     )
+    parser.add_argument(
+        "--personal-model", help="served model name of the personal arm (the adapter's own name)"
+    )
     parser.add_argument("--personal-adapter", type=int, default=0, help="the Freedoom adapter")
     parser.add_argument("--scored", type=Path, help="frozen prereg; required for held-out levels")
     return parser.parse_args(argv)
@@ -83,6 +86,9 @@ def glimmer_arms(args: argparse.Namespace) -> dict[str, GlimmerArm]:
     url = os.environ.get("SYMBIONT_GLIMMER_URL")
     if not url:
         raise RuntimeError("SYMBIONT_GLIMMER_URL is not set; Glimmer arms need the server URL")
+    if args.personal_model:
+        arms = plain_and_personal_by_model(url, args.glimmer_model, args.personal_model)
+        return {arm.name: arm for arm in arms}
     if args.adapters == 0:
         return {"glimmer_plain": GlimmerArm("glimmer_plain", url, args.glimmer_model)}
     arms = plain_and_personal(url, args.glimmer_model, args.adapters, args.personal_adapter)
@@ -95,7 +101,9 @@ def policy_maker(args: argparse.Namespace) -> Callable[[str, int], Policy]:
     arms = glimmer_arms(args) if set(names) & set(GLIMMER_ARMS) else {}
     for name in names:
         if name in GLIMMER_ARMS and name not in arms:
-            raise ValueError(f"{name} needs --adapters: the personal arm is an adapter")
+            raise ValueError(
+                f"{name} needs --personal-model or --adapters: the personal arm is an adapter"
+            )
         if name not in GLIMMER_ARMS:
             policy_named(name, 0)
 
@@ -144,14 +152,14 @@ def wad_path() -> Path:
     return install_freedoom(FREEDOOM_DIR)
 
 
-def load_level(wad: Path, level: str) -> tuple[Any, MapKnowledge, RoomFinder]:
+def load_level(wad: Path, level: str, hud: str = "off") -> tuple[Any, MapKnowledge, RoomFinder]:
     """Seam: the only function that touches ViZDoom or the WAD."""
-    from symbiont.act1.engine import make_game
+    from symbiont.act1.engine import HudStyle, make_game
 
     geometry = read_map(wad.read_bytes(), level)
     index = build_index(geometry)
     knowledge = MapKnowledge(index, build_navmap(geometry, index))
-    return make_game(wad, level), knowledge, RoomFinder(geometry)
+    return make_game(wad, level, hud=HudStyle(hud)), knowledge, RoomFinder(geometry)
 
 
 def episode_path(out: Path, episode: Episode) -> Path:

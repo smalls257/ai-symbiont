@@ -5,6 +5,7 @@ raises instead of reporting a wrong door or inventory state.
 """
 
 import math
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
@@ -19,6 +20,7 @@ from symbiont.act1.env_text import (
     locate_features,
     normalize_degrees,
 )
+from symbiont.act1.hook_overlay import PlayerStats
 from symbiont.act1.map_index import MapIndex, closed_sector_ids
 from symbiont.act1.move_cuts import NORMAL_SKILL
 from symbiont.act1.moves import Button
@@ -40,8 +42,16 @@ class FrameSize(StrEnum):
     CLIP = "RES_640X480"  # same 4:3 field of view, so the depth-buffer reading is unchanged in kind
 
 
+class HudStyle(StrEnum):
+    """What the screen buffer shows of the player's status. OFF is what every measured run used."""
+
+    OFF = "off"
+    MINIMAL = "minimal"
+    FULL = "full"
+
+
 def _declare_inputs(game: Any, vzd: Any) -> None:
-    """Tell the engine which buttons the scripts press and which variables the views read."""
+    """The six buttons and the game variables (the first five are read by position)."""
     game.set_available_buttons(
         [
             vzd.Button.MOVE_FORWARD,
@@ -59,21 +69,38 @@ def _declare_inputs(game: Any, vzd: Any) -> None:
             vzd.GameVariable.POSITION_X,
             vzd.GameVariable.POSITION_Y,
             vzd.GameVariable.ANGLE,
+            # appended after the five the view reads by position; only the video panel uses these
+            vzd.GameVariable.ARMOR,
+            vzd.GameVariable.KILLCOUNT,
+            vzd.GameVariable.DAMAGECOUNT,
+            vzd.GameVariable.DAMAGE_TAKEN,
+            vzd.GameVariable.ITEMCOUNT,
+            vzd.GameVariable.SECRETCOUNT,
+            vzd.GameVariable.DEAD,
         ]
     )
+
+
+@dataclass(frozen=True)
+class Start:
+    """How a game begins: the engine's random seed and the Doom skill (1 to 5)."""
+
+    seed: int = 1
+    skill: int = NORMAL_SKILL
 
 
 def make_game(
     wad: Path,
     map_name: str = "MAP01",
-    seed: int = 1,
+    start: Start = Start(),  # noqa: B008 - Start is frozen, so one shared default is safe
     frame_size: FrameSize = FrameSize.PLAY,
-    skill: int = NORMAL_SKILL,
+    hud: HudStyle = HudStyle.OFF,
 ) -> Any:
-    """A synchronous, windowless ViZDoom game on the given WAD map at a Doom skill from 1 to 5.
+    """A synchronous, windowless ViZDoom game on the given WAD map.
 
     Raises ValueError for a skill outside 1 to 5.
     """
+    seed, skill = start.seed, start.skill
     if not MIN_SKILL <= skill <= MAX_SKILL:
         raise ValueError(f"skill {skill} is outside {MIN_SKILL} to {MAX_SKILL}")
     import vizdoom as vzd
@@ -92,11 +119,37 @@ def make_game(
     game.set_objects_info_enabled(True)
     game.set_sectors_info_enabled(True)
     _declare_inputs(game, vzd)
+    game.set_render_hud(hud is not HudStyle.OFF)
+    game.set_render_minimal_hud(hud is HudStyle.MINIMAL)
     game.set_episode_timeout(20000)
     game.set_window_visible(False)
     game.set_mode(vzd.Mode.PLAYER)  # synchronous: the game waits for us
     game.init()
     return game
+
+
+def stats_from_variables(values: tuple[float, ...]) -> PlayerStats:
+    """The panel counters from one frame's game variables, in the order `_declare_inputs` set."""
+    health, ammo, _x, _y, _angle, armor, kills, dealt, taken, items, secrets, dead = values
+    return PlayerStats(
+        int(health), int(armor), int(ammo), int(kills), int(dealt), int(taken),
+        int(items), int(secrets), bool(dead),
+    )  # fmt: skip
+
+
+def read_player_stats(game: Any) -> PlayerStats:
+    """The game's counters right now (the extra variables `make_game` registers)."""
+    import vizdoom as vzd
+
+    def read(variable: Any) -> int:
+        return int(game.get_game_variable(variable))
+
+    variable = vzd.GameVariable
+    return PlayerStats(
+        read(variable.HEALTH), read(variable.ARMOR), read(variable.SELECTED_WEAPON_AMMO),
+        read(variable.KILLCOUNT), read(variable.DAMAGECOUNT), read(variable.DAMAGE_TAKEN),
+        read(variable.ITEMCOUNT), read(variable.SECRETCOUNT), bool(read(variable.DEAD)),
+    )  # fmt: skip
 
 
 BUTTON_ORDER = (
@@ -199,7 +252,7 @@ def view_from_engine(
     engine_state: Any, keys: KeyTracker, index: MapIndex, *, convention: SectorConvention
 ) -> GameStateView:
     """Turn the raw engine state into the plain view that `describe` renders."""
-    health, ammo, x, y, angle = engine_state.game_variables
+    health, ammo, x, y, angle = engine_state.game_variables[:5]
     visible_ids = {label.object_id for label in engine_state.labels}
     objects = []
     for obj in engine_state.objects:

@@ -1,12 +1,8 @@
 """The walkable grid of one map: where a player can stand, how high, and the doors (pure).
 
-Walls: one-sided or impassable-flag lines, inflated by the player's clearance. Height: a cell's
-effective floor is the highest floor within one cell of it (a player straddling a narrow trench
-stands on the higher side); a move may rise at most STEP_UP, falling is allowed, so edges are
-directed. A cell with less than PLAYER_HEIGHT of headroom, or outside every sector, is blocked. Door
-sectors listed in the map index are crossable door cells that ignore headroom (shut now, open when
-used); doors the index does not list read as walls, so "no route" names the blocker instead of
-guessing.
+Walls are inflated by the player's clearance; a move may rise at most STEP_UP and falling is
+allowed, so edges are directed. A cell with less than PLAYER_HEIGHT of headroom is blocked. Listed
+door sectors are crossable; unlisted doors read as walls, so "no route" names the blocker.
 """
 
 import math

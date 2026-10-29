@@ -44,7 +44,7 @@ Loaded = tuple[Any, MapKnowledge, RoomFinder]
 
 def load_case_level(wad: Path, case: Case) -> Loaded:
     """Seam: the only function that touches ViZDoom or the WAD for Evolve."""
-    from symbiont.act1.engine import make_game
+    from symbiont.act1.engine import Start, make_game
     from symbiont.act1.map_index import build_index
     from symbiont.act1.navmap import build_navmap
     from symbiont.act1.wad import read_map
@@ -52,7 +52,7 @@ def load_case_level(wad: Path, case: Case) -> Loaded:
     geometry = read_map(wad.read_bytes(), case.level)
     index = build_index(geometry)
     knowledge = MapKnowledge(index, build_navmap(geometry, index))
-    return make_game(wad, case.level, case.seed, skill=case.skill), knowledge, RoomFinder(geometry)
+    return make_game(wad, case.level, Start(case.seed, case.skill)), knowledge, RoomFinder(geometry)
 
 
 def kill_count(game: Any) -> int:

@@ -21,7 +21,10 @@ class StubGame:
     def get_state(self):
         if self.ended_after is not None and len(self.actions) >= self.ended_after:
             return None
-        return SimpleNamespace(screen_buffer=np.full((3, 2, 2), len(self.actions), dtype=np.uint8))
+        return SimpleNamespace(
+            screen_buffer=np.full((3, 2, 2), len(self.actions), dtype=np.uint8),
+            game_variables=[100.0, 50.0, float(len(self.actions)), 7.0, 0.0],
+        )
 
     def is_episode_finished(self):
         return self.ended_after is not None and len(self.actions) >= self.ended_after
@@ -64,3 +67,12 @@ def test_other_game_attributes_pass_through():
 def test_a_zero_stride_raises():
     with pytest.raises(ValueError, match="at least 1"):
         FrameTap(StubGame(), stride=0, tic_budget=1)
+
+
+def test_variables_come_with_each_kept_frame_in_the_same_order():
+    tap = FrameTap(StubGame(), stride=2, tic_budget=100)
+    for _ in range(4):
+        tap.make_action([0])
+    assert len(tap.take_frames()) == 2
+    assert [values[2] for values in tap.take_variables()] == [2.0, 4.0]
+    assert tap.take_variables() == []
