@@ -17,6 +17,9 @@ from symbiont.act1.lineage import Operator
 from symbiont.egress.spark import Effort, SparkSession
 
 AUTHOR_NAME = "spark-muse"
+# Medium reasoning once spent all 4096 default tokens thinking and left no answer (measured on the
+# first evolution run), so mutation calls get room for the thinking and the answer.
+REPLY_TOKENS = 16384
 
 
 def parse_card(text: str) -> Card:
@@ -54,4 +57,4 @@ class SparkAuthor:
         parent = parents[0]
         label = f"evolve/{self.session.run}/author/{parent.card_id}"
         prompt = prompts.author_prompt(operator, parent, summary)
-        return parse_card(self.session.chat(prompt, self.effort, label).text)
+        return parse_card(self.session.chat(prompt, self.effort, label, REPLY_TOKENS).text)

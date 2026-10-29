@@ -158,3 +158,11 @@ def test_a_reason_after_general_is_accepted_and_a_bare_landmark_is_a_landmark(tm
     assert general.landmark(lesson).general
     bare = spark_judge.SparkJudge(session(tmp_path, "LANDMARK"), Effort.MEDIUM).landmark(lesson)
     assert not bare.general and bare.evidence == "no reason given"
+
+
+def test_author_and_judge_ask_for_room_to_think_and_answer(tmp_path):
+    spark = session(tmp_path, GOOD)
+    spark_author.SparkAuthor(spark, Effort.MEDIUM).vary(Operator.ADD, (PARENT,), "s", 1)
+    spark_judge.SparkJudge(session(tmp_path, "GENERAL"), Effort.MEDIUM).landmark(PARENT.lessons[0])
+    assert spark.transport.requests[0]["max_tokens"] == spark_author.REPLY_TOKENS >= 16384
+    assert spark_judge.REPLY_TOKENS >= 16384

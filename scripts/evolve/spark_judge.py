@@ -14,6 +14,7 @@ from symbiont.act1.generality import Rejection, Verdict
 from symbiont.egress.spark import Effort, SparkSession
 
 MAX_REASON_CHARS = 200
+REPLY_TOKENS = 16384  # room for medium reasoning plus the answer (4096 ran out once)
 
 
 class JudgeReplyError(ValueError):
@@ -43,4 +44,4 @@ class SparkJudge:
         """The judge's verdict on one lesson. Raises JudgeReplyError or a Spark error."""
         label = f"evolve/{self.session.run}/judge"
         prompt = prompts.judge_prompt(lesson.render())
-        return parse_verdict(self.session.chat(prompt, self.effort, label).text)
+        return parse_verdict(self.session.chat(prompt, self.effort, label, REPLY_TOKENS).text)
