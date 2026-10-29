@@ -186,3 +186,52 @@ def test_child_share_counts_wins_and_the_mean_gain():
     stats = duel.child_share(rows)
     assert stats["beat_parent"] == 1.0 and stats["children"] == 3.0
     assert stats["mean_gain"] == pytest.approx((0.4 - 0.1 + 0.0) / 3)
+
+
+def test_run_three_is_sized_for_about_five_hundred_and_sixty_games_on_fresh_cases():
+    plan = duel.RUN3
+    per_arm = plan.generations * (1 + plan.children_per_generation) * plan.cases_per_generation
+    random_children = plan.generations * plan.children_per_generation * plan.cases_per_generation
+    final = 3 * (plan.final_selection_cases + plan.final_validation_cases)
+    assert (per_arm, random_children, final) == (160, 120, 120)
+    assert 2 * per_arm + random_children + final == 560
+
+
+def test_run_three_cases_never_meet_run_two_cases_or_each_other():
+    sp = split()
+    seen = set()
+    for plan in (duel.RUN2, duel.RUN3):
+        selection, held_back = duel.final_cases(sp, 1, plan)
+        cases = [*duel.noise_cases(sp, 1, plan), *selection, *held_back]
+        for generation in range(1, plan.generations + 1):
+            cases += duel.generation_cases(sp, generation, 1, plan)
+        pairs = [(c.level, c.seed) for c in cases]
+        assert len(pairs) == len(set(pairs)) and seen.isdisjoint(pairs)
+        seen |= set(pairs)
+
+
+def test_more_cases_than_maps_cycle_through_shuffled_rounds_of_all_the_maps():
+    sp = split()
+    cases = duel.generation_cases(sp, 1, 1, duel.RUN3)
+    assert len(cases) == 10 and len({c.seed for c in cases}) == 10
+    assert set(c.level for c in cases) <= set(sp.selection)
+    counts = {level: sum(c.level == level for c in cases) for level in sp.selection}
+    assert max(counts.values()) - min(counts.values()) <= 1 and min(counts.values()) >= 1
+
+
+def test_run_two_cases_are_unchanged_by_the_plan_parameter():
+    sp = split()
+    assert duel.generation_cases(sp, 2, 1) == duel.generation_cases(sp, 2, 1, duel.RUN2)
+    assert len(duel.generation_cases(sp, 2, 1)) == 5
+
+
+def test_pick_among_several_keeps_the_best_mean_or_a_blind_coins_choice():
+    cards = [card(n) for n in range(4)]
+    scored = [(cards[0], [0.1]), (cards[1], [0.5]), (cards[2], [0.3]), (cards[3], [0.2])]
+    assert duel.pick_among(scored, ParentChoice.LEXICASE, random.Random(0)) == cards[1]
+    reversed_scores = [(c, [1.0 - s[0]]) for c, s in scored]
+    first = [duel.pick_among(scored, ParentChoice.RANDOM, random.Random(i)) for i in range(30)]
+    again = [
+        duel.pick_among(reversed_scores, ParentChoice.RANDOM, random.Random(i)) for i in range(30)
+    ]
+    assert first == again and len(set(first)) > 1

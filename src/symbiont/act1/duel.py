@@ -1,6 +1,6 @@
 """Evolve run 2: the small paired design (pure rules; the driver is scripts/evolve/run_duel.py).
 
-A noise phase replays one card on the same cases; an evolution phase gives each arm, every
+A noise phase (run 2) replays one card on the same cases; an evolution phase gives each arm, every
 generation, the current best card and one child to play the same fresh cases, the child written
 from the best and worst games of the current best; a final paired test plays three cards on the
 same fresh cases, half of them on held-back maps. Every case is fresh: no (level, seed) is used
@@ -11,6 +11,7 @@ import math
 import random
 import statistics
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 
 from symbiont.act1.card_genome import Card
 from symbiont.act1.evolve_split import EvolveSplit
@@ -19,18 +20,42 @@ from symbiont.act1.game_summary import summarize_games
 from symbiont.act1.generation import ParentChoice
 from symbiont.act1.move_cuts import NORMAL_SKILL, CutSetting
 
-NOISE_CASES = 5
-NOISE_REPLICATES = 5  # 25 games: the same card, the same cases, again and again
-GENERATIONS = 5
-CASES_PER_GENERATION = 5  # 2 cards x 5 cases x 5 generations = 50 games per arm
-FINAL_SELECTION_CASES = 12
-FINAL_VALIDATION_CASES = 12  # 3 cards x 24 cases = 72 games
-# Seed blocks: far from the generation, validation, cross-level, final and sensitivity seeds.
-NOISE_SEED_BASE = 800_000
-GENERATION_SEED_BASE = 810_000
-GENERATION_SEED_STRIDE = 100
-FINAL_SELECTION_SEED_BASE = 820_000
-FINAL_VALIDATION_SEED_BASE = 830_000
+
+@dataclass(frozen=True)
+class DuelPlan:
+    """The sizes and seed blocks of one run of the paired design.
+
+    Seed blocks are far from the generation, validation, cross-level, final and sensitivity seeds
+    and from each other, so no (level, seed) is played by two phases or two runs.
+    """
+
+    name: str  # prefix of the run's state directories and ledger names
+    generations: int
+    cases_per_generation: int
+    children_per_generation: int
+    noise_cases: int
+    noise_replicates: int
+    final_selection_cases: int
+    final_validation_cases: int
+    noise_seed: int
+    generation_seed: int
+    generation_stride: int
+    final_selection_seed: int
+    final_validation_seed: int
+
+
+# Run 2: 25 noise games, 2 cards x 5 cases x 5 generations = 50 games an arm, 3 x 24 = 72 final.
+RUN2 = DuelPlan("duel", 5, 5, 1, 5, 5, 12, 12, 800_000, 810_000, 100, 820_000, 830_000)
+# Run 3: no noise phase (run 2's replay variance is reused). Per arm 4 generations x (1 current +
+# 3 children) x 10 cases = 160 games; random-operator children 3 x 4 x 10 = 120; final 3 x 40 = 120.
+RUN3 = DuelPlan("duel3", 4, 10, 3, 0, 0, 20, 20, 900_000, 910_000, 1_000, 920_000, 930_000)
+PLANS = {plan.name: plan for plan in (RUN2, RUN3)}
+NOISE_CASES = RUN2.noise_cases
+NOISE_REPLICATES = RUN2.noise_replicates
+GENERATIONS = RUN2.generations
+CASES_PER_GENERATION = RUN2.cases_per_generation
+FINAL_SELECTION_CASES = RUN2.final_selection_cases
+FINAL_VALIDATION_CASES = RUN2.final_validation_cases
 BOOTSTRAP_DRAWS = 10_000  # as in earlier preregs
 Z95 = 1.96
 
@@ -44,32 +69,45 @@ def _case(level: str, seed: int) -> Case:
     return Case(level, seed, NORMAL_SKILL, CutSetting.NONE)
 
 
-def noise_cases(split: EvolveSplit, run_seed: int) -> tuple[Case, ...]:
-    """Five selection maps, one fresh seed each, for the replay phase."""
-    levels = random.Random(f"{run_seed}:noise").sample(split.selection, NOISE_CASES)
-    return tuple(_case(level, NOISE_SEED_BASE + i) for i, level in enumerate(levels))
+def _levels(maps: Sequence[str], count: int, rng: random.Random) -> list[str]:
+    """`count` maps: distinct ones while there are enough, then shuffled rounds of all of them."""
+    if count <= len(maps):
+        return rng.sample(list(maps), count)
+    levels: list[str] = []
+    while len(levels) < count:
+        levels += rng.sample(list(maps), len(maps))
+    return levels[:count]
 
 
-def generation_cases(split: EvolveSplit, generation: int, run_seed: int) -> tuple[Case, ...]:
-    """Five distinct selection maps with seeds no other generation uses."""
-    levels = random.Random(f"{run_seed}:{generation}:duel").sample(
-        split.selection, CASES_PER_GENERATION
-    )
-    base = GENERATION_SEED_BASE + generation * GENERATION_SEED_STRIDE
+def noise_cases(split: EvolveSplit, run_seed: int, plan: DuelPlan = RUN2) -> tuple[Case, ...]:
+    """Selection maps, one fresh seed each, for the replay phase."""
+    levels = _levels(split.selection, plan.noise_cases, random.Random(f"{run_seed}:noise"))
+    return tuple(_case(level, plan.noise_seed + i) for i, level in enumerate(levels))
+
+
+def generation_cases(
+    split: EvolveSplit, generation: int, run_seed: int, plan: DuelPlan = RUN2
+) -> tuple[Case, ...]:
+    """The generation's selection cases, with seeds no other generation uses."""
+    rng = random.Random(f"{run_seed}:{generation}:duel")
+    levels = _levels(split.selection, plan.cases_per_generation, rng)
+    base = plan.generation_seed + generation * plan.generation_stride
     return tuple(_case(level, base + i) for i, level in enumerate(levels))
 
 
-def final_cases(split: EvolveSplit, run_seed: int) -> tuple[tuple[Case, ...], tuple[Case, ...]]:
+def final_cases(
+    split: EvolveSplit, run_seed: int, plan: DuelPlan = RUN2
+) -> tuple[tuple[Case, ...], tuple[Case, ...]]:
     """Fresh seeds on selection maps, and fresh seeds on the held-back (validation) maps."""
     maps = list(split.selection)
     random.Random(f"{run_seed}:final").shuffle(maps)
     selection = tuple(
-        _case(maps[i % len(maps)], FINAL_SELECTION_SEED_BASE + i)
-        for i in range(FINAL_SELECTION_CASES)
+        _case(maps[i % len(maps)], plan.final_selection_seed + i)
+        for i in range(plan.final_selection_cases)
     )
     held_back = tuple(
-        _case(split.validation[i % len(split.validation)], FINAL_VALIDATION_SEED_BASE + i)
-        for i in range(FINAL_VALIDATION_CASES)
+        _case(split.validation[i % len(split.validation)], plan.final_validation_seed + i)
+        for i in range(plan.final_validation_cases)
     )
     return selection, held_back
 
@@ -112,6 +150,18 @@ def pick_survivor(
     }
     cards = sorted([current[0], child[0]], key=lambda card: (-scores[card.card_id], card.tie_key()))
     return cards[0]
+
+
+def pick_among(
+    candidates: Sequence[tuple[Card, Sequence[float]]], choice: ParentChoice, coin: random.Random
+) -> Card:
+    """The card that carries on among several: the best mean, or one drawn by a blind coin."""
+    if choice == ParentChoice.RANDOM:
+        return coin.choice([card for card, _ in candidates])
+    means = {card.card_id: statistics.fmean(scores) for card, scores in candidates}
+    return sorted(
+        (card for card, _ in candidates), key=lambda card: (-means[card.card_id], card.tie_key())
+    )[0]
 
 
 def replay_noise(replicates: Sequence[Sequence[float]]) -> dict[str, float]:

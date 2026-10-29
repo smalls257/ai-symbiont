@@ -22,7 +22,6 @@ from symbiont.act1.card_genome import Card  # noqa: E402
 from symbiont.act1.evolution import Journal, Player  # noqa: E402
 from symbiont.act1.evolve_split import EvolveSplit  # noqa: E402
 from symbiont.act1.game_fitness import Case, GameResult, Grade, fitness  # noqa: E402
-from symbiont.act1.game_summary import summarize_games  # noqa: E402
 from symbiont.act1.generation import Author, Judge, ParentChoice, call_seed, verdict_on  # noqa: E402
 from symbiont.act1.lineage import Arm, Birth, Operator  # noqa: E402
 from symbiont.act1.run_guards import MutationPromptError  # noqa: E402
@@ -78,6 +77,28 @@ def graded_scores(
 
 
 @dataclass(frozen=True)
+class ChildAsk:
+    """One request for a child: whose child, what it reads, which generation and slot."""
+
+    parent: Card
+    text: str
+    generation: int
+    slot: int
+
+
+@dataclass(frozen=True)
+class GenerationPlay:
+    """What one generation's games gave: the cards, their scores, who stayed, how many cases."""
+
+    number: int
+    current: Card
+    children: list[Card]
+    scores: dict[str, list[float]]
+    survivor: Card
+    cases: int
+
+
+@dataclass(frozen=True)
 class ArmSetup:
     """Everything one arm needs; the two arms differ only in `arm` (and so in how they keep)."""
 
@@ -88,43 +109,52 @@ class ArmSetup:
     author: Author
     judge: Judge
     journal: Journal
+    plan: duel.DuelPlan = duel.RUN2
 
 
 class ArmRunner:
-    """GENERATIONS rounds for one arm; fresh cases every round, nothing carried over."""
+    """The plan's generations for one arm; fresh cases every round, nothing carried over."""
 
     def __init__(self, setup: ArmSetup) -> None:
         """Hold the setup and an empty record."""
         self.setup, self.run = setup, ArmRun(setup.arm)
 
-    def child_of(self, current: Card, games: Sequence[GameResult], generation: int) -> Card:
-        """A new general child of `current` from its best and worst games, or the stored one."""
+    def children_of(
+        self, current: Card, games: Sequence[GameResult], generation: int
+    ) -> list[Card]:
+        """The generation's new general children of `current` from its best and worst games."""
         setup = self.setup
         stored = setup.journal.load(setup.arm, generation)
         if stored is not None:
             self.run.births.extend(stored[1])
-            return stored[0][0]
+            return list(stored[0])
         text = duel.compare_text(games)
+        children: list[Card] = []
         births: list[Birth] = []
+        for slot in range(setup.plan.children_per_generation):
+            ask = ChildAsk(current, text, generation, slot)
+            child = self._ask(ask, [current, *children], births)
+            children.append(child)
+        setup.journal.save(setup.arm, generation, tuple(children), tuple(births))
+        self.run.births.extend(births)
+        return children
+
+    def _ask(self, ask: ChildAsk, taken: list[Card], births: list[Birth]) -> Card:
+        """One new general child, different from the parent and the earlier children."""
+        setup = self.setup
         for attempt in range(CHILD_TRIES):
-            seed = call_seed(setup.run_seed, generation, 0, attempt)
-            child = setup.author.vary(Operator.COMPARE, (current,), text, seed)
-            why = verdict_on(child, (current,), setup.judge)
-            births.append(self._birth(child, current, generation, why.rejection))
-            if not (why.general and child.card_id != current.card_id):
-                reason = why.rejection.value if why.rejection else "same card as the parent"
-                log.warning(
-                    "%s generation %d ask %d turned away: %s",
-                    setup.arm.value,
-                    generation,
-                    attempt + 1,
-                    reason,
-                )
-            if why.general and child.card_id != current.card_id:
-                setup.journal.save(setup.arm, generation, (child,), tuple(births))
-                self.run.births.extend(births)
+            seed = call_seed(setup.run_seed, ask.generation, ask.slot, attempt)
+            child = setup.author.vary(Operator.COMPARE, (ask.parent,), ask.text, seed)
+            why = verdict_on(child, (ask.parent,), setup.judge)
+            births.append(self._birth(child, ask.parent, ask.generation, why.rejection))
+            if why.general and all(child.card_id != card.card_id for card in taken):
                 return child
-        raise MutationPromptError(f"{setup.arm.value} generation {generation}: no new child")
+            reason = why.rejection.value if why.rejection else "same card as an earlier one"
+            log.warning(
+                "%s generation %d child %d ask %d turned away: %s",
+                setup.arm.value, ask.generation, ask.slot + 1, attempt + 1, reason,
+            )  # fmt: skip
+        raise MutationPromptError(f"{setup.arm.value} generation {ask.generation}: no new child")
 
     def _birth(self, child: Card, current: Card, generation: int, rejection: Any) -> Birth:
         """The child's birth record."""
@@ -137,103 +167,58 @@ class ArmRunner:
     def generation(
         self, current: Card, traces: Sequence[GameResult], number: int
     ) -> tuple[Card, list[GameResult]]:
-        """Play current and child on this generation's cases; return the survivor and its games."""
+        """Play current and its children on this generation's cases; return the survivor."""
         setup = self.setup
-        child = self.child_of(current, traces, number)
-        cases = duel.generation_cases(setup.split, number, setup.run_seed)
-        pairs = [(card, case) for card in (current, child) for case in cases]
-        played = play_pairs(setup.player, pairs)
-        scores = {card.card_id: graded_scores(played, card, cases) for card in (current, child)}
+        children = self.children_of(current, traces, number)
+        cases = duel.generation_cases(setup.split, number, setup.run_seed, setup.plan)
+        cards = [current, *children]
+        played = play_pairs(setup.player, [(card, case) for card in cards for case in cases])
+        scores = {card.card_id: graded_scores(played, card, cases) for card in cards}
+        candidates = [(card, scores[card.card_id]) for card in cards if scores[card.card_id]]
         coin = random.Random(f"{setup.run_seed}:{number}:coin")
-        pair = ((current, scores[current.card_id]), (child, scores[child.card_id]))
-        survivor = duel.pick_survivor(*pair, CHOICE[setup.arm], coin)
-        self.run.rows.append(self._row(number, pair, survivor, len(cases)))
-        return survivor, [played[(survivor.card_id, k)] for k in cases]
+        survivor = duel.pick_among(candidates, CHOICE[setup.arm], coin)
+        play = GenerationPlay(number, current, children, scores, survivor, len(cases))
+        self.run.rows.append(self._row(play))
+        return survivor, [played[(survivor.card_id, case)] for case in cases]
 
-    def _row(self, number: int, pair: Any, survivor: Card, cases: int) -> dict[str, Any]:
-        """One generation's numbers: both cards' means on this generation's cases and who stayed."""
-        (current, current_scores), (child, child_scores) = pair
+    def _row(self, play: GenerationPlay) -> dict[str, Any]:
+        """One generation's numbers; `child` and `child_mean` are the first child's, as in run 2."""
+        means = {cid: statistics.fmean(v) for cid, v in play.scores.items() if v}
+        first = play.children[0].card_id
         return {
-            "generation": number,
+            "generation": play.number,
             "arm": self.setup.arm.value,
-            "current": current.card_id,
-            "child": child.card_id,
-            "current_mean": statistics.fmean(current_scores),
-            "child_mean": statistics.fmean(child_scores),
-            "kept": survivor.card_id,
-            "games": 2 * cases,
+            "current": play.current.card_id,
+            "child": first,
+            "current_mean": means[play.current.card_id],
+            "child_mean": means.get(first),
+            "children": [
+                {"id": child.card_id, "mean": means[child.card_id]}
+                for child in play.children
+                if child.card_id in means
+            ],
+            "kept": play.survivor.card_id,
+            "games": (1 + len(play.children)) * play.cases,
         }
 
     def go(self, start: Card, start_games: Sequence[GameResult]) -> ArmRun:
-        """All generations from the start card and the games its first child is written from."""
+        """All generations from the start card and the games its first children are written from."""
         current, traces = start, list(start_games)
-        for number in range(1, duel.GENERATIONS + 1):
+        for number in range(1, self.setup.plan.generations + 1):
             current, traces = self.generation(current, traces, number)
         self.run.final = current
         return self.run
 
 
-RANDOM_OPERATORS = (Operator.REWRITE, Operator.ADD, Operator.DELETE, Operator.MERGE)
-
-
-def random_operator(run_seed: int, generation: int) -> Operator:
-    """The random operator of a generation: seeded, and blind to every game."""
-    return random.Random(f"{run_seed}:{generation}:random-op").choice(RANDOM_OPERATORS)
-
-
-def run_random_children(
-    parents: dict[int, tuple[Card, Sequence[GameResult], float]], setup: ArmSetup
-) -> list[dict[str, Any]]:
-    """For each generation, a child by a random operator from the parent's all-games summary.
-
-    `parents[g]` is the parent card, its games that generation and its mean there. The child plays
-    the same cases; the row shares the keys of an arm's rows so one scorer reads both.
-    """
-    rows = []
-    for generation, (parent, games, parent_mean) in sorted(parents.items()):
-        operator = random_operator(setup.run_seed, generation)
-        pains: dict[str, int] = {}
-        for game in games:
-            for name, count in game.pains:
-                pains[name] = pains.get(name, 0) + count
-        summary = summarize_games(games, pains)
-        child = _random_child(setup, operator, parent, summary, generation)
-        cases = duel.generation_cases(setup.split, generation, setup.run_seed)
-        played = play_pairs(setup.player, [(child, case) for case in cases])
-        rows.append(
-            {
-                "generation": generation,
-                "arm": "random_operator",
-                "operator": operator.value,
-                "current": parent.card_id,
-                "child": child.card_id,
-                "current_mean": parent_mean,
-                "child_mean": statistics.fmean(graded_scores(played, child, cases)),
-                "games": len(cases),
-            }
-        )
-    return rows
-
-
-def _random_child(
-    setup: ArmSetup, operator: Operator, parent: Card, summary: str, generation: int
-) -> Card:
-    """A new general child by the operator; at most CHILD_TRIES asks (the journal keeps it)."""
-    stored = setup.journal.load(setup.arm, generation)
-    if stored is not None:
-        return stored[0][0]
-    for attempt in range(CHILD_TRIES):
-        seed = call_seed(setup.run_seed, generation, 1, attempt)
-        child = setup.author.vary(operator, (parent,), summary, seed)
-        why = verdict_on(child, (parent,), setup.judge)
-        if why.general and child.card_id != parent.card_id:
-            birth = Birth(
-                child.card_id, generation, setup.arm, operator, (parent.card_id,),
-                setup.author.name, None,
-            )  # fmt: skip
-            setup.journal.save(setup.arm, generation, (child,), (birth,))
-            return child
-    raise MutationPromptError(f"random operator generation {generation}: no new child")
+def reflection_rows(rows: Sequence[dict[str, Any]]) -> list[dict[str, float]]:
+    """One row per child (current_mean, child_mean), whether a generation had one child or many."""
+    flat = []
+    for row in rows:
+        children = row.get("children") or [{"mean": row["child_mean"]}]
+        flat += [
+            {"current_mean": row["current_mean"], "child_mean": child["mean"]} for child in children
+        ]
+    return flat
 
 
 def run_final(
@@ -312,11 +297,11 @@ def _generation_rows(arms: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
 def _reflection(arms: dict[str, dict[str, Any]]) -> dict[str, dict[str, float]]:
     """The share of children that beat their parent, per way of writing children."""
     shares = {
-        "evolved arm": duel.child_share(arms["evolved"]["rows"]),
-        "no-selection arm": duel.child_share(arms["control"]["rows"]),
+        "evolved arm": duel.child_share(reflection_rows(arms["evolved"]["rows"])),
+        "no-selection arm": duel.child_share(reflection_rows(arms["control"]["rows"])),
     }
     if "random" in arms:
-        shares["random operator"] = duel.child_share(arms["random"]["rows"])
+        shares["random operator"] = duel.child_share(reflection_rows(arms["random"]["rows"]))
     return shares
 
 
