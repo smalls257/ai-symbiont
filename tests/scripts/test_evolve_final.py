@@ -285,3 +285,13 @@ def test_the_frozen_cards_equal_the_sensitivity_checks_strong_card_and_the_gen0_
     assert fc.STRONG_CARD == cs.STRONG_CARD
     assert fc.card_sha256(fc.MINED_CARD).startswith("5984390e1d7c")
     assert fc.card_sha256(fc.STRONG_CARD).startswith("7cf218224ac8")
+
+
+def test_the_real_prereg_quotes_both_cards_exactly_and_names_the_seven_maps():
+    path = Path(__file__).resolve().parents[2] / "prereg" / "2026-10-29-evolve-card.md"
+    text = path.read_text()
+    hashes = ft.require_cards(text)
+    assert hashes["Mined card"] == fc.card_sha256(fc.MINED_CARD)
+    assert all(level in text for level in fc.HELD_OUT_MAPS) and "MAP20" in text
+    assert "results/evolve-card.json" in text and "final_test.py" in text
+    assert not any(word in ft.RESULTS_SCHEMA for word in FORBIDDEN)

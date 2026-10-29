@@ -1,6 +1,6 @@
 # Pre-registration draft: Evolve, a small paired test of evolved lesson cards (plays Freedoom via ViZDoom)
 
-**DRAFT, not frozen.** The owner-proxy freezes it with a commit that changes only this status line. No held-out game is played before then.
+**DRAFT, not frozen. Narrowed:** this file covers run 2 (exploratory, training and validation maps only). The Spark card test on held-out maps is `prereg/2026-10-29-evolve-card.md`, which supersedes this file for the Spark arms. The owner-proxy freezes it with a commit that changes only this status line. No held-out game is played before then.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or the code's own documented behavior, [hypothesis] = a guess the run can support or refute. Every result row is labeled floor, ceiling, reference or under test, and the no-selection row and the generation-0 row are always printed beside the evolved row.
 
