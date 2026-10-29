@@ -19,9 +19,9 @@ from symbiont.eval.meta2_fly_map import task_map
 from symbiont.eval.meta2_replay import FALSE_ALARM_COST
 
 torch.set_default_dtype(torch.float64)
-# DenseNet's delta rule at rate 1 over ~1,000 steps grows summation-order rounding (1e-16) to
-# about 1e-8 [measured]; a wrong rule differs by far more than 1e-6.
-EQUAL_TOLERANCE = 1e-6
+# Checked one task at a time from the numpy state (teacher forcing): run free, DenseNet's delta
+# rule at rate 1 grows summation-order rounding (1e-16) to a whole probability within ten tasks.
+EQUAL_TOLERANCE = 1e-9
 Pair = tuple[torch.Tensor, torch.Tensor]
 
 
@@ -138,6 +138,7 @@ class DenseUnroll:
 
     dense: DenseVariant
     calibrator_rate: float
+    start_updates: float = 0.0  # a fresh state has learned nothing; the check starts mid-repo
 
     def rate_at(self, updates: torch.Tensor) -> torch.Tensor | float:
         """`DenseVariant.rate_at` per repository."""
@@ -163,7 +164,8 @@ class DenseUnroll:
         repos = tasks[0].mask.shape[0]
         readout = (start[0].expand(repos, -1), start[1].expand(repos))
         calibrator = (start[2].expand(repos), start[3].expand(repos))
-        updates, loss, probs = torch.zeros(repos), torch.zeros(()), []
+        updates, loss = torch.full((repos,), self.start_updates), torch.zeros(())
+        probs = []
         for task in tasks:
             raw = (task.encoded * readout[0][:, None, :]).sum(2) + readout[1][:, None]
             prob = torch.sigmoid(calibrator[0][:, None] * raw + calibrator[1][:, None])
@@ -176,12 +178,18 @@ class DenseUnroll:
 
 def check_equal(probs: list[torch.Tensor], numpy_risks: Sequence[Sequence[np.ndarray]]) -> float:
     """Largest gap between the unroll and the numpy rule; raises above `EQUAL_TOLERANCE`."""
+    gap = largest_gap(probs, numpy_risks)
+    if gap > EQUAL_TOLERANCE:
+        raise RuntimeError(f"the torch unroll differs from the numpy rule by {gap:g}")
+    return gap
+
+
+def largest_gap(probs: list[torch.Tensor], numpy_risks: Sequence[Sequence[np.ndarray]]) -> float:
+    """Largest absolute gap between unrolled probabilities and the numpy rule's."""
     gap = 0.0
     for s, prob in enumerate(probs):
         for i, risks in enumerate(numpy_risks):
             if s < len(risks):
                 found = prob[i, : len(risks[s])].detach().numpy()
                 gap = max(gap, float(np.max(np.abs(found - risks[s]))))
-    if gap > EQUAL_TOLERANCE:
-        raise RuntimeError(f"the torch unroll differs from the numpy rule by {gap:g}")
     return gap

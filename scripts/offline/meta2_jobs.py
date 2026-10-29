@@ -8,6 +8,7 @@ broad weights are saved, so a later scored run reuses them instead of refitting.
 
 import logging
 import time
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -21,6 +22,8 @@ from symbiont.eval.meta2_replay import (
     L2,
     META2_CALIBRATOR_RATE,
     RepoTasks,
+    calibrated_task,
+    calibrator_after,
     own_logistic_risks,
     refit_logistic_risks,
     sequential_risks,
@@ -166,20 +169,44 @@ def all_jobs() -> list[tuple]:
     return [*jobs, ("logistic",)]
 
 
-def torch_matches_numpy(name: str, repos: list[str]) -> float:
-    """The unroll against the numpy rule from a random non-trivial start; raises on a gap."""
+def numpy_states(net: mf.Net, start: tuple, encoded: list, repo: RepoTasks) -> list[tuple]:
+    """(state, calibrator, risks) before each task, by the numpy rule."""
+    state, calibrator, found = *start, []
+    for codes, followed in zip(encoded, repo.followed, strict=True):
+        raw = net.rule.raw(codes, state)
+        found.append((state, calibrator, calibrated_task(raw, calibrator)))
+        state = net.rule.learn(codes, followed, state)
+        calibrator = calibrator_after(calibrator, raw, followed, META2_CALIBRATOR_RATE)
+    return found
+
+
+def one_task_gap(net: mf.Net, before: tuple, encoded: list, followed: list) -> float:
+    """Torch from the numpy state before a task: that task's and the next task's probabilities."""
+    state, calibrator, _ = before
+    unroll = net.unroll
+    if not net.is_fly:
+        unroll = replace(unroll, start_updates=float(state.updates))
+    tasks = mtorch.pad_tasks([encoded], [followed], len(encoded))
+    maps = mtorch.fly_maps(net.rule.fly, [encoded], [followed], len(tasks)) if net.is_fly else None
+    _, probs = unroll.run(net.params_of(state, calibrator), tasks, maps)
+    return probs
+
+
+def torch_matches_numpy(name: str, repos: list[str]) -> dict[str, float]:
+    """Each task's rule step in torch against numpy from the same state; raises on a gap.
+
+    Also reports, never raising, how far a free-running unroll drifts over the early window.
+    """
     net, rng = net_of(name, 0), np.random.default_rng(1)
-    params = [p + 0.1 * torch.from_numpy(rng.standard_normal(p.shape)) for p in net.cold_params()]
-    encode = encoded(net, SCORING, (name, 0))
-    first = {r: SCORING[r].first(mf.EARLY_TASKS) for r in repos}
-    start = net.numpy_start(params)
-    numpy_risks = [
-        sequential_risks(net.rule, start, encode(r)[: mf.EARLY_TASKS], first[r]) for r in repos
-    ]
-    _, probs = mf.unrolled_loss(
-        net,
-        params,
-        [encode(r)[: mf.EARLY_TASKS] for r in repos],
-        [first[r].followed[: mf.EARLY_TASKS] for r in repos],
-    )
-    return mtorch.check_equal(probs, numpy_risks)
+    params = [p + 0.01 * torch.from_numpy(rng.standard_normal(p.shape)) for p in net.cold_params()]
+    encode, worst, drift = encoded(net, SCORING, (name, 0)), 0.0, 0.0
+    for repo in repos:
+        first = SCORING[repo].first(mf.EARLY_TASKS)
+        codes = encode(repo)[: mf.EARLY_TASKS]
+        states = numpy_states(net, net.numpy_start(params), codes, first)
+        for s in range(len(states) - 1):
+            probs = one_task_gap(net, states[s], codes[s : s + 2], list(first.followed[s : s + 2]))
+            worst = max(worst, mtorch.check_equal(probs, [[states[s][2], states[s + 1][2]]]))
+        _, free = mf.unrolled_loss(net, params, [codes], [first.followed])
+        drift = max(drift, mtorch.largest_gap(free, [[st[2] for st in states]]))
+    return {"one_task_max_gap": worst, "free_running_max_gap": drift}

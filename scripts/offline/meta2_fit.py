@@ -24,6 +24,9 @@ CHECK_EVERY = 25  # outer steps between checkpoints; checkpoint 0 is the cold st
 BROAD_BATCH = 2048  # training steps per broad minibatch
 BROAD_LR = 1e-3
 FINE_TUNE_LR = 1e-2
+# DenseNet's unroll is chaotic at rate 1 (rounding grows to a whole probability in ten tasks
+# [measured]), so its meta-gradient can explode; the outer step is norm-clipped.
+GRAD_CLIP = 1.0
 Params = list[torch.Tensor]
 Encoder = Callable[[str], list[np.ndarray]]
 
@@ -58,6 +61,15 @@ class Net:
             state = with_dense_start(self.cold, first, float(second))
         return state, Calibrator(float(scale), float(bias))
 
+    def params_of(self, state: Any, calibrator: Calibrator) -> Params:
+        """The tensors of a numpy start (inverse of `numpy_start`)."""
+        if self.is_fly:
+            first, second = state.approach, state.avoid
+        else:
+            first, second = state.readout, np.array(state.bias)
+        values = (first, second, np.array(calibrator.scale), np.array(calibrator.bias))
+        return [torch.tensor(v, dtype=torch.float64) for v in values]
+
     def frozen_prob(self, params: Params, encoded: np.ndarray) -> torch.Tensor:
         """Calibrated probability of each step under frozen parameters (no online rule)."""
         if self.is_fly:
@@ -89,6 +101,7 @@ def meta_train(net: Net, train: dict, encode: Encoder, lr: float, seed: int) -> 
         optimizer.zero_grad()
         loss, _ = unrolled_loss(net, params, encoded, followed)
         loss.backward()
+        torch.nn.utils.clip_grad_norm_(params, GRAD_CLIP)
         optimizer.step()
         if step % CHECK_EVERY == 0:
             checkpoints.append((step, [p.detach().clone() for p in params]))

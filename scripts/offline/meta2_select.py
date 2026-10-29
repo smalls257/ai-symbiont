@@ -35,10 +35,10 @@ class Scorer:
             for s, by_repo in risks.items()
         }
 
-    def counted(self, risks: Candidate) -> dict[str, Any]:
-        """Thresholds per seed and the scored counts of every window."""
+    def counted(self, risks: Candidate, fixed: Mapping[int, Any] | None = None) -> dict[str, Any]:
+        """Thresholds per seed (chosen here, or `fixed` beforehand) and every window's counts."""
         traces = self.traces(risks)
-        at = {s: rep.choose_thresholds(t, self.option) for s, t in traces.items()}
+        at = fixed or {s: rep.choose_thresholds(t, self.option) for s, t in traces.items()}
         windows = {w: rep.window_counts(traces, at, w, self.option) for w in rep.Window}
         return {"thresholds": at, "windows": windows}
 
