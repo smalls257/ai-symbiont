@@ -1,0 +1,102 @@
+{
+ "schema": "evolve-traces-v1",
+ "label": "paired traced games, 8 cards, 32 decisions, 42 training cases [measured]",
+ "rows": [
+  {
+   "label": "one move per reply",
+   "card_id": "1f103cea606a",
+   "cases": 42,
+   "mean_fitness": -0.421,
+   "exits": 0,
+   "deaths": 30,
+   "mean_mistakes": 6.0,
+   "mean_difference_vs_no_card": 0.167,
+   "paired_sd": 0.446,
+   "role": "under_test"
+  },
+  {
+   "label": "mined card",
+   "card_id": "5984390e1d7c",
+   "cases": 42,
+   "mean_fitness": -0.505,
+   "exits": 2,
+   "deaths": 32,
+   "mean_mistakes": 12.3,
+   "mean_difference_vs_no_card": 0.082,
+   "paired_sd": 0.575,
+   "role": "reference"
+  },
+  {
+   "label": "strong card",
+   "card_id": "7cf218224ac8",
+   "cases": 42,
+   "mean_fitness": -0.533,
+   "exits": 2,
+   "deaths": 32,
+   "mean_mistakes": 14.8,
+   "mean_difference_vs_no_card": 0.054,
+   "paired_sd": 0.553,
+   "role": "reference"
+  },
+  {
+   "label": "run 3 card B",
+   "card_id": "da1852bd6885",
+   "cases": 42,
+   "mean_fitness": -0.452,
+   "exits": 4,
+   "deaths": 32,
+   "mean_mistakes": 13.3,
+   "mean_difference_vs_no_card": 0.135,
+   "paired_sd": 0.451,
+   "role": "reference"
+  },
+  {
+   "label": "no card",
+   "card_id": "e3b0c44298fc",
+   "cases": 42,
+   "mean_fitness": -0.588,
+   "exits": 2,
+   "deaths": 30,
+   "mean_mistakes": 17.7,
+   "mean_difference_vs_no_card": 0.0,
+   "paired_sd": 0.0,
+   "role": "floor"
+  },
+  {
+   "label": "run 3 card A",
+   "card_id": "c1fcde8132f3",
+   "cases": 42,
+   "mean_fitness": -0.493,
+   "exits": 3,
+   "deaths": 29,
+   "mean_mistakes": 15.0,
+   "mean_difference_vs_no_card": 0.095,
+   "paired_sd": 0.383,
+   "role": "reference"
+  },
+  {
+   "label": "run 3 card C",
+   "card_id": "95b3bbb694bc",
+   "cases": 42,
+   "mean_fitness": -0.528,
+   "exits": 4,
+   "deaths": 31,
+   "mean_mistakes": 18.3,
+   "mean_difference_vs_no_card": 0.059,
+   "paired_sd": 0.446,
+   "role": "reference"
+  },
+  {
+   "label": "bad card",
+   "card_id": "f0e4166fcde8",
+   "cases": 42,
+   "mean_fitness": -0.926,
+   "exits": 0,
+   "deaths": 18,
+   "mean_mistakes": 36.7,
+   "mean_difference_vs_no_card": -0.339,
+   "paired_sd": 0.519,
+   "role": "reference"
+  }
+ ]
+}
