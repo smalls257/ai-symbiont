@@ -31,6 +31,7 @@ PURE_FILES = (
     "card_archive.py",
     "generality.py",
     "lineage.py",
+    "run_guards.py",
 )
 
 
