@@ -1,8 +1,9 @@
 """Level navigation report: per Freedoom level, what blocks its route and whether it was walked.
 
 Joins the static route check (smoke_levels.static_route_check) with the lines `verify_routes.py`
-wrote. Published: level ids and short labels only. Held-out levels are never played for it
-(plan ruling 3), so their engine column reads "not_played".
+wrote. Published: level ids and short labels only. The verifier now refuses held-out levels, but
+all eight were played with it during development (before that guard); their walk column says
+so ("played_in_development") and carries no outcome.
 
 Usage: nav_report.py --wad data/freedoom/freedoom2.wad --walks DIR_OF_JSONL --publish FILE.json
 """
@@ -77,7 +78,9 @@ def level_row(wad: bytes, level: str, walks: dict[str, dict]) -> dict[str, objec
     row["static"] = "pass" if verdict.passed else blocker_kind(verdict.reason)
     row["unmodeled"] = sorted(unmodeled_notes(geometry))
     walk = walks.get(level)
-    if split_of(level) == LevelSplit.HELD_OUT or walk is None:
+    if split_of(level) == LevelSplit.HELD_OUT:
+        row["walk"] = "played_in_development"
+    elif walk is None:
         row["walk"] = "not_played"
     elif walk["reached_exit"]:
         row["walk"] = "exit_reached"

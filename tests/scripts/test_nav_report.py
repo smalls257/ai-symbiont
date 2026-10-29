@@ -1,4 +1,4 @@
-"""Navigation report: reasons become short kinds; held-out levels are never marked as walked."""
+"""Navigation report: reasons become short kinds; held-out walks are labeled, not reported."""
 
 import json
 import sys
@@ -29,13 +29,13 @@ def test_the_way_a_walk_ended_becomes_one_short_kind():
     )
 
 
-def test_a_training_level_with_a_walk_reports_it_and_a_held_out_level_never_does():
+def test_a_training_level_with_a_walk_reports_it_and_a_held_out_level_says_it_was_played():
     wad = sample_wad()
     training = nav_report.level_row(wad, "MAP01", {"MAP01": WALKED})
     assert training["split"] == "training" and training["walk"] == "exit_reached"
     held_out_wad = wad.replace(b"MAP01\0\0\0", b"MAP04\0\0\0")
     held_out = nav_report.level_row(held_out_wad, "MAP04", {"MAP04": {**WALKED, "level": "MAP04"}})
-    assert held_out["split"] == "held_out" and held_out["walk"] == "not_played"
+    assert held_out["split"] == "held_out" and held_out["walk"] == "played_in_development"
 
 
 def test_walks_are_read_back_from_the_verifier_files(tmp_path):

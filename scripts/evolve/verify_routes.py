@@ -133,12 +133,17 @@ def verify_level(wad: Path, level: str) -> RouteCheck:
     return RouteCheck(level, ended, len(outcomes), tuple(outcomes[-STUCK_REPEATS:]))
 
 
+def default_levels() -> list[str]:
+    """The levels walked when none is named: training only."""
+    return list(levels_in(LevelSplit.TRAINING))
+
+
 def main(argv: list[str] | None = None) -> int:
     """Verify the given levels (default: all 32) and write one JSON line per level."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wad", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
-    parser.add_argument("--levels", nargs="*", default=list(levels_in(LevelSplit.TRAINING)))
+    parser.add_argument("--levels", nargs="*", default=default_levels())
     args = parser.parse_args(argv)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     with args.out.open("a") as out:
