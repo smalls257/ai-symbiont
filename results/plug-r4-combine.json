@@ -1,5 +1,7 @@
 {
  "status": "exploratory, round 3's 40 scored repos as validation, no training",
+ "items": 330,
+ "without_twins": false,
  "judge_alone": {
   "in_sample": {
    "rule": "judge",

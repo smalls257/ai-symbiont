@@ -159,8 +159,8 @@ def read_at(items, cands, rules, choice) -> dict:
     return {"rule": name, "threshold": threshold, **{k: round(v, 4) for k, v in rates.items()}}
 
 
-def cross_validated(items, repo_of, cands, form: str) -> dict:
-    """Pooled choices over the 5 folds, each fold read at the point fitted on the other four."""
+def cv_choices(items, repo_of, cands, form: str) -> list[Choice]:
+    """Each fold's choices at the point fitted on the other four folds (silence if none is safe)."""
     choices = []
     for fold in range(FOLDS):
         train = [i for i in items if fold_of(repo_of[i.item_id]) != fold]
@@ -171,16 +171,41 @@ def cross_validated(items, repo_of, cands, form: str) -> dict:
             choices += [Choice(i.item_id, None, 0.0) for i in test]
             continue
         choices += decide(test, cands, rules[point[0]], point[1])
-    rates = outcome_rates(items, choices)
-    return {k: round(v, 4) for k, v in rates.items()}
+    return choices
+
+
+def cross_validated(items, repo_of, cands, form: str) -> dict:
+    """Rates of the pooled cross-validated choices."""
+    rates = outcome_rates(items, cv_choices(items, repo_of, cands, form))
+    return {key: round(value, 4) for key, value in rates.items()}
+
+
+def has_twin(item: Item, lessons: dict) -> bool:
+    """True if the prompt holds another lesson with the same failed command and error line as
+    the lesson the situation was built from: the situation fits both, so the label is moot."""
+    source = lessons[item.item_id.rsplit("-", 1)[0]]
+    return any(
+        x.lesson_id != source.lesson_id and (x.failed, x.error) == (source.failed, source.error)
+        for x in item.prompt_lessons
+    )
+
+
+def without_twins(items: list[Item]) -> list[Item]:
+    """The items whose prompt holds no twin of their source lesson."""
+    lessons = {x.lesson_id: x for item in items for x in item.prompt_lessons}
+    lessons |= {item.applies.lesson_id: item.applies for item in items if item.applies}
+    return [item for item in items if not has_twin(item, lessons)]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--without-twins", action="store_true", help="drop items with a twin")
     args = parser.parse_args()
     items, repo_of = load_items(args.work, "scored")
+    if args.without_twins:
+        items = without_twins(items)
     scores = seed_mean_scores([args.work / "scores" / f"scored-judge-s{s}.jsonl" for s in range(3)])
     cands = candidates(items, scores)
     found = {}
@@ -191,6 +216,8 @@ def main() -> None:
         }
     document = {
         "status": "exploratory, round 3's 40 scored repos as validation, no training",
+        "items": len(items),
+        "without_twins": args.without_twins,
         **found,
     }
     args.out.write_text(json.dumps(document, indent=1) + "\n")
