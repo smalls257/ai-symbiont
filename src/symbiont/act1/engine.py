@@ -5,6 +5,7 @@ vanishes away from the player, raises instead of reporting a wrong door or inven
 """
 
 import math
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
@@ -37,6 +38,9 @@ def make_game(wad: Path, map_name: str = "MAP01", seed: int = 1) -> Any:
     game = vzd.DoomGame()
     game.set_doom_game_path(str(wad))
     game.set_doom_map(map_name)
+    # ViZDoom writes _vizdoom.ini (home path, user name) into the cwd by default; keep it in the
+    # gitignored WAD directory so no run leaves a file the secrets gates must flag.
+    game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
     game.set_seed(seed)
     game.set_screen_resolution(vzd.ScreenResolution.RES_320X240)
     game.set_labels_buffer_enabled(True)
@@ -88,22 +92,47 @@ class SectorConventionError(RuntimeError):
     """The engine's sector heights do not match the WAD: door state cannot be trusted."""
 
 
-def check_sector_convention(wad_sectors: Any, engine_sectors: Any) -> None:
-    """ViZDoom 1.2 reports floor_height as the negated WAD floor and ceiling_height as authored.
+class SectorConvention(StrEnum):
+    """How a ViZDoom binding reports `floor_height`; ceilings are authored under both."""
 
-    Verified against freedoom2.wad MAP01; checked at the start of every episode so a different
-    binding version or map fails loudly instead of misreporting which doors are shut.
+    AUTHORED = "authored"  # ViZDoom 1.3.2 [measured]
+    FLOOR_NEGATED = "floor_negated"  # ViZDoom 1.2 [measured in the initial snapshot]
+
+
+def _floor_fits(convention: SectorConvention, wad_floor: float, engine_floor: float) -> bool:
+    negated = convention == SectorConvention.FLOOR_NEGATED
+    return engine_floor == (-wad_floor if negated else wad_floor)
+
+
+def check_sector_convention(wad_sectors: Any, engine_sectors: Any) -> SectorConvention:
+    """Decide from the live episode how the engine reports floors; refuse mixed or blind evidence.
+
+    Observed [measured]: ViZDoom 1.2 reports floor_height as the negated WAD floor, 1.3.2 as
+    authored (freedoom2.wad MAP01, MAP02, MAP15: every sector matched). The binding is installed
+    by hand and undeclared, so the version is not trusted; each episode decides again. A floor of
+    0 fits both and decides nothing; with no nonzero floor, guessing would silently invert doors.
     """
     if len(wad_sectors) != len(engine_sectors):
         raise SectorConventionError(
             f"sector count differs: WAD {len(wad_sectors)}, engine {len(engine_sectors)}"
         )
+    surviving = set(SectorConvention)
+    discriminated = False
     for number, (wad, engine) in enumerate(zip(wad_sectors, engine_sectors, strict=True)):
-        if engine.floor_height != -wad.floor or engine.ceiling_height != wad.ceiling:
+        fits = {c for c in SectorConvention if _floor_fits(c, wad.floor, engine.floor_height)}
+        if engine.ceiling_height != wad.ceiling or not (surviving & fits):
             raise SectorConventionError(
                 f"sector {number}: WAD floor/ceiling {wad.floor}/{wad.ceiling}, "
-                f"engine {engine.floor_height}/{engine.ceiling_height}"
+                f"engine {engine.floor_height}/{engine.ceiling_height} "
+                "(ceiling differs, or floors fit neither one convention across sectors)"
             )
+        discriminated = discriminated or wad.floor != 0
+        surviving &= fits
+    if not discriminated:
+        raise SectorConventionError(
+            "sector convention cannot be decided: every WAD floor is 0, so both conventions fit"
+        )
+    return next(iter(surviving))
 
 
 class KeyTrackingError(RuntimeError):
@@ -139,7 +168,9 @@ class KeyTracker:
         return tuple(self._held)
 
 
-def view_from_engine(engine_state: Any, keys: KeyTracker, index: MapIndex) -> GameStateView:
+def view_from_engine(
+    engine_state: Any, keys: KeyTracker, index: MapIndex, *, convention: SectorConvention
+) -> GameStateView:
     """Turn the raw engine state into the plain view that `describe` renders."""
     health, ammo, x, y, angle = engine_state.game_variables
     visible_ids = {label.object_id for label in engine_state.labels}
@@ -150,7 +181,10 @@ def view_from_engine(engine_state: Any, keys: KeyTracker, index: MapIndex) -> Ga
         dx, dy = obj.position_x - x, obj.position_y - y
         bearing = normalize_degrees(math.degrees(math.atan2(dy, dx)) - angle)
         objects.append(SeenObject(obj.name, math.hypot(dx, dy), bearing))
-    closed = closed_sector_ids((-s.floor_height, s.ceiling_height) for s in engine_state.sectors)
+    floor_sign = -1 if convention == SectorConvention.FLOOR_NEGATED else 1
+    closed = closed_sector_ids(
+        (floor_sign * s.floor_height, s.ceiling_height) for s in engine_state.sectors
+    )
     doors, exits = locate_features(
         index, closed, Viewpoint((x, y), angle), engine_state.depth_buffer, DOOR_RANGE_UNITS
     )

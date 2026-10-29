@@ -17,6 +17,7 @@ from typing import IO, Any
 
 from symbiont.act1.engine import (
     KeyTracker,
+    SectorConvention,
     button_vector,
     check_sector_convention,
     make_game,
@@ -31,6 +32,7 @@ from symbiont.act1.glimmer import Reply, ReplyFn, chat_reply
 from symbiont.act1.map_index import MapIndex, build_index
 from symbiont.act1.moves import Button, Done
 from symbiont.act1.navmap import NavMap, build_navmap
+from symbiont.act1.steplog import MoveRun, kind_of
 from symbiont.act1.strategy import Move, StrategyError, parse_strategy
 from symbiont.act1.wad import read_map
 
@@ -116,10 +118,15 @@ def _classify(reply: Reply, nav: NavMap | None = None) -> tuple[list[Move] | Non
 
 @dataclass(frozen=True)
 class RunLog:
-    """Where decisions are appended, and what the run header line says. No path: no log file."""
+    """Where decisions are appended, the run header, and who hears of each played move.
+
+    No path: no log file. No `on_move`: no extra observation per move. The observer lives here
+    because `run_episode` is at its five-parameter cap.
+    """
 
     path: Path | None = None
     header: dict[str, Any] = field(default_factory=dict)
+    on_move: Callable[[MoveRun], None] | None = None
 
 
 @dataclass(frozen=True)
@@ -133,26 +140,44 @@ class MapKnowledge:
 class _Session:
     """The live game seen through the key tracker; the two callables the scripted moves need."""
 
-    def __init__(self, game: Any, knowledge: MapKnowledge):
+    def __init__(
+        self,
+        game: Any,
+        knowledge: MapKnowledge,
+        on_move: Callable[[MoveRun], None] | None,
+        convention: SectorConvention,
+    ):
         self.game, self.knowledge, self.keys = game, knowledge, KeyTracker()
+        self.on_move, self.tics, self.decision = on_move, 0, 0
+        self.convention = convention
 
     def observe(self) -> GameStateView | None:
         if self.game.is_episode_finished():
             return None
-        return view_from_engine(self.game.get_state(), self.keys, self.knowledge.index)
+        return view_from_engine(
+            self.game.get_state(), self.keys, self.knowledge.index, convention=self.convention
+        )
 
     def act(self, buttons: frozenset[Button]) -> None:
         self.game.make_action(button_vector(buttons))
+        self.tics += 1
 
 
-def _open_run_log(run_log: RunLog, max_decisions: int) -> IO[str] | None:
+def _open_run_log(
+    run_log: RunLog, max_decisions: int, convention: SectorConvention
+) -> IO[str] | None:
     """Open the log in append mode with a header line, so reruns never erase evidence."""
     if run_log.path is None:
         return None
     run_log.path.parent.mkdir(parents=True, exist_ok=True)
     handle = run_log.path.open("a")
     started_at = datetime.now(UTC).isoformat()
-    run_header = {"started_at": started_at, "max_decisions": max_decisions, **run_log.header}
+    run_header = {
+        **run_log.header,
+        "started_at": started_at,
+        "max_decisions": max_decisions,
+        "sector_convention": convention.value,
+    }
     handle.write(json.dumps({"run_header": run_header}) + "\n")
     handle.flush()
     return handle
@@ -167,9 +192,26 @@ def _carry_out(
         return []
     outcomes = []
     for move in moves:
-        outcomes.append(f"{move.label} -> {execute_move(move, session.observe, session.act)}")
+        outcome = _play(move, session)
+        outcomes.append(f"{move.label} -> {outcome}")
         history.append(outcomes[-1])
     return outcomes
+
+
+def _play(move: Move, session: _Session) -> str:
+    """Execute one move; tell the observer, if any, what it did between two observations."""
+    if session.on_move is None:
+        return execute_move(move, session.observe, session.act)
+    before, started = session.observe(), session.tics
+    outcome = execute_move(move, session.observe, session.act)
+    if before is not None:
+        session.on_move(
+            MoveRun(
+                session.decision, move.label, kind_of(move), outcome,
+                session.tics - started, before, session.observe(),
+            )
+        )  # fmt: skip
+    return outcome
 
 
 def _decide(
@@ -179,6 +221,7 @@ def _decide(
     state = session.observe()
     if state is None:
         return None
+    session.decision = number
     nav = session.knowledge.nav
     observation = describe(replace(state, routes=route_hints(nav, state)) if nav else state)
     started = time.monotonic()
@@ -203,9 +246,10 @@ def run_episode(
     """Play up to `max_decisions` model decisions, appending each to the run log as it finishes."""
     run_log = run_log or RunLog()
     game.new_episode()
-    check_sector_convention(knowledge.index.sectors, game.get_state().sectors)
-    session = _Session(game, knowledge)
-    log = _open_run_log(run_log, max_decisions)
+    convention = check_sector_convention(knowledge.index.sectors, game.get_state().sectors)
+    progress.info("sector convention: %s", convention.value)
+    session = _Session(game, knowledge, run_log.on_move, convention)
+    log = _open_run_log(run_log, max_decisions, convention)
     history: list[str] = []
     decisions: list[Decision] = []
     try:
