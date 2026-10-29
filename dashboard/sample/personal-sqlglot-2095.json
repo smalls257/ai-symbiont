@@ -2,7 +2,6 @@
  "schema": "demo-replay-v1",
  "status": "measured",
  "source": "real runs: plain Glimmer failed; personal Glimmer (sqlglot LoRA adapter, no lesson in the prompt) under test",
- "caveats": "Exploratory, n = 1 per task. All 7 Tier 1 tasks: personal Glimmer solved 4 of 7 runs; plain Glimmer solved 2 of 14 confirm runs. The replays shown are solved personal runs.",
  "task": {
   "id": "sqlglot-2095",
   "repo": "tobymao/sqlglot",
@@ -1255,5 +1254,6 @@
     "result": "solved"
    }
   }
- ]
+ ],
+ "caveats": "Exploratory, n = 1 per task. All 7 Tier 1 tasks: personal Glimmer solved 4 of 7 runs; plain Glimmer solved 2 of 14 confirm runs. The replays shown are solved personal runs."
 }
