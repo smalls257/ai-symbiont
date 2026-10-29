@@ -107,3 +107,10 @@ def test_a_card_missing_a_game_on_a_kept_case_raises_rather_than_scoring_a_defau
     results = [game("a", "MAP01", 0.5), game("a", "MAP02", 0.5), game("b", "MAP01", 0.5)]
     with pytest.raises(IncompleteTableError, match="b"):
         FitnessTable.of(results)
+
+
+def test_equally_short_survivors_are_chosen_by_chance_not_by_id():
+    table = table_of({"aa": (0.5, 0.5, 0.5), "bb": (0.5, 0.5, 0.5), "long-card": (0.5, 0.5, 0.5)})
+    rng = random.Random(9)
+    picked = Counter(select_parents(table, 1, rng, by_id)[0] for _ in range(200))
+    assert set(picked) == {"aa", "bb"} and min(picked.values()) > 50

@@ -81,7 +81,7 @@ def _epsilon(table: FitnessTable, case: Case) -> float:
 
 
 def _one_parent(table: FitnessTable, rng: random.Random, tie_key: TieKey) -> str:
-    """One lexicase draw: filter by shuffled cases, then shorter card, then chance."""
+    """One lexicase draw: filter by shuffled cases, then shorter card, then chance (not the id)."""
     pool = list(table.cards)
     for case in rng.sample(table.cases, len(table.cases)):
         if len(pool) == 1:
@@ -89,8 +89,8 @@ def _one_parent(table: FitnessTable, rng: random.Random, tie_key: TieKey) -> str
         best = max(table.scores[(card, case)] for card in pool)
         floor = best - _epsilon(table, case)
         pool = [card for card in pool if table.scores[(card, case)] >= floor]
-    shortest = min(tie_key(card) for card in pool)
-    return rng.choice([card for card in pool if tie_key(card) == shortest])
+    shortest = min(tie_key(card)[0] for card in pool)
+    return rng.choice([card for card in pool if tie_key(card)[0] == shortest])
 
 
 def select_parents(
