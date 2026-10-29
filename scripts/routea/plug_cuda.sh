@@ -4,6 +4,7 @@
 #   scripts/routea/plug_cuda.sh WORK MODEL TAG start
 #   scripts/routea/plug_cuda.sh WORK MODEL TAG recall REPO_SLUG...
 #   scripts/routea/plug_cuda.sh WORK MODEL TAG scale LESSONS...
+#   scripts/routea/plug_cuda.sh WORK MODEL TAG answer ARM ADAPTER_DIR REPO_SLUG...
 #
 # WORK holds venv/ (torch, transformers, peft) and data/ (a Plug a3 work dir minus adapters and
 # answers, plus scale/<N>/ from nightly_scale.py). `start` meta-trains the a2v start adapter once.
@@ -15,7 +16,7 @@
 # The GPU must be idle: the caller checks nvidia-smi first.
 set -euo pipefail
 
-USAGE="usage: plug_cuda.sh WORK MODEL TAG start|recall SLUG...|scale N..."
+USAGE="usage: plug_cuda.sh WORK MODEL TAG start|recall SLUG...|scale N...|answer ARM DIR SLUG..."
 WORK=${1:?$USAGE}
 MODEL=${2:?$USAGE}
 TAG=${3:?$USAGE}
@@ -87,6 +88,11 @@ case $STAGE in
       measure "$repo" a2v "$A2V"
       for arm in per_repo a3 a3_replay; do measure "$repo" "$arm" "$repo/adapters/$arm"; done
     done
+    ;;
+  answer)  # answer an existing repo dir with any adapter, e.g. the laptop's converted a2v
+    arm=$1 adapter=$2
+    shift 2
+    for slug in "$@"; do measure "$RUN/repos/$slug" "$arm" "$adapter"; done
     ;;
   scale)
     for lessons in "$@"; do

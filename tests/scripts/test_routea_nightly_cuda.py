@@ -156,3 +156,16 @@ def test_two_runs_with_no_spread_still_get_one_answer_of_slack(monkeypatch):
     assert gap.noise_band(0.0, 0.0, 25) == pytest.approx(0.04)
     with pytest.raises(ValueError, match="no questions"):
         gap.noise_band(0.5, 0.5, 0)
+
+
+def test_an_mlx_lora_tensor_maps_to_the_transposed_peft_key(monkeypatch):
+    import numpy as np
+
+    convert = load(monkeypatch, "mlx_adapter_to_peft")
+    key, tensor = convert.peft_entry("model.layers.3.mlp.down_proj.lora_a", np.zeros((8192, 16)))
+    assert key == "base_model.model.model.layers.3.mlp.down_proj.lora_A.weight"
+    assert tensor.shape == (16, 8192)
+    key, tensor = convert.peft_entry("model.layers.3.self_attn.q_proj.lora_b", np.zeros((16, 2048)))
+    assert key.endswith("q_proj.lora_B.weight") and tensor.shape == (2048, 16)
+    with pytest.raises(KeyError, match="not an mlx-lm LoRA tensor"):
+        convert.peft_entry("model.layers.3.mlp.down_proj.weight", np.zeros((2, 2)))

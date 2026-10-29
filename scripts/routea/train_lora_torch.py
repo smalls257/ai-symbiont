@@ -86,9 +86,9 @@ def batch_tensors(rows: list[tuple[list[int], int]], members: list[int], device:
     return ids.to(device), mask.to(device)
 
 
-def lora_model(model_path: str):
+def lora_model(model_path: str, seed: int = SEED):
     model = AutoModelForCausalLM.from_pretrained(model_path, dtype=torch.bfloat16).to(DEVICE)
-    torch.manual_seed(SEED)
+    torch.manual_seed(seed)
     config = LoraConfig(
         r=RANK, lora_alpha=RANK * SCALE, lora_dropout=0.0, target_modules=TARGETS, bias="none"
     )
@@ -129,12 +129,14 @@ def adam_update(params: list[torch.Tensor], moments: list[tuple], lr: float) -> 
         param.grad = None
 
 
-def train(model, rows: list[tuple[list[int], int]], iters: int, warmup: int = WARMUP) -> None:
+def train(
+    model, rows: list[tuple[list[int], int]], iters: int, warmup: int = WARMUP, seed: int = SEED
+) -> None:
     params = [p for p in model.parameters() if p.requires_grad]
     moments = [(torch.zeros_like(p), torch.zeros_like(p)) for p in params]
     lengths = [len(tokens) for tokens, _ in rows]
     started, losses = time.monotonic(), []
-    for update, members in enumerate(batch_order(lengths, BATCH, iters, SEED)):
+    for update, members in enumerate(batch_order(lengths, BATCH, iters, seed)):
         loss = masked_loss(model, *batch_tensors(rows, members, DEVICE))
         if not math.isfinite(loss.item()):
             raise FloatingPointError(f"loss {loss.item()} at iter {update + 1}")
@@ -155,16 +157,17 @@ def main() -> None:
     parser.add_argument("--iters", type=int, required=True)
     parser.add_argument("--adapter", type=Path, required=True, help="output dir")
     parser.add_argument("--resume", type=Path, help="adapter dir to continue from")
+    parser.add_argument("--seed", type=int, default=SEED, help="batch order and LoRA init")
     parser.add_argument("--recipe", choices=("lcap", "nightly"), default="lcap")
     args = parser.parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     rows = encoded_rows(tokenizer, args.data / "train.jsonl")
-    model = lora_model(args.model)
+    model = lora_model(args.model, args.seed)
     if args.resume:
         resume_from(model, args.resume)
     model.print_trainable_parameters()
     warmup = warmup_for(args.iters) if args.recipe == "nightly" else WARMUP
-    train(model, rows, args.iters, warmup)
+    train(model, rows, args.iters, warmup, args.seed)
     model.save_pretrained(args.adapter)
     # same words as macOS `time -l`, so score_answers.py reads GPU peak memory unchanged
     print(f"{peak_allocated_bytes()} peak allocated")
