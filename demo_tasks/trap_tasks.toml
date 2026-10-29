@@ -1,0 +1,179 @@
+# Constructed demo tasks for ai-symbiont: NOT a benchmark. Each task is a real bug in the
+# constructed repo demo_tasks/ledgerline with a hidden test, plus one process trap that a plain
+# coding agent tends to fall into and one structured note would prevent. They show the mechanism
+# (same bug, two runs); scored claims stay on public tasks.
+#
+# One image per task (scripts/calibration/build_trap_images.sh). `drop_paths` removes the other
+# tasks' trap scaffolding from that image so each task arms exactly one trap; all four bugs are
+# present in every image. `patch_dir` holds gold.patch and hidden_test.patch (applied only at
+# grading).
+# Rows for the calibration grader are built by scripts/calibration/trap_rows.py. The naive action
+# is either `naive_command` (run with the gold fix applied; it must fail or time out, and
+# `lesson_command`, the note's check, must pass) or `naive.patch` (graded; it must not resolve).
+
+label = "constructed demo task"
+repo = "ledgerline"
+# Calibration shape: the grader runs `<test_cmd> <files of FAIL_TO_PASS and PASS_TO_PASS>`.
+test_cmd = "pytest -rA -p no:cacheprovider"
+
+[[task]]
+instance_id = "ledgerline-trap-1-slow-suite"
+patch_dir = "tasks/1-slow-suite"
+image = "symbiont-trap-1"
+trap = "The whole test suite runs longer than the agent's 60 s command timeout (tests/soak); only running the relevant test file gives a result."
+drop_paths = ["tests/rates"]
+naive_command = "pytest"
+lesson_command = "pytest tests/test_statement.py"
+problem_statement = """
+Aging report puts invoices on a bucket's last day into the next bucket
+
+An invoice due 2024-05-31 shows up under "31-60" on the statement dated 2024-06-30. It is 30 days
+past due, so it belongs in "1-30". The same happens to invoices exactly 60 days late (shown as
+"61-90") and exactly 90 days late (shown as "90+").
+
+    from datetime import date
+    from decimal import Decimal
+    from ledgerline.statement import OpenInvoice, aging_report
+
+    aging_report([OpenInvoice("INV-30", date(2024, 5, 31), Decimal("250"))], date(2024, 6, 30))
+    # "1-30" is 0 and "31-60" is 250; expected the other way round
+"""
+FAIL_TO_PASS = [
+  "tests/test_statement_boundaries.py::test_aging_label_on_bucket_edges[30-1-30]",
+  "tests/test_statement_boundaries.py::test_aging_label_on_bucket_edges[60-31-60]",
+  "tests/test_statement_boundaries.py::test_aging_label_on_bucket_edges[90-61-90]",
+  "tests/test_statement_boundaries.py::test_invoice_thirty_days_late_is_reported_in_first_bucket",
+]
+PASS_TO_PASS = [
+  "tests/test_statement_boundaries.py::test_aging_label_on_bucket_edges[1-1-30]",
+  "tests/test_statement_boundaries.py::test_aging_label_on_bucket_edges[31-31-60]",
+  "tests/test_statement_boundaries.py::test_aging_label_on_bucket_edges[61-61-90]",
+  "tests/test_statement_boundaries.py::test_aging_label_on_bucket_edges[91-90+]",
+  "tests/test_statement.py::test_days_past_due_is_zero_before_the_due_date",
+  "tests/test_statement.py::test_aging_label_mid_bucket[0-current]",
+  "tests/test_statement.py::test_aging_label_mid_bucket[15-1-30]",
+  "tests/test_statement.py::test_aging_label_mid_bucket[45-31-60]",
+  "tests/test_statement.py::test_aging_label_mid_bucket[75-61-90]",
+  "tests/test_statement.py::test_aging_label_mid_bucket[120-90+]",
+  "tests/test_statement.py::test_aging_report_lists_every_bucket_and_sums_balances",
+]
+
+[task.lesson]
+happened = "Running the whole ledgerline test suite hit the 60 second command timeout and returned nothing, because tests/soak runs for minutes."
+resolved = "Ran only the test file for the code being changed, pytest tests/test_statement.py, which finishes in under a second."
+check = "In ledgerline, never run bare pytest: run pytest tests/<file for the module you changed>."
+
+[[task]]
+instance_id = "ledgerline-trap-2-generated-file"
+patch_dir = "tasks/2-generated-file"
+image = "symbiont-trap-2"
+trap = "ledgerline/_amount_grammar.py is generated; the test run rebuilds it from codegen/amount_grammar.py.tmpl, so an edit to the generated file is lost."
+drop_paths = ["tests/soak", "tests/rates"]
+problem_statement = """
+parse_amount rejects accounting negatives in parentheses
+
+Bank and accounting exports write negative amounts in parentheses. parse_amount refuses them:
+
+    >>> from ledgerline.money import parse_amount
+    >>> parse_amount("(1,234.50)", "USD")
+    ledgerline.errors.AmountFormatError: not an amount: '(1,234.50)'
+
+Expected Money(Decimal("-1234.50"), "USD"). Text with only one parenthesis, such as "(12" or
+"12)", should still be refused.
+"""
+FAIL_TO_PASS = [
+  "tests/test_accounting_negatives.py::test_parentheses_mean_negative[grouped]",
+  "tests/test_accounting_negatives.py::test_parentheses_mean_negative[whole]",
+  "tests/test_accounting_negatives.py::test_parentheses_mean_negative[padded]",
+]
+PASS_TO_PASS = [
+  "tests/test_accounting_negatives.py::test_unbalanced_parentheses_are_refused[open-only]",
+  "tests/test_accounting_negatives.py::test_unbalanced_parentheses_are_refused[close-only]",
+  "tests/test_accounting_negatives.py::test_unbalanced_parentheses_are_refused[empty]",
+  "tests/test_accounting_negatives.py::test_plain_amounts_still_parse",
+  "tests/test_money.py::test_parse_amount_reads_plain_and_grouped_amounts[whole]",
+  "tests/test_money.py::test_parse_amount_reads_plain_and_grouped_amounts[grouped]",
+  "tests/test_money.py::test_parse_amount_reads_plain_and_grouped_amounts[negative]",
+  "tests/test_money.py::test_parse_amount_reads_plain_and_grouped_amounts[padded]",
+  "tests/test_money.py::test_format_amount_groups_and_rounds_half_up",
+]
+
+[task.lesson]
+happened = "The fix was made in ledgerline/_amount_grammar.py and vanished at the next test run: the root conftest.py regenerates that file from codegen/amount_grammar.py.tmpl."
+resolved = "Made the same change in codegen/amount_grammar.py.tmpl and rebuilt with python -m codegen.build_grammar."
+check = "Read the first two lines of a file before editing it; if they say GENERATED, edit the template, and after the tests run confirm git diff still shows your change."
+
+[[task]]
+instance_id = "ledgerline-trap-3-env-fixture"
+patch_dir = "tasks/3-env-fixture"
+image = "symbiont-trap-3"
+trap = "The currency tests need LEDGERLINE_FIXTURES set to the 2024-06 snapshot, documented only in CONTRIBUTING.md; without it every test errors with KeyError."
+drop_paths = ["tests/soak"]
+test_cmd = "LEDGERLINE_FIXTURES=tests/rates/fixtures/2024-06 pytest -rA -p no:cacheprovider"
+naive_command = "pytest tests/rates/test_fx.py"
+lesson_command = "LEDGERLINE_FIXTURES=tests/rates/fixtures/2024-06 pytest tests/rates/test_fx.py"
+problem_statement = """
+Converting between two non-USD currencies gives the wrong amount
+
+With the 2024-06 rates (USD base: EUR 0.925, GBP 0.79), converting 100 EUR to GBP returns
+117.09 GBP. It should be about 85.41 GBP. Conversions to and from USD look right.
+
+    from decimal import Decimal
+    from pathlib import Path
+    from ledgerline.fx import load_rates
+    from ledgerline.money import Money
+
+    rates = load_rates(Path("tests/rates/fixtures/2024-06"))
+    rates.convert(Money(Decimal(100), "EUR"), "GBP")   # Money(amount=Decimal('117.09'), ...)
+"""
+FAIL_TO_PASS = [
+  "tests/rates/test_fx_cross.py::test_eur_to_gbp_goes_through_the_base",
+  "tests/rates/test_fx_cross.py::test_gbp_to_chf_goes_through_the_base",
+]
+PASS_TO_PASS = [
+  "tests/rates/test_fx.py::test_base_to_other_currency",
+  "tests/rates/test_fx.py::test_other_currency_to_base",
+  "tests/rates/test_fx.py::test_same_currency_is_unchanged",
+  "tests/rates/test_fx.py::test_unknown_currency_raises",
+]
+
+[task.lesson]
+happened = "The currency tests all errored with KeyError: 'LEDGERLINE_FIXTURES' before testing anything, which looked like a broken test setup rather than a missing step."
+resolved = "CONTRIBUTING.md names the snapshot to use: LEDGERLINE_FIXTURES=tests/rates/fixtures/2024-06 pytest tests/rates/."
+check = "Read CONTRIBUTING.md before the first test run; a KeyError for an environment variable inside a fixture means a setup step is missing, not that the bug is there."
+
+[[task]]
+instance_id = "ledgerline-trap-4-sibling-module"
+patch_dir = "tasks/4-sibling-module"
+image = "symbiont-trap-4"
+trap = "The issue reads like a bug in the shared VAT arithmetic (tax/vat.py), but changing it breaks German invoices; the fix is the per-country setting in tax/gb.py."
+drop_paths = ["tests/soak", "tests/rates"]
+problem_statement = """
+UK VAT is rounded per line instead of on the invoice total
+
+For UK invoices VAT should be worked out on the invoice total and rounded once. ledgerline rounds
+VAT on every line and adds the results up, so small lines come out too high:
+
+    from decimal import Decimal
+    from ledgerline.tax.gb import UkVat
+
+    UkVat().tax_for([Decimal("0.13")] * 3)   # Decimal('0.09'); expected 0.08 (0.39 x 20% = 0.078)
+"""
+FAIL_TO_PASS = [
+  "tests/test_tax_gb_invoice_rounding.py::test_uk_vat_rounds_the_invoice_total_once",
+  "tests/test_tax_gb_invoice_rounding.py::test_uk_vat_on_mixed_lines",
+]
+PASS_TO_PASS = [
+  "tests/test_tax_gb_invoice_rounding.py::test_uk_vat_on_many_small_lines",
+  "tests/test_tax_gb.py::test_uk_vat_on_one_line",
+  "tests/test_tax_gb.py::test_uk_vat_on_no_lines_is_zero",
+  "tests/test_tax_de.py::test_german_vat_on_one_line",
+  "tests/test_tax_de.py::test_german_vat_rounds_each_line",
+  "tests/test_tax_ch.py::test_swiss_vat_rounds_the_total_to_five_centimes",
+  "tests/test_tax_ch.py::test_swiss_vat_on_a_round_amount",
+]
+
+[task.lesson]
+happened = "Changing the shared rounding in ledgerline/tax/vat.py fixed UK invoices but broke German ones (tests/test_tax_de.py), because every country inherits that default."
+resolved = "Left tax/vat.py alone and set rounding = Rounding.PER_INVOICE in ledgerline/tax/gb.py, the way tax/ch.py overrides it for Switzerland."
+check = "A bug that names one country belongs in that country's module; after the fix run every country's tests: pytest tests/test_tax_de.py tests/test_tax_ch.py tests/test_tax_gb.py."

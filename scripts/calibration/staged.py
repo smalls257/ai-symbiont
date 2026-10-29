@@ -1,25 +1,11 @@
-"""Staged Glimmer calibration driver (lead's ruling, 2026-10-27).
+"""Staged Glimmer calibration driver (lead's ruling, 2026-10-27): screen, checkpoint, gate, confirm.
 
-Stage 1, screen: SCREEN_N pool tasks chosen by a named ScreenRule (screen_rules.py): SMALLEST (the
-smallest gold patches, the default) or STRATIFIED (spread over subsystem x size cells, skipping the
-ids of an earlier log). 1 run each, step limit 50, 30 min wall cap, reasoning "low".
-  Checkpoint after the first CHECKPOINT_N runs: if none solved, the same tasks are run again with
-  reasoning "medium"; the setting that solves more is used for the remaining screen tasks (tie ->
-  "low"). The decision is logged with its counts.
-  Gate: if medium was tried and the screen still solves under 10%, stop with status "gate_fail".
-Stage 2: every task solved in the screen gets 2 more runs with the same setting. Solved 1 or 2 of 3
-  -> band "in_band" (scored pool); otherwise "history".
-
-Up to WORKERS runs go at a time (the Glimmer server has 2 slots); the checkpoint batch finishes
-before the decision. All records append to <workdir>/<runs-dir>/calibration.jsonl (resumable: a
-run counts as done once it has a graded record). Runs that could not be graded are retried up to
-MAX_ATTEMPTS times; 3 ungraded runs in a row stop the driver with status "blocked" (a run
-already in flight on the other worker still lands). After every run the summary (no task or
-trajectory text) is rewritten to <workdir>/<runs-dir>/calibration-glimmer.json.
-
+Screen SCREEN_N tasks by a ScreenRule, 1 run each (reasoning "low", --step-limit, --wall-limit-min);
+after CHECKPOINT_N with none solved, retry at "medium"; under GATE_RATE stops "gate_fail". Solved
+tasks get 2 more runs: 1 or 2 of 3 is "in_band". Up to --workers at a time; resumable log; ungraded
+runs retry MAX_ATTEMPTS times and MAX_UNGRADED_IN_A_ROW stops "blocked". Summary: no task text.
 Usage: python staged.py <workdir> [--screen smallest|stratified] [--runs-dir runs]
-                        [--exclude-log runs/calibration.jsonl]
-(start it through launch.py; a stratified run needs its own --runs-dir)
+    [--step-limit 50] [--wall-limit-min 30] [--exclude-log runs/calibration.jsonl]
 """
 
 from __future__ import annotations
@@ -42,13 +28,14 @@ from screen_rules import (
 )
 from staged_summary import build_summary
 
-WORKERS = 2  # the Glimmer server has 2 slots
+WORKERS = 2  # default: the Glimmer server had 2 slots; --workers follows a slot change
 CHECKPOINT_N = 10
 GATE_RATE = 0.10
 MAX_ATTEMPTS = 3
 MAX_UNGRADED_IN_A_ROW = 3
-LOW = Setting("low", 50, 30 * 60)
-MEDIUM = Setting("medium", 50, 30 * 60)
+DEFAULT_STEP_LIMIT = 50
+PLAIN_IDENTITY = ("plain", None, None)  # a resumed lesson or adapter run never counts these as done
+DEFAULT_WALL_LIMIT_MIN = 30
 ANNOUNCED = (
     "instance_id",
     "stage",
@@ -81,15 +68,44 @@ def screen_header(rule: ScreenRule, pool: list[dict], screen: list[str], exclude
     return header
 
 
+def run_identity(rec: dict) -> tuple[str, int | None, str | None]:
+    """(arm, adapter id, lesson hash) a record ran under; a record from before arms is plain."""
+    return rec.get("arm", PLAIN_IDENTITY[0]), rec.get("adapter_id"), rec.get("lesson_sha")
+
+
+def _same_graded_run(rec: dict, key: tuple, identity: tuple) -> bool:
+    """A graded record of (task, run, reasoning, step limit) `key` under arm `identity`."""
+    found = (rec["instance_id"], rec["run"], rec["reasoning"], rec["step_limit"])
+    return found == key and rec["resolved"] is not None and run_identity(rec) == identity
+
+
+def read_records(log: Path) -> list[dict]:
+    """Every record of an append-only log; none yet when the log does not exist."""
+    return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
+
+
 def read_logged_ids(log: Path) -> set[str]:
     """Instance ids present in an earlier calibration.jsonl; raises if the file is missing."""
     return {json.loads(line)["instance_id"] for line in log.read_text().splitlines() if line}
+
+
+def add_limit_arguments(parser: argparse.ArgumentParser) -> None:
+    """The step cap and wall cap as launcher settings; defaults are the original 50 and 30 min."""
+    parser.add_argument("--step-limit", type=int, default=DEFAULT_STEP_LIMIT)
+    parser.add_argument("--wall-limit-min", type=int, default=DEFAULT_WALL_LIMIT_MIN)
+    parser.add_argument("--workers", type=int, default=WORKERS, help="Glimmer slots to fill")
+
+
+def settings_for(reasoning: str, args: argparse.Namespace) -> Setting:
+    """The run setting for a reasoning strength under the launcher's step and wall caps."""
+    return Setting(reasoning, args.step_limit, args.wall_limit_min * 60)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
     """Command line; the defaults reproduce the original `staged.py <workdir>` run."""
     parser = argparse.ArgumentParser(description="Staged Glimmer calibration driver")
     parser.add_argument("workdir", type=Path)
+    add_limit_arguments(parser)
     parser.add_argument("--screen", type=ScreenRule, choices=list(ScreenRule), default="smallest")
     parser.add_argument("--runs-dir", default="runs", help="under workdir; holds this run's log")
     parser.add_argument(
@@ -112,6 +128,8 @@ class Driver:
         runs_dir: str = "runs",
         exclude_log: str | None = None,
     ):
+        self.low = Setting("low", DEFAULT_STEP_LIMIT, DEFAULT_WALL_LIMIT_MIN * 60)
+        self.medium = Setting("medium", DEFAULT_STEP_LIMIT, DEFAULT_WALL_LIMIT_MIN * 60)
         self.rows = {
             row["instance_id"]: row
             for row in json.loads((workdir / "data/sqlglot_rows.json").read_text())
@@ -124,11 +142,7 @@ class Driver:
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         self.log = self.runs_dir / "calibration.jsonl"
         self.summary_path = self.runs_dir / "calibration-glimmer.json"
-        self.records = (
-            [json.loads(line) for line in self.log.read_text().splitlines()]
-            if self.log.exists()
-            else []
-        )
+        self.records = read_records(self.log)
         self.state = {
             "status": "running",
             "stage": "screen",
@@ -139,19 +153,18 @@ class Driver:
         self.ungraded_in_a_row = 0
         self._lock = threading.Lock()
         self._blocked_reason: str | None = None
+        self.workers = WORKERS
 
     # -- records -----------------------------------------------------------------------------------
+    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None]:
+        """(arm, adapter id, lesson hash) this driver runs task `iid` under; plain here."""
+        return PLAIN_IDENTITY
+
     def graded(self, iid: str, run: int, setting: Setting) -> dict | None:
-        """The graded record of this (task, run, setting), if one exists."""
-        for rec in self.records:
-            if (rec["instance_id"], rec["run"], rec["reasoning"], rec["step_limit"]) == (
-                iid,
-                run,
-                setting.reasoning,
-                setting.step_limit,
-            ) and rec["resolved"] is not None:
-                return rec
-        return None
+        """The graded record of this (task, run, setting, arm), if one exists."""
+        key = (iid, run, setting.reasoning, setting.step_limit)
+        identity = self.expected_identity(iid)
+        return next((rec for rec in self.records if _same_graded_run(rec, key, identity)), None)
 
     def ensure(self, iid: str, run: int, setting: Setting, stage: str) -> bool:
         """Make sure (task, run, setting) has a graded record; return whether it resolved."""
@@ -188,8 +201,8 @@ class Driver:
                 raise BlockedError(self._blocked_reason)
 
     def _in_parallel(self, jobs: list) -> list:
-        """Results of zero-argument jobs, WORKERS at a time, in job order; first error re-raised."""
-        with ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        """Results of zero-argument jobs, self.workers at a time, in order; first error raised."""
+        with ThreadPoolExecutor(max_workers=self.workers) as pool:
             futures = [pool.submit(job) for job in jobs]
             return [future.result() for future in futures]
 
@@ -205,13 +218,15 @@ class Driver:
     def stage1(self) -> Setting:
         """Screen with low reasoning; rerun the checkpoint on medium if low solved none."""
         first = self.screen[:CHECKPOINT_N]
-        low = sum(self._in_parallel([self._job(iid, 1, LOW, "screen") for iid in first]))
-        setting = LOW
+        low = sum(self._in_parallel([self._job(iid, 1, self.low, "screen") for iid in first]))
+        setting = self.low
         if low == 0:
             med = sum(
-                self._in_parallel([self._job(iid, 1, MEDIUM, "screen-checkpoint") for iid in first])
+                self._in_parallel(
+                    [self._job(iid, 1, self.medium, "screen-checkpoint") for iid in first]
+                )
             )
-            setting = MEDIUM if med > low else LOW
+            setting = self.medium if med > low else self.low
             self.decide(
                 "checkpoint",
                 low_solved=low,
@@ -297,4 +312,10 @@ class Driver:
 
 if __name__ == "__main__":
     args = parse_args(sys.argv[1:])
-    Driver(args.workdir, args.screen, args.runs_dir, args.exclude_log).run()
+    driver = Driver(args.workdir, args.screen, args.runs_dir, args.exclude_log)
+    driver.low, driver.medium = settings_for("low", args), settings_for("medium", args)
+    driver.workers = args.workers
+    from run_calibration import preflight
+
+    preflight(driver.low)
+    driver.run()

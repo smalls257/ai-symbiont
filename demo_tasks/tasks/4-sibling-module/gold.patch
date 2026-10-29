@@ -1,0 +1,18 @@
+diff --git a/ledgerline/tax/gb.py b/ledgerline/tax/gb.py
+--- a/ledgerline/tax/gb.py
++++ b/ledgerline/tax/gb.py
+@@ -1,11 +1,12 @@
+-"""United Kingdom: standard rate 20 percent."""
++"""United Kingdom: standard rate 20 percent on the invoice total."""
+ 
+ from decimal import Decimal
+ 
+-from ledgerline.tax.vat import VatRule
++from ledgerline.tax.vat import Rounding, VatRule
+ 
+ 
+ class UkVat(VatRule):
+     """UK standard-rate VAT."""
+ 
+     rate = Decimal("0.20")
++    rounding = Rounding.PER_INVOICE

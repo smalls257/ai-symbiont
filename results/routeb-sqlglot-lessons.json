@@ -1,0 +1,1045 @@
+{
+ "label": "exploratory: sqlglot Route B lessons from Glimmer's public calibration runs",
+ "lessons_by_source": {
+  "sqlglot-all": {
+   "own-failure": 52,
+   "own-solve": 18,
+   "capability-pair": 4,
+   "repo-habit": 3
+  },
+  "sqlglot-own": {
+   "own-solve": 18,
+   "capability-pair": 4,
+   "repo-habit": 3
+  }
+ },
+ "rows": {
+  "sqlglot-all": 368,
+  "sqlglot-own": 108
+ },
+ "rows_by_kind": {
+  "sqlglot-all": {
+   "stalled": 66,
+   "resolved": 74,
+   "opened": 74,
+   "check": 74,
+   "card": 77,
+   "habit": 3
+  },
+  "sqlglot-own": {
+   "stalled": 14,
+   "card": 25,
+   "opened": 22,
+   "resolved": 22,
+   "check": 22,
+   "habit": 3
+  }
+ },
+ "drops": {
+  "tier2-own-runs": 4,
+  "later-fix-of-eval-construct": 6
+ },
+ "eval_tasks": {
+  "tobymao__sqlglot-1379": {
+   "tier": 1,
+   "lessons": {
+    "own-1379": "same-task"
+   },
+   "rows": 5
+  },
+  "tobymao__sqlglot-1944": {
+   "tier": 1,
+   "lessons": {
+    "own-1944": "same-task"
+   },
+   "rows": 5
+  },
+  "tobymao__sqlglot-1309": {
+   "tier": 1,
+   "lessons": {
+    "own-1309": "same-task"
+   },
+   "rows": 5
+  },
+  "tobymao__sqlglot-2443": {
+   "tier": 1,
+   "lessons": {
+    "own-2443": "same-task"
+   },
+   "rows": 5
+  },
+  "tobymao__sqlglot-2095": {
+   "tier": 1,
+   "lessons": {
+    "own-2095": "same-task"
+   },
+   "rows": 5
+  },
+  "tobymao__sqlglot-2529": {
+   "tier": 1,
+   "lessons": {
+    "own-2529": "same-task"
+   },
+   "rows": 5
+  },
+  "tobymao__sqlglot-2658": {
+   "tier": 1,
+   "lessons": {
+    "own-2658": "same-task"
+   },
+   "rows": 5
+  },
+  "tobymao__sqlglot-910": {
+   "tier": 2,
+   "lessons": {
+    "own-772": "pair-source",
+    "pair-910": "pair-lesson"
+   },
+   "rows": 9
+  },
+  "tobymao__sqlglot-3339": {
+   "tier": 2,
+   "lessons": {
+    "own-2529": "pair-source",
+    "pair-3339": "pair-lesson"
+   },
+   "rows": 9
+  },
+  "tobymao__sqlglot-3426": {
+   "tier": 2,
+   "lessons": {
+    "own-2529": "pair-source",
+    "pair-3426": "pair-lesson"
+   },
+   "rows": 9
+  },
+  "tobymao__sqlglot-3885": {
+   "tier": 2,
+   "lessons": {
+    "own-1379": "pair-source",
+    "own-2529": "pair-source",
+    "pair-3885": "pair-lesson"
+   },
+   "rows": 14
+  }
+ },
+ "tasks_attempted": 80,
+ "runs_read": 139,
+ "leakage": {
+  "texts_checked": 445,
+  "eval_tasks": 11,
+  "hits": 0
+ },
+ "lessons": [
+  {
+   "lesson_id": "fail-428",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-428",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-559",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-559",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-570",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-570",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-772",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-772",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-wide/confirm-run2-low",
+    "runs-wide/confirm-run3-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-910",
+     "link": "pair-source"
+    }
+   ],
+   "stall_run": "runs-wide/confirm-run2-low"
+  },
+  {
+   "lesson_id": "fail-799",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-799",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-829",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-829",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-899",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-899",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-1001",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-1001",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs-cal2/cal2-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-1143",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-1143",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs-cal2/cal2-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-1309",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-1309",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-1309",
+     "link": "same-task"
+    }
+   ],
+   "stall_run": "runs/confirm-run2-low"
+  },
+  {
+   "lesson_id": "fail-1340",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-1340",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-1367",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-1367",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low"
+   ],
+   "links": [],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "own-1379",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-1379",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-1379",
+     "link": "same-task"
+    },
+    {
+     "eval_task": "tobymao__sqlglot-3885",
+     "link": "pair-source"
+    }
+   ],
+   "stall_run": "runs/confirm-run3-low"
+  },
+  {
+   "lesson_id": "fail-1551",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-1551",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-1662",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-1662",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-1670",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-1670",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-1703",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-1703",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-tier2/cal2-run1-low",
+    "runs-tier2/cal2-run2-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-1782",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-1782",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low"
+   ],
+   "links": [],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "fail-1819",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-1819",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-1944",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-1944",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-1944",
+     "link": "same-task"
+    }
+   ],
+   "stall_run": "runs/confirm-run2-low"
+  },
+  {
+   "lesson_id": "fail-2093",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2093",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-2095",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-2095",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-2095",
+     "link": "same-task"
+    }
+   ],
+   "stall_run": "runs/confirm-run2-low"
+  },
+  {
+   "lesson_id": "fail-2251",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2251",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-2337",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2337",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-2439",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2439",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-2443",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-2443",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-2443",
+     "link": "same-task"
+    }
+   ],
+   "stall_run": "runs/confirm-run2-low"
+  },
+  {
+   "lesson_id": "fail-2521",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2521",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-2529",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-2529",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-2529",
+     "link": "same-task"
+    },
+    {
+     "eval_task": "tobymao__sqlglot-3426",
+     "link": "pair-source"
+    },
+    {
+     "eval_task": "tobymao__sqlglot-3339",
+     "link": "pair-source"
+    },
+    {
+     "eval_task": "tobymao__sqlglot-3885",
+     "link": "pair-source"
+    }
+   ],
+   "stall_run": "runs/confirm-run2-low"
+  },
+  {
+   "lesson_id": "fail-2605",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2605",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-2619",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2619",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-2658",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-2658",
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-2658",
+     "link": "same-task"
+    }
+   ],
+   "stall_run": "runs/confirm-run2-low"
+  },
+  {
+   "lesson_id": "fail-2739",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2739",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-2825",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-2825",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-3111",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-3111",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-tier2/cal2-run1-low",
+    "runs-tier2/cal2-run2-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3150",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3150",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3166",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3166",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3230",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3230",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3401",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3401",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3417",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3417",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3436",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3436",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3440",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3440",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3470",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3470",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-3478",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-3478",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-tier2/cal2-run1-low",
+    "runs-tier2/cal2-run2-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-3533",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-3533",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-wide/confirm-run2-low",
+    "runs-wide/confirm-run3-low",
+    "runs-cal2/cal2-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/confirm-run3-low"
+  },
+  {
+   "lesson_id": "fail-3552",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3552",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3650",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3650",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-3689",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-3689",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-wide/confirm-run2-low",
+    "runs-wide/confirm-run3-low"
+   ],
+   "links": [],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "fail-3695",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3695",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3745",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3745",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3765",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3765",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3785",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3785",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3799",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3799",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3847",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3847",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3871",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3871",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-3937",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-3937",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4007",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4007",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4067",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4067",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4087",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4087",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4109",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4109",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4148",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4148",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4194",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4194",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4197",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4197",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-4208",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-4208",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-wide/confirm-run2-low",
+    "runs-wide/confirm-run3-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/confirm-run3-low"
+  },
+  {
+   "lesson_id": "fail-4276",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4276",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4355",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4355",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-4390",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-4390",
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-tier2/cal2-run1-low",
+    "runs-tier2/cal2-run2-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4417",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4417",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs-wide/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4533",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4533",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "fail-4563",
+   "source": "own-failure",
+   "task": "tobymao__sqlglot-4563",
+   "runs": [
+    "runs/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": "runs/screen-run1-low"
+  },
+  {
+   "lesson_id": "own-4941",
+   "source": "own-solve",
+   "task": "tobymao__sqlglot-4941",
+   "runs": [
+    "runs-wide/screen-run1-low"
+   ],
+   "links": [],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "pair-910",
+   "source": "capability-pair",
+   "task": null,
+   "runs": [
+    "runs-wide/screen-run1-low",
+    "runs-wide/confirm-run2-low",
+    "runs-wide/confirm-run3-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-910",
+     "link": "pair-lesson"
+    }
+   ],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "pair-3426",
+   "source": "capability-pair",
+   "task": null,
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-3426",
+     "link": "pair-lesson"
+    }
+   ],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "pair-3339",
+   "source": "capability-pair",
+   "task": null,
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-3339",
+     "link": "pair-lesson"
+    }
+   ],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "pair-3885",
+   "source": "capability-pair",
+   "task": null,
+   "runs": [
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low",
+    "runs/screen-run1-low",
+    "runs/confirm-run2-low",
+    "runs/confirm-run3-low",
+    "runs-cal2/cal2-run1-low",
+    "runs-cal2/cal2-run2-low"
+   ],
+   "links": [
+    {
+     "eval_task": "tobymao__sqlglot-3885",
+     "link": "pair-lesson"
+    }
+   ],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "habit-pytest-missing",
+   "source": "repo-habit",
+   "task": null,
+   "runs": [],
+   "links": [],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "habit-apply-patch-missing",
+   "source": "repo-habit",
+   "task": null,
+   "runs": [],
+   "links": [],
+   "stall_run": null
+  },
+  {
+   "lesson_id": "habit-sqlglot-not-importable",
+   "source": "repo-habit",
+   "task": null,
+   "runs": [],
+   "links": [],
+   "stall_run": null
+  }
+ ]
+}

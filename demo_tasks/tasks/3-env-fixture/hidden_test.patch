@@ -1,0 +1,20 @@
+diff --git a/tests/rates/test_fx_cross.py b/tests/rates/test_fx_cross.py
+new file mode 100644
+--- /dev/null
++++ b/tests/rates/test_fx_cross.py
+@@ -0,0 +1,15 @@
++"""Conversion between two currencies that are both not the base (2024-06 snapshot)."""
++
++from decimal import Decimal
++
++from ledgerline.money import Money
++
++
++def test_eur_to_gbp_goes_through_the_base(rates):
++    """100 EUR is 100 / 0.925 USD, which is 85.41 GBP at 0.79."""
++    assert rates.convert(Money(Decimal(100), "EUR"), "GBP") == Money(Decimal("85.41"), "GBP")
++
++
++def test_gbp_to_chf_goes_through_the_base(rates):
++    """50 GBP is 50 / 0.79 USD, which is 56.33 CHF at 0.89."""
++    assert rates.convert(Money(Decimal(50), "GBP"), "CHF") == Money(Decimal("56.33"), "CHF")

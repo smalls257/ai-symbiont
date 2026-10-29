@@ -1,0 +1,25 @@
+diff --git a/tests/test_tax_gb_invoice_rounding.py b/tests/test_tax_gb_invoice_rounding.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_tax_gb_invoice_rounding.py
+@@ -0,0 +1,20 @@
++"""UK VAT is worked out on the invoice total and rounded once."""
++
++from decimal import Decimal
++
++from ledgerline.tax.gb import UkVat
++
++
++def test_uk_vat_rounds_the_invoice_total_once():
++    """0.39 x 20 percent = 0.078, which rounds to 0.08 (per line it would be 0.09)."""
++    assert UkVat().tax_for([Decimal("0.13")] * 3) == Decimal("0.08")
++
++
++def test_uk_vat_on_many_small_lines():
++    """Ten lines of 0.05: 0.50 x 20 percent = 0.10 (per line it would be 0.10 too)."""
++    assert UkVat().tax_for([Decimal("0.05")] * 10) == Decimal("0.10")
++
++
++def test_uk_vat_on_mixed_lines():
++    """1.13 + 2.13 = 3.26; 20 percent is 0.652, which rounds to 0.65 (per line: 0.23 + 0.43)."""
++    assert UkVat().tax_for([Decimal("1.13"), Decimal("2.13")]) == Decimal("0.65")

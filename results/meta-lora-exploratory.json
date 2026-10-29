@@ -1,0 +1,2535 @@
+{
+ "probe": "metalora",
+ "exploratory": true,
+ "prereg": null,
+ "prereg_draft": "prereg/2026-10-28-meta-lora-DRAFT.md",
+ "status": "exploratory, Llama 3.2 1B, five held-out test repos",
+ "model_id": "unsloth/Llama-3.2-1B-Instruct",
+ "machines": "RTX 5080 CUDA: test repos 0-2; M4 Pro MPS: repos 3-4",
+ "adapter": {
+  "lora_rank": 16,
+  "lora_scale": 2.0,
+  "layers": "all linear",
+  "init_seed": 0
+ },
+ "teach_recipe": {
+  "lr_peak": 0.0001,
+  "warmup_iters": 20,
+  "schedule": "cosine_decay",
+  "batch": 4,
+  "full_budget_epochs": 8
+ },
+ "meta_recipe": {
+  "method": "reptile first order",
+  "inner_lr": 0.0001,
+  "inner_updates_total": 3000
+ },
+ "rows_legend": {
+  "floor": "base model, no adapter, no lessons",
+  "ceiling": "the taught lessons in the system prompt",
+  "blank": "reference: LCAP adapter from its seeded blank init",
+  "joint": "reference: start trained on all meta-training rows, same updates",
+  "meta": "under test: Reptile start picked on the validation repos"
+ },
+ "note": "[measured] exploratory, no prereg; one seed per cell; recall micro-averaged over questions.",
+ "caveats": "Lessons per held-out repo are 10 to 13, so sizes are 3, 5, 10 instead of 5, 10, 30.",
+ "license": "Llama 3.2 Community License; Built with Llama",
+ "result": "[measured] At 15 updates the meta start beats the blank start (5 lessons: 0.416 vs 0.256) but trails the joint start (0.552); at full budget it trails both (10 lessons: 0.456 vs 0.632 and 0.668).",
+ "validation": {
+  "rule": "Pick the Reptile config with the highest template recall averaged over cells 5:15, 10:15, 10:30 on the 5 val repos.",
+  "cells": [
+   "5:15",
+   "10:15",
+   "10:30"
+  ],
+  "mean_template_recall": {
+   "blank": 0.176,
+   "joint": 0.4,
+   "k10-o300-s1.0": 0.2453,
+   "k10-o300-s0.3": 0.2987,
+   "k30-o100-s1.0": 0.3347
+  },
+  "picked": "k30-o100-s1.0",
+  "rows": [
+   {
+    "question_set": "template",
+    "label": "blank 5 lessons 15 iters",
+    "arm": "blank",
+    "role": "reference",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 125,
+    "recall": 0.176,
+    "invented_rate": 0.064,
+    "recall_by_repo_index": [
+     0.16,
+     0.12,
+     0.16,
+     0.12,
+     0.32
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "blank 5 lessons 15 iters",
+    "arm": "blank",
+    "role": "reference",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 77,
+    "recall": 0.1948,
+    "invented_rate": 0.1299,
+    "recall_by_repo_index": [
+     0.0769,
+     0.0909,
+     0.2,
+     0.2353,
+     0.3125
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "blank 10 lessons 15 iters",
+    "arm": "blank",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 250,
+    "recall": 0.096,
+    "invented_rate": 0.012,
+    "recall_by_repo_index": [
+     0.16,
+     0.02,
+     0.12,
+     0.12,
+     0.06
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "blank 10 lessons 15 iters",
+    "arm": "blank",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 143,
+    "recall": 0.0629,
+    "invented_rate": 0.028,
+    "recall_by_repo_index": [
+     0.0769,
+     0.0,
+     0.0571,
+     0.1111,
+     0.0645
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "blank 10 lessons 30 iters",
+    "arm": "blank",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 250,
+    "recall": 0.256,
+    "invented_rate": 0.088,
+    "recall_by_repo_index": [
+     0.18,
+     0.3,
+     0.26,
+     0.32,
+     0.22
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "blank 10 lessons 30 iters",
+    "arm": "blank",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 143,
+    "recall": 0.2028,
+    "invented_rate": 0.1748,
+    "recall_by_repo_index": [
+     0.0769,
+     0.2083,
+     0.2,
+     0.2593,
+     0.2581
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "joint 5 lessons 15 iters",
+    "arm": "joint",
+    "role": "reference",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 125,
+    "recall": 0.448,
+    "invented_rate": 0.016,
+    "recall_by_repo_index": [
+     0.52,
+     0.4,
+     0.56,
+     0.32,
+     0.44
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "joint 5 lessons 15 iters",
+    "arm": "joint",
+    "role": "reference",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 77,
+    "recall": 0.4545,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.2308,
+     0.6364,
+     0.4,
+     0.4118,
+     0.625
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "joint 10 lessons 15 iters",
+    "arm": "joint",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 250,
+    "recall": 0.316,
+    "invented_rate": 0.036,
+    "recall_by_repo_index": [
+     0.48,
+     0.36,
+     0.4,
+     0.18,
+     0.16
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "joint 10 lessons 15 iters",
+    "arm": "joint",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 143,
+    "recall": 0.2098,
+    "invented_rate": 0.021,
+    "recall_by_repo_index": [
+     0.1154,
+     0.25,
+     0.2286,
+     0.1852,
+     0.2581
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "joint 10 lessons 30 iters",
+    "arm": "joint",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 250,
+    "recall": 0.436,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.42,
+     0.26,
+     0.54,
+     0.48,
+     0.48
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "joint 10 lessons 30 iters",
+    "arm": "joint",
+    "role": "reference",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 143,
+    "recall": 0.3916,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.1538,
+     0.4583,
+     0.3714,
+     0.4074,
+     0.5484
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k10-o300-s0.3 5 lessons 15 iters",
+    "arm": "k10-o300-s0.3",
+    "role": "under test",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 125,
+    "recall": 0.344,
+    "invented_rate": 0.008,
+    "recall_by_repo_index": [
+     0.36,
+     0.36,
+     0.4,
+     0.24,
+     0.36
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k10-o300-s0.3 5 lessons 15 iters",
+    "arm": "k10-o300-s0.3",
+    "role": "under test",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 77,
+    "recall": 0.3896,
+    "invented_rate": 0.013,
+    "recall_by_repo_index": [
+     0.0769,
+     0.5455,
+     0.45,
+     0.3529,
+     0.5
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k10-o300-s0.3 10 lessons 15 iters",
+    "arm": "k10-o300-s0.3",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 250,
+    "recall": 0.22,
+    "invented_rate": 0.036,
+    "recall_by_repo_index": [
+     0.24,
+     0.28,
+     0.26,
+     0.22,
+     0.1
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k10-o300-s0.3 10 lessons 15 iters",
+    "arm": "k10-o300-s0.3",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 143,
+    "recall": 0.2028,
+    "invented_rate": 0.007,
+    "recall_by_repo_index": [
+     0.0769,
+     0.2917,
+     0.2857,
+     0.1852,
+     0.1613
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k10-o300-s0.3 10 lessons 30 iters",
+    "arm": "k10-o300-s0.3",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 250,
+    "recall": 0.332,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.28,
+     0.34,
+     0.46,
+     0.3,
+     0.28
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k10-o300-s0.3 10 lessons 30 iters",
+    "arm": "k10-o300-s0.3",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 143,
+    "recall": 0.3287,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.0769,
+     0.4167,
+     0.3714,
+     0.3333,
+     0.4194
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k10-o300-s1.0 5 lessons 15 iters",
+    "arm": "k10-o300-s1.0",
+    "role": "under test",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 125,
+    "recall": 0.288,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.28,
+     0.32,
+     0.24,
+     0.16,
+     0.44
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k10-o300-s1.0 5 lessons 15 iters",
+    "arm": "k10-o300-s1.0",
+    "role": "under test",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 77,
+    "recall": 0.2857,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.0769,
+     0.2727,
+     0.2,
+     0.2941,
+     0.5625
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k10-o300-s1.0 10 lessons 15 iters",
+    "arm": "k10-o300-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 250,
+    "recall": 0.188,
+    "invented_rate": 0.016,
+    "recall_by_repo_index": [
+     0.22,
+     0.22,
+     0.2,
+     0.16,
+     0.14
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k10-o300-s1.0 10 lessons 15 iters",
+    "arm": "k10-o300-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 143,
+    "recall": 0.1538,
+    "invented_rate": 0.042,
+    "recall_by_repo_index": [
+     0.0769,
+     0.2083,
+     0.1143,
+     0.2222,
+     0.1613
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k10-o300-s1.0 10 lessons 30 iters",
+    "arm": "k10-o300-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 250,
+    "recall": 0.26,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.22,
+     0.26,
+     0.3,
+     0.22,
+     0.3
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k10-o300-s1.0 10 lessons 30 iters",
+    "arm": "k10-o300-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 143,
+    "recall": 0.2378,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.0769,
+     0.25,
+     0.1714,
+     0.2593,
+     0.4194
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k30-o100-s1.0 5 lessons 15 iters",
+    "arm": "k30-o100-s1.0",
+    "role": "under test",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 125,
+    "recall": 0.36,
+    "invented_rate": 0.024,
+    "recall_by_repo_index": [
+     0.36,
+     0.32,
+     0.52,
+     0.2,
+     0.4
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k30-o100-s1.0 5 lessons 15 iters",
+    "arm": "k30-o100-s1.0",
+    "role": "under test",
+    "lessons": 5,
+    "iters": 15,
+    "questions": 77,
+    "recall": 0.2987,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.1538,
+     0.2727,
+     0.25,
+     0.2353,
+     0.5625
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k30-o100-s1.0 10 lessons 15 iters",
+    "arm": "k30-o100-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 250,
+    "recall": 0.256,
+    "invented_rate": 0.044,
+    "recall_by_repo_index": [
+     0.22,
+     0.28,
+     0.36,
+     0.14,
+     0.28
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k30-o100-s1.0 10 lessons 15 iters",
+    "arm": "k30-o100-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 15,
+    "questions": 143,
+    "recall": 0.2378,
+    "invented_rate": 0.021,
+    "recall_by_repo_index": [
+     0.1154,
+     0.2083,
+     0.2286,
+     0.1481,
+     0.4516
+    ]
+   },
+   {
+    "question_set": "template",
+    "label": "k30-o100-s1.0 10 lessons 30 iters",
+    "arm": "k30-o100-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 250,
+    "recall": 0.388,
+    "invented_rate": 0.0,
+    "recall_by_repo_index": [
+     0.34,
+     0.3,
+     0.4,
+     0.48,
+     0.42
+    ]
+   },
+   {
+    "question_set": "paraphrase",
+    "label": "k30-o100-s1.0 10 lessons 30 iters",
+    "arm": "k30-o100-s1.0",
+    "role": "under test",
+    "lessons": 10,
+    "iters": 30,
+    "questions": 143,
+    "recall": 0.3077,
+    "invented_rate": 0.014,
+    "recall_by_repo_index": [
+     0.1154,
+     0.25,
+     0.2286,
+     0.3704,
+     0.5484
+    ]
+   }
+  ]
+ },
+ "meta_pick": "k30-o100-s1.0",
+ "build": {
+  "sessions_read": 5760,
+  "files_unreadable": 1,
+  "domains": {
+   "train": 66,
+   "val": 5,
+   "test": 5
+  },
+  "lessons": {
+   "train": 379,
+   "val": 74,
+   "test": 60
+  },
+  "test_lessons_per_repo": [
+   10,
+   12,
+   12,
+   13,
+   13
+  ],
+  "val_lessons_per_repo": [
+   10,
+   11,
+   11,
+   13,
+   29
+  ],
+  "training_rows": 3078,
+  "held_out_questions": 670
+ },
+ "rows": [
+  {
+   "question_set": "template",
+   "label": "blank 3 lessons 0 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 0,
+   "questions": 75,
+   "recall": 0.0,
+   "invented_rate": 0.3067,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 3 lessons 0 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 0,
+   "questions": 27,
+   "recall": 0.0,
+   "invented_rate": 0.6296,
+   "recall_by_repo_index": [
+    0.0,
+    null,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 3 lessons 8 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 8,
+   "questions": 75,
+   "recall": 0.0,
+   "invented_rate": 0.4533,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 3 lessons 8 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 8,
+   "questions": 27,
+   "recall": 0.037,
+   "invented_rate": 0.4444,
+   "recall_by_repo_index": [
+    0.1,
+    null,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 3 lessons 15 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 15,
+   "questions": 75,
+   "recall": 0.2667,
+   "invented_rate": 0.0133,
+   "recall_by_repo_index": [
+    0.2667,
+    0.0667,
+    0.3333,
+    0.2667,
+    0.4
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 3 lessons 15 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 15,
+   "questions": 27,
+   "recall": 0.2593,
+   "invented_rate": 0.1111,
+   "recall_by_repo_index": [
+    0.3,
+    null,
+    0.0,
+    0.3333,
+    0.1667
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 3 lessons 30 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 30,
+   "questions": 75,
+   "recall": 0.4533,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.4667,
+    0.2667,
+    0.6667,
+    0.3333,
+    0.5333
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 3 lessons 30 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 30,
+   "questions": 27,
+   "recall": 0.3704,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.4,
+    null,
+    0.0,
+    0.4444,
+    0.3333
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 3 lessons 36 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 36,
+   "questions": 75,
+   "recall": 0.5467,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.6,
+    0.2,
+    0.8,
+    0.4667,
+    0.6667
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 3 lessons 36 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 36,
+   "questions": 27,
+   "recall": 0.4815,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.5,
+    null,
+    0.0,
+    0.5556,
+    0.5
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 5 lessons 0 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 0,
+   "questions": 125,
+   "recall": 0.0,
+   "invented_rate": 0.32,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 5 lessons 0 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 0,
+   "questions": 46,
+   "recall": 0.0,
+   "invented_rate": 0.6087,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 5 lessons 8 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 8,
+   "questions": 125,
+   "recall": 0.048,
+   "invented_rate": 0.472,
+   "recall_by_repo_index": [
+    0.0,
+    0.2,
+    0.04,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 5 lessons 8 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 8,
+   "questions": 46,
+   "recall": 0.0,
+   "invented_rate": 0.587,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 5 lessons 15 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 15,
+   "questions": 125,
+   "recall": 0.256,
+   "invented_rate": 0.008,
+   "recall_by_repo_index": [
+    0.12,
+    0.32,
+    0.32,
+    0.08,
+    0.44
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 5 lessons 15 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 15,
+   "questions": 46,
+   "recall": 0.2174,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.1765,
+    1.0,
+    0.3333,
+    0.1818,
+    0.1818
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 5 lessons 30 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 30,
+   "questions": 125,
+   "recall": 0.376,
+   "invented_rate": 0.056,
+   "recall_by_repo_index": [
+    0.48,
+    0.32,
+    0.28,
+    0.28,
+    0.52
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 5 lessons 30 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 30,
+   "questions": 46,
+   "recall": 0.3261,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.4118,
+    1.0,
+    0.3333,
+    0.1818,
+    0.2727
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 5 lessons 60 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 60,
+   "questions": 125,
+   "recall": 0.672,
+   "invented_rate": 0.008,
+   "recall_by_repo_index": [
+    0.84,
+    0.44,
+    0.6,
+    0.64,
+    0.84
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 5 lessons 60 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 60,
+   "questions": 46,
+   "recall": 0.5435,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.7059,
+    1.0,
+    0.3333,
+    0.4545,
+    0.4545
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 10 lessons 0 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 0,
+   "questions": 250,
+   "recall": 0.0,
+   "invented_rate": 0.336,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 10 lessons 0 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 0,
+   "questions": 86,
+   "recall": 0.0233,
+   "invented_rate": 0.5814,
+   "recall_by_repo_index": [
+    0.0588,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 10 lessons 8 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 8,
+   "questions": 250,
+   "recall": 0.028,
+   "invented_rate": 0.348,
+   "recall_by_repo_index": [
+    0.04,
+    0.06,
+    0.0,
+    0.02,
+    0.02
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 10 lessons 8 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 8,
+   "questions": 86,
+   "recall": 0.0465,
+   "invented_rate": 0.6279,
+   "recall_by_repo_index": [
+    0.0588,
+    0.5,
+    0.0,
+    0.0,
+    0.05
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 10 lessons 15 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 15,
+   "questions": 250,
+   "recall": 0.12,
+   "invented_rate": 0.016,
+   "recall_by_repo_index": [
+    0.12,
+    0.18,
+    0.1,
+    0.06,
+    0.14
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 10 lessons 15 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 15,
+   "questions": 86,
+   "recall": 0.1395,
+   "invented_rate": 0.0581,
+   "recall_by_repo_index": [
+    0.1471,
+    0.5,
+    0.1,
+    0.05,
+    0.2
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 10 lessons 30 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 30,
+   "questions": 250,
+   "recall": 0.296,
+   "invented_rate": 0.036,
+   "recall_by_repo_index": [
+    0.42,
+    0.26,
+    0.34,
+    0.22,
+    0.24
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 10 lessons 30 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 30,
+   "questions": 86,
+   "recall": 0.3488,
+   "invented_rate": 0.0698,
+   "recall_by_repo_index": [
+    0.4412,
+    0.5,
+    0.3,
+    0.2,
+    0.35
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "blank 10 lessons 120 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 120,
+   "questions": 250,
+   "recall": 0.632,
+   "invented_rate": 0.004,
+   "recall_by_repo_index": [
+    0.64,
+    0.42,
+    0.64,
+    0.8,
+    0.66
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "blank 10 lessons 120 iters",
+   "arm": "blank",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 120,
+   "questions": 86,
+   "recall": 0.5465,
+   "invented_rate": 0.0233,
+   "recall_by_repo_index": [
+    0.5882,
+    0.0,
+    0.4,
+    0.5,
+    0.65
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "ceiling 3 lessons reference",
+   "arm": "ceiling",
+   "role": "ceiling",
+   "lessons": 3,
+   "iters": null,
+   "questions": 75,
+   "recall": 0.3867,
+   "invented_rate": 0.0533,
+   "recall_by_repo_index": [
+    0.3333,
+    0.2667,
+    0.2667,
+    0.4667,
+    0.6
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "ceiling 3 lessons reference",
+   "arm": "ceiling",
+   "role": "ceiling",
+   "lessons": 3,
+   "iters": null,
+   "questions": 27,
+   "recall": 0.3333,
+   "invented_rate": 0.2963,
+   "recall_by_repo_index": [
+    0.4,
+    null,
+    0.0,
+    0.2222,
+    0.5
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "ceiling 5 lessons reference",
+   "arm": "ceiling",
+   "role": "ceiling",
+   "lessons": 5,
+   "iters": null,
+   "questions": 125,
+   "recall": 0.36,
+   "invented_rate": 0.056,
+   "recall_by_repo_index": [
+    0.28,
+    0.36,
+    0.12,
+    0.52,
+    0.52
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "ceiling 5 lessons reference",
+   "arm": "ceiling",
+   "role": "ceiling",
+   "lessons": 5,
+   "iters": null,
+   "questions": 46,
+   "recall": 0.3913,
+   "invented_rate": 0.1304,
+   "recall_by_repo_index": [
+    0.3529,
+    1.0,
+    0.1667,
+    0.2727,
+    0.6364
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "ceiling 10 lessons reference",
+   "arm": "ceiling",
+   "role": "ceiling",
+   "lessons": 10,
+   "iters": null,
+   "questions": 250,
+   "recall": 0.36,
+   "invented_rate": 0.06,
+   "recall_by_repo_index": [
+    0.38,
+    0.32,
+    0.28,
+    0.34,
+    0.48
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "ceiling 10 lessons reference",
+   "arm": "ceiling",
+   "role": "ceiling",
+   "lessons": 10,
+   "iters": null,
+   "questions": 86,
+   "recall": 0.3372,
+   "invented_rate": 0.1395,
+   "recall_by_repo_index": [
+    0.3529,
+    0.5,
+    0.2,
+    0.2,
+    0.5
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "floor 3 lessons reference",
+   "arm": "floor",
+   "role": "floor",
+   "lessons": 3,
+   "iters": null,
+   "questions": 75,
+   "recall": 0.0,
+   "invented_rate": 0.3067,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "floor 3 lessons reference",
+   "arm": "floor",
+   "role": "floor",
+   "lessons": 3,
+   "iters": null,
+   "questions": 27,
+   "recall": 0.0,
+   "invented_rate": 0.6296,
+   "recall_by_repo_index": [
+    0.0,
+    null,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "floor 5 lessons reference",
+   "arm": "floor",
+   "role": "floor",
+   "lessons": 5,
+   "iters": null,
+   "questions": 125,
+   "recall": 0.0,
+   "invented_rate": 0.32,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "floor 5 lessons reference",
+   "arm": "floor",
+   "role": "floor",
+   "lessons": 5,
+   "iters": null,
+   "questions": 46,
+   "recall": 0.0,
+   "invented_rate": 0.6087,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "floor 10 lessons reference",
+   "arm": "floor",
+   "role": "floor",
+   "lessons": 10,
+   "iters": null,
+   "questions": 250,
+   "recall": 0.0,
+   "invented_rate": 0.336,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "floor 10 lessons reference",
+   "arm": "floor",
+   "role": "floor",
+   "lessons": 10,
+   "iters": null,
+   "questions": 86,
+   "recall": 0.0233,
+   "invented_rate": 0.5814,
+   "recall_by_repo_index": [
+    0.0588,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 3 lessons 0 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 0,
+   "questions": 75,
+   "recall": 0.0267,
+   "invented_rate": 0.1467,
+   "recall_by_repo_index": [
+    0.0,
+    0.0,
+    0.0667,
+    0.0,
+    0.0667
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 3 lessons 0 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 0,
+   "questions": 27,
+   "recall": 0.037,
+   "invented_rate": 0.0741,
+   "recall_by_repo_index": [
+    0.0,
+    null,
+    0.0,
+    0.0,
+    0.1667
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 3 lessons 8 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 8,
+   "questions": 75,
+   "recall": 0.44,
+   "invented_rate": 0.04,
+   "recall_by_repo_index": [
+    0.1333,
+    0.2,
+    0.4667,
+    0.6,
+    0.8
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 3 lessons 8 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 8,
+   "questions": 27,
+   "recall": 0.3704,
+   "invented_rate": 0.1111,
+   "recall_by_repo_index": [
+    0.2,
+    null,
+    0.0,
+    0.5556,
+    0.5
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 3 lessons 15 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 15,
+   "questions": 75,
+   "recall": 0.6267,
+   "invented_rate": 0.04,
+   "recall_by_repo_index": [
+    0.4667,
+    0.5333,
+    0.6667,
+    0.6667,
+    0.8
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 3 lessons 15 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 15,
+   "questions": 27,
+   "recall": 0.5926,
+   "invented_rate": 0.1852,
+   "recall_by_repo_index": [
+    0.5,
+    null,
+    0.5,
+    0.6667,
+    0.6667
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 3 lessons 30 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 30,
+   "questions": 75,
+   "recall": 0.5733,
+   "invented_rate": 0.08,
+   "recall_by_repo_index": [
+    0.4,
+    0.5333,
+    0.5333,
+    0.6,
+    0.8
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 3 lessons 30 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 30,
+   "questions": 27,
+   "recall": 0.5556,
+   "invented_rate": 0.1852,
+   "recall_by_repo_index": [
+    0.4,
+    null,
+    0.5,
+    0.6667,
+    0.6667
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 3 lessons 36 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 36,
+   "questions": 75,
+   "recall": 0.6533,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.6667,
+    0.5333,
+    0.5333,
+    0.6667,
+    0.8667
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 3 lessons 36 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 3,
+   "iters": 36,
+   "questions": 27,
+   "recall": 0.7037,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.7,
+    null,
+    0.5,
+    0.7778,
+    0.6667
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 5 lessons 0 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 0,
+   "questions": 125,
+   "recall": 0.072,
+   "invented_rate": 0.184,
+   "recall_by_repo_index": [
+    0.08,
+    0.0,
+    0.04,
+    0.04,
+    0.2
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 5 lessons 0 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 0,
+   "questions": 46,
+   "recall": 0.087,
+   "invented_rate": 0.1304,
+   "recall_by_repo_index": [
+    0.1176,
+    0.0,
+    0.0,
+    0.0,
+    0.1818
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 5 lessons 8 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 8,
+   "questions": 125,
+   "recall": 0.312,
+   "invented_rate": 0.04,
+   "recall_by_repo_index": [
+    0.2,
+    0.28,
+    0.28,
+    0.28,
+    0.52
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 5 lessons 8 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 8,
+   "questions": 46,
+   "recall": 0.2609,
+   "invented_rate": 0.0217,
+   "recall_by_repo_index": [
+    0.2353,
+    1.0,
+    0.1667,
+    0.2727,
+    0.2727
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 5 lessons 15 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 15,
+   "questions": 125,
+   "recall": 0.552,
+   "invented_rate": 0.032,
+   "recall_by_repo_index": [
+    0.56,
+    0.28,
+    0.52,
+    0.64,
+    0.76
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 5 lessons 15 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 15,
+   "questions": 46,
+   "recall": 0.5652,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.5294,
+    1.0,
+    0.3333,
+    0.6364,
+    0.6364
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 5 lessons 30 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 30,
+   "questions": 125,
+   "recall": 0.632,
+   "invented_rate": 0.024,
+   "recall_by_repo_index": [
+    0.64,
+    0.32,
+    0.6,
+    0.76,
+    0.84
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 5 lessons 30 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 30,
+   "questions": 46,
+   "recall": 0.6087,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.6471,
+    1.0,
+    0.3333,
+    0.5455,
+    0.7273
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 5 lessons 60 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 60,
+   "questions": 125,
+   "recall": 0.672,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.76,
+    0.52,
+    0.52,
+    0.68,
+    0.88
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 5 lessons 60 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 5,
+   "iters": 60,
+   "questions": 46,
+   "recall": 0.7174,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.8824,
+    1.0,
+    0.3333,
+    0.6364,
+    0.7273
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 10 lessons 0 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 0,
+   "questions": 250,
+   "recall": 0.076,
+   "invented_rate": 0.244,
+   "recall_by_repo_index": [
+    0.14,
+    0.0,
+    0.06,
+    0.06,
+    0.12
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 10 lessons 0 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 0,
+   "questions": 86,
+   "recall": 0.1163,
+   "invented_rate": 0.186,
+   "recall_by_repo_index": [
+    0.1765,
+    0.0,
+    0.1,
+    0.0,
+    0.15
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 10 lessons 8 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 8,
+   "questions": 250,
+   "recall": 0.2,
+   "invented_rate": 0.116,
+   "recall_by_repo_index": [
+    0.26,
+    0.16,
+    0.2,
+    0.16,
+    0.22
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 10 lessons 8 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 8,
+   "questions": 86,
+   "recall": 0.2674,
+   "invented_rate": 0.0465,
+   "recall_by_repo_index": [
+    0.3235,
+    0.0,
+    0.3,
+    0.2,
+    0.25
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 10 lessons 15 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 15,
+   "questions": 250,
+   "recall": 0.4,
+   "invented_rate": 0.084,
+   "recall_by_repo_index": [
+    0.4,
+    0.3,
+    0.42,
+    0.3,
+    0.58
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 10 lessons 15 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 15,
+   "questions": 86,
+   "recall": 0.3953,
+   "invented_rate": 0.0233,
+   "recall_by_repo_index": [
+    0.4706,
+    0.5,
+    0.4,
+    0.2,
+    0.45
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 10 lessons 30 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 30,
+   "questions": 250,
+   "recall": 0.48,
+   "invented_rate": 0.004,
+   "recall_by_repo_index": [
+    0.56,
+    0.34,
+    0.4,
+    0.38,
+    0.72
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 10 lessons 30 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 30,
+   "questions": 86,
+   "recall": 0.5233,
+   "invented_rate": 0.0116,
+   "recall_by_repo_index": [
+    0.6176,
+    0.5,
+    0.4,
+    0.35,
+    0.6
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "joint 10 lessons 120 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 120,
+   "questions": 250,
+   "recall": 0.668,
+   "invented_rate": 0.004,
+   "recall_by_repo_index": [
+    0.68,
+    0.46,
+    0.52,
+    0.82,
+    0.86
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "joint 10 lessons 120 iters",
+   "arm": "joint",
+   "role": "reference",
+   "lessons": 10,
+   "iters": 120,
+   "questions": 86,
+   "recall": 0.6512,
+   "invented_rate": 0.0116,
+   "recall_by_repo_index": [
+    0.6765,
+    1.0,
+    0.4,
+    0.65,
+    0.7
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 3 lessons 0 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 0,
+   "questions": 75,
+   "recall": 0.0533,
+   "invented_rate": 0.32,
+   "recall_by_repo_index": [
+    0.0,
+    0.1333,
+    0.0,
+    0.0,
+    0.1333
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 3 lessons 0 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 0,
+   "questions": 27,
+   "recall": 0.037,
+   "invented_rate": 0.2222,
+   "recall_by_repo_index": [
+    0.0,
+    null,
+    0.0,
+    0.0,
+    0.1667
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 3 lessons 8 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 8,
+   "questions": 75,
+   "recall": 0.2533,
+   "invented_rate": 0.1467,
+   "recall_by_repo_index": [
+    0.1333,
+    0.2667,
+    0.3333,
+    0.2667,
+    0.2667
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 3 lessons 8 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 8,
+   "questions": 27,
+   "recall": 0.2222,
+   "invented_rate": 0.1111,
+   "recall_by_repo_index": [
+    0.2,
+    null,
+    0.0,
+    0.3333,
+    0.1667
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 3 lessons 15 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 15,
+   "questions": 75,
+   "recall": 0.4667,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.4,
+    0.5333,
+    0.6,
+    0.4667,
+    0.3333
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 3 lessons 15 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 15,
+   "questions": 27,
+   "recall": 0.5185,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.5,
+    null,
+    0.0,
+    0.6667,
+    0.5
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 3 lessons 30 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 30,
+   "questions": 75,
+   "recall": 0.4933,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.5333,
+    0.5333,
+    0.8,
+    0.3333,
+    0.2667
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 3 lessons 30 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 30,
+   "questions": 27,
+   "recall": 0.6296,
+   "invented_rate": 0.0741,
+   "recall_by_repo_index": [
+    0.8,
+    null,
+    0.5,
+    0.5556,
+    0.5
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 3 lessons 36 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 36,
+   "questions": 75,
+   "recall": 0.4267,
+   "invented_rate": 0.1067,
+   "recall_by_repo_index": [
+    0.4667,
+    0.5333,
+    0.4,
+    0.4667,
+    0.2667
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 3 lessons 36 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 3,
+   "iters": 36,
+   "questions": 27,
+   "recall": 0.6667,
+   "invented_rate": 0.0741,
+   "recall_by_repo_index": [
+    0.8,
+    null,
+    0.0,
+    0.7778,
+    0.5
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 5 lessons 0 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 0,
+   "questions": 125,
+   "recall": 0.08,
+   "invented_rate": 0.288,
+   "recall_by_repo_index": [
+    0.04,
+    0.16,
+    0.0,
+    0.0,
+    0.2
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 5 lessons 0 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 0,
+   "questions": 46,
+   "recall": 0.0652,
+   "invented_rate": 0.3043,
+   "recall_by_repo_index": [
+    0.0588,
+    0.0,
+    0.0,
+    0.0,
+    0.1818
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 5 lessons 8 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 8,
+   "questions": 125,
+   "recall": 0.184,
+   "invented_rate": 0.096,
+   "recall_by_repo_index": [
+    0.12,
+    0.32,
+    0.12,
+    0.16,
+    0.2
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 5 lessons 8 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 8,
+   "questions": 46,
+   "recall": 0.1522,
+   "invented_rate": 0.1087,
+   "recall_by_repo_index": [
+    0.0588,
+    1.0,
+    0.1667,
+    0.1818,
+    0.1818
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 5 lessons 15 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 15,
+   "questions": 125,
+   "recall": 0.416,
+   "invented_rate": 0.008,
+   "recall_by_repo_index": [
+    0.48,
+    0.36,
+    0.48,
+    0.56,
+    0.2
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 5 lessons 15 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 15,
+   "questions": 46,
+   "recall": 0.4565,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.4118,
+    1.0,
+    0.3333,
+    0.4545,
+    0.5455
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 5 lessons 30 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 30,
+   "questions": 125,
+   "recall": 0.464,
+   "invented_rate": 0.016,
+   "recall_by_repo_index": [
+    0.4,
+    0.44,
+    0.48,
+    0.64,
+    0.36
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 5 lessons 30 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 30,
+   "questions": 46,
+   "recall": 0.5,
+   "invented_rate": 0.087,
+   "recall_by_repo_index": [
+    0.3529,
+    1.0,
+    0.3333,
+    0.6364,
+    0.6364
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 5 lessons 60 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 60,
+   "questions": 125,
+   "recall": 0.6,
+   "invented_rate": 0.008,
+   "recall_by_repo_index": [
+    0.72,
+    0.52,
+    0.6,
+    0.68,
+    0.48
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 5 lessons 60 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 5,
+   "iters": 60,
+   "questions": 46,
+   "recall": 0.5652,
+   "invented_rate": 0.087,
+   "recall_by_repo_index": [
+    0.4706,
+    1.0,
+    0.3333,
+    0.7273,
+    0.6364
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 10 lessons 0 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 0,
+   "questions": 250,
+   "recall": 0.08,
+   "invented_rate": 0.308,
+   "recall_by_repo_index": [
+    0.14,
+    0.12,
+    0.0,
+    0.02,
+    0.12
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 10 lessons 0 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 0,
+   "questions": 86,
+   "recall": 0.1163,
+   "invented_rate": 0.2674,
+   "recall_by_repo_index": [
+    0.2059,
+    0.0,
+    0.0,
+    0.0,
+    0.15
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 10 lessons 8 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 8,
+   "questions": 250,
+   "recall": 0.16,
+   "invented_rate": 0.076,
+   "recall_by_repo_index": [
+    0.18,
+    0.26,
+    0.16,
+    0.08,
+    0.12
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 10 lessons 8 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 8,
+   "questions": 86,
+   "recall": 0.1512,
+   "invented_rate": 0.0814,
+   "recall_by_repo_index": [
+    0.2353,
+    0.5,
+    0.1,
+    0.0,
+    0.15
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 10 lessons 15 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 15,
+   "questions": 250,
+   "recall": 0.252,
+   "invented_rate": 0.008,
+   "recall_by_repo_index": [
+    0.3,
+    0.34,
+    0.38,
+    0.16,
+    0.08
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 10 lessons 15 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 15,
+   "questions": 86,
+   "recall": 0.2558,
+   "invented_rate": 0.0233,
+   "recall_by_repo_index": [
+    0.2941,
+    0.5,
+    0.4,
+    0.15,
+    0.2
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 10 lessons 30 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 30,
+   "questions": 250,
+   "recall": 0.396,
+   "invented_rate": 0.004,
+   "recall_by_repo_index": [
+    0.44,
+    0.36,
+    0.3,
+    0.6,
+    0.28
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 10 lessons 30 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 30,
+   "questions": 86,
+   "recall": 0.4186,
+   "invented_rate": 0.0233,
+   "recall_by_repo_index": [
+    0.2941,
+    0.5,
+    0.4,
+    0.45,
+    0.6
+   ]
+  },
+  {
+   "question_set": "template",
+   "label": "meta 10 lessons 120 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 120,
+   "questions": 250,
+   "recall": 0.456,
+   "invented_rate": 0.004,
+   "recall_by_repo_index": [
+    0.56,
+    0.28,
+    0.42,
+    0.62,
+    0.4
+   ]
+  },
+  {
+   "question_set": "paraphrase",
+   "label": "meta 10 lessons 120 iters",
+   "arm": "meta",
+   "role": "under test",
+   "lessons": 10,
+   "iters": 120,
+   "questions": 86,
+   "recall": 0.5233,
+   "invented_rate": 0.0,
+   "recall_by_repo_index": [
+    0.4706,
+    1.0,
+    0.4,
+    0.45,
+    0.7
+   ]
+  }
+ ],
+ "reaches_blank": {
+  "joint template": [
+   {
+    "lessons": 3,
+    "blank_full_budget_recall": 0.5467,
+    "fewest_iters_to_match": 15
+   },
+   {
+    "lessons": 5,
+    "blank_full_budget_recall": 0.672,
+    "fewest_iters_to_match": 60
+   },
+   {
+    "lessons": 10,
+    "blank_full_budget_recall": 0.632,
+    "fewest_iters_to_match": 120
+   }
+  ],
+  "joint paraphrase": [
+   {
+    "lessons": 3,
+    "blank_full_budget_recall": 0.4815,
+    "fewest_iters_to_match": 15
+   },
+   {
+    "lessons": 5,
+    "blank_full_budget_recall": 0.5435,
+    "fewest_iters_to_match": 15
+   },
+   {
+    "lessons": 10,
+    "blank_full_budget_recall": 0.5465,
+    "fewest_iters_to_match": 120
+   }
+  ],
+  "meta template": [
+   {
+    "lessons": 3,
+    "blank_full_budget_recall": 0.5467,
+    "fewest_iters_to_match": null
+   },
+   {
+    "lessons": 5,
+    "blank_full_budget_recall": 0.672,
+    "fewest_iters_to_match": null
+   },
+   {
+    "lessons": 10,
+    "blank_full_budget_recall": 0.632,
+    "fewest_iters_to_match": null
+   }
+  ],
+  "meta paraphrase": [
+   {
+    "lessons": 3,
+    "blank_full_budget_recall": 0.4815,
+    "fewest_iters_to_match": 15
+   },
+   {
+    "lessons": 5,
+    "blank_full_budget_recall": 0.5435,
+    "fewest_iters_to_match": 60
+   },
+   {
+    "lessons": 10,
+    "blank_full_budget_recall": 0.5465,
+    "fewest_iters_to_match": null
+   }
+  ]
+ }
+}

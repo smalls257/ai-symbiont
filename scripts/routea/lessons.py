@@ -135,6 +135,13 @@ def _build(failed: Record, fix: Record) -> Lesson:
     )
 
 
+def _error_class(error: str) -> str:
+    match = ERROR_CLASS.search(error)
+    if match is None:
+        raise ValueError("a lesson's error line must name an error class")
+    return match.group(1)
+
+
 def shown_command(command: str) -> str:
     """The command as a lesson shows it: no leading `cd`, workspace paths as `.`."""
     return _WORKSPACE.sub(".", _CD_PREFIX.sub("", command)).strip()
