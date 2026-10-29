@@ -7,8 +7,11 @@ and none of them may depend on another's internals (Shield).
 import math
 from collections.abc import Iterable
 from dataclasses import dataclass
+from enum import StrEnum
 
 CELL = 8  # grid resolution in map units
+PICKUP_BELOW = 56  # an item this far above the walker's floor can still be touched
+PICKUP_ABOVE = 8  # and this far below it
 USE_RANGE = 64.0  # how far a USE press reaches
 KEY_REACH = 24.0
 DOOR_REACH = 48.0
@@ -31,9 +34,30 @@ class Feature:
     key_colour: str | None = None
     door_sector: int | None = None
     secret: bool = False
+    walk_through: bool = False  # an exit that ends the level on crossing its line, not on USE
+    # A pickup is out of reach unless the walker's floor is within -8..+56 of the floor under the
+    # item (Doom's P_TouchSpecialThing); the sector under it, None when it is used, not picked up.
+    item_sector: int | None = None
     # Lines (x1, y1, x2, y2) that carry the feature's use-special. USE works only from a line's
     # front side, so a route ends on the front side of one of them (empty: any side).
     faces: tuple[Segment, ...] = ()
+
+
+@dataclass(frozen=True)
+class WorldNow:
+    """The world as the engine has it: shut door sectors and every sector's (floor, ceiling).
+
+    `closed` None assumes every door is shut; empty `heights` plans over the map as authored.
+    """
+
+    closed: frozenset[int] | None = None
+    heights: tuple[tuple[float, float], ...] = ()
+
+
+class Action(StrEnum):
+    """What a walker does on arriving at a waypoint, besides walking on."""
+
+    PRESS_SWITCH = "press_switch"  # face `aim` and press USE
 
 
 @dataclass(frozen=True)
@@ -44,6 +68,10 @@ class Waypoint:
     y: float
     # a closed door in front of this point must be opened before walking on
     door_sector: int | None = None
+    action: Action | None = None
+    aim: tuple[float, float] | None = None  # where to face for the action
+    # a teleport line is crossed on the way here: the walker is found at this landing instead
+    lands_at: tuple[float, float] | None = None
 
 
 @dataclass(frozen=True)
@@ -53,6 +81,8 @@ class Route:
     waypoints: tuple[Waypoint, ...]
     length: float  # path length in map units
     doors: int  # doors crossed
+    # why the route may fail even though every step is walkable (see navhazard); empty: none found
+    hazards: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -7,12 +7,15 @@ navroute and navdiagnose do the work; this module lists doors, exits and keys an
 """
 
 from collections.abc import Iterable, Iterator, Sequence
+from dataclasses import replace
 
 from symbiont.act1.map_index import MapIndex
-from symbiont.act1.navbuild import sector_box
+from symbiont.act1.navbuild import SectorState, sector_box
 from symbiont.act1.navdiagnose import explain_unreachable
 from symbiont.act1.navgrid import WalkGrid
-from symbiont.act1.navroute import build_route
+from symbiont.act1.navhazard import audit_route
+from symbiont.act1.navmech import build_mechanisms, world_from_heights
+from symbiont.act1.navplan import Planned, RoutePlanner, Stage, keys_needed, route_from_plan
 from symbiont.act1.navsearch import DoorAwareSearch, DoorRules
 from symbiont.act1.navtypes import (
     DOOR_REACH,
@@ -23,6 +26,7 @@ from symbiont.act1.navtypes import (
     Route,
     Segment,
     Waypoint,
+    WorldNow,
     held_colours,
 )
 from symbiont.act1.wad import MapGeometry
@@ -45,8 +49,10 @@ class NavMap:
     def __init__(self, geometry: MapGeometry, index: MapIndex) -> None:
         self._geometry = geometry
         self._index = index
-        self._grid = WalkGrid(geometry, index)
-        self._search = DoorAwareSearch(self._grid)
+        mechanisms = build_mechanisms(geometry)
+        self._grid = WalkGrid(geometry, index, mechanisms)
+        self._mechanisms = mechanisms
+        self._planner = RoutePlanner(geometry, self._grid, mechanisms)
 
     # --- features ---------------------------------------------------------------------------
 
@@ -63,7 +69,8 @@ class NavMap:
     def _key_features(self) -> Iterator[Feature]:
         for k in self._index.keys:
             label = f"{k.color.title()}{'Card' if k.kind == 'card' else 'Skull'}"
-            yield Feature("key", label, k.x, k.y, KEY_REACH, key_colour=k.color)
+            under = self._grid.sector_at(k.x, k.y)
+            yield Feature("key", label, k.x, k.y, KEY_REACH, key_colour=k.color, item_sector=under)
 
     def _door_features(self) -> Iterator[Feature]:
         """One per door sector; a door whose sector the index could not determine is skipped."""
@@ -99,8 +106,33 @@ class NavMap:
                 exit_.mid[1],
                 EXIT_REACH,
                 secret=exit_.secret,
+                walk_through=exit_.walkover,
                 faces=((x1, y1, x2, y2),),
             )
+
+    def _states_now(self, heights: Sequence[tuple[float, float]]) -> list[SectorState] | None:
+        """The engine's sector heights as planner states, None when none were given."""
+        if not heights:
+            return None
+        base = self._grid.base_states
+        return world_from_heights(self._geometry, base, self._mechanisms, heights)
+
+    def _why_not(
+        self,
+        start: int,
+        stuck: Stage,
+        rules: DoorRules,
+        candidates: Sequence[Feature],
+    ) -> str:
+        """Blame a missing key if holding every key would give a plan, else the last blocker."""
+        names = ", ".join(sorted({c.label for c in candidates}))
+        unlocked = self._planner.plan(start, candidates, rules.with_every_key())
+        if isinstance(unlocked, Planned):
+            needed = " and ".join(keys_needed(unlocked, rules.held))
+            return f"locked door: needs {needed} key on the way to {names}"
+        search = DoorAwareSearch(stuck.grid)
+        targets = stuck.grid.target_cells(candidates)
+        return explain_unreachable(search, stuck.start, targets, rules, candidates)
 
     # --- routes -----------------------------------------------------------------------------
 
@@ -128,6 +160,16 @@ class NavMap:
         `closed` lists the door sectors that are shut right now (None: assume all are). A shut door
         can be entered only from where its use-special can be pressed; an open one from anywhere.
         """
+        return self.nearest_now(WorldNow(closed), from_xy, candidates, keys_held)
+
+    def nearest_now(
+        self,
+        world: WorldNow,
+        from_xy: tuple[float, float],
+        candidates: Sequence[Feature],
+        keys_held: Iterable[str],
+    ) -> tuple[Feature, Route] | NoPath:
+        """`nearest` over the world as the engine reports it: lifts called, switches pressed."""
         if not candidates:
             return NoPath("nothing of that kind on this map")
         start = self._grid.start_cell(from_xy)
@@ -139,12 +181,14 @@ class NavMap:
         if not targets:
             names = ", ".join(sorted({c.label for c in candidates}))
             return NoPath(f"{names} is not on walkable floor (no free cell within reach)")
-        rules = DoorRules(held_colours(keys_held), closed)
-        result = self._search.run(start, targets, rules)
-        if result.cell is None:
-            return NoPath(explain_unreachable(self._search, start, targets, rules, candidates))
-        goal = candidates[targets[result.cell]]
-        return goal, build_route(self._grid, result, goal)
+        rules = DoorRules(held_colours(keys_held), world.closed)
+        states = self._states_now(world.heights)
+        planned = self._planner.plan(start, candidates, rules, states)
+        if not isinstance(planned, Planned):
+            return NoPath(self._why_not(start, planned, rules, candidates))
+        route = route_from_plan(planned, planned.goal)
+        hazards = audit_route(self._geometry, self._mechanisms, planned)
+        return planned.goal, replace(route, hazards=hazards)
 
 
 def build_navmap(geometry: MapGeometry, index: MapIndex) -> NavMap:

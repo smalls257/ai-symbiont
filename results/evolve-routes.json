@@ -1,0 +1,249 @@
+{
+ "schema": "evolve-routes-v1",
+ "label": "static route check, then a scripted walker in the engine on training levels [measured]",
+ "levels": {
+  "MAP01": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [],
+   "walk": "exit_reached"
+  },
+  "MAP02": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [],
+   "walk": "exit_reached"
+  },
+  "MAP03": {
+   "split": "training",
+   "static": "void",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP04": {
+   "split": "held_out",
+   "static": "pass",
+   "unmodeled": [],
+   "walk": "played_in_development"
+  },
+  "MAP05": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [
+    "donut"
+   ],
+   "walk": "exit_reached"
+  },
+  "MAP06": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [],
+   "walk": "exit_reached"
+  },
+  "MAP07": {
+   "split": "training",
+   "static": "wall",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP08": {
+   "split": "held_out",
+   "static": "pass",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "played_in_development"
+  },
+  "MAP09": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "exit_reached"
+  },
+  "MAP10": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [],
+   "walk": "tic_budget"
+  },
+  "MAP11": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [
+    "perpetual lift",
+    "triggered by shooting"
+   ],
+   "walk": "stuck"
+  },
+  "MAP12": {
+   "split": "held_out",
+   "static": "pass",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "played_in_development"
+  },
+  "MAP13": {
+   "split": "training",
+   "static": "void",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP14": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "exit_reached"
+  },
+  "MAP15": {
+   "split": "training",
+   "static": "void",
+   "unmodeled": [
+    "builds stairs"
+   ],
+   "walk": "no_path"
+  },
+  "MAP16": {
+   "split": "held_out",
+   "static": "pass",
+   "unmodeled": [],
+   "walk": "played_in_development"
+  },
+  "MAP17": {
+   "split": "training",
+   "static": "climb",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP18": {
+   "split": "training",
+   "static": "climb",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP19": {
+   "split": "training",
+   "static": "void",
+   "unmodeled": [
+    "perpetual lift"
+   ],
+   "walk": "no_path"
+  },
+  "MAP20": {
+   "split": "held_out",
+   "static": "void",
+   "unmodeled": [
+    "builds stairs",
+    "triggered by shooting"
+   ],
+   "walk": "played_in_development"
+  },
+  "MAP21": {
+   "split": "training",
+   "static": "void",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP22": {
+   "split": "training",
+   "static": "exit_off_floor",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP23": {
+   "split": "training",
+   "static": "wall",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP24": {
+   "split": "held_out",
+   "static": "pass",
+   "unmodeled": [],
+   "walk": "played_in_development"
+  },
+  "MAP25": {
+   "split": "training",
+   "static": "headroom",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "no_path"
+  },
+  "MAP26": {
+   "split": "training",
+   "static": "void",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "no_path"
+  },
+  "MAP27": {
+   "split": "training",
+   "static": "climb",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "no_path"
+  },
+  "MAP28": {
+   "split": "held_out",
+   "static": "pass",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "played_in_development"
+  },
+  "MAP29": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [
+    "builds stairs"
+   ],
+   "walk": "exit_reached"
+  },
+  "MAP30": {
+   "split": "training",
+   "static": "no_exit_on_map",
+   "unmodeled": [],
+   "walk": "no_path"
+  },
+  "MAP31": {
+   "split": "training",
+   "static": "pass",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "stuck"
+  },
+  "MAP32": {
+   "split": "held_out",
+   "static": "pass",
+   "unmodeled": [
+    "triggered by shooting"
+   ],
+   "walk": "played_in_development"
+  }
+ },
+ "counts": {
+  "training_static_pass": 10,
+  "training_exit_reached": 7,
+  "training_static_drop": 14,
+  "training_no_path": 14,
+  "blocker_void": 7,
+  "held_out_static_pass": 7,
+  "held_out_played_in_development": 8,
+  "blocker_wall": 2,
+  "training_tic_budget": 1,
+  "training_stuck": 2,
+  "blocker_climb": 3,
+  "held_out_static_drop": 1,
+  "blocker_exit_off_floor": 1,
+  "blocker_headroom": 1,
+  "blocker_no_exit_on_map": 1
+ }
+}

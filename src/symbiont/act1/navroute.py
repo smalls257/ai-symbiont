@@ -25,7 +25,7 @@ def build_route(grid: WalkGrid, result: SearchResult, goal: Feature) -> Route:
     cells = cells_to(result.cell, result.parent)
     waypoints, doors = waypoints_for(grid, cells)
     if goal.kind in ("key", "object"):
-        waypoints = _ending_on(grid, goal, waypoints, cells[-1])
+        waypoints = ending_on(grid, goal, waypoints, cells[-1])
     return Route(tuple(waypoints), result.length, doors)
 
 
@@ -78,9 +78,10 @@ def _simplify(grid: WalkGrid, run: list[int]) -> list[int]:
     return kept
 
 
-def _ending_on(
+def ending_on(
     grid: WalkGrid, goal: Feature, waypoints: list[Waypoint], last_cell: int
 ) -> list[Waypoint]:
+    """End a pickup route on the item itself when the floor is clear all the way to it."""
     here = (waypoints[-1].x, waypoints[-1].y) if waypoints else grid.centre_of(last_cell)
     if grid.clear_line(here, (goal.x, goal.y)):
         return [*waypoints, Waypoint(goal.x, goal.y)]

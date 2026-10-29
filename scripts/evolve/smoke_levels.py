@@ -23,10 +23,10 @@ script_paths.add_script_dirs()
 
 from symbiont.act1.episode import MapKnowledge, RunLog, run_episode  # noqa: E402 - path set above
 from symbiont.act1.evolve_split import SmokeResult  # noqa: E402
-from symbiont.act1.game_fitness import NoRouteError, remaining_route_units  # noqa: E402
+from symbiont.act1.game_fitness import ALL_KEY_COLORS  # noqa: E402
 from symbiont.act1.levels import LevelSplit, levels_in, split_of  # noqa: E402
 from symbiont.act1.map_index import build_index  # noqa: E402
-from symbiont.act1.navmap import build_navmap  # noqa: E402
+from symbiont.act1.navmap import NoPath, build_navmap  # noqa: E402
 from symbiont.act1.policies import policy_named  # noqa: E402
 from symbiont.act1.steplog import MoveRun  # noqa: E402
 from symbiont.act1.wad import MapGeometry, WadError, read_map  # noqa: E402
@@ -51,10 +51,12 @@ def static_route_check(geometry: MapGeometry) -> SmokeResult:
     if not starts:
         return _drop("no_start: the map has no player 1 start")
     nav = build_navmap(geometry, build_index(geometry))
-    try:
-        remaining_route_units(nav, (float(starts[0].x), float(starts[0].y)))
-    except NoRouteError as error:
-        return _drop(f"no_route: {error}")
+    start = (float(starts[0].x), float(starts[0].y))
+    found = nav.nearest(start, nav.features("exit"), ALL_KEY_COLORS, closed=frozenset())
+    if isinstance(found, NoPath):
+        return _drop(f"no_route: no route to the exit: {found.reason}")
+    if found[1].hazards:  # a route that shuts a door behind itself is not a route
+        return _drop(f"unsafe_route: {found[1].hazards[0]}")
     return PASS
 
 
