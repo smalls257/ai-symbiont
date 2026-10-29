@@ -22,7 +22,8 @@ def _cal2(run_dir, rows):
     for row in rows:
         path = run_dir / "traj" / row["instance_id"]
         path.mkdir(parents=True, exist_ok=True)
-        (path / f"cal2-run{row['run']}-low.traj.json").write_text("{}")
+        config = {"info": {"config": {"model": {"model_name": "muse-spark-1.3-contributor"}}}}
+        (path / f"cal2-run{row['run']}-low.traj.json").write_text(json.dumps(config))
 
 
 def test_keeps_resolved_runs_and_leaves_out_test_tasks(tmp_path):
@@ -38,9 +39,10 @@ def test_keeps_resolved_runs_and_leaves_out_test_tasks(tmp_path):
     )
     found, skipped = module.manifest({"test": [{"task": "held"}]}, [tmp_path / "work" / "runs-a"])
     assert [(e["task"], e["run"], e["run_dir"], e["source"]) for e in found] == [
-        ("early", 1, str(tmp_path / "work" / "runs-a"), "glimmer")
+        ("early", 1, str(tmp_path / "work" / "runs-a"), "teacher/spark")
     ]
     assert skipped == 1
+    assert found[0]["model"] == "muse-spark-1.3-contributor"  # the trajectory's, not the record's
 
 
 def test_a_resolved_run_without_its_trajectory_raises(tmp_path):

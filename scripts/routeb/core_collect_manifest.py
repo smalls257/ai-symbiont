@@ -28,6 +28,13 @@ def swev_trajectory(run_dir: Path, row: dict) -> Path:
     return run_dir / "traj" / row["instance_id"] / name
 
 
+def model_called(trajectory: Path) -> str:
+    """The model the agent actually called, from the trajectory's own config (record fields
+    written by a reused driver config can name the default model instead)."""
+    config = json.loads(trajectory.read_text())["info"]["config"]
+    return str(config["model"]["model_name"])
+
+
 def passing_runs(run_dir: Path) -> list[dict]:
     """Manifest entries for the resolved runs of one run directory."""
     found = []
@@ -45,8 +52,8 @@ def passing_runs(run_dir: Path) -> list[dict]:
                     "task": row["instance_id"],
                     "run": row["run"],
                     "arm": row.get("arm") or "plain",
-                    "model": row.get("model"),
-                    "source": f"teacher/{row['teacher']}" if row.get("teacher") else "glimmer",
+                    "model": (model := model_called(trajectory)),
+                    "source": "teacher/spark" if model.startswith("muse-spark") else "glimmer",
                     "passed": True,
                     "steps": row.get("steps"),
                     "step_limit": row.get("step_limit"),
