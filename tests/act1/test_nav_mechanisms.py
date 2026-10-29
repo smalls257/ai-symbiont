@@ -5,6 +5,7 @@ import pytest
 from nav_mech_world import START, TAG, lift, pedestal_key, switch_door, teleport
 from symbiont.act1.map_index import build_index
 from symbiont.act1.navmap import NoPath, Route, build_navmap
+from symbiont.act1.navmech import apply_mechanism, build_mechanisms
 from symbiont.act1.navspecials import UnknownSpecialError
 from symbiont.act1.navtypes import Action, WorldNow
 from symbiont.act1.wad import Thing
@@ -104,3 +105,16 @@ def test_a_barrel_in_a_doorway_is_part_of_the_wall():
     assert isinstance(way_to_exit(geometry), Route)
     geometry.things.append(Thing(264, 128, 2035))
     assert isinstance(way_to_exit(geometry), NoPath)
+
+
+def test_a_raised_floor_stops_at_its_own_ceiling_and_uses_the_neighbors_current_ceilings():
+    geometry = pedestal_key(switch=140)  # S1 raise by 512: the pedestal's ceiling is 192
+    nav = nav_of(geometry)
+    (mech,) = [m for m in build_mechanisms(geometry) if m.number == 140]
+    after = apply_mechanism(geometry, nav._grid.base_states, mech)
+    assert after[1].floor_out == 192
+    to_ceiling = [m for m in build_mechanisms(pedestal_key(switch=64)) if m.number == 64]
+    lowered = list(nav._grid.base_states)
+    lowered[0] = lowered[0].__class__(0, 0, 120)  # room A's ceiling now 120
+    raised = apply_mechanism(geometry, lowered, to_ceiling[0])
+    assert raised[1].floor_out == 120

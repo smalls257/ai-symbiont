@@ -150,11 +150,12 @@ def _floor_moved(
     elif special.effect == Effect.RAISE_FLOOR_NEXT:
         target = min((f for f in floors if f > state.floor_out), default=state.floor_out)
     elif special.effect == Effect.RAISE_FLOOR_CEILING:
-        ceilings = [geometry.sectors[n].ceiling for n in around]
+        ceilings = [states[n].ceiling for n in around if states[n].ceiling < OPEN_DOOR_CEILING]
         margin = CRUSH_MARGIN if mechanism.number in CRUSHING_RAISERS else 0
         target = min(ceilings, default=state.ceiling) - margin
     else:
         target = state.floor_out + special.amount
+    target = min(target, state.ceiling)  # a floor cannot rise through its own ceiling
     return replace(state, floor_in=target, floor_out=target)
 
 
@@ -171,11 +172,18 @@ def world_from_heights(
     """
     if len(heights) != len(base):
         raise ValueError(f"engine reports {len(heights)} sectors, the map has {len(base)}")
-    states = list(base)
+    states = [_resting_now(state, height) for state, height in zip(base, heights, strict=True)]
     for mech in mechanisms:
         for sector in mech.sectors:
             states[sector] = _state_now(geometry, base, sector, mech, heights[sector])
     return states
+
+
+def _resting_now(state: SectorState, height: tuple[float, float]) -> SectorState:
+    """A sector no mechanism acts on, at the engine's height (a manual door keeps its sentinel)."""
+    if state.ceiling >= OPEN_DOOR_CEILING:
+        return state
+    return SectorState(int(height[0]), int(height[0]), int(height[1]))
 
 
 def _state_now(
