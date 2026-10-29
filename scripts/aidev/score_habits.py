@@ -1,7 +1,7 @@
 """Score answers to held-out habit questions: did the answer name the check its lesson teaches?
 
 Usage: python scripts/aidev/score_habits.py --questions Q.jsonl --answers ARM=A.jsonl ...
-       [--record results/aidev-lessons.json]   (adds the scores as `habit_recall`)
+       [--record results/aidev-lessons.json --answerer-record W/answerer.sha256]
 
 Deterministic like the LCAP scorer: a hit needs the kind's key term; naming only another kind's
 term is off-kind, so "add tests" to everything cannot score on every kind. The base model's row
@@ -62,7 +62,10 @@ def main() -> None:
     parser.add_argument("--questions", type=Path, required=True)
     parser.add_argument("--answers", nargs="+", required=True, help="ARM=answers.jsonl")
     parser.add_argument("--record", type=Path, help="results file to add the scores to")
+    parser.add_argument("--answerer-record", type=Path, help="answerer.sha256 the driver wrote")
     args = parser.parse_args()
+    if args.record and not args.answerer_record:
+        parser.error("--record needs --answerer-record: a result must name the script behind it")
     questions = [json.loads(line) for line in args.questions.read_text().splitlines()]
     scores = {}
     for spec in args.answers:
@@ -77,6 +80,8 @@ def main() -> None:
             "rows": [
                 {"arm": arm, "role": ROLE.get(arm, "under_test"), **s} for arm, s in scores.items()
             ],
+            "answer_script": "scripts/routea/answer_questions.py",
+            "answer_script_sha256": args.answerer_record.read_text().strip(),
         }
         args.record.write_text(json.dumps(document, indent=1, sort_keys=True) + "\n")
 

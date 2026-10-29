@@ -1,0 +1,129 @@
+{
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+ "control_repo": "CORE-GATECH-GROUP/serpent-tools",
+ "repo": "Azure/msrest-for-python",
+ "rows": [
+  {
+   "arm": "a1_habits",
+   "budget": 10,
+   "habits_kept": 0.6364,
+   "habits_kept_ranked": 0.7045,
+   "new_lesson_recall": 0.0,
+   "new_lesson_recall_verbatim": 0.0,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "a1_habits",
+   "budget": 5,
+   "habits_kept": 0.6364,
+   "habits_kept_ranked": 0.7045,
+   "new_lesson_recall": 0.0,
+   "new_lesson_recall_verbatim": 0.0,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "a1_plain",
+   "budget": 10,
+   "habits_kept": 0.5,
+   "habits_kept_ranked": 0.2045,
+   "new_lesson_recall": 0.28,
+   "new_lesson_recall_verbatim": 0.2,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "a1_plain",
+   "budget": 5,
+   "habits_kept": 0.5,
+   "habits_kept_ranked": 0.2045,
+   "new_lesson_recall": 0.28,
+   "new_lesson_recall_verbatim": 0.2667,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "a2_meta",
+   "budget": 10,
+   "habits_kept": 0.4091,
+   "habits_kept_ranked": 0.7955,
+   "new_lesson_recall": 0.48,
+   "new_lesson_recall_verbatim": 0.5667,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "a2_meta",
+   "budget": 5,
+   "habits_kept": 0.4091,
+   "habits_kept_ranked": 0.7955,
+   "new_lesson_recall": 0.6,
+   "new_lesson_recall_verbatim": 0.7,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "b_stacked",
+   "budget": 10,
+   "habits_kept": 0.1136,
+   "habits_kept_ranked": 0.2727,
+   "new_lesson_recall": 0.48,
+   "new_lesson_recall_verbatim": 0.6167,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "b_stacked",
+   "budget": 5,
+   "habits_kept": 0.25,
+   "habits_kept_ranked": 0.8636,
+   "new_lesson_recall": 0.36,
+   "new_lesson_recall_verbatim": 0.6667,
+   "role": "under_test",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "warm_habits",
+   "budget": 10,
+   "habits_kept": 0.1364,
+   "habits_kept_ranked": 0.5909,
+   "new_lesson_recall": 0.48,
+   "new_lesson_recall_verbatim": 0.55,
+   "role": "reference",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "warm_habits",
+   "budget": 5,
+   "habits_kept": 0.2273,
+   "habits_kept_ranked": 0.8636,
+   "new_lesson_recall": 0.36,
+   "new_lesson_recall_verbatim": 0.6,
+   "role": "reference",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "warm_plain",
+   "budget": 10,
+   "habits_kept": 0.25,
+   "habits_kept_ranked": 0.1818,
+   "new_lesson_recall": 0.48,
+   "new_lesson_recall_verbatim": 0.55,
+   "role": "reference",
+   "wrong_lesson_recall": 0.0
+  },
+  {
+   "arm": "warm_plain",
+   "budget": 5,
+   "habits_kept": 0.1818,
+   "habits_kept_ranked": 0.1818,
+   "new_lesson_recall": 0.64,
+   "new_lesson_recall_verbatim": 0.7,
+   "role": "reference",
+   "wrong_lesson_recall": 0.0
+  }
+ ],
+ "status": "exploratory feasibility, one repo, no prereg; Llama 3.2 1B MLX on the laptop"
+}
