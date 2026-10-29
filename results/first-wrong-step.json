@@ -1,0 +1,988 @@
+{
+ "exploratory": true,
+ "post_hoc": true,
+ "prereg": null,
+ "note": "exploratory, post hoc: counts and labels only; TRAIL is gated on Hugging Face and both datasets stay local; risks come from the warner fitted on the public OpenHands pool",
+ "datasets": {
+  "trail": "patronus-ai/trail-benchmark",
+  "who_and_when": "Kevin355/Who_and_When"
+ },
+ "label": {
+  "rule": "first wrong step = earliest step an annotator marked wrong (TRAIL: the step holding the error span; Who&When: mistake_step); first_wrong_ahead = it lies in (t, t+5], our label shape",
+  "window_steps": 5
+ },
+ "sources": {
+  "trail": {
+   "swe_bench": {
+    "framework": "smolagents CodeAgent (OpenInference spans)",
+    "task_kind": "coding",
+    "traces": 31,
+    "steps": 496,
+    "steps_per_trace_median": 15.0,
+    "annotated_wrong_steps": 188,
+    "annotations_on_no_step": 2,
+    "traces_with_first_wrong_step": 30,
+    "traces_without_first_wrong_step": 1,
+    "first_wrong_step_median": 2.0,
+    "first_wrong_share_of_trace_median": 0.1833
+   },
+   "gaia": {
+    "framework": "smolagents CodeAgent (OpenInference spans)",
+    "task_kind": "web_qa",
+    "traces": 116,
+    "steps": 917,
+    "steps_per_trace_median": 4.0,
+    "annotated_wrong_steps": 309,
+    "annotations_on_no_step": 55,
+    "traces_with_first_wrong_step": 104,
+    "traces_without_first_wrong_step": 12,
+    "first_wrong_step_median": 1.0,
+    "first_wrong_share_of_trace_median": 0.4944
+   },
+   "unreadable_files": 1,
+   "annotations_paired_by_file_name": 5
+  },
+  "who_and_when": {
+   "algorithm_generated": {
+    "framework": "AG2 CaptainAgent",
+    "task_kind": "web_qa",
+    "traces": 126,
+    "steps": 1099,
+    "steps_per_trace_median": 10.0,
+    "annotated_wrong_steps": 126,
+    "annotations_on_no_step": 0,
+    "traces_with_first_wrong_step": 126,
+    "traces_without_first_wrong_step": 0,
+    "first_wrong_step_median": 2.0,
+    "first_wrong_share_of_trace_median": 0.3333,
+    "blamed_agent_wrote_blamed_step": 123
+   },
+   "hand_crafted": {
+    "framework": "Magentic-One",
+    "task_kind": "web_qa",
+    "traces": 58,
+    "steps": 2993,
+    "steps_per_trace_median": 32.5,
+    "annotated_wrong_steps": 55,
+    "annotations_on_no_step": 3,
+    "traces_with_first_wrong_step": 55,
+    "traces_without_first_wrong_step": 3,
+    "first_wrong_step_median": 12.0,
+    "first_wrong_share_of_trace_median": 0.3171,
+    "blamed_agent_wrote_blamed_step": 52
+   }
+  }
+ },
+ "by_task_kind": {
+  "coding": {
+   "label_counts": {
+    "steps": 496,
+    "at_first_wrong": 30,
+    "first_wrong_ahead": 76,
+    "error_ahead": 409,
+    "mined_trouble_ahead": 164,
+    "mined_trouble_steps": 55,
+    "boundary_steps": 55
+   },
+   "mined_vs_annotated_steps": {
+    "both": 152,
+    "mined_only": 12,
+    "annotated_only": 257,
+    "neither": 75,
+    "cohen_kappa": 0.1108
+   },
+   "around_first_wrong": {
+    "traces": 30,
+    "first_wrong_is_boundary": 2,
+    "mined_trouble_at_first_wrong": 2,
+    "mined_trouble_before_first_wrong": 6,
+    "mined_trouble_within_window_after": 9,
+    "no_mined_trouble_in_trace": 7
+   },
+   "warner": {
+    "role": "under_test",
+    "traces": 31,
+    "at_first_wrong": {
+     "steps": 496,
+     "positives": 30,
+     "sessions_with_positive": 30,
+     "base_rate": 0.0605,
+     "auc": 0.2261,
+     "auc_ci95": {
+      "low": 0.1606,
+      "high": 0.3094,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.1902,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 0,
+      "precision": 0.0
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 3,
+      "precision": 0.0169
+     },
+     "floor_every_boundary_precision": 0.0364
+    },
+    "first_wrong_ahead": {
+     "steps": 496,
+     "positives": 76,
+     "sessions_with_positive": 30,
+     "base_rate": 0.1532,
+     "auc": 0.1608,
+     "auc_ci95": {
+      "low": 0.05,
+      "high": 0.2886,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.0683,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 0,
+      "precision": 0.0
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 12,
+      "precision": 0.0678
+     },
+     "floor_every_boundary_precision": 0.1091
+    },
+    "error_ahead": {
+     "steps": 496,
+     "positives": 409,
+     "sessions_with_positive": 30,
+     "base_rate": 0.8246,
+     "auc": 0.5675,
+     "auc_ci95": {
+      "low": 0.488,
+      "high": 0.6511,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.4097,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 21,
+      "precision": 0.913
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 155,
+      "precision": 0.8757
+     },
+     "floor_every_boundary_precision": 0.8909
+    },
+    "mined_trouble_ahead": {
+     "steps": 496,
+     "positives": 164,
+     "sessions_with_positive": 23,
+     "base_rate": 0.3306,
+     "auc": 0.5425,
+     "auc_ci95": {
+      "low": 0.476,
+      "high": 0.6018,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.5588,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 9,
+      "precision": 0.3913
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 58,
+      "precision": 0.3277
+     },
+     "floor_every_boundary_precision": 0.4545
+    },
+    "at_first_wrong_steps_up_to_it": {
+     "steps": 116,
+     "positives": 30,
+     "sessions_with_positive": 30,
+     "base_rate": 0.2586,
+     "auc": 0.6607,
+     "auc_ci95": {
+      "low": 0.5823,
+      "high": 0.7492,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.7671,
+     "operating_point": {
+      "notes": 0,
+      "right_notes": 0,
+      "precision": null
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 16,
+      "right": 3,
+      "precision": 0.1875
+     },
+     "floor_every_boundary_precision": 0.25
+    }
+   }
+  },
+  "web_qa": {
+   "label_counts": {
+    "steps": 5009,
+    "at_first_wrong": 285,
+    "first_wrong_ahead": 768,
+    "error_ahead": 1133,
+    "mined_trouble_ahead": 685,
+    "mined_trouble_steps": 283,
+    "boundary_steps": 281
+   },
+   "mined_vs_annotated_steps": {
+    "both": 456,
+    "mined_only": 229,
+    "annotated_only": 677,
+    "neither": 3647,
+    "cohen_kappa": 0.3993
+   },
+   "around_first_wrong": {
+    "traces": 285,
+    "first_wrong_is_boundary": 18,
+    "mined_trouble_at_first_wrong": 18,
+    "mined_trouble_before_first_wrong": 42,
+    "mined_trouble_within_window_after": 73,
+    "no_mined_trouble_in_trace": 169
+   },
+   "warner": {
+    "role": "under_test",
+    "traces": 300,
+    "at_first_wrong": {
+     "steps": 5009,
+     "positives": 285,
+     "sessions_with_positive": 285,
+     "base_rate": 0.0569,
+     "auc": 0.3869,
+     "auc_ci95": {
+      "low": 0.3489,
+      "high": 0.4282,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2082,
+     "operating_point": {
+      "notes": 87,
+      "right_notes": 4,
+      "precision": 0.046
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 373,
+      "right": 11,
+      "precision": 0.0295
+     },
+     "floor_every_boundary_precision": 0.0641
+    },
+    "first_wrong_ahead": {
+     "steps": 5009,
+     "positives": 768,
+     "sessions_with_positive": 265,
+     "base_rate": 0.1533,
+     "auc": 0.3469,
+     "auc_ci95": {
+      "low": 0.2987,
+      "high": 0.3911,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.1867,
+     "operating_point": {
+      "notes": 87,
+      "right_notes": 21,
+      "precision": 0.2414
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 373,
+      "right": 52,
+      "precision": 0.1394
+     },
+     "floor_every_boundary_precision": 0.1673
+    },
+    "error_ahead": {
+     "steps": 5009,
+     "positives": 1133,
+     "sessions_with_positive": 265,
+     "base_rate": 0.2262,
+     "auc": 0.4666,
+     "auc_ci95": {
+      "low": 0.423,
+      "high": 0.5072,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2107,
+     "operating_point": {
+      "notes": 87,
+      "right_notes": 55,
+      "precision": 0.6322
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 373,
+      "right": 185,
+      "precision": 0.496
+     },
+     "floor_every_boundary_precision": 0.6263
+    },
+    "mined_trouble_ahead": {
+     "steps": 5009,
+     "positives": 685,
+     "sessions_with_positive": 116,
+     "base_rate": 0.1368,
+     "auc": 0.5162,
+     "auc_ci95": {
+      "low": 0.4527,
+      "high": 0.5681,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2332,
+     "operating_point": {
+      "notes": 87,
+      "right_notes": 37,
+      "precision": 0.4253
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 373,
+      "right": 156,
+      "precision": 0.4182
+     },
+     "floor_every_boundary_precision": 0.548
+    },
+    "at_first_wrong_steps_up_to_it": {
+     "steps": 1744,
+     "positives": 285,
+     "sessions_with_positive": 285,
+     "base_rate": 0.1634,
+     "auc": 0.5148,
+     "auc_ci95": {
+      "low": 0.4766,
+      "high": 0.5538,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.4195,
+     "operating_point": {
+      "notes": 27,
+      "right_notes": 4,
+      "precision": 0.1481
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 76,
+      "right": 11,
+      "precision": 0.1447
+     },
+     "floor_every_boundary_precision": 0.2143
+    }
+   }
+  }
+ },
+ "by_split": {
+  "trail:swe_bench": {
+   "label_counts": {
+    "steps": 496,
+    "at_first_wrong": 30,
+    "first_wrong_ahead": 76,
+    "error_ahead": 409,
+    "mined_trouble_ahead": 164,
+    "mined_trouble_steps": 55,
+    "boundary_steps": 55
+   },
+   "mined_vs_annotated_steps": {
+    "both": 152,
+    "mined_only": 12,
+    "annotated_only": 257,
+    "neither": 75,
+    "cohen_kappa": 0.1108
+   },
+   "around_first_wrong": {
+    "traces": 30,
+    "first_wrong_is_boundary": 2,
+    "mined_trouble_at_first_wrong": 2,
+    "mined_trouble_before_first_wrong": 6,
+    "mined_trouble_within_window_after": 9,
+    "no_mined_trouble_in_trace": 7
+   },
+   "warner": {
+    "role": "under_test",
+    "traces": 31,
+    "at_first_wrong": {
+     "steps": 496,
+     "positives": 30,
+     "sessions_with_positive": 30,
+     "base_rate": 0.0605,
+     "auc": 0.2261,
+     "auc_ci95": {
+      "low": 0.1606,
+      "high": 0.3094,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.1902,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 0,
+      "precision": 0.0
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 3,
+      "precision": 0.0169
+     },
+     "floor_every_boundary_precision": 0.0364
+    },
+    "first_wrong_ahead": {
+     "steps": 496,
+     "positives": 76,
+     "sessions_with_positive": 30,
+     "base_rate": 0.1532,
+     "auc": 0.1608,
+     "auc_ci95": {
+      "low": 0.05,
+      "high": 0.2886,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.0683,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 0,
+      "precision": 0.0
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 12,
+      "precision": 0.0678
+     },
+     "floor_every_boundary_precision": 0.1091
+    },
+    "error_ahead": {
+     "steps": 496,
+     "positives": 409,
+     "sessions_with_positive": 30,
+     "base_rate": 0.8246,
+     "auc": 0.5675,
+     "auc_ci95": {
+      "low": 0.488,
+      "high": 0.6511,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.4097,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 21,
+      "precision": 0.913
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 155,
+      "precision": 0.8757
+     },
+     "floor_every_boundary_precision": 0.8909
+    },
+    "mined_trouble_ahead": {
+     "steps": 496,
+     "positives": 164,
+     "sessions_with_positive": 23,
+     "base_rate": 0.3306,
+     "auc": 0.5425,
+     "auc_ci95": {
+      "low": 0.476,
+      "high": 0.6018,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.5588,
+     "operating_point": {
+      "notes": 23,
+      "right_notes": 9,
+      "precision": 0.3913
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 177,
+      "right": 58,
+      "precision": 0.3277
+     },
+     "floor_every_boundary_precision": 0.4545
+    },
+    "at_first_wrong_steps_up_to_it": {
+     "steps": 116,
+     "positives": 30,
+     "sessions_with_positive": 30,
+     "base_rate": 0.2586,
+     "auc": 0.6607,
+     "auc_ci95": {
+      "low": 0.5823,
+      "high": 0.7492,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.7671,
+     "operating_point": {
+      "notes": 0,
+      "right_notes": 0,
+      "precision": null
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 16,
+      "right": 3,
+      "precision": 0.1875
+     },
+     "floor_every_boundary_precision": 0.25
+    }
+   }
+  },
+  "trail:gaia": {
+   "label_counts": {
+    "steps": 917,
+    "at_first_wrong": 104,
+    "first_wrong_ahead": 185,
+    "error_ahead": 550,
+    "mined_trouble_ahead": 399,
+    "mined_trouble_steps": 192,
+    "boundary_steps": 191
+   },
+   "mined_vs_annotated_steps": {
+    "both": 315,
+    "mined_only": 84,
+    "annotated_only": 235,
+    "neither": 283,
+    "cohen_kappa": 0.3218
+   },
+   "around_first_wrong": {
+    "traces": 104,
+    "first_wrong_is_boundary": 17,
+    "mined_trouble_at_first_wrong": 17,
+    "mined_trouble_before_first_wrong": 14,
+    "mined_trouble_within_window_after": 33,
+    "no_mined_trouble_in_trace": 56
+   },
+   "warner": {
+    "role": "under_test",
+    "traces": 116,
+    "at_first_wrong": {
+     "steps": 917,
+     "positives": 104,
+     "sessions_with_positive": 104,
+     "base_rate": 0.1134,
+     "auc": 0.314,
+     "auc_ci95": {
+      "low": 0.2688,
+      "high": 0.3647,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2428,
+     "operating_point": {
+      "notes": 44,
+      "right_notes": 4,
+      "precision": 0.0909
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 200,
+      "right": 7,
+      "precision": 0.035
+     },
+     "floor_every_boundary_precision": 0.089
+    },
+    "first_wrong_ahead": {
+     "steps": 917,
+     "positives": 185,
+     "sessions_with_positive": 104,
+     "base_rate": 0.2017,
+     "auc": 0.2169,
+     "auc_ci95": {
+      "low": 0.1478,
+      "high": 0.2897,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.1707,
+     "operating_point": {
+      "notes": 44,
+      "right_notes": 5,
+      "precision": 0.1136
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 200,
+      "right": 13,
+      "precision": 0.065
+     },
+     "floor_every_boundary_precision": 0.0942
+    },
+    "error_ahead": {
+     "steps": 917,
+     "positives": 550,
+     "sessions_with_positive": 104,
+     "base_rate": 0.5998,
+     "auc": 0.5301,
+     "auc_ci95": {
+      "low": 0.4816,
+      "high": 0.5791,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.3912,
+     "operating_point": {
+      "notes": 44,
+      "right_notes": 39,
+      "precision": 0.8864
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 200,
+      "right": 146,
+      "precision": 0.73
+     },
+     "floor_every_boundary_precision": 0.7696
+    },
+    "mined_trouble_ahead": {
+     "steps": 917,
+     "positives": 399,
+     "sessions_with_positive": 48,
+     "base_rate": 0.4351,
+     "auc": 0.6444,
+     "auc_ci95": {
+      "low": 0.59,
+      "high": 0.6934,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.5656,
+     "operating_point": {
+      "notes": 44,
+      "right_notes": 31,
+      "precision": 0.7045
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 200,
+      "right": 128,
+      "precision": 0.64
+     },
+     "floor_every_boundary_precision": 0.6963
+    },
+    "at_first_wrong_steps_up_to_it": {
+     "steps": 349,
+     "positives": 104,
+     "sessions_with_positive": 104,
+     "base_rate": 0.298,
+     "auc": 0.5848,
+     "auc_ci95": {
+      "low": 0.4899,
+      "high": 0.712,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.5655,
+     "operating_point": {
+      "notes": 11,
+      "right_notes": 4,
+      "precision": 0.3636
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 33,
+      "right": 7,
+      "precision": 0.2121
+     },
+     "floor_every_boundary_precision": 0.3469
+    }
+   }
+  },
+  "who_and_when:algorithm_generated": {
+   "label_counts": {
+    "steps": 1099,
+    "at_first_wrong": 126,
+    "first_wrong_ahead": 324,
+    "error_ahead": 324,
+    "mined_trouble_ahead": 286,
+    "mined_trouble_steps": 91,
+    "boundary_steps": 90
+   },
+   "mined_vs_annotated_steps": {
+    "both": 141,
+    "mined_only": 145,
+    "annotated_only": 183,
+    "neither": 630,
+    "cohen_kappa": 0.2569
+   },
+   "around_first_wrong": {
+    "traces": 126,
+    "first_wrong_is_boundary": 1,
+    "mined_trouble_at_first_wrong": 1,
+    "mined_trouble_before_first_wrong": 28,
+    "mined_trouble_within_window_after": 40,
+    "no_mined_trouble_in_trace": 58
+   },
+   "warner": {
+    "role": "under_test",
+    "traces": 126,
+    "at_first_wrong": {
+     "steps": 1099,
+     "positives": 126,
+     "sessions_with_positive": 126,
+     "base_rate": 0.1146,
+     "auc": 0.3524,
+     "auc_ci95": {
+      "low": 0.3039,
+      "high": 0.4021,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.3769,
+     "operating_point": {
+      "notes": 43,
+      "right_notes": 0,
+      "precision": 0.0
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 173,
+      "right": 4,
+      "precision": 0.0231
+     },
+     "floor_every_boundary_precision": 0.0111
+    },
+    "first_wrong_ahead": {
+     "steps": 1099,
+     "positives": 324,
+     "sessions_with_positive": 106,
+     "base_rate": 0.2948,
+     "auc": 0.3212,
+     "auc_ci95": {
+      "low": 0.2627,
+      "high": 0.3788,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2478,
+     "operating_point": {
+      "notes": 43,
+      "right_notes": 16,
+      "precision": 0.3721
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 173,
+      "right": 39,
+      "precision": 0.2254
+     },
+     "floor_every_boundary_precision": 0.3222
+    },
+    "error_ahead": {
+     "steps": 1099,
+     "positives": 324,
+     "sessions_with_positive": 106,
+     "base_rate": 0.2948,
+     "auc": 0.3212,
+     "auc_ci95": {
+      "low": 0.2627,
+      "high": 0.3788,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2478,
+     "operating_point": {
+      "notes": 43,
+      "right_notes": 16,
+      "precision": 0.3721
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 173,
+      "right": 39,
+      "precision": 0.2254
+     },
+     "floor_every_boundary_precision": 0.3222
+    },
+    "mined_trouble_ahead": {
+     "steps": 1099,
+     "positives": 286,
+     "sessions_with_positive": 68,
+     "base_rate": 0.2602,
+     "auc": 0.3228,
+     "auc_ci95": {
+      "low": 0.2676,
+      "high": 0.378,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2775,
+     "operating_point": {
+      "notes": 43,
+      "right_notes": 6,
+      "precision": 0.1395
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 173,
+      "right": 28,
+      "precision": 0.1618
+     },
+     "floor_every_boundary_precision": 0.2333
+    },
+    "at_first_wrong_steps_up_to_it": {
+     "steps": 504,
+     "positives": 126,
+     "sessions_with_positive": 126,
+     "base_rate": 0.25,
+     "auc": 0.5078,
+     "auc_ci95": {
+      "low": 0.4677,
+      "high": 0.5531,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.5917,
+     "operating_point": {
+      "notes": 16,
+      "right_notes": 0,
+      "precision": 0.0
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 43,
+      "right": 4,
+      "precision": 0.093
+     },
+     "floor_every_boundary_precision": 0.0286
+    }
+   }
+  },
+  "who_and_when:hand_crafted": {
+   "label_counts": {
+    "steps": 2993,
+    "at_first_wrong": 55,
+    "first_wrong_ahead": 259,
+    "error_ahead": 259,
+    "mined_trouble_ahead": 0,
+    "mined_trouble_steps": 0,
+    "boundary_steps": 0
+   },
+   "mined_vs_annotated_steps": {
+    "both": 0,
+    "mined_only": 0,
+    "annotated_only": 259,
+    "neither": 2734,
+    "cohen_kappa": 0.0
+   },
+   "around_first_wrong": {
+    "traces": 55,
+    "first_wrong_is_boundary": 0,
+    "mined_trouble_at_first_wrong": 0,
+    "mined_trouble_before_first_wrong": 0,
+    "mined_trouble_within_window_after": 0,
+    "no_mined_trouble_in_trace": 55
+   },
+   "warner": {
+    "role": "under_test",
+    "traces": 58,
+    "at_first_wrong": {
+     "steps": 2993,
+     "positives": 55,
+     "sessions_with_positive": 55,
+     "base_rate": 0.0184,
+     "auc": 0.706,
+     "auc_ci95": {
+      "low": 0.6217,
+      "high": 0.7879,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.2513,
+     "operating_point": {
+      "notes": 0,
+      "right_notes": 0,
+      "precision": null
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 0,
+      "right": 0,
+      "precision": null
+     },
+     "floor_every_boundary_precision": null
+    },
+    "first_wrong_ahead": {
+     "steps": 2993,
+     "positives": 259,
+     "sessions_with_positive": 55,
+     "base_rate": 0.0865,
+     "auc": 0.5472,
+     "auc_ci95": {
+      "low": 0.4509,
+      "high": 0.6362,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.1936,
+     "operating_point": {
+      "notes": 0,
+      "right_notes": 0,
+      "precision": null
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 0,
+      "right": 0,
+      "precision": null
+     },
+     "floor_every_boundary_precision": null
+    },
+    "error_ahead": {
+     "steps": 2993,
+     "positives": 259,
+     "sessions_with_positive": 55,
+     "base_rate": 0.0865,
+     "auc": 0.5472,
+     "auc_ci95": {
+      "low": 0.4509,
+      "high": 0.6362,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.1936,
+     "operating_point": {
+      "notes": 0,
+      "right_notes": 0,
+      "precision": null
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 0,
+      "right": 0,
+      "precision": null
+     },
+     "floor_every_boundary_precision": null
+    },
+    "mined_trouble_ahead": {
+     "steps": 2993,
+     "positives": 0,
+     "sessions_with_positive": 0,
+     "base_rate": 0.0,
+     "auc": null,
+     "auc_ci95": {
+      "low": null,
+      "high": null,
+      "undefined_draws": 2000
+     },
+     "auc_step_position_reference": null,
+     "operating_point": {
+      "notes": 0,
+      "right_notes": 0,
+      "precision": null
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 0,
+      "right": 0,
+      "precision": null
+     },
+     "floor_every_boundary_precision": null
+    },
+    "at_first_wrong_steps_up_to_it": {
+     "steps": 891,
+     "positives": 55,
+     "sessions_with_positive": 55,
+     "base_rate": 0.0617,
+     "auc": 0.6487,
+     "auc_ci95": {
+      "low": 0.5838,
+      "high": 0.7072,
+      "undefined_draws": 0
+     },
+     "auc_step_position_reference": 0.5658,
+     "operating_point": {
+      "notes": 0,
+      "right_notes": 0,
+      "precision": null
+     },
+     "risk_at_or_above_note_at": {
+      "steps": 0,
+      "right": 0,
+      "precision": null
+     },
+     "floor_every_boundary_precision": null
+    }
+   }
+  }
+ },
+ "weights": {
+  "source": "scripts/routea/fit_warner.py on the public OpenHands pool",
+  "note_at": 0.6934,
+  "out_of_fold_auc_on_pool": 0.662,
+  "precision_on_pool": 0.3455,
+  "pool_sessions": 5760
+ },
+ "wall_clock_s": 4.5
+}
