@@ -15,6 +15,21 @@ META="$WORK/adapters/a2-meta"
 [[ -f $META/adapters.safetensors ]] || { echo "l2l_a3: missing $META" >&2; exit 1; }
 mkdir -p "$WORK/logs"
 
+# The answer script's hash, recorded when answers are made: scorers refuse answers from another version.
+record_answerer() {
+  shasum -a 256 "$HERE/answer_questions.py" | cut -d' ' -f1 >"$1/answerer.sha256"
+}
+record_answerer "$WORK"
+
+rank() {  # rank OUT - ADAPTER ("-" for none): ranked-choice habits of one arm
+  [[ -f $1/ranked.jsonl ]] && return 0
+  local adapter=()
+  [[ $3 != - ]] && adapter=(--adapter "$3")
+  "$PY" "$HERE/rank_habits.py" --model "$MODEL" ${adapter[@]+"${adapter[@]}"} \
+    --questions "$WORK/habit_questions.jsonl" --system "$WORK/habit_system.txt" \
+    --out "$1/ranked.jsonl" >>"$WORK/logs/ranked.log" 2>/dev/null
+}
+
 ask() {  # ask OUT QUESTIONS ADAPTER CONTEXT; ADAPTER and CONTEXT may be "-"
   local extra=()
   [[ $3 != - ]] && extra+=(--adapter "$3")
@@ -25,6 +40,7 @@ ask() {  # ask OUT QUESTIONS ADAPTER CONTEXT; ADAPTER and CONTEXT may be "-"
 
 measure() {  # measure ARM BUDGET ADAPTER: the five measures of one arm at one budget
   local out="$WORK/answers-a3/$1-$2" probes="$WARM/probes/$REPO/$2.jsonl"
+  rank "$out" - "$3"
   [[ -f $out/habits.jsonl ]] && return 0
   mkdir -p "$out"
   ask "$out/no_lessons.jsonl" "$probes" "$3" -

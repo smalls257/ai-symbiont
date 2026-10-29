@@ -1,4 +1,6 @@
 {
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
  "paired_gain_habits_minus_plain": {
   "habits_at_10": {
    "ci95_high": -0.0651,
@@ -40,20 +42,20 @@
  "ranked_habits_at_5": {
   "habits_minus_plain": {
    "ci95_high": 0.5682,
-   "ci95_low": 0.2757,
+   "ci95_low": 0.2758,
    "mean_gain": 0.4273,
    "repos": 15
   },
   "habits_start": 0.6409,
-  "label": "ranked-choice habits at 5 lessons, chance 0.20",
+  "label": "ranked-choice habits at 5 lessons, chance 0.20, adopted after the keyword score",
   "plain_start": 0.2136,
   "repos": 15
  },
  "repos": 15,
  "repos_by_budget": {
+  "5": 15,
   "10": 15,
-  "20": 1,
-  "5": 15
+  "20": 1
  },
  "rows": [
   {

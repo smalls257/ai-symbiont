@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pytest
 
+from symbiont.eval.prereg_git import PreregNotFrozenError
+
 ROUTEA = Path(__file__).resolve().parents[2] / "scripts" / "routea"
 SCRIPT_DIRS = {ROUTEA, ROUTEA.parent / "aidev"}
 
@@ -110,3 +112,100 @@ def test_ranked_hit_needs_a_strict_first_place(plug):
     assert plug.ranked_hit("tests", {"tests": -1.0, "naming": -2.0})
     assert not plug.ranked_hit("tests", {"tests": -2.0, "naming": -1.0})
     assert not plug.ranked_hit("tests", {"tests": -1.0, "naming": -1.0})
+
+
+def test_split_refuses_a_repo_in_both_meta_train_and_scored(plug):
+    test = {"org/big": repo_of(plug, "org/big", 10, "a")}
+    meta = {"org/big": [lesson(plug, "org/big", "z000", added=("--z",))]}
+    with pytest.raises(plug.SharedSplitError, match="meta-train and scored share repos"):
+        plug.check_unseen(plug.Split(test, meta, {}), habit_repos=[])
+
+
+def test_split_refuses_a_habit_repo_in_meta_train(plug):
+    meta = {"aidev/repo": [lesson(plug, "aidev/repo", "m000")]}
+    with pytest.raises(plug.SharedSplitError, match="habit rows and meta-train"):
+        plug.check_unseen(plug.Split({}, meta, {}), habit_repos=["aidev/repo"])
+
+
+def test_the_26_aidev_habit_repos_are_kept_out_of_both_sides(plug):
+    habit_repos = [f"aidev/habit{n:02d}" for n in range(26)]
+    by_repo = {
+        "org/big": repo_of(plug, "org/big", 10, "a"),
+        "org/small": repo_of(plug, "org/small", 3, "c"),
+    }
+    split = plug.plan_split(by_repo, habit_repos)
+    assert not set(habit_repos) & (set(split.test) | set(split.meta))
+    for habit_repo in (habit_repos[0], habit_repos[25]):
+        leaky = {**by_repo, habit_repo: repo_of(plug, habit_repo, 3, "h")}
+        with pytest.raises(plug.SharedSplitError, match="habit rows"):
+            plug.plan_split(leaky, habit_repos)
+
+
+def test_a_scored_run_refuses_inputs_whose_hash_differs_from_the_prereg(plug):
+    plug.verify_inputs(dict(plug.PINNED))
+    for name in plug.PINNED:
+        changed = {**plug.PINNED, name: "0" * 64}
+        with pytest.raises(plug.InputHashMismatchError, match=name):
+            plug.verify_inputs(changed)
+    missing = {k: v for k, v in plug.PINNED.items() if k != "habit_rows_sha256"}
+    with pytest.raises(plug.InputHashMismatchError, match="habit_rows_sha256"):
+        plug.verify_inputs(missing)
+
+
+def test_input_hashes_name_every_pinned_input(plug, tmp_path):
+    pool = tmp_path / "pool"
+    pool.mkdir()
+    (pool / "a.jsonl").write_text("{}\n")
+    files = {name: tmp_path / name for name in ("rows", "questions", "system")}
+    for path in files.values():
+        path.write_text("x")
+    found = plug.input_hashes(pool, files["rows"], files["questions"], files["system"])
+    assert set(found) == set(plug.PINNED)
+    with pytest.raises(plug.InputHashMismatchError):
+        plug.verify_inputs(found)
+
+
+def test_a_scored_run_needs_the_prereg_frozen_under_its_final_name(plug, monkeypatch, tmp_path):
+    draft = tmp_path / "2026-10-28-l2l-a2-DRAFT.md"
+    draft.write_text("# draft\n")
+    with pytest.raises(PreregNotFrozenError):
+        plug.scored_run_label(str(draft))
+    seen = {}
+    monkeypatch.setattr(plug, "run_provenance", lambda **kwargs: seen.update(kwargs) or {})
+    plug.scored_run_label("prereg/2026-10-28-l2l-a2.md")
+    assert seen == {
+        "scored": True,
+        "prereg": "prereg/2026-10-28-l2l-a2.md",
+        "expects": "2026-10-28-l2l-a2.md",
+    }
+
+
+@pytest.fixture
+def plug_a3(monkeypatch, plug):
+    spec = importlib.util.spec_from_file_location("plug_a3", ROUTEA / "plug_a3.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["plug_a3"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_rerun_tests_8_or_9_lesson_repos_and_keeps_scored_repos_out(plug, plug_a3):
+    by_repo = {
+        "org/eight": repo_of(plug, "org/eight", 8, "a"),
+        "org/nine": repo_of(plug, "org/nine", 9, "b"),
+        "org/ten": repo_of(plug, "org/ten", 10, "c"),
+        "org/small": repo_of(plug, "org/small", 3, "d"),
+    }
+    split = plug_a3.plan_rerun(by_repo, scored={"org/ten"}, habit_repos=[])
+    assert sorted(split.test) == ["org/eight", "org/nine"]
+    assert sorted(split.meta) == ["org/small"]
+
+
+def test_replay_arm_adds_one_habit_row_per_repo_row(plug_a3):
+    own = [{"messages": [{"content": f"own{n}"}]} for n in range(3)]
+    reading = [{"messages": [{"content": f"read{n}"}]} for n in range(10)]
+    habits = [{"messages": [{"content": f"habit{n}"}]} for n in range(10)]
+    plain = plug_a3.arm_rows(own, reading, habits, "a3")
+    replay = plug_a3.arm_rows(own, reading, habits, "a3_replay")
+    assert len(plain) == 3 + plug_a3.MIX * 3
+    assert len(replay) == len(plain) + 3

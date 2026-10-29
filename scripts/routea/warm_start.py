@@ -9,6 +9,7 @@ bootstrapped over repos. A missing answer file raises: it is never scored as zer
 """
 
 import argparse
+import hashlib
 import json
 import random
 import sys
@@ -131,6 +132,49 @@ def write_plan(by_repo: dict[str, list[Lesson]], work: Path) -> dict:
     return counts
 
 
+ANSWER_SCRIPT = Path(__file__).resolve().parent / "answer_questions.py"
+
+
+class AnswererMismatchError(RuntimeError):
+    """Answers were made by another version of answer_questions.py than the one recorded."""
+
+
+def answerer_provenance(work: Path) -> dict:
+    """The answer script's name and the sha256 the driver recorded; raises if it changed since."""
+    recorded_path = work / "answerer.sha256"
+    if not recorded_path.exists():
+        raise FileNotFoundError(f"missing {recorded_path}: answers have no recorded answer script")
+    recorded = recorded_path.read_text().strip()
+    current = hashlib.sha256(ANSWER_SCRIPT.read_bytes()).hexdigest()
+    if recorded != current:
+        raise AnswererMismatchError(
+            f"answers made by {recorded[:12]}, script is now {current[:12]}"
+        )
+    return {"answer_script": "scripts/routea/answer_questions.py", "answer_script_sha256": recorded}
+
+
+def ranked_rate(path: Path) -> float:
+    """Ranked-choice habit hit rate from one `rank_habits.py` output file."""
+    rows = _read_jsonl(path)
+    return sum(row["hit"] for row in rows) / len(rows)
+
+
+def ranked_at_5(work: Path, slugs: Sequence[str]) -> dict:
+    """Ranked-choice habits of both starts at 5 lessons, paired by repo (adopted post hoc)."""
+    rates = {
+        start: [ranked_rate(work / "ranked" / f"{start}-{s}-5.jsonl") for s in slugs]
+        for start in STARTS
+    }
+    gain = [h - p for h, p in zip(rates["habits"], rates["plain"], strict=True)]
+    return {
+        "label": "ranked-choice habits at 5 lessons, chance 0.20, adopted after the keyword score",
+        "repos": len(slugs),
+        "plain_start": round(sum(rates["plain"]) / len(slugs), 4),
+        "habits_start": round(sum(rates["habits"]) / len(slugs), 4),
+        "habits_minus_plain": paired_gain(gain),
+    }
+
+
 def _jsonl(path: Path, rows: list) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text("".join(json.dumps(row) + "\n" for row in rows))
@@ -213,6 +257,8 @@ def score_all(work: Path) -> dict:
         "repos_by_budget": dict(Counter(b for entry in plan.values() for b in entry["budgets"])),
         "rows": curve(cells),
         "paired_gain_habits_minus_plain": gains(cells),
+        "ranked_habits_at_5": ranked_at_5(work, sorted(plan)),
+        **answerer_provenance(work),
     }
 
 

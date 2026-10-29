@@ -1,4 +1,6 @@
 {
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
  "repo": "Azure__msrest-for-python",
  "rows": [
   {
@@ -68,9 +70,17 @@
    "wrong_lessons_recall": 0.0
   }
  ],
- "rule": "Go if recall without lessons reaches the per-repo adapter (0.64 at 5, 0.48 at 10) and new-lesson recall reaches a2; kill if new-lesson recall falls below a1.",
+ "rule": "Go if recall without lessons reaches the per-repo adapter and new-lesson recall reaches a2; kill if new-lesson recall falls below a1.",
  "status": "exploratory feasibility, one repo, no prereg; a3 consolidation vs a2 and a1",
  "verdict": {
-  "label": "hold: not go (recall without lessons below the per-repo adapter), not killed"
+  "by_budget": {
+   "10": "hold",
+   "5": "hold"
+  },
+  "label": "hold",
+  "per_repo_adapter_no_lessons": {
+   "10": 0.48,
+   "5": 0.64
+  }
  }
 }

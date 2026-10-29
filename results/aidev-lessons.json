@@ -54,6 +54,8 @@
   "first_review": "units live at the first human review, judged after it"
  },
  "habit_recall": {
+  "answer_script": "scripts/routea/answer_questions.py",
+  "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
   "rows": [
    {
     "arm": "base",

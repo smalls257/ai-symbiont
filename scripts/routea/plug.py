@@ -1,6 +1,8 @@
 """Plug (L2L-A2): the scored split, the unseen checks, and the confabulation and habit scorers.
 
 Usage: uv run python scripts/routea/plug.py plan --pool P --habit-split S --habit-rows H --work W
+Usage: uv run python scripts/routea/plug.py check --pool P --habit-rows H --habit-questions Q
+Usage:   --habit-system Y --prereg prereg/2026-10-28-l2l-a2.md --work W
 
 The plan raises before any answer if meta-training and the scored repos share a repo name or a
 lesson id: a reader scored on repos it trained on would report in-sample recall as plug-and-play.
@@ -26,9 +28,23 @@ from lessons import Lesson  # noqa: E402
 from scoring import _QUOTES  # noqa: E402
 from warm_start import BLOCKED, MIN_LESSONS, _jsonl  # noqa: E402
 
+from symbiont.eval.prereg_git import run_provenance  # noqa: E402
+
 FEASIBILITY_REPOS = frozenset({"Azure/msrest-for-python", "CORE-GATECH-GROUP/serpent-tools"})
 MIN_META_LESSONS = 2  # a meta-train prompt needs a lesson to read and one beside it
 ABSTAIN_PREFIX = "No lesson I hold covers that"
+PREREG_NAME = "2026-10-28-l2l-a2.md"  # the name the draft takes at its freeze
+# Input hashes pinned in the prereg (Data and split, Metrics 4); a scored run refuses other inputs.
+PINNED = {
+    "pool_index_sha256": "a14f22f0158a2ac568f84ffdbbbafaa01059cf22abebc5f4370679623cd258ff",
+    "habit_rows_sha256": "fa863cb3f13bf66907a16d076cf4d2ffab705272ef785d16ea93c19a271c06ea",
+    "habit_questions_sha256": "78d2267d767202737d21b215bcfaa74ad0413a2a0c72f20d968843a8b22c3b1f",
+    "habit_system_sha256": "c4678461a047be012a1ea9287c7ac66f73aa26cad8dd0c87c2f1469d603ed2e8",
+}
+
+
+class InputHashMismatchError(ValueError):
+    """An input of the scored run differs from the hash its prereg pins; names the input."""
 
 
 class SharedSplitError(ValueError):
@@ -157,6 +173,28 @@ def pool_index_sha(pool: Path) -> str:
     return hashlib.sha256("\n".join(lines).encode()).hexdigest()
 
 
+def verify_inputs(found: dict[str, str], pinned: dict[str, str] = PINNED) -> None:
+    """Raise InputHashMismatchError unless every pinned input hash is present and equal."""
+    for name, expected in pinned.items():
+        if found.get(name) != expected:
+            raise InputHashMismatchError(f"{name} is {found.get(name)}, the prereg pins {expected}")
+
+
+def input_hashes(pool: Path, habit_rows: Path, habit_questions: Path, habit_system: Path) -> dict:
+    """The hashes `verify_inputs` compares, computed from the files a run is about to read."""
+    return {
+        "pool_index_sha256": pool_index_sha(pool),
+        "habit_rows_sha256": sha256_of(habit_rows),
+        "habit_questions_sha256": sha256_of(habit_questions),
+        "habit_system_sha256": sha256_of(habit_system),
+    }
+
+
+def scored_run_label(prereg: str) -> dict:
+    """run_provenance of a scored Plug run; raises unless the prereg is frozen as PREREG_NAME."""
+    return run_provenance(scored=True, prereg=prereg, expects=PREREG_NAME)
+
+
 def meta_train_rows(split: Split, habit_rows: list[dict]) -> tuple[list[dict], int]:
     """The a2 meta-train rows (recipe of `l2l_quick.write_meta`) and how many were too long."""
     built = meta_rows(split.meta)
@@ -190,12 +228,22 @@ def main() -> None:
     import build_lessons  # noqa: PLC0415  (reads the pool)
 
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("stage", choices=("plan",))
+    parser.add_argument("stage", choices=("plan", "check"))
     parser.add_argument("--pool", type=Path, required=True)
-    parser.add_argument("--habit-split", type=Path, required=True, help="AIDev split.json")
+    parser.add_argument("--habit-split", type=Path, help="AIDev split.json")
     parser.add_argument("--habit-rows", type=Path, required=True, help="AIDev habits train.jsonl")
+    parser.add_argument("--habit-questions", type=Path, help="AIDev held-out habit questions")
+    parser.add_argument("--habit-system", type=Path, help="habit system prompt file")
+    parser.add_argument("--prereg", help="the frozen prereg, for `check`")
     parser.add_argument("--work", type=Path, required=True)
     args = parser.parse_args()
+    if args.stage == "check":
+        hashes = input_hashes(args.pool, args.habit_rows, args.habit_questions, args.habit_system)
+        verify_inputs(hashes)
+        provenance = {**scored_run_label(args.prereg), **hashes}
+        (args.work / "provenance.json").write_text(json.dumps(provenance, indent=1, sort_keys=True))
+        print(json.dumps(provenance, indent=1))
+        return
     candidates, _, _ = build_lessons._candidates(args.pool, [])
     habit_split = json.loads(args.habit_split.read_text())
     habit_repos = [repo for repo, split in habit_split.items() if split == "train"]

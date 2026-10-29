@@ -14,15 +14,20 @@ MODEL=${2:?model}
 HABITS=${3:?habits adapter dir}
 WORK=${4:?work dir}
 HERE=$(cd "$(dirname "$0")" && pwd)
+# The answer script's hash, recorded when answers are made: scorers refuse answers from another version.
+record_answerer() {
+  shasum -a 256 "$HERE/answer_questions.py" | cut -d' ' -f1 >"$1/answerer.sha256"
+}
 for need in "$WORK/plan.json" "$WORK/habit_questions.jsonl" "$WORK/habit_system.txt" "$HABITS/adapters.safetensors"; do
   [[ -f "$need" ]] || { echo "warm_start: missing $need" >&2; exit 1; }
 done
 
+mkdir -p "$WORK/logs" "$WORK/ranked"
+record_answerer "$WORK"
 cells=$("$PY" -c 'import json,sys; [print(s, b) for s, e in sorted(json.load(open(sys.argv[1])).items()) for b in e["budgets"]]' "$WORK/plan.json")
 while read -r slug budget; do
   for start in plain habits; do
     answers="$WORK/answers/$start"
-    [[ -f "$answers/$slug-$budget-habits.jsonl" ]] && continue
     adapter="$WORK/adapters/$start/$slug-$budget"
     mkdir -p "$answers"
     if ! grep -qx "train-$start-$slug-$budget [0-9]*" "$WORK/logs/timing.txt" 2>/dev/null; then
@@ -35,6 +40,13 @@ while read -r slug budget; do
       LORA_RESUME=$resume "$HERE/train_lora.sh" "$PY" "$MODEL" "$WORK/train/$slug/$budget" \
         "$adapter" "$WORK/logs" "$start-$slug-$budget"
     fi
+    ranked="$WORK/ranked/$start-$slug-$budget.jsonl"
+    if [[ $budget == 5 && ! -f $ranked ]]; then  # ranked-choice habits, adopted after the keyword score
+      "$PY" "$HERE/rank_habits.py" --model "$MODEL" --adapter "$adapter" \
+        --questions "$WORK/habit_questions.jsonl" --system "$WORK/habit_system.txt" --out "$ranked" \
+        >>"$WORK/logs/ranked.log" 2>/dev/null
+    fi
+    [[ -f "$answers/$slug-$budget-habits.jsonl" ]] && continue
     "$PY" "$HERE/answer_questions.py" --model "$MODEL" --adapter "$adapter" \
       --questions "$WORK/probes/$slug/$budget.jsonl" --out "$answers/$slug-$budget.jsonl" \
       2>>"$WORK/logs/answers.log"

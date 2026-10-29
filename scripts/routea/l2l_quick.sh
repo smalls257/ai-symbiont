@@ -17,6 +17,21 @@ REPO=$("$PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))[0])' "$WORK
 CONTROL=$("$PY" -c 'import json,sys; print(json.load(open(sys.argv[1]))[1])' "$WORK/held.json")
 mkdir -p "$WORK/logs"
 
+# The answer script's hash, recorded when answers are made: scorers refuse answers from another version.
+record_answerer() {
+  shasum -a 256 "$HERE/answer_questions.py" | cut -d' ' -f1 >"$1/answerer.sha256"
+}
+record_answerer "$WORK"
+
+rank() {  # rank OUT MODEL ADAPTER ("-" for none): ranked-choice habits of one arm
+  [[ -f $1/ranked.jsonl ]] && return 0
+  local adapter=()
+  [[ $3 != - ]] && adapter=(--adapter "$3")
+  "$PY" "$HERE/rank_habits.py" --model "$2" ${adapter[@]+"${adapter[@]}"} \
+    --questions "$WORK/habit_questions.jsonl" --system "$WORK/habit_system.txt" \
+    --out "$1/ranked.jsonl" >>"$WORK/logs/ranked.log" 2>/dev/null
+}
+
 ask() {  # ask OUT QUESTIONS MODEL ADAPTER CONTEXT: one answer file; ADAPTER and CONTEXT may be "-"
   local extra=()
   [[ $4 != - ]] && extra+=(--adapter "$4")
@@ -27,22 +42,26 @@ ask() {  # ask OUT QUESTIONS MODEL ADAPTER CONTEXT: one answer file; ADAPTER and
 
 in_prompt() {  # in_prompt ARM BUDGET MODEL ADAPTER: lessons in the system prompt, right and wrong
   local out="$WORK/answers/$1-$2"
-  [[ -f $out/habits.jsonl ]] && return 0
-  mkdir -p "$out"
-  ask "$out/right.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$4" "$WORK/right-$2.txt"
-  ask "$out/wrong.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$4" "$WORK/wrong-$2.txt"
-  ask "$out/habits.jsonl" "$WORK/habit_questions.jsonl" "$3" "$4" "$WORK/habit_system.txt"
-  echo "done $1 $2" >>"$WORK/logs/progress.txt"
+  if [[ ! -f $out/habits.jsonl ]]; then
+    mkdir -p "$out"
+    ask "$out/right.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$4" "$WORK/right-$2.txt"
+    ask "$out/wrong.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$4" "$WORK/wrong-$2.txt"
+    ask "$out/habits.jsonl" "$WORK/habit_questions.jsonl" "$3" "$4" "$WORK/habit_system.txt"
+    echo "done $1 $2" >>"$WORK/logs/progress.txt"
+  fi
+  rank "$out" "$3" "$4"
 }
 
 in_weights() {  # in_weights ARM BUDGET MODEL RIGHT_ADAPTER WRONG_ADAPTER: lessons in the adapter
   local out="$WORK/answers/$1-$2"
-  [[ -f $out/habits.jsonl ]] && return 0
-  mkdir -p "$out"
-  ask "$out/right.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$4" -
-  ask "$out/wrong.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$5" -
-  ask "$out/habits.jsonl" "$WORK/habit_questions.jsonl" "$3" "$4" "$WORK/habit_system.txt"
-  echo "done $1 $2" >>"$WORK/logs/progress.txt"
+  if [[ ! -f $out/habits.jsonl ]]; then
+    mkdir -p "$out"
+    ask "$out/right.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$4" -
+    ask "$out/wrong.jsonl" "$WARM/probes/$REPO/$2.jsonl" "$3" "$5" -
+    ask "$out/habits.jsonl" "$WORK/habit_questions.jsonl" "$3" "$4" "$WORK/habit_system.txt"
+    echo "done $1 $2" >>"$WORK/logs/progress.txt"
+  fi
+  rank "$out" "$3" "$4"
 }
 
 train() {  # train MODEL DATA ADAPTER NAME [EPOCHS]

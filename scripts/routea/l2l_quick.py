@@ -24,7 +24,14 @@ sys.path.append(str(HERE.parent / "aidev"))  # appended: routea's `lessons` must
 from lessons import Lesson  # noqa: E402
 from questions import _training_pairs, lessons_prompt  # noqa: E402
 from score_habits import score as habit_score  # noqa: E402
-from warm_start import BLOCKED, _jsonl, _read_jsonl, recall_by_wording  # noqa: E402
+from warm_start import (  # noqa: E402
+    BLOCKED,
+    _jsonl,
+    _read_jsonl,
+    answerer_provenance,
+    ranked_rate,
+    recall_by_wording,
+)
 
 BUDGETS = (5, 10)
 WINDOW = 3  # lessons per meta-train prompt; 5 overflow the 512-token training window [measured]
@@ -34,6 +41,8 @@ MAX_ROW_CHARS = 1300
 ABSTAIN = "No lesson I hold covers that."
 MAX_META_ROWS = 1600  # bounds the meta-train run to minutes on the laptop
 NEW_LESSONS = 3  # the repo's last lessons, never trained: does a3 still read its prompt?
+# The reference rows of the feasibility run; every other arm is under test.
+REFERENCE_ARMS = frozenset({"warm_plain", "warm_habits"})
 MIX = 2  # prompt-reading rows from train repos per repo row in a3, so the skill is rehearsed
 SEED = 0
 
@@ -92,7 +101,9 @@ def arm_scores(work: Path, arm: str, probes: Sequence[dict], lessons: Sequence[L
     habits = habit_score(
         _read_jsonl(work / "habit_questions.jsonl"), _answers(answers / "habits.jsonl")
     )
+    ranked = answers / "ranked.jsonl"
     return {
+        "habits_kept_ranked": round(ranked_rate(ranked), 4),
         "new_lesson_recall": round(right["paraphrased"], 4),
         "new_lesson_recall_verbatim": round(right["verbatim"], 4),
         "wrong_lesson_recall": round(wrong["paraphrased"], 4),
@@ -182,17 +193,59 @@ def score_consolidation(warm: Path, work: Path) -> dict:
             ("wrong_lessons", probes, trained),
             ("new_lessons", new_probes, lessons[-NEW_LESSONS:]),
         ):
-            path = arm_dir / f"{name}.jsonl"
-            if path.exists():
-                row[f"{name}_recall"] = round(
-                    recall_by_wording(asked, _answers(path), pool)["paraphrased"], 4
-                )
+            answers = _answers(arm_dir / f"{name}.jsonl")
+            row[f"{name}_recall"] = round(recall_by_wording(asked, answers, pool)["paraphrased"], 4)
         habits = _answers(arm_dir / "habits.jsonl")
         row["habits_kept_keyword"] = habit_score(
             _read_jsonl(work / "habit_questions.jsonl"), habits
         )["hit_rate"]
+        row["habits_kept_ranked"] = round(ranked_rate(arm_dir / "ranked.jsonl"), 4)
         rows.append(row)
-    return {"status": "exploratory feasibility, one repo, no prereg", "repo": held[0], "rows": rows}
+    return {
+        "status": "exploratory feasibility, one repo, no prereg; a3 consolidation vs a2 and a1",
+        "rule": (
+            "Go if recall without lessons reaches the per-repo adapter and new-lesson recall "
+            "reaches a2; kill if new-lesson recall falls below a1."
+        ),
+        "repo": held[0],
+        "rows": rows,
+        "verdict": consolidation_verdict(rows, per_repo_recall(warm, work, held[0], lessons)),
+        **answerer_provenance(work),
+    }
+
+
+def per_repo_recall(
+    warm: Path, work: Path, repo: str, lessons: Sequence[Lesson]
+) -> dict[int, float]:
+    """The plain per-repo adapter's recall with no lessons in the prompt, per budget."""
+    found = {}
+    for budget in BUDGETS:
+        probes = _read_jsonl(warm / "probes" / repo / f"{budget}.jsonl")
+        answers = _answers(work / "answers" / f"warm_plain-{budget}" / "right.jsonl")
+        found[budget] = recall_by_wording(probes, answers, lessons[:budget])["paraphrased"]
+    return found
+
+
+def consolidation_verdict(rows: Sequence[dict], per_repo: dict[int, float]) -> dict:
+    """go, hold or kill per budget and overall, by the owner's rule for a3."""
+    by = {(row["arm"], row["budget"]): row for row in rows}
+    labels = {}
+    for budget in BUDGETS:
+        a3, a2, a1 = (by[(arm, budget)] for arm in ("a3", "a2", "a1"))
+        new = a3["new_lessons_recall"]
+        if new < a1["new_lessons_recall"]:
+            labels[budget] = "kill"
+        elif a3["no_lessons_recall"] >= per_repo[budget] and new >= a2["new_lessons_recall"]:
+            labels[budget] = "go"
+        else:
+            labels[budget] = "hold"
+    values = set(labels.values())
+    overall = "kill" if "kill" in values else "go" if values == {"go"} else "hold"
+    return {
+        "label": overall,
+        "by_budget": {str(b): v for b, v in labels.items()},
+        "per_repo_adapter_no_lessons": {str(b): round(v, 4) for b, v in per_repo.items()},
+    }
 
 
 def score_all(warm: Path, work: Path) -> dict:
@@ -204,12 +257,14 @@ def score_all(warm: Path, work: Path) -> dict:
         arm, budget = arm_dir.name.rsplit("-", 1)
         probes = _read_jsonl(warm / "probes" / held[0] / f"{budget}.jsonl")
         cell = arm_scores(work, arm_dir.name, probes, lessons[: int(budget)])
-        rows.append({"arm": arm, "budget": int(budget), "role": "under_test", **cell})
+        role = "reference" if arm in REFERENCE_ARMS else "under_test"
+        rows.append({"arm": arm, "budget": int(budget), "role": role, **cell})
     return {
         "status": "exploratory feasibility, one repo, no prereg; Llama 3.2 1B MLX on the laptop",
         "repo": held[0].replace("__", "/"),
         "control_repo": held[1].replace("__", "/"),
         "rows": rows,
+        **answerer_provenance(work),
     }
 
 

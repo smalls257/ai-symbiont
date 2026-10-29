@@ -19,7 +19,7 @@ The claim under test: with the AIDev habits adapter as the starting point, a per
 All rows are [measured]. The habits start learns a new repo's lessons slightly *worse*, not from fewer of them, so the claim fails on this data.
 
 Whether habits survive per-repo training depends on the check, and the two checks disagree:
-- **Ranked choice (primary).** At 5 lessons the habits start keeps 0.64 against 0.21 for the plain start (+0.43 [+0.28, +0.57], 15 repos) [measured]. The habits adapter alone scores 0.70 [measured], so most habits survive 5 lessons of training. Budget 10 was not ranked for the warm-start adapters. Arm b at 10 lessons fell to 0.27 [measured], so forgetting may grow with training steps [hypothesis].
+- **Ranked choice (adopted post hoc, see section 3).** At 5 lessons the habits start keeps 0.64 against 0.21 for the plain start (+0.43 [+0.28, +0.57], 15 repos) [measured]. The habits adapter alone scores 0.70 [measured], so most habits survive 5 lessons of training. Budget 10 was not ranked for the warm-start adapters. Arm b at 10 lessons fell to 0.27 [measured], so forgetting may grow with training steps [hypothesis].
 - **Keyword score.** It said the opposite, 0.19 against 0.29 (−0.10 [−0.15, −0.05]) [measured]. It is the weaker check (section 3).
 
 ## 2. Plug feasibility on one repo (Azure/msrest-for-python, control CORE-GATECH-GROUP/serpent-tools)
@@ -28,21 +28,23 @@ Goal: an unseen repo improves after a few lessons, with no tuning per user. Five
 
 | Arm | Reworded recall | Habits kept: keyword (ranked) | Wrong-lesson recall |
 |---|---|---|---|
-| Per-repo adapter from plain 1B (reference) | 0.64 / 0.48 | 0.18 / 0.25 | 0 / 0 |
-| Per-repo adapter from habits adapter | 0.36 / 0.48 | 0.23 / 0.14 | 0 / 0 |
+| Per-repo adapter from plain 1B (reference) | 0.64 / 0.48 | 0.18 / 0.25 (0.18 / 0.18) | 0 / 0 |
+| Per-repo adapter from habits adapter (reference) | 0.36 / 0.48 | 0.23 / 0.14 (0.86 / 0.59) | 0 / 0 |
 | b: fresh adapter over the frozen habits adapter | 0.36 / 0.48 | 0.25 / 0.11 (0.86 / 0.27) | 0 / 0 |
 | a1: plain 1B, lessons in the prompt | 0.28 / 0.28 | 0.50 (0.20) | 0 / 0 |
 | a1 with the habits adapter | 0.00 / 0.00 | 0.64 (0.70) | 0 / 0 |
 | a2: meta-trained once on other repos, lessons in the prompt | 0.60 / 0.48 | 0.41 (0.80) | 0 / 0 |
 | a3: a2 plus a per-repo adapter, reading rows mixed in | 0.40 / 0.50 | 0.41 (0.27) | 0 / 0 |
 
-All rows are [measured], one repo, 25 reworded probes per lesson budget. The decisions and other details:
+All rows are [measured], one repo: 25 reworded probes at 5 lessons and 50 at 10 [measured]; the new-lesson probes are 15 (3 lessons) [measured]. The decisions and other details:
 - **b (killed).** b fuses the habits adapter into a copy of the base model and trains a fresh adapter on top, which is the same function as stacking over a frozen adapter. The kill rested on the keyword habits score falling below the 50% bar [measured]. On ranked choice b keeps habits at 5 lessons (0.86) and loses them at 10 (0.27) [measured]. Its recall (0.36 at 5) stays below the plain per-repo adapter's either way, so it still does not go.
 - **a2 (passes the feasibility rule).** It was meta-trained on 1,546 rows: lessons in the prompt with the answer, abstain rows, and the AIDev habit rows. It nearly matches a per-repo adapter with no training for the repo, and with its lessons removed it recalls nothing [measured].
 - **a3 (hold).** With its lessons removed from the prompt it recalls 0.40 / 0.44, below the per-repo adapter, so it does not go. New lessons in the prompt score 0.33 / 0.40, above a1's 0.27, so it is not killed. Its ranked habits fall to 0.27 [measured].
 - **Wrong-lesson recall** is 0 for every arm, so it separates nothing. The scored prereg replaces it with a confabulation rate.
 
-## 3. A better habits check
+## 3. A better habits check (adopted post hoc)
+
+This check was adopted after the keyword score had been seen, so it is a post hoc choice, not a pre-planned primary [measured: order of work]. The scored Plug prereg fixes it before its data.
 
 The keyword score marks a hit when an answer names its kind's key term anywhere, so a long checklist scores by chance: plain 1B gets 0.50 on it [measured]. The ranked-choice check (`rank_habits.py`) scores the five kinds' check sentences by mean log-likelihood per reply token, with no generation. Plain 1B gets 9/44, at chance (0.20), the habits adapter 31/44 and the feasibility a2 35/44 [measured]. The scored Plug run uses it as primary.
 
