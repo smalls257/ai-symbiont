@@ -40,7 +40,12 @@ STRIDE = 2  # game tics per frame, as the hook recorder (1.7x speed)
 TITLE_SECONDS = 2
 TIC_BUDGET = 10**7  # a replay is never cut short: 16 decisions end long before this
 PAIN_NAME_OF_LABEL = {label: pain.value for pain, label in PAIN_LABELS.items()}
-ARM_LABELS = {"glimmer_plain": "Plain Glimmer", "glimmer_personal": "Glimmer + Freedoom adapter"}
+ARM_LABELS = {
+    "glimmer_plain": "Plain Glimmer",
+    "glimmer_personal": "Glimmer + Freedoom adapter",
+    "spark_low": "Muse Spark 1.3 (reasoning low)",
+    "spark_medium": "Muse Spark 1.3 (reasoning medium)",
+}
 
 
 class ReplayDriftError(RuntimeError):
@@ -98,7 +103,8 @@ def replay(args: argparse.Namespace) -> dict[str, Any]:
     out = Path(args.out).expanduser()
     sink = ClipSink(out / f"{stem}.mp4", FPS)
     headline = f"{ARM_LABELS[args.policy]} plays Freedoom via ViZDoom, {args.level}"
-    painter = StagePainter(headline, level_walls(args.level))
+    speaker = "Muse Spark" if args.policy.startswith("spark_") else "Glimmer"
+    painter = StagePainter(headline, level_walls(args.level), speaker)
     for _ in range(TITLE_SECONDS * FPS):
         sink.add(
             title_card(
@@ -136,7 +142,7 @@ def finish_clip(
         "arm": args.policy, "level": args.level, "seed": args.seed, "fps": FPS,
         "decisions": len(recorder.calls), "ended": ended, "pains": logged,
         "frames": sink.frames, "lead_frames": TITLE_SECONDS * FPS,
-        "stats": asdict(recorder.last_stats),
+        "stats": asdict(recorder.last_stats), "path_ends": recorder.path_ends,
         "spans": {str(k): v for k, v in sorted(recorder.spans.items())},
     }  # fmt: skip
     out = Path(args.out).expanduser()

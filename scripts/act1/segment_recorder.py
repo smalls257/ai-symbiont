@@ -45,6 +45,11 @@ class SegmentRecorder:
         self._marks: list[Point] = []
         self._clock = motion.EventClock()
 
+    @property
+    def path_ends(self) -> tuple[Point, Point]:
+        """First and last position seen; raises IndexError when no frame was ever kept."""
+        return self._trail[0], self._trail[-1]
+
     def on_move(self, run: Any) -> None:
         self.runs.append(run)
         self.last_stats = read_player_stats(self._tap)

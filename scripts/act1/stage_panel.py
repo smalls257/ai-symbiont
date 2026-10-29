@@ -62,8 +62,8 @@ class StageFrame:
 class StagePainter:
     """Draws `StageFrame`s; the level's wall segments give the mini-map its fixed frame."""
 
-    def __init__(self, headline: str, walls: list[Segment]):
-        self._headline, self._walls = headline, walls
+    def __init__(self, headline: str, walls: list[Segment], speaker: str = "Glimmer"):
+        self._headline, self._walls, self._speaker = headline, walls, speaker
         xs = [p[0] for wall in walls for p in wall]
         ys = [p[1] for wall in walls for p in wall]
         self._bounds = (min(xs), min(ys), max(xs), max(ys))
@@ -95,7 +95,7 @@ class StagePainter:
         self._draw.polygon(
             [(left + 30, bottom), (left + 54, bottom), (left + 24, bottom + 14)], PANEL_FILL
         )
-        text(self._draw, (left + 14, top + 8), "Glimmer said:", 15, MUTED)
+        text(self._draw, (left + 14, top + 8), f"{self._speaker} said:", 15, MUTED)
         lines = [line for line in frame.said.splitlines() if line.strip()][:3]
         for row, line in enumerate(wrap_text(" ; ".join(lines), 34, 2)):
             text(self._draw, (left + 14, top + 28 + row * 28), line, 22)

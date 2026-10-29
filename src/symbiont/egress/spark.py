@@ -1,0 +1,133 @@
+"""Meta's OpenAI-compatible chat API as a priced, capped, privacy-checked call.
+
+Violation prevented: Silent Fallback in the player. A reply whose content is None (a reasoning
+model that ran out of `max_tokens` returns `content=None, finish_reason=length`) must raise,
+never become a move; a refusal, a cap and an API error each raise too. Prevents Black Box on
+spend: every call that reaches the server lands in the ledger with its token counts and cost,
+including the one whose content was empty, because the tokens were still billed. The prompt goes
+out only through `post_json`, which checks provenance and logs sizes, never text.
+"""
+
+import time
+import urllib.error
+import urllib.request
+from dataclasses import dataclass, field
+from enum import StrEnum
+from typing import Any
+
+from symbiont.egress.client import Transport, _urlopen, post_json
+from symbiont.egress.credentials import ApiKey
+from symbiont.egress.policy import Destination, Endpoint
+from symbiont.egress.spend import (
+    Ledger,
+    LedgerEntry,
+    SpendCaps,
+    Tier,
+    Usage,
+    cost_usd,
+)
+from symbiont.records.schema import Provenance
+
+CHAT_URL = "https://api.meta.ai/v1/chat/completions"
+# Room for the hidden reasoning plus the answer: a 20-token cap returned content=None.
+DEFAULT_MAX_TOKENS = 4096
+ERROR_EXCERPT_CHARS = 300
+
+
+class Effort(StrEnum):
+    """`reasoning_effort` values the API accepts; "none" is rejected by the server."""
+
+    MINIMAL = "minimal"
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    XHIGH = "xhigh"
+    MAX = "max"
+
+
+class SparkReplyError(RuntimeError):
+    """The server answered, but not with a usable reply (no content, or no usage)."""
+
+
+class SparkApiError(RuntimeError):
+    """The server answered with an HTTP error; carries the status and a short server message."""
+
+
+@dataclass(frozen=True)
+class SparkReply:
+    """What came back: the text, why it stopped, the token counts and the seconds it took."""
+
+    text: str
+    finish_reason: str
+    usage: Usage
+    seconds: float
+
+
+def _usage_from(out: dict[str, Any]) -> Usage:
+    """Token counts; the details blocks are omitted by the API when zero, so they default to 0."""
+    usage = out.get("usage")
+    if not usage or "prompt_tokens" not in usage or "completion_tokens" not in usage:
+        raise SparkReplyError("the server reported no token usage for this reply")
+    cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
+    reasoning = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
+    return Usage(usage["prompt_tokens"], cached, usage["completion_tokens"], reasoning)
+
+
+@dataclass(frozen=True)
+class SparkSession:
+    """One run's door to the API: model, tier, caps, key, ledger and the provenance it declares."""
+
+    model: str
+    tier: Tier
+    run: str
+    caps: SpendCaps
+    key: ApiKey
+    ledger: Ledger = field(default_factory=Ledger)
+    provenance: tuple[Provenance, ...] = ()
+    transport: Transport = _urlopen
+
+    def chat(
+        self, prompt: str, effort: Effort, label: str, max_tokens: int = DEFAULT_MAX_TOKENS
+    ) -> SparkReply:
+        """One single-turn call; never returns an empty reply.
+
+        Raises SpendCapError, EgressRefusedError, SparkApiError or SparkReplyError.
+        """
+        self.ledger.check_before_call(self.run, self.caps)
+        body = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "reasoning_effort": effort.value,
+            "max_tokens": max_tokens,
+        }
+        destination = Destination(Endpoint.CONTRIBUTOR, CHAT_URL, self.key)
+        started = time.monotonic()
+        out = self._send(destination, body)
+        seconds = time.monotonic() - started
+        usage = _usage_from(out)
+        cost = cost_usd(self.tier, usage)
+        self.ledger.record(
+            LedgerEntry(self.run, label, self.model, self.tier, usage, cost, seconds)
+        )
+        return self._reply(out, usage, seconds)
+
+    def _send(self, destination: Destination, body: dict[str, Any]) -> dict[str, Any]:
+        try:
+            return post_json(
+                destination, body, provenance=self.provenance, transport=self.transport
+            )
+        except urllib.error.HTTPError as error:
+            detail = error.read().decode(errors="replace")[:ERROR_EXCERPT_CHARS] if error.fp else ""
+            raise SparkApiError(f"status {error.code}: {detail}") from error
+
+    @staticmethod
+    def _reply(out: dict[str, Any], usage: Usage, seconds: float) -> SparkReply:
+        choice = out["choices"][0]
+        content = choice["message"].get("content")
+        reason = choice.get("finish_reason")
+        if content is None:
+            raise SparkReplyError(
+                f"no content (finish_reason={reason}, completion_tokens={usage.completion}, "
+                f"reasoning_tokens={usage.reasoning}); raise max_tokens or lower the effort"
+            )
+        return SparkReply(content, str(reason), usage, seconds)

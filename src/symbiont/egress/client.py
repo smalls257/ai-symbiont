@@ -52,6 +52,8 @@ def post_json(
         raise
     log.info("egress send %s", _describe(destination, len(wire_bytes), declared))
     headers = {"Content-Type": "application/json"}
+    if destination.api_key is not None:
+        headers["Authorization"] = f"Bearer {destination.api_key.reveal()}"
     request = urllib.request.Request(destination.url, data=wire_bytes, headers=headers)
     reply: dict[str, Any] = json.loads(transport(request, timeout_s))
     return reply
