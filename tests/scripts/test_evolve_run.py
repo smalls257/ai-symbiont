@@ -94,16 +94,31 @@ def test_the_spark_player_after_generation_zero_needs_a_frozen_prereg(tmp_path):
     draft = tmp_path / "draft.md"
     draft.write_text("# x\n\n**DRAFT, not frozen**\n")
     with pytest.raises(PreregNotFrozenError):
-        run_evolve.require_scored_ready(run_evolve.PlayerKind.SPARK, 1, draft)
+        run_evolve.require_scored_ready(run_evolve.PlayerKind.SPARK, 1, draft, None)
 
 
-def test_spark_at_generation_zero_passes_the_prereg_guard_then_stops_as_not_built(tmp_path):
-    run_evolve.require_scored_ready(run_evolve.PlayerKind.SPARK, 0, None)
-    zero = run_evolve.parse_arguments(
-        ["--run", "r", "--player", "spark", "--generations", "0", "--root", str(tmp_path)]
+def test_an_exploratory_spark_run_needs_no_prereg_but_a_scored_style_one_does():
+    spark = run_evolve.PlayerKind.SPARK
+    run_evolve.require_scored_ready(spark, 3, None, run_evolve.RunLabel.EXPLORATORY)
+    run_evolve.require_scored_ready(spark, 0, None, None)
+    with pytest.raises(PreregNotFrozenError):
+        run_evolve.require_scored_ready(spark, 1, None, None)
+
+
+def test_a_run_with_no_label_is_refused(tmp_path):
+    args = run_evolve.parse_arguments(
+        ["--run", "r", "--player", "scripted", "--generations", "0", "--root", str(tmp_path)]
     )
-    with pytest.raises(run_evolve.SparkNotBuiltError):
-        run_evolve.run(zero)
+    with pytest.raises(run_evolve.UnlabeledRunError):
+        run_evolve.run(args)
+
+
+def test_dry_run_and_exploratory_exclude_each_other(tmp_path):
+    args = run_evolve.parse_arguments(
+        ["--run", "r", "--player", "fake", "--dry-run", "--exploratory", "--root", str(tmp_path)]
+    )
+    with pytest.raises(run_evolve.UnlabeledRunError):
+        run_evolve.run(args)
 
 
 def test_no_held_out_level_is_played(tmp_path, monkeypatch):
@@ -167,7 +182,7 @@ def test_a_resume_reuses_the_stored_children_even_when_the_author_would_write_ne
     tmp_path, monkeypatch
 ):
     monkeypatch.setattr(
-        run_evolve, "build_tools", lambda author, seed: run_evolve_tools(Wobbly(), seed)
+        run_evolve, "build_tools", lambda args: run_evolve_tools(Wobbly(), args.seed)
     )
     monkeypatch.setattr(run_evolve, "build_player", lambda *_: Watching(die_on=40))
     with pytest.raises(KilledError):
@@ -232,3 +247,28 @@ def test_the_same_seed_gives_identical_output_under_different_hash_seeds(tmp_pat
         summary = json.loads((root / "d" / "summary.json").read_text())
         outputs.append((done.stdout, summary["curves"], summary["picks"], summary["births"]))
     assert outputs[0] == outputs[1] == outputs[2]
+
+
+def test_the_exploratory_pool_makes_an_exploratory_split_and_a_plain_label(tmp_path):
+    argv = ["--run", "r", "--player", "fake", "--generations", "1", "--root", str(tmp_path)]
+    args = run_evolve.parse_arguments(
+        [*argv, "--dry-run", "--pool", "MAP01,MAP02,MAP05,MAP06,MAP29"]
+    )
+    split = run_evolve.split_for(args)
+    assert split.selection == split.validation and split.held_out == ()
+    assert run_evolve.label_text(args, run_evolve.label_of(args)) == "dry run, fake player"
+    exploratory = run_evolve.parse_arguments(
+        ["--run", "r", "--player", "scripted", "--exploratory", "--pool", "MAP01,MAP02,MAP05,MAP06"]
+    )
+    text = run_evolve.label_text(exploratory, run_evolve.label_of(exploratory))
+    assert text.startswith("exploratory, scripted player, 4 navigable training maps")
+    assert "weaker than the design's validation levels" in text
+
+
+def test_a_dry_run_on_the_exploratory_pool_finishes(tmp_path):
+    args = run_evolve.parse_arguments(
+        ["--run", "p", "--player", "fake", "--generations", "2", "--root", str(tmp_path),
+         "--dry-run", "--pool", "MAP01,MAP02,MAP05,MAP06,MAP29"]
+    )  # fmt: skip
+    record = run_evolve.run(args)
+    assert record.last_played == 2 and record.stop_reason is None

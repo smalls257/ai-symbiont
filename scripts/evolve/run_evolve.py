@@ -1,25 +1,17 @@
-"""Run Evolve: resumable, with per-game timing events, and never past generation 0 unfrozen.
+"""Run Evolve: resumable, with per-game timing events, and never scored without a frozen prereg.
 
-`--player fake` plays a hidden rule with no engine (the dry run); `--player scripted` plays the
-scripted explorer on the real engine; `--player spark` is refused for generation 1 and later
-unless `--prereg` names a frozen, committed prereg. Held-out levels are never played here: the
-final test is its own command. State lives outside the repo, mode 0600, written per game.
+A Spark run past generation 0 needs --prereg (frozen) or --exploratory, which labels the run
+exploratory. A dry run needs --dry-run and says SIMULATED. Held-out levels are never played here.
 
-Usage: run_evolve.py --run NAME --player fake|scripted|spark --author fake|spark
-       --generations N [--levels LEVELS_JSON] [--prereg PATH] [--root DIR] [--dry-run]
+Usage: run_evolve.py --run NAME --player fake|scripted|spark --author fake|spark --generations N
 """
 
 import argparse
-import dataclasses
 import json
-import os
+import random
 import sys
-import tempfile
-import time
-from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path
-from typing import Any
 
 import script_paths
 
@@ -27,26 +19,45 @@ script_paths.add_script_dirs()
 
 import fake_author  # noqa: E402 - needs the sibling path added above
 import fake_player  # noqa: E402
+import seed_cards  # noqa: E402
+import spark_players  # noqa: E402
+from run_state import (  # noqa: E402
+    NullLedger,
+    PlayerChangedError,
+    ResumingPlayer,
+    RunLedger,
+    RunStore,
+    game_key,
+    result_from_json,
+    result_to_json,
+)
 
-from symbiont.act1.card_genome import Card  # noqa: E402
 from symbiont.act1.evolution import Player, RunRecord, RunRules, evolve  # noqa: E402
 from symbiont.act1.evolve_split import EvolveSplit, SmokeResult  # noqa: E402
-from symbiont.act1.game_fitness import Case, GameResult, Grade  # noqa: E402
 from symbiont.act1.generation import OperatorSchedule, VariationTools  # noqa: E402
 from symbiont.act1.levels import LevelSplit, levels_in  # noqa: E402
-from symbiont.act1.lineage import Arm, Birth, birth_from_json, birth_to_json  # noqa: E402
-from symbiont.act1.move_cuts import CutSetting  # noqa: E402
+from symbiont.act1.lineage import Arm  # noqa: E402
 from symbiont.act1.run_guards import SpendRoom  # noqa: E402
 from symbiont.act1.run_summary import summary_of  # noqa: E402
+from symbiont.egress.spark import Effort, SparkApiError, SparkReplyError  # noqa: E402
+from symbiont.eval.prereg import PreregNotFrozenError  # noqa: E402
 from symbiont.eval.prereg_git import require_frozen  # noqa: E402
+
+__all__ = ["PlayerChangedError", "game_key", "result_from_json", "result_to_json"]
 
 DEFAULT_ROOT = Path.home() / "symbiont-runs" / "evolve"
 # The dry run spends nothing; the room only has to be large enough that doubling fits.
 DRY_RUN_ROOM = SpendRoom(5.0, 2.5)
-
-
+# Planning figure [hypothesis]: playing generation 0 a second time over costs about this much.
+SPARK_DOUBLING_COST = 0.3
+PLAY_EFFORT = Effort.LOW  # the probe ruling: play at low reasoning
+MUTATION_EFFORT = Effort.MEDIUM  # mutation and judge
+PLAY_DECISIONS = 16
 SIMULATED_BANNER = (
     "SIMULATED: a dry run; no real game was played and none of these numbers is a result"
+)
+EXPLORATORY_NOTE = (
+    "validation is held-back seeds on the same maps, weaker than the design's validation levels"
 )
 
 
@@ -65,233 +76,152 @@ class AuthorKind(StrEnum):
     SPARK = "spark"
 
 
-class SparkNotBuiltError(RuntimeError):
-    """The Spark player and author arrive with the Spark tasks (T19 on)."""
+class RunLabel(StrEnum):
+    """What a run is allowed to claim. There is no SCORED here: scored runs are the final test."""
 
-
-def game_key(card_id: str, case: Case) -> str:
-    """The stable key of one game in the state file."""
-    return f"{card_id}|{case.level}|{case.seed}|{case.skill}|{case.cuts.value}"
-
-
-def result_to_json(result: GameResult) -> dict[str, Any]:
-    """A game result as plain JSON."""
-    out = dataclasses.asdict(result)
-    out["grade"] = result.grade.value
-    out["case"]["cuts"] = result.case.cuts.value
-    out["pains"] = [list(pair) for pair in result.pains]
-    return out
-
-
-def result_from_json(data: dict[str, Any]) -> GameResult:
-    """The inverse of result_to_json."""
-    case = Case(**{**data["case"], "cuts": CutSetting(data["case"]["cuts"])})
-    fields = {**data, "case": case, "grade": Grade(data["grade"])}
-    fields["pains"] = tuple((name, count) for name, count in data["pains"])
-    return GameResult(**fields)
-
-
-class PlayerChangedError(RuntimeError):
-    """A run was resumed with a different player, author, model or reasoning than it began with."""
+    DRY_RUN = "dry run"
+    EXPLORATORY = "exploratory"
 
 
 class FakePlayerNeedsDryRunError(RuntimeError):
     """The fake player was asked for without --dry-run: its scores are simulated, never a result."""
 
 
-class NullLedger:
-    """The spend ledger of a run that makes no paid call (fake and scripted players)."""
-
-    def snapshot(self) -> dict[str, Any]:
-        """Calls and dollars so far, from the ledger itself."""
-        return {"calls": 0, "dollars": 0.0, "source": "ledger: this run makes no paid calls"}
+class UnlabeledRunError(RuntimeError):
+    """Neither --dry-run nor --exploratory (nor a frozen prereg for Spark) was given."""
 
 
-class RunStore:
-    """state.json (mode 0600, atomic) and events.jsonl for one run; also the generation journal.
-
-    state.json holds: the run's identity (player, author, model, reasoning), the seed cards, every
-    generation's children written down before any of its games, and every finished game.
-    """
-
-    def __init__(self, directory: Path) -> None:
-        """Create the run directory and read any earlier state."""
-        self.directory = directory
-        directory.mkdir(parents=True, exist_ok=True)
-        self.state_path, self.events_path = directory / "state.json", directory / "events.jsonl"
-        stored = json.loads(self.state_path.read_text()) if self.state_path.exists() else {}
-        self.games: dict[str, dict[str, Any]] = stored.get("games", {})
-        self.cards: dict[str, str] = stored.get("cards", {})
-        self.identity: dict[str, Any] | None = stored.get("identity")
-        self.seed_cards: list[Any] | None = stored.get("seed_cards")
-        self.generations: dict[str, Any] = stored.get("generations", {})
-
-    def _write(self) -> None:
-        """Replace state.json atomically with mode 0600."""
-        document = {
-            "identity": self.identity,
-            "seed_cards": self.seed_cards,
-            "generations": self.generations,
-            "games": self.games,
-            "cards": self.cards,
-        }
-        fd, name = tempfile.mkstemp(dir=self.directory, suffix=".tmp")
-        with os.fdopen(fd, "w") as handle:
-            json.dump(document, handle)
-        Path(name).chmod(0o600)
-        Path(name).replace(self.state_path)
-
-    def require_identity(self, identity: dict[str, Any]) -> None:
-        """Remember who plays and writes; refuse to resume with anyone else."""
-        if self.identity is not None and self.identity != identity:
-            raise PlayerChangedError(f"run began with {self.identity}, resumed with {identity}")
-        self.identity = identity
-        self._write()
-
-    def seeds(self, build: Callable[[], list[Card]]) -> list[Card]:
-        """The seed cards: stored on the first call, read back on a resume."""
-        if self.seed_cards is None:
-            self.seed_cards = [card.to_json() for card in build()]
-            self._write()
-        return [Card.from_json(item) for item in self.seed_cards]
-
-    def load(self, arm: Arm, generation: int) -> tuple[tuple[Card, ...], tuple[Birth, ...]] | None:
-        """The generation's stored children and births, or None."""
-        found = self.generations.get(f"{arm.value}:{generation}")
-        if found is None:
-            return None
-        cards = tuple(Card.from_json(item) for item in found["cards"])
-        return cards, tuple(birth_from_json(item) for item in found["births"])
-
-    def save(
-        self, arm: Arm, generation: int, cards: tuple[Card, ...], births: tuple[Birth, ...]
-    ) -> None:
-        """Write a generation's children down before any game of it is played."""
-        self.generations[f"{arm.value}:{generation}"] = {
-            "cards": [card.to_json() for card in cards],
-            "births": [birth_to_json(birth) for birth in births],
-        }
-        self._write()
-
-    def save_game(self, key: str, result: GameResult, card: Card) -> None:
-        """Record one game with who played it, and the card's text for the owner."""
-        self.games[key] = {**result_to_json(result), "player": self.identity}
-        self.cards[card.card_id] = card.render()
-        self._write()
-
-    def event(self, name: str, **fields: Any) -> None:
-        """Append one timing or stage event."""
-        line = json.dumps({"event": name, "at": time.time(), **fields})
-        with self.events_path.open("a") as handle:
-            handle.write(line + "\n")
+def label_of(args: argparse.Namespace) -> RunLabel | None:
+    """The run's label from its flags; None means a scored-style run that needs a frozen prereg."""
+    if args.dry_run and args.exploratory:
+        raise UnlabeledRunError("--dry-run and --exploratory exclude each other")
+    if args.dry_run:
+        return RunLabel.DRY_RUN
+    return RunLabel.EXPLORATORY if args.exploratory else None
 
 
-class ResumingPlayer:
-    """Returns a stored game instead of replaying it, and stores every new one before returning."""
-
-    def __init__(self, inner: Player, store: RunStore) -> None:
-        """Wrap a player; `replayed` counts games served from the state file."""
-        self.inner, self.store, self.replayed = inner, store, 0
-
-    def play(self, card: Card, case: Case) -> GameResult:
-        """One game, from the state file if it was already played."""
-        key = game_key(card.card_id, case)
-        if key in self.store.games:
-            self.replayed += 1
-            stored = {k: v for k, v in self.store.games[key].items() if k != "player"}
-            return result_from_json(stored)
-        started = time.monotonic()
-        result = self.inner.play(card, case)
-        self.store.save_game(key, result, card)
-        self.store.event(
-            "game", card=card.card_id, level=case.level, seed=case.seed,
-            grade=result.grade.value, seconds=round(time.monotonic() - started, 3),
-        )  # fmt: skip
-        return result
-
-
-def require_scored_ready(player: PlayerKind, generations: int, prereg: Path | None) -> None:
-    """Refuse a Spark run past generation 0 unless the prereg is frozen and committed.
+def require_scored_ready(
+    player: PlayerKind, generations: int, prereg: Path | None, label: RunLabel | None
+) -> None:
+    """Refuse a Spark run past generation 0 unless it is exploratory or the prereg is frozen.
 
     Raises PreregNotFrozenError (from symbiont.eval.prereg).
     """
-    if player == PlayerKind.SPARK and generations >= 1:
-        if prereg is None:
-            from symbiont.eval.prereg import PreregNotFrozenError
+    if player != PlayerKind.SPARK or generations < 1 or label == RunLabel.EXPLORATORY:
+        return
+    if prereg is None:
+        raise PreregNotFrozenError("--prereg", "generation 1 or later with --player spark")
+    require_frozen(prereg)
 
-            raise PreregNotFrozenError("--prereg", "generation 1 or later with --player spark")
-        require_frozen(prereg)
 
-
-def split_from_levels(levels_json: Path | None) -> EvolveSplit:
-    """The split from a smoke-test file; with none, every level passes (the dry run)."""
+def split_for(args: argparse.Namespace) -> EvolveSplit:
+    """The exploratory split for --pool, else the split from a smoke-test file, else all pass."""
+    if args.pool:
+        return EvolveSplit.exploratory(args.pool.split(","))
     every = levels_in(LevelSplit.TRAINING) + levels_in(LevelSplit.HELD_OUT)
-    if levels_json is None:
+    if args.levels is None:
         return EvolveSplit.of({level: SmokeResult(passed=True, reason="") for level in every})
-    raw = json.loads(levels_json.read_text())
+    raw = json.loads(args.levels.read_text())
     return EvolveSplit.of({k: SmokeResult(**v) for k, v in raw.items()})
 
 
-def build_player(kind: PlayerKind, wad: Path, episodes: Path) -> Player:
-    """The player for the run. Spark waits for T19."""
-    if kind == PlayerKind.FAKE:
+def build_player(args: argparse.Namespace, episodes: Path) -> Player:
+    """The player for the run."""
+    if args.player == PlayerKind.FAKE:
         return fake_player.HiddenRulePlayer()
-    if kind == PlayerKind.SPARK:
-        raise SparkNotBuiltError("the Spark player arrives with T19")
     import play_case
 
-    from symbiont.act1.policies import policy_named
-
-    setup = play_case.EngineSetup(wad=wad, episodes=episodes)
-    return play_case.EnginePlayer(
-        lambda _card, case: policy_named("scripted_explorer", case.seed).reply, setup
+    if args.player == PlayerKind.SPARK:
+        replies = spark_players.SparkPlayers(args.run, args.run_cap, PLAY_EFFORT)
+    else:
+        replies = spark_players.ScriptedPlayers("scripted_explorer")
+    setup = play_case.EngineSetup(
+        wad=args.wad,
+        episodes=episodes,
+        decisions=PLAY_DECISIONS,
+        ungradable=(play_case.GlimmerReplyError, SparkReplyError, SparkApiError),
+        workers=args.workers,
     )
+    return play_case.EnginePlayer(replies, setup)
 
 
-def build_tools(author: AuthorKind, seed: int) -> VariationTools:
-    """Author, judge, chance and schedule for the run. Spark waits for T19."""
-    if author == AuthorKind.SPARK:
-        raise SparkNotBuiltError("the Spark author arrives with T19")
-    import random
+def build_tools(args: argparse.Namespace) -> VariationTools:
+    """Author, judge, chance and schedule for one arm; Spark ones get their own session."""
+    schedule = OperatorSchedule(args.seed)
+    if args.author == AuthorKind.FAKE:
+        return VariationTools(
+            fake_author.OfflineAuthor(), fake_author.AllowAllJudge(), random.Random(args.seed),
+            schedule, {},
+        )  # fmt: skip
+    import spark_author
+    import spark_judge
 
+    session = spark_players.spark_session(args.run, args.run_cap)
     return VariationTools(
-        fake_author.OfflineAuthor(), fake_author.AllowAllJudge(), random.Random(seed),
-        OperatorSchedule(seed), {},
+        spark_author.SparkAuthor(session, MUTATION_EFFORT),
+        spark_judge.SparkJudge(session, MUTATION_EFFORT),
+        random.Random(args.seed), schedule, {},
     )  # fmt: skip
+
+
+def spark_in_use(args: argparse.Namespace) -> bool:
+    """Whether this run makes paid calls."""
+    return args.player == PlayerKind.SPARK or args.author == AuthorKind.SPARK
+
+
+def spend_room_for(args: argparse.Namespace) -> SpendRoom:
+    """The money left for the noise check's doubling decision."""
+    if not spark_in_use(args):
+        return DRY_RUN_ROOM
+    spent = RunLedger(args.run).snapshot()["dollars"]
+    return SpendRoom(args.run_cap - spent, SPARK_DOUBLING_COST)
+
+
+def seed_population(args: argparse.Namespace, tools: VariationTools) -> list:
+    """The generation-0 cards: Spark-written when the author is Spark, offline otherwise."""
+    if args.author == AuthorKind.FAKE:
+        return fake_author.dry_run_seed_cards()
+    return seed_cards.build_seed_cards(tools.author, tools.judge)
+
+
+def label_text(args: argparse.Namespace, label: RunLabel | None) -> str:
+    """The words the page and the results show for this run."""
+    base = f"{args.player.value} player"
+    if label == RunLabel.DRY_RUN:
+        return f"dry run, {base}"
+    if not args.pool:
+        return f"exploratory, {base}"
+    maps = len(args.pool.split(","))
+    return f"exploratory, {base}, {maps} navigable training maps; {EXPLORATORY_NOTE}"
 
 
 def run(args: argparse.Namespace) -> RunRecord:
     """One run: guards first, then the loop under the resuming player."""
-    if args.player == PlayerKind.FAKE and not args.dry_run:
+    label = label_of(args)
+    if args.player == PlayerKind.FAKE and label != RunLabel.DRY_RUN:
         raise FakePlayerNeedsDryRunError("--player fake scores a hidden rule: pass --dry-run")
-    require_scored_ready(args.player, args.generations, args.prereg)
+    require_scored_ready(args.player, args.generations, args.prereg, label)
+    if label is None:
+        raise UnlabeledRunError("pass --dry-run or --exploratory; scored runs are the final test")
     store = RunStore(args.root / args.run)
     store.require_identity(
         {
             "player": args.player.value,
             "author": args.author.value,
-            "model": args.model,
-            "reasoning": args.reasoning,
+            "model": args.model or (spark_players.MODEL if spark_in_use(args) else None),
+            "reasoning": args.reasoning or (PLAY_EFFORT.value if spark_in_use(args) else None),
         }
     )
-    store.event(
-        "start", player=args.player.value, author=args.author.value, generations=args.generations
-    )
-    player = ResumingPlayer(
-        build_player(args.player, args.wad, args.root / args.run / "episodes"), store
-    )
-    rules = RunRules(args.generations, args.seed, 1, DRY_RUN_ROOM, journal=store)
+    store.event("start", player=args.player.value, author=args.author.value, label=label.value)
+    player = ResumingPlayer(build_player(args, args.root / args.run / "episodes"), store)
+    tools = {arm: build_tools(args) for arm in (Arm.EVOLVED, Arm.NO_SELECTION)}
+    rules = RunRules(args.generations, args.seed, 1, spend_room_for(args), journal=store)
     record = evolve(
-        store.seeds(fake_author.dry_run_seed_cards), split_from_levels(args.levels), player,
-        {arm: build_tools(args.author, args.seed) for arm in (Arm.EVOLVED, Arm.NO_SELECTION)},
-        rules,
+        store.seeds(lambda: seed_population(args, tools[Arm.EVOLVED])), split_for(args),
+        player, tools, rules,
     )  # fmt: skip
-    label = (
-        f"dry run, {args.player.value} player"
-        if args.dry_run
-        else f"exploratory, {args.player.value} player"
-    )
-    summary = summary_of(record, label, "exploratory", NullLedger().snapshot())
+    ledger = RunLedger(args.run) if spark_in_use(args) else NullLedger()
+    summary = summary_of(record, label_text(args, label), "exploratory", ledger.snapshot())
     summary["games_replayed_from_state"] = player.replayed
     (store.directory / "summary.json").write_text(json.dumps(summary, indent=1))
     store.event("end", stop_reason=record.stop_reason, replayed=player.replayed)
@@ -307,14 +237,18 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
         "--author", type=AuthorKind, choices=list(AuthorKind), default=AuthorKind.FAKE
     )
     parser.add_argument("--generations", type=int, default=2)
+    parser.add_argument("--pool", help="comma-separated training maps for the exploratory split")
     parser.add_argument("--levels", type=Path)
     parser.add_argument("--prereg", type=Path)
     parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
     parser.add_argument("--wad", type=Path, default=Path("data") / "freedoom" / "freedoom2.wad")
     parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--run-cap", type=float, default=3.0, help="dollars for this run")
     parser.add_argument("--model", help="the player's model, recorded with every game")
     parser.add_argument("--reasoning", help="the player's reasoning effort, recorded too")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--exploratory", action="store_true")
     return parser.parse_args(argv)
 
 
