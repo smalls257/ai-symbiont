@@ -2,7 +2,7 @@
  "prereg": "prereg/2026-10-28-text-ceiling.md",
  "freeze_commit": "1c8434e0693111b55bc5b4227203994f83453150",
  "prereg_sha256": "9caecf49faaebc5848cee299a2ac111be5742cd8c81f2dcabb442641fdc0a471",
- "run_label": "scored",
+ "run_label": "gate on re-used data, not a scored claim",
  "task": "T49",
  "asks": "does a step-text embedding raise what any learner can predict",
  "data_label": "gate on re-used data, not a scored claim",

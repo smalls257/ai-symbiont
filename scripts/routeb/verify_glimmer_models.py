@@ -14,6 +14,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from glimmer_chat import prompt_ids
+from glimmer_hosts import require_glimmer_server
 
 CARD = "What happened:"  # how every trained lesson card opens; plain Glimmer never says it
 QUESTIONS = 3
@@ -81,6 +82,19 @@ def child_args(server: str, model: str) -> list[str]:
     return status.get("args", []) if isinstance(status, dict) else []
 
 
+def adapter_arg_problems(args: list[str]) -> list[str]:
+    """What is wrong with the adapter child's LoRA flags; empty for one sqlglot GGUF at scale 1."""
+    loras = [args[i + 1] for i, arg in enumerate(args[:-1]) if arg == "--lora"]
+    problems = []
+    if len(loras) != 1:
+        problems.append(f"adapter child loads {len(loras)} --lora files, not exactly one")
+    if any(not (Path(p).suffix == ".gguf" and "sqlglot" in Path(p).name) for p in loras):
+        problems.append(f"adapter child's --lora is not the sqlglot GGUF: {loras}")
+    if "--lora-scaled" in args or "--lora-init-without-apply" in args:
+        problems.append("adapter child is not started with --lora at scale 1")
+    return problems
+
+
 def judge(
     plain_cards: dict[str, int], adapter_cards: dict[str, int], plain_args, adapter_args
 ) -> list[str]:
@@ -90,8 +104,7 @@ def judge(
         failures.append(
             f"plain child was started with a LoRA: {[a for a in plain_args if 'lora' in a]}"
         )
-    if "--lora" not in adapter_args or "--lora-init-without-apply" in adapter_args:
-        failures.append("adapter child is not started with --lora at scale 1")
+    failures += adapter_arg_problems(list(adapter_args))
     failures += [
         f"plain answered with a lesson card on {path} ({n}x)"
         for path, n in plain_cards.items()
@@ -132,6 +145,7 @@ def main() -> None:
     parser.add_argument("--plain", default="Muse-Glimmer-30B-KQuant-17GB-Q4_K_M")
     parser.add_argument("--adapter", default="Muse-Glimmer-30B-sqlglot")
     args = parser.parse_args()
+    require_glimmer_server(args.server)
     from sqlglot_rows import MEMORY_SYSTEM
     from transformers import AutoTokenizer
 

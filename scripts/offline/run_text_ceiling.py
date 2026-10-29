@@ -27,11 +27,12 @@ import text_ceiling_score as ts
 from symbiont.eval import selection as sel
 from symbiont.eval.note_cost_logistic import L2_GRID, fit_logistic, predict
 from symbiont.eval.note_cost_ranking import roc_auc
-from symbiont.eval.prereg_git import run_provenance
+from symbiont.eval.prereg_git import SCORED, run_provenance
 from symbiont.eval.tanh_net import NetScorer, fit_mlp
 
 log = logging.getLogger("text-ceiling")
 PREREG_NAME = "2026-10-28-text-ceiling.md"
+REUSED_DATA_LABEL = "gate on re-used data, not a scored claim"  # the prereg's Label line
 VALID_REPOS = 8  # the tuning slice: the last eight training repositories, as T47's MLP
 EMBEDDINGS: dict[str, np.ndarray] = {}
 INPUTS = ("old", "old+text")
@@ -179,6 +180,7 @@ def run(args: argparse.Namespace) -> None:
         "verdict": found.pop("verdict"),
         **provenance,
         **_labels(args),
+        "run_label": frozen_run_label(provenance["run_label"]),
         **sizes,
         "train_repos_used": len(rc.TRAIN_ORDER),
         "scoring_repos_used": len(rc.SCORING),
@@ -198,11 +200,16 @@ def run(args: argparse.Namespace) -> None:
     )
 
 
+def frozen_run_label(provenance_label: str) -> str:
+    """The prereg's own label for a frozen run on re-used data; a rehearsal keeps its label."""
+    return REUSED_DATA_LABEL if provenance_label == SCORED else provenance_label
+
+
 def _labels(args: argparse.Namespace) -> dict[str, Any]:
     return {
         "task": "T49",
         "asks": "does a step-text embedding raise what any learner can predict",
-        "data_label": "gate on re-used data, not a scored claim",
+        "data_label": REUSED_DATA_LABEL,
         "data_note": "the 20 pool scoring repositories were already used in exploratory work",
         "rehearsal": bool(args.rehearsal),
         "code_commit": t36.git_head(),

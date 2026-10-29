@@ -1,7 +1,8 @@
 """Validate the Django scorer and the history scrub on the pilot tasks before any Glimmer run.
 
-Per task: the gold patch must resolve, no patch must not, and the scrub must leave no commit
-past HEAD. One task at a time (light desktop load); counts only; exit 1 on any failure.
+Per task: the gold patch must resolve, no patch must fail while its PASS_TO_PASS tests pass (an
+environment that errors on every test is not gradeable), and the scrub leaves no commit past HEAD.
+One task at a time (light desktop load); counts only; exit 1 on any failure.
 Usage: python validate_scorer.py <django_rows.json> <instance_id>...
 """
 
@@ -12,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-from swev_env import HISTORY_COUNTS, Outcome, grade, scrub_history_script
+from swev_env import HISTORY_COUNTS, Grade, Outcome, grade, scrub_history_script
 from taskenv import Container
 
 EXPECTED = {"gold": Outcome.RESOLVED, "none": Outcome.UNRESOLVED}
@@ -32,8 +33,23 @@ def history_check(image: str) -> dict:
     return {"before": before, "after": after, "scrub_s": scrub_s, "ok": after.endswith("future=0")}
 
 
+def environment_ran(found: Grade) -> bool:
+    """Some test passed on this tree: a PASS_TO_PASS test, or any test when the task has none.
+
+    No patch fails every FAIL_TO_PASS test by design, so only a passing test tells a working
+    environment from one where every test errors; a task with no passing test is not gradeable.
+    """
+    return found.p2p[0] > 0 or (found.p2p[1] == 0 and found.f2p[0] > 0)
+
+
+def grade_ok(label: str, found: Grade) -> bool:
+    """The expected outcome, and for no patch also evidence that the environment runs tests."""
+    expected = found.outcome is EXPECTED[label]
+    return expected and (label == "gold" or environment_ran(found))
+
+
 def grade_check(row: dict, label: str) -> dict:
-    """Grade the gold patch or no patch; ok when the outcome is the expected one."""
+    """Grade the gold patch or no patch; ok as `grade_ok` decides."""
     started = time.time()
     found = grade(row, row["patch"] if label == "gold" else "")
     return {
@@ -42,7 +58,7 @@ def grade_check(row: dict, label: str) -> dict:
         "f2p": list(found.f2p),
         "p2p": list(found.p2p),
         "grade_s": round(time.time() - started, 1),
-        "ok": found.outcome is EXPECTED[label],
+        "ok": grade_ok(label, found),
     }
 
 

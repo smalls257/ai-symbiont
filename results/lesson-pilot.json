@@ -1,7 +1,8 @@
 {
- "label": "lesson-in-prompt pilot (exploratory, no prereg)",
+ "label": "[measured] lesson-in-prompt pilot (exploratory, no prereg)",
  "status": "exploratory",
  "model": "Glimmer, reasoning low",
+ "caveats": "[measured] n=1 lesson-arm run per task, so a solve count is not a rate; Glimmer served as a 4-bit quant (Q4_K_M) with a 32k context window, and context-window errors end some runs unsolved",
  "rule": "plain arm reused from earlier logs (Tier 1: cap-50 confirm runs 2-3, unbiased by the screen; Tier 2: runs-tier2 cap 75); lesson arm fresh, 1 run per task",
  "note": "leaked lessons carried a gold-patch line; their runs count as remembers its own fix, not learned the approach",
  "roles": {

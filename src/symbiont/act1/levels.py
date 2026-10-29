@@ -1,6 +1,6 @@
 """Which Freedoom levels meta-training may see, and which are held out for scoring (pure).
 
-Fixed by rule before any episode is logged (prereg/2026-10-27-act1-level-split.md): every fourth
+Set by rule before any episode is logged (DRAFT prereg 2026-10-27-act1-level-split.md): every fourth
 map of freedoom2.wad is held out, spread across the game; MAP01 stays in training (development
 played it). A level outside the 32 maps raises `UnknownLevelError`, and `require_training` names
 a held-out level in its error so a collector cannot write one into a scored store.

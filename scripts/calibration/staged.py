@@ -34,6 +34,7 @@ GATE_RATE = 0.10
 MAX_ATTEMPTS = 3
 MAX_UNGRADED_IN_A_ROW = 3
 DEFAULT_STEP_LIMIT = 50
+PLAIN_IDENTITY = ("plain", None, None)  # a resumed lesson or adapter run never counts these as done
 DEFAULT_WALL_LIMIT_MIN = 30
 ANNOUNCED = (
     "instance_id",
@@ -65,6 +66,22 @@ def screen_header(rule: ScreenRule, pool: list[dict], screen: list[str], exclude
     if rule is ScreenRule.STRATIFIED:
         header |= {"screen_seed": STRATIFIED_SEED, "screen_cells": pick_counts(pool, screen)}
     return header
+
+
+def run_identity(rec: dict) -> tuple[str, int | None, str | None]:
+    """(arm, adapter id, lesson hash) a record ran under; a record from before arms is plain."""
+    return rec.get("arm", PLAIN_IDENTITY[0]), rec.get("adapter_id"), rec.get("lesson_sha")
+
+
+def _same_graded_run(rec: dict, key: tuple, identity: tuple) -> bool:
+    """A graded record of (task, run, reasoning, step limit) `key` under arm `identity`."""
+    found = (rec["instance_id"], rec["run"], rec["reasoning"], rec["step_limit"])
+    return found == key and rec["resolved"] is not None and run_identity(rec) == identity
+
+
+def read_records(log: Path) -> list[dict]:
+    """Every record of an append-only log; none yet when the log does not exist."""
+    return [json.loads(line) for line in log.read_text().splitlines()] if log.exists() else []
 
 
 def read_logged_ids(log: Path) -> set[str]:
@@ -125,11 +142,7 @@ class Driver:
         self.runs_dir.mkdir(parents=True, exist_ok=True)
         self.log = self.runs_dir / "calibration.jsonl"
         self.summary_path = self.runs_dir / "calibration-glimmer.json"
-        self.records = (
-            [json.loads(line) for line in self.log.read_text().splitlines()]
-            if self.log.exists()
-            else []
-        )
+        self.records = read_records(self.log)
         self.state = {
             "status": "running",
             "stage": "screen",
@@ -143,17 +156,15 @@ class Driver:
         self.workers = WORKERS
 
     # -- records -----------------------------------------------------------------------------------
+    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None]:
+        """(arm, adapter id, lesson hash) this driver runs task `iid` under; plain here."""
+        return PLAIN_IDENTITY
+
     def graded(self, iid: str, run: int, setting: Setting) -> dict | None:
-        """The graded record of this (task, run, setting), if one exists."""
-        for rec in self.records:
-            if (rec["instance_id"], rec["run"], rec["reasoning"], rec["step_limit"]) == (
-                iid,
-                run,
-                setting.reasoning,
-                setting.step_limit,
-            ) and rec["resolved"] is not None:
-                return rec
-        return None
+        """The graded record of this (task, run, setting, arm), if one exists."""
+        key = (iid, run, setting.reasoning, setting.step_limit)
+        identity = self.expected_identity(iid)
+        return next((rec for rec in self.records if _same_graded_run(rec, key, identity)), None)
 
     def ensure(self, iid: str, run: int, setting: Setting, stage: str) -> bool:
         """Make sure (task, run, setting) has a graded record; return whether it resolved."""
@@ -304,4 +315,7 @@ if __name__ == "__main__":
     driver = Driver(args.workdir, args.screen, args.runs_dir, args.exclude_log)
     driver.low, driver.medium = settings_for("low", args), settings_for("medium", args)
     driver.workers = args.workers
+    from run_calibration import preflight
+
+    preflight(driver.low)
     driver.run()

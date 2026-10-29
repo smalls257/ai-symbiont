@@ -105,12 +105,17 @@ def _gaps_of(name: str, differences: list[dict[str, Any]]) -> list[dict[str, Any
 def table_line(row: dict[str, Any], ranked: dict[str, float]) -> str:
     """One line of the headline table: net value, interval, precision, AUC, top-1% precision."""
     net, prec = row["metrics"][NET], row["metrics"]["precision"]["value"]
-    shown = "n/a" if prec is None else f"{prec:.2f}"
     return (
-        f"{row['arm']} | {row['role']} | {net['value']:.3f} "
-        f"[{net['ci95_low']:.3f}, {net['ci95_high']:.3f}] | prec {shown} "
-        f"| AUC {ranked['roc_auc']:.3f} | top 1% prec {ranked['precision_top_1pct']:.2f}"
+        f"{row['arm']} | {row['role']} | {_shown(net['value'], 3)} "
+        f"[{_shown(net['ci95_low'], 3)}, {_shown(net['ci95_high'], 3)}] | prec {_shown(prec, 2)} "
+        f"| AUC {_shown(ranked['roc_auc'], 3)} "
+        f"| top 1% prec {_shown(ranked['precision_top_1pct'], 2)}"
     )
+
+
+def _shown(value: float | None, places: int) -> str:
+    """A metric for the log table; an undefined metric (no notes, one class) reads n/a."""
+    return "n/a" if value is None else f"{value:.{places}f}"
 
 
 def headline_gap(scored: list[dict[str, Any]]) -> dict[str, Any]:

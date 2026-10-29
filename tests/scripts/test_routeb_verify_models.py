@@ -8,7 +8,15 @@ import pytest
 
 ROUTEB = Path(__file__).resolve().parents[2] / "scripts" / "routeb"
 PLAIN_ARGS = ["llama-server", "--model", "base.gguf", "--parallel", "4"]
-ADAPTER_ARGS = ["llama-server", "--model", "base.gguf", "--lora", "sqlglot.gguf", "--parallel", "2"]
+ADAPTER_ARGS = [
+    "llama-server",
+    "--model",
+    "base.gguf",
+    "--lora",
+    "glimmer-sqlglot.gguf",
+    "--parallel",
+    "2",
+]
 GOOD = {"chat+tools": 3, "/completion": 3}
 NONE = {"chat+tools": 0, "/completion": 0}
 
@@ -49,3 +57,16 @@ def test_an_adapter_loaded_without_apply_or_without_cards_fails(verify):
     assert verify.judge(NONE, weak, PLAIN_ARGS, ADAPTER_ARGS) == [
         "adapter gave a card on only 1/3 chat+tools answers"
     ]
+
+
+def test_the_adapter_child_must_load_exactly_the_sqlglot_gguf_at_scale_1(verify):
+    base = ["llama-server", "--model", "base.gguf"]
+    assert verify.adapter_arg_problems([*base, "--lora", "glimmer-sqlglot.gguf"]) == []
+    two = [*base, "--lora", "glimmer-sqlglot.gguf", "--lora", "glimmer-other.gguf"]
+    assert any("2 --lora files" in p for p in verify.adapter_arg_problems(two))
+    wrong = [*base, "--lora", "glimmer-freedoom.gguf"]
+    assert any("not the sqlglot GGUF" in p for p in verify.adapter_arg_problems(wrong))
+    scaled = [*base, "--lora-scaled", "glimmer-sqlglot.gguf", "0.5"]
+    problems = verify.adapter_arg_problems(scaled)
+    assert any("0 --lora files" in p for p in problems) and any("scale 1" in p for p in problems)
+    assert any("not exactly one" in p for p in verify.adapter_arg_problems([*base, "--lora"]))

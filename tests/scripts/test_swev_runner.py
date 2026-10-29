@@ -165,3 +165,18 @@ def test_driver_blocks_after_three_ungraded_in_a_row(mods, tmp_path):
     summary = json.loads((tmp_path / "runs/swev-summary.json").read_text())
     assert summary["status"] == "blocked"
     assert summary["arms"]["plain"]["graded"] == 0
+
+
+def test_a_task_whose_environment_errors_on_every_test_is_not_gradeable(mods, monkeypatch):
+    monkeypatch.syspath_prepend(str(SWEV))
+    sys.modules.pop("validate_scorer", None)
+    check = importlib.import_module("validate_scorer")
+    grade, outcome = mods["swev_env"].Grade, mods["swev_env"].Outcome
+    every_test_errors = grade(outcome.UNRESOLVED, f2p=(0, 3), p2p=(0, 40))
+    healthy_base_tree = grade(outcome.UNRESOLVED, f2p=(0, 3), p2p=(40, 40))
+    assert not check.grade_ok("none", every_test_errors)
+    assert check.grade_ok("none", healthy_base_tree)
+    assert not check.grade_ok("none", grade(outcome.UNRESOLVED))  # no test ran at all
+    assert check.grade_ok("gold", grade(outcome.RESOLVED, f2p=(3, 3), p2p=(40, 40)))
+    assert not check.grade_ok("gold", grade(outcome.UNRESOLVED, f2p=(2, 3), p2p=(40, 40)))
+    sys.modules.pop("validate_scorer", None)

@@ -158,11 +158,13 @@ main() {
     exit 64
   fi
   shift
-  acquire_lock || exit 75
+  # Armed before the lock: a signal between mkdir and the traps would leave the lock behind.
   # Until llama's state is recorded there is nothing to restore: a signal only ends the wait.
   trap 'on_signal 2' INT
   trap 'on_signal 15' TERM
   trap 'on_signal 1' HUP
+  acquire_lock || exit 75
+  if [ -n "$signaled" ]; then release_lock; exit $((128 + signaled)); fi
   local rc=0
   take_foreign_locks || rc=$?
   if [ "$rc" -ne 0 ]; then release_lock; exit "$rc"; fi

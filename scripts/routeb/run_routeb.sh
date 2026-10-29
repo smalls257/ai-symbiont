@@ -119,7 +119,8 @@ convert_one() {  # convert_one <size>: peft adapter to a GGUF LoRA llama-server 
   [[ -s $ADAPTERS/$cond.gguf ]] && return 0
   timed "convert-$cond" env PYTHONPATH="$ROUTEB_LLAMA_CPP/gguf-py" HF_HUB_OFFLINE=1 \
     "$ROUTEB_PY" "$ROUTEB_LLAMA_CPP/convert_lora_to_gguf.py" --base "$ROUTEB_SNAPSHOT" \
-    --outtype f16 --outfile "$ADAPTERS/$cond.gguf" "$ADAPTERS/$cond"
+    --outtype f16 --outfile "$ADAPTERS/$cond.gguf.tmp" "$ADAPTERS/$cond"
+  mv "$ADAPTERS/$cond.gguf.tmp" "$ADAPTERS/$cond.gguf"  # the resume check above sees only whole files
 }
 
 stop_server() {

@@ -227,6 +227,13 @@ def test_script_never_invokes_sudo():
     assert not any("sudo" in ln for ln in code)
 
 
+def test_signal_traps_are_armed_before_the_lock_is_taken():
+    main = SCRIPT.read_text().split("main() {", 1)[1]
+    first_lock = main.index("acquire_lock")
+    assert all(main.index(f"trap 'on_signal {n}'") < first_lock for n in (1, 2, 15))
+    assert 'if [ -n "$signaled" ]; then release_lock;' in main[first_lock:].splitlines()[1]
+
+
 # --- signals before the job starts, HUP, and jobs that ignore TERM -------------
 
 STOPPING = {signal.SIGINT: 130, signal.SIGTERM: 143, signal.SIGHUP: 129}

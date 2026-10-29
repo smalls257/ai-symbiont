@@ -1,6 +1,7 @@
 """CAL2: every candidate gets 3 runs at the launcher's caps, bands and strata, request timeout."""
 
 import importlib.util
+import io
 import json
 import os
 import sys
@@ -272,6 +273,12 @@ def test_fixed_runs_give_every_listed_task_exactly_n_runs_in_file_order(monkeypa
     assert summary["band_counts"]["in_band"] == 3
 
 
+GOLD_PATCH = (
+    "--- a/sqlglot/parser.py\n+++ b/sqlglot/parser.py\n@@ -1,2 +1,2 @@\n"
+    "-    return self._parse_types()\n+    return self._parse_types(allow_identifiers=True)\n )\n"
+)
+
+
 def lesson_driver(monkeypatch, tmp_path, lessons):
     run_once, calls = graded_run(lambda iid, run: True)
     seen = []
@@ -282,7 +289,10 @@ def lesson_driver(monkeypatch, tmp_path, lessons):
 
     cal2 = load_cal2(monkeypatch, run_and_keep_statement)
     workdir = make_workdir(tmp_path)
-    rows = [{"instance_id": f"task0{n}", "problem_statement": f"bug {n}"} for n in range(6)]
+    rows = [
+        {"instance_id": f"task0{n}", "problem_statement": f"bug {n}", "patch": GOLD_PATCH}
+        for n in range(6)
+    ]
     (workdir / "data/sqlglot_rows.json").write_text(json.dumps(rows))
     (workdir / "lessons.json").write_text(json.dumps(lessons))
     args = cal2.parse_args(
@@ -353,3 +363,132 @@ def test_adapter_arm_is_stamped_on_every_record_and_cannot_mix_with_lessons(monk
     mixed.give_lessons(tmp_path / "m" / "lessons.json")
     with pytest.raises(ValueError, match="one arm per run"):
         mixed.use_adapter(0)
+
+
+def write_prior_log(tmp_path, extra=None):
+    """A runs-dir log that already holds a graded run 1 of task00-02 (plain unless `extra`)."""
+    (tmp_path / "p").mkdir(exist_ok=True)
+    recs = [
+        {"instance_id": f"task0{n}", "run": 1, "reasoning": "low", "step_limit": 50}
+        | {"resolved": True}
+        | (extra or {})
+        for n in range(3)
+    ]
+    (tmp_path / "p" / "calibration.jsonl").write_text("".join(json.dumps(r) + "\n" for r in recs))
+
+
+def test_a_resumed_lesson_run_never_counts_plain_records_as_done(monkeypatch, tmp_path):
+    write_prior_log(tmp_path)
+    lessons = {f"task0{n}": f"Edit file {n} first." for n in range(3)}
+    _, driver, seen = lesson_driver(monkeypatch, tmp_path, lessons)
+    driver.give_lessons(tmp_path / "lessons.json")
+    driver.run()
+    assert sorted(iid for iid, _ in seen) == ["task00", "task01", "task02"]
+
+
+def test_a_resumed_plain_run_skips_its_own_graded_records(monkeypatch, tmp_path):
+    write_prior_log(tmp_path)
+    _, driver, seen = lesson_driver(monkeypatch, tmp_path, {})
+    driver.run()
+    assert seen == []
+
+
+def test_a_changed_lesson_or_another_adapter_is_not_the_same_run(monkeypatch, tmp_path):
+    write_prior_log(
+        tmp_path, {"arm": "lesson", "lesson_sha": "an-older-lesson", "adapter_id": None}
+    )
+    lessons = {f"task0{n}": f"Edit file {n} first." for n in range(3)}
+    _, driver, seen = lesson_driver(monkeypatch, tmp_path, lessons)
+    driver.give_lessons(tmp_path / "lessons.json")
+    driver.run()
+    assert len(seen) == 3
+    (tmp_path / "q").mkdir()
+    write_prior_log(tmp_path / "q", {"arm": "personal_lora", "adapter_id": 1, "lesson_sha": None})
+    _, other, seen_other = lesson_driver(monkeypatch, tmp_path / "q", {})
+    other.use_adapter(0)
+    other.run()
+    assert len(seen_other) == 3
+
+
+def test_every_lesson_is_checked_against_its_gold_patch_and_the_check_is_on_every_row(
+    monkeypatch, tmp_path
+):
+    lessons = {
+        "task00": "Edit the parser first.",
+        "task01": "The fix: `return   self._parse_types(allow_identifiers=True)` in the parser.",
+        "task02": "Run the dialect tests.",
+    }
+    _, driver, _ = lesson_driver(monkeypatch, tmp_path, lessons)
+    driver.give_lessons(tmp_path / "lessons.json")
+    driver.run()
+    logged = {
+        rec["instance_id"]: rec for rec in map(json.loads, driver.log.read_text().splitlines())
+    }
+    assert {iid: rec["lesson_check"] for iid, rec in logged.items()} == {
+        "task00": "clean",
+        "task01": "contains fix lines",
+        "task02": "clean",
+    }
+    summary = json.loads(driver.summary_path.read_text())
+    assert summary["lesson_check"]["task01"] == "contains fix lines"
+
+
+def test_a_lesson_task_without_a_gold_patch_raises_before_any_run(monkeypatch, tmp_path):
+    _, driver, seen = lesson_driver(monkeypatch, tmp_path, {f"task0{n}": "x" for n in range(3)})
+    del driver.rows["task02"]["patch"]
+    with pytest.raises(KeyError, match="no gold patch"):
+        driver.give_lessons(tmp_path / "lessons.json")
+    assert seen == []
+
+
+def test_short_syntax_glue_in_a_patch_is_not_a_fix_line(monkeypatch):
+    cal2 = load_cal2(monkeypatch)
+    assert cal2.check_lessons({"t": "close it with )"}, {"t": {"patch": "+ )\n- else:\n"}}) == {
+        "t": cal2.LessonCheck.CLEAN
+    }
+
+
+SERVED = "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M"
+
+
+def listing(args=None):
+    return {"data": [{"id": SERVED, "status": {"args": args or []}}, {"id": "other"}]}
+
+
+def fake_server(monkeypatch, runner, body):
+    """Replace the one listing request; record the URLs asked for."""
+    asked = []
+
+    class Response(io.BytesIO):
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    def urlopen(url, timeout):
+        asked.append(url)
+        return Response(json.dumps(body).encode())
+
+    monkeypatch.setattr(runner, "urlopen", urlopen)
+    return asked
+
+
+def test_preflight_names_a_missing_model_or_adapter_and_otherwise_says_nothing(monkeypatch):
+    runner = load_runner(monkeypatch)
+    assert runner.missing_on_server(listing(), SERVED, None) is None
+    assert "not listed" in runner.missing_on_server(listing(), "absent-model", None)
+    assert "adapter id 0 is absent" in runner.missing_on_server(listing(), SERVED, 0)
+    two = listing(["--lora", "a.gguf", "--lora", "b.gguf"])
+    assert runner.missing_on_server(two, SERVED, 1) is None
+    assert "adapter id 2 is absent" in runner.missing_on_server(two, SERVED, 2)
+
+
+def test_preflight_makes_one_request_and_stops_before_any_run(monkeypatch):
+    runner = load_runner(monkeypatch)
+    monkeypatch.setenv("SYMBIONT_GLIMMER_URL", "http://glimmer.invalid:8081/v1")
+    asked = fake_server(monkeypatch, runner, listing())
+    runner.preflight(runner.Setting("low", 75, 1800))
+    with pytest.raises(SystemExit, match="preflight failed, no run started: .*adapter id 0"):
+        runner.preflight(runner.Setting("low", 75, 1800, adapter_id=0))
+    assert asked == ["http://glimmer.invalid:8081/models"] * 2

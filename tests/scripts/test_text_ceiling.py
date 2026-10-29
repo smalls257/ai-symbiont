@@ -64,6 +64,26 @@ def test_the_results_file_opens_with_the_verdict_word(script, tmp_path):
     assert json.loads(out.read_text()) == {"verdict": "FAIL", "run_label": "scored", "rows": [1, 2]}
 
 
+def test_a_frozen_run_on_reused_data_is_labelled_as_the_prereg_says_never_scored(script):
+    runner, _ = script
+    assert runner.frozen_run_label("scored") == "gate on re-used data, not a scored claim"
+    assert runner.frozen_run_label("exploratory") == "exploratory"
+
+
+def test_the_committed_t49_result_never_calls_itself_scored():
+    result = json.loads((SCRIPTS.parents[1] / "results" / "text-ceiling.json").read_text())
+    assert result["run_label"] == result["data_label"] == "gate on re-used data, not a scored claim"
+
+
+def test_the_table_line_shows_an_undefined_metric_as_n_a_instead_of_crashing(script):
+    _, ts = script
+    undefined = {"value": None, "ci95_low": None, "ci95_high": None, "undefined_draws": 9}
+    row = {"arm": "MLP old+text", "role": "under test"}
+    row["metrics"] = {ts.NET: undefined, "precision": {"value": None}}
+    line = ts.table_line(row, {"roc_auc": None, "precision_top_1pct": None})
+    assert line.count("n/a") == 6
+
+
 def run_main(runner, monkeypatch, *extra):
     argv = ["run", "--pool", "p", "--data-dir", "d", "--embeddings", "e", "--out", "o", *extra]
     monkeypatch.setattr(sys, "argv", argv)

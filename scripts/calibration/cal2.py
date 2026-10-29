@@ -17,9 +17,16 @@ import threading
 import time
 from pathlib import Path
 
-from lesson_arm import Arm, lesson_hash, load_lessons, statement_with_lesson
+from lesson_arm import (
+    Arm,
+    LessonCheck,
+    check_lessons,
+    lesson_hash,
+    load_lessons,
+    statement_with_lesson,
+)
 from screen_rules import cells_of
-from staged import BlockedError, Driver, add_limit_arguments, settings_for
+from staged import BlockedError, Driver, add_limit_arguments, run_identity, settings_for
 from staged_summary import RUN_FIELDS, RUNS_PER_TASK, run_totals
 
 TARGET_IN_BAND = 8  # coordinator ruling 2026-10-28 (was 15): enough in-band tasks for the pool
@@ -163,15 +170,25 @@ class CandidateDriver(Driver):
         self.stop: str | None = None
         self._lock = threading.RLock()  # decide() and _record() both write the summary
         self.arm, self.lesson_hashes = Arm.PLAIN, {}
+        self.lesson_checks: dict[str, LessonCheck] = {}
 
     def give_lessons(self, path: Path) -> None:
         """Lesson arm: each listed task's lesson goes before its statement; raises if one lacks."""
         lessons = load_lessons(path, self.screen)
+        self.lesson_checks = check_lessons(lessons, self.rows)
         for iid, text in lessons.items():
             self.rows[iid] = statement_with_lesson(self.rows[iid], text)
         self.arm = Arm.LESSON
         self.lesson_hashes = {iid: lesson_hash(text) for iid, text in lessons.items()}
-        self.header = self.header | {"arm": str(self.arm), "lesson_sha": self.lesson_hashes}
+        leaked = sorted(iid for iid, c in self.lesson_checks.items() if c != LessonCheck.CLEAN)
+        print(
+            f"lesson check: {len(leaked)} of {len(lessons)} contain fix lines: {leaked}", flush=True
+        )
+        self.header = self.header | {
+            "arm": str(self.arm),
+            "lesson_sha": self.lesson_hashes,
+            "lesson_check": {iid: str(check) for iid, check in self.lesson_checks.items()},
+        }
 
     def use_adapter(self, adapter_id: int) -> None:
         """Personal-Glimmer arm: every model call carries the LoRA; raises if lessons are set."""
@@ -186,18 +203,30 @@ class CandidateDriver(Driver):
         stamp = {
             "arm": str(self.arm),
             "lesson_sha": self.lesson_hashes.get(rec["instance_id"]),
+            "lesson_check": _label(self.lesson_checks.get(rec["instance_id"])),
             "adapter_id": self.low.adapter_id,
         }
         super()._record(rec | stamp)
 
-    def graded_runs(self, iid: str) -> list[dict]:
-        """The graded records of one task under the current setting."""
+    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None]:
+        """This run's arm, adapter id and the task's lesson hash: the resume key's arm part."""
+        return str(self.arm), self.low.adapter_id, self.lesson_hashes.get(iid)
+
+    def arm_records(self, iid: str) -> list[dict]:
+        """Every logged record of one task under this run's arm, graded or not."""
+        expected = self.expected_identity(iid)
         return [
             rec
             for rec in self.records
-            if rec["instance_id"] == iid
-            and rec["step_limit"] == self.low.step_limit
-            and rec["resolved"] is not None
+            if rec["instance_id"] == iid and run_identity(rec) == expected
+        ]
+
+    def graded_runs(self, iid: str) -> list[dict]:
+        """The graded records of one task under the current setting and arm."""
+        return [
+            rec
+            for rec in self.arm_records(iid)
+            if rec["step_limit"] == self.low.step_limit and rec["resolved"] is not None
         ]
 
     def finished_tasks(self) -> list[tuple[str, str]]:
@@ -246,7 +275,7 @@ class CandidateDriver(Driver):
         entries = [
             candidate_entry(iid, self.strata[iid], runs)
             for iid in self.screen
-            if (runs := [rec for rec in self.records if rec["instance_id"] == iid])
+            if (runs := self.arm_records(iid))
         ]
         out = {
             **self.header,
@@ -261,6 +290,11 @@ class CandidateDriver(Driver):
         with self._lock:  # one writer at a time: the tmp file name is shared
             tmp.write_text(json.dumps(out, indent=1))
             tmp.replace(self.summary_path)
+
+
+def _label(check: LessonCheck | None) -> str | None:
+    """A lesson check as the record's string; None on rows without a lesson."""
+    return None if check is None else str(check)
 
 
 def parse_args(argv: list[str]) -> argparse.Namespace:
@@ -286,4 +320,7 @@ if __name__ == "__main__":
         driver.give_lessons(args.lessons)
     if args.adapter is not None:
         driver.use_adapter(args.adapter)
+    from run_calibration import preflight
+
+    preflight(driver.low)
     driver.run()

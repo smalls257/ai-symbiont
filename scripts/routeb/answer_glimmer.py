@@ -16,6 +16,7 @@ from pathlib import Path
 from urllib.request import Request, urlopen
 
 from glimmer_chat import prompt_ids
+from glimmer_hosts import require_glimmer_server
 from transformers import AutoTokenizer
 
 MAX_TOKENS = 96  # LCAP's answer cap; answers are cut at the first newline
@@ -63,6 +64,7 @@ def main() -> None:
     parser.add_argument("--lora", type=int, help="index of the adapter to apply; none: base model")
     parser.add_argument("--model", help="model name, when --server is a llama-server router")
     args = parser.parse_args()
+    require_glimmer_server(args.server)
     tokenizer = AutoTokenizer.from_pretrained(args.snapshot)
     system = Path(args.system).read_text(encoding="utf-8")
     questions = [json.loads(line) for line in Path(args.questions).read_text().splitlines()]

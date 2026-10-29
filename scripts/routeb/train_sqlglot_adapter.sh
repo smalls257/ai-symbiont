@@ -89,8 +89,11 @@ main() {
     --max-minutes "${ROUTEB_MAX_MINUTES:-0}"
   timed convert env PYTHONPATH="$ROUTEB_LLAMA_CPP/gguf-py" HF_HUB_OFFLINE=1 "$ROUTEB_PY" \
     "$ROUTEB_LLAMA_CPP/convert_lora_to_gguf.py" --base "$ROUTEB_SNAPSHOT" --outtype f16 \
-    --outfile "$WORK/adapters/$SET.gguf" "$ADAPTER"
-  cp "$WORK/adapters/$SET.gguf" "$ROUTEB_SERVE_DIR/glimmer-$SET.gguf"
+    --outfile "$WORK/adapters/$SET.gguf.tmp" "$ADAPTER"
+  # Temp file then rename: a killed convert or copy never leaves a truncated GGUF the server loads.
+  mv "$WORK/adapters/$SET.gguf.tmp" "$WORK/adapters/$SET.gguf"
+  cp "$WORK/adapters/$SET.gguf" "$ROUTEB_SERVE_DIR/glimmer-$SET.gguf.tmp"
+  mv "$ROUTEB_SERVE_DIR/glimmer-$SET.gguf.tmp" "$ROUTEB_SERVE_DIR/glimmer-$SET.gguf"
   status "adapter ready: $ROUTEB_SERVE_DIR/glimmer-$SET.gguf; $(peaks)"
 }
 
