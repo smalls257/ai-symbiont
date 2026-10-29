@@ -1,0 +1,96 @@
+{
+ "label": "exploratory: general lessons, 18 held-out sqlglot tasks, 1 run per task per arm, cap 50",
+ "arms": {
+  "plain run 1": {
+   "label": "reference",
+   "all": {
+    "runs": 18,
+    "solved": 5,
+    "errors": 0
+   },
+   "bug": {
+    "runs": 10,
+    "solved": 4,
+    "errors": 0
+   },
+   "feature": {
+    "runs": 8,
+    "solved": 1,
+    "errors": 0
+   }
+  },
+  "plain run 2": {
+   "label": "reference",
+   "all": {
+    "runs": 18,
+    "solved": 3,
+    "errors": 0
+   },
+   "bug": {
+    "runs": 10,
+    "solved": 3,
+    "errors": 0
+   },
+   "feature": {
+    "runs": 8,
+    "solved": 0,
+    "errors": 0
+   }
+  },
+  "card": {
+   "label": "under test",
+   "all": {
+    "runs": 18,
+    "solved": 5,
+    "errors": 0
+   },
+   "bug": {
+    "runs": 10,
+    "solved": 4,
+    "errors": 0
+   },
+   "feature": {
+    "runs": 8,
+    "solved": 1,
+    "errors": 0
+   }
+  },
+  "sqlglot-general": {
+   "label": "under test, rerun after the queue finished; first attempt void",
+   "all": {
+    "runs": 18,
+    "solved": 3,
+    "errors": 1
+   },
+   "bug": {
+    "runs": 10,
+    "solved": 2,
+    "errors": 1
+   },
+   "feature": {
+    "runs": 8,
+    "solved": 1,
+    "errors": 0
+   }
+  },
+  "sqlglot-habits": {
+   "label": "not scored: adapter failed install verification",
+   "all": {
+    "runs": 18,
+    "solved": 1,
+    "errors": 1
+   },
+   "bug": {
+    "runs": 10,
+    "solved": 1,
+    "errors": 1
+   },
+   "feature": {
+    "runs": 8,
+    "solved": 0,
+    "errors": 0
+   }
+  }
+ },
+ "note": "sqlglot-general first attempt (22:42) void: Glimmer stopped for adapter training, 6 model_api errors, 0 graded"
+}
