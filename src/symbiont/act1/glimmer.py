@@ -1,13 +1,9 @@
 """The Glimmer chat client: one request to the owner's own llama.cpp server.
 
-Violation prevented: Silent Fallback at the privacy boundary. The call goes through
-`symbiont.egress`, so a public host is refused and what was sent is logged (sizes only).
-
-Violation prevented: Paper Tiger in the plain-versus-personal comparison. Both arms are a
-`GlimmerArm` on one llama-server that holds the Freedoom adapter; they differ only in the adapter
-scales sent with every request (plain: all 0, personal: its adapter at 1), so no server, build,
-sampling or prompt difference can pass for learning. A reply without token usage raises: Glimmer
-tokens are a reported metric, and a missing count must not read as zero.
+The call goes through `symbiont.egress`, so a public host is refused and sizes are logged. Both
+arms are a `GlimmerArm` on one llama-server holding the Freedoom adapter and differ only in the
+adapter scales sent per request (plain all 0, personal 1), so no server, sampling or prompt
+difference can pass for learning. A reply without token usage raises; a missing count is not 0.
 """
 
 from collections.abc import Callable

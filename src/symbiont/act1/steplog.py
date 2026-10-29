@@ -1,11 +1,8 @@
 """One played scripted move and one model decision, as the episode loop reports them (pure data).
 
-`Decision` lives here, not in episode.py, so readers of the decision log (lesson rows, the demo
-replay) stay pure and never import the engine.
-
-Prevents Leaky Narrative: consumers of the move stream (the episode log) get a typed kind and the
-two views around the move, so they never re-parse `"label -> outcome"` history strings or reach
-into the engine. An unknown move class raises `TypeError`, never a default kind (Silent Fallback).
+`Decision` lives here, not in episode.py, so decision-log readers stay pure. Consumers get a typed
+kind and the two views around a move, never `"label -> outcome"` strings to re-parse or the
+engine to reach into. An unknown move class raises `TypeError`, never a default kind.
 """
 
 from dataclasses import dataclass

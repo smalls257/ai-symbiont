@@ -1,7 +1,7 @@
 """ViZDoom adapter: raw engine state to the plain `GameStateView` the model is shown (periphery).
 
-Violation prevented: Silent Fallback. A sector convention that differs from the WAD, or a key that
-vanishes away from the player, raises instead of reporting a wrong door or inventory state.
+A sector convention that differs from the WAD, or a key that vanishes away from the player,
+raises instead of reporting a wrong door or inventory state.
 """
 
 import math
@@ -116,11 +116,10 @@ def _floor_fits(convention: SectorConvention, wad_floor: float, engine_floor: fl
 def check_sector_convention(wad_sectors: Any, engine_sectors: Any) -> SectorConvention:
     """Decide from the live episode how the engine reports floors; refuse mixed or blind evidence.
 
-    Observed [measured]: ViZDoom 1.2 reports floor_height as the negated WAD floor, 1.3.2 as
-    authored (freedoom2.wad MAP01, MAP02, MAP15: every sector matched). The binding is installed
-    by hand and undeclared, so the version is not trusted; each episode decides again. A floor of
-    0 fits both and decides nothing; with no nonzero floor, guessing would silently invert doors.
+    A floor of 0 fits both conventions, so with no nonzero floor this raises rather than guess.
     """
+    # [measured] ViZDoom 1.2 negates WAD floors, 1.3.2 reports them as authored (freedoom2 MAP01,
+    # MAP02, MAP15). The binding is hand-installed and undeclared, so each episode decides again.
     if len(wad_sectors) != len(engine_sectors):
         raise SectorConventionError(
             f"sector count differs: WAD {len(wad_sectors)}, engine {len(engine_sectors)}"

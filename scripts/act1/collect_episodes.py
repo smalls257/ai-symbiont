@@ -1,14 +1,9 @@
 """Collect self-play and Glimmer episodes into gitignored data/: records plus a decision log.
 
-Prevents Silent Fallback in the episode log: a held-out level, an existing episode file, an
-episode with no moves and a failing level each stop the run with an error that names the level or
-the session, so a bulk run never leaves a quietly short or overwritten log. Prevents Infected Core:
-`load_level` is the only function that touches ViZDoom or the WAD, so the rest runs without them.
-
-Glimmer arms (`glimmer_plain`, `glimmer_personal`) play through the same loop as the scripted
-policies. With `--adapters K` both arms ask the one adapter server and differ only in the adapter
-scales (glimmer.plain_and_personal). Held-out levels are played only with `--scored PREREG`, and
-only when that prereg is frozen, committed and unchanged (prereg/AGENTS.md).
+A held-out level, an existing episode file, a move-less episode or a failing level stops the run
+naming it; only `load_level` touches ViZDoom or the WAD. Glimmer arms (`glimmer_plain`,
+`glimmer_personal`) share one adapter server under `--adapters K` and differ only in adapter
+scales. Held-out levels need `--scored PREREG` with a frozen, committed prereg (prereg/AGENTS.md).
 """
 
 import argparse

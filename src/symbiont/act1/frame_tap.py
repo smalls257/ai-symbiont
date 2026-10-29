@@ -1,9 +1,8 @@
 """A game wrapper that keeps screen frames and stops the episode at a tic budget (periphery).
 
-Violation prevented: Silent Fallback in the demo clip. A clip must show exactly the tics the
-policy played, so frames are taken from the engine after each real action and nowhere else; a clip
-cut short by its budget says so (`budget_spent`) instead of passing for an episode that ended.
-Everything the wrapped game offers (state, variables, new_episode, close) is passed through.
+Frames are taken from the engine after each real action and nowhere else, so a clip shows exactly
+the tics played; a clip cut by its budget says so (`budget_spent`) instead of passing for an
+episode that ended. Everything else the wrapped game offers is passed through.
 """
 
 from typing import Any
@@ -40,7 +39,7 @@ class FrameTap:
         self._tics += 1
         if self._tics % self._stride == 0:
             self._keep_screen()
-        return reward  # type: ignore[no-any-return]
+        return float(reward)
 
     def is_episode_finished(self) -> bool:
         """True at the game's own end or when the tic budget is spent."""

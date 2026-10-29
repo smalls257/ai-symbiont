@@ -1,10 +1,8 @@
 """Which room the player is in: the map sector that holds a point (pure).
 
-A room is a sector, the map's own unit of floor and ceiling. Episode records name rooms so the game
-pain points (same room re-entered, a room re-checked) can be found from positions alone.
-
-Violation prevented: Silent Fallback. A point inside no sector raises `RoomLookupError` instead of
-reporting "room unknown", which would quietly drop re-entries from the episode log.
+A room is a sector, the map's own unit of floor and ceiling, so game pain points (a room
+re-entered or re-checked) can be found from positions alone. A point inside no sector raises
+`RoomLookupError` instead of reporting "room unknown", which would drop re-entries quietly.
 """
 
 from collections import defaultdict

@@ -1,13 +1,9 @@
 """One Freedoom episode pair as a `demo-replay-v1` file: plain and personal Glimmer side by side.
 
-The demo page (dashboard/demo.html on demo/surface) already replays two runs step by step with a
-mistake counter; a game episode fits the same schema with one step per model decision. Pure: the
-decision log and the episode records in, a dict out.
-
-Violation prevented: Paper Tiger on stage. The counter must count what the tagger tagged, so
-`mistake_tag` and `wasted` come from the records' pain tags joined by decision, totals are summed
-from the steps (never typed), and the plain run has no adapter. No note, classifier or picker is
-emitted: Act 1 delivers no notes, and nothing in the game loop picks an adapter.
+One step per model decision, in the schema the demo page already replays. `mistake_tag` and
+`wasted` come from the records' pain tags joined by decision and totals are summed from steps,
+never typed; the plain run has no adapter, and no note or adapter picker is emitted (Act 1
+delivers none). Pure: decision log and episode records in, a dict out.
 """
 
 import json

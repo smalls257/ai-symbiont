@@ -1,13 +1,9 @@
 """Which Freedoom levels meta-training may see, and which are held out for scoring (pure).
 
-The split is fixed by rule before any episode is logged (prereg/2026-10-27-act1-level-split.md):
-every fourth map of freedoom2.wad is held out, so held-out levels spread across the whole game
-rather than bunching at the hard end. MAP01 stays in training because development runs played it.
-
-Violation prevented: Silent Fallback at the hold-out boundary. A level outside the 32 maps raises
-`UnknownLevelError` instead of landing in either split by default, and
-`require_training` names a held-out level in its error so a collector cannot write one into a
-store a scored run reads.
+Fixed by rule before any episode is logged (prereg/2026-10-27-act1-level-split.md): every fourth
+map of freedoom2.wad is held out, spread across the game; MAP01 stays in training (development
+played it). A level outside the 32 maps raises `UnknownLevelError`, and `require_training` names
+a held-out level in its error so a collector cannot write one into a scored store.
 """
 
 from enum import StrEnum

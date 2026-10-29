@@ -1,15 +1,9 @@
 """Route B training rows for the Freedoom adapter: game lessons as chat rows Glimmer reads (pure).
 
-Same row shape as scripts/routeb (`{"messages": [system, user, assistant]}`), under the system turn
-the game loop sends, so the adapter trains on the prompt it plays under. Each lesson gives two card
-rows (asked for the lesson, asked for the check) and, when the decision log holds the resolving
-decision, one situation row: the exact game prompt at that decision and the move lines that got
-past the mistake.
-
-Violation prevented: Paper Tiger. An adapter trained only on question-and-answer cards can recall a
-lesson when asked and still play the same way, because nobody asks during play; the situation row
-puts the lesson where play happens. Violation prevented: Silent Fallback at the hold-out boundary:
-a lesson from a held-out level raises `HeldOutLevelError` instead of being skipped.
+Route B's row shape under the game loop's system turn. Each lesson gives two card rows (the
+lesson, the check) and, when the decision log holds the resolving decision, a situation row: the
+exact game prompt there and the moves that got past the mistake, because cards alone can be
+recalled on request and still not change play. A held-out level raises `HeldOutLevelError`.
 """
 
 from collections import Counter

@@ -1,13 +1,8 @@
 """Build the Freedoom adapter's Route B training set from played episodes. CPU only, no model.
 
-Reads an episodes directory written by collect_episodes.py (records plus decision logs), turns
-mistakes into game lessons, selects the set and writes Route B's layout under WORK/data:
-`train/freedoom/train.jsonl` (chat rows), `lessons.jsonl` and `build-counts.json` (counts only).
-Prints the counts, never lesson text.
-
-Prevents Silent Fallback: an episode whose records exist without a decision log, a held-out level,
-or fewer lessons than `--min-lessons` stops the build with the reason.
-
+Reads collect_episodes.py output, turns mistakes into game lessons and writes Route B's layout
+under WORK/data (train/freedoom/train.jsonl, lessons.jsonl, build-counts.json); prints counts only.
+Records without a decision log, a held-out level, or fewer than `--min-lessons` lessons stop it.
 Usage: uv run python scripts/act1/build_lesson_set.py --episodes DIR --work WORK [--lessons 40]
 """
 

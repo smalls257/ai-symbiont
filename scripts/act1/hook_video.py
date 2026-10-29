@@ -1,9 +1,8 @@
 """Draw the demo clip's frames and write them as MP4 and GIF (periphery: Pillow and ffmpeg).
 
-Violation prevented: Silent Fallback in the video. ffmpeg exiting non-zero raises with its own
-error text and never leaves a half-written file behind as "the clip". Pillow and ffmpeg are not
-declared project dependencies (the clip is demo tooling, outside `src/`); install Pillow into the
-venv with `uv pip install pillow` and ffmpeg from the system.
+ffmpeg exiting non-zero raises with its own error text and never leaves a half-written file as
+"the clip". Pillow and ffmpeg are demo tooling, not project dependencies: `uv pip install pillow`
+and ffmpeg from the system.
 """
 
 import subprocess

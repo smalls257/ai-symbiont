@@ -1,9 +1,8 @@
 """What the demo clip's side panel says about one played move (pure: no pixels, no engine).
 
-Violation prevented: Paper Tiger in the hook. An overlay that names a pain point the tagger did
-not fire would make the opening a lie, so a card can only be built from a `MoveRun` and the
-`GamePain`s that `tag_pains` returned for it; there is no way to hand it a free-text label. A
-pain the label table lacks raises `KeyError`, never a raw enum value (Silent Fallback).
+A card is built only from a `MoveRun` and the `GamePain`s `tag_pains` returned for it, so the
+panel cannot name a pain the tagger did not fire. A pain the label table lacks raises `KeyError`,
+never a raw enum value.
 """
 
 from collections import Counter

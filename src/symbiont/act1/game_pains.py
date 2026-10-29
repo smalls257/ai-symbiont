@@ -1,8 +1,8 @@
 """Game pain tags for an episode's moves (pure: positions, views and outcome text only).
 
-Prevents Paper Tiger in the episode log: a tag that fires on almost every step, or on an event it
-does not name (a lost target or a locked door called a wall), gives a meta-trainer nothing to learn
-from. Each rule fires on the one event its name states and is paired with a near-miss test.
+A tag that fires on almost every step, or on an event it does not name (a lost target or a locked
+door called a wall), teaches a meta-trainer nothing: each rule fires on the one event its name
+states and is paired with a near-miss test.
 """
 
 import math

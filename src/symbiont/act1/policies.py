@@ -1,8 +1,8 @@
 """Cheap seeded policies that drive the episode loop like a model does.
 
-Violation prevented: Paper Tiger in the episode log. A log needs many episodes, and a model call
-per episode is too slow; these replies pass the same strict parser, so every logged move is real.
-Only seeded `random.Random` instances are used, never the global RNG, so a seed reproduces a run.
+A log needs many episodes and a model call per episode is too slow; these replies pass the same
+strict parser, so every logged move is real. Only seeded `random.Random` instances are used,
+never the global RNG, so a seed reproduces a run.
 """
 
 import random

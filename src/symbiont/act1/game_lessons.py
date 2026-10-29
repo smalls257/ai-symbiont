@@ -1,12 +1,9 @@
 """Lessons from Freedoom play: what happened, how it was resolved, the check to run (pure).
 
-Violation prevented: Leaky Narrative. A lesson is read by Glimmer (in training rows) and by people
-(on the demo page), so it speaks the game text's language: rooms by the order the player entered
-them, a heading as a compass word, moves as the model wrote them, and the observation's own line
-names ("Doors", "Layout", "Reachable with go_to"). Coordinates, sector numbers and tag names never
-appear. Violation prevented: Silent Fallback. A record from another harness, a pain or move this
-module has no sentence for raises `LessonSourceError`; a mistake that nothing later fixed is
-counted as unresolved, never given an invented resolution.
+Glimmer and people read a lesson, so it speaks the game text's language (rooms in entry order,
+compass headings, the model's own moves and line names); coordinates, sector numbers and tag
+names never appear. A foreign record, or a pain or move with no sentence, raises
+`LessonSourceError`; a mistake nothing fixed is counted unresolved, never given a resolution.
 """
 
 import json
@@ -236,9 +233,9 @@ def _achievement(
         return f"`{step.move}` picked up the {' and '.join(new_keys)} key."
     if step.outcome == "opened":
         return f"`{step.move}` opened a door."
-    entered = step.room_after is not None and step.room_after not in visited
-    if entered and _verb(step.move) not in STANDING_VERBS:
-        return f"`{step.move}` took you into {rooms[step.room_after]}."
+    room = step.room_after
+    if room is not None and room not in visited and _verb(step.move) not in STANDING_VERBS:
+        return f"`{step.move}` took you into {rooms[room]}."
     return None
 
 

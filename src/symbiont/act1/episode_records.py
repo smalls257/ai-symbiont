@@ -1,9 +1,8 @@
 """Played moves as common Records (pure: views, pains and room lookups only).
 
-Prevents Leaky Narrative between Act 1 and the meta-trainer: the trainer reads only `Record`s, so
-the episode log hands it the schema's own shape (a command, its tags, the facts in `raw`) rather
-than a second format. A position in no room raises `RoomLookupError`; it is never logged as room
-"unknown" (Silent Fallback).
+The meta-trainer reads only `Record`s, so the episode log uses the schema's own shape (a command,
+its tags, the facts in `raw`) rather than a second format. A position in no room raises
+`RoomLookupError`; it is never logged as room "unknown".
 """
 
 import json
@@ -42,7 +41,7 @@ class EpisodeEnd(StrEnum):
     """Why an episode stopped; a death and an exit pair with different habits in the trainer.
 
     TIMED_OUT is its own value because ViZDoom marks an episode finished at a level exit and at
-    its timeout alike; calling a timeout an exit would be a Silent Fallback.
+    its timeout alike; a timeout must never be logged as an exit.
     """
 
     DIED = "died"

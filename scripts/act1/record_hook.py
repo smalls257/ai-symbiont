@@ -1,12 +1,9 @@
 """Record the opening-hook clip: one policy plays Freedoom via ViZDoom, with a pain-point panel.
 
-Violation prevented: Paper Tiger in the demo. The panel's pain labels come only from
-`tag_pains`, the same tagger that writes the episode log; this script has no way to type a label.
-The clip shows game tics only (the wait for a model reply is cut), so its length is the tic
-budget, not the wall clock. A clip outside 20 to 30 s is reported, never padded or looped.
-
-    uv run python scripts/act1/record_hook.py --policy random --seed 3 --out ~/symbiont-runs/hook
-    scripts/act1/record_glimmer_hook.sh      # the real model, once a Glimmer slot is free
+Panel labels come only from `tag_pains`, the tagger that writes the episode log; this script
+cannot type a label. The clip shows game tics only (model waits are cut); a clip outside 20 to
+30 s is reported, never padded or looped. The real model: scripts/act1/record_glimmer_hook.sh.
+Usage: uv run python scripts/act1/record_hook.py --policy random --seed 3 --out <dir>
 """
 
 import argparse
