@@ -8,12 +8,14 @@ ledger with tokens and cost, even an empty one, because the tokens were billed.
 import time
 import urllib.error
 import urllib.request
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
 from symbiont.egress.client import Transport, _urlopen, post_json
 from symbiont.egress.credentials import ApiKey
+from symbiont.egress.messages import Message, declared_provenance
 from symbiont.egress.policy import Destination, Endpoint
 from symbiont.egress.spend import (
     Ledger,
@@ -105,39 +107,42 @@ class SparkSession:
         }
         if self.temperature is not None:
             body["temperature"] = self.temperature
-        out, usage, seconds = self._priced_call(body, label)
+        out, usage, seconds = self._priced_call(body, label, list(self.provenance))
         return self._reply(out, usage, seconds)
 
     def converse(
         self,
-        messages: list[dict[str, Any]],
+        messages: Sequence[Message],
         tools: list[dict[str, Any]],
         effort: Effort,
         label: str,
     ) -> dict[str, Any]:
-        """One tool-calling turn of a chat whose history the caller keeps; returns the raw reply.
+        """One tool-calling turn over a caller-kept history; returns the raw reply.
 
-        A reply may hold tool calls and no text. Priced and capped like `chat`; raises the same.
+        Each system, user and tool message declares its provenance or the turn is refused.
         """
+        declared = declared_provenance(messages)
         body: dict[str, Any] = {
             "model": self.model,
-            "messages": messages,
+            "messages": [message.wire() for message in messages],
             "tools": tools,
             "reasoning_effort": effort.value,
             "max_tokens": self.turn_max_tokens,
         }
         if self.temperature is not None:
             body["temperature"] = self.temperature
-        out, _, _ = self._priced_call(body, label)
+        out, _, _ = self._priced_call(body, label, declared)
         return out
 
-    def _priced_call(self, body: dict[str, Any], label: str) -> tuple[dict[str, Any], Usage, float]:
+    def _priced_call(
+        self, body: dict[str, Any], label: str, provenance: list[Provenance]
+    ) -> tuple[dict[str, Any], Usage, float]:
         """Cap check, send, ledger line; a failed send is in the ledger too."""
         self.ledger.check_before_call(self.run, self.caps)
         destination = Destination(self.endpoint, CHAT_URL, self.key)
         started = time.monotonic()
         try:
-            out = self._send(destination, body)
+            out = self._send(destination, body, provenance)
         except (SparkApiError, urllib.error.URLError, TimeoutError, ConnectionError) as error:
             self._record_failure(label, time.monotonic() - started, error)
             raise
@@ -159,11 +164,11 @@ class SparkSession:
         )
         self.ledger.record(entry)
 
-    def _send(self, destination: Destination, body: dict[str, Any]) -> dict[str, Any]:
+    def _send(
+        self, destination: Destination, body: dict[str, Any], provenance: list[Provenance]
+    ) -> dict[str, Any]:
         try:
-            return post_json(
-                destination, body, provenance=self.provenance, transport=self.transport
-            )
+            return post_json(destination, body, provenance=provenance, transport=self.transport)
         except urllib.error.HTTPError as error:
             detail = error.read().decode(errors="replace")[:ERROR_EXCERPT_CHARS] if error.fp else ""
             raise SparkApiError(f"status {error.code}: {detail}") from error

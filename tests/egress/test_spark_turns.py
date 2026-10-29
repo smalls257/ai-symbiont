@@ -6,6 +6,7 @@ import pytest
 
 from symbiont.egress import EgressRefusedError
 from symbiont.egress.credentials import ApiKey
+from symbiont.egress.messages import Message
 from symbiont.egress.policy import Endpoint
 from symbiont.egress.spark import Effort, SparkReplyError, SparkSession
 from symbiont.egress.spend import Ledger, SpendCapError, SpendCaps, Tier
@@ -15,8 +16,8 @@ PUBLIC = Provenance(dataset="swe-rebench-sqlglot", license="CC-BY-4.0", spark_sa
 PRIVATE = Provenance(dataset="owner-sessions", license="private", spark_safe=False)
 TOOLS = [{"type": "function", "function": {"name": "bash", "parameters": {"type": "object"}}}]
 HISTORY = [
-    {"role": "system", "content": "fix the issue"},
-    {"role": "user", "content": "the issue"},
+    Message("system", "fix the issue", (PUBLIC,)),
+    Message("user", "the issue", (PUBLIC,)),
 ]
 
 
@@ -54,7 +55,7 @@ def test_a_turn_sends_history_and_tools_and_returns_the_tool_call(tmp_path):
     spark = session(tmp_path, transport)
     out = spark.converse(HISTORY, TOOLS, Effort.LOW, "sqlglot-1367-step1")
     body = json.loads(transport.requests[0].data)
-    assert body["messages"] == HISTORY and body["tools"] == TOOLS
+    assert body["messages"] == [m.wire() for m in HISTORY] and body["tools"] == TOOLS
     assert out["choices"][0]["message"]["tool_calls"][0]["function"]["name"] == "bash"
     (entry,) = spark.ledger.entries()
     assert entry["label"] == "sqlglot-1367-step1" and entry["prompt"] == 1000
@@ -72,8 +73,8 @@ def test_a_turn_stops_at_the_cap_before_sending(tmp_path):
 
 def test_a_turn_refuses_private_provenance_and_a_reply_without_usage(tmp_path):
     with pytest.raises(EgressRefusedError):
-        session(tmp_path, FakeTransport(tool_reply()), provenance=(PRIVATE,)).converse(
-            HISTORY, TOOLS, Effort.LOW, "x"
+        session(tmp_path, FakeTransport(tool_reply())).converse(
+            [Message("user", "q", (PRIVATE,))], TOOLS, Effort.LOW, "x"
         )
     no_usage = {"choices": [{"message": {"content": "hi"}, "finish_reason": "stop"}]}
     with pytest.raises(SparkReplyError):
