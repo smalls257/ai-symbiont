@@ -258,3 +258,18 @@ def test_row_fetch_refuses_missing_ids_and_dates_keep_undated(monkeypatch):
     with pytest.raises(LookupError, match="not in SWE-rebench"):
         rows.fetch(["a", "b"])
     sys.modules.pop("plug_agent_rows", None)
+
+
+def test_task_check_resumes_from_its_progress_log(monkeypatch, tmp_path):
+    monkeypatch.syspath_prepend(str(ROUTEA))
+    stub_modules(monkeypatch, ("taskenv",))
+    sys.modules["taskenv"].TaskEnvError = RuntimeError
+    sys.modules["taskenv"].grade = None
+    import plug_agent_tasks as tasks
+
+    log = tmp_path / "t.progress.jsonl"
+    log.write_text(json.dumps({"id": "a", "drop": None}) + "\n")
+    rows = [{"instance_id": "a"}, {"instance_id": "b", "docker_image": None}]
+    assert tasks.checked(rows, log, 1) == {"a": None, "b": str(tasks.Drop.NO_IMAGE)}
+    assert len(log.read_text().splitlines()) == 2
+    sys.modules.pop("plug_agent_tasks", None)

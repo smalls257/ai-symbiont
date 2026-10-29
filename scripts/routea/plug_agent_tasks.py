@@ -6,6 +6,7 @@ Usage: python plug_agent_tasks.py <rows.json> <out.json> [workers]
 """
 
 import json
+import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from enum import StrEnum
@@ -25,6 +26,7 @@ class Drop(StrEnum):
     GOLD_FAILS = "gold patch does not resolve"
     EMPTY_PASSES = "empty patch already resolves"
     NOT_GRADEABLE = "grader error"
+    TIMES_OUT = "tests time out (20 min)"
 
 
 def check(row: dict) -> tuple[str, str | None]:
@@ -38,7 +40,26 @@ def check(row: dict) -> tuple[str, str | None]:
             return row["instance_id"], str(Drop.EMPTY_PASSES)
     except TaskEnvError as error:
         return row["instance_id"], f"{Drop.NOT_GRADEABLE}: {str(error)[:80]}"
+    except subprocess.TimeoutExpired:
+        return row["instance_id"], str(Drop.TIMES_OUT)
     return row["instance_id"], None
+
+
+def checked(rows: list[dict], log: Path, workers: int) -> dict[str, str | None]:
+    """Verdicts, resumed from `log` (one JSON line per finished instance) and appended to it."""
+    done: dict[str, str | None] = {}
+    if log.is_file():
+        for line in log.read_text().splitlines():
+            if line:
+                found = json.loads(line)
+                done[found["id"]] = found["drop"]
+    todo = [row for row in rows if row["instance_id"] not in done]
+    with ThreadPoolExecutor(workers) as pool, log.open("a") as out:
+        for task, reason in pool.map(check, todo):
+            out.write(json.dumps({"id": task, "drop": reason}) + "\n")
+            out.flush()
+            done[task] = reason
+    return done
 
 
 def main() -> None:
@@ -47,8 +68,7 @@ def main() -> None:
         if isinstance(row.get("install_config"), str):
             row["install_config"] = json.loads(row["install_config"])
     workers = int(sys.argv[3]) if len(sys.argv) > 3 else WORKERS
-    with ThreadPoolExecutor(workers) as pool:
-        verdicts = dict(pool.map(check, rows))
+    verdicts = checked(rows, Path(sys.argv[2]).with_suffix(".progress.jsonl"), workers)
     kept = sorted(task for task, reason in verdicts.items() if reason is None)
     dropped = {task: reason for task, reason in sorted(verdicts.items()) if reason}
     document = {
