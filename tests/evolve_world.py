@@ -41,18 +41,27 @@ class FakePlayer:
     """Scores by a hidden rule: door lessons help, more on some levels. The rest are knobs."""
 
     def __init__(
-        self, noise=0.01, ungraded_every=0, validation_drop=0.0, effect=0.06, ungraded_calls=()
+        self,
+        noise=0.01,
+        ungraded_every=0,
+        validation_drop=0.0,
+        effect=0.06,
+        ungraded_calls=(),
+        ungraded_when=None,
     ):
         self.noise, self.effect = noise, effect
         self.ungraded_every, self.validation_drop = ungraded_every, validation_drop
         self.ungraded_calls = frozenset(ungraded_calls)
+        self.ungraded_when = ungraded_when
         self.calls, self.levels = 0, []
 
     def play(self, card, case):
         self.calls += 1
         self.levels.append(case.level)
-        if self.calls in self.ungraded_calls or (
-            self.ungraded_every and self.calls % self.ungraded_every == 0
+        if (
+            (self.ungraded_when and self.ungraded_when(card, case))
+            or self.calls in self.ungraded_calls
+            or (self.ungraded_every and self.calls % self.ungraded_every == 0)
         ):
             return result(card, case, 0.0, Grade.UNGRADED)
         strength = 1 + (int(case.level[3:]) % 3) / 3  # doors help everywhere, more on some levels

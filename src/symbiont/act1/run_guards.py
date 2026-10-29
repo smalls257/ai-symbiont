@@ -5,6 +5,7 @@ value (the noise report, the gap verdict) or raise a named error; none of them r
 default.
 """
 
+import math
 import statistics
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
@@ -56,21 +57,28 @@ class SpendRoom:
 
 @dataclass(frozen=True)
 class NoiseReport:
-    """The two spreads, the verdict and the standard error of a four-game mean."""
+    """The spreads, the verdict, the games it used and what selection would need to beat luck."""
 
     verdict: NoiseVerdict
-    within_variance: float
-    between_variance: float
+    within_variance: float  # one game's variance across seeds, same card and level
+    between_variance: float  # variance of the replayed cards' means over `games_per_mean` games
     standard_error: float
+    selection_games: int  # games per card that selection will average
+    games_per_mean: int  # games per card the between variance was measured on
+    true_between_variance: float  # between, minus the seed noise left in a mean of that size
+    games_needed: int | None  # games per card for luck to fall below the true spread; None: none
+    pairs_used: int  # (card, level) seed pairs the check was computed from
 
 
 def noise_check(
-    replays: Mapping[str, tuple[tuple[float, float], ...]], spend_room: SpendRoom
+    replays: Mapping[str, tuple[tuple[float, float], ...]],
+    spend_room: SpendRoom,
+    selection_games: int,
 ) -> NoiseReport:
-    """Seed noise of a card's mean against card differences, from the same games.
+    """Luck in the means selection will use against the differences between cards.
 
-    `replays` holds one seed pair per card and level. The standard error is the spread of all
-    games over the square root of 4, the size of a mean.
+    `replays` holds one seed pair per card and level. Noise when within / selection_games is at
+    least the variance of the card means (compare means of the size selection really uses).
     """
     pairs = [pair for rows in replays.values() for pair in rows]
     within = statistics.fmean(statistics.variance(pair) for pair in pairs)
@@ -78,14 +86,19 @@ def noise_check(
     between = statistics.variance(card_means)
     every_game = [value for pair in pairs for value in pair]
     standard_error = statistics.stdev(every_game) / GAMES_PER_MEAN**0.5
-    games_per_card = 2 * len(next(iter(replays.values())))
-    verdict = _noise_verdict(within / games_per_card, between, spend_room)
-    return NoiseReport(verdict, within, between, standard_error)
+    per_mean = 2 * len(next(iter(replays.values())))
+    true_between = max(between - within / per_mean, 0.0)
+    needed = math.ceil(within / true_between) if true_between > 0 else None
+    verdict = _noise_verdict(within / selection_games, between, spend_room)
+    return NoiseReport(
+        verdict, within, between, standard_error, selection_games, per_mean,
+        true_between, needed, len(pairs),
+    )  # fmt: skip
 
 
-def _noise_verdict(within_of_mean: float, between: float, spend_room: SpendRoom) -> NoiseVerdict:
-    """SELECT when card means differ more than seed noise moves a mean; else double or stop."""
-    if within_of_mean < between:
+def _noise_verdict(luck_of_mean: float, between: float, spend_room: SpendRoom) -> NoiseVerdict:
+    """SELECT when card means differ more than luck moves a mean; else double or stop."""
+    if luck_of_mean < between:
         return NoiseVerdict.SELECT
     return NoiseVerdict.DOUBLE_GAMES if spend_room.fits_doubling() else NoiseVerdict.STOP
 

@@ -188,8 +188,24 @@ def test_a_player_that_can_play_a_batch_gets_the_missing_pairs_at_once_and_the_r
 
 
 def test_ungraded_games_of_the_noise_block_count_toward_the_generation_zero_limit():
-    # 2 of the 24 first-block games (8%) pass the limit alone; 3 more in the 12-game noise block
-    # make 5 of 36 (14%), which stops the run in generation 0.
+    # A persistent failure (retrying does not help) in the second block alone: 0 of the 24
+    # first-block games, but 12 of 36 together, which stops the run in generation 0.
+    in_second_block = lambda card, case: case.seed % 10_000 >= 4  # noqa: E731
     with pytest.raises(TooManyUngradedError):
-        run(FakePlayer(ungraded_calls={1, 2, 25, 26, 27}))
-    run(FakePlayer(ungraded_calls={1, 2, 25}))  # 3 of 36 (8%) is within the limit
+        run(FakePlayer(ungraded_when=in_second_block))
+    one_game = lambda card, case: case.seed % 10_000 == 4 and card.card_id == seeds()[0].card_id  # noqa: E731
+    run(FakePlayer(ungraded_when=one_game))  # 1 of 36 stays within the limit
+
+
+def test_an_ungraded_noise_game_is_played_again_so_the_verdict_comes_from_graded_games_only():
+    clean = run(FakePlayer(noise=0.4, effect=0.0), generations=0)
+    flaky = run(FakePlayer(noise=0.4, effect=0.0, ungraded_calls={1, 26}), generations=0)
+    assert flaky.noise == clean.noise  # same verdict and numbers as if nothing had failed
+    assert flaky.noise.pairs_used == 12 and flaky.noise.selection_games == 4
+    graded_games = [g for g in flaky.games if g.result.grade.value == "graded"]
+    assert len({(g.result.card_id, g.result.case) for g in graded_games}) >= 36
+
+
+def test_the_noise_verdict_is_judged_at_the_games_per_card_selection_uses():
+    report = run(FakePlayer(noise=0.4, effect=0.0), generations=0).noise
+    assert report.verdict is NoiseVerdict.DOUBLE_GAMES and report.selection_games == 4

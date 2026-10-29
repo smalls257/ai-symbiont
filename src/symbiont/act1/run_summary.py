@@ -73,6 +73,11 @@ def summary_of(record: RunRecord, label: str, claim: str, spend: dict[str, Any])
             "within_variance": noise.within_variance,
             "between_variance": noise.between_variance,
             "standard_error": noise.standard_error,
+            "selection_games": noise.selection_games,
+            "games_per_mean": noise.games_per_mean,
+            "pairs_used": noise.pairs_used,
+            "true_between_variance": noise.true_between_variance,
+            "games_needed": noise.games_needed,
             "games_per_case": record.games_per_case,
         },
         "curves": [

@@ -187,17 +187,36 @@ class _Run:
         if role == GameRole.SELECTION:
             self.split.require_selection(case.level)
 
+    def _play_graded(
+        self, cards: Sequence[Card], cases: Sequence[Case], role: GameRole
+    ) -> list[GameResult]:
+        """Play, then play each ungraded game once more, so the noise check reads graded games."""
+        results = self.play(cards, cases, 0, role)
+        again = [
+            (card, case)
+            for card in cards
+            for case in cases
+            if self._played[(card.card_id, case)].grade == Grade.UNGRADED
+        ]
+        for card, case in again:
+            del self._played[(card.card_id, case)]
+        return self.play(cards, cases, 0, role) if again else results
+
     def generation_zero(self, seeds: Sequence[Card]) -> tuple[list[GameResult], NoiseReport] | None:
         """Play the seed cards, run the noise check, double the games if told; None on STOP."""
         rules = self.rules
         blocks = generation_cases(self.split, 0, rules.run_seed, 2)
         first, second = blocks[:LEVELS_PER_BLOCK], blocks[LEVELS_PER_BLOCK:]
-        results = self.play(seeds, first, 0, GameRole.SELECTION)
+        results = self._play_graded(seeds, first, GameRole.SELECTION)
         require_graded_share(results)
         noisy = list(seeds[:NOISE_CARDS])
-        replay_results = self.play(noisy, second, 0, GameRole.SELECTION)
+        replay_results = self._play_graded(noisy, second, GameRole.SELECTION)
         require_graded_share([*results, *replay_results])
-        noise = noise_check(self._replays(noisy, first, second), rules.spend_room)
+        noise = noise_check(
+            self._replays(noisy, first, second),
+            rules.spend_room,
+            LEVELS_PER_BLOCK * rules.games_per_case,
+        )
         self.record.noise = noise
         if noise.verdict == NoiseVerdict.STOP:
             self.record.stop_reason = (

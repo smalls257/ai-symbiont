@@ -32,7 +32,7 @@ CARDS_DIFFER = {
 
 
 def test_seed_noise_above_card_differences_doubles_the_games_when_money_allows():
-    report = noise_check(SEEDS_DISAGREE, PLENTY)
+    report = noise_check(SEEDS_DISAGREE, PLENTY, 8)
     assert report.verdict is NoiseVerdict.DOUBLE_GAMES
     assert report.within_variance == pytest.approx(0.5)
     assert report.between_variance == pytest.approx(0.0)
@@ -46,29 +46,29 @@ def test_noisy_games_do_not_hide_cards_that_truly_differ():
         "b": ((0.5, 1.5), (1.5, 0.5), (0.5, 1.5), (1.5, 0.5)),
         "c": ((1.0, 2.0), (2.0, 1.0), (1.0, 2.0), (2.0, 1.0)),
     }
-    report = noise_check(differ, SHORT)
+    report = noise_check(differ, SHORT, 8)
     assert report.verdict is NoiseVerdict.SELECT
     assert report.within_variance / 8 < report.between_variance
 
 
 def test_seed_noise_with_too_little_money_left_stops_the_run():
-    assert noise_check(SEEDS_DISAGREE, SHORT).verdict is NoiseVerdict.STOP
+    assert noise_check(SEEDS_DISAGREE, SHORT, 8).verdict is NoiseVerdict.STOP
 
 
 def test_the_margin_is_twenty_percent_of_the_doubling_cost():
     just_enough = SpendRoom(remaining_usd=1.2, doubling_cost_usd=1.0)
-    assert noise_check(SEEDS_DISAGREE, just_enough).verdict is NoiseVerdict.DOUBLE_GAMES
+    assert noise_check(SEEDS_DISAGREE, just_enough, 8).verdict is NoiseVerdict.DOUBLE_GAMES
 
 
 def test_cards_that_differ_more_than_seeds_select():
-    report = noise_check(CARDS_DIFFER, SHORT)
+    report = noise_check(CARDS_DIFFER, SHORT, 8)
     assert report.verdict is NoiseVerdict.SELECT
     assert report.within_variance == pytest.approx(0.0)
     assert report.between_variance > 0.0
 
 
 def test_the_standard_error_of_a_four_game_mean_is_half_the_spread_of_all_games():
-    report = noise_check(SEEDS_DISAGREE, PLENTY)
+    report = noise_check(SEEDS_DISAGREE, PLENTY, 8)
     assert report.standard_error == pytest.approx(0.5 * (6 / 23) ** 0.5)
 
 
@@ -129,3 +129,32 @@ def test_two_rejections_of_four_passes_and_three_raises_naming_the_counts():
 def test_an_empty_list_of_games_raises_instead_of_passing():
     with pytest.raises(NoGamesError):
         require_graded_share([])
+
+
+def test_the_same_data_is_noise_when_selection_averages_fewer_games_than_the_replay_did():
+    # Luck in an 8-game mean is 0.0625, below the 0.25 spread of the cards: select. Selection that
+    # averages only 1 game per card faces luck of 0.5, above the spread: noise.
+    differ = {
+        "a": ((0.0, 1.0), (1.0, 0.0), (0.0, 1.0), (1.0, 0.0)),
+        "b": ((0.5, 1.5), (1.5, 0.5), (0.5, 1.5), (1.5, 0.5)),
+        "c": ((1.0, 2.0), (2.0, 1.0), (1.0, 2.0), (2.0, 1.0)),
+    }
+    assert noise_check(differ, PLENTY, 8).verdict is NoiseVerdict.SELECT
+    assert noise_check(differ, PLENTY, 4).verdict is NoiseVerdict.SELECT
+    assert noise_check(differ, PLENTY, 1).verdict is NoiseVerdict.DOUBLE_GAMES
+    assert noise_check(differ, PLENTY, 2).verdict is NoiseVerdict.DOUBLE_GAMES
+
+
+def test_the_report_says_how_many_games_per_card_selection_needs():
+    report = noise_check(SEEDS_DISAGREE, PLENTY, 4)
+    assert report.selection_games == 4 and report.games_per_mean == 8 and report.pairs_used == 12
+    assert report.true_between_variance == 0.0 and report.games_needed is None  # cards identical
+    differ = {
+        "a": ((0.0, 1.0), (1.0, 0.0)),
+        "b": ((0.5, 1.5), (1.5, 0.5)),
+        "c": ((1.0, 2.0), (2.0, 1.0)),
+    }
+    report = noise_check(differ, PLENTY, 4)
+    # within 0.5, between 0.25 over 4 games a mean: the spread beyond luck is 0.25 - 0.5/4
+    assert report.true_between_variance == pytest.approx(0.125)
+    assert report.games_needed == 4  # 0.5 / 0.125
