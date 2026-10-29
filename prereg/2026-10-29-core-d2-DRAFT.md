@@ -6,10 +6,8 @@ Claim tags: [measured] = observed in our own run; [established] = known by const
 
 ## Claim (headline wording fixed now)
 
-"Glimmer solves more of a repository's later issues after training on the repository's past agent sessions (by Muse Spark)."
+"Glimmer solves more of a repository's later issues after training on past sessions of the same repository."
 
-- The training rows are Muse Spark's own passing sessions on the earlier issues, rendered turn by turn in Glimmer's chat format (routeb `sft_turns.py`, 80c61be).
-- There is no separate reflection step on each session, so the claim does not mention reflection [established].
 - The claim needs BOTH co-primaries below.
 - No speed-of-learning words are used.
 
@@ -70,6 +68,12 @@ That is 234 candidates in all.
 | A: Glimmer + Core adapter | 2 | LoRA (Route B's recipe, 16k) trained on teacher solutions of the six repositories' earlier tasks | under test |
 | C: Glimmer + control adapter | 2 | the same recipe, the same data kind (Spark teacher solutions) and the same trained-token count, from OTHER repositories (none of the six, none of Plug's) | control |
 | W: Glimmer + worked examples | 1, on 50 tasks (the first 50 of the test order) | plain Glimmer with the teacher solutions of the 2 most similar earlier tasks of the same repository in the prompt (word overlap of issue texts; commands and results, about 6k tokens) | descriptive only [established] |
+
+**Training data, stated plainly.**
+
+- **Who ran the sessions.** The past sessions were run by Muse Spark (`muse-spark-1.3-contributor`, through the egress client) on each repository's earlier issues. Only sessions whose hidden tests passed are kept.
+- **How they become rows.** Each is rendered turn by turn in Glimmer's chat format, and only the model's own turns are trained (routeb `sft_turns.py`, 80c61be).
+- **No reflection step.** There is no reflection step on the sessions [established].
 
 **Data mix (item 2).** A and C are both trained on teacher solutions only. Glimmer's own passes are not used in either arm, so the two arms match in kind, ratio and size by construction.
 
