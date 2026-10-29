@@ -65,3 +65,7 @@ def test_the_spend_is_the_ledgers_snapshot_copied_into_the_summary():
     snapshot = {"calls": 12, "dollars": 0.004, "source": "ledger"}
     doc = summary_of(run(), "exploratory run", "exploratory", snapshot)
     assert doc["spend"] == snapshot and doc["spend"] is not snapshot
+
+
+def test_the_summary_counts_the_spots_the_nav_could_not_route():
+    assert summary()["unroutable_spots"] == 0

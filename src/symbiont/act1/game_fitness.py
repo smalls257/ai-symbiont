@@ -64,6 +64,8 @@ class GameResult:
     ungraded_reason: str | None
     # Tagger counts by tag name, as pairs so the result stays hashable; their sum is `mistakes`.
     pains: tuple[tuple[str, int], ...] = ()
+    # Spots the player stood on that the nav graph could not route from; skipped in route share.
+    unroutable_spots: int = 0
 
 
 def fitness(result: GameResult) -> float:

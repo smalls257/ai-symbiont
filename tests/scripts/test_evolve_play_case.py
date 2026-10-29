@@ -312,6 +312,27 @@ def test_progress_is_the_furthest_routable_spot_and_an_unroutable_spot_is_skippe
     monkeypatch.setattr(play_case, "remaining_route_units", fake_remaining)
     runs = [fake_run((0.0, 0.0), (10.0, 0.0)), fake_run((10.0, 0.0), (20.0, 0.0)),
             fake_run((20.0, 0.0), (999.0, 999.0))]  # fmt: skip
-    share = play_case.EnginePlayer._share(None, runs, 100.0, play_case.EpisodeEnd.DECISION_CAP)
+    share, skipped = play_case.EnginePlayer._share(
+        None, runs, 100.0, play_case.EpisodeEnd.DECISION_CAP
+    )
     assert share == pytest.approx(0.4)  # furthest was 60 units left of 100, not the last spot
-    assert play_case.EnginePlayer._share(None, [], 100.0, play_case.EpisodeEnd.DECISION_CAP) == 0.0
+    assert skipped == 1  # the spot off the grid is counted, not hidden
+    nothing = play_case.EnginePlayer._share(None, [], 100.0, play_case.EpisodeEnd.DECISION_CAP)
+    assert nothing == (0.0, 0)
+
+
+def test_the_graded_result_reports_how_many_spots_were_skipped(tmp_path, monkeypatch):
+    from symbiont.act1.game_fitness import NoRouteError
+
+    real = play_case.remaining_route_units
+    calls = []
+
+    def flaky(nav, spot):
+        calls.append(spot)
+        if len(calls) > 1:  # the start routes; every later spot is off the grid
+            raise NoRouteError("off the grid")
+        return real(nav, spot)
+
+    monkeypatch.setattr(play_case, "remaining_route_units", flaky)
+    result = player(tmp_path, FakeGame(), turn).play(CARD, CASE)
+    assert result.grade is Grade.GRADED and result.unroutable_spots >= 1

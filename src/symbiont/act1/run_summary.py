@@ -83,6 +83,7 @@ def summary_of(record: RunRecord, label: str, claim: str, spend: dict[str, Any])
             {"generation": g, "training_mean": t, "validation_mean": v, "gap": t - v}
             for g, t, v in record.gaps
         ],
+        "unroutable_spots": sum(g.result.unroutable_spots for g in record.games),
         "stop_reason": record.stop_reason,
         "last_played": record.last_played,
         "last_good": record.last_good,

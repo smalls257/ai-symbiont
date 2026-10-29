@@ -189,7 +189,7 @@ class EnginePlayer:
                 card, case, f"{type(error).__name__}: {str(error)[:REASON_CHARS]}"
             )
         ended = collect_episodes.how_it_ended(game)
-        share = self._share(nav, runs, start_units, ended)
+        share, unroutable = self._share(nav, runs, start_units, ended)
         pains = _pain_counts(runs, rooms)
         return GameResult(
             case=case,
@@ -203,25 +203,28 @@ class EnginePlayer:
             cut_moves=sum(run.outcome.startswith(CUT_PREFIX) for run in runs),
             ungraded_reason=None,
             pains=pains,
+            unroutable_spots=unroutable,
         )
 
     @staticmethod
-    def _share(nav: NavMap, runs: list[MoveRun], start_units: float, ended: EpisodeEnd) -> float:
-        """The furthest route share reached on any spot the nav can route from (1 at an exit)."""
+    def _share(
+        nav: NavMap, runs: list[MoveRun], start_units: float, ended: EpisodeEnd
+    ) -> tuple[float, int]:
+        """The furthest route share on a routable spot, and how many spots could not be routed."""
         # A lift or teleport can carry the player off the walkable grid: skipping that spot keeps
         # the progress made before it, and furthest rather than last means wandering back is free.
         if ended == EpisodeEnd.EXITED:
-            return 1.0
+            return 1.0, 0
         spots = {run.before.position for run in runs}
         if runs and runs[-1].after is not None:
             spots.add(runs[-1].after.position)
-        best = 0.0
+        best, skipped = 0.0, 0
         for spot in sorted(spots):
             try:
                 best = max(best, route_share(start_units, remaining_route_units(nav, spot)))
             except NoRouteError:
-                continue
-        return best
+                skipped += 1
+        return best, skipped
 
     @staticmethod
     def _ungraded(card: Card, case: Case, reason: str) -> GameResult:
