@@ -86,5 +86,48 @@
     "ci95_high": 0.9199
    }
   }
+ },
+ "trained_own_wording": {
+  "repos": 60,
+  "items": 618,
+  "judge": {
+   "pick": 0.356,
+   "silence": 1.0,
+   "wrong_pick": 0.0,
+   "coverage": 0.356,
+   "precision": 1.0,
+   "per_repo_pick": {
+    "repos": 60,
+    "mean_gain": 0.3917,
+    "ci95_low": 0.2962,
+    "ci95_high": 0.491
+   }
+  },
+  "ranker_threshold": {
+   "pick": 0.2524,
+   "silence": 0.932,
+   "wrong_pick": 0.034,
+   "coverage": 0.2524,
+   "precision": 0.7879,
+   "per_repo_pick": {
+    "repos": 60,
+    "mean_gain": 0.3178,
+    "ci95_low": 0.2269,
+    "ci95_high": 0.4158
+   }
+  },
+  "ranker_alone": {
+   "pick": 0.7282,
+   "silence": 0.0,
+   "wrong_pick": 0.6359,
+   "coverage": 1.0,
+   "precision": 0.3641,
+   "per_repo_pick": {
+    "repos": 60,
+    "mean_gain": 0.8917,
+    "ci95_low": 0.8431,
+    "ci95_high": 0.9352
+   }
+  }
  }
 }
