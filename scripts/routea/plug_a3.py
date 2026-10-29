@@ -195,9 +195,27 @@ def score_rerun(work: Path) -> dict:
         "plan": plan,
         "rows": pooled(cells),
         "verdicts": verdicts(pooled(cells)),
+        "paired": paired(cells),
         **answerer_provenance(work),
         "per_repo_rows": per_repo,
     }
+
+
+# Each consolidation arm against the reference its go rule names, paired by repo.
+PAIRED = (("no_lessons", "per_repo"), ("new_lessons", "a2v"), ("habits_ranked", "a2v"))
+
+
+def paired(cells: dict[tuple[str, str], dict]) -> dict:
+    """Arm minus reference per repo, with a bootstrap interval, for each go-rule measure."""
+    repos = sorted({repo for _, repo in cells})
+    found = {}
+    for arm in (
+        a for a in ("a3", "a3_more", "a3_replay", "a3_more_replay") if (a, repos[0]) in cells
+    ):
+        for measure, reference in PAIRED:
+            gains = [cells[(arm, r)][measure] - cells[(reference, r)][measure] for r in repos]
+            found[f"{arm}_minus_{reference}_{measure}"] = paired_gain(gains)
+    return found
 
 
 def passes(by: dict[str, dict], arm: str) -> bool:

@@ -2,7 +2,7 @@
 
 See root CLAUDE.md for the repo rules. This file covers `src/symbiont/egress/`.
 
-**Purpose.** Every outbound HTTP call from `src/` goes through `post_json`. `policy.py` is a pure function that decides whether a payload may go to an endpoint; `client.py` is the thin client that sends it and logs what left.
+**Purpose.** Every outbound HTTP call from `src/` goes through `post_json`. `policy.py` is a pure function that decides whether a payload may go to an endpoint; `client.py` is the thin client that sends it and logs what left. `credentials.py` loads the Meta key from `~/.config/symbiont/meta.env` into a redacted `ApiKey` that rides on the `Destination`; `spend.py` holds the one price table and the JSON-lines ledger with total and per-run caps (`SpendCapError` before a call); `spark.py` is `SparkSession`, the priced, capped chat client (`chat` for one prompt; `converse` for tool-calling turns over `Message`s that each declare their own provenance, tool results included). A call reserves its worst-case cost under a file lock before it is sent; every call that leaves writes a ledger line (a failed or unmetered one at a flagged estimate, never $0). Empty replies and refusals raise. The default transport refuses redirects so the bearer key never follows a `Location`.
 
 **Violation prevented: Silent Fallback at the privacy boundary** (a private record reaching a remote model, or a refused send turning into an empty reply) and **Black Box** on egress (no record of what was sent).
 
