@@ -25,7 +25,8 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
+from stage_style import ALERT, AMMO, ARMOR, HEALTH, KILLS, MUTED, TEXT, font, gradient
 
 from symbiont.act1.game_pains import GamePain
 from symbiont.act1.hook_overlay import PAIN_LABELS
@@ -33,7 +34,7 @@ from symbiont.act1.hook_overlay import PAIN_LABELS
 CANVAS = (1920, 720)
 HALF = (960, 540)  # each arm's 1280x720 panel clip, scaled
 TOP = 100
-BACKGROUND, INK, MUTED, ALERT = (16, 18, 24), (235, 238, 245), (140, 148, 165), (214, 60, 52)
+INK = TEXT
 CLOSING_SECONDS = 5
 DECISION_CAP = 16  # the prereg's per-episode cap; "no exit within N decisions" says it
 EXITED = "exited"
@@ -133,11 +134,11 @@ def take(frames: Iterator[np.ndarray], count: int) -> list[np.ndarray]:
 class Painter:
     def __init__(self) -> None:
         self._draw: ImageDraw.ImageDraw
-        self._font = {size: ImageFont.load_default(size=size) for size in (14, 20, 26, 28, 34, 44)}
+        self._font = {size: font(size) for size in (14, 20, 26, 28, 34, 44)}
 
     def canvas(self) -> Image.Image:
         """A blank frame; later `text` calls draw on the most recent canvas."""
-        image = Image.new("RGB", CANVAS, BACKGROUND)
+        image = gradient(CANVAS).copy()
         self._draw = ImageDraw.ImageDraw(image)
         return image
 
@@ -175,7 +176,7 @@ class Painter:
     ) -> bytes:
         image = self.canvas()
         self.text((24, 10), "ai-symbiont  |  plays Freedoom via ViZDoom", 20, MUTED)
-        self.text((24, 46), title, 34)
+        self.text((24, 46), title, 34, ARMOR)
         for x, (name, total) in zip((24, 984), rows, strict=False):
             self.arm_totals(x, name, total)
         self.text(
@@ -194,11 +195,14 @@ class Painter:
         self.text((x, 205), f"{total['pain_total']} pain points", 44, ALERT)
         for row, (pain, label) in enumerate(PAIN_LABELS.items()):
             self.text((x, 275 + row * 36), f"{label}: {total['pains'][pain.value]}", 28)
-        self.text((x, 440), f"kills {total['kills']}   deaths {total['deaths']}", 28)
+        self.text((x, 440), f"kills {total['kills']}", 34, KILLS)
+        self.text(
+            (x + 200, 446), f"deaths {total['deaths']}", 28, ALERT if total["deaths"] else MUTED
+        )
         damage = f"damage dealt {total['damage_dealt']}   taken {total['damage_taken']}"
-        self.text((x, 476), damage, 28)
+        self.text((x, 486), damage, 28, TEXT)
         exits = f"exit reached in {total['exits']} of {total['episodes']} episode(s)"
-        self.text((x, 540), exits, 34)
+        self.text((x, 545), exits, 34, HEALTH if total["exits"] else AMMO)
 
 
 class Encoder:
@@ -252,6 +256,8 @@ def render_body(left: Arm, right: Arm, subtitle: str, out: Path) -> None:
     streams = (frames_of(left.mp4), frames_of(right.mp4))
     held = [np.zeros((HALF[1], HALF[0], 3), np.uint8)] * 2
     arms = (left, right)
+    for arm, stream in zip(arms, streams, strict=True):
+        take(stream, arm.sidecar["lead_frames"])  # each clip's own title card; the pair has one
     for decision in range(decision_count(left.sidecar, right.sidecar)):
         spans = [span_frames(arm.sidecar, decision) for arm in arms]
         segments = [take(s, end - start) for s, (start, end) in zip(streams, spans, strict=True)]

@@ -51,3 +51,10 @@ def test_a_long_result_wraps_to_two_lines_and_a_longer_one_shows_its_cut():
     assert len(two) == 2 and not two[1].endswith("…")
     cut = hook_video.wrap_result("word " * 30)
     assert len(cut) == 2 and cut[1].endswith("…")
+
+
+def test_wrapped_text_ends_in_an_ellipsis_when_it_overflows():
+    style = importlib.import_module("stage_style")
+    assert style.wrap_text("go to door", 20, 2) == ["go to door"]
+    lines = style.wrap_text("word " * 30, 20, 2)
+    assert len(lines) == 2 and lines[1].endswith("…")

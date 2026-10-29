@@ -24,6 +24,7 @@ class FrameTap:
         self._tic_budget = tic_budget
         self._tics = 0
         self._frames: list[np.ndarray] = []
+        self._variables: list[tuple[float, ...]] = []
 
     def __getattr__(self, name: str) -> Any:
         """Everything the tap does not override is the wrapped game's."""
@@ -51,7 +52,13 @@ class FrameTap:
         taken, self._frames = self._frames, []
         return taken
 
+    def take_variables(self) -> list[tuple[float, ...]]:
+        """The game variables as they stood at each frame `take_frames` returns alongside."""
+        taken, self._variables = self._variables, []
+        return taken
+
     def _keep_screen(self) -> None:
         state = self._game.get_state()
         if state is not None:  # None: that action ended the episode, there is no screen to keep
             self._frames.append(np.array(state.screen_buffer))
+            self._variables.append(tuple(state.game_variables))

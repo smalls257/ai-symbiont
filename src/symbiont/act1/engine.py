@@ -110,6 +110,15 @@ def make_game(
     return game
 
 
+def stats_from_variables(values: tuple[float, ...]) -> PlayerStats:
+    """The panel counters from one frame's game variables, in the order `_register_inputs` set."""
+    health, ammo, _x, _y, _angle, armor, kills, dealt, taken, items, secrets, dead = values
+    return PlayerStats(
+        int(health), int(armor), int(ammo), int(kills), int(dealt), int(taken),
+        int(items), int(secrets), bool(dead),
+    )  # fmt: skip
+
+
 def read_player_stats(game: Any) -> PlayerStats:
     """The game's counters right now (the extra variables `make_game` registers)."""
     import vizdoom as vzd

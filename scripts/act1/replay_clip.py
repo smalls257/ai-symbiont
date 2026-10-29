@@ -23,18 +23,21 @@ from pathlib import Path
 from typing import Any
 
 from collect_episodes import count_pains, how_it_ended, load_level, wad_path
-from hook_video import ClipSink, ClipTitle, PanelPainter
+from hook_video import ClipSink
+from segment_recorder import ClipOutput, SegmentRecorder
+from stage_panel import StagePainter, title_card
 
-from symbiont.act1.engine import HudStyle, read_player_stats
+from symbiont.act1.engine import HudStyle
 from symbiont.act1.episode import Decision, RunLog, load_run_log, run_episode
 from symbiont.act1.frame_tap import FrameTap
-from symbiont.act1.game_pains import tag_pains
 from symbiont.act1.glimmer import Reply, ReplyFn
-from symbiont.act1.hook_overlay import PAIN_LABELS, MoveCard, banner_start, card_for, tally
+from symbiont.act1.hook_overlay import PAIN_LABELS, tally
+from symbiont.act1.wad import read_map
 from symbiont.records.schema import load_jsonl
 
 FPS = 30
 STRIDE = 2  # game tics per frame, as the hook recorder (1.7x speed)
+TITLE_SECONDS = 2
 TIC_BUDGET = 10**7  # a replay is never cut short: 16 decisions end long before this
 PAIN_NAME_OF_LABEL = {label: pain.value for pain, label in PAIN_LABELS.items()}
 ARM_LABELS = {"glimmer_plain": "Plain Glimmer", "glimmer_personal": "Glimmer + Freedoom adapter"}
@@ -73,33 +76,16 @@ def logged_pains(episodes: Path, level: str, stem: str) -> dict[str, int]:
         return count_pains(list(load_jsonl(handle)))
 
 
-class SegmentRecorder:
-    """Paints each move's frames and notes which decision they belong to."""
-
-    def __init__(self, tap: FrameTap, rooms: Any, sink: ClipSink, title: ClipTitle):
-        self._tap, self._rooms, self._sink = tap, rooms, sink
-        self._painter = PanelPainter(title)
-        self.runs: list[Any] = []
-        self.cards: list[MoveCard] = []
-        self.calls: list[int] = []
-        self.last_stats: Any = None
-        self.spans: dict[int, dict[str, Any]] = {}
-
-    def on_move(self, run: Any) -> None:
-        self.runs.append(run)
-        stats = read_player_stats(self._tap)
-        self.last_stats = stats
-        card = card_for(len(self.runs) - 1, run, tag_pains(self.runs, self._rooms)[-1], stats)
-        self.cards.append(card)
-        counts = dict(tally(self.cards))
-        frames = self._tap.take_frames()
-        start = banner_start(len(frames))
-        span = self.spans.setdefault(
-            len(self.calls) - 1, {"first_frame": self._sink.frames, "end_frame": 0, "tally": {}}
+def level_walls(level: str) -> list[Any]:
+    """The level's wall segments for the mini-map backdrop, straight from the WAD."""
+    geometry = read_map(wad_path().read_bytes(), level)
+    return [
+        (
+            tuple(map(float, geometry.vertices[line.v1])),
+            tuple(map(float, geometry.vertices[line.v2])),
         )
-        for number, screen in enumerate(frames):
-            self._sink.add(self._painter.frame(screen, card, counts, shout=number >= start))
-        span["end_frame"], span["tally"] = self._sink.frames, counts
+        for line in geometry.linedefs
+    ]
 
 
 def replay(args: argparse.Namespace) -> dict[str, Any]:
@@ -111,7 +97,15 @@ def replay(args: argparse.Namespace) -> dict[str, Any]:
     tap = FrameTap(game, STRIDE, TIC_BUDGET)
     out = Path(args.out).expanduser()
     sink = ClipSink(out / f"{stem}.mp4", FPS)
-    recorder = SegmentRecorder(tap, rooms, sink, ClipTitle(args.level, ARM_LABELS[args.policy]))
+    headline = f"{ARM_LABELS[args.policy]} plays Freedoom via ViZDoom, {args.level}"
+    painter = StagePainter(headline, level_walls(args.level))
+    for _ in range(TITLE_SECONDS * FPS):
+        sink.add(
+            title_card(
+                headline, f"seed {args.seed}   the game and every move are replayed from the log"
+            )
+        )
+    recorder = SegmentRecorder(tap, rooms, ClipOutput(sink, painter), decisions)
     try:
         game.set_seed(args.seed)
         run_episode(
@@ -141,7 +135,8 @@ def finish_clip(
     sidecar = {
         "arm": args.policy, "level": args.level, "seed": args.seed, "fps": FPS,
         "decisions": len(recorder.calls), "ended": ended, "pains": logged,
-        "frames": sink.frames, "stats": asdict(recorder.last_stats),
+        "frames": sink.frames, "lead_frames": TITLE_SECONDS * FPS,
+        "stats": asdict(recorder.last_stats),
         "spans": {str(k): v for k, v in sorted(recorder.spans.items())},
     }  # fmt: skip
     out = Path(args.out).expanduser()
