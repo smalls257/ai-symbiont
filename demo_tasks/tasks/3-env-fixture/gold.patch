@@ -1,0 +1,12 @@
+diff --git a/ledgerline/fx.py b/ledgerline/fx.py
+--- a/ledgerline/fx.py
++++ b/ledgerline/fx.py
+@@ -32,7 +32,7 @@
+         elif to == self.base:
+             amount = money.amount / source
+         else:
+-            amount = money.amount * source / target
++            amount = money.amount / source * target
+         return Money(amount, to).rounded()
+ 
+ 

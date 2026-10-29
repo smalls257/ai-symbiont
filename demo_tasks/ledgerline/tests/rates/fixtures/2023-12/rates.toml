@@ -1,0 +1,7 @@
+# Frozen snapshot used by old regression reports (constructed values).
+base = "USD"
+
+[rates]
+EUR = "0.9050"
+GBP = "0.7850"
+CHF = "0.8410"

@@ -1,0 +1,35 @@
+diff --git a/tests/test_accounting_negatives.py b/tests/test_accounting_negatives.py
+new file mode 100644
+--- /dev/null
++++ b/tests/test_accounting_negatives.py
+@@ -0,0 +1,30 @@
++"""Accounting exports write negative amounts in parentheses."""
++
++from decimal import Decimal
++
++import pytest
++
++from ledgerline.errors import AmountFormatError
++from ledgerline.money import Money, parse_amount
++
++
++@pytest.mark.parametrize(
++    ("text", "expected"),
++    [("(1,234.50)", "-1234.50"), ("(7)", "-7"), (" (0.5) ", "-0.5")],
++    ids=["grouped", "whole", "padded"],
++)
++def test_parentheses_mean_negative(text, expected):
++    """An amount in parentheses is negative."""
++    assert parse_amount(text, "USD") == Money(Decimal(expected), "USD")
++
++
++@pytest.mark.parametrize("text", ["(12", "12)", "()"], ids=["open-only", "close-only", "empty"])
++def test_unbalanced_parentheses_are_refused(text):
++    """Half a pair of parentheses, or nothing inside them, is not an amount."""
++    with pytest.raises(AmountFormatError):
++        parse_amount(text, "USD")
++
++
++def test_plain_amounts_still_parse():
++    """Grouped positive amounts are unaffected."""
++    assert parse_amount("1,234.50", "USD") == Money(Decimal("1234.50"), "USD")
