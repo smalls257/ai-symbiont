@@ -212,4 +212,57 @@ def test_the_driver_refuses_to_start_a_game_when_it_only_reads_stored_ones():
          "--best-card", "x"]
     )  # fmt: skip
     assert args.arm == "control" and args.phase == "evolve" and args.workers == 10
-    assert sum(run_duel.CAPS.values()) < 3.0
+    assert sum(run_duel.CAPS.values()) < 3.0 and "random" in run_duel.CAPS
+
+
+def test_a_random_operator_child_is_written_blind_to_the_traces_and_scored_against_its_parent():
+    player = FakePlayer()
+    parents = {}
+    for generation in range(1, 6):
+        parent = seeds()[generation]
+        cases = duel.generation_cases(SPLIT, generation, 1)
+        played = dp.play_pairs(player, [(parent, case) for case in cases])
+        games = [played[(parent.card_id, case)] for case in cases]
+        parents[generation] = (parent, games, sum(fitness(g) for g in games) / len(games))
+    author = SpyAuthor()
+    setup = dp.ArmSetup(
+        Arm.NO_SELECTION, SPLIT, 1, player, author, AllowAllJudge(), MemoryJournal()
+    )
+    rows = dp.run_random_children(parents, setup)
+    assert [row["generation"] for row in rows] == [1, 2, 3, 4, 5]
+    assert {op for op, _ in author.asked} <= set(dp.RANDOM_OPERATORS)
+    assert all("BEST GAME" not in text for _, text in author.asked)  # no best-versus-worst story
+    assert all(row["games"] == 5 and row["arm"] == "random_operator" for row in rows)
+    stats = duel.child_share(rows)
+    assert (
+        stats["children"] == 5.0 and 0.0 <= stats["low"] <= stats["share"] <= stats["high"] <= 1.0
+    )
+
+
+def test_the_random_operator_depends_on_the_seed_and_generation_only():
+    assert dp.random_operator(1, 3) == dp.random_operator(1, 3)
+    seen = {dp.random_operator(seed, g) for seed in range(10) for g in range(1, 6)}
+    assert seen <= set(dp.RANDOM_OPERATORS) and len(seen) > 1
+
+
+def test_the_report_scores_the_reflection_children_beside_the_random_operator_ones():
+    selection, held_back = duel.final_cases(SPLIT, 1)
+    cards = {"gen0": START, "control": seeds()[2], "evolved": seeds()[3]}
+    scores = dp.run_final(cards, selection, held_back, FakePlayer())
+    final = {
+        "ids": {name: card.card_id for name, card in cards.items()},
+        "means": {name: sum(v.values()) / len(v) for name, v in scores.items()},
+        "games": {name: len(v) for name, v in scores.items()},
+        "table": dp.paired_table(scores, held_back, 1),
+    }
+    rows = [
+        {"generation": g, "current": "a", "child": "b", "kept": "a",
+         "current_mean": 0.1, "child_mean": 0.1 + 0.1 * (g % 2)}
+        for g in range(1, 6)
+    ]  # fmt: skip
+    arms = {"evolved": {"rows": rows}, "control": {"rows": rows}, "random": {"rows": rows}}
+    noise = {"replay_variance": 0.1}
+    report = dp.build_report(noise, arms, final, {"calls": 0, "dollars": 0.0, "source": "ledger"})
+    assert set(report["reflection"]) == {"evolved arm", "no-selection arm", "random operator"}
+    assert report["reflection"]["evolved arm"]["beat_parent"] == 3.0
+    assert len(report["rows"]) == 3 + 15

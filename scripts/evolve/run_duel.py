@@ -3,7 +3,7 @@
 Players use the sensitivity check's setting B (reasoning low, temperature 0); the author and
 judge use medium reasoning. Held-out maps are never played.
 
-Usage: run_duel.py --phase noise|evolve|final|report --root DIR --wad WAD --state S --best-card ID
+Usage: run_duel.py --phase noise|evolve|random|final|report --root DIR --wad WAD --state S
 """
 
 import argparse
@@ -36,7 +36,7 @@ PLAY_TEMPERATURE = 0.0
 MUTATION_EFFORT = Effort.MEDIUM
 # Dollar caps by run name (the ledger counts the author's and the judge's calls in the arm's run);
 # together they stay under the 3 dollar stop for this run.
-CAPS = {"noise": 0.30, "evolved": 0.60, "control": 0.60, "final": 0.80}
+CAPS = {"noise": 0.30, "evolved": 0.60, "control": 0.60, "final": 0.80, "random": 0.35}
 ARM_FOR = {"evolved": Arm.EVOLVED, "control": Arm.NO_SELECTION}
 SCHEMA = "evolve-run2-v1"
 
@@ -124,6 +124,42 @@ def phase_evolve(args: argparse.Namespace) -> None:
     print(name, json.dumps(run.rows))
 
 
+def phase_random(args: argparse.Namespace) -> None:
+    """Random-operator children of the selecting arm's parents, played on the same cases."""
+    split, start = context(args)
+    evolved_dir = args.root / "duel-evolved"
+    store = run_state.RunStore(evolved_dir)
+    cards = {start.card_id: start}
+    for generation in range(1, duel.GENERATIONS + 1):
+        stored = store.load(Arm.EVOLVED, generation)
+        if stored is not None:
+            cards[stored[0][0].card_id] = stored[0][0]
+    reader = run_state.ResumingPlayer(NoPlayer(), store)
+    rows = json.loads((args.root / "duel-evolved.json").read_text())["rows"]
+    parents = {}
+    for row in rows:
+        parent = cards[row["current"]]
+        cases = duel.generation_cases(split, row["generation"], args.seed)
+        parents[row["generation"]] = (
+            parent,
+            [reader.play(parent, case) for case in cases],
+            row["current_mean"],
+        )
+    player = player_for("random", args.root / "duel-random", args)
+    session = spark_players.RetryingSession(
+        spark_players.spark_session("duel-random", CAPS["random"])
+    )
+    setup = duel_phases.ArmSetup(
+        Arm.NO_SELECTION, split, args.seed, player,
+        spark_author.SparkAuthor(session, MUTATION_EFFORT),
+        spark_judge.SparkJudge(session, MUTATION_EFFORT),
+        player.store,
+    )  # fmt: skip
+    result = duel_phases.run_random_children(parents, setup)
+    (args.root / "duel-random.json").write_text(json.dumps({"rows": result}, indent=1))
+    print("random", json.dumps(result))
+
+
 def phase_final(args: argparse.Namespace) -> None:
     """Gen-0 best, control best and evolved best on the same 24 fresh cases."""
     split, start = context(args)
@@ -152,15 +188,17 @@ def phase_report(args: argparse.Namespace) -> None:
 
     read = lambda name: json.loads((args.root / name).read_text())  # noqa: E731 - one-line reader
     ledger = Ledger()
-    runs = ("duel-noise", "duel-evolved", "duel-control", "duel-final")
+    runs = ("duel-noise", "duel-evolved", "duel-control", "duel-random", "duel-final")
     rows = [row for row in ledger.entries() if row["run"] in runs]
     spend = {
         "calls": len(rows),
         "failed_calls": sum("error" in row for row in rows),
         "dollars": round(sum(row["cost_usd"] for row in rows), 4),
-        "source": "spend ledger file, the four duel runs",
+        "source": "spend ledger file, the five duel runs",
     }
     arms = {"evolved": read("duel-evolved.json"), "control": read("duel-control.json")}
+    if (args.root / "duel-random.json").exists():
+        arms["random"] = read("duel-random.json")
     report = duel_phases.build_report(read("duel-noise.json"), arms, read("duel-final.json"), spend)
     args.out.write_text(json.dumps(report, indent=1) + "\n")
     print("report written", spend)
@@ -169,7 +207,9 @@ def phase_report(args: argparse.Namespace) -> None:
 def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
     """Command line."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--phase", choices=("noise", "evolve", "final", "report"), required=True)
+    parser.add_argument(
+        "--phase", choices=("noise", "evolve", "random", "final", "report"), required=True
+    )
     parser.add_argument("--arm", choices=sorted(ARM_FOR), help="for --phase evolve")
     parser.add_argument("--root", type=Path, required=True)
     parser.add_argument("--wad", type=Path, required=True)
@@ -185,7 +225,12 @@ def parse_arguments(argv: list[str] | None) -> argparse.Namespace:
 def main(argv: list[str] | None = None) -> int:
     """Run one phase."""
     args = parse_arguments(argv)
-    phases = {"noise": phase_noise, "evolve": phase_evolve, "final": phase_final}
+    phases = {
+        "noise": phase_noise,
+        "evolve": phase_evolve,
+        "random": phase_random,
+        "final": phase_final,
+    }
     phases["report"] = phase_report
     phases[args.phase](args)
     return 0
