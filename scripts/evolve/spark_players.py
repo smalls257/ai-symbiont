@@ -18,7 +18,7 @@ from symbiont.act1.glimmer import Reply, ReplyFn
 from symbiont.act1.policies import policy_named
 from symbiont.act1.spark_player import spark_reply_fn
 from symbiont.egress.credentials import load_meta_key
-from symbiont.egress.spark import Effort, SparkApiError, SparkSession
+from symbiont.egress.spark import Effort, SparkApiError, SparkReply, SparkSession
 from symbiont.egress.spend import Tier, caps_from_environment
 from symbiont.records.schema import Provenance
 
@@ -31,7 +31,8 @@ log = logging.getLogger(__name__)
 # Server and network trouble that a short wait can clear; anything else (a 400, a 401, a refusal)
 # is ours to fix and is raised at once.
 RETRY_STATUSES = frozenset({408, 429, 500, 502, 503, 504})
-RETRY_WAITS_S = (2.0, 5.0, 12.0, 30.0)
+# About four minutes in all: long enough for a short network or server outage to pass.
+RETRY_WAITS_S = (2.0, 5.0, 12.0, 30.0, 60.0, 120.0)
 STATUS = re.compile(r"^status (\d+)")
 
 
@@ -67,6 +68,41 @@ def with_retries(
         raise AssertionError("unreachable: the last attempt returns or raises")
 
     return reply
+
+
+@dataclass(frozen=True)
+class RetryingSession:
+    """A Spark session whose `chat` waits and asks again after a transient failure.
+
+    The author and the judge use this: a network blip must not end hours of evolution. Anything
+    that is not transient, and a transient error that outlasts the waits, is raised.
+    """
+
+    inner: SparkSession
+    waits: tuple[float, ...] = RETRY_WAITS_S
+    sleep: Callable[[float], None] = time.sleep
+
+    @property
+    def run(self) -> str:
+        """The run name the ledger lines carry."""
+        return self.inner.run
+
+    def chat(
+        self, prompt: str, effort: Effort, label: str, max_tokens: int | None = None
+    ) -> SparkReply:
+        """The inner session's reply, after retries."""
+        extra = {} if max_tokens is None else {"max_tokens": max_tokens}
+        for attempt, wait in enumerate((*self.waits, None), start=1):
+            try:
+                return self.inner.chat(prompt, effort, label, **extra)
+            except Exception as error:
+                if wait is None or not is_transient(error):
+                    raise
+                log.warning(
+                    "transient %s on attempt %d; waiting %.0fs", type(error).__name__, attempt, wait
+                )
+                self.sleep(wait)
+        raise AssertionError("unreachable: the last attempt returns or raises")
 
 
 def spark_session(run: str, run_cap: float) -> SparkSession:

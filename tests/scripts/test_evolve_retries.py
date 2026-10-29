@@ -85,3 +85,51 @@ def test_a_retry_is_logged_with_the_error_class_and_never_the_prompt(caplog):
     reply("SECRET PROMPT TEXT")
     assert "SparkApiError" in caplog.text and "attempt 1" in caplog.text
     assert "SECRET PROMPT TEXT" not in caplog.text
+
+
+def test_a_retrying_session_asks_again_after_a_transient_error_and_passes_max_tokens(tmp_path):
+    import json
+
+    from symbiont.egress.credentials import ApiKey
+    from symbiont.egress.spark import Effort, SparkSession
+    from symbiont.egress.spend import Ledger, SpendCaps, Tier
+
+    calls = []
+
+    def transport(request, timeout_s):
+        calls.append(json.loads(request.data)["max_tokens"])
+        if len(calls) == 1:
+            raise urllib.error.URLError("nodename nor servname provided")
+        body = {
+            "choices": [{"message": {"content": "GENERAL"}, "finish_reason": "stop"}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5},
+        }
+        return json.dumps(body).encode()
+
+    inner = SparkSession(
+        "m", Tier.CONTRIBUTOR, "r", SpendCaps(15.0, 3.0), ApiKey("k"),
+        Ledger(tmp_path / "l.jsonl"), (spark_players.PROVENANCE,), transport,
+    )  # fmt: skip
+    waits = []
+    session = spark_players.RetryingSession(inner, waits=(1.0, 2.0), sleep=waits.append)
+    assert session.run == "r"
+    assert session.chat("p", Effort.MEDIUM, "label", 9999).text == "GENERAL"
+    assert waits == [1.0] and calls == [9999, 9999]
+
+
+def test_a_retrying_session_raises_a_non_transient_error_at_once(tmp_path):
+    from symbiont.egress.credentials import ApiKey
+    from symbiont.egress.spark import Effort, SparkSession
+    from symbiont.egress.spend import Ledger, SpendCaps, Tier
+
+    def transport(request, timeout_s):
+        raise ValueError("ours")
+
+    inner = SparkSession(
+        "m", Tier.CONTRIBUTOR, "r", SpendCaps(15.0, 3.0), ApiKey("k"),
+        Ledger(tmp_path / "l.jsonl"), (spark_players.PROVENANCE,), transport,
+    )  # fmt: skip
+    waits = []
+    with pytest.raises(ValueError, match="ours"):
+        spark_players.RetryingSession(inner, sleep=waits.append).chat("p", Effort.LOW, "l")
+    assert waits == []

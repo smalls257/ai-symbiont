@@ -156,7 +156,7 @@ def build_tools(args: argparse.Namespace) -> VariationTools:
     import spark_author
     import spark_judge
 
-    session = spark_players.spark_session(args.run, args.run_cap)
+    session = spark_players.RetryingSession(spark_players.spark_session(args.run, args.run_cap))
     return VariationTools(
         spark_author.SparkAuthor(session, MUTATION_EFFORT),
         spark_judge.SparkJudge(session, MUTATION_EFFORT),
