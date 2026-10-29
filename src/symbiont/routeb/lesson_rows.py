@@ -108,6 +108,7 @@ def _corrected_action(repo: str, lesson: Lesson) -> TrainingRow:
 
 
 def _chat(system: str, question: str, answer: str) -> Messages:
+    """One system, user, assistant row."""
     return [
         {"role": "system", "content": system},
         {"role": "user", "content": question},
@@ -116,6 +117,7 @@ def _chat(system: str, question: str, answer: str) -> Messages:
 
 
 def _command(signature: Signature) -> str:
+    """The command text of a failed-command signature, without placeholder parts."""
     *target, _ = signature.key
     return " ".join(part for part in target if part != NO_PATH)
 
@@ -132,6 +134,7 @@ def _subject(signature: Signature) -> str:
 
 
 def _request(signature: Signature) -> str:
+    """`request`, or `request about <path>` when the correction names a file."""
     path = signature.key[0]
     return "request" if path == NO_PATH else f"request about `{path}`"
 
