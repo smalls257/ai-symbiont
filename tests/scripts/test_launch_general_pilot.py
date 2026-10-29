@@ -100,6 +100,7 @@ def test_overnight_waiter_gives_up_at_the_deadline_and_writes_a_summary(tmp_path
         "SYMBIONT_GLIMMER_URL": "http://127.0.0.1:1/v1",
         "POLL_S": "1",
         "DEADLINE": str(int(time.time()) + 2),
+        "QUEUE_SUMMARY": str(tmp_path / "none.txt"),
     }
     found = subprocess.run(
         ["bash", str(OVERNIGHT), str(tmp_path)],
@@ -112,11 +113,59 @@ def test_overnight_waiter_gives_up_at_the_deadline_and_writes_a_summary(tmp_path
     assert found.returncode == 0, found.stderr
     log = (out / "overnight.log").read_text()
     assert "never served: Muse-Glimmer-30B-sqlglot-general Muse-Glimmer-30B-sqlglot-habits" in log
-    assert "sqlglot-general (under test): not run" in (out / "summary.txt").read_text()
+    assert "plain (reference, pilot): not run" in (out / "summary.txt").read_text()
+
+
+def test_overnight_waiter_starts_only_adapters_the_queue_installed(tmp_path):
+    import time
+
+    out = _overnight_work(tmp_path)
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    ids = ("Muse-Glimmer-30B-sqlglot-general", "Muse-Glimmer-30B-sqlglot-habits")
+    models = '{"data":[' + ",".join(f'{{"id":"{name}"}}' for name in ids) + "]}"
+    (fake_bin / "curl").write_text(
+        '#!/bin/sh\ncase "$*" in *health*) echo \'{"status":"ok"}\';;'
+        f" *) echo '{models}';; esac\n"
+    )
+    (fake_bin / "curl").chmod(0o755)
+    queue = tmp_path / "queue.txt"
+    queue.write_text(
+        "general install a b ok model=Muse-Glimmer-30B-sqlglot-general\n"
+        "habits install a b FAILED rolled-back model=Muse-Glimmer-30B-sqlglot-habits\n"
+        "end check a llama=true\n"
+    )
+    (out / "arm-labels.json").write_text('{"sqlglot-general-rerun": "under test, rerun"}')
+    env = {
+        "PATH": f"{fake_bin}:/usr/bin:/bin",
+        "SYMBIONT_GLIMMER_URL": "http://127.0.0.1:1/v1",
+        "POLL_S": "1",
+        "DEADLINE": str(int(time.time()) + 4),
+        "QUEUE_SUMMARY": str(queue),
+        "ARM_SUFFIX": "-rerun",
+        "PLAIN_RUN2": "no",
+    }
+    found = subprocess.run(
+        ["bash", str(OVERNIGHT), str(tmp_path)],
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+    )
+    assert found.returncode == 0, found.stderr
+    log = (out / "overnight.log").read_text()
+    assert "start sqlglot-general-rerun" in log
+    assert "start sqlglot-habits" not in log
+    assert "never served: Muse-Glimmer-30B-sqlglot-habits" in log
 
 
 def test_overnight_waiter_refuses_without_its_inputs(tmp_path):
-    env = {"PATH": "/usr/bin:/bin", "SYMBIONT_GLIMMER_URL": "http://127.0.0.1:1/v1"}
+    env = {
+        "PATH": "/usr/bin:/bin",
+        "SYMBIONT_GLIMMER_URL": "http://127.0.0.1:1/v1",
+        "QUEUE_SUMMARY": str(tmp_path / "q.txt"),
+    }
     found = subprocess.run(
         ["bash", str(OVERNIGHT), str(tmp_path)],
         env=env,
