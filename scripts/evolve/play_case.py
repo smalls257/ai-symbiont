@@ -28,6 +28,7 @@ from symbiont.act1.game_fitness import (  # noqa: E402
     Case,
     GameResult,
     Grade,
+    NoRouteError,
     remaining_route_units,
     route_share,
 )
@@ -203,13 +204,21 @@ class EnginePlayer:
 
     @staticmethod
     def _share(nav: NavMap, runs: list[MoveRun], start_units: float, ended: EpisodeEnd) -> float:
-        """Route share from where the player stood last; 1 at an exit, 0 with no move played."""
+        """The furthest route share reached on any spot the nav can route from (1 at an exit)."""
+        # A lift or teleport can carry the player off the walkable grid: skipping that spot keeps
+        # the progress made before it, and furthest rather than last means wandering back is free.
         if ended == EpisodeEnd.EXITED:
             return 1.0
-        if not runs:
-            return 0.0
-        last = runs[-1].after or runs[-1].before
-        return route_share(start_units, remaining_route_units(nav, last.position))
+        spots = {run.before.position for run in runs}
+        if runs and runs[-1].after is not None:
+            spots.add(runs[-1].after.position)
+        best = 0.0
+        for spot in sorted(spots):
+            try:
+                best = max(best, route_share(start_units, remaining_route_units(nav, spot)))
+            except NoRouteError:
+                continue
+        return best
 
     @staticmethod
     def _ungraded(card: Card, case: Case, reason: str) -> GameResult:

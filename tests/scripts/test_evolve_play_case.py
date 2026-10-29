@@ -291,3 +291,26 @@ def test_the_engine_player_with_spark_players_can_be_pickled_for_a_process_pool(
     maker = spark_players.SparkPlayers("run-x", 3.0, Effort.LOW)
     revived = pickle.loads(pickle.dumps(play_case.EnginePlayer(maker, setup)))
     assert revived.reply_for == maker and revived.setup.workers == 2
+
+
+def fake_run(before, after=None):
+    spot = lambda xy: SimpleNamespace(position=xy)  # noqa: E731 - tiny stand-in for a game view
+    return SimpleNamespace(before=spot(before), after=None if after is None else spot(after))
+
+
+def test_progress_is_the_furthest_routable_spot_and_an_unroutable_spot_is_skipped(monkeypatch):
+    from symbiont.act1.game_fitness import NoRouteError
+
+    remaining = {(0.0, 0.0): 100.0, (10.0, 0.0): 60.0, (20.0, 0.0): 90.0}
+
+    def fake_remaining(_nav, spot):
+        if spot not in remaining:
+            raise NoRouteError("off the grid")
+        return remaining[spot]
+
+    monkeypatch.setattr(play_case, "remaining_route_units", fake_remaining)
+    runs = [fake_run((0.0, 0.0), (10.0, 0.0)), fake_run((10.0, 0.0), (20.0, 0.0)),
+            fake_run((20.0, 0.0), (999.0, 999.0))]  # fmt: skip
+    share = play_case.EnginePlayer._share(None, runs, 100.0, play_case.EpisodeEnd.DECISION_CAP)
+    assert share == pytest.approx(0.4)  # furthest was 60 units left of 100, not the last spot
+    assert play_case.EnginePlayer._share(None, [], 100.0, play_case.EpisodeEnd.DECISION_CAP) == 0.0
