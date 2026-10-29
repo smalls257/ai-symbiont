@@ -1,0 +1,201 @@
+{
+ "schema": "evolve-progress-v1",
+ "label": "exploratory, spark player, 5 training maps; validation = held-back seeds (weaker than validation levels)",
+ "claim": "exploratory",
+ "dry_run": false,
+ "curves": [
+  {
+   "generation": 0,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": -0.24552635923317626,
+   "best_fitness": -0.1268474615311285,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 1,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.07054954974192233,
+   "best_fitness": 0.28170949544456764,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 2,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": -0.19491172682973038,
+   "best_fitness": -0.11125973582929757,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 3,
+   "arm": "evolved",
+   "role": "under test",
+   "mean_fitness": 0.13081112452295598,
+   "best_fitness": 0.24564712779215336,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 0,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": -0.24552635923317626,
+   "best_fitness": -0.1268474615311285,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 1,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.08392774449172964,
+   "best_fitness": 0.2589211516464356,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 2,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": -0.25764333531747935,
+   "best_fitness": -0.19627722551365728,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  },
+  {
+   "generation": 3,
+   "arm": "no_selection",
+   "role": "reference (equal compute)",
+   "mean_fitness": 0.11246095295197099,
+   "best_fitness": 0.2692482865825486,
+   "cases_kept": 4,
+   "cases_dropped_ungraded": 0,
+   "label": "exploratory"
+  }
+ ],
+ "floor": {
+  "role": "floor",
+  "card": "no card",
+  "mean_fitness": -0.3505835793100015,
+  "label": "exploratory"
+ },
+ "validation": [
+  {
+   "generation": 1,
+   "training_mean": 0.28170949544456764,
+   "validation_mean": -0.0767466636968073,
+   "gap": 0.35845615914137496,
+   "label": "exploratory"
+  },
+  {
+   "generation": 2,
+   "training_mean": -0.11125973582929757,
+   "validation_mean": -0.2863277993305756,
+   "gap": 0.17506806350127804,
+   "label": "exploratory"
+  },
+  {
+   "generation": 3,
+   "training_mean": 0.24564712779215336,
+   "validation_mean": -0.26975267586917673,
+   "gap": 0.5153998036613301,
+   "label": "exploratory"
+  }
+ ],
+ "ungraded": [
+  {
+   "generation": 0,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 1,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 2,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 3,
+   "arm": "evolved",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 0,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 1,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 2,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  },
+  {
+   "generation": 3,
+   "arm": "no_selection",
+   "dropped_cases": 0,
+   "kept_cases": 4
+  }
+ ],
+ "noise": {
+  "verdict": "select",
+  "within_variance": 0.038926314889934595,
+  "between_variance": 0.005376106257363211,
+  "standard_error": 0.09874140370964982,
+  "games_per_case": 1
+ },
+ "stop_reason": null,
+ "spend": {
+  "calls": 3267,
+  "dollars": 0.8034,
+  "all_runs_dollars": 0.8258,
+  "source": "spend ledger file, lines of this run"
+ },
+ "picks": {
+  "evolved": "6c0ccf2a2744",
+  "no_selection": "5984390e1d7c"
+ },
+ "family_tree": [
+  {
+   "card_id": "6c0ccf2a2744",
+   "generation": 1,
+   "operator": "add",
+   "parents": [
+    "5984390e1d7c"
+   ]
+  },
+  {
+   "card_id": "5984390e1d7c",
+   "generation": 0,
+   "operator": "seed",
+   "parents": []
+  }
+ ]
+}

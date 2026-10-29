@@ -1,0 +1,101 @@
+{
+ "schema": "evolve-generations-v1",
+ "label": "exploratory, spark player, 5 training maps; validation = held-back seeds (weaker than validation levels)",
+ "claim": "exploratory",
+ "validation": [
+  {
+   "generation": 1,
+   "training_mean": 0.28170949544456764,
+   "validation_mean": -0.0767466636968073,
+   "gap": 0.35845615914137496,
+   "label": "exploratory"
+  },
+  {
+   "generation": 2,
+   "training_mean": -0.11125973582929757,
+   "validation_mean": -0.2863277993305756,
+   "gap": 0.17506806350127804,
+   "label": "exploratory"
+  },
+  {
+   "generation": 3,
+   "training_mean": 0.24564712779215336,
+   "validation_mean": -0.26975267586917673,
+   "gap": 0.5153998036613301,
+   "label": "exploratory"
+  }
+ ],
+ "noise": {
+  "verdict": "select",
+  "within_variance": 0.038926314889934595,
+  "between_variance": 0.005376106257363211,
+  "standard_error": 0.09874140370964982,
+  "games_per_case": 1
+ },
+ "stop_reason": null,
+ "spend": {
+  "calls": 3267,
+  "dollars": 0.8034,
+  "all_runs_dollars": 0.8258,
+  "source": "spend ledger file, lines of this run"
+ },
+ "picks": {
+  "evolved": "6c0ccf2a2744",
+  "no_selection": "5984390e1d7c"
+ },
+ "rows": [
+  {
+   "label": "evolved gen 0",
+   "role": "under_test",
+   "mean_fitness": -0.24552635923317626,
+   "best_fitness": -0.1268474615311285
+  },
+  {
+   "label": "evolved gen 1",
+   "role": "under_test",
+   "mean_fitness": 0.07054954974192233,
+   "best_fitness": 0.28170949544456764
+  },
+  {
+   "label": "evolved gen 2",
+   "role": "under_test",
+   "mean_fitness": -0.19491172682973038,
+   "best_fitness": -0.11125973582929757
+  },
+  {
+   "label": "evolved gen 3",
+   "role": "under_test",
+   "mean_fitness": 0.13081112452295598,
+   "best_fitness": 0.24564712779215336
+  },
+  {
+   "label": "no_selection gen 0",
+   "role": "reference",
+   "mean_fitness": -0.24552635923317626,
+   "best_fitness": -0.1268474615311285
+  },
+  {
+   "label": "no_selection gen 1",
+   "role": "reference",
+   "mean_fitness": 0.08392774449172964,
+   "best_fitness": 0.2589211516464356
+  },
+  {
+   "label": "no_selection gen 2",
+   "role": "reference",
+   "mean_fitness": -0.25764333531747935,
+   "best_fitness": -0.19627722551365728
+  },
+  {
+   "label": "no_selection gen 3",
+   "role": "reference",
+   "mean_fitness": 0.11246095295197099,
+   "best_fitness": 0.2692482865825486
+  },
+  {
+   "label": "no card",
+   "role": "floor",
+   "mean_fitness": -0.3505835793100015
+  }
+ ]
+}
