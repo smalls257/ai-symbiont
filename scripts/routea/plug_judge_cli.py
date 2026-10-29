@@ -2,7 +2,7 @@
 
 Usage: uv run python scripts/routea/plug_judge_cli.py bundle --pool P --plan PLAN --habit-split S
 Usage:   --items V/items.jsonl --out B
-Usage: uv run python scripts/routea/plug_judge_cli.py score --items V/items.jsonl --scores S --out F
+Usage: uv run python scripts/routea/plug_judge_cli.py score --items V --scores S0 S1 S2 --out F
 
 Rows come from meta-train lessons only (the plan's scored and validation repos are held out,
 `plug.check_unseen`). The silence threshold is fitted on the validation repos in the lower half by
@@ -49,10 +49,19 @@ def bundle(args: argparse.Namespace) -> dict:
     }
 
 
+def seed_mean_scores(paths: list[Path]) -> dict[str, float]:
+    """P(yes) per query averaged over seed files; raises if the files cover different queries."""
+    files = [{r["question_id"]: r["p_yes"] for r in _read_jsonl(path)} for path in paths]
+    keys = set(files[0])
+    if any(set(found) != keys for found in files[1:]):
+        raise ValueError("seed score files cover different queries")
+    return {key: sum(found[key] for found in files) / len(files) for key in keys}
+
+
 def score(args: argparse.Namespace) -> dict:
     """Fit the threshold on half the validation repos; the curve on the other half and on all."""
     records = _read_jsonl(args.items)
-    scores = {r["question_id"]: r["p_yes"] for r in _read_jsonl(args.scores)}
+    scores = seed_mean_scores(args.scores)
     repos = sorted({r["repo"] for r in records}, key=name_hash)
     fitting = set(repos[: len(repos) // 2])
     fit_items = [item_from(r) for r in records if r["repo"] in fitting]
@@ -79,7 +88,7 @@ def main() -> None:
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--habit-split", type=Path)
     parser.add_argument("--items", type=Path, required=True, help="validation items (full prompt)")
-    parser.add_argument("--scores", type=Path)
+    parser.add_argument("--scores", type=Path, nargs="+", help="one P(yes) file per seed")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
     result = bundle(args) if args.stage == "bundle" else score(args)

@@ -101,3 +101,18 @@ def test_threshold_is_the_lowest_meeting_the_gate_or_raises(judge):
     scores["a-silence::org/x-2"] = 0.95
     with pytest.raises(ValueError):
         judge.fit_threshold([pick, quiet], scores, 7, [0.0, 0.5])
+
+
+def test_seed_mean_scores_average_and_refuse_mismatched_files(monkeypatch, tmp_path):
+    monkeypatch.syspath_prepend(str(ROUTEA))
+    spec = importlib.util.spec_from_file_location("plug_judge_cli", ROUTEA / "plug_judge_cli.py")
+    cli = importlib.util.module_from_spec(spec)
+    sys.modules["plug_judge_cli"] = cli
+    spec.loader.exec_module(cli)
+    first, second, other = tmp_path / "s0.jsonl", tmp_path / "s1.jsonl", tmp_path / "x.jsonl"
+    first.write_text('{"question_id": "q", "p_yes": 0.2}\n')
+    second.write_text('{"question_id": "q", "p_yes": 0.6}\n')
+    other.write_text('{"question_id": "z", "p_yes": 0.6}\n')
+    assert cli.seed_mean_scores([first, second]) == {"q": pytest.approx(0.4)}
+    with pytest.raises(ValueError):
+        cli.seed_mean_scores([first, other])
