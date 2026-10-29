@@ -30,6 +30,7 @@ PREREG_NAME = "2026-10-29-plug-situations.md"
 PINNED = {
     "pool_index_sha256": "a14f22f0158a2ac568f84ffdbbbafaa01059cf22abebc5f4370679623cd258ff",
     "habit_rows_sha256": "fa863cb3f13bf66907a16d076cf4d2ffab705272ef785d16ea93c19a271c06ea",
+    "aidev_lessons_sha256": "197d0d0b05ca51cbfc1ec6e0f2f6126874f835e78e101cf91434e9b6771debd5",
 }
 
 
@@ -110,24 +111,25 @@ SCORED_ROWS = {  # row: (answers subdir, label)
 }
 
 
+def verify_pins(found: dict[str, str]) -> None:
+    """Raise InputHashMismatchError unless every pinned input hash is present and equal."""
+    for name, expected in PINNED.items():
+        if found.get(name) != expected:
+            raise InputHashMismatchError(f"{name} is {found.get(name)}, the prereg pins {expected}")
+
+
 def check(args: argparse.Namespace) -> dict:
     """Inputs against their pins, the frozen prereg and the code commit; refuses any mismatch."""
     found = {
         "pool_index_sha256": pool_index_sha(args.pool),
         "habit_rows_sha256": sha256_of(args.habit_rows),
+        "aidev_lessons_sha256": sha256_of(args.aidev_lessons),
     }
-    for name, expected in PINNED.items():
-        if found[name] != expected:
-            raise InputHashMismatchError(f"{name} is {found[name]}, the prereg pins {expected}")
+    verify_pins(found)
     check_plan(json.loads((args.work / "plan.json").read_text()))
     label = run_provenance(scored=True, prereg=args.prereg, expects=PREREG_NAME)
     code = pinned_code_commit(HERE.parents[1], label["freeze_commit"])
-    provenance = {
-        **label,
-        **found,
-        "code_commit": code,
-        "aidev_lessons_sha256": sha256_of(args.aidev_lessons),
-    }
+    provenance = {**label, **found, "code_commit": code}
     (args.work / "provenance.json").write_text(json.dumps(provenance, indent=1, sort_keys=True))
     return provenance
 

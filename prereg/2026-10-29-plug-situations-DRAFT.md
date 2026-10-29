@@ -107,7 +107,7 @@ Each variant changes one thing from the current best, is trained once (seed 0) f
    - **V1's rows (dry run, before any training).** 60 meta-train repos; 1,321 question rows, 202 habit rows and 618 situation rows; 24 rows dropped for targets over 96 tokens (from the 5 long-note meta lessons) and none for length, leaving 2,117 [measured].
    - **Scored long notes.** The 3 scored lessons whose note exceeds 96 tokens stay, since a pick needs only the fix tokens [measured].
 2. **V2, many rewordings.** 15 situation phrasings per lesson instead of 1: the test's phrasing plus the 14 fixed templates in `plug_r2_rows.PHRASINGS`. Validation and scoring use only `plug_situation.situation_of`.
-3. **V3, more variety.** 2 AIDev habit lessons (template-built, `~/symbiont-runs/aidev/lessons.jsonl` train split; its sha256 goes into `provenance.json`) added to each training situation prompt as unrelated lessons (`plug_r2_rows.with_unrelated`). Training rows only; test prompts are unchanged.
+3. **V3, more variety.** 2 AIDev habit lessons (the template-built lessons file written by `scripts/aidev/build.py`, train split; sha256 `197d0d0b05ca51cbfc1ec6e0f2f6126874f835e78e101cf91434e9b6771debd5`, pinned in `plug_r2_score.PINNED`, so `check` refuses any other file) added to each training situation prompt as unrelated lessons (`plug_r2_rows.with_unrelated`). Training rows only; test prompts are unchanged.
 4. **V4, 3B.** The current best variant's rows on Llama 3.2 3B. V4 runs only if 1B "tops out", meaning neither V2 nor V3 replaced the current best. If V4 is selected, every plain-model row in the scored run is Llama 3.2 3B with the same prompt.
 
 **Selection rule.**

@@ -180,3 +180,12 @@ def test_claim_sentences_follow_the_prereg(monkeypatch):
     )
     assert score.claim(win, {"passes": False}, means) == "picks more and fails the abstention gate"
     assert score.claim(tie, {"passes": True}, means).startswith("the trained reader did not")
+
+
+def test_check_refuses_any_input_whose_hash_differs_from_its_pin(monkeypatch):
+    score = load(monkeypatch, "plug_r2_score")
+    assert set(score.PINNED) == {"pool_index_sha256", "habit_rows_sha256", "aidev_lessons_sha256"}
+    score.verify_pins(dict(score.PINNED))
+    for name in score.PINNED:
+        with pytest.raises(score.InputHashMismatchError, match=name):
+            score.verify_pins({**score.PINNED, name: "0" * 64})
