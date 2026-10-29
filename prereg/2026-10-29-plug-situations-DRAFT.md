@@ -8,7 +8,7 @@ Owner-proxy rulings applied: `.superpowers/rulings/2026-10-29-plug-situations.md
 
 Round 1 (`prereg/2026-10-29-l2l-a2.md`, H1 tie) stays reported as it is; this round does not re-slice it.
 
-Code: the scored run uses the code in the freeze commit's tree. `plug.py check` refuses to train or score on any other tree (`plug.pinned_code_commit`), and the results file carries `code_commit`, `freeze_commit`, `prereg_sha256` and the answer script's sha256. Answers come from `scripts/routea/answer_contexts.py`: greedy decoding, `MAX_TOKENS = 96`, chat-template date "26 Jul 2024", the whole answer folded onto one line. Answers from any other setting are not pooled with these.
+Code: the variants and the scored run use the code in the freeze commit's tree, driven by `scripts/routea/plug_r2.sh` (`validate`, then `score`). Its first step, `plug_r2_score.py check`, refuses to train or score unless the code under `scripts/routea`, `scripts/aidev` and `src` at HEAD equals the freeze commit's tree (`plug.pinned_code_commit`), the inputs match their pins, and the plan matches the table below. The results file (`results/plug-situations.json`) carries `code_commit`, `freeze_commit`, `prereg_sha256` and the answer script's sha256. Answers come from `scripts/routea/answer_contexts.py`: greedy decoding, `MAX_TOKENS = 96`, chat-template date "26 Jul 2024", the whole answer folded onto one line. Answers from any other setting are not pooled with these.
 
 ## Amendments
 
@@ -97,20 +97,23 @@ All on the 10 validation repos (`results/plug-situation-pilot-v2.json`, the revi
 
 Each variant changes one thing from the current best, is trained once (seed 0) from plain weights, and runs on the validation repos only. They run in this order:
 
-1. **V1, situation reader (1B).** LoRA (rank 16, scale 2, all layers, learning rate 1e-4 cosine, batch 4, max length 512, 1 epoch) on three kinds of rows:
+1. **V1, situation reader (1B).** LoRA (rank 16, scale 2, all layers, learning rate 1e-4 cosine, batch 4, 1 epoch) with a training window of 1,024 tokens (`LORA_MAX_LENGTH=1024`), on three kinds of rows (`plug_r2_rows.py`) [established]:
    - a2v-style question rows (`l2l_quick.meta_rows` on the V1 meta-train list, capped at 1,600, rows over 1,300 characters dropped);
    - the 202 AIDev habit rows;
    - one pick row and one silence row per meta-train lesson, with prompts built exactly as the test's: a 60-lesson prompt and the ranker's shuffled top 5.
 
-   Targets are the applicable lesson's note (`Lesson.text()`), or "No lesson I hold covers that." on a silence row. The 5 meta-train lessons whose note exceeds 96 tokens are dropped from targets [measured]. The 3 scored lessons whose note exceeds 96 tokens stay, since a pick needs only the fix tokens [measured]. Rows over 512 tokens under the Llama 3.2 chat template are dropped and counted.
-2. **V2, many rewordings.** 15 situation phrasings per lesson instead of 1, from fixed templates written before V2 runs, never used in validation or scoring.
-3. **V3, more variety.** AIDev habit lessons (template-built, `scripts/aidev`) added to prompts as unrelated lessons.
-4. **V4, 3B.** The current best recipe on Llama 3.2 3B. V4 runs only if 1B "tops out", meaning neither V2 nor V3 replaced the current best. If V4 is selected, every plain-model row in the scored run is Llama 3.2 3B with the same prompt.
+   Targets are the applicable lesson's note (`Lesson.text()`), or "No lesson I hold covers that." on a silence row. `fit_rows.py` drops and counts every row whose target exceeds 96 tokens (the answer budget) or whose whole row exceeds 1,024 tokens under the Llama 3.2 chat template [established].
+   - **Why 1,024.** The situation rows' median is 521 tokens, and 349 of 618 exceed 512, so a 512 window would drop most of them; none exceeds 1,024 [measured].
+   - **V1's rows (dry run, before any training).** 60 meta-train repos; 1,321 question rows, 202 habit rows and 618 situation rows; 24 rows dropped for targets over 96 tokens (from the 5 long-note meta lessons) and none for length, leaving 2,117 [measured].
+   - **Scored long notes.** The 3 scored lessons whose note exceeds 96 tokens stay, since a pick needs only the fix tokens [measured].
+2. **V2, many rewordings.** 15 situation phrasings per lesson instead of 1: the test's phrasing plus the 14 fixed templates in `plug_r2_rows.PHRASINGS`. Validation and scoring use only `plug_situation.situation_of`.
+3. **V3, more variety.** 2 AIDev habit lessons (template-built, `~/symbiont-runs/aidev/lessons.jsonl` train split; its sha256 goes into `provenance.json`) added to each training situation prompt as unrelated lessons (`plug_r2_rows.with_unrelated`). Training rows only; test prompts are unchanged.
+4. **V4, 3B.** The current best variant's rows on Llama 3.2 3B. V4 runs only if 1B "tops out", meaning neither V2 nor V3 replaced the current best. If V4 is selected, every plain-model row in the scored run is Llama 3.2 3B with the same prompt.
 
 **Selection rule.**
 - **V1 against the floor.** V1 replaces plain 1B as the current best only if (a) its pick minus plain 1B's pick, paired by repo, has a mean of at least +0.05 with the 95% interval's lower bound above 0, and V1 passes the absolute abstention gate (below) on the validation repos [established]. Plain 1B's validation silence is "no lesson" said to everything, so it never sets a silence bar. If V1 fails, the round stops: V2 to V4 do not run, and the scored run compares plain 1B with the untrained ranker-alone row and reports the floor.
 - **From V2 on,** a variant replaces the current best only if (a) holds against the current best, (b) its silence is not lower than the current best's by more than 0.05, and (c) its wrong pick is not higher by more than 0.02. A tie keeps the earlier variant.
-- **Selection amendment.** The selected variant, its validation numbers and the minimum detectable effect go into a dated amendment committed before any scored answer.
+- **Selection amendment.** `plug_r2_select.py` applies this rule and computes the MDE (`selection.json`). The selected variant, its validation numbers and the MDE go into a dated amendment committed before any scored answer.
 - **Other workstreams.** Spark-written targets, full fine-tuning and the CUDA port enter only through a dated amendment before their first validation answer.
 
 ## Rows and labels (scored repos)
