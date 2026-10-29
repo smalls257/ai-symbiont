@@ -7,10 +7,11 @@ thin client in `client.py` owns the socket.
 
 import ipaddress
 from collections.abc import Iterable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import StrEnum
 from urllib.parse import urlsplit
 
+from symbiont.egress.credentials import ApiKey
 from symbiont.records.schema import Provenance
 
 # Datasets whose rows are real people's text. spark_safe=False already covers them; the name
@@ -70,10 +71,14 @@ def _refuse_unless(endpoint: Endpoint, reason: str, *, holds: bool) -> None:
 
 @dataclass(frozen=True)
 class Destination:
-    """A server kind and the url to reach it; one object so callers cannot mix them up."""
+    """A server kind, the url to reach it and its credential; one object so callers cannot mix them.
+
+    The key is optional (local servers take none) and never appears in the repr.
+    """
 
     endpoint: Endpoint
     url: str
+    api_key: ApiKey | None = field(default=None, repr=False)
 
 
 def _check_destination(destination: Destination) -> None:

@@ -1,9 +1,7 @@
 """The thin client: policy first, then one POST, logging sizes and provenance only.
 
-Violation this shape prevents: Black Box on the way out (nobody can tell what left the machine)
-and Silent Fallback (a refused or failed send must raise, never return an empty reply).
-The prompt text is never logged. The only module in src/ allowed to open a connection
-(semgrep sym-single-egress).
+A refused or failed send raises, never returns an empty reply, and the prompt text is never
+logged. The only module in src/ allowed to open a connection (semgrep sym-single-egress).
 """
 
 import json
@@ -52,6 +50,8 @@ def post_json(
         raise
     log.info("egress send %s", _describe(destination, len(wire_bytes), declared))
     headers = {"Content-Type": "application/json"}
+    if destination.api_key is not None:
+        headers["Authorization"] = f"Bearer {destination.api_key.reveal()}"
     request = urllib.request.Request(destination.url, data=wire_bytes, headers=headers)
     reply: dict[str, Any] = json.loads(transport(request, timeout_s))
     return reply
