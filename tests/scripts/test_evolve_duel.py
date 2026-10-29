@@ -1,0 +1,175 @@
+"""Run 2's phases on a fake player and author: fresh cases, honest survivors, a journal."""
+
+import sys
+from pathlib import Path
+
+import pytest
+
+from evolve_world import FakePlayer, seeds
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "scripts" / "evolve"))
+
+import duel_phases as dp  # noqa: E402 - needs the scripts path added above
+
+from symbiont.act1 import duel  # noqa: E402
+from symbiont.act1.card_genome import Card, Lesson  # noqa: E402
+from symbiont.act1.evolve_split import EvolveSplit, SmokeResult  # noqa: E402
+from symbiont.act1.game_fitness import fitness  # noqa: E402
+from symbiont.act1.generality import Rejection, Verdict  # noqa: E402
+from symbiont.act1.levels import LevelSplit, levels_in  # noqa: E402
+from symbiont.act1.lineage import Arm, Operator  # noqa: E402
+from symbiont.act1.offline_author import AllowAllJudge, OfflineAuthor  # noqa: E402
+from symbiont.act1.run_guards import MutationPromptError  # noqa: E402
+
+pytestmark = pytest.mark.periphery
+NAVIGABLE = {
+    "MAP01",
+    "MAP02",
+    "MAP05",
+    "MAP06",
+    "MAP09",
+    "MAP10",
+    "MAP11",
+    "MAP14",
+    "MAP29",
+    "MAP31",
+}
+SPLIT = EvolveSplit.of(
+    {
+        level: SmokeResult(level in NAVIGABLE or level in levels_in(LevelSplit.HELD_OUT), "")
+        for level in levels_in(LevelSplit.TRAINING) + levels_in(LevelSplit.HELD_OUT)
+    }
+)
+START = seeds()[1]
+
+
+class MemoryJournal(dp.Journal):
+    def __init__(self):
+        self.stored = {}
+
+    def load(self, arm, generation):
+        return self.stored.get((arm, generation))
+
+    def save(self, arm, generation, cards, births):
+        self.stored[(arm, generation)] = (cards, births)
+
+
+class SpyAuthor(OfflineAuthor):
+    def __init__(self):
+        super().__init__()
+        self.asked = []
+
+    def vary(self, operator, parents, summary, seed):
+        self.asked.append((operator, summary))
+        return super().vary(operator, parents, summary, seed)
+
+
+def first_games(player):
+    cases = duel.noise_cases(SPLIT, 1)
+    played = dp.play_pairs(player, [(START, case) for case in cases])
+    return [played[(START.card_id, case)] for case in cases]
+
+
+def run_arm(arm, author=None, journal=None, player=None, judge=None):
+    player = player or FakePlayer()
+    setup = dp.ArmSetup(
+        arm,
+        SPLIT,
+        1,
+        player,
+        author or SpyAuthor(),
+        judge or AllowAllJudge(),
+        journal or MemoryJournal(),
+    )
+    return dp.ArmRunner(setup).go(START, first_games(player))
+
+
+def test_each_arm_plays_fifty_games_on_fresh_cases_and_two_cards_per_generation():
+    for arm in (Arm.EVOLVED, Arm.NO_SELECTION):
+        player = FakePlayer()
+        run = run_arm(arm, player=player)
+        assert len(run.rows) == 5 and all(row["games"] == 10 for row in run.rows)
+        played_by_generation = {}
+        for number in range(1, 6):
+            for case in duel.generation_cases(SPLIT, number, 1):
+                played_by_generation.setdefault((case.level, case.seed), number)
+        assert len(played_by_generation) == 25  # no case is shared between generations
+
+
+def test_every_child_is_written_from_the_best_and_worst_games_with_the_compare_operator():
+    author = SpyAuthor()
+    run_arm(Arm.EVOLVED, author=author)
+    assert [op for op, _ in author.asked] == [Operator.COMPARE] * 5
+    assert all(
+        text.startswith("BEST GAME: ") and " WORST GAME: " in text for _, text in author.asked
+    )
+
+
+def test_the_selecting_arm_keeps_the_card_with_the_better_mean_in_every_generation():
+    run = run_arm(Arm.EVOLVED)
+    for row in run.rows:
+        better = row["current"] if row["current_mean"] >= row["child_mean"] else row["child"]
+        if row["current_mean"] != row["child_mean"]:
+            assert row["kept"] == better
+
+
+def test_the_controls_kept_card_ignores_the_means_and_the_selecting_arms_follows_them():
+    def kept_pattern(arm, effect):
+        run = run_arm(arm, player=FakePlayer(effect=effect))
+        return [row["kept"] == row["child"] for row in run.rows]
+
+    # Reversing what helps reverses the means; a coin does not notice, a comparison does.
+    assert kept_pattern(Arm.NO_SELECTION, 0.06) == kept_pattern(Arm.NO_SELECTION, -0.06)
+    forward, backward = kept_pattern(Arm.EVOLVED, 0.06), kept_pattern(Arm.EVOLVED, -0.06)
+    assert forward != backward
+
+
+def test_a_stored_child_is_reused_so_a_resume_never_asks_the_author_again():
+    journal = MemoryJournal()
+    first = SpyAuthor()
+    run_arm(Arm.EVOLVED, author=first, journal=journal)
+    second = SpyAuthor()
+    again = run_arm(Arm.EVOLVED, author=second, journal=journal)
+    assert second.asked == [] and len(first.asked) == 5 and len(again.rows) == 5
+
+
+class RejectsEverything:
+    def landmark(self, lesson):
+        return Verdict(False, Rejection.LANDMARK, "second left to the blue-key room")
+
+
+def test_three_rejected_children_stop_the_arm_with_the_prompt_error():
+    with pytest.raises(MutationPromptError, match="no new child"):
+        run_arm(Arm.EVOLVED, judge=RejectsEverything())
+
+
+def test_the_noise_phase_replays_the_same_card_on_the_same_cases_once_per_player():
+    cases = duel.noise_cases(SPLIT, 1)
+    players = [FakePlayer(noise=0.3) for _ in range(5)]
+    stats = dp.run_noise(START, cases, players)
+    assert stats["games"] == 25 and stats["cases"] == 5.0 and stats["replicates"] == 5.0
+    assert stats["replay_variance"] >= 0
+
+
+def test_the_final_test_plays_three_cards_on_the_same_cases_and_pairs_them():
+    selection, held_back = duel.final_cases(SPLIT, 1)
+    cards = {"gen0": START, "control": seeds()[2], "evolved": seeds()[3]}
+    scores = dp.run_final(cards, selection, held_back, FakePlayer())
+    assert all(len(per_case) == 24 for per_case in scores.values())
+    table = dp.paired_table(scores, held_back, 1)
+    assert len(table) == 9
+    assert {row["label"].split(",")[0] for row in table} == {
+        "evolved minus control", "evolved minus gen0", "control minus gen0",
+    }  # fmt: skip
+    all_rows = [row for row in table if row["label"].endswith(", all")]
+    assert all(row["pairs"] == 24 for row in all_rows)
+    assert {row["word"] for row in table} <= {"better", "worse", "tie"}
+    held = [row for row in table if row["label"].endswith("held-back maps")]
+    assert all(row["pairs"] == 12 for row in held)
+
+
+def test_a_fitness_check_of_the_fake_world_the_door_cards_beat_the_empty_card():
+    player = FakePlayer()
+    case = duel.noise_cases(SPLIT, 1)[0]
+    empty, door = Card.of([]), Card.of([Lesson("w", "Go through the door", "c")])
+    assert fitness(player.play(door, case)) > fitness(player.play(empty, case))

@@ -122,6 +122,7 @@ def _rewrite(lessons: list[Lesson], summary: str) -> list[Lesson]:
 
 EDITS = {
     Operator.ADD: _add,
+    Operator.COMPARE: _add,
     Operator.DELETE: _delete,
     Operator.MERGE: _merge,
     Operator.REWRITE: _rewrite,
