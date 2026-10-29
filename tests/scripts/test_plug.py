@@ -209,3 +209,18 @@ def test_replay_arm_adds_one_habit_row_per_repo_row(plug_a3):
     replay = plug_a3.arm_rows(own, reading, habits, "a3_replay")
     assert len(plain) == 3 + plug_a3.MIX * 3
     assert len(replay) == len(plain) + 3
+
+
+def test_rerun_verdicts_follow_the_go_and_kill_rule(plug_a3):
+    def row(arm, no_lessons, new):
+        return {"arm": arm, "no_lessons": no_lessons, "new_lessons": new}
+
+    rows = [
+        row("per_repo", 0.5, 0.4),
+        row("a1", 0.0, 0.4),
+        row("a2v", 0.0, 0.6),
+        row("a3", 0.6, 0.7),
+        row("a3_more", 0.6, 0.5),
+        row("a3_replay", 0.6, 0.3),
+    ]
+    assert plug_a3.verdicts(rows) == {"a3": "go", "a3_more": "hold", "a3_replay": "kill"}

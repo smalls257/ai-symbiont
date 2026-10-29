@@ -35,7 +35,14 @@ from plug import (  # noqa: E402
 )
 from questions import lessons_prompt, training_messages  # noqa: E402
 from score_habits import score as keyword_habits  # noqa: E402
-from warm_start import _jsonl, _read_jsonl, paired_gain, probes, recall_by_wording  # noqa: E402
+from warm_start import (  # noqa: E402
+    _jsonl,
+    _read_jsonl,
+    answerer_provenance,
+    paired_gain,
+    probes,
+    recall_by_wording,
+)
 
 BUDGET = 5
 NEW_LESSONS = 3
@@ -184,8 +191,28 @@ def score_rerun(work: Path) -> dict:
         ),
         "plan": plan,
         "rows": pooled(cells),
+        "verdicts": verdicts(pooled(cells)),
+        **answerer_provenance(work),
         "per_repo_rows": per_repo,
     }
+
+
+def verdicts(rows: list[dict]) -> dict[str, str]:
+    """go, hold or kill per consolidation arm, by the owner's rule on the pooled means."""
+    by = {row["arm"]: row for row in rows}
+    found = {}
+    for arm in ("a3", "a3_more", "a3_replay"):
+        new = by[arm]["new_lessons"]
+        if new < by["a1"]["new_lessons"]:
+            found[arm] = "kill"
+        elif (
+            by[arm]["no_lessons"] >= by["per_repo"]["no_lessons"]
+            and new >= by["a2v"]["new_lessons"]
+        ):
+            found[arm] = "go"
+        else:
+            found[arm] = "hold"
+    return found
 
 
 def main() -> None:
