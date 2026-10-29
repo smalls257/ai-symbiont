@@ -32,6 +32,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--step-limit", type=int, default=DEFAULT_STEP_LIMIT)
     parser.add_argument("--wall-limit-min", type=int, default=DEFAULT_WALL_LIMIT_MIN)
     parser.add_argument("--teacher", choices=("spark", "wonder"), default=None)
+    parser.add_argument("--temperature", type=float, default=None, help="None: server default")
     return parser.parse_args(argv)
 
 
@@ -51,7 +52,10 @@ def main(argv: list[str]) -> None:
     listed = json.loads((args.workdir / "data/swev-django-tasks.json").read_text())
     jobs = schedule(phase_ids(listed, args.phase), args.phase, args.arm, args.runs)
     teacher = teacher_of(args)
-    setting = Setting(REASONING, args.step_limit, args.wall_limit_min * 60, teacher=teacher)
+    setting = Setting(
+        REASONING, args.step_limit, args.wall_limit_min * 60, teacher=teacher,
+        temperature=args.temperature,
+    )  # fmt: skip
     SwevDriver(args.workdir, args.workdir / args.runs_dir, jobs, setting).run()
 
 

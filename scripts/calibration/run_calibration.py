@@ -52,6 +52,14 @@ class Setting:
     adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
     model: str = MODEL  # a router name of its own serves a personal Glimmer (the loop's rounds)
     teacher: str | None = None  # "spark" or "wonder": a remote teacher model through egress
+    temperature: float | None = None  # None: the server's default (every run before Core D2)
+    seed: int | None = None  # llama-server sampling seed; None: the server's default
+
+
+def sampling(setting: Setting) -> dict:
+    """The request's sampling fields; empty when the setting leaves the server's defaults."""
+    found = {"temperature": setting.temperature, "seed": setting.seed}
+    return {key: value for key, value in found.items() if value is not None}
 
 
 def glimmer_url() -> str:
@@ -124,6 +132,7 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
             "drop_params": True,
             "parallel_tool_calls": True,
             **adapter_body(setting.adapter_id),
+            **sampling(setting),
         },
     }
     return agent, model

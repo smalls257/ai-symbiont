@@ -23,7 +23,7 @@ from minisweagent.agents.default import DefaultAgent  # noqa: E402
 from minisweagent.config import builtin_config_dir  # noqa: E402
 from minisweagent.environments.docker import DockerEnvironment  # noqa: E402
 from minisweagent.models.litellm_model import LitellmModel  # noqa: E402
-from run_calibration import MODEL, Setting, agent_model, classify, token_counts  # noqa: E402
+from run_calibration import MODEL, Setting, agent_model, classify, sampling, token_counts  # noqa: E402
 from swev_env import ScorerError, grade, scrub_history_script  # noqa: E402
 
 MAX_TOKENS = 4096  # per reply, as in the calibration runner
@@ -99,6 +99,7 @@ def agent_config(setting: Setting, arm: Arm) -> tuple[dict, dict]:
             "max_tokens": MAX_TOKENS,
             "drop_params": True,
             "parallel_tool_calls": True,
+            **sampling(setting),  # Core D2: the same temperature and seed as the other repos
         },
     }
     return agent, model

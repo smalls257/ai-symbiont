@@ -23,6 +23,8 @@ class Setting:
     adapter_id: int | None = None
     model: str = "model"
     teacher: str | None = None
+    temperature: float | None = None
+    seed: int | None = None
 
 
 @pytest.fixture(autouse=True)
@@ -530,3 +532,11 @@ def test_teacher_setting_skips_the_glimmer_url_and_names_the_teacher(monkeypatch
     monkeypatch.delenv("SYMBIONT_GLIMMER_URL")
     _, model = runner.agent_config(runner.Setting("low", 75, 2700, teacher="spark"))
     assert model["model_name"] == "spark"
+
+
+def test_sampling_fields_reach_the_request_only_when_set(monkeypatch):
+    runner = load_runner(monkeypatch)
+    _, plain = runner.agent_config(runner.Setting("low", 50, 2700))
+    assert "temperature" not in plain["model_kwargs"] and "seed" not in plain["model_kwargs"]
+    _, fixed = runner.agent_config(runner.Setting("low", 50, 2700, temperature=0.0, seed=7))
+    assert fixed["model_kwargs"]["temperature"] == 0.0 and fixed["model_kwargs"]["seed"] == 7
