@@ -1,0 +1,58 @@
+{
+ "backend": "cuda",
+ "freeze_commit": "eb927ced47039ffaed750575c847d1b46e2271a2",
+ "mde": {
+  "expected_read": "better",
+  "half_width": 0.0401,
+  "mde": 0.0672,
+  "sd_scored": 0.1294,
+  "sd_validation": 0.0912,
+  "validation_gain": 0.0787
+ },
+ "prereg": "prereg/2026-10-29-plug-sit-cuda.md",
+ "selected": "V1",
+ "status": "exploratory validation only; round 2 stopped after V2 and superseded by a pairwise-judge design; no scored run",
+ "steps": [
+  {
+   "against": "floor",
+   "gate": {
+    "passes": true,
+    "silence": {
+     "ci95_high": 1.0,
+     "ci95_low": 0.9292,
+     "mean_gain": 0.9671,
+     "repos": 10
+    },
+    "wrong_pick": {
+     "ci95_high": 0.0604,
+     "ci95_low": 0.0,
+     "mean_gain": 0.0269,
+     "repos": 10
+    }
+   },
+   "pick_gain": {
+    "ci95_high": 0.1375,
+    "ci95_low": 0.0329,
+    "decision": "better",
+    "mean_gain": 0.0787,
+    "repos": 10
+   },
+   "replaces": true,
+   "variant": "V1"
+  },
+  {
+   "against": "V1",
+   "pick_gain": {
+    "ci95_high": 0.7333,
+    "ci95_low": 0.4829,
+    "decision": "better",
+    "mean_gain": 0.6042,
+    "repos": 10
+   },
+   "replaces": false,
+   "silence_change": -0.20694444444444446,
+   "variant": "V2",
+   "wrong_change": 0.13796296296296295
+  }
+ ]
+}
