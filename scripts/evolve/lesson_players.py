@@ -7,6 +7,7 @@ file, so the show rate is measured, not assumed. The lesson block goes just befo
 
 import json
 from dataclasses import dataclass
+from enum import StrEnum
 from functools import lru_cache
 from pathlib import Path
 
@@ -19,6 +20,17 @@ from symbiont.act1.situational import Ranker, SituationalLesson, render_lessons
 from symbiont.egress.spark import DEFAULT_MAX_TOKENS, Effort
 
 NOW = "\n\nNow: "
+
+
+class Delivery(StrEnum):
+    """What the arm does when the ranker would fire: put the lesson in the prompt, or only note it.
+
+    NOTHING exists so every arm of a paired test measures "would fire" with the same rule on its
+    own observations; the no-lesson arm computes it and shows nothing.
+    """
+
+    ADVICE = "advice"
+    NOTHING = "nothing"
 
 
 @lru_cache(maxsize=2)
@@ -43,6 +55,7 @@ class LessonPlayers:
     lessons: str
     cutoff: float
     shows: str
+    delivery: Delivery = Delivery.ADVICE
 
     def __call__(self, card: Card, case: Case) -> ReplyFn:
         """The reply function of one game."""
@@ -57,7 +70,7 @@ class LessonPlayers:
             advice = ranker.choose(observation, self.cutoff)
             self._record(case, decision[0], len(advice), max(ranker.scores(observation)))
             decision[0] += 1
-            block = render_lessons(advice)
+            block = render_lessons(advice) if self.delivery == Delivery.ADVICE else ""
             return base(head + (f"\n\n{block}" if block else "") + NOW + observation)
 
         return reply

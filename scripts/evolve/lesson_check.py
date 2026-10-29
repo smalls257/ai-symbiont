@@ -43,6 +43,42 @@ RUN_CAP = 3.0
 SEEDS_ON_VALIDATION, SEEDS_ON_SELECTION = 6, 2
 
 
+class CaseSet(StrEnum):
+    """Which cases an arm plays: the first check, or fresh seeds on the validation maps only."""
+
+    CHECK = "check"
+    FRESH_VALIDATION = "fresh_validation"
+
+
+FRESH_BASE = 960_001
+FRESH_SEEDS_PER_MAP = 6
+
+
+def fresh_validation_cases(split: EvolveSplit) -> list[Case]:
+    """Validation maps x 6 new seeds: maps no lesson was mined from, so a lesson must generalize."""
+    cases, seed = [], FRESH_BASE
+    for level in split.validation:
+        for index in range(FRESH_SEEDS_PER_MAP):
+            skill = TRAINING_SKILLS[(seed + index) % len(TRAINING_SKILLS)]
+            cases.append(Case(level, seed, skill, CutSetting.NONE))
+            seed += 1
+    return cases
+
+
+def cases_for(args: argparse.Namespace, split: EvolveSplit) -> list[Case]:
+    """The case set the command line names."""
+    if args.cases == CaseSet.FRESH_VALIDATION:
+        return fresh_validation_cases(split)
+    return check_cases(split)
+
+
+class TuneOn(StrEnum):
+    """Where the cutoff's show rate is measured: selection-map traces, or the validation maps."""
+
+    TRACES = "traces"
+    VALIDATION = "validation"
+
+
 class Arm(StrEnum):
     """The conditions compared; each plays in its own state file."""
 
@@ -75,22 +111,39 @@ def arm_card(arm: Arm) -> Card:
 
 
 def tune(args: argparse.Namespace) -> None:
-    """The cutoff for SHOW_RATE, from leave-case-out top scores on no-card selection decisions."""
+    """The cutoff for SHOW_RATE, from top scores on no-card decisions (see TuneOn)."""
+    scores = validation_scores(args) if args.tune_on == TuneOn.VALIDATION else trace_scores(args)
+    # Rounded down: scores are floats, and an exact match must not miss by the last digit.
+    cutoff = math.floor(cutoff_for_show_rate(scores, SHOW_RATE) * 1000) / 1000
+    out = {"cutoff": cutoff, "show_rate_target": SHOW_RATE, "decisions": len(scores)}
+    (args.root / f"{args.tag}-cutoff.json").write_text(json.dumps(out))
+    print(out)
+
+
+def trace_scores(args: argparse.Namespace) -> list[float]:
+    """Top scores on the traced no-card games, each map's own lessons left out."""
     scores = []
     for log in sorted((args.root / "traces-32" / "episodes").glob("e3b0c44298fc-*.jsonl")):
         level = log.stem.split("-")[1]  # whole level left out: other seeds of it look identical
         ranker = lesson_players.ranker_from(str(args.lessons), f"{level}-")
         scores += [max(ranker.scores(d.observation)) for d in load_run_log(log)]
-    # Rounded down: scores are floats, and an exact match must not miss by the last digit.
-    cutoff = math.floor(cutoff_for_show_rate(scores, SHOW_RATE) * 1000) / 1000
-    out = {"cutoff": cutoff, "show_rate_target": SHOW_RATE, "decisions": len(scores)}
-    (args.root / "lessonchk-cutoff.json").write_text(json.dumps(out))
-    print(out)
+    return scores
+
+
+def validation_scores(args: argparse.Namespace) -> list[float]:
+    """Top scores on the first check's no-card games on the validation maps (never mined)."""
+    split = EvolveSplit.of(run_evolve.read_smoke(args.levels))
+    ranker = lesson_players.ranker_from(str(args.lessons))
+    scores = []
+    for log in sorted((args.root / "lessonchk-none" / "episodes").glob("e3b0c44298fc-*.jsonl")):
+        if log.stem.split("-")[1] in split.validation:
+            scores += [max(ranker.scores(d.observation)) for d in load_run_log(log)]
+    return scores
 
 
 def play(args: argparse.Namespace) -> None:
     """One arm on every check case; resumable."""
-    run = f"lessonchk-{args.arm}"
+    run = f"{args.tag}-{args.arm}"
     store = run_state.RunStore(args.root / run)
     store.require_identity(
         {
@@ -101,7 +154,7 @@ def play(args: argparse.Namespace) -> None:
         }  # fmt: skip
     )
     if args.arm == Arm.LESSONS:
-        cutoff = json.loads((args.root / "lessonchk-cutoff.json").read_text())["cutoff"]
+        cutoff = json.loads((args.root / f"{args.tag}-cutoff.json").read_text())["cutoff"]
         replies: Any = lesson_players.LessonPlayers(
             run, RUN_CAP, str(args.lessons), cutoff, str(args.root / run / "shows.jsonl")
         )
@@ -119,7 +172,7 @@ def play(args: argparse.Namespace) -> None:
     done: list[GameResult] = []
     card = arm_card(args.arm)
     player.play_many(
-        [(card, case) for case in check_cases(split)],
+        [(card, case) for case in cases_for(args, split)],
         lambda _card, _case, result: done.append(result),
     )
     print(f"{args.arm}: {len(done)} games", flush=True)
@@ -187,6 +240,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--wad", type=Path)
     parser.add_argument("--levels", type=Path, default=Path("results/evolve-levels.json"))
     parser.add_argument("--workers", type=int, default=6)
+    parser.add_argument("--tag", default="lessonchk")
+    parser.add_argument("--cases", type=CaseSet, choices=list(CaseSet), default=CaseSet.CHECK)
+    parser.add_argument("--tune-on", type=TuneOn, choices=list(TuneOn), default=TuneOn.TRACES)
     args = parser.parse_args(argv)
     {"tune": tune, "play": play, "report": report}[args.phase](args)
     return 0
