@@ -76,8 +76,9 @@ def execute_move(
 
     `max_tics` cuts the move short (move_cuts); the outcome then says so.
     """
-    cut = max_tics is not None and max_tics < move.max_tics
-    for _ in range(max_tics if cut else move.max_tics):
+    limit = move.max_tics if max_tics is None else min(max_tics, move.max_tics)
+    cut = limit < move.max_tics
+    for _ in range(limit):
         state = observe()
         if state is None:
             return "episode ended"
@@ -85,7 +86,7 @@ def execute_move(
         if isinstance(result, Done):
             return result.reason
         act(result)
-    return f"cut short after {max_tics} tics" if cut else f"timeout after {move.max_tics} tics"
+    return f"cut short after {limit} tics" if cut else f"timeout after {move.max_tics} tics"
 
 
 # --- the loop ------------------------------------------------------------------------------------

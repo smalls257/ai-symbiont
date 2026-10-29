@@ -425,3 +425,16 @@ def test_make_game_refuses_a_skill_outside_one_to_five():
 
     with pytest.raises(ValueError, match="skill 6"):
         make_game(Path("no-such.wad"), skill=6)
+
+
+def test_a_cap_at_or_above_the_moves_own_limit_is_a_timeout_not_a_cut():
+    from symbiont.act1.episode import execute_move
+    from symbiont.act1.moves import Turn
+
+    game = FakeGame()
+    move = Turn(90)
+    observe = lambda: view_from_engine(  # noqa: E731 - one-line test stub
+        game.get_state(), KeyTracker(), FLOORED_MAP, convention=SectorConvention.AUTHORED
+    )
+    outcome = execute_move(move, observe, lambda buttons: None, max_tics=move.max_tics + 5)
+    assert outcome == f"timeout after {move.max_tics} tics"
