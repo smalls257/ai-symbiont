@@ -7,8 +7,8 @@ ranker's high-ranked wrong lessons as hard negatives. Pure: items and scores in,
 """
 
 import random
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass, replace
 
 from l2l_quick import chat
 from lessons import Lesson
@@ -51,6 +51,35 @@ def judge_rows(items: Sequence[Item], size: int, seed: int = 0) -> list[dict]:
     rows = positives + rng.sample(negatives, len(positives))
     rng.shuffle(rows)
     return rows
+
+
+def judge_mix(
+    items: Sequence[Item],
+    size: int,
+    phrasings: Sequence[Callable[[Lesson], str]],
+    source_of: Callable[[Item], Lesson],
+    habit_rows: list[dict],
+) -> dict:
+    """Round 3's training mix: judge rows for every item under its own situation and each extra
+    phrasing (balanced over all), plus the habit rows; with the counts the prereg pins."""
+    variants = list(items) + [
+        replace(item, situation=phrase(source_of(item))) for phrase in phrasings for item in items
+    ]
+    judged = judge_rows(variants, size)
+    rows = judged + list(habit_rows)
+    random.Random(0).shuffle(rows)
+    yes = sum(1 for row in judged if row["messages"][2]["content"] == YES)
+    return {
+        "rows": rows,
+        "counts": {
+            "phrasings": 1 + len(phrasings),
+            "positives": yes,
+            "negatives": len(judged) - yes,
+            "habit_rows": len(habit_rows),
+            "total": len(rows),
+            "habit_share": round(len(habit_rows) / len(rows), 4),
+        },
+    }
 
 
 def judge_queries(items: Sequence[Item], size: int) -> list[dict]:
