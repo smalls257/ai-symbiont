@@ -27,6 +27,7 @@ PURE_FILES = (
     "card_genome.py",
     "move_cuts.py",
     "game_fitness.py",
+    "lexicase.py",
 )
 
 
