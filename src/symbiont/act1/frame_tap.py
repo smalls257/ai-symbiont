@@ -1,0 +1,57 @@
+"""A game wrapper that keeps screen frames and stops the episode at a tic budget (periphery).
+
+Violation prevented: Silent Fallback in the demo clip. A clip must show exactly the tics the
+policy played, so frames are taken from the engine after each real action and nowhere else; a clip
+cut short by its budget says so (`budget_spent`) instead of passing for an episode that ended.
+Everything the wrapped game offers (state, variables, new_episode, close) is passed through.
+"""
+
+from typing import Any
+
+import numpy as np
+
+
+class FrameTap:
+    """Wraps a ViZDoom game: every `stride`-th action's screen is kept until taken."""
+
+    def __init__(self, game: Any, stride: int, tic_budget: int):
+        if stride < 1 or tic_budget < 1:
+            raise ValueError(
+                f"stride and tic_budget must be at least 1, got {stride}, {tic_budget}"
+            )
+        self._game = game
+        self._stride = stride
+        self._tic_budget = tic_budget
+        self._tics = 0
+        self._frames: list[np.ndarray] = []
+
+    def __getattr__(self, name: str) -> Any:
+        """Everything the tap does not override is the wrapped game's."""
+        return getattr(self._game, name)
+
+    @property
+    def budget_spent(self) -> bool:
+        """True when the tic budget, not the game, ended the episode."""
+        return self._tics >= self._tic_budget
+
+    def make_action(self, action: list[int]) -> float:
+        """Play one tic; keep its screen when it falls on the stride."""
+        reward = self._game.make_action(action)
+        self._tics += 1
+        if self._tics % self._stride == 0:
+            self._keep_screen()
+        return reward  # type: ignore[no-any-return]
+
+    def is_episode_finished(self) -> bool:
+        """True at the game's own end or when the tic budget is spent."""
+        return self.budget_spent or bool(self._game.is_episode_finished())
+
+    def take_frames(self) -> list[np.ndarray]:
+        """The frames kept since the last call (channels-first RGB), oldest first."""
+        taken, self._frames = self._frames, []
+        return taken
+
+    def _keep_screen(self) -> None:
+        state = self._game.get_state()
+        if state is not None:  # None: that action ended the episode, there is no screen to keep
+            self._frames.append(np.array(state.screen_buffer))
