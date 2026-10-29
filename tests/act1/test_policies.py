@@ -47,3 +47,24 @@ def test_policy_names_are_stable_for_session_ids():
 def test_policy_named_refuses_an_unknown_name():
     with pytest.raises(ValueError, match="random.*scripted_explorer"):
         policy_named("wander", 1)
+
+
+GAMING_POLICIES = {
+    "stand_still": "turn(0)",
+    "fire_in_place": "\n".join(["shoot_nearest()"] * 3),
+    "spin": "\n".join(["turn(90)"] * 3),
+}
+
+
+@pytest.mark.parametrize(("name", "reply"), sorted(GAMING_POLICIES.items()))
+def test_each_gaming_policy_says_the_same_valid_thing_every_time(name, reply):
+    policy = policy_named(name, 1)
+    assert policy.name == name
+    assert _replies(policy, 5) == [reply] * 5
+    assert parse_strategy(reply)
+
+
+def test_gaming_policies_take_a_seed_like_the_others_and_unknown_names_still_raise():
+    assert policy_named("spin", 99).name == "spin"
+    with pytest.raises(ValueError, match="unknown policy"):
+        policy_named("dance", 1)

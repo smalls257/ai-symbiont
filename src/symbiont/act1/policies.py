@@ -70,9 +70,23 @@ def scripted_explorer(seed: int) -> Policy:
     return Policy("scripted_explorer", reply)
 
 
+def _fixed_policy(name: str, text: str) -> Callable[[int], Policy]:
+    """A policy that ignores the state and the seed and always says `text`."""
+
+    def build(_seed: int) -> Policy:
+        """The named policy."""
+        return Policy(name, lambda _prompt: _stop_reply(text))
+
+    return build
+
+
+# Gaming policies for the fitness check (design section 4): each must score below the empty card.
 _POLICIES: dict[str, Callable[[int], Policy]] = {
     "random": random_policy,
     "scripted_explorer": scripted_explorer,
+    "stand_still": _fixed_policy("stand_still", "turn(0)"),
+    "fire_in_place": _fixed_policy("fire_in_place", "\n".join(["shoot_nearest()"] * 3)),
+    "spin": _fixed_policy("spin", "\n".join(["turn(90)"] * 3)),
 }
 
 
