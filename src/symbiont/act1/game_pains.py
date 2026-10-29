@@ -35,12 +35,15 @@ class GamePain(StrEnum):
 
 @dataclass
 class _EpisodeMemory:
+    """What the episode has done so far: rooms left, rooms turned in, names seen per room."""
+
     left: set[int] = field(default_factory=set)
     turned_in: set[int] = field(default_factory=set)
     seen: dict[int, set[str]] = field(default_factory=dict)
 
 
 def _names(view: GameStateView) -> set[str]:
+    """The names of everything a view shows: objects, doors and exits."""
     names = {item.name for item in view.objects}
     for door in view.doors:
         names.add("door" if door.key_colour is None else f"door ({door.key_colour})")
@@ -50,22 +53,26 @@ def _names(view: GameStateView) -> set[str]:
 
 
 def _is_wall_bump(run: MoveRun) -> bool:
+    """A walk that ran at least one tic and ended against a wall."""
     return run.kind == MoveKind.WALK and run.tics >= 1 and run.outcome.startswith(WALL_OUTCOMES)
 
 
 def _is_room_reentered(room_before: int, room_after: int, memory: _EpisodeMemory) -> bool:
+    """Moving into a room the player has already left."""
     return room_after != room_before and room_after in memory.left
 
 
 def _is_room_rechecked(
     kind: MoveKind, after: GameStateView, room_after: int, memory: _EpisodeMemory
 ) -> bool:
+    """A turn in a room already turned in that shows nothing new."""
     if kind != MoveKind.TURN or room_after not in memory.turned_in:
         return False
     return _names(after) <= memory.seen.get(room_after, set())
 
 
 def _is_wasted_move(before: GameStateView, after: GameStateView) -> bool:
+    """A move that changed nothing: no distance, no turn, no health or ammo change."""
     covered = math.dist(before.position, after.position)
     turned = abs(normalize_degrees(after.angle_deg - before.angle_deg))
     return (

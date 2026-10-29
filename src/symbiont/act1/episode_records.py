@@ -78,6 +78,7 @@ def _record(
     pains: tuple[GamePain, ...],
     facts: dict[str, Any],
 ) -> Record:
+    """One played move as a common Record with its pain tags and facts."""
     return Record(
         harness="vizdoom",
         project=WAD_PROJECT,
@@ -96,6 +97,7 @@ def _record(
 def _facts(
     episode: Episode, run: MoveRun, rooms: RoomFinder, ended: EpisodeEnd | None
 ) -> dict[str, Any]:
+    """The facts a move's record carries in `raw`: level, rooms, positions and outcome."""
     latest = run.before if run.after is None else run.after
     return {
         "level": episode.level,
@@ -119,5 +121,6 @@ def _facts(
 
 
 def _rounded(view: GameStateView) -> list[int]:
+    """The view's position rounded to whole map units."""
     x, y = view.position
     return [round(x), round(y)]

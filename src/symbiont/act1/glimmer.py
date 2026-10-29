@@ -95,6 +95,7 @@ def chat_body(model: str, prompt: str, max_tokens: int = REPLY_MAX_TOKENS) -> di
 def _post_chat(base_url: str, body: dict[str, Any], timeout_s: float) -> Reply:
     # Glimmer is the owner's own server, so no provenance is declared; the egress policy still
     # refuses a public host for this endpoint.
+    """POST one chat request to the owner's Glimmer server through egress."""
     url = base_url.rstrip("/") + "/chat/completions"
     return parse_chat_response(
         post_json(Destination(Endpoint.LOCAL_GLIMMER, url), body, timeout_s=timeout_s)

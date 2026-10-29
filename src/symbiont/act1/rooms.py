@@ -20,6 +20,7 @@ class RoomFinder:
     """Point-in-sector lookup by ray parity over each sector's boundary lines."""
 
     def __init__(self, geometry: MapGeometry) -> None:
+        """Index every sector's boundary edges from the map geometry."""
         edges: dict[int, list[Edge]] = defaultdict(list)
         for line in geometry.linedefs:
             if line.front_sector == line.back_sector:

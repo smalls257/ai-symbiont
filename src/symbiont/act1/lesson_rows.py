@@ -77,10 +77,12 @@ def dataset_rows(
 
 
 def _where(lesson: GameLesson) -> str:
+    """The level and pain a lesson comes from, for a row's question."""
     return f"Freedoom {lesson.level} ({lesson.pain.value.replace('_', ' ')})"
 
 
 def _chat(question: str, answer: str) -> Row:
+    """One chat row: the game loop's system turn, a question and its answer."""
     return {
         "messages": [
             {"role": "system", "content": REASONING_SYSTEM_MESSAGE},

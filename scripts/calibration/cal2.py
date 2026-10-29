@@ -17,7 +17,7 @@ import threading
 import time
 from pathlib import Path
 
-from lessons import Arm, lesson_hash, load_lessons, statement_with_lesson
+from lesson_arm import Arm, lesson_hash, load_lessons, statement_with_lesson
 from screen_rules import cells_of
 from staged import BlockedError, Driver, add_limit_arguments, settings_for
 from staged_summary import RUN_FIELDS, RUNS_PER_TASK, run_totals

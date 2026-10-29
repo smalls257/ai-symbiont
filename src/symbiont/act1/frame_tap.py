@@ -14,6 +14,7 @@ class FrameTap:
     """Wraps a ViZDoom game: every `stride`-th action's screen is kept until taken."""
 
     def __init__(self, game: Any, stride: int, tic_budget: int):
+        """Wrap a game; keep every `stride`-th tic's screen and stop after `tic_budget` tics."""
         if stride < 1 or tic_budget < 1:
             raise ValueError(
                 f"stride and tic_budget must be at least 1, got {stride}, {tic_budget}"
@@ -51,6 +52,7 @@ class FrameTap:
         return taken
 
     def _keep_screen(self) -> None:
+        """Keep the current screen, if the last action left one."""
         state = self._game.get_state()
         if state is not None:  # None: that action ended the episode, there is no screen to keep
             self._frames.append(np.array(state.screen_buffer))

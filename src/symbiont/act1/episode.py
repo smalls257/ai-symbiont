@@ -130,11 +130,13 @@ class _Session:
         on_move: Callable[[MoveRun], None] | None,
         convention: SectorConvention,
     ):
+        """Wrap a live game with its map knowledge, key tracker and sector convention."""
         self.game, self.knowledge, self.keys = game, knowledge, KeyTracker()
         self.on_move, self.tics, self.decision = on_move, 0, 0
         self.convention = convention
 
     def observe(self) -> GameStateView | None:
+        """The current game state as the model's view, or None once the episode is finished."""
         if self.game.is_episode_finished():
             return None
         return view_from_engine(
@@ -142,6 +144,7 @@ class _Session:
         )
 
     def act(self, buttons: frozenset[Button]) -> None:
+        """Press the buttons for one tic."""
         self.game.make_action(button_vector(buttons))
         self.tics += 1
 
@@ -301,6 +304,7 @@ def share_without_objects_or_doors(decisions: list[Decision]) -> float:
 
 
 def _play_from_the_command_line(decisions_wanted: int, base_url: str, model: str) -> None:
+    """Play MAP01 with a Glimmer model from the command line, for development."""
     from symbiont.act1.setup_assets import install_freedoom
 
     wad = install_freedoom(Path("data") / "freedoom")

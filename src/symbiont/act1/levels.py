@@ -29,6 +29,7 @@ class HeldOutLevelError(ValueError):
 
 
 def _map_number(level: str) -> int:
+    """The number of a MAPxx level; anything else raises UnknownLevelError."""
     if not (level.startswith("MAP") and level[3:].isdigit() and len(level) == 5):
         raise UnknownLevelError(f"{level!r} is not a level name like MAP07")
     number = int(level[3:])

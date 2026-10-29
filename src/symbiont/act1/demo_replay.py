@@ -70,6 +70,7 @@ def demo_replay(task: ReplayTask, plain: ArmEpisode, personal: ArmEpisode) -> di
 
 
 def _run(episode: ArmEpisode, status: str) -> dict[str, Any]:
+    """One arm's run: its steps, mistake tags and totals in the replay schema."""
     pains = _pains_by_decision(episode.records)
     ended = _ended(episode.records)
     last = len(episode.decisions) - 1
@@ -106,12 +107,14 @@ def _pains_by_decision(records: Sequence[Record]) -> dict[int, tuple[tuple[str, 
 
 
 def _about(pain: GamePain, record: Record, facts: dict[str, Any]) -> str:
+    """Where a pain happened, in words the demo panel shows."""
     if pain in (GamePain.WALL_BUMP, GamePain.WASTED_MOVE):
         return f"{record.command} in {facts['room_before']}"
     return f"room {facts['room_after']}"
 
 
 def _ended(records: Sequence[Record]) -> str:
+    """How the episode ended, from its last record; an empty episode raises ReplayError."""
     if not records:
         raise ReplayError("an episode with no records cannot be replayed")
     return str(json.loads(records[-1].raw)["ended"])
@@ -123,6 +126,7 @@ def _step(
     seen: set[tuple[str, str]],
     ended: str | None,
 ) -> dict[str, Any]:
+    """One decision as a replay step; a pain already seen in this run is tagged repeated."""
     repeated = any(pain in seen for pain in pains)
     seen.update(pains)
     return {
@@ -141,6 +145,7 @@ def _step(
 
 
 def _action(decision: Decision) -> str:
+    """The moves a decision played, cut to ACTION_MAX_WORDS, or why none was played."""
     if decision.status != "ok":
         return f"reply {decision.status}: no move played"
     moves = [outcome.split(" -> ")[0] for outcome in decision.outcomes]
@@ -157,6 +162,7 @@ def _outcome(decision: Decision, pains: tuple[tuple[str, str], ...], ended: str 
 
 
 def _totals(steps: list[dict[str, Any]], ended: str) -> dict[str, Any]:
+    """Run totals summed from the steps, never typed by hand."""
     return {
         "steps": len(steps),
         "tokens_in": sum(step["tokens_in"] for step in steps),

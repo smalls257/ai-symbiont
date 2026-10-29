@@ -36,7 +36,7 @@ def load_cal2(monkeypatch, run_once=None):
     stub.IMAGE, stub.MODEL, stub.Setting, stub.run_once = "image", "model", Setting, run_once
     monkeypatch.setitem(sys.modules, "run_calibration", stub)
     monkeypatch.syspath_prepend(str(CALIBRATION))
-    for name in ("staged", "staged_summary", "screen_rules", "lessons", "cal2"):
+    for name in ("staged", "staged_summary", "screen_rules", "lesson_arm", "cal2"):
         monkeypatch.delitem(sys.modules, name, raising=False)
     spec = importlib.util.spec_from_file_location("cal2_under_test", CALIBRATION / "cal2.py")
     module = importlib.util.module_from_spec(spec)

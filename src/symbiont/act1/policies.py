@@ -37,6 +37,7 @@ class Policy:
 
 
 def _stop_reply(text: str) -> Reply:
+    """A finished model reply with the given text."""
     return Reply(text=text, finish_reason="stop", reasoning_chars=0)
 
 
@@ -45,6 +46,7 @@ def random_policy(seed: int) -> Policy:
     rng = random.Random(seed)
 
     def reply(_prompt: str) -> Reply:
+        """A random reply of 1 to _MOST_RANDOM_LINES menu lines."""
         count = rng.randint(1, _MOST_RANDOM_LINES)
         return _stop_reply("\n".join(rng.choice(RANDOM_MENU) for _ in range(count)))
 
@@ -58,6 +60,7 @@ def scripted_explorer(seed: int) -> Policy:
     calls = 0
 
     def reply(_prompt: str) -> Reply:
+        """The opening, then the explorer cycle in order."""
         nonlocal calls
         calls += 1
         if calls == 1:

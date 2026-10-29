@@ -101,6 +101,8 @@ class LessonHarvest:
 
 @dataclass(frozen=True)
 class _Step:
+    """The facts of one played move that a lesson is written from."""
+
     index: int
     decision: int
     move: str
@@ -115,6 +117,8 @@ class _Step:
 
 @dataclass(frozen=True)
 class _Group:
+    """Mistakes of one pain in one room (and one move, where the move is the mistake)."""
+
     pain: GamePain
     room: int
     move: str
@@ -157,6 +161,7 @@ def lessons_from_episode(records: Sequence[Record]) -> LessonHarvest:
 
 
 def _one_episode(records: Sequence[Record]) -> Sequence[Record]:
+    """The records of one game episode, in step order; anything else raises LessonSourceError."""
     if not records:
         raise LessonSourceError("no records: an episode needs at least one played move")
     for position, record in enumerate(records):
@@ -172,6 +177,7 @@ def _one_episode(records: Sequence[Record]) -> Sequence[Record]:
 
 
 def _step(record: Record) -> _Step:
+    """A record's facts as a _Step; a missing or malformed fact raises LessonSourceError."""
     try:
         facts: dict[str, Any] = json.loads(record.raw)
         return _Step(
@@ -202,6 +208,7 @@ def _room_names(steps: Sequence[_Step]) -> dict[int, str]:
 
 
 def _ordinal_room(number: int) -> str:
+    """A room named by the order the player entered it."""
     if number == 0:
         return "the start room"
     if number < len(ORDINALS):
@@ -227,6 +234,7 @@ def _progress(steps: Sequence[_Step], rooms: dict[int, str]) -> dict[int, str | 
 def _achievement(
     step: _Step, new_keys: list[str], visited: set[int], rooms: dict[int, str]
 ) -> str | None:
+    """What a move achieved (exit, key, door, a new room), or None."""
     if step.ended == "exited":
         return f"`{step.move}` reached the exit and ended the level."
     if new_keys:
@@ -249,6 +257,7 @@ def _groups(steps: Sequence[_Step]) -> list[_Group]:
 
 
 def _group_key(pain: GamePain, step: _Step) -> tuple[GamePain, int, str]:
+    """The grouping key of a pain: by move for wall bumps and wasted moves, else by room."""
     if pain in (GamePain.WALL_BUMP, GamePain.WASTED_MOVE):
         return pain, step.room_before, step.move
     if step.room_after is None:
@@ -259,6 +268,7 @@ def _group_key(pain: GamePain, step: _Step) -> tuple[GamePain, int, str]:
 def _lesson(
     first: Record, group: _Group, rooms: dict[int, str], resolution: tuple[int, str]
 ) -> GameLesson:
+    """A lesson from a mistake group and the decision that resolved it."""
     decision, how = resolution
     room = rooms[group.room]
     where = room.removeprefix("the ")
@@ -276,6 +286,7 @@ def _lesson(
 
 
 def _what_happened(group: _Group, room: str) -> str:
+    """What happened, in the game text's words."""
     times = TIMES.get(len(group.steps), f"{len(group.steps)} times")
     if group.pain is GamePain.WALL_BUMP:
         heading = _compass(group.steps[0].angle)
@@ -303,6 +314,7 @@ def _outcome_head(outcome: str) -> str | None:
 
 
 def _check(group: _Group) -> str:
+    """The check to run before repeating the mistake."""
     if group.pain is GamePain.ROOM_REENTERED:
         return REENTERED_CHECK
     if group.pain is GamePain.ROOM_RECHECKED:
@@ -317,4 +329,5 @@ def _check(group: _Group) -> str:
 
 
 def _verb(move: str) -> str:
+    """The verb of a move, without its arguments."""
     return move.split("(")[0]

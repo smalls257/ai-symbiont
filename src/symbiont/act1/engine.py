@@ -109,6 +109,7 @@ class SectorConvention(StrEnum):
 
 
 def _floor_fits(convention: SectorConvention, wad_floor: float, engine_floor: float) -> bool:
+    """Whether one sector's engine floor matches its WAD floor under a convention."""
     negated = convention == SectorConvention.FLOOR_NEGATED
     return engine_floor == (-wad_floor if negated else wad_floor)
 
@@ -154,6 +155,7 @@ class KeyTracker:
     """
 
     def __init__(self) -> None:
+        """Start with no keys seen in the world and none held."""
         self._world: dict[int, tuple[str, float, float]] = {}
         self._held: list[str] = []
 
