@@ -11,6 +11,8 @@ import json
 import os
 import subprocess
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from symbiont.egress.spend import Ledger
@@ -107,14 +109,21 @@ def main() -> None:
     log = args.out / "runs.jsonl"
     records = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
     done = {rec["instance_id"] for rec in records}
-    for row in (r for r in rows if r["instance_id"] not in done):
-        reason = stop_reason(records, args)
+    lock = threading.Lock()
+
+    def worker(row: dict) -> None:
+        with lock:
+            reason = stop_reason(records, args)
         if reason:
-            print(reason)
-            break
-        records.append(child_record(row))
-        with log.open("a") as out:
-            out.write(json.dumps(records[-1]) + "\n")
+            return
+        rec = child_record(row)
+        with lock, log.open("a") as out:
+            records.append(rec)
+            out.write(json.dumps(rec) + "\n")
+
+    todo = [r for r in rows if r["instance_id"] not in done]
+    with ThreadPoolExecutor(args.workers) as pool:
+        list(pool.map(worker, todo))  # the stop rule is checked before each task starts
     passes = sum(bool(r.get("resolved")) for r in records)
     tokens = passing_tokens(records, args.out)
     print(json.dumps({"runs": len(records), "passes": passes, "tokens": tokens,
@@ -130,6 +139,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--target-tokens", type=int, default=1_200_000)
     parser.add_argument("--one", default=None, help="internal: run one task in this process")
     parser.add_argument("--label", default=LABEL, help="ledger run-name prefix of this phase")
+    parser.add_argument("--workers", type=int, default=1, help="tasks run at once")
     return parser.parse_args()
 
 
