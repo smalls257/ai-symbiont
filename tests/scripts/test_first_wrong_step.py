@@ -12,6 +12,7 @@ import duckdb
 import numpy as np
 import pytest
 
+from symbiont.readers.errors import ReadError
 from symbiont.records.schema import Kind
 
 SCRIPTS = Path(__file__).resolve().parents[2] / "scripts"
@@ -102,6 +103,9 @@ def test_read_trail_counts_bad_files_and_pairs_unnamed_annotations_by_file_name(
     assert read.traces[0].first_wrong == 1
     assert read.paired_by_file_name == 1
     assert len(read.unreadable) == 1 and "not json" in read.unreadable[0].reason
+    assert read.annotations_without_trace == 0
+    (tmp_path / swe_notes / "orphan.json").write_text(json.dumps(annotation()))
+    assert fws["trail_reader"].read_trail(tmp_path).annotations_without_trace == 1
 
 
 def who_row(mistake_step="2", agent="Orchestrator"):
@@ -156,6 +160,26 @@ def test_read_who_when_refuses_a_repeated_question_id(fws, tmp_path):
         fws["who_when_reader"].read_who_when(tmp_path)
 
 
+@pytest.mark.periphery
+def test_read_who_when_names_the_file_and_row_of_a_malformed_row(fws, tmp_path):
+    for name, _ in fws["who_when_reader"].SPLITS.values():
+        target = str(tmp_path / name)
+        duckdb.sql(
+            "copy (select [{'content': 'x', 'role': 'human'}] as history, 'q' || range as "
+            "question_ID, case when range = 1 then 'two' else '0' end as mistake_step, "
+            f"'human' as mistake_agent from range(2)) to '{target}' (format parquet)"
+        )
+    with pytest.raises(ReadError) as caught:
+        fws["who_when_reader"].read_who_when(tmp_path)
+    assert caught.value.path.name == "Algorithm-Generated.parquet"
+    assert caught.value.line_no == 2
+
+
+def test_who_when_row_without_a_history_is_a_key_error_the_reader_wraps(fws):
+    with pytest.raises(KeyError):
+        fws["who_when_reader"].trace_from_row({"question_ID": "q"}, "hand_crafted")
+
+
 def labeled(fws, mistake_step="2"):
     trace = fws["who_when_reader"].trace_from_row(who_row(mistake_step), "hand_crafted").trace
     return trace, fws["annotated"].step_labels(trace, window=2)
@@ -189,6 +213,8 @@ def test_tallies_see_mined_trouble_at_the_first_wrong_step(fws):
 def test_cohen_kappa_is_zero_at_chance_and_none_when_undefined(fws):
     assert fws["tallies"].cohen_kappa(25, 25, 25, 25) == 0.0
     assert fws["tallies"].cohen_kappa(0, 0, 0, 10) is None
+    # 20 yes-yes, 5 + 10 disagreements, 15 no-no: observed 0.7, chance 0.5, kappa 0.4.
+    assert fws["tallies"].cohen_kappa(20, 5, 10, 15) == 0.4
 
 
 def table(fws, risks, truth, boundary=None, session=None):

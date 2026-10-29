@@ -54,6 +54,8 @@ class TrailRead:
     # Annotations with no trace_id of their own, paired with their trace by file name (the
     # dataset's layout: both files carry the trace id as their name).
     paired_by_file_name: int
+    # Annotation files whose trace file is absent: counted, since no trace means no steps.
+    annotations_without_trace: int
 
 
 def read_trail(root: Path) -> TrailRead:
@@ -69,7 +71,16 @@ def read_trail(root: Path) -> TrailRead:
                 traces.append(_read_pair(path, annotation, split))
             except ReadError as exc:
                 unreadable.append(exc)
-    return TrailRead(traces, unreadable, by_name)
+    return TrailRead(traces, unreadable, by_name, _orphan_annotations(root))
+
+
+def _orphan_annotations(root: Path) -> int:
+    """Annotation files with no trace file of the same name in their split."""
+    return sum(
+        not (root / trace_dir / path.name).is_file()
+        for trace_dir, annotation_dir, _ in SPLITS.values()
+        for path in (root / annotation_dir).glob("*.json")
+    )
 
 
 def _read_pair(trace_path: Path, annotation: dict[str, Any], split: str) -> AnnotatedTrace:

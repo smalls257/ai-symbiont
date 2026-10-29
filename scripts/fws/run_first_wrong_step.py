@@ -189,6 +189,7 @@ def source_counts(trail, blame) -> dict[str, object]:
     }
     trail_counts["unreadable_files"] = len(trail.unreadable)
     trail_counts["annotations_paired_by_file_name"] = trail.paired_by_file_name
+    trail_counts["annotations_without_trace"] = trail.annotations_without_trace
     who_splits = grouped([c.trace for c in blame], lambda trace: trace.split)
     who_counts = {
         split: split_counts([blame[n].trace for n in rows])

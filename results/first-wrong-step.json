@@ -40,7 +40,8 @@
     "first_wrong_share_of_trace_median": 0.4944
    },
    "unreadable_files": 1,
-   "annotations_paired_by_file_name": 5
+   "annotations_paired_by_file_name": 5,
+   "annotations_without_trace": 0
   },
   "who_and_when": {
    "algorithm_generated": {
@@ -85,6 +86,8 @@
     "boundary_steps": 55
    },
    "mined_vs_annotated_steps": {
+    "label": "mined_trouble_ahead vs error_ahead (any annotated wrong step within 5)",
+    "mined_positive_steps": 164,
     "both": 152,
     "mined_only": 12,
     "annotated_only": 257,
@@ -235,6 +238,8 @@
     "boundary_steps": 281
    },
    "mined_vs_annotated_steps": {
+    "label": "mined_trouble_ahead vs error_ahead (any annotated wrong step within 5)",
+    "mined_positive_steps": 685,
     "both": 456,
     "mined_only": 229,
     "annotated_only": 677,
@@ -387,6 +392,8 @@
     "boundary_steps": 55
    },
    "mined_vs_annotated_steps": {
+    "label": "mined_trouble_ahead vs error_ahead (any annotated wrong step within 5)",
+    "mined_positive_steps": 164,
     "both": 152,
     "mined_only": 12,
     "annotated_only": 257,
@@ -537,6 +544,8 @@
     "boundary_steps": 191
    },
    "mined_vs_annotated_steps": {
+    "label": "mined_trouble_ahead vs error_ahead (any annotated wrong step within 5)",
+    "mined_positive_steps": 399,
     "both": 315,
     "mined_only": 84,
     "annotated_only": 235,
@@ -687,6 +696,8 @@
     "boundary_steps": 90
    },
    "mined_vs_annotated_steps": {
+    "label": "mined_trouble_ahead vs error_ahead (any annotated wrong step within 5)",
+    "mined_positive_steps": 286,
     "both": 141,
     "mined_only": 145,
     "annotated_only": 183,
@@ -837,6 +848,8 @@
     "boundary_steps": 0
    },
    "mined_vs_annotated_steps": {
+    "label": "mined_trouble_ahead vs error_ahead (any annotated wrong step within 5)",
+    "mined_positive_steps": 0,
     "both": 0,
     "mined_only": 0,
     "annotated_only": 259,
@@ -984,5 +997,5 @@
   "precision_on_pool": 0.3455,
   "pool_sessions": 5760
  },
- "wall_clock_s": 4.5
+ "wall_clock_s": 4.3
 }

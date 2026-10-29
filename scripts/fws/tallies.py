@@ -51,13 +51,19 @@ def label_counts(labels: Sequence[StepLabels]) -> dict[str, int]:
 
 
 def agreement(labels: Sequence[StepLabels]) -> dict[str, object]:
-    """Step-level confusion of mined trouble ahead against annotated wrong step ahead."""
+    """Step confusion of mined_trouble_ahead against error_ahead (both within the window).
+
+    Not the first wrong step itself; a kappa of 0 with no mined positives means the miner never
+    fired on those traces, not that it fired at random.
+    """
     mined = np.concatenate([one.mined_trouble_ahead for one in labels]).astype(bool)
     annotated = np.concatenate([one.error_ahead for one in labels]).astype(bool)
     table = Counter(zip(mined.tolist(), annotated.tolist(), strict=True))
     both, mined_only = table[(True, True)], table[(True, False)]
     annotated_only, neither = table[(False, True)], table[(False, False)]
     return {
+        "label": "mined_trouble_ahead vs error_ahead (any annotated wrong step within 5)",
+        "mined_positive_steps": both + mined_only,
         "both": both,
         "mined_only": mined_only,
         "annotated_only": annotated_only,

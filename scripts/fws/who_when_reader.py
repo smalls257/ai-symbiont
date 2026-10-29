@@ -15,6 +15,7 @@ from typing import Any
 import duckdb
 from annotated import AnnotatedTrace, TaskKind
 
+from symbiont.readers.errors import ReadError
 from symbiont.records.schema import Kind, Provenance, Record
 
 SOURCE = "who_and_when"
@@ -45,15 +46,24 @@ class BlameCheck:
 
 
 def read_who_when(root: Path) -> list[BlameCheck]:
-    """Every row of both parquet files; raises ValueError on a repeated question id in a split."""
+    """Every row of both parquet files; raises ReadError naming the file and row at fault."""
     checks: list[BlameCheck] = []
     for split, (name, _) in SPLITS.items():
-        rows = _rows(root / name)
-        ids = [row["question_ID"] for row in rows]
+        path = root / name
+        rows = _rows(path)
+        checks += [_checked_row(path, number, row, split) for number, row in enumerate(rows, 1)]
+        ids = [check.trace.records[0].session_id for check in checks if check.trace.split == split]
         if len(set(ids)) != len(ids):
-            raise ValueError(f"{name}: a question id repeats, sessions would merge")
-        checks += [trace_from_row(row, split) for row in rows]
+            raise ReadError(path, 0, "a question id repeats, sessions would merge")
     return checks
+
+
+def _checked_row(path: Path, number: int, row: dict[str, Any], split: str) -> BlameCheck:
+    """One row as trace_from_row reads it; a malformed row raises ReadError (row `number`)."""
+    try:
+        return trace_from_row(row, split)
+    except (KeyError, TypeError, ValueError, IndexError) as exc:
+        raise ReadError(path, number, f"not a Who&When row: {exc!r}") from exc
 
 
 def _rows(path: Path) -> list[dict[str, Any]]:
