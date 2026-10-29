@@ -108,7 +108,7 @@ def main() -> None:
     args.out.mkdir(parents=True, exist_ok=True)
     log = args.out / "runs.jsonl"
     records = [json.loads(line) for line in log.read_text().splitlines()] if log.is_file() else []
-    done = {rec["instance_id"] for rec in records}
+    done = {rec["instance_id"] for rec in records if rec.get("resolved") is not None}  # voids rerun
     lock = threading.Lock()
 
     def worker(row: dict) -> None:
