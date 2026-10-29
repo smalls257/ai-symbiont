@@ -1,14 +1,15 @@
-# DRAFT pre-registration: Core D2, does Glimmer solve more new issues after learning from earlier ones?
+# DRAFT pre-registration: Core D2, does Glimmer solve more later issues of a repository after training on solved earlier ones?
 
-**DRAFT, NOT FROZEN.** The freeze is a copy without "DRAFT" in its name, committed alone before any adapter result exists. After the freeze, only a dated amendment may change anything, and an amendment cannot change the tasks, arms, measures or decision rule. This draft supersedes `2026-10-29-core-solve-DRAFT.md` (on branch `routeb/general-lessons`).
+**DRAFT, NOT FROZEN** (revision 2: the Opus proxy's 11 fix-first items). The freeze is a copy without "DRAFT" in its name, committed alone before any adapter result exists. After the freeze, only a dated amendment may change anything, and an amendment cannot change the tasks, arms, measures or decision rule. This supersedes `2026-10-29-core-solve-DRAFT.md`.
 
 Claim tags: [measured] = observed in our own run; [established] = known by construction or from the literature; [hypothesis] = a guess this run can support or refute.
 
-## Claim
+## Claim (headline wording fixed now)
 
-Glimmer is trained on solved runs of a repository's EARLIER issues: Muse Spark teacher solutions, plus Glimmer's own passes. Does it then solve more of that repository's LATER issues than plain Glimmer?
+"Glimmer solves more of a repository's later issues after training on solved earlier issues of the same repository."
 
-- The primary measure is the paired per-task solve rate.
+- Most of the training data are Muse Spark teacher solutions, and the claim says so.
+- The claim needs BOTH co-primaries below.
 - No speed-of-learning words are used.
 
 ## Repositories, earlier and later tasks [established]
@@ -22,86 +23,115 @@ There are six repositories:
 - `iterative/dvc`
 - `PennyLaneAI/pennylane`
 
-Tasks are SWE-rebench (or SWE-bench Verified for Django) instances that have images.
+Tasks are SWE-rebench instances with images (SWE-bench Verified for Django).
 
-**How each repository is split** (`scripts/routeb/core2_sets.py`):
+**Earlier tasks.** These are the only training sources.
 
-- **New repositories.** The first 55% of tasks by creation date are earlier; the rest are later. [established]
-- **sqlglot.** The earlier tasks are the 40 collection tasks, kept as before. The later candidates are the later-by-date tasks with every collection task and every former test task removed.
-- **Django.** The earlier tasks are SWE-Bench-CL positions 1-24. The later candidates are CL positions 25-49 plus 30 later SWE-bench Verified Django tasks ("15 min - 1 hour"), all scorer-checked.
+| Repository | Earlier tasks |
+|---|---|
+| New repositories | the first 55% of tasks by creation date [established] |
+| sqlglot | the first 55% by creation date (161 tasks); the existing teacher passes count only if their task is among them [established] |
+| Django | SWE-Bench-CL positions 1-24 |
 
-**Fix-area match.** A later task is a candidate only if its gold patch changes a source file that some earlier task of the same repository also changed.
+**Later candidates.** A later task stays a candidate only if all of these hold (`split-check.json`):
 
-**No overlap.** No later task's run, patch or fix enters any training set. The training manifest refuses any test task [established, by construction].
+1. **Commit order.** Its base commit is strictly later, by git commit date, than every earlier task's base commit in the same repository.
+2. **Fix-area match.** Its gold patch changes a source file that some earlier task also changed.
+3. **No duplicate or revert.** At least half of its added lines must not duplicate an earlier task's added or removed lines.
+
+Candidates after these rules:
+
+| Repository | Candidates | Dropped |
+|---|---|---|
+| streamlink | 9 | none |
+| conan | 18 | none |
+| dvc | 15 | 1 on commit date |
+| pennylane | 31 | none |
+| sqlglot | 107 | none; the 20 tasks of the former test set are excluded outright, since results on them were already seen [established] |
+| Django | 54 | 1 duplicate (CL 25-49 plus 30 scorer-checked Verified tasks, "15 min - 1 hour") |
+
+That is 234 candidates in all.
+
+**Training refusal.** The training manifest refuses any run on ANY of the 234 later candidates, not only on test tasks, and reports how many it refused [established, by construction].
 
 ## Screening (set before any adapter result) [established]
 
-Rule:
+1. **Rule.** One plain-Glimmer run per candidate at step cap 75. A pass drops the candidate as a near-certain pass; a failure keeps it. Screening runs never count as test runs, and P runs fresh in the test.
+2. **Sampling.** sqlglot and the new repositories are screened at temperature 0. The Django runs used the driver's default sampling, because the Django driver had no temperature setting then. It has one now, and Django test runs use the test sampling.
+3. **Django analysis.** Because of that difference, Django results are reported pooled and also separately.
+4. **Picking the 100 test tasks.** If more than 100 candidates are kept, the 100 test tasks are the first in the order of sha256 of `core-d2:<instance_id>`. If fewer are kept, all of them are used. The per-repository count is reported, and the test set is committed before any adapter result.
 
-1. Each candidate gets one plain-Glimmer run at temperature 0, step cap 75. A candidate whose run passes is dropped as a near-certain pass. A failed run keeps it.
-2. Where two or more plain runs already exist, a task with mixed results is kept and the rest are dropped. This applies to the 20 sqlglot tasks of the former test set.
-3. Django screening runs use the Django driver's default temperature, because that driver has no temperature setting. This is disclosed.
-
-Screening runs never count as test runs: the plain arm runs fresh in the test.
-
-**Picking the 100 test tasks.**
-
-- If more than 100 candidates are kept, the first 100 in the order of sha256 of `core-d2:<instance_id>` form the test set.
-- If fewer are kept, all of them do. The count and the per-repository breakdown are reported.
-- The test set is committed before any adapter result.
-
-## Arms (paired by task, temperature 0, step cap 75, wall cap 45 min, reasoning low)
+## Arms (paired by task; step cap 75, wall cap 45 min, reasoning low)
 
 | Arm | Runs per task | What it is | Label |
 |---|---|---|---|
 | P: plain Glimmer | 2 | `Muse-Glimmer-30B-KQuant-17GB-Q4_K_M`, no adapter | reference |
-| A: Glimmer + Core adapter | 2 | LoRA trained on the pooled earlier-task passes of all six repositories (Route B's recipe, 16k context) | under test |
-| W: Glimmer + worked examples | 1 | plain Glimmer with the teacher's passing trajectories of the 2 most similar earlier tasks of the same repository in the prompt. Similarity is word overlap of the issue texts; examples are cut to their commands and results, about 6k tokens. Pre-registered as the fallback if A ties P | under test |
-| C: Glimmer + control adapter | 1 | the same recipe and the same trained-token count on teacher passes from OTHER repositories (none of the six, none of Plug's) | control |
+| A: Glimmer + Core adapter | 2 | LoRA (Route B's recipe, 16k) trained on teacher solutions of the six repositories' earlier tasks | under test |
+| C: Glimmer + control adapter | 2 | the same recipe, the same data kind (Spark teacher solutions) and the same trained-token count, from OTHER repositories (none of the six, none of Plug's) | control |
+| W: Glimmer + worked examples | 1, on 50 tasks (the first 50 of the test order) | plain Glimmer with the teacher solutions of the 2 most similar earlier tasks of the same repository in the prompt (word overlap of issue texts; commands and results, about 6k tokens) | descriptive only [established] |
 
-How the runs go:
+**Data mix (item 2).** A and C are both trained on teacher solutions only. Glimmer's own passes are not used in either arm, so the two arms match in kind, ratio and size by construction.
 
-- **Order.** All runs of a task go back to back. Tasks run in the order of sha256 of `core-d2-order:<instance_id>`, and the arms within a task run in a fixed rotation.
-- **Fixed cutoff.** At **2026-11-01 18:00 PT** no new task starts. Analysis uses every task whose runs all finished; incomplete tasks are excluded and counted.
-- **Early stop.** When half the planned tasks are complete, arm A stops only if the 95% CI of (A minus P) lies wholly below 0. Arms P, W and C continue. [established]
-- **Errors.** A run ending on an infra or model_api error, a void container, or a machine sleep across its wall cap is void and re-queued, never scored.
+**Sampling (item 3).** If duplicate temperature-0 runs come out byte-identical (measured before the freeze, see below), both runs of an arm use temperature 0.6 with fixed seeds per run: seed = first 8 hex digits of sha256(`core-d2:<instance_id>:<arm>:<run>`). Otherwise they use temperature 0 [established once measured].
 
-## Primary analysis
+**Order, cutoff and early stop**
 
-- **Statistic.** For each task, (mean of A's runs) minus (mean of P's runs). The statistic is the mean over tasks.
+- **Order.** All runs of a task go back to back. Tasks run in the order of sha256 of `core-d2-order:<instance_id>`.
+- **Cutoff.** At **2026-11-01 18:00 PT** no new task starts. The analysis uses every task whose runs all finished; incomplete tasks are excluded and counted.
+- **Early stop.** When half the planned tasks are complete, arm A stops only if the 95% CI of (A minus P) lies wholly below 0. [established]
+
+**Outcomes and voids (item 9)**
+
+- A run that hits the step or wall cap counts as a fail.
+- Only an infra or model_api error, or a container lost to the machine, makes a run void.
+- A void run is rerun before the next task starts.
+- Void counts are reported per arm.
+
+## Primary analysis (co-primary, both needed for the claim)
+
+- **Statistic.** For each task, d = (mean of the arm's runs) minus (mean of the reference's runs). The two co-primaries are **A minus P** and **A minus C**, each the mean of d over the analyzed tasks.
 - **Interval.** 95% percentile bootstrap over tasks, 10,000 resamples, seed 20261101. [established]
-- **Claim.** "Glimmer solves more new issues after training on earlier ones" is claimed only if the lower bound is above 0. A CI that straddles 0 is reported as no detected difference; a CI below 0 is reported as harm.
+- **Claim.** The headline is claimed only if BOTH lower bounds are above 0.
+  - If A minus P clears but A minus C does not, the report says the gain cannot be told apart from training on any repository's solutions.
+  - A CI below 0 is reported as harm.
+- **Why A minus C is co-primary.** Screening keeps tasks plain Glimmer failed, so P sits near 0 on them by selection, and any change to the model can only gain on those tasks (regression to the mean). A minus C cancels that, because C went through the same screen.
 
-## Secondary (descriptive)
+## Secondary (descriptive, no claim)
 
-- W minus P, and A minus C, with the same interval.
-- Per repository and per kind (bug or feature).
+- C minus P.
+- W minus P, on its 50 tasks. [established]
+- Per repository and per kind (bug or feature), always beside the pooled number.
 - Loops: runs with a command repeated 5 or more times.
 - Empty patches.
-- Steps to the first source edit (a run with no edit counts as the step cap).
+- Steps to the first source edit.
 
-## Smallest detectable gain (alpha 0.05, power 0.8, paired)
+## Smallest detectable gain (said plainly)
 
-MDE = (1.96 + 0.84) x sqrt(2v / (r x n)), with n = 100 tasks and r = 2 runs per arm [established]. Plain Glimmer's measured run-to-run spread puts v at 0.05-0.10 [measured], which gives an MDE of **6.3-8.9 points** of solve rate [measured inputs, computed]. At temperature 0 the spread may be smaller and the MDE smaller [hypothesis].
+The gain that can be detected depends on how often two arms disagree on a task, not on plain Glimmer's run-to-run spread.
 
-## Runs and machines
+- **Method.** Per-task differences of 2-run means have an SD of about 0.40-0.50 when 20-30% of task pairs disagree [hypothesis]. MDE = 2.8 x SD / sqrt(n) [established].
+- **At n = 100 analyzed tasks: about 11-14 points.** At n = 90 it is about 12-15 points.
+- **Practical meaning.** Gains smaller than about 12 points of solve rate will likely read as "no detected difference". Published teacher-trajectory gains are +13 to +27 points [established].
+
+## Runs and capacity
 
 | Item | Runs |
 |---|---|
-| Test | 100 tasks x (2 + 2 + 1 + 1) = 600 [established] |
-| Screening (already running) | about 250 |
-| Capacity by the cutoff | about 1,030 [hypothesis] |
+| P2 + A2 + C2 on 100 tasks | 600 [established] |
+| W1 on 50 tasks | 50 [established] |
+| Test total | **650** [established] |
+| Available after screening and the Plug downstream test | about 690 [hypothesis] |
 
-The machines are the Strix server and the 5080 desktop. Both serve the same GGUF (sha256 `4cc57c0f…`) through llama.cpp, with greedy-parity checked [measured]. Each run records its machine and slot count. Arms are not assigned by machine; a task's runs may use either.
+Machines: the Strix server and the 5080, the same GGUF (sha256 `4cc57c0f…`, greedy parity checked) [measured]. Each run records its machine and slot count.
 
 ## Data hygiene
 
-- **History scrub.** Per-task images keep git history that reaches the gold fix. Every agent container is scrubbed to the base commit's history before step 1, and a failed scrub voids the run [established]. sqlglot uses its shared image re-checked-out at the base commit [established].
-- **Earlier runs.** An audit of every earlier trajectory found no run that saw a commit after its task. The 11 runs on unscrubbed images were voided [measured].
-- **Package install.** Agent and grader containers re-install the checked-out package without network (`pip install --no-deps -e .`), so src-layout repositories can be tested at all [established].
+- **History scrub.** Per-task images keep git history reaching the gold fix. Agent containers are scrubbed to the base commit's history before step 1, and a failed scrub voids the run [established].
+- **Earlier runs.** An audit of all earlier trajectories found none that saw a later commit; the 11 runs on unscrubbed images were voided [measured].
+- **Package install.** Agent and grader containers re-install the package without network [established].
 
 ## Known limits
 
-- One shared adapter serves six repositories, so repository-specific effects are diluted.
-- Teacher pass rates differ by repository [measured: 30/37 sqlglot, 13/16 Django; new repos in progress].
-- The screening rule keeps tasks plain Glimmer failed once, so some kept tasks may be unsolvable for any arm.
+- One shared adapter serves six repositories, so effects in any one repository are diluted.
+- Teacher pass rates differ by repository [measured: 30/37 sqlglot, 13/16 Django; new repositories in progress].
+- The screen keeps tasks plain Glimmer failed once, so some kept tasks may be unsolvable for every arm.
