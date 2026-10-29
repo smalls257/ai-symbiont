@@ -111,7 +111,7 @@ def test_habit_lessons_keep_only_habits_seen_in_several_tasks(monkeypatch):
     kept = {lesson.lesson_id: lesson for lesson in lessons.habit_lessons(runs, GOLD)}
     assert "habit-repro-once" in kept and "habit-check-the-layer" not in kept
     assert kept["habit-repro-once"].support["tasks"] == 3
-    assert "3 runs (3 tasks)" in kept["habit-repro-once"].card()
+    assert not any(ch.isdigit() for ch in kept["habit-repro-once"].card())
 
 
 def place(monkeypatch, file, name):
@@ -244,15 +244,16 @@ def _lessons(monkeypatch):
         lesson_id: lesson_module.GeneralLesson(
             lesson_id, lesson_module.LessonKind.HABIT, "S.", "h", "r", "c", support
         )
-        for lesson_id in ("habit-edit-once-found", "repo-shared-layer")
+        for lesson_id in ("habit-edit-once-found", "repo-shared-layer", "impl-new-function")
     }
 
 
-def test_card_carries_the_counts_and_stays_short(monkeypatch):
+def test_card_is_prose_without_counts_and_stays_short(monkeypatch):
     lessons = _lessons(monkeypatch)
     card = load(monkeypatch, "general_card")
     text = card.card(lessons)
-    assert "In 4 of 9 earlier runs" in text and "In 5 of 7 fixes" in text
+    body = "\n".join(line.split(". ", 1)[-1] for line in text.splitlines())
+    assert "never solved" in text and not any(ch.isdigit() for ch in body)
     assert len(text.split()) <= card.MAX_WORDS
     monkeypatch.setattr(card, "MAX_WORDS", 10)
     with pytest.raises(card.CardTooLongError):

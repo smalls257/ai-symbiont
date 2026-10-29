@@ -17,8 +17,8 @@
   "card": 14
  },
  "action_rows_dropped_for_eval_names": 3,
- "card_words": 226,
- "card_sha": "f51964513b0fcc50",
+ "card_words": 213,
+ "card_sha": "32fdf6c949dbb43b",
  "leakage": {
   "texts_checked": 123,
   "eval_tasks": 18,

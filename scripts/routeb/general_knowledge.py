@@ -8,7 +8,7 @@ from collections.abc import Sequence
 
 from general_evidence import SourceTask
 from general_kinds import TaskKind
-from general_lesson import GeneralLesson, LessonKind, share
+from general_lesson import GeneralLesson, LessonKind
 from general_places import PlaceKind as K
 from general_places import shared_only, task_place_kinds
 
@@ -42,11 +42,14 @@ def dialect_output(tasks: Sequence[SourceTask]) -> GeneralLesson:
         lesson_id="repo-dialect-output",
         kind=LessonKind.REPO,
         situation="One dialect writes the wrong SQL text for a construct that parses correctly.",
-        happened=f"{share(len(hit), len(tasks))} upstream fixes changed a dialect's `Generator`.",
+        happened=(
+            "When one dialect writes the wrong SQL, the fix is usually in that dialect's "
+            "`Generator`."
+        ),
         resolved=(
-            f"{len(maps)} of them changed an entry of the nested `<Dialect>.Generator.TRANSFORMS` "
-            "map in `sqlglot/dialects/<dialect>.py` (expression class to SQL); the rest changed or "
-            "added a `<name>_sql` method or `TYPE_MAPPING` on the same class."
+            "Most often it is an entry of the nested `<Dialect>.Generator.TRANSFORMS` map in "
+            "`sqlglot/dialects/<dialect>.py` (expression class to SQL); otherwise a `<name>_sql` "
+            "method or `TYPE_MAPPING` on the same class."
         ),
         check=(
             "find the expression class with `repr(parse_one(SQL))`, grep its name in the dialect "
@@ -71,14 +74,14 @@ def dialect_parsing(tasks: Sequence[SourceTask]) -> GeneralLesson:
             "parse it."
         ),
         happened=(
-            f"{share(len(hit), len(tasks))} upstream fixes changed a dialect's `Parser` or "
-            "`Tokenizer`."
+            "When one dialect reads SQL wrongly, the fix is usually in that dialect's `Parser` "
+            "or `Tokenizer`."
         ),
         resolved=(
             "Function names map to builders in `<Dialect>.Parser.FUNCTIONS`; clauses are "
             "`_parse_<thing>` overrides on `<Dialect>.Parser`; keywords are "
-            f"`<Dialect>.Tokenizer.KEYWORDS` entries ({len(tokens)} fixes touched a tokenizer or "
-            "`TokenType` in `sqlglot/tokens.py`)."
+            "`<Dialect>.Tokenizer.KEYWORDS` entries, sometimes with a new `TokenType` in "
+            "`sqlglot/tokens.py`."
         ),
         check=(
             "compare `repr(parse_one(SQL, read='<dialect>'))` with the tree you expect, then "
@@ -100,14 +103,11 @@ def shared_layer(tasks: Sequence[SourceTask]) -> GeneralLesson:
         situation=(
             "The failing test is a dialect test but the dialect file has no code for the construct."
         ),
-        happened=(
-            f"In {share(len(shared), len(tested))} upstream fixes whose failing tests were all "
-            "dialect tests, no dialect file changed."
-        ),
+        happened=("A failing dialect test is often fixed without touching any dialect file."),
         resolved=(
-            "Those fixes went in the shared `sqlglot/parser.py` (`Parser._parse_<thing>`), "
-            "`sqlglot/generator.py` (`Generator.<name>_sql`) or `sqlglot/expressions.py` "
-            "(an expression's `arg_types`)."
+            "Those fixes go in the shared `sqlglot/parser.py` (`Parser._parse_<thing>`), "
+            "`sqlglot/generator.py` (`Generator.<name>_sql`) or `sqlglot/expressions.py` (an "
+            "expression's `arg_types`)."
         ),
         check=(
             "grep the dialect file first; if nothing matches, grep `sqlglot/parser.py` and "
@@ -131,13 +131,12 @@ def test_layout(tasks: Sequence[SourceTask]) -> GeneralLesson:
         kind=LessonKind.REPO,
         situation="You need to know which test proves the fix.",
         happened=(
-            f"In {share(len(tested), len(tasks))} upstream fixes the failing tests were in "
-            "`tests/dialects/test_<dialect>.py`, plain unittest classes."
+            "The failing tests are almost always in `tests/dialects/test_<dialect>.py`, plain "
+            "unittest classes."
         ),
         resolved=(
-            f"{share(len(validates), len(tasks))} added `self.validate_identity(sql)` or "
-            f"`self.validate_all(sql, read=..., write=...)` lines to an existing test method; "
-            f"{len(new_files)} added a test file."
+            "Fixes add `self.validate_identity(sql)` or `self.validate_all(sql, read=..., "
+            "write=...)` lines to an existing test file; they do not add test files."
         ),
         check=(
             f"`{TEST}` for the dialect named in the issue; `python -m unittest "

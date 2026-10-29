@@ -8,7 +8,7 @@ import re
 from collections.abc import Sequence
 
 from general_evidence import SourceTask
-from general_lesson import GeneralLesson, LessonKind, share
+from general_lesson import GeneralLesson, LessonKind
 from general_places import PlaceKind as K
 from general_places import task_place_kinds
 
@@ -41,14 +41,14 @@ def new_function(tasks: Sequence[SourceTask]) -> GeneralLesson:
         kind=LessonKind.IMPLEMENTATION,
         situation="The issue asks for a function or type a dialect does not support yet.",
         happened=(
-            f"{share(len(maps), len(tasks))} upstream feature patches added a dialect "
-            f"`Parser.FUNCTIONS` or `Generator.TRANSFORMS` entry; only {len(classes)} added a "
-            "class to `sqlglot/expressions.py`."
+            "New function support is usually a dialect `Parser.FUNCTIONS` or "
+            "`Generator.TRANSFORMS` entry; a new class in `sqlglot/expressions.py` is the "
+            "exception."
         ),
         resolved=(
-            "First grep `sqlglot/expressions.py` for an existing class that means the same thing; "
-            "if one exists, map the dialect's name to it in both directions; add a `Func` subclass "
-            "with `arg_types` only when none does."
+            "First grep `sqlglot/expressions.py` for an existing class that means the same "
+            "thing; if one exists, map the dialect's name to it in both directions; add a `Func` "
+            "subclass with `arg_types` only when none does."
         ),
         check=f"`grep -n 'class <Name>' sqlglot/expressions.py`, then `{TEST}`.",
         support={"tasks": len(maps), "class_tasks": len(classes), "of_tasks": len(tasks)},
@@ -67,11 +67,10 @@ def mirror_neighbor(tasks: Sequence[SourceTask]) -> GeneralLesson:
         kind=LessonKind.IMPLEMENTATION,
         situation="You are about to write a new map entry or method for a dialect.",
         happened=(
-            f"In upstream feature patches, {share(reused, calling)} new map entries that call a "
-            "helper reuse one the same file already used (`rename_func`, a `_build_*` or `*_sql` "
-            "helper)."
+            "New map entries that call a helper almost always reuse one the same file already "
+            "uses (`rename_func`, a `_build_*` or `*_sql` helper)."
         ),
-        resolved="They copied the closest existing entry in the same map and changed the names.",
+        resolved=("They copied the closest existing entry in the same map and changed the names."),
         check=(
             "grep the map for an entry with the same argument shape and copy it; write a new "
             "helper only if none fits."
@@ -90,8 +89,8 @@ def new_syntax(tasks: Sequence[SourceTask]) -> GeneralLesson:
         kind=LessonKind.IMPLEMENTATION,
         situation="The issue asks for a new keyword, clause or statement form.",
         happened=(
-            f"{share(len(multi), len(tasks))} upstream feature patches changed two or more source "
-            f"files; {len(tokens)} added a keyword in a `Tokenizer.KEYWORDS` map or a `TokenType`."
+            "New keywords and clauses usually touch several source files, often starting with a "
+            "keyword in a `Tokenizer.KEYWORDS` map or a new `TokenType`."
         ),
         resolved=(
             "The usual chain is: token (`TokenType` and the dialect's `Tokenizer.KEYWORDS`), a "
@@ -123,9 +122,8 @@ def test_next_to_neighbors(tasks: Sequence[SourceTask]) -> GeneralLesson:
         kind=LessonKind.IMPLEMENTATION,
         situation="Your new support works on one example and you want to prove it.",
         happened=(
-            f"{share(len(validates), len(tasks))} upstream feature patches added "
-            "`validate_identity` or `validate_all` lines beside similar ones in the dialect's "
-            "test file."
+            "Feature patches add `validate_identity` or `validate_all` lines beside similar ones "
+            "in the dialect's test file."
         ),
         resolved=(
             "A round trip through the dialect (read it, write it back) is the check the "

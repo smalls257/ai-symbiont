@@ -1,6 +1,6 @@
 """The general lesson card: one short prose text every evaluation task gets, before its issue.
 
-It is assembled from the lessons' own counts, so it can claim nothing they do not show, and it
+Each point rests on a lesson whose counts support it (the counts stay out of the text), and it
 must stay under MAX_WORDS so it does not crowd out the issue. Pure.
 """
 
@@ -9,6 +9,7 @@ from collections.abc import Mapping
 from general_lesson import GeneralLesson
 
 MAX_WORDS = 250  # dispatch limit for the prompt card
+RESTS_ON = ("habit-edit-once-found", "repo-shared-layer", "impl-new-function")
 TEST = "cd /testbed && python -m unittest tests.dialects.test_<dialect>"
 
 
@@ -17,26 +18,26 @@ class CardTooLongError(ValueError):
 
 
 def card(lessons: Mapping[str, GeneralLesson]) -> str:
-    """The card text; raises KeyError if a lesson it cites is missing, CardTooLongError if long."""
-    found = lessons["habit-edit-once-found"].support
-    shared = lessons["repo-shared-layer"].support
+    """The card text; raises KeyError if a lesson it rests on is missing, CardTooLongError if long.
+
+    Domain prose only: the counts behind each point stay in the lessons' support and the report.
+    """
+    for lesson_id in RESTS_ON:
+        lessons[lesson_id]
     text = "\n".join(
         [
             "LESSONS FROM YOUR EARLIER WORK IN THIS REPO (sqlglot), for any bug or feature:",
-            f"1. Edit once you have found it. In {found['never_edited_runs']} "
-            f"of {found['of_runs']} earlier runs you never edited a file and none solved, though "
-            f"nearly all had already opened the right file. Runs that first edited by step 30 "
-            f"solved {found['early_solved']} of {found['early_runs']}. When a read shows the code "
+            "1. Edit once you have found it. Runs that never edited the code never solved the "
+            "task, even when they had already opened the right file. When a read shows the code "
             "that builds the wrong output, or where the new case belongs, make the smallest edit "
-            "there; aim to edit by step 25.",
+            "there, early, while there are steps left to test and submit.",
             '2. Reproduce once with `python -c "import sqlglot; ..."`, not a new scratch script.',
             "3. Find the layer first: `repr(sqlglot.parse_one(SQL, read='<d>'))`. Wrong tree: the "
             "parser or tokenizer. Right tree, wrong SQL text: the generator.",
             "4. A dialect's output is its `<Dialect>.Generator` (`TRANSFORMS` entries, "
-            "`<name>_sql` "
-            "methods); its parsing is `<Dialect>.Parser` (`FUNCTIONS`, `_parse_<thing>`) and "
-            f"`<Dialect>.Tokenizer.KEYWORDS`. In {shared['tasks']} of {shared['of_tasks']} fixes "
-            "for a dialect's test, the code was shared: `sqlglot/parser.py`, `generator.py` or "
+            "`<name>_sql` methods); its parsing is `<Dialect>.Parser` (`FUNCTIONS`, "
+            "`_parse_<thing>`) and `<Dialect>.Tokenizer.KEYWORDS`. A dialect's failing test is "
+            "often fixed in shared code instead: `sqlglot/parser.py`, `generator.py` or "
             "`expressions.py`.",
             "5. New support: grep `sqlglot/expressions.py` for an existing class first; copy the "
             "closest existing entry in the same map; a new keyword or clause runs token, then "

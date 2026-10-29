@@ -7,7 +7,7 @@ Pure.
 from collections.abc import Sequence
 
 import general_habits as habits
-from general_lesson import GeneralLesson, LessonKind, share
+from general_lesson import GeneralLesson, LessonKind
 from general_runs import PlainRun
 
 UNITTEST = "python -m unittest tests.dialects.test_<dialect>"
@@ -29,14 +29,12 @@ def edit_once_found(runs: Sequence[PlainRun], gold: habits.Gold) -> GeneralLesso
             "You have opened the file whose code produces the wrong output and keep reading it."
         ),
         happened=(
-            f"In {share(never.runs, never.of_runs)} runs ({never.tasks} tasks) I never edited a "
-            f"source file and none solved; in {found.runs} of them I had opened the file the fix "
-            f"belonged in by step {habits.EARLY_VIEW}."
+            "Runs that never edited a source file never solved the task, though most of them had "
+            "already opened the file the fix belonged in."
         ),
         resolved=(
-            f"Runs that made their first edit by step {habits.LATE_EDIT} of 50 solved "
-            f"{share(timing['early_solved'], timing['early_runs'])}; a first edit after it solved "
-            f"{share(timing['late_solved'], timing['late_runs'])}."
+            "Runs that made their first edit early, soon after finding the code, mostly solved; "
+            "runs that edited late mostly ran out of steps."
         ),
         check=(
             "once one read shows the code that builds the wrong output, make the smallest edit "
@@ -55,10 +53,10 @@ def repro_once(runs: Sequence[PlainRun], gold: habits.Gold) -> GeneralLesson:
         kind=LessonKind.HABIT,
         situation="You are about to write another scratch script to reproduce the issue.",
         happened=(
-            f"In {found.runs} runs ({found.tasks} tasks) I wrote {habits.MANY_SCRATCH} or more "
-            f"scratch scripts and never edited the source; {found.solved} solved."
+            "Runs that kept writing new scratch scripts to reproduce the issue never got to an "
+            "edit and never solved."
         ),
-        resolved="Solved runs reproduced the issue with one `python -c` call and then edited.",
+        resolved=("Solved runs reproduced the issue with one `python -c` call and then edited."),
         check=(
             'reproduce once with `python -c "import sqlglot; print(sqlglot.transpile(SQL, '
             "read='a', write='b'))\"`, then edit; rerun the same line after the edit."
@@ -74,16 +72,18 @@ def budget_the_steps(runs: Sequence[PlainRun], gold: habits.Gold) -> GeneralLess
     return GeneralLesson(
         lesson_id="habit-budget-the-steps",
         kind=LessonKind.HABIT,
-        situation="It is past step 25 of 50 and you have not edited anything yet.",
+        situation="Half your step budget is gone and you have not edited anything yet.",
         happened=(
-            f"In {late.runs} runs ({late.tasks} tasks) my first edit came after step "
-            f"{habits.LATE_EDIT}; {late.solved} solved."
+            "When the first edit came late in the step budget, most runs ran out of steps before "
+            "testing and submitting."
         ),
         resolved=(
-            f"Solved runs needed a median {habits.edit_to_end(runs)} steps from the first edit "
-            "to submitting, including the test and the submit."
+            "Solved runs left room after the first edit for one test run, one fix-up and the "
+            "submit."
         ),
-        check="by step 25, edit your best candidate and test it rather than read further.",
+        check=(
+            "by the middle of the budget, edit your best candidate and test it rather than read on."
+        ),
         support=late.support(),
         source_tasks=_tasks(runs, gold, habits.late_first_edit),
     )
@@ -99,9 +99,8 @@ def check_the_layer(runs: Sequence[PlainRun], gold: habits.Gold) -> GeneralLesso
             "You are about to edit a file before knowing whether reading or writing SQL is wrong."
         ),
         happened=(
-            f"In {found.runs} runs ({found.tasks} tasks) I edited only files the real fix never "
-            f"touched (a dialect file when the fix was shared, or the reverse); {found.solved} "
-            "solved."
+            "Some runs edited only files the real fix never touched: a dialect file when the fix "
+            "was shared, or the reverse."
         ),
         resolved=(
             "The wrong half is found by parsing alone: if the parsed tree is wrong the fix is in "
@@ -126,13 +125,10 @@ def submit_when_green(runs: Sequence[PlainRun], gold: habits.Gold) -> GeneralLes
         kind=LessonKind.HABIT,
         situation="Your edit is in and the targeted test module passes.",
         happened=(
-            f"In {found.runs} runs ({found.tasks} tasks) the targeted test passed after my edit "
-            "and I kept working until the step cap, so nothing was submitted."
+            "Some runs had a passing targeted test after the edit and kept working until the "
+            "step cap, so nothing was submitted."
         ),
-        resolved=(
-            f"Submitting is almost enough: {share(sent['submitted_solved'], sent['submitted'])} "
-            "submitted runs resolved."
-        ),
+        resolved=("A submitted fix that passes its test module is almost always accepted."),
         check="when the dialect's test module passes and `git diff` shows only your fix, submit.",
         support=found.support() | sent,
         source_tasks=_tasks(runs, gold, habits.passing_not_submitted),
@@ -148,13 +144,12 @@ def one_test_module(runs: Sequence[PlainRun], gold: habits.Gold) -> GeneralLesso
         kind=LessonKind.HABIT,
         situation="You want to run the tests.",
         happened=(
-            f"`pytest` is not installed (hit in {traps['pytest-missing']} runs), `apply_patch` "
-            f"is not a command ({traps['apply-patch-missing']} runs), and a script outside the "
-            f"repo cannot import sqlglot ({traps['sqlglot-not-importable']} runs)."
+            "`pytest` is not installed, `apply_patch` is not a command, and a script run outside "
+            "the repo cannot import sqlglot; each costs a step."
         ),
         resolved=(
-            f"Runs that ran one named unittest module solved {share(found.solved, found.runs)}; "
-            f"runs that never did solved {share(found.solved_without, found.runs_without)}."
+            "Runs that ran one named unittest module were the ones that solved; whole-suite runs "
+            "added nothing."
         ),
         check=f"`cd /testbed && {UNITTEST}`; edit with `sed -i` or a short python replace.",
         support=found.support() | traps,
