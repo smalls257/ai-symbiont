@@ -5,6 +5,7 @@ move; a refusal, a cap and an API error raise too. Every call that reaches the s
 ledger with tokens and cost, even an empty one, because the tokens were billed.
 """
 
+import json
 import time
 import urllib.error
 import urllib.request
@@ -16,7 +17,7 @@ from typing import Any
 from symbiont.egress.client import Transport, _urlopen, post_json
 from symbiont.egress.credentials import ApiKey
 from symbiont.egress.messages import Message, declared_provenance
-from symbiont.egress.policy import Destination, Endpoint
+from symbiont.egress.policy import Destination, EgressRefusedError, Endpoint
 from symbiont.egress.spend import (
     Ledger,
     LedgerEntry,
@@ -24,6 +25,7 @@ from symbiont.egress.spend import (
     Tier,
     Usage,
     cost_usd,
+    estimate_usage,
 )
 from symbiont.records.schema import Provenance
 
@@ -45,11 +47,29 @@ class Effort(StrEnum):
 
 
 class SparkReplyError(RuntimeError):
-    """The server answered, but not with a usable reply (no content, or no usage)."""
+    """The server answered, but not with a usable reply (no content, no usage, not JSON)."""
+
+    def __init__(self, message: str, reason: str = "bad_reply"):
+        super().__init__(message)
+        self.reason = reason  # the ledger's error field for this failure
 
 
 class SparkApiError(RuntimeError):
     """The server answered with an HTTP error; carries the status and a short server message."""
+
+
+def _status_of(error: Exception) -> str:
+    """The ledger's error field: the HTTP status, the reply problem, or the exception class."""
+    if isinstance(error, SparkApiError):
+        return str(error).split(":")[0]
+    if isinstance(error, SparkReplyError):
+        return error.reason
+    return type(error).__name__
+
+
+def _rejected_before_generation(error: Exception) -> bool:
+    """A 4xx was refused before the model ran; everything else may have been generated."""
+    return isinstance(error, SparkApiError) and str(error).startswith("status 4")
 
 
 @dataclass(frozen=True)
@@ -66,7 +86,7 @@ def _usage_from(out: dict[str, Any]) -> Usage:
     """Token counts; the details blocks are omitted by the API when zero, so they default to 0."""
     usage = out.get("usage")
     if not usage or "prompt_tokens" not in usage or "completion_tokens" not in usage:
-        raise SparkReplyError("the server reported no token usage for this reply")
+        raise SparkReplyError("the server reported no token usage for this reply", "no_usage")
     cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
     reasoning = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
     return Usage(usage["prompt_tokens"], cached, usage["completion_tokens"], reasoning)
@@ -137,31 +157,37 @@ class SparkSession:
     def _priced_call(
         self, body: dict[str, Any], label: str, provenance: list[Provenance]
     ) -> tuple[dict[str, Any], Usage, float]:
-        """Cap check, send, ledger line; a failed send is in the ledger too."""
+        """Cap check, send, ledger line; a failed or unmetered call is in the ledger too."""
         self.ledger.check_before_call(self.run, self.caps)
         destination = Destination(self.endpoint, CHAT_URL, self.key)
         started = time.monotonic()
         try:
             out = self._send(destination, body, provenance)
-        except (SparkApiError, urllib.error.URLError, TimeoutError, ConnectionError) as error:
-            self._record_failure(label, time.monotonic() - started, error)
+            usage = _usage_from(out)
+        except EgressRefusedError:
+            raise  # refused before sending: nothing left the machine, so nothing was billed
+        except (SparkApiError, SparkReplyError, OSError) as error:
+            self._record_failure(body, label, time.monotonic() - started, error)
             raise
         seconds = time.monotonic() - started
-        usage = _usage_from(out)
         cost = cost_usd(self.tier, usage)
         self.ledger.record(
             LedgerEntry(self.run, label, self.model, self.tier, usage, cost, seconds)
         )
         return out, usage, seconds
 
-    def _record_failure(self, label: str, seconds: float, error: Exception) -> None:
-        """A failed call is in the ledger too: zero tokens (the API reports none), its status."""
-        status = (
-            str(error).split(":")[0] if isinstance(error, SparkApiError) else type(error).__name__
+    def _record_failure(
+        self, body: dict[str, Any], label: str, seconds: float, error: Exception
+    ) -> None:
+        """Billing of a failed call is unknown: charge an estimate, flagged, never $0."""
+        wire_bytes = len(json.dumps(body).encode())
+        usage = estimate_usage(
+            wire_bytes, body["max_tokens"], generated=not _rejected_before_generation(error)
         )
         entry = LedgerEntry(
-            self.run, label, self.model, self.tier, Usage(0, 0, 0, 0), 0.0, seconds, status
-        )
+            self.run, label, self.model, self.tier, usage, cost_usd(self.tier, usage), seconds,
+            _status_of(error), estimated=True,
+        )  # fmt: skip
         self.ledger.record(entry)
 
     def _send(
@@ -172,6 +198,8 @@ class SparkSession:
         except urllib.error.HTTPError as error:
             detail = error.read().decode(errors="replace")[:ERROR_EXCERPT_CHARS] if error.fp else ""
             raise SparkApiError(f"status {error.code}: {detail}") from error
+        except json.JSONDecodeError:
+            raise SparkReplyError("the reply is not valid JSON", "bad_json") from None
 
     @staticmethod
     def _reply(out: dict[str, Any], usage: Usage, seconds: float) -> SparkReply:

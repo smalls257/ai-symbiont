@@ -79,6 +79,7 @@ class LedgerEntry:
     cost_usd: float
     seconds: float
     error: str | None = None  # the status or error class of a call that failed; None: it succeeded
+    estimated: bool = False  # True: the server reported no usage, so the counts are our estimate
 
 
 def cost_usd(tier: Tier, usage: Usage) -> float:
@@ -90,6 +91,22 @@ def cost_usd(tier: Tier, usage: Usage) -> float:
         + usage.cached * price.cached_usd
         + usage.completion * price.output_usd
     ) / PER_MILLION
+
+
+# English prose and code run about four bytes per token; assuming three over-counts the prompt,
+# which is the safe side for a cap. A request that may have been generated is charged its full
+# `max_tokens` of output.
+BYTES_PER_TOKEN_FLOOR = 3
+
+
+def estimate_usage(wire_bytes: int, max_tokens: int, *, generated: bool) -> Usage:
+    """Conservative token counts for a call whose real usage is unknown.
+
+    `generated` is False for a request the server rejected before generating (a 4xx): only the
+    prompt is charged then.
+    """
+    prompt = -(-wire_bytes // BYTES_PER_TOKEN_FLOOR)
+    return Usage(prompt=prompt, cached=0, completion=max_tokens if generated else 0, reasoning=0)
 
 
 def caps_from_environment(run_usd: float | None) -> SpendCaps:
@@ -115,7 +132,8 @@ class Ledger:
         usage = asdict(entry.usage)
         line = {"ts": round(time.time(), 3), "run": entry.run, "label": entry.label,
                 "model": entry.model, "tier": entry.tier.value, **usage,
-                "cost_usd": entry.cost_usd, "seconds": round(entry.seconds, 3)}  # fmt: skip
+                "cost_usd": entry.cost_usd, "seconds": round(entry.seconds, 3),
+                "estimated": entry.estimated}  # fmt: skip
         if entry.error is not None:
             line["error"] = entry.error
         with self._lock:

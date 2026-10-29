@@ -110,7 +110,7 @@ def test_the_log_never_holds_the_prompt(tmp_path, caplog):
     assert "never reach a log" not in caplog.text and "test-token" not in caplog.text
 
 
-def test_a_failed_call_is_in_the_ledger_with_zero_tokens_and_its_status(tmp_path):
+def test_a_failed_call_is_in_the_ledger_with_an_estimate_and_its_status(tmp_path):
     def busy(request, timeout_s):
         raise urllib.error.HTTPError(request.full_url, 429, "slow down", {}, None)
 
@@ -118,9 +118,9 @@ def test_a_failed_call_is_in_the_ledger_with_zero_tokens_and_its_status(tmp_path
     with pytest.raises(SparkApiError, match="429"):
         spark.chat(PROMPT, Effort.LOW, "MAP01-s1-low")
     (row,) = spark.ledger.entries()
-    assert row["error"] == "status 429" and row["cost_usd"] == 0.0
-    assert row["prompt"] == row["completion"] == 0 and row["label"] == "MAP01-s1-low"
-    assert spark.ledger.spent() == 0.0
+    assert row["error"] == "status 429" and row["estimated"] is True
+    assert row["prompt"] > 0 and row["completion"] == 0 and row["label"] == "MAP01-s1-low"
+    assert row["cost_usd"] > 0 and spark.ledger.spent() == row["cost_usd"]
 
 
 def test_a_dropped_connection_is_in_the_ledger_with_the_error_class(tmp_path):
