@@ -17,9 +17,18 @@ A coding agent (mini-SWE-agent driven by Spark) works on a repository task. Afte
 ## Tasks and store
 
 - **Tasks.** The SWE-rebench task instances of round 3's 10 validation repos: 51 instances [measured]. An instance stays if its image pulls and its hidden tests pass with the gold patch and fail with none; the expected count is 30 to 40 [hypothesis]. The build lists every dropped instance with its reason.
+- **These repos set both thresholds.** The judge's and the thresholded ranker's thresholds were fitted on these same 10 repos' situation items (round 3's validation fit) [established]. The agent tasks differ from those items, but the arms are not tested on repos their thresholds never saw; phase 2 is.
 - **Never touched.** Round 3's 40 scored repos are excluded: no task, no lesson, no distractor. That keeps this phase out of the judge's scored run [established, by construction].
-- **Store per task (leave one instance out).** Every lesson of the pool except the 40 scored repos' lessons and the lessons mined from the task's own instance. A lesson is never shown on the task it came from [established, by construction].
+- **Store per task (only earlier instances).** Every lesson of the pool except the 40 scored repos' lessons, the lessons mined from the task's own instance, and the lessons mined from any instance created after the task's own (SWE-rebench `created_at`; an instance without a date is left out). A lesson is never shown on its own task or on a task that predates it [established, by construction]. The build logs, per task, how many lessons each rule removed.
 - **Privacy.** Lessons are from the public nebius OpenHands pool (CC-BY-4.0, `spark_safe`). No private or local session reaches a prompt.
+
+## Agent settings (identical in every arm)
+
+One config file, `plug-agent-1.json`, holds the Spark model id, temperature 0, a fixed seed, the step limit, 4,096 output tokens per reply (as the calibration runners) and a per-run token cap. Before the freeze the Core agent fills every field from its existing setup and this prereg records the file's sha256; the runner refuses a config with another hash, and every arm reads the same file. A blank field blocks the freeze.
+
+## Order and the cost cap
+
+Tasks run in the order of sha256 of `plug-agent-1:<instance_id>`. For each task all four arms run, in the order of sha256 of `plug-agent-1:<instance_id>:<arm>`, before the next task starts. The cost cap is checked only between tasks, so every finished task has all four arms; a run that hits the per-run token cap counts as unsolved, in every arm alike.
 
 ## Arms (one run per task per arm, paired by task)
 
@@ -45,7 +54,7 @@ For each arm against `none`, and `judge` against `ranker` and `rag`: the paired 
 
 ## Spend and machine
 
-- **Runs.** 4 arms times the kept tasks: about 120 to 160 runs [hypothesis].
+- **Runs.** 4 arms times the kept tasks, in the order above: about 120 to 160 runs [hypothesis].
 - **Endpoint.** Spark through the Contributor endpoint and the shared egress client (`symbiont.egress.post_json`), the Core agent's existing mini-SWE-agent setup. Paid spend is the owner's call.
 - **Cost.** Runs times measured tokens per run times the Contributor price. Before the freeze the Core agent fills in its measured mean tokens per mini-SWE-agent run, the price and the total, as a cap; the runner stops at the cap and reports the runs it finished.
 - **Judge.** The judge (Llama 3.2 1B plus three LoRA adapters) runs as a loopback service next to the harness: CUDA on the 5080, or CPU on the laptop. About 10 pairs per failed command [established, the shortlist size].

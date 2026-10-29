@@ -15,7 +15,7 @@ For the Core agent, who runs mini-SWE-agent on Spark. The design and its fixed w
 ## The store for one task
 
 1. Exclude the 40 scored repos' lessons entirely.
-2. Exclude the lessons mined from this task's own instance. `lesson_id` is the first 12 hex digits of sha1 of `session_id:step` (`lessons._build`), so map each pool trajectory's session to its `instance_id` and drop that instance's lessons.
+2. Exclude the lessons mined from this task's own instance, and from every instance created after it (SWE-rebench `created_at`; an undated instance is excluded). Log the count each rule removed. `lesson_id` is the first 12 hex digits of sha1 of `session_id:step` (`lessons._build`), so map each pool trajectory's session to its `instance_id` and drop that instance's lessons.
 3. The candidate list matches round 3's items, so the thresholds keep their meaning: all of the repo's remaining lessons, plus a sample of other repos' lessons (seeded by the instance id) up to `plug_situation.PROMPT_LESSONS` in total. The ranker's inverse-document-frequency weights are computed over this list, so a store of a different size would shift the ranker threshold.
 
 ## A situation from the live run
@@ -43,6 +43,10 @@ Serve the judge as a loopback HTTP process next to the harness (CUDA on the 5080
 ## Injecting the note
 
 Use `symbiont.delivery.mini_swe_wrapper`'s pattern: wrap the environment, and on a failed command append the note to that command's observation, under the `[symbiont]` tag line (`tagged`), so it reaches the model in its next turn. The note is the lesson's stored text, `Lesson.text()`, verbatim; `rag` appends three such lines. A local note source (the four arms above) replaces the service call; everything else (`execute`, `serialize` with the arm name) stays as it is.
+
+## Run settings and order
+
+All arms read one config, `plug-agent-1.json`, with the fields and order the prereg's "Agent settings" and "Order and the cost cap" sections fix, pinned by sha256; refuse any other hash. Each task's arms all run before the next task starts, and the cost cap is checked only between tasks.
 
 ## What to log per run
 
