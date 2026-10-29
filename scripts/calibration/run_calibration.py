@@ -1,17 +1,9 @@
 """One plain-Glimmer run on one sqlglot task with mini-SWE-agent (plan Task 22, Glimmer part).
 
-A run = fresh container from the shared image -> prepare_script(base_commit) (history-free checkout,
-no network) -> mini-SWE-agent's DefaultAgent with its SWE-bench config (tool-calling bash)
-talking to Glimmer -> grade the submitted patch in another fresh container with the task's
-FAIL_TO_PASS + PASS_TO_PASS tests.
-
-run_once never raises for a task-level failure: it returns one record with `error_kind` set
-("infra": container/grading broke, "model_api": Glimmer unreachable, "context": context window
-exceeded, "agent": anything else inside the agent) so the caller logs it; nothing is skipped
-silently.
-`resolved` is None only when grading itself could not happen.
-
-The staged driver (staged.py) decides which runs to do. Raw trajectories stay on the desktop.
+Fresh container, history-free checkout, mini-SWE-agent's SWE-bench config talking to Glimmer, then
+grading in another fresh container with FAIL_TO_PASS + PASS_TO_PASS. run_once never raises for a
+task-level failure: the record's `error_kind` says infra, model_api, context or agent, and
+`resolved` is None only when grading could not happen. staged.py decides which runs to do.
 """
 
 from __future__ import annotations
@@ -36,6 +28,11 @@ GLIMMER_URL_VAR = (
     "SYMBIONT_GLIMMER_URL"  # llama.cpp router, one request at a time; address is never committed
 )
 MAX_TOKENS = 4096  # per reply; bounds one step so the wall limit is checked often enough
+# A stalled request must end in a recorded error: 2 tries x 600 s bounds a dead step to ~21 min
+# (the 2026-10-28 hang was 10 x 1200 s); a healthy step takes 10-17 s.
+REQUEST_TIMEOUT_S = 600
+MODEL_RETRY_ATTEMPTS = 2
+RETRY_ATTEMPTS_VAR = "MSWEA_MODEL_RETRY_STOP_AFTER_ATTEMPT"  # read by mini-SWE-agent per query
 API_ERRORS = (
     litellm.exceptions.APIConnectionError,
     litellm.exceptions.Timeout,
@@ -49,6 +46,7 @@ class Setting:
     reasoning: str  # Glimmer's "Reasoning strength: <x>" system line
     step_limit: int
     wall_limit_s: int
+    adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
 
 
 def glimmer_url() -> str:
@@ -60,7 +58,13 @@ def glimmer_url() -> str:
     return url
 
 
+def bound_model_retries() -> None:
+    """Cap mini-SWE-agent's per-query retries so a dead endpoint raises within minutes."""
+    os.environ[RETRY_ATTEMPTS_VAR] = str(MODEL_RETRY_ATTEMPTS)
+
+
 def agent_config(setting: Setting) -> tuple[dict, dict]:
+    bound_model_retries()
     cfg = yaml.safe_load((builtin_config_dir / "benchmarks" / "swebench.yaml").read_text())
     agent = cfg["agent"] | {
         "step_limit": setting.step_limit,
@@ -76,13 +80,25 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
         "model_kwargs": {
             "api_base": glimmer_url(),
             "api_key": "none",
-            "timeout": 1200,
+            "timeout": REQUEST_TIMEOUT_S,
             "max_tokens": MAX_TOKENS,
             "drop_params": True,
             "parallel_tool_calls": True,
+            **adapter_body(setting.adapter_id),
         },
     }
     return agent, model
+
+
+def adapter_body(adapter_id: int | None) -> dict:
+    """Request-body field that turns the served LoRA on for this run; nothing for plain Glimmer.
+
+    llama-server applies `"lora": [{"id": N, "scale": 1}]` per request (the router forwards the
+    body to the Glimmer child), so the personal arm and plain calibration share one server.
+    """
+    if adapter_id is None:
+        return {}
+    return {"extra_body": {"lora": [{"id": adapter_id, "scale": 1}]}}
 
 
 def token_counts(messages: list[dict]) -> dict:
