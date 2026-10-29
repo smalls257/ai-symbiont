@@ -33,6 +33,7 @@ PURE_FILES = (
     "lineage.py",
     "run_guards.py",
     "card_picking.py",
+    "evolve_split.py",
 )
 
 
