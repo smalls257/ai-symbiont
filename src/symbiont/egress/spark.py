@@ -82,6 +82,8 @@ class SparkSession:
     ledger: Ledger = field(default_factory=Ledger)
     provenance: tuple[Provenance, ...] = ()
     transport: Transport = _urlopen
+    temperature: float | None = None  # None: the server's default
+    system: str | None = None  # text of a system message sent before the prompt
 
     def chat(
         self, prompt: str, effort: Effort, label: str, max_tokens: int = DEFAULT_MAX_TOKENS
@@ -91,12 +93,17 @@ class SparkSession:
         Raises SpendCapError, EgressRefusedError, SparkApiError or SparkReplyError.
         """
         self.ledger.check_before_call(self.run, self.caps)
-        body = {
+        messages = [{"role": "user", "content": prompt}]
+        if self.system is not None:
+            messages.insert(0, {"role": "system", "content": self.system})
+        body: dict[str, Any] = {
             "model": self.model,
-            "messages": [{"role": "user", "content": prompt}],
+            "messages": messages,
             "reasoning_effort": effort.value,
             "max_tokens": max_tokens,
         }
+        if self.temperature is not None:
+            body["temperature"] = self.temperature
         destination = Destination(Endpoint.CONTRIBUTOR, CHAT_URL, self.key)
         started = time.monotonic()
         try:

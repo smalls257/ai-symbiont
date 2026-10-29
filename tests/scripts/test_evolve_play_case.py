@@ -336,3 +336,25 @@ def test_the_graded_result_reports_how_many_spots_were_skipped(tmp_path, monkeyp
     monkeypatch.setattr(play_case, "remaining_route_units", flaky)
     result = player(tmp_path, FakeGame(), turn).play(CARD, CASE)
     assert result.grade is Grade.GRADED and result.unroutable_spots >= 1
+
+
+def test_with_system_rules_placement_the_game_prompt_is_not_prefixed_with_the_card(tmp_path):
+    prompts = []
+
+    def record(prompt):
+        prompts.append(prompt)
+        return Reply("turn(90)", "stop", 0)
+
+    from symbiont.act1.card_prompt import CardPlacement
+
+    setup = play_case.EngineSetup(
+        wad=tmp_path / "x.wad",
+        episodes=tmp_path / "episodes",
+        decisions=1,
+        loader=loader_for(FakeGame(), []),
+        kills=lambda g: 0,
+        card_placement=CardPlacement.SYSTEM_RULES,
+    )
+    play_case.EnginePlayer(lambda card, case: record, setup).play(CARD, CASE)
+    assert prompts and not prompts[0].startswith("Lessons from earlier games:")
+    assert "Walk to the next door" not in prompts[0]

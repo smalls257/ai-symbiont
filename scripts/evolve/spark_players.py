@@ -10,9 +10,10 @@ import re
 import time
 import urllib.error
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from symbiont.act1.card_genome import Card
+from symbiont.act1.card_prompt import CardPlacement, system_rules
 from symbiont.act1.game_fitness import Case
 from symbiont.act1.glimmer import Reply, ReplyFn
 from symbiont.act1.policies import policy_named
@@ -120,13 +121,17 @@ class SparkPlayers:
     run: str
     run_cap: float
     effort: Effort
+    temperature: float | None = None
+    placement: CardPlacement = CardPlacement.PROMPT_PREFIX
 
     def __call__(self, card: Card, case: Case) -> ReplyFn:
-        """The reply function for one game."""
+        """The reply function for one game; the card goes where `placement` says."""
         label = f"evolve/{self.run}/play/{card.card_id}"
-        return with_retries(
-            spark_reply_fn(spark_session(self.run, self.run_cap), self.effort, label)
+        rules = system_rules(card) if self.placement == CardPlacement.SYSTEM_RULES else None
+        session = replace(
+            spark_session(self.run, self.run_cap), temperature=self.temperature, system=rules
         )
+        return with_retries(spark_reply_fn(session, self.effort, label))
 
 
 @dataclass(frozen=True)

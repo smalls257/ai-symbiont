@@ -21,7 +21,7 @@ script_paths.add_script_dirs()
 import collect_episodes  # noqa: E402 - needs the sibling path added above
 
 from symbiont.act1.card_genome import Card  # noqa: E402
-from symbiont.act1.card_prompt import with_card  # noqa: E402
+from symbiont.act1.card_prompt import CardPlacement, with_card  # noqa: E402
 from symbiont.act1.episode import MapKnowledge, RunLog, run_episode  # noqa: E402
 from symbiont.act1.episode_records import EpisodeEnd  # noqa: E402
 from symbiont.act1.game_fitness import (  # noqa: E402
@@ -104,6 +104,8 @@ class EngineSetup:
     loader: Callable[[Path, Case], Loaded] = field(default=load_case_level)
     kills: Callable[[Any], int] = field(default=kill_count)
     workers: int = 1
+    # SYSTEM_RULES: the reply factory puts the card in a system message; nothing is prefixed here.
+    card_placement: CardPlacement = CardPlacement.PROMPT_PREFIX
     # Spawned processes: one ViZDoom engine per process, and a fresh interpreter, not a fork.
     executor_factory: Callable[[int], concurrent.futures.Executor] = field(default=spawn_pool)
 
@@ -179,7 +181,9 @@ class EnginePlayer:
         start = tuple(game.get_state().game_variables[2:4])
         start_units = remaining_route_units(nav, start)
         runs: list[MoveRun] = []
-        reply = with_card(self.reply_for(card, case), card)
+        reply = self.reply_for(card, case)
+        if self.setup.card_placement == CardPlacement.PROMPT_PREFIX:
+            reply = with_card(reply, card)
         log = self.setup.episodes / f"{card.card_id}-{case.level}-s{case.seed}.jsonl"
         run_log = RunLog(log, {"card": card.card_id}, runs.append, cuts_for(case.cuts, case.seed))
         try:

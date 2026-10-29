@@ -144,3 +144,18 @@ def test_a_successful_call_has_no_error_field(tmp_path):
     spark = session(tmp_path, FakeTransport(reply_body()))
     spark.chat(PROMPT, Effort.LOW, "label")
     assert "error" not in spark.ledger.entries()[0]
+
+
+def test_temperature_and_a_system_message_are_sent_only_when_set(tmp_path):
+    import dataclasses
+
+    transport = FakeTransport(reply_body())
+    plain = session(tmp_path, transport)
+    plain.chat(PROMPT, Effort.LOW, "a")
+    configured = dataclasses.replace(plain, temperature=0.0, system="Rules you must follow: x")
+    configured.chat(PROMPT, Effort.LOW, "b")
+    first, second = (json.loads(r.data) for r in transport.requests)
+    assert "temperature" not in first and [m["role"] for m in first["messages"]] == ["user"]
+    assert second["temperature"] == 0.0
+    assert [m["role"] for m in second["messages"]] == ["system", "user"]
+    assert second["messages"][0]["content"] == "Rules you must follow: x"

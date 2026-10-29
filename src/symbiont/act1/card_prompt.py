@@ -5,10 +5,27 @@ to a game played without Evolve. No score, id or flag is added: the player reads
 about how they were chosen.
 """
 
+from enum import StrEnum
+
 from symbiont.act1.card_genome import Card
 from symbiont.act1.glimmer import Reply, ReplyFn
 
 LESSONS_HEADING = "Lessons from earlier games:"
+RULES_HEADING = "Rules you must follow:"
+
+
+class CardPlacement(StrEnum):
+    """Where a card is shown: in front of the game prompt, or as rules in a system message."""
+
+    PROMPT_PREFIX = "prompt_prefix"
+    SYSTEM_RULES = "system_rules"
+
+
+def system_rules(card: Card) -> str | None:
+    """The card as a system message, or None for the empty card (no message at all)."""
+    if not card.lessons:
+        return None
+    return f"{RULES_HEADING}\n{card.render()}"
 
 
 def with_card(reply_fn: ReplyFn, card: Card) -> ReplyFn:

@@ -1,7 +1,7 @@
 """The card reaches the player as prose before the game prompt; the empty card changes nothing."""
 
 from symbiont.act1.card_genome import Card, Lesson
-from symbiont.act1.card_prompt import LESSONS_HEADING, with_card
+from symbiont.act1.card_prompt import LESSONS_HEADING, RULES_HEADING, system_rules, with_card
 from symbiont.act1.episode import build_prompt
 from symbiont.act1.glimmer import Reply
 
@@ -54,3 +54,8 @@ def test_the_prompt_holds_no_score_or_card_id():
     reply_fn, seen = recorder()
     with_card(reply_fn, card())(GAME_PROMPT)
     assert card().card_id not in seen[0]
+
+
+def test_the_system_rules_hold_the_card_under_a_must_follow_heading_and_the_empty_card_none():
+    assert system_rules(card()) == f"{RULES_HEADING}\n{card().render()}"
+    assert system_rules(Card.of([])) is None
