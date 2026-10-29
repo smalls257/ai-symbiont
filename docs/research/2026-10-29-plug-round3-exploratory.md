@@ -30,3 +30,16 @@ All rows are [measured]. Held-out columns are on 84 items. Judge training took 4
 - **The threshold does not transfer cleanly.** Fitted on 5 repos, it gives wrong pick 0.119 on the other 5, over the 0.05 limit [measured]. Across all 10 repos, the best point within the safety limits picks 0.47 [measured]. More fitting situations, or a different calibration, are needed [hypothesis].
 - **V2's own confidence cannot be made safe.** Its log-probability for every note it names is near 0, so thresholding separates nothing [measured]. It is therefore not a baseline the judge must beat; the ranker alone and plain 1B are.
 - **3B is worse than 1B as a judge here** [measured, one round, three seeds].
+
+## Addendum: two operating points and the 3B settings check (owner's items 1 and 2)
+
+Operating points of the 1B judge on the 5 held-out validation repos (42 applicable situations), read from those repos' own curve, so not a transfer test (`scripts/routea/plug_r3_points.py`, `results/plug-r3-points.json`):
+
+| Limit | Threshold | Answers, share of applicable | Pick | Precision | Wrong pick | Silence |
+|---|---|---|---|---|---|---|
+| wrong pick at most 0.05 | 0.95 | 0.26, Wilson 0.15 to 0.41 [measured] | 0.26 | 1.00 | 0.00 | 1.00 |
+| silence at least 0.90 | 0.93 | 0.64, Wilson 0.49 to 0.77 [measured] | 0.60 | 0.83 | 0.06 | 0.93 |
+
+Repo-bootstrap intervals over 5 repos are in the results file; with 5 repos they are coarse.
+
+3B settings check: the 3B judge trained exactly as the 1B did, from the same logs: 463 steps, peak learning rate 1e-4 with cosine decay and 20 warmup steps, no early stop, LoRA rank 16 and scale 2 on all seven projections, batch 4, the same chat template, final loss 0.067 to 0.092 against the 1B's 0.070 to 0.095 [measured]. No setting was wrong, so 3B is not rerun; a lower learning rate for 3B would be tuning, not a fix.
