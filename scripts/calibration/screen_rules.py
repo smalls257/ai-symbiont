@@ -40,7 +40,8 @@ def stratified_screen(
 ) -> list[str]:
     """Up to `count` ids, round-robin over non-empty cells; `excluded` (already run) is dropped.
 
-    Order is a seeded shuffle, so the same pool, exclusions and seed give the same list.
+    Seeded, so the same pool, exclusions and seed give the same list. Pick order matters: any
+    prefix (the checkpoint's first 10) already mixes cells.
     """
     cells = cells_of([entry for entry in pool if entry["instance_id"] not in excluded])
     rng = random.Random(seed)

@@ -1,6 +1,7 @@
 """Build the sqlglot calibration pool from nebius/SWE-rebench (v1, `filtered` split).
 
-Runs on the desktop (needs duckdb + network); full task rows stay there, never committed.
+Runs on the desktop (needs duckdb + network). Writes `data/sqlglot_rows.json` (full task rows,
+never committed) and `data/pool.json` (pool ids and sizes, no task text).
 Pool rule (plan Task 22): rows with a docker image and a gold patch under MAX_GOLD_LINES changed
 lines (added + removed, headers excluded); the raw diff length is kept so the cut can be re-argued.
 
