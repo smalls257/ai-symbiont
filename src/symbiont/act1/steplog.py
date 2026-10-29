@@ -1,4 +1,7 @@
-"""One played scripted move, as the episode loop reports it (pure data, no clock, no store).
+"""One played scripted move and one model decision, as the episode loop reports them (pure data).
+
+`Decision` lives here, not in episode.py, so readers of the decision log (lesson rows, the demo
+replay) stay pure and never import the engine.
 
 Prevents Leaky Narrative: consumers of the move stream (the episode log) get a typed kind and the
 two views around the move, so they never re-parse `"label -> outcome"` history strings or reach
@@ -47,3 +50,23 @@ class MoveRun:
     tics: int
     before: GameStateView
     after: GameStateView | None
+
+
+@dataclass(frozen=True)
+class Decision:
+    """One model decision: what it saw, what it said, how the scripts fared."""
+
+    index: int
+    observation: str
+    reply: str
+    status: (
+        str  # "ok", "invalid" (not a valid strategy) or "truncated" (cut off by the token limit)
+    )
+    rejected: str | None
+    finish_reason: str
+    reasoning_chars: int
+    outcomes: tuple[str, ...]
+    model_seconds: float
+    # Server-counted tokens; None for scripted policies, which call no model.
+    tokens_in: int | None = None
+    tokens_out: int | None = None

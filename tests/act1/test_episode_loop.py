@@ -14,8 +14,8 @@ from symbiont.act1.engine import (
     check_sector_convention,
     view_from_engine,
 )
-from symbiont.act1.episode import MapKnowledge, RunLog, run_episode
-from symbiont.act1.glimmer import Reply, parse_chat_response
+from symbiont.act1.episode import MapKnowledge, RunLog, build_prompt, history_before, run_episode
+from symbiont.act1.glimmer import GlimmerReplyError, Reply, TokenUsage, parse_chat_response
 from symbiont.act1.map_index import MapIndex, build_index
 from symbiont.act1.steplog import MoveKind
 from symbiont.act1.wad import Sector, read_map
@@ -26,13 +26,24 @@ def chat_json(content, finish_reason, reasoning=None):
     message = {"content": content}
     if reasoning is not None:
         message["reasoning_content"] = reasoning
-    return {"choices": [{"message": message, "finish_reason": finish_reason}]}
+    usage = {"prompt_tokens": 700, "completion_tokens": 40}
+    return {"choices": [{"message": message, "finish_reason": finish_reason}], "usage": usage}
 
 
 def test_parse_chat_response_keeps_finish_reason_and_reasoning_size():
     reply = parse_chat_response(chat_json("", "length", reasoning="thinking " * 10))
-    assert reply == Reply(text="", finish_reason="length", reasoning_chars=90)
-    assert parse_chat_response(chat_json(" turn(90) ", "stop")) == Reply("turn(90)", "stop", 0)
+    tokens = TokenUsage(700, 40)
+    assert reply == Reply(text="", finish_reason="length", reasoning_chars=90, tokens=tokens)
+    assert parse_chat_response(chat_json(" turn(90) ", "stop")) == Reply(
+        "turn(90)", "stop", 0, tokens
+    )
+
+
+def test_parse_chat_response_refuses_a_reply_without_token_usage():
+    out = chat_json("turn(90)", "stop")
+    del out["usage"]
+    with pytest.raises(GlimmerReplyError, match="token usage"):
+        parse_chat_response(out)
 
 
 NO_MAP = MapIndex((), (), ())
@@ -120,6 +131,14 @@ def test_truncated_reply_is_classified_truncated_not_invalid_and_runs_no_move():
     assert decisions[0].finish_reason == "length"
     assert decisions[0].reasoning_chars == 800
     assert game.actions == []
+
+
+def test_each_decision_carries_the_servers_token_counts_and_none_for_a_scripted_reply():
+    replies = scripted_replies(
+        Reply("turn(9", "length", 800, TokenUsage(650, 1500)), Reply("turn(9", "length", 0)
+    )
+    decisions = run_episode(FakeGame(), replies, 2, knowledge=MapKnowledge(FLOORED_MAP))
+    assert [(d.tokens_in, d.tokens_out) for d in decisions] == [(650, 1500), (None, None)]
 
 
 def test_invalid_reply_is_rejected_never_defaulted_to_a_move():
@@ -347,3 +366,21 @@ def test_a_caller_header_cannot_overwrite_the_detected_sector_convention(tmp_pat
     )
     header = json.loads(log.read_text().splitlines()[0])["run_header"]
     assert header["sector_convention"] == "authored"
+
+
+def test_history_before_rebuilds_exactly_the_prompts_the_loop_sent():
+    sent = []
+    replies = iter(
+        [Reply("turn(90)\nturn(-90)", "stop", 0), Reply("explore()", "stop", 0)]
+        + [Reply("shoot_nearest()", "stop", 0)] * 8
+    )
+
+    def reply_fn(prompt):
+        sent.append(prompt)
+        return next(replies)
+
+    decisions = run_episode(FakeGame(), reply_fn, 10, knowledge=MapKnowledge(FLOORED_MAP))
+    rebuilt = [build_prompt(d.observation, history_before(decisions, d.index)) for d in decisions]
+    assert rebuilt == sent
+    with pytest.raises(IndexError):
+        history_before(decisions, len(decisions))

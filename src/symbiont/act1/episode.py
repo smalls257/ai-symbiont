@@ -9,7 +9,7 @@ Plays Freedoom via ViZDoom. Moves are scripted, and every log line says so.
 import json
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
@@ -32,7 +32,7 @@ from symbiont.act1.glimmer import Reply, ReplyFn, chat_reply
 from symbiont.act1.map_index import MapIndex, build_index
 from symbiont.act1.moves import Button, Done
 from symbiont.act1.navmap import NavMap, build_navmap
-from symbiont.act1.steplog import MoveRun, kind_of
+from symbiont.act1.steplog import Decision, MoveRun, kind_of
 from symbiont.act1.strategy import Move, StrategyError, parse_strategy
 from symbiont.act1.wad import read_map
 
@@ -83,23 +83,6 @@ def execute_move(
 
 
 # --- the loop ------------------------------------------------------------------------------------
-
-
-@dataclass(frozen=True)
-class Decision:
-    """One model decision: what it saw, what it said, how the scripts fared."""
-
-    index: int
-    observation: str
-    reply: str
-    status: (
-        str  # "ok", "invalid" (not a valid strategy) or "truncated" (cut off by the token limit)
-    )
-    rejected: str | None
-    finish_reason: str
-    reasoning_chars: int
-    outcomes: tuple[str, ...]
-    model_seconds: float
 
 
 def _classify(reply: Reply, nav: NavMap | None = None) -> tuple[list[Move] | None, str, str | None]:
@@ -183,12 +166,32 @@ def _open_run_log(
     return handle
 
 
+def rejected_line(rejected: str | None) -> str:
+    """The history line a rejected reply leaves; the loop and history_before share it."""
+    return f"(rejected reply: {rejected})"
+
+
+def history_before(decisions: Sequence[Decision], index: int) -> list[str]:
+    """The move history the loop had when it asked for decision `index` (prompts rebuilt from logs).
+
+    Raises IndexError when `index` is not a logged decision.
+    """
+    if not 0 <= index < len(decisions):
+        raise IndexError(f"decision {index} is not among {len(decisions)} logged decisions")
+    history: list[str] = []
+    for decision in decisions[:index]:
+        history.extend(
+            decision.outcomes if decision.status == "ok" else [rejected_line(decision.rejected)]
+        )
+    return history
+
+
 def _carry_out(
     moves: list[Move] | None, rejected: str | None, session: _Session, history: list[str]
 ) -> list[str]:
     """Run the parsed moves; a rejected reply goes to the history, never replaced by a move."""
     if moves is None:
-        history.append(f"(rejected reply: {rejected})")
+        history.append(rejected_line(rejected))
         return []
     outcomes = []
     for move in moves:
@@ -229,9 +232,11 @@ def _decide(
     seconds = time.monotonic() - started
     moves, status, rejected = _classify(reply, nav)
     outcomes = _carry_out(moves, rejected, session, history)
+    tokens = reply.tokens
     return Decision(
         number, observation, reply.text, status, rejected, reply.finish_reason,
         reply.reasoning_chars, tuple(outcomes), seconds,
+        None if tokens is None else tokens.prompt, None if tokens is None else tokens.completion,
     )  # fmt: skip
 
 
@@ -271,6 +276,18 @@ def run_episode(
     finally:
         if log is not None:
             log.close()
+    return decisions
+
+
+def load_run_log(path: Path) -> list[Decision]:
+    """The decisions of the log's last run: a rerun appends after a new header line."""
+    decisions: list[Decision] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        entry: dict[str, Any] = json.loads(line)
+        if "run_header" in entry:
+            decisions = []
+            continue
+        decisions.append(Decision(**{**entry, "outcomes": tuple(entry["outcomes"])}))
     return decisions
 
 
