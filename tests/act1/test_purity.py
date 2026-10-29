@@ -39,6 +39,7 @@ PURE_FILES = (
     "offline_author.py",
     "generation.py",
     "evolution.py",
+    "run_summary.py",
 )
 
 
