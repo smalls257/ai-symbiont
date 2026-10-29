@@ -1,0 +1,43 @@
+{
+ "schema": "evolve-gen0-v1",
+ "label": "exploratory generation 0, Muse Spark at low reasoning [measured]",
+ "rows": [
+  {
+   "label": "empty card",
+   "role": "reference",
+   "mean_fitness": -0.3505835793100015
+  },
+  {
+   "label": "stand_still",
+   "role": "floor",
+   "mean_fitness": -0.62
+  },
+  {
+   "label": "fire_in_place",
+   "role": "floor",
+   "mean_fitness": -0.9148166686259621
+  },
+  {
+   "label": "spin",
+   "role": "floor",
+   "mean_fitness": -0.905
+  }
+ ],
+ "card_means": {
+  "051b4ed7e374": -0.1851,
+  "34d42d7524cd": -0.3689,
+  "3bdba6b6ea47": -0.2247,
+  "5984390e1d7c": -0.1268,
+  "e3b0c44298fc": -0.3506,
+  "ff12d87f9807": -0.1654
+ },
+ "fitness_spread": 0.2421,
+ "noise": {
+  "verdict": "double_games",
+  "within_variance": 0.05086762003472055,
+  "between_variance": 0.004145570172425639,
+  "standard_error": 0.10957070417603662,
+  "games_per_case": 2
+ },
+ "gaming_check": "passed"
+}

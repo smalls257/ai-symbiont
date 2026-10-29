@@ -47,8 +47,8 @@ def test_the_results_document_labels_floors_and_references_and_passes_the_conten
     document = check_fitness.results_document(
         0.3, {"stand_still": 0.0, "spin": 0.05}, {"e3b0": 0.3, "ab12": 0.5}, noise
     )
-    assert [row["label"] for row in document["rows"]] == [
-        "reference: empty card", "floor: stand_still", "floor: spin"
+    assert [(row["label"], row["role"]) for row in document["rows"]] == [
+        ("empty card", "reference"), ("stand_still", "floor"), ("spin", "floor")
     ]  # fmt: skip
     assert document["fitness_spread"] == pytest.approx(0.2)
     target = tmp_path / "results" / "evolve-gen0.json"

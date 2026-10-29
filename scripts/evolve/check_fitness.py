@@ -75,8 +75,8 @@ def results_document(
     empty_mean: float, gaming: dict[str, float], cards: dict[str, float], noise: dict[str, Any]
 ) -> dict[str, Any]:
     """Counts, ids and labels only: scripted policies are floors, cards are references."""
-    rows = [{"label": "reference: empty card", "mean_fitness": empty_mean}]
-    rows += [{"label": f"floor: {n}", "mean_fitness": m} for n, m in gaming.items()]
+    rows = [{"label": "empty card", "role": "reference", "mean_fitness": empty_mean}]
+    rows += [{"label": n, "role": "floor", "mean_fitness": m} for n, m in gaming.items()]
     return {
         "schema": SCHEMA,
         "label": "exploratory generation 0, Muse Spark at low reasoning [measured]",
