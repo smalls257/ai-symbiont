@@ -1,4 +1,4 @@
-"""Plug scored run (prereg/2026-10-28-l2l-a2.md): prepare rows and probes, then score and decide.
+"""Plug scored run (prereg/2026-10-29-l2l-a2.md): prepare rows and probes, then score and decide.
 
 Usage: uv run python scripts/routea/plug_run.py prepare --work W
 Usage: uv run python scripts/routea/plug_run.py score --work W --out results/l2l-a2.json
@@ -58,6 +58,8 @@ SCORED = {
 }
 META_REPOS = 71
 META_ROWS = 1469
+META_DROPPED = 333  # rows over 1,300 characters dropped from meta-train (prereg)
+SHARED_KEY_LESSONS = 5  # scored lessons whose failure key recurs in meta-train (prereg)
 # Rows of the prereg's table: (name, label, lessons in the prompt).
 ROWS = (
     ("floor_plain", "floor", "none"),
@@ -75,13 +77,28 @@ class PlanMismatchError(ValueError):
 
 
 def check_plan(plan: dict) -> None:
-    """Raise PlanMismatchError unless the plan reproduces the prereg's counts."""
-    if plan["test_repos"] != SCORED:
-        raise PlanMismatchError(f"scored repos differ from the prereg: {plan['test_repos']}")
-    if len(plan["meta_train_repos"]) != META_REPOS or plan["meta_train_rows"] != META_ROWS:
-        raise PlanMismatchError(
-            f"meta-train is {len(plan['meta_train_repos'])} repos, {plan['meta_train_rows']} rows"
-        )
+    """Raise PlanMismatchError unless the plan reproduces the prereg's counts and pairing."""
+    names = sorted(SCORED)
+    pairing = {repo: names[(i + 1) % len(names)] for i, repo in enumerate(names)}
+    expected = {
+        "test_repos": SCORED,
+        "control_of": pairing,
+        "meta_train_repo_count": META_REPOS,
+        "meta_train_rows": META_ROWS,
+        "meta_rows_dropped_too_long": META_DROPPED,
+        "shared_key_lessons": SHARED_KEY_LESSONS,
+    }
+    found = {
+        "test_repos": plan["test_repos"],
+        "control_of": plan["control_of"],
+        "meta_train_repo_count": len(plan["meta_train_repos"]),
+        "meta_train_rows": plan["meta_train_rows"],
+        "meta_rows_dropped_too_long": plan["meta_rows_dropped_too_long"],
+        "shared_key_lessons": len(plan["shared_key_lesson_ids"]),
+    }
+    differs = sorted(key for key in expected if found[key] != expected[key])
+    if differs:
+        raise PlanMismatchError(f"plan differs from the prereg in: {differs}")
 
 
 def slug(repo: str) -> str:
@@ -176,8 +193,11 @@ def repo_cells(work: Path, repo: str, control: str, budget: int) -> dict[str, di
     for name, _, lessons_in_prompt in ROWS:
         answers = _answers(work / "answers" / name / f"{slug(repo)}-{budget}.jsonl")
         cell = recall_cell(asked, answers, own)
-        if lessons_in_prompt != "none":
-            cell |= prompt_rates(asked, answers, own, wrong)
+        rates = prompt_rates(asked, answers, own, wrong)
+        # Abstention for every row: under wrong lessons it is wanted, elsewhere it is false.
+        cell["abstention"] = rates["abstention"]
+        if lessons_in_prompt == "wrong":
+            cell["confabulation"] = rates["confabulation"]
         cells[name] = cell
     return cells
 
@@ -278,22 +298,50 @@ def habits(work: Path) -> dict:
     return found
 
 
+def verdict_sentence(found: dict, rows: list[dict], habit_rates: dict) -> str:
+    """The report's sentence, fixed by the prereg's wording, built from the decisions."""
+    at5 = {row["row"]: row for row in rows if row["budget"] == PRIMARY_BUDGET}
+    h1 = found["h1_a2_vs_a1_at_5"]
+    if found["plug_and_play_works"]:
+        parts = [
+            f"recalls {at5['a2']['reworded']:.2f} of the reworded probes with 5 lessons in the "
+            f"prompt on 13 unseen repos, against {at5['a1']['reworded']:.2f} for the plain model, "
+            "without per-repo training"
+        ]
+    else:
+        parts = [
+            "a meta-trained reader did not measurably beat the plain model at this size "
+            f"(a2 minus a1 {h1['mean_gain']:+.2f}, "
+            f"interval {h1['ci95_low']:+.2f} to {h1['ci95_high']:+.2f})"
+        ]
+    if h1["decision"] == "better" and not found["confabulation_control_at_5"]["passes"]:
+        parts.append("recalls more and confabulates more")
+    if h1["decision"] == "better" and habit_rates["a2"]["ranked"] < habit_rates["plain"]["ranked"]:
+        parts.append("recalls more and keeps fewer habits")
+    return "; ".join(parts)
+
+
 def score_run(work: Path, provenance: dict) -> dict:
     """The results document of the scored run."""
     cells = all_cells(work)
     plan = json.loads((work / "plan.json").read_text())
+    rows, found, habit_rates = row_means(cells), decisions(cells), habits(work)
     return {
         **provenance,
         **answerer_provenance(work),
-        "status": "scored under prereg/2026-10-28-l2l-a2.md",
+        "status": "scored under prereg/2026-10-29-l2l-a2.md",
         "scored_repos": plan["test_repos"],
         "meta_train_repos": plan["meta_train_repos"],
         "meta_train_rows": plan["meta_train_rows"],
+        "control_of": plan["control_of"],
+        "meta_rows_dropped_too_long": plan["meta_rows_dropped_too_long"],
+        "shared_key_lessons": len(plan["shared_key_lesson_ids"]),
         "a2_adapter_sha256": (work / "adapters" / "a2" / "sha256.txt").read_text().strip(),
-        "rows": row_means(cells),
-        "decisions": decisions(cells),
+        "rows": rows,
+        "decisions": found,
+        "result": verdict_sentence(found, rows, habit_rates),
         "sensitivity": sensitivity(work, cells),
-        "habits": habits(work),
+        "habits": habit_rates,
     }
 
 

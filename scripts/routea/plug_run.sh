@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Plug scored run (prereg/2026-10-28-l2l-a2.md): check inputs and the frozen prereg, plan, train a2
+# Plug scored run (prereg/2026-10-29-l2l-a2.md): check inputs and the frozen prereg, plan, train a2
 # once and the per-repo adapters, answer every row, rank habits, score once.
 #   scripts/routea/plug_run.sh PY MODEL WORK PREREG POOL HABIT_SPLIT HABIT_ROWS HABIT_QUESTIONS HABIT_SYSTEM
 # PY is the MLX venv's python; the pure stages run under the repo's uv environment. A trained
@@ -54,7 +54,7 @@ habits() {  # habits NAME ADAPTER: keyword answers and ranked choice of one mode
   [[ $2 != - ]] && adapter=(--adapter "$2")
   "$PY" "$HERE/rank_habits.py" --model "$MODEL" ${adapter[@]+"${adapter[@]}"} \
     --questions "$WORK/habit_questions.jsonl" --system "$HSYSTEM" --out "$WORK/ranked/$1.jsonl.tmp" \
-    >>"$LOGS/ranked.log" 2>/dev/null
+    >>"$LOGS/ranked.log" 2>&1
   mv "$WORK/ranked/$1.jsonl.tmp" "$WORK/ranked/$1.jsonl"
 }
 
