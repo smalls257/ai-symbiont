@@ -51,6 +51,7 @@ class Setting:
     wall_limit_s: int
     adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
     model: str = MODEL  # a router name of its own serves a personal Glimmer (the loop's rounds)
+    teacher: str | None = None  # "spark" or "wonder": a remote teacher model through egress
 
 
 def glimmer_url() -> str:
@@ -107,6 +108,11 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
     agent["system_template"] = (
         f"Reasoning strength: {setting.reasoning}\n" + agent["system_template"]
     )
+    if setting.teacher:  # the teacher's endpoint comes from egress, not from Glimmer's URL
+        return agent, cfg["model"] | {
+            "model_name": setting.teacher,
+            "cost_tracking": "ignore_errors",
+        }
     model = cfg["model"] | {
         "model_name": setting.model,
         "cost_tracking": "ignore_errors",  # local model: cost is 0 by construction
@@ -198,6 +204,16 @@ def _run_agent(agent: DefaultAgent, row: dict, rec: dict) -> dict:
         return {"exit_status": type(error).__name__, "submission": ""}
 
 
+def agent_model(setting: Setting, model_cfg: dict, rec: dict):
+    """Plain or personal Glimmer, or a teacher run whose ledger run name is the task and run."""
+    if not setting.teacher:
+        return LitellmModel(**model_cfg)
+    from teacher_model import Teacher, teacher_model  # only teacher runs need egress and the key
+
+    label = f"teacher-{setting.teacher}-{rec['instance_id']}-run{rec['run']}"
+    return teacher_model(Teacher(setting.teacher), label, model_cfg)
+
+
 def _attempt(row: dict, setting: Setting, traj: Path, rec: dict, started: float) -> str | None:
     """Prepare the checkout, run the agent, record its outcome; return the submitted patch."""
     agent_cfg, model_cfg = agent_config(setting)
@@ -208,7 +224,9 @@ def _attempt(row: dict, setting: Setting, traj: Path, rec: dict, started: float)
         _prepare_checkout(env, row)
         rec["prepare_s"] = round(time.time() - started, 1)
         agent_started = time.time()
-        agent = DefaultAgent(LitellmModel(**model_cfg), env, output_path=traj, **agent_cfg)
+        agent = DefaultAgent(
+            agent_model(setting, model_cfg, rec), env, output_path=traj, **agent_cfg
+        )
         info = _run_agent(agent, row, rec)
         rec["agent_s"] = round(time.time() - agent_started, 1)
         rec["exit_status"] = info.get("exit_status")

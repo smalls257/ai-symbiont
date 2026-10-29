@@ -32,6 +32,7 @@ class Arm(StrEnum):
     PLAIN = "plain"
     LESSON = "lesson"
     PERSONAL_LORA = "personal_lora"  # the served sqlglot adapter, no lesson in the prompt
+    TEACHER = "teacher"  # Muse Spark or Wonder through egress, earlier tasks only
 
 
 def load_lessons(path: Path, task_ids: list[str]) -> dict[str, str]:

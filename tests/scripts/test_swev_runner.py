@@ -180,3 +180,26 @@ def test_a_task_whose_environment_errors_on_every_test_is_not_gradeable(mods, mo
     assert check.grade_ok("gold", grade(outcome.RESOLVED, f2p=(3, 3), p2p=(40, 40)))
     assert not check.grade_ok("gold", grade(outcome.UNRESOLVED, f2p=(2, 3), p2p=(40, 40)))
     sys.modules.pop("validate_scorer", None)
+
+
+def test_teacher_arm_uses_egress_and_runs_alone_on_history(mods, monkeypatch):
+    run = mods["swev_run"]
+    monkeypatch.delenv("SYMBIONT_GLIMMER_URL", raising=False)
+    assert run.endpoint(run.Arm.TEACHER) == ("teacher", "symbiont.egress")
+    setting = run.Setting("low", 75, 2700, teacher="spark")
+    monkeypatch.setattr(
+        run.yaml, "safe_load", lambda text: {"agent": {"system_template": ""}, "model": {}}
+    )
+    _, model = run.agent_config(setting, run.Arm.TEACHER)
+    assert model == {"model_name": "teacher", "cost_tracking": "ignore_errors"}
+    launch = importlib.import_module("swev_launch")
+    ok = launch.parse_args(["w", "--phase", "history", "--arm", "teacher", "--runs-dir", "r",
+                            "--teacher", "spark"])  # fmt: skip
+    assert launch.teacher_of(ok) == "spark"
+    for bad in (
+        ["--phase", "later", "--arm", "teacher", "--teacher", "spark"],
+        ["--phase", "history", "--arm", "teacher"],
+        ["--phase", "history", "--arm", "teacher", "--arm", "plain", "--teacher", "spark"],
+    ):
+        with pytest.raises(SystemExit, match="runs alone"):
+            launch.teacher_of(launch.parse_args(["w", "--runs-dir", "r", *bad]))

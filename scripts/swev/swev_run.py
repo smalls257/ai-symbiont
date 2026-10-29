@@ -23,7 +23,7 @@ from minisweagent.agents.default import DefaultAgent  # noqa: E402
 from minisweagent.config import builtin_config_dir  # noqa: E402
 from minisweagent.environments.docker import DockerEnvironment  # noqa: E402
 from minisweagent.models.litellm_model import LitellmModel  # noqa: E402
-from run_calibration import MODEL, Setting, classify, token_counts  # noqa: E402
+from run_calibration import MODEL, Setting, agent_model, classify, token_counts  # noqa: E402
 from swev_env import ScorerError, grade, scrub_history_script  # noqa: E402
 
 MAX_TOKENS = 4096  # per reply, as in the calibration runner
@@ -38,6 +38,7 @@ class Arm(StrEnum):
 
     PLAIN = "plain"
     PERSONAL = "personal"
+    TEACHER = "teacher"  # Muse Spark or Wonder through egress; history (earlier) tasks only
 
 
 @dataclass(frozen=True)
@@ -65,7 +66,9 @@ def required_env(name: str) -> str:
 
 
 def endpoint(arm: Arm) -> tuple[str, str]:
-    """(model name, api base) of an arm, from its own variables only."""
+    """(model name, api base) of an arm, from its own variables only; a teacher uses egress."""
+    if arm is Arm.TEACHER:
+        return "teacher", "symbiont.egress"
     url_var, model_var = ENDPOINT_VARS[arm]
     model = required_env(model_var) if model_var else MODEL
     return model, required_env(url_var)
@@ -84,6 +87,8 @@ def agent_config(setting: Setting, arm: Arm) -> tuple[dict, dict]:
     agent["system_template"] = (
         f"Reasoning strength: {setting.reasoning}\n" + (agent["system_template"])
     )
+    if arm is Arm.TEACHER:
+        return agent, cfg["model"] | {"model_name": model_name, "cost_tracking": "ignore_errors"}
     model = cfg["model"] | {
         "model_name": model_name,
         "cost_tracking": "ignore_errors",  # local model: cost is 0 by construction
@@ -142,7 +147,12 @@ def attempt(row: dict, arm: Arm, setting: Setting, traj: Path, rec: dict) -> str
         env = open_environment(row["image"])
         scrub(env)
         rec["prepare_s"] = round(time.time() - started, 1)
-        agent = DefaultAgent(LitellmModel(**model_cfg), env, output_path=traj, **agent_cfg)
+        model = (
+            agent_model(setting, model_cfg, rec)
+            if arm is Arm.TEACHER
+            else LitellmModel(**model_cfg)
+        )
+        agent = DefaultAgent(model, env, output_path=traj, **agent_cfg)
         info = run_agent(agent, row, rec)
         rec["agent_s"] = round(time.time() - started - rec["prepare_s"], 1)
         rec |= {"exit_status": info.get("exit_status"), "steps": agent.n_calls}
@@ -175,7 +185,8 @@ def run_once(row: dict, slot: Slot, setting: Setting, traj_dir: Path) -> dict:
     """One run, graded; one record whatever happened (see the module docstring)."""
     iid, arm = row["instance_id"], slot.arm
     rec = {"instance_id": iid, "phase": slot.phase, "arm": str(arm), "run": slot.run}
-    rec |= asdict(setting) | {"model": endpoint(arm)[0], "image": row["image"]}
+    model = f"teacher/{setting.teacher}" if arm is Arm.TEACHER else endpoint(arm)[0]
+    rec |= asdict(setting) | {"model": model, "image": row["image"]}
     rec |= {"error_kind": None, "error": None}
     started = rec["started"] = time.time()
     name = f"{slot.phase}-{arm}-run{slot.run}-cap{setting.step_limit}.traj.json"

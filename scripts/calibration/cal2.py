@@ -25,6 +25,7 @@ from lesson_arm import (
     load_lessons,
     statement_with_lesson,
 )
+from run_calibration import MODEL
 from screen_rules import cells_of
 from staged import BlockedError, Driver, add_limit_arguments, run_identity, settings_for
 from staged_summary import RUN_FIELDS, RUNS_PER_TASK, run_totals
@@ -224,6 +225,19 @@ class CandidateDriver(Driver):
         self.low = dataclasses.replace(self.low, model=f"openai/{name}")
         self.header = self.header | {"model": self.low.model}
 
+    def use_teacher(self, teacher: str, test_set: Path) -> None:
+        """Teacher arm on EARLIER tasks only: raises if any listed task is in the test set."""
+        if self.arm is not Arm.PLAIN or self.low.model != MODEL or self.low.adapter_id is not None:
+            raise ValueError(f"one arm per run: already {self.arm}, cannot add teacher {teacher}")
+        held = {entry["task"] for entry in json.loads(test_set.read_text())["test"]}
+        if held & set(self.screen):
+            raise ValueError(
+                f"teacher runs on test-set tasks refused: {sorted(held & set(self.screen))}"
+            )
+        self.low = dataclasses.replace(self.low, teacher=teacher, model=f"teacher/{teacher}")
+        self.arm = Arm.TEACHER
+        self.header = self.header | {"arm": str(self.arm), "teacher": teacher}
+
     def arm_records(self, iid: str) -> list[dict]:
         """Every logged record of one task under this run's arm, graded or not."""
         expected = self.expected_identity(iid)
@@ -320,6 +334,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--lessons", type=Path, default=None, help="lesson arm: id -> text JSON")
     parser.add_argument("--adapter", type=int, default=None, help="personal arm: served LoRA id")
     parser.add_argument("--model", default=None, help="a router model name instead of plain")
+    parser.add_argument("--teacher", choices=("spark", "wonder"), default=None)
+    parser.add_argument("--test-set", type=Path, default=None, help="refused for --teacher")
     add_limit_arguments(parser)
     return parser.parse_args(argv)
 
@@ -335,7 +351,12 @@ if __name__ == "__main__":
         driver.use_adapter(args.adapter)
     if args.model:
         driver.use_model(args.model)
-    from run_calibration import preflight
+    if args.teacher:
+        if args.test_set is None:
+            raise SystemExit("--teacher needs --test-set (teacher runs are for earlier tasks only)")
+        driver.use_teacher(args.teacher, args.test_set)
+    else:
+        from run_calibration import preflight
 
-    preflight(driver.low)
+        preflight(driver.low)
     driver.run()

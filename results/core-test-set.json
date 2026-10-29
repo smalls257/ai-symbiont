@@ -1,0 +1,442 @@
+{
+ "label": "exploratory DRAFT: Core test set (later, held out) and earlier collection tasks",
+ "rule": "test = general split 18 + 2 added sqlglot + SWE-Bench-CL Django later 25; collect = sqlglot with any plain solve, then smallest easy-stratum tasks by date",
+ "step_cap": 75,
+ "test_counts": {
+  "sqlglot": 20,
+  "django": 25
+ },
+ "sqlglot_mean_plain_estimate": 0.38,
+ "test": [
+  {
+   "task": "tobymao__sqlglot-1309",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 1.0,
+   "estimate_source": "plain runs at cap 75: 2 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-2095",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 1.0,
+   "estimate_source": "plain runs at cap 75: 2 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-2443",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 1.0,
+   "estimate_source": "plain runs at cap 75: 2 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-2529",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 1.0,
+   "estimate_source": "plain runs at cap 75: 2 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-2658",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 0.5,
+   "estimate_source": "plain runs at cap 75: 1 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-772",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 0.25,
+   "estimate_source": "plain runs at cap 50 (a floor): 1 of 4"
+  },
+  {
+   "task": "tobymao__sqlglot-4208",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 0.75,
+   "estimate_source": "plain runs at cap 50 (a floor): 3 of 4"
+  },
+  {
+   "task": "tobymao__sqlglot-2337",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 3"
+  },
+  {
+   "task": "tobymao__sqlglot-3166",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 0.67,
+   "estimate_source": "plain runs at cap 50 (a floor): 2 of 3"
+  },
+  {
+   "task": "tobymao__sqlglot-4007",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-3111",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.5,
+   "estimate_source": "plain runs at cap 75: 1 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-3436",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-4067",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-4276",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.5,
+   "estimate_source": "plain runs at cap 50 (a floor): 1 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-4533",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-1551",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 3"
+  },
+  {
+   "task": "tobymao__sqlglot-4087",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-4148",
+   "repo": "sqlglot",
+   "kind": "feature",
+   "source": "general split",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 50 (a floor): 0 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-3478",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "added, core",
+   "plain_estimate": 0.5,
+   "estimate_source": "plain runs at cap 75: 1 of 2"
+  },
+  {
+   "task": "tobymao__sqlglot-3339",
+   "repo": "sqlglot",
+   "kind": "bug",
+   "source": "added, core",
+   "plain_estimate": 0.0,
+   "estimate_source": "plain runs at cap 75: 0 of 2"
+  },
+  {
+   "task": "django__django-12276",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 26",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-12304",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 27",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-12308",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 28",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-12419",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 29",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-12741",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 30",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13023",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 31",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13089",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 32",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13109",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 33",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13112",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 34",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13297",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 35",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13363",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 36",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13406",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 37",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13410",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 38",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13417",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 39",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13512",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 40",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13551",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 41",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13741",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 42",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13794",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 43",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13807",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 44",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13821",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 45",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-13933",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 46",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-14089",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 47",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-14315",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 48",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-14373",
+   "repo": "django",
+   "kind": "bug",
+   "source": "SWE-Bench-CL Django later, position 49",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  },
+  {
+   "task": "django__django-14376",
+   "repo": "django",
+   "kind": "feature",
+   "source": "SWE-Bench-CL Django later, position 50",
+   "plain_estimate": null,
+   "estimate_source": "unmeasured; SWE-bench difficulty label <15 min fix"
+  }
+ ],
+ "collect": {
+  "sqlglot": [
+   "tobymao__sqlglot-1367",
+   "tobymao__sqlglot-1379",
+   "tobymao__sqlglot-1703",
+   "tobymao__sqlglot-1782",
+   "tobymao__sqlglot-1944",
+   "tobymao__sqlglot-3533",
+   "tobymao__sqlglot-3689",
+   "tobymao__sqlglot-4390",
+   "tobymao__sqlglot-4941",
+   "tobymao__sqlglot-1340",
+   "tobymao__sqlglot-1819",
+   "tobymao__sqlglot-2439",
+   "tobymao__sqlglot-2521",
+   "tobymao__sqlglot-2605",
+   "tobymao__sqlglot-2619",
+   "tobymao__sqlglot-3552",
+   "tobymao__sqlglot-3799",
+   "tobymao__sqlglot-4194",
+   "tobymao__sqlglot-4355",
+   "tobymao__sqlglot-4563",
+   "tobymao__sqlglot-428",
+   "tobymao__sqlglot-700",
+   "tobymao__sqlglot-960",
+   "tobymao__sqlglot-1001",
+   "tobymao__sqlglot-1670",
+   "tobymao__sqlglot-2093",
+   "tobymao__sqlglot-2251",
+   "tobymao__sqlglot-2825",
+   "tobymao__sqlglot-3230",
+   "tobymao__sqlglot-3401",
+   "tobymao__sqlglot-3417",
+   "tobymao__sqlglot-3695",
+   "tobymao__sqlglot-3785",
+   "tobymao__sqlglot-3871",
+   "tobymao__sqlglot-4523",
+   "tobymao__sqlglot-4618",
+   "tobymao__sqlglot-552",
+   "tobymao__sqlglot-2007",
+   "tobymao__sqlglot-2255",
+   "tobymao__sqlglot-2412"
+  ],
+  "django": [
+   "django__django-9296",
+   "django__django-10880",
+   "django__django-10914",
+   "django__django-10999",
+   "django__django-11066",
+   "django__django-11099",
+   "django__django-11119",
+   "django__django-11133",
+   "django__django-11163",
+   "django__django-11179",
+   "django__django-11239",
+   "django__django-11299",
+   "django__django-11433",
+   "django__django-11451",
+   "django__django-11490",
+   "django__django-11555",
+   "django__django-11603",
+   "django__django-11820",
+   "django__django-11880",
+   "django__django-11951",
+   "django__django-11964",
+   "django__django-12125",
+   "django__django-12193",
+   "django__django-12209"
+  ]
+ }
+}

@@ -22,6 +22,7 @@ class Setting:
     wall_limit_s: int
     adapter_id: int | None = None
     model: str = "model"
+    teacher: str | None = None
 
 
 @pytest.fixture(autouse=True)
@@ -508,3 +509,24 @@ def test_preflight_makes_one_request_and_stops_before_any_run(monkeypatch):
     with pytest.raises(SystemExit, match="preflight failed, no run started: .*adapter id 0"):
         runner.preflight(runner.Setting("low", 75, 1800, adapter_id=0))
     assert asked == ["http://glimmer.invalid:8081/models"] * 2
+
+
+def test_teacher_arm_refuses_test_set_tasks_and_stamps_records(monkeypatch, tmp_path):
+    cal2, driver, _ = lesson_driver(monkeypatch, tmp_path, {"task00": "Edit it."})
+    test_set = tmp_path / "test-set.json"
+    test_set.write_text(json.dumps({"test": [{"task": "elsewhere"}]}))
+    driver.use_teacher("spark", test_set)
+    assert driver.low.teacher == "spark" and driver.header["arm"] == "teacher"
+    assert driver.low.model == "teacher/spark"
+    (tmp_path / "m").mkdir()
+    _, held, _ = lesson_driver(monkeypatch, tmp_path / "m", {"task00": "a"})
+    test_set.write_text(json.dumps({"test": [{"task": held.screen[0]}]}))
+    with pytest.raises(ValueError, match="test-set tasks refused"):
+        held.use_teacher("spark", test_set)
+
+
+def test_teacher_setting_skips_the_glimmer_url_and_names_the_teacher(monkeypatch):
+    runner = load_runner(monkeypatch)
+    monkeypatch.delenv("SYMBIONT_GLIMMER_URL")
+    _, model = runner.agent_config(runner.Setting("low", 75, 2700, teacher="spark"))
+    assert model["model_name"] == "spark"
