@@ -16,16 +16,17 @@ rules:
     severity: ERROR
     languages: [python]
     message: >
-      A price literal outside eval/budget.py (Distributed Monolith): a price change must be
-      one edit. Import the figure from the budget module.
+      A price literal outside egress/spend.py (Distributed Monolith): a price change must be
+      one edit. Import the figure from the spend ledger's price table.
     paths:
       include: ["/src/", "/scripts/"]
-      exclude: ["/src/symbiont/eval/budget.py"]
+      exclude: ["/src/symbiont/egress/spend.py"]
     patterns:
       - pattern-either:
           - pattern: $X = $N
           - pattern: '$X: $T = $N'
           - pattern: '{..., $X: $N, ...}'
+          - pattern: '$F(..., $X=$N, ...)'
       - metavariable-regex:
           metavariable: $N
           regex: ^\d+\.\d+$

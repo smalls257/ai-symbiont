@@ -77,10 +77,18 @@ def model(module, tmp_path, caps=ROOMY):
 def test_each_turn_is_one_capped_ledger_call_with_a_clean_history(monkeypatch, tmp_path):
     module = load(monkeypatch)
     teacher, transport = model(module, tmp_path)
-    messages = [{"role": "user", "content": "fix it", "extra": {"x": 1}, "tool_calls": None}]
+    messages = [
+        {"role": "user", "content": "fix it", "extra": {"x": 1}, "tool_calls": None},
+        {"role": "assistant", "content": None, "tool_calls": [{"id": "c"}]},
+        {"role": "tool", "content": "out", "tool_call_id": "c"},
+    ]
     response = teacher._query(messages)
     body = json.loads(transport.requests[0].data)
-    assert body["messages"] == [{"role": "user", "content": "fix it"}]
+    assert body["messages"] == [
+        {"role": "user", "content": "fix it"},
+        {"role": "assistant", "content": None, "tool_calls": [{"id": "c"}]},
+        {"role": "tool", "content": "out", "tool_call_id": "c"},
+    ]
     assert body["tools"][0]["function"]["name"] == "bash"
     (entry,) = teacher.session.ledger.entries()
     assert entry["label"] == "teacher-spark-t-run1-t1"
@@ -89,7 +97,7 @@ def test_each_turn_is_one_capped_ledger_call_with_a_clean_history(monkeypatch, t
 
 def test_the_run_cap_stops_the_next_turn_and_aborts_retries(monkeypatch, tmp_path):
     module = load(monkeypatch)
-    teacher, transport = model(module, tmp_path, caps=SpendCaps(15.0, 0.0001))
+    teacher, transport = model(module, tmp_path, caps=SpendCaps(15.0, 0.0009))
     teacher._query([{"role": "user", "content": "a"}])
     with pytest.raises(SpendCapError):
         teacher._query([{"role": "user", "content": "b"}])

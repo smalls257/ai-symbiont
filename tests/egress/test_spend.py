@@ -54,15 +54,15 @@ def test_the_run_cap_raises_before_the_next_call(tmp_path):
     ledger = Ledger(tmp_path / "ledger.jsonl")
     ledger.record(entry("probe", 2.0))
     with pytest.raises(SpendCapError, match="run 'probe'"):
-        ledger.check_before_call("probe", SpendCaps(total_usd=15.0, run_usd=2.0))
-    ledger.check_before_call("other", SpendCaps(total_usd=15.0, run_usd=2.0))
+        ledger.reserve("probe", SpendCaps(total_usd=15.0, run_usd=2.0), 0.0, "g")
+    ledger.reserve("other", SpendCaps(total_usd=15.0, run_usd=2.0), 0.0, "g")
 
 
 def test_the_total_cap_raises_for_every_run(tmp_path):
     ledger = Ledger(tmp_path / "ledger.jsonl")
     ledger.record(entry("old", 15.0))
     with pytest.raises(SpendCapError, match="total"):
-        ledger.check_before_call("new", SpendCaps(total_usd=15.0, run_usd=2.0))
+        ledger.reserve("new", SpendCaps(total_usd=15.0, run_usd=2.0), 0.0, "g")
 
 
 def test_the_total_cap_comes_from_the_environment_with_a_15_dollar_default(monkeypatch):

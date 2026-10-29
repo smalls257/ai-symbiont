@@ -19,12 +19,30 @@ log = logging.getLogger("symbiont.egress")
 Transport = Callable[[urllib.request.Request, float], bytes]
 
 
+class _RefuseRedirects(urllib.request.HTTPRedirectHandler):
+    """Refuse every redirect.
+
+    urllib would re-send our headers (the bearer key) to whatever host `Location` names, and turns
+    a 301/302/303 POST into a GET that keeps them. Returning None makes the opener raise the 3xx
+    as an HTTPError.
+    """
+
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+        """Refuse: nothing is followed."""
+        return
+
+
+_OPENER = urllib.request.build_opener(_RefuseRedirects)
+
+
 def _urlopen(request: urllib.request.Request, timeout_s: float) -> bytes:
-    with urllib.request.urlopen(request, timeout=timeout_s) as response:
+    """The default transport: one request, no redirects; raises HTTPError on a 3xx, 4xx or 5xx."""
+    with _OPENER.open(request, timeout=timeout_s) as response:
         return bytes(response.read())
 
 
 def _describe(destination: Destination, size: int, provenance: list[Provenance]) -> str:
+    """The log line for a send: endpoint, host, size and dataset names, never the payload."""
     datasets = sorted({p.dataset for p in provenance})
     return (
         f"endpoint={destination.endpoint.value} host={urlsplit(destination.url).hostname} "

@@ -1,0 +1,723 @@
+{
+ "a2_adapter_sha256": "3114fbf6dd79dacd4cce31ffe3e5fe2f9be5b2f2affd8acb3cc27c2c5d8c460a",
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+ "code_commit": "24881aafcf94c3def1ebde2028d203cfc164f824",
+ "control_of": {
+  "NCAS-CMS/cfdm": "OSeMOSYS/otoole",
+  "OSeMOSYS/otoole": "ShawHahnLab/igseq",
+  "ShawHahnLab/igseq": "Unidata/MetPy",
+  "Unidata/MetPy": "einsteinpy/einsteinpy",
+  "einsteinpy/einsteinpy": "googleapis/python-spanner",
+  "googleapis/python-spanner": "googleapis/python-storage",
+  "googleapis/python-storage": "hylang/hy",
+  "hylang/hy": "marcosschroh/dataclasses-avroschema",
+  "marcosschroh/dataclasses-avroschema": "marshmallow-code/webargs",
+  "marshmallow-code/webargs": "pennmem/cmlreaders",
+  "pennmem/cmlreaders": "scipp/plopp",
+  "scipp/plopp": "zopefoundation/zope.component",
+  "zopefoundation/zope.component": "NCAS-CMS/cfdm"
+ },
+ "decisions": {
+  "a2_vs_a1_at_10": {
+   "ci95_high": 0.0585,
+   "ci95_low": 0.0092,
+   "decision": "tie",
+   "mean_gain": 0.0323,
+   "repos": 13
+  },
+  "a2_vs_per_repo_at_10": {
+   "ci95_high": -0.1338,
+   "ci95_low": -0.2708,
+   "decision": "worse",
+   "mean_gain": -0.2046,
+   "repos": 13
+  },
+  "a2_vs_per_repo_at_5": {
+   "ci95_high": -0.12,
+   "ci95_low": -0.3108,
+   "decision": "worse",
+   "mean_gain": -0.2154,
+   "repos": 13
+  },
+  "confabulation_control_at_10": {
+   "a1_minus_a2": {
+    "ci95_high": 0.1908,
+    "ci95_low": 0.0292,
+    "decision": "better",
+    "mean_gain": 0.0985,
+    "repos": 13
+   },
+   "a2_rate": {
+    "ci95_high": 0.0,
+    "ci95_low": 0.0,
+    "mean_gain": 0.0,
+    "repos": 13
+   },
+   "passes": true
+  },
+  "confabulation_control_at_5": {
+   "a1_minus_a2": {
+    "ci95_high": 0.1292,
+    "ci95_low": 0.0062,
+    "decision": "better",
+    "mean_gain": 0.0554,
+    "repos": 13
+   },
+   "a2_rate": {
+    "ci95_high": 0.0,
+    "ci95_low": 0.0,
+    "mean_gain": 0.0,
+    "repos": 13
+   },
+   "passes": true
+  },
+  "h1_a2_vs_a1_at_5": {
+   "ci95_high": 0.1262,
+   "ci95_low": -0.0092,
+   "decision": "tie",
+   "mean_gain": 0.0585,
+   "repos": 13
+  },
+  "plug_and_play_works": false
+ },
+ "freeze_commit": "24881aafcf94c3def1ebde2028d203cfc164f824",
+ "habit_questions_sha256": "78d2267d767202737d21b215bcfaa74ad0413a2a0c72f20d968843a8b22c3b1f",
+ "habit_rows_sha256": "fa863cb3f13bf66907a16d076cf4d2ffab705272ef785d16ea93c19a271c06ea",
+ "habit_system_sha256": "c4678461a047be012a1ea9287c7ac66f73aa26cad8dd0c87c2f1469d603ed2e8",
+ "habits": {
+  "a2": {
+   "keyword": 1.0,
+   "ranked": 0.7955
+  },
+  "per_repo-NCAS-CMS__cfdm-10": {
+   "keyword": 0.3182,
+   "ranked": 0.1818
+  },
+  "per_repo-NCAS-CMS__cfdm-5": {
+   "keyword": 0.3636,
+   "ranked": 0.1818
+  },
+  "per_repo-OSeMOSYS__otoole-10": {
+   "keyword": 0.3409,
+   "ranked": 0.2273
+  },
+  "per_repo-OSeMOSYS__otoole-5": {
+   "keyword": 0.2727,
+   "ranked": 0.2045
+  },
+  "per_repo-ShawHahnLab__igseq-10": {
+   "keyword": 0.1818,
+   "ranked": 0.3182
+  },
+  "per_repo-ShawHahnLab__igseq-5": {
+   "keyword": 0.1818,
+   "ranked": 0.2955
+  },
+  "per_repo-Unidata__MetPy-10": {
+   "keyword": 0.4545,
+   "ranked": 0.25
+  },
+  "per_repo-Unidata__MetPy-5": {
+   "keyword": 0.3182,
+   "ranked": 0.2045
+  },
+  "per_repo-einsteinpy__einsteinpy-10": {
+   "keyword": 0.1364,
+   "ranked": 0.3182
+  },
+  "per_repo-einsteinpy__einsteinpy-5": {
+   "keyword": 0.2273,
+   "ranked": 0.1818
+  },
+  "per_repo-googleapis__python-spanner-10": {
+   "keyword": 0.2273,
+   "ranked": 0.1818
+  },
+  "per_repo-googleapis__python-spanner-5": {
+   "keyword": 0.3636,
+   "ranked": 0.1818
+  },
+  "per_repo-googleapis__python-storage-10": {
+   "keyword": 0.3636,
+   "ranked": 0.1818
+  },
+  "per_repo-googleapis__python-storage-5": {
+   "keyword": 0.2727,
+   "ranked": 0.1818
+  },
+  "per_repo-hylang__hy-10": {
+   "keyword": 0.4318,
+   "ranked": 0.3182
+  },
+  "per_repo-hylang__hy-5": {
+   "keyword": 0.0909,
+   "ranked": 0.2273
+  },
+  "per_repo-marcosschroh__dataclasses-avroschema-10": {
+   "keyword": 0.3409,
+   "ranked": 0.2045
+  },
+  "per_repo-marcosschroh__dataclasses-avroschema-5": {
+   "keyword": 0.4318,
+   "ranked": 0.1818
+  },
+  "per_repo-marshmallow-code__webargs-10": {
+   "keyword": 0.3636,
+   "ranked": 0.2045
+  },
+  "per_repo-marshmallow-code__webargs-5": {
+   "keyword": 0.3864,
+   "ranked": 0.2727
+  },
+  "per_repo-pennmem__cmlreaders-10": {
+   "keyword": 0.2045,
+   "ranked": 0.3182
+  },
+  "per_repo-pennmem__cmlreaders-5": {
+   "keyword": 0.1364,
+   "ranked": 0.1818
+  },
+  "per_repo-scipp__plopp-10": {
+   "keyword": 0.1818,
+   "ranked": 0.1818
+  },
+  "per_repo-scipp__plopp-5": {
+   "keyword": 0.1818,
+   "ranked": 0.2045
+  },
+  "per_repo-zopefoundation__zope.component-10": {
+   "keyword": 0.3182,
+   "ranked": 0.2273
+  },
+  "per_repo-zopefoundation__zope.component-5": {
+   "keyword": 0.3864,
+   "ranked": 0.2727
+  },
+  "plain": {
+   "keyword": 0.5,
+   "ranked": 0.2045
+  }
+ },
+ "meta_rows_dropped_too_long": 333,
+ "meta_train_repos": [
+  "AzureAD/microsoft-authentication-library-for-python",
+  "BAMWelDX/weldx",
+  "DOV-Vlaanderen/pydov",
+  "KIT-IAI/pyWATTS",
+  "Materials-Consortia/optimade-python-tools",
+  "MycroftAI/lingua-franca",
+  "PMEAL/OpenPNM",
+  "PennyLaneAI/pennylane",
+  "PlasmaPy/PlasmaPy",
+  "PrefectHQ/prefect",
+  "PyCQA/flake8-bugbear",
+  "RDFLib/rdflib",
+  "RockefellerArchiveCenter/DACSspace",
+  "TheFriendlyCoder/friendlypins",
+  "acorg/dark-matter",
+  "algorand/pyteal",
+  "andialbrecht/sqlparse",
+  "awdeorio/mailmerge",
+  "aws/chalice",
+  "bids-standard/pybids",
+  "codalab/codalab-worksheets",
+  "cookiecutter/cookiecutter",
+  "datalad/datalad",
+  "devopshq/artifactory",
+  "dwavesystems/dwave-cloud-client",
+  "dwavesystems/dwave-system",
+  "facelessuser/pymdown-extensions",
+  "fjosw/pyerrors",
+  "graphql-python/graphene-django",
+  "hgrecco/pint",
+  "hgrecco/pint-pandas",
+  "ipython/ipykernel",
+  "jboss-dockerfiles/dogen",
+  "keras-team/keras-nlp",
+  "lincc-frameworks/nested-pandas",
+  "macbre/sql-metadata",
+  "marshmallow-code/marshmallow",
+  "matchms/matchms",
+  "mhostetter/galois",
+  "microsoft/electionguard-python",
+  "mikedh/trimesh",
+  "missionpinball/mpf",
+  "miurahr/aqtinstall",
+  "mwouts/jupytext",
+  "narwhals-dev/narwhals",
+  "ncclient/ncclient",
+  "nltk/nltk",
+  "nosarthur/gita",
+  "nteract/papermill",
+  "omni-us/jsonargparse",
+  "optuna/optuna",
+  "pre-commit/pre-commit-hooks",
+  "psf/black",
+  "pydap/pydap",
+  "pypa/setuptools_scm",
+  "pypa/virtualenv",
+  "python-cmd2/cmd2",
+  "reata/sqllineage",
+  "reframe-hpc/reframe",
+  "robotframework/SeleniumLibrary",
+  "scipp/scippnexus",
+  "scverse/scanpy",
+  "spdx/tools-python",
+  "sqlfluff/sqlfluff",
+  "sunpy/sunpy",
+  "tophat/syrupy",
+  "vertexproject/synapse",
+  "yt-dlp/yt-dlp",
+  "yukinarit/pyserde",
+  "zalando-stups/senza",
+  "zopefoundation/zope.schema"
+ ],
+ "meta_train_rows": 1469,
+ "pool_index_sha256": "a14f22f0158a2ac568f84ffdbbbafaa01059cf22abebc5f4370679623cd258ff",
+ "prereg": "prereg/2026-10-29-l2l-a2.md",
+ "prereg_sha256": "fc1e4670a454dd55c06407845f32c61289e23e6d4b82dd5cb6f012327de5ece7",
+ "result": "a meta-trained reader did not measurably beat the plain model at this size (a2 minus a1 +0.06, interval -0.01 to +0.13)",
+ "rows": [
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "floor_plain",
+   "budget": 5,
+   "invented": 0.3469,
+   "invented_ci95": [
+    0.2867,
+    0.414
+   ],
+   "label": "floor",
+   "lessons_in_prompt": "none",
+   "reworded": 0.0031,
+   "reworded_ci95": [
+    0.0,
+    0.0092
+   ],
+   "role": "floor",
+   "row": "floor_plain",
+   "verbatim": 0.0154,
+   "verbatim_ci95": [
+    0.0026,
+    0.0308
+   ]
+  },
+  {
+   "abstention": 1.0,
+   "abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "arm": "floor_a2",
+   "budget": 5,
+   "invented": 0.0,
+   "invented_ci95": [
+    0.0,
+    0.0
+   ],
+   "label": "floor",
+   "lessons_in_prompt": "none",
+   "reworded": 0.0,
+   "reworded_ci95": [
+    0.0,
+    0.0
+   ],
+   "role": "floor",
+   "row": "floor_a2",
+   "verbatim": 0.0,
+   "verbatim_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "a1",
+   "budget": 5,
+   "invented": 0.0741,
+   "invented_ci95": [
+    0.0531,
+    0.0965
+   ],
+   "label": "reference",
+   "lessons_in_prompt": "own",
+   "reworded": 0.3415,
+   "reworded_ci95": [
+    0.2677,
+    0.4185
+   ],
+   "role": "reference",
+   "row": "a1",
+   "verbatim": 0.2897,
+   "verbatim_ci95": [
+    0.2154,
+    0.3667
+   ]
+  },
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "per_repo",
+   "budget": 5,
+   "invented": 0.0028,
+   "invented_ci95": [
+    0.0,
+    0.007
+   ],
+   "label": "reference",
+   "lessons_in_prompt": "none",
+   "reworded": 0.6154,
+   "reworded_ci95": [
+    0.4923,
+    0.7354
+   ],
+   "role": "reference",
+   "row": "per_repo",
+   "verbatim": 0.7795,
+   "verbatim_ci95": [
+    0.7,
+    0.8513
+   ]
+  },
+  {
+   "abstention": 0.1292,
+   "abstention_ci95": [
+    0.1077,
+    0.1538
+   ],
+   "arm": "a2",
+   "budget": 5,
+   "invented": 0.0,
+   "invented_ci95": [
+    0.0,
+    0.0
+   ],
+   "label": "under_test",
+   "lessons_in_prompt": "own",
+   "reworded": 0.4,
+   "reworded_ci95": [
+    0.3692,
+    0.4308
+   ],
+   "role": "under_test",
+   "row": "a2",
+   "verbatim": 0.7744,
+   "verbatim_ci95": [
+    0.7,
+    0.8513
+   ]
+  },
+  {
+   "abstention": 1.0,
+   "abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "arm": "a2_wrong",
+   "budget": 5,
+   "confabulation": 0.0,
+   "confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "invented": 0.0,
+   "invented_ci95": [
+    0.0,
+    0.0
+   ],
+   "label": "control",
+   "lessons_in_prompt": "wrong",
+   "reworded": 0.0,
+   "reworded_ci95": [
+    0.0,
+    0.0
+   ],
+   "role": "reference",
+   "row": "a2_wrong",
+   "verbatim": 0.0,
+   "verbatim_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "a1_wrong",
+   "budget": 5,
+   "confabulation": 0.0554,
+   "confabulation_ci95": [
+    0.0062,
+    0.1292
+   ],
+   "invented": 0.379,
+   "invented_ci95": [
+    0.3035,
+    0.4448
+   ],
+   "label": "control",
+   "lessons_in_prompt": "wrong",
+   "reworded": 0.0308,
+   "reworded_ci95": [
+    0.0062,
+    0.0585
+   ],
+   "role": "reference",
+   "row": "a1_wrong",
+   "verbatim": 0.0385,
+   "verbatim_ci95": [
+    0.0128,
+    0.0667
+   ]
+  },
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "floor_plain",
+   "budget": 10,
+   "invented": 0.3329,
+   "invented_ci95": [
+    0.2881,
+    0.3797
+   ],
+   "label": "floor",
+   "lessons_in_prompt": "none",
+   "reworded": 0.0077,
+   "reworded_ci95": [
+    0.0,
+    0.0169
+   ],
+   "role": "floor",
+   "row": "floor_plain",
+   "verbatim": 0.0141,
+   "verbatim_ci95": [
+    0.0051,
+    0.0231
+   ]
+  },
+  {
+   "abstention": 1.0,
+   "abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "arm": "floor_a2",
+   "budget": 10,
+   "invented": 0.0,
+   "invented_ci95": [
+    0.0,
+    0.0
+   ],
+   "label": "floor",
+   "lessons_in_prompt": "none",
+   "reworded": 0.0,
+   "reworded_ci95": [
+    0.0,
+    0.0
+   ],
+   "role": "floor",
+   "row": "floor_a2",
+   "verbatim": 0.0,
+   "verbatim_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "a1",
+   "budget": 10,
+   "invented": 0.0909,
+   "invented_ci95": [
+    0.0699,
+    0.1112
+   ],
+   "label": "reference",
+   "lessons_in_prompt": "own",
+   "reworded": 0.3385,
+   "reworded_ci95": [
+    0.2985,
+    0.3769
+   ],
+   "role": "reference",
+   "row": "a1",
+   "verbatim": 0.2987,
+   "verbatim_ci95": [
+    0.2462,
+    0.35
+   ]
+  },
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "per_repo",
+   "budget": 10,
+   "invented": 0.0014,
+   "invented_ci95": [
+    0.0,
+    0.0035
+   ],
+   "label": "reference",
+   "lessons_in_prompt": "none",
+   "reworded": 0.5754,
+   "reworded_ci95": [
+    0.4969,
+    0.6523
+   ],
+   "role": "reference",
+   "row": "per_repo",
+   "verbatim": 0.7487,
+   "verbatim_ci95": [
+    0.6885,
+    0.8064
+   ]
+  },
+  {
+   "abstention": 0.1554,
+   "abstention_ci95": [
+    0.1354,
+    0.1738
+   ],
+   "arm": "a2",
+   "budget": 10,
+   "invented": 0.0,
+   "invented_ci95": [
+    0.0,
+    0.0
+   ],
+   "label": "under_test",
+   "lessons_in_prompt": "own",
+   "reworded": 0.3708,
+   "reworded_ci95": [
+    0.34,
+    0.4015
+   ],
+   "role": "under_test",
+   "row": "a2",
+   "verbatim": 0.7064,
+   "verbatim_ci95": [
+    0.6564,
+    0.7551
+   ]
+  },
+  {
+   "abstention": 1.0,
+   "abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "arm": "a2_wrong",
+   "budget": 10,
+   "confabulation": 0.0,
+   "confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "invented": 0.0,
+   "invented_ci95": [
+    0.0,
+    0.0
+   ],
+   "label": "control",
+   "lessons_in_prompt": "wrong",
+   "reworded": 0.0,
+   "reworded_ci95": [
+    0.0,
+    0.0
+   ],
+   "role": "reference",
+   "row": "a2_wrong",
+   "verbatim": 0.0,
+   "verbatim_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "abstention": 0.0,
+   "abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "arm": "a1_wrong",
+   "budget": 10,
+   "confabulation": 0.0985,
+   "confabulation_ci95": [
+    0.0292,
+    0.1908
+   ],
+   "invented": 0.4042,
+   "invented_ci95": [
+    0.3112,
+    0.4839
+   ],
+   "label": "control",
+   "lessons_in_prompt": "wrong",
+   "reworded": 0.0523,
+   "reworded_ci95": [
+    0.0292,
+    0.08
+   ],
+   "role": "reference",
+   "row": "a1_wrong",
+   "verbatim": 0.0641,
+   "verbatim_ci95": [
+    0.0436,
+    0.0846
+   ]
+  }
+ ],
+ "run_label": "scored",
+ "scored_output_sha256": "07741db0cca69480eaa98ba15f2686a5ed27636ebad6d1818357658b2eb6231a",
+ "scored_repos": {
+  "NCAS-CMS/cfdm": 10,
+  "OSeMOSYS/otoole": 13,
+  "ShawHahnLab/igseq": 11,
+  "Unidata/MetPy": 19,
+  "einsteinpy/einsteinpy": 12,
+  "googleapis/python-spanner": 17,
+  "googleapis/python-storage": 13,
+  "hylang/hy": 17,
+  "marcosschroh/dataclasses-avroschema": 12,
+  "marshmallow-code/webargs": 10,
+  "pennmem/cmlreaders": 29,
+  "scipp/plopp": 18,
+  "zopefoundation/zope.component": 19
+ },
+ "sensitivity": {
+  "ci95_high": 0.1262,
+  "ci95_low": -0.0092,
+  "decision": "tie",
+  "label": "H1 without shared-key lessons, never decides",
+  "mean_gain": 0.0577,
+  "repos": 13,
+  "shared_lessons": 5
+ },
+ "shared_key_lessons": 5,
+ "status": "scored under prereg/2026-10-29-l2l-a2.md"
+}

@@ -18,6 +18,7 @@ from minisweagent.models.utils.actions_toolcall import BASH_TOOL
 
 from symbiont.egress import EgressRefusedError
 from symbiont.egress.credentials import load_meta_key
+from symbiont.egress.messages import Message
 from symbiont.egress.policy import Endpoint
 from symbiont.egress.spark import Effort, SparkSession, _usage_from
 from symbiont.egress.spend import SpendCapError, Tier, caps_from_environment, cost_usd
@@ -26,7 +27,6 @@ from symbiont.records.schema import Provenance
 RUN_CAP_VARIABLE = "SYMBIONT_TEACHER_RUN_CAP_USD"
 DEFAULT_RUN_CAP_DOLLARS = 0.5  # one 75-step run is about $0.07-0.10 on Contributor [hypothesis]
 MAX_TOKENS = 8192  # room for hidden reasoning plus a tool call
-HISTORY_KEYS = ("role", "content", "tool_calls", "tool_call_id", "name")
 PUBLIC_ROWS = Provenance(
     dataset="swe-rebench-and-swe-bench-public", license="public", spark_safe=True
 )
@@ -58,9 +58,19 @@ SPECS = {
 }
 
 
-def history(messages: list[dict]) -> list[dict]:
-    """The chat history in the plain OpenAI shape; agent bookkeeping fields stay home."""
-    return [{key: msg[key] for key in HISTORY_KEYS if msg.get(key) is not None} for msg in messages]
+WIRE_KEYS = ("tool_calls", "tool_call_id", "name")
+
+
+def history(messages: list[dict]) -> list[Message]:
+    """The agent's history as egress messages: public task rows in, replies derived from them."""
+    found: list[Message] = []
+    for msg in messages:
+        extra = {key: msg[key] for key in WIRE_KEYS if msg.get(key) is not None}
+        if msg["role"] == "assistant":
+            found.append(Message.assistant(msg.get("content"), found, extra))
+        else:
+            found.append(Message(msg["role"], msg.get("content"), (PUBLIC_ROWS,), extra))
+    return found
 
 
 class TeacherAgentModel(LitellmModel):

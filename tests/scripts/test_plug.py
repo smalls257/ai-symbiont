@@ -212,6 +212,48 @@ def test_replay_arm_adds_one_habit_row_per_repo_row(plug_a3):
     assert len(replay) == len(plain) + 3
 
 
+def test_rerun_verdicts_follow_the_go_and_kill_rule(plug_a3):
+    def row(arm, no_lessons, new):
+        return {"arm": arm, "no_lessons": no_lessons, "new_lessons": new}
+
+    rows = [
+        row("per_repo", 0.5, 0.4),
+        row("a1", 0.0, 0.4),
+        row("a2v", 0.0, 0.6),
+        row("a3", 0.6, 0.7),
+        row("a3_more", 0.6, 0.5),
+        row("a3_replay", 0.6, 0.3),
+    ]
+    assert plug_a3.verdicts(rows) == {"a3": "go", "a3_more": "hold", "a3_replay": "kill"}
+
+
+def test_more_replay_must_also_keep_habits_near_a2(plug_a3):
+    def row(arm, no_lessons, new, habits):
+        return {"arm": arm, "no_lessons": no_lessons, "new_lessons": new, "habits_ranked": habits}
+
+    base = [row("per_repo", 0.5, 0.4, 0.2), row("a1", 0.0, 0.4, 0.2), row("a2v", 0.0, 0.6, 0.9)]
+    kept = plug_a3.verdicts([*base, row("a3_more_replay", 0.6, 0.7, 0.85)])
+    lost = plug_a3.verdicts([*base, row("a3_more_replay", 0.6, 0.7, 0.70)])
+    assert kept == {"a3_more_replay": "go"}
+    assert lost == {"a3_more_replay": "hold"}
+
+
+def test_paired_gives_arm_minus_reference_per_repo(plug_a3):
+    def cell(no_lessons, new, habits):
+        return {"no_lessons": no_lessons, "new_lessons": new, "habits_ranked": habits}
+
+    cells = {}
+    for repo, base in (("r1", 0.1), ("r2", 0.3)):
+        cells[("per_repo", repo)] = cell(base, 0.0, 0.0)
+        cells[("a2v", repo)] = cell(0.0, base, 0.9)
+        cells[("a3", repo)] = cell(base + 0.2, base - 0.1, 0.4)
+    found = plug_a3.paired(cells)
+    assert found["a3_minus_per_repo_no_lessons"]["mean_gain"] == 0.2
+    assert found["a3_minus_a2v_new_lessons"]["mean_gain"] == -0.1
+    assert found["a3_minus_a2v_habits_ranked"]["mean_gain"] == -0.5
+    assert not any(key.startswith("a3_more") for key in found)
+
+
 class FakeGit:
     """Answers the three git calls the code guard makes."""
 

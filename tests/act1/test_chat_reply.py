@@ -2,12 +2,11 @@
 
 import io
 import json
-import urllib.request
 
 import pytest
 
 from symbiont.act1.glimmer import TokenUsage, chat_reply, plain_and_personal
-from symbiont.egress import EgressRefusedError
+from symbiont.egress import EgressRefusedError, client
 
 
 class _Response(io.BytesIO):
@@ -38,7 +37,7 @@ def test_chat_reply_posts_the_same_request_and_parses_the_reply(monkeypatch):
         }
         return _Response(json.dumps(reply).encode())
 
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(client._OPENER, "open", fake_urlopen)
     reply = chat_reply("http://127.0.0.1:8081/v1/", "m", "hello", timeout_s=9)
     assert (reply.text, reply.finish_reason, reply.reasoning_chars) == ("walk_to(exit)", "stop", 3)
     assert seen["url"] == "http://127.0.0.1:8081/v1/chat/completions" and seen["timeout"] == 9
@@ -63,7 +62,7 @@ def captured_bodies(monkeypatch):
         }
         return _Response(json.dumps(reply).encode())
 
-    monkeypatch.setattr(urllib.request, "urlopen", fake_urlopen)
+    monkeypatch.setattr(client._OPENER, "open", fake_urlopen)
     return bodies
 
 
