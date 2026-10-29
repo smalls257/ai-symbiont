@@ -71,8 +71,17 @@ def _is_room_rechecked(
     return _names(after) <= memory.seen.get(room_after, set())
 
 
-def _is_wasted_move(before: GameStateView, after: GameStateView) -> bool:
-    """A move that changed nothing: no distance, no turn, no health or ammo change."""
+def _is_wasted_shot(run: MoveRun) -> bool:
+    """A shoot run that started with no enemy in view, whatever ammo or health did afterwards.
+
+    Pinned on the view before the shot so that a later change to ShootNearest cannot reopen the
+    gap where firing in place escapes the mistake count (Evolve plan, ruling 8).
+    """
+    return run.kind == MoveKind.SHOOT and not any(seen.is_enemy for seen in run.before.objects)
+
+
+def _changed_nothing(before: GameStateView, after: GameStateView) -> bool:
+    """No distance, no turn, no health, ammo, key or door change."""
     covered = math.dist(before.position, after.position)
     turned = abs(normalize_degrees(after.angle_deg - before.angle_deg))
     return (
@@ -83,6 +92,11 @@ def _is_wasted_move(before: GameStateView, after: GameStateView) -> bool:
         and before.keys_held == after.keys_held
         and before.closed_sectors == after.closed_sectors
     )
+
+
+def _is_wasted_move(run: MoveRun, after: GameStateView) -> bool:
+    """A move that changed nothing, or a shot fired with no enemy in view."""
+    return _is_wasted_shot(run) or _changed_nothing(run.before, after)
 
 
 def _tag_one(run: MoveRun, rooms: RoomFinder, memory: _EpisodeMemory) -> tuple[GamePain, ...]:
@@ -96,7 +110,7 @@ def _tag_one(run: MoveRun, rooms: RoomFinder, memory: _EpisodeMemory) -> tuple[G
         GamePain.WALL_BUMP: _is_wall_bump(run),
         GamePain.ROOM_REENTERED: _is_room_reentered(room_before, room_after, memory),
         GamePain.ROOM_RECHECKED: _is_room_rechecked(run.kind, run.after, room_after, memory),
-        GamePain.WASTED_MOVE: _is_wasted_move(run.before, run.after),
+        GamePain.WASTED_MOVE: _is_wasted_move(run, run.after),
     }
     if room_after != room_before:
         memory.left.add(room_before)

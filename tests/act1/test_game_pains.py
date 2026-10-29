@@ -13,10 +13,12 @@ IN_ROOM_1 = (150.0, 50.0)
 BLUE_CARD = SeenObject("BlueCard", 50.0, 0.0)
 
 
-def view(position, angle=0.0, objects=(), health=100.0, doors=(), exits=(), keys=(), closed=()):
+def view(
+    position, angle=0.0, objects=(), health=100.0, doors=(), exits=(), keys=(), closed=(), ammo=50.0
+):
     return GameStateView(
         health=health,
-        ammo=50.0,
+        ammo=ammo,
         position=position,
         angle_deg=angle,
         objects=tuple(objects),
@@ -118,7 +120,7 @@ def test_wasted_move_fires_when_nothing_changed():
 
 
 def test_wasted_move_silent_when_health_changed():
-    hurt = run(view(IN_ROOM_0), view(IN_ROOM_0, health=80.0), MoveKind.SHOOT, "shot")
+    hurt = run(view(IN_ROOM_0), view(IN_ROOM_0, health=80.0), MoveKind.USE, "nothing to open")
     assert GamePain.WASTED_MOVE not in tags(hurt)[0]
 
 
@@ -130,6 +132,29 @@ def test_wasted_move_silent_when_the_player_turned_across_the_wraparound():
 def test_wasted_move_fires_on_a_turn_that_wrapped_back_to_the_same_heading():
     idle = run(view(IN_ROOM_0, 359.0), view(IN_ROOM_0, 1.0), MoveKind.TURN, "turned 2 degrees")
     assert GamePain.WASTED_MOVE in tags(idle)[0]
+
+
+ZOMBIE = SeenObject("Zombieman", 200.0, 0.0)
+
+
+def test_wasted_move_fires_on_a_shot_with_no_enemy_in_view_even_when_ammo_dropped():
+    fired = run(view(IN_ROOM_0), view(IN_ROOM_0, ammo=49.0), MoveKind.SHOOT, "no enemy visible")
+    assert GamePain.WASTED_MOVE in tags(fired)[0]
+
+
+def test_wasted_move_fires_on_a_shot_with_no_enemy_in_view_even_when_health_changed():
+    hurt = run(view(IN_ROOM_0), view(IN_ROOM_0, health=80.0), MoveKind.SHOOT, "shot")
+    assert GamePain.WASTED_MOVE in tags(hurt)[0]
+
+
+def test_wasted_move_silent_on_a_shot_that_missed_a_visible_enemy():
+    missed = run(
+        view(IN_ROOM_0, objects=[ZOMBIE]),
+        view(IN_ROOM_0, objects=[ZOMBIE], ammo=49.0),
+        MoveKind.SHOOT,
+        "timeout after 60 tics",
+    )
+    assert GamePain.WASTED_MOVE not in tags(missed)[0]
 
 
 def test_a_move_that_ended_the_episode_gets_no_tags():
