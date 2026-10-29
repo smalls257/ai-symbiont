@@ -69,7 +69,7 @@
     "what": {"type": "string", "minLength": 1},
     "resolved": {"type": "string", "minLength": 1},
     "check": {"type": "string", "minLength": 1},
-    "source": {"enum": ["classifier fired", "Glimmer recalled", "lesson in prompt (pilot)"]}
+    "source": {"enum": ["classifier fired", "Glimmer recalled", "lesson in prompt (pilot)", "Route A offline replay"]}
    }
   },
   "classifier": {
