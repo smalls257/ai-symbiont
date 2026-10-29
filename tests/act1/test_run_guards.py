@@ -37,6 +37,19 @@ def test_seed_noise_above_card_differences_doubles_the_games_when_money_allows()
     assert report.between_variance == pytest.approx(0.0)
 
 
+def test_noisy_games_do_not_hide_cards_that_truly_differ():
+    # Single games disagree (within 0.5) but the 8-game card means sit 0.5 apart: the old
+    # single-game comparison said noise; the like-for-like comparison selects.
+    differ = {
+        "a": ((0.0, 1.0), (1.0, 0.0), (0.0, 1.0), (1.0, 0.0)),
+        "b": ((0.5, 1.5), (1.5, 0.5), (0.5, 1.5), (1.5, 0.5)),
+        "c": ((1.0, 2.0), (2.0, 1.0), (1.0, 2.0), (2.0, 1.0)),
+    }
+    report = noise_check(differ, SHORT)
+    assert report.verdict is NoiseVerdict.SELECT
+    assert report.within_variance / 8 < report.between_variance
+
+
 def test_seed_noise_with_too_little_money_left_stops_the_run():
     assert noise_check(SEEDS_DISAGREE, SHORT).verdict is NoiseVerdict.STOP
 

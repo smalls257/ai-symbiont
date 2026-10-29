@@ -63,9 +63,10 @@ class NoiseReport:
 def noise_check(
     replays: Mapping[str, tuple[tuple[float, float], ...]], spend_room: SpendRoom
 ) -> NoiseReport:
-    """Seed noise against card differences; `replays` holds one seed pair per card and level.
+    """Seed noise of a card's mean against card differences, from the same games.
 
-    The standard error is the spread of all games over the square root of 4, the size of a mean.
+    `replays` holds one seed pair per card and level. The standard error is the spread of all
+    games over the square root of 4, the size of a mean.
     """
     pairs = [pair for rows in replays.values() for pair in rows]
     within = statistics.fmean(statistics.variance(pair) for pair in pairs)
@@ -73,12 +74,14 @@ def noise_check(
     between = statistics.variance(card_means)
     every_game = [value for pair in pairs for value in pair]
     standard_error = statistics.stdev(every_game) / GAMES_PER_MEAN**0.5
-    return NoiseReport(_noise_verdict(within, between, spend_room), within, between, standard_error)
+    games_per_card = 2 * len(next(iter(replays.values())))
+    verdict = _noise_verdict(within / games_per_card, between, spend_room)
+    return NoiseReport(verdict, within, between, standard_error)
 
 
-def _noise_verdict(within: float, between: float, spend_room: SpendRoom) -> NoiseVerdict:
-    """SELECT unless seed noise exceeds card differences; then DOUBLE_GAMES if it fits."""
-    if within <= between:
+def _noise_verdict(within_of_mean: float, between: float, spend_room: SpendRoom) -> NoiseVerdict:
+    """SELECT when card means differ more than seed noise moves a mean; else double or stop."""
+    if within_of_mean < between:
         return NoiseVerdict.SELECT
     return NoiseVerdict.DOUBLE_GAMES if spend_room.fits_doubling() else NoiseVerdict.STOP
 
