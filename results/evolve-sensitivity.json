@@ -1,0 +1,191 @@
+{
+ "schema": "evolve-sensitivity-v1",
+ "label": "exploratory card-sensitivity check, Spark, 12 games per cell [measured]",
+ "games_per_cell": 12,
+ "settings": {
+  "A": {
+   "cards": {
+    "empty": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.08811173125658801,
+     "sd": 0.45076779558308444
+    },
+    "best_gen0": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": 0.21342861142006908,
+     "sd": 0.5586454303068646
+    },
+    "bad": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.398261271644008,
+     "sd": 0.10812719806810907
+    },
+    "strong": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": 0.4599581623547802,
+     "sd": 0.7938625710997551
+    }
+   },
+   "pooled_sd": 0.5378628066460697,
+   "gaps": {
+    "best_gen0": {
+     "gap": 0.3015403426766571,
+     "gap_in_sd": 0.5606268716681871,
+     "games_per_card_needed": 50
+    },
+    "bad": {
+     "gap": -0.31014954038742,
+     "gap_in_sd": -0.5766331796046793,
+     "games_per_card_needed": 48
+    },
+    "strong": {
+     "gap": 0.5480698936113683,
+     "gap_in_sd": 1.0189771198885205,
+     "games_per_card_needed": 16
+    }
+   }
+  },
+  "B": {
+   "cards": {
+    "empty": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.1382615419228455,
+     "sd": 0.11130820234721865
+    },
+    "best_gen0": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": 0.4696618770786373,
+     "sd": 0.6700066923619205
+    },
+    "bad": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.4180920371342012,
+     "sd": 0.10055662767813496
+    },
+    "strong": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": 0.14134866138106125,
+     "sd": 0.7700661910118533
+    }
+   },
+   "pooled_sd": 0.5158517368462168,
+   "gaps": {
+    "best_gen0": {
+     "gap": 0.6079234190014828,
+     "gap_in_sd": 1.1784847768821491,
+     "games_per_card_needed": 12
+    },
+    "bad": {
+     "gap": -0.27983049521135567,
+     "gap_in_sd": -0.5424630280827714,
+     "games_per_card_needed": 54
+    },
+    "strong": {
+     "gap": 0.27961020330390673,
+     "gap_in_sd": 0.5420359830779493,
+     "games_per_card_needed": 54
+    }
+   }
+  },
+  "D": {
+   "cards": {
+    "empty": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.03020321982499684,
+     "sd": 0.40784716838740304
+    },
+    "best_gen0": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": 0.027670547811218787,
+     "sd": 0.4560009413063461
+    },
+    "bad": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.44333333333333336,
+     "sd": 0.0873169080089442
+    },
+    "strong": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": 0.10370506948997486,
+     "sd": 0.6034720120075144
+    }
+   },
+   "pooled_sd": 0.43187928954006827,
+   "gaps": {
+    "best_gen0": {
+     "gap": 0.05787376763621563,
+     "gap_in_sd": 0.13400449856682997,
+     "games_per_card_needed": 874
+    },
+    "bad": {
+     "gap": -0.4131301135083365,
+     "gap_in_sd": -0.956586998992939,
+     "games_per_card_needed": 18
+    },
+    "strong": {
+     "gap": 0.1339082893149717,
+     "gap_in_sd": 0.31005952949857335,
+     "games_per_card_needed": 164
+    }
+   }
+  },
+  "C": {
+   "cards": {
+    "empty": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.37544709353339273,
+     "sd": 0.20780122281930077
+    },
+    "best_gen0": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.017845363328907963,
+     "sd": 0.8195164553995626
+    },
+    "bad": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.37241398227624734,
+     "sd": 0.1760731328863825
+    },
+    "strong": {
+     "games": 12,
+     "ungraded": 0,
+     "mean": -0.2817553749466531,
+     "sd": 0.5075860780928655
+    }
+   },
+   "pooled_sd": 0.500857750183119,
+   "gaps": {
+    "best_gen0": {
+     "gap": 0.35760173020448477,
+     "gap_in_sd": 0.7139786298080478,
+     "games_per_card_needed": 31
+    },
+    "bad": {
+     "gap": 0.0030331112571453933,
+     "gap_in_sd": 0.006055833729310279,
+     "games_per_card_needed": 427562
+    },
+    "strong": {
+     "gap": 0.09369171858673964,
+     "gap_in_sd": 0.18706253133246903,
+     "games_per_card_needed": 449
+    }
+   }
+  }
+ }
+}
