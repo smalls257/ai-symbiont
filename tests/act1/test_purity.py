@@ -28,6 +28,7 @@ PURE_FILES = (
     "move_cuts.py",
     "game_fitness.py",
     "lexicase.py",
+    "card_archive.py",
 )
 
 
