@@ -11,7 +11,7 @@ from dataclasses import dataclass
 
 from symbiont.act1.navbuild import SectorState
 from symbiont.act1.navgrid import WalkGrid
-from symbiont.act1.navmech import Mechanism, apply_mechanism
+from symbiont.act1.navmech import FIRABLE_EFFECTS, Mechanism, apply_mechanism
 from symbiont.act1.navroute import cells_to, ending_on, waypoints_for
 from symbiont.act1.navsearch import DoorAwareSearch, DoorRules, SearchResult
 from symbiont.act1.navspecials import Trigger
@@ -97,7 +97,7 @@ class RoutePlanner:
         self, geometry: MapGeometry, grid: WalkGrid, mechanisms: Iterable[Mechanism]
     ) -> None:
         self._geometry, self._grid = geometry, grid
-        self._mechanisms = tuple(mechanisms)
+        self._mechanisms = tuple(m for m in mechanisms if m.special.effect in FIRABLE_EFFECTS)
         self._neighbors = _sector_neighbors(geometry)
 
     def plan(

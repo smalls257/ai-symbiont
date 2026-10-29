@@ -106,3 +106,11 @@ def test_the_smoke_results_feed_the_split_directly():
     every = {f"MAP{n:02d}": SmokeResult(True, "") for n in range(1, 33)}
     every["MAP12"] = SmokeResult(False, "no_route: x")
     assert "MAP12" not in EvolveSplit.of(every).held_out
+
+
+def test_a_route_that_shuts_its_own_door_is_dropped_as_unsafe_not_passed():
+    from nav_mech_world import closing_door
+
+    assert smoke_levels.static_route_check(closing_door(closer=12)).passed
+    dropped = smoke_levels.static_route_check(closing_door(closer=3))
+    assert not dropped.passed and dropped.reason.startswith("unsafe_route")

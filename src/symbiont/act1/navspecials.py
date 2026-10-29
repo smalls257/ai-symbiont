@@ -35,6 +35,8 @@ class Effect(StrEnum):
     TELEPORT = "teleport"  # to the teleport destination thing in the sector with the tag
     EXIT = "exit"
     SECRET_EXIT = "secret_exit"
+    CLOSE_DOOR = "close_door"  # the ceiling drops to the floor: a passage is lost
+    LOWER_CEILING = "lower_ceiling"  # a ceiling (or a crusher) comes down on the sector
     NO_ROUTE_EFFECT = "no_route_effect"  # changes nothing a walking route depends on
     UNMODELED = "unmodeled"  # changes the world in a way this planner does not follow
 
@@ -104,11 +106,10 @@ def _no_route_effect() -> dict[int, Special]:
     use, walk = Trigger.USE, Trigger.WALK
     none = Effect.NO_ROUTE_EFFECT
     table: dict[int, Special] = {}
-    table.update(_group((3, 16, 75, 76, 107, 110), walk, none, note="closes a door"))
-    table.update(_group((42, 50, 113, 116), use, none, note="closes a door"))
-    table.update(_group((41, 43, 49), use, none, note="lowers a ceiling"))
-    table.update(_group((44, 72), walk, none, note="lowers a ceiling"))
-    table.update(_group((6, 25, 73, 77, 141), walk, none, note="starts a crusher"))
+    table.update(_group((3, 16, 75, 76, 107, 110), walk, Effect.CLOSE_DOOR))
+    table.update(_group((42, 50, 113, 116), use, Effect.CLOSE_DOOR))
+    table.update(_group((41, 43, 49), use, Effect.LOWER_CEILING))
+    table.update(_group((44, 72, 6, 25, 73, 77, 141), walk, Effect.LOWER_CEILING))
     table.update(_group((57, 74, 54, 89), walk, none, note="stops a crusher or lift"))
     table.update(_group((12, 13, 17, 35, 79, 80, 81, 104), walk, none, note="changes lights"))
     table.update(_group((138, 139), use, none, note="changes lights"))

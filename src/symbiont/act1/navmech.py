@@ -15,6 +15,8 @@ from symbiont.act1.wad import MapGeometry
 
 # the floor stops 8 units short of the lowest neighboring ceiling when it would otherwise crush
 CRUSH_MARGIN = 8
+# a lowered ceiling or a crusher leaves less than the player's height
+CEILING_CLEARANCE = 8
 CRUSHING_RAISERS = frozenset({55, 56, 65, 94})
 _ROUTED_EFFECTS = frozenset(
     {
@@ -26,8 +28,12 @@ _ROUTED_EFFECTS = frozenset(
         Effect.RAISE_FLOOR_CEILING,
         Effect.RAISE_FLOOR_BY,
         Effect.TELEPORT,
+        Effect.CLOSE_DOOR,
+        Effect.LOWER_CEILING,
     }
 )
+# what the planner may press on purpose; the rest are only crossed by accident (see navhazard)
+FIRABLE_EFFECTS = _ROUTED_EFFECTS - {Effect.CLOSE_DOOR, Effect.LOWER_CEILING}
 _PLAYER_TRIGGERS = frozenset({Trigger.USE, Trigger.WALK})
 
 
@@ -126,6 +132,10 @@ def _moved(
     effect = mechanism.special.effect
     if effect == Effect.OPEN_DOOR:
         return replace(state, ceiling=OPEN_DOOR_CEILING)
+    if effect == Effect.CLOSE_DOOR:
+        return replace(state, ceiling=state.floor_out)
+    if effect == Effect.LOWER_CEILING:
+        return replace(state, ceiling=state.floor_out + CEILING_CLEARANCE)
     around = _neighbors(geometry, sector)
     if effect == Effect.LIFT:
         low = min([state.floor_out, *(states[n].floor_out for n in around)])

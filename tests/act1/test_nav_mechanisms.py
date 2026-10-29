@@ -2,7 +2,7 @@ import math
 
 import pytest
 
-from nav_mech_world import START, TAG, lift, pedestal_key, switch_door, teleport
+from nav_mech_world import START, TAG, closing_door, lift, pedestal_key, switch_door, teleport
 from symbiont.act1.map_index import build_index
 from symbiont.act1.navmap import NoPath, Route, build_navmap
 from symbiont.act1.navmech import apply_mechanism, build_mechanisms
@@ -118,3 +118,14 @@ def test_a_raised_floor_stops_at_its_own_ceiling_and_uses_the_neighbors_current_
     lowered[0] = lowered[0].__class__(0, 0, 120)  # room A's ceiling now 120
     raised = apply_mechanism(geometry, lowered, to_ceiling[0])
     assert raised[1].floor_out == 120
+
+
+def test_a_walkover_line_that_shuts_the_door_makes_the_route_fragile_and_says_which():
+    route = way_to_exit(closing_door(closer=3))
+    assert isinstance(route, Route)
+    assert len(route.hazards) == 1 and "special 3" in route.hazards[0]
+
+
+def test_a_ceiling_lowering_walkover_is_a_hazard_too_and_a_harmless_line_is_not():
+    assert "special 44" in way_to_exit(closing_door(closer=44)).hazards[0]
+    assert way_to_exit(closing_door(closer=12)).hazards == ()  # a light change

@@ -29,6 +29,7 @@ BLOCKER_KINDS = (
     ("nothing of that kind", "no_exit_on_map"),
     ("not on walkable floor", "exit_off_floor"),
     ("locked door", "locked_door"),
+    ("unsafe route", "unsafe_route"),
     ("climb", "climb"),
     ("headroom", "headroom"),
     ("edge of the map", "void"),

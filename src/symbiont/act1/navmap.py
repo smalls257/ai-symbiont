@@ -7,11 +7,13 @@ navroute and navdiagnose do the work; this module lists doors, exits and keys an
 """
 
 from collections.abc import Iterable, Iterator, Sequence
+from dataclasses import replace
 
 from symbiont.act1.map_index import MapIndex
 from symbiont.act1.navbuild import SectorState, sector_box
 from symbiont.act1.navdiagnose import explain_unreachable
 from symbiont.act1.navgrid import WalkGrid
+from symbiont.act1.navhazard import audit_route
 from symbiont.act1.navmech import build_mechanisms, world_from_heights
 from symbiont.act1.navplan import Planned, RoutePlanner, Stage, keys_needed, route_from_plan
 from symbiont.act1.navsearch import DoorAwareSearch, DoorRules
@@ -184,7 +186,9 @@ class NavMap:
         planned = self._planner.plan(start, candidates, rules, states)
         if not isinstance(planned, Planned):
             return NoPath(self._why_not(start, planned, rules, candidates))
-        return planned.goal, route_from_plan(planned, planned.goal)
+        route = route_from_plan(planned, planned.goal)
+        hazards = audit_route(self._geometry, self._mechanisms, planned)
+        return planned.goal, replace(route, hazards=hazards)
 
 
 def build_navmap(geometry: MapGeometry, index: MapIndex) -> NavMap:

@@ -81,6 +81,8 @@ class Route:
     waypoints: tuple[Waypoint, ...]
     length: float  # path length in map units
     doors: int  # doors crossed
+    # why the route may fail even though every step is walkable (see navhazard); empty: none found
+    hazards: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

@@ -103,3 +103,31 @@ def pedestal_key(switch: int = 23) -> MapGeometry:
     sectors = [Sector(0, 192), Sector(96, 192, TAG)]
     things = [Thing(1, 1, 1), Thing(208, 112, 5)]
     return MapGeometry(verts.points, lines + pedestal, sectors, things)
+
+
+def closing_door(closer: int = 3, opener: int = 103) -> MapGeometry:
+    """Switch door as in switch_door, but a walkover line (`closer`, tag 7) across room A lies on
+    the way to the door: crossing it shuts the door again.
+    """
+    verts = _Vertices()
+    lines = [
+        line(verts, (0, 0), (0, 256), 0),
+        line(verts, (0, 256), (100, 256), 0),
+        line(verts, (100, 256), (140, 256), 0, special=opener, tag=TAG),
+        line(verts, (140, 256), (200, 256), 0),
+        line(verts, (200, 256), (256, 256), 3),
+        line(verts, (256, 256), (256, 160), 3),
+        line(verts, (256, 96), (256, 0), 3),
+        line(verts, (256, 0), (200, 0), 3),
+        line(verts, (200, 0), (0, 0), 0),
+        line(verts, (200, 256), (200, 0), 0, 3, special=closer, tag=TAG),
+    ]
+    lines += _far_room(verts, 2, 272)
+    lines += [
+        line(verts, (256, 160), (256, 96), 3, 1),
+        line(verts, (256, 160), (272, 160), 1),
+        line(verts, (272, 96), (256, 96), 1),
+        line(verts, (272, 96), (272, 160), 2, 1),
+    ]
+    sectors = [Sector(0, 128), Sector(0, 0, TAG), Sector(0, 128), Sector(0, 128)]
+    return MapGeometry(verts.points, lines, sectors, [Thing(1, 1, 1)])
