@@ -9,7 +9,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
-from sqlglot_runs import RunFacts, run_facts
+from sqlglot_runs import SUBMIT, RunFacts, run_facts, steps_from_messages
 
 PLAIN_LOGS = ("runs", "runs-wide", "runs-cal2", "runs-tier2")
 
@@ -25,6 +25,7 @@ class PlainRun:
     exit_status: str
     submitted: bool
     facts: RunFacts
+    commands: tuple[str, ...]  # bash command strings only, never their output
 
 
 def _rows(path: Path) -> list[dict]:
@@ -50,6 +51,9 @@ def plain_runs(src: Path) -> Iterator[PlainRun]:
                 exit_status=str(row.get("exit_status")),
                 submitted=bool(row.get("submitted")),
                 facts=run_facts(row, f"{log}/{name}", messages),
+                commands=tuple(
+                    s.command for s in steps_from_messages(messages) if SUBMIT not in s.command
+                ),
             )
 
 
