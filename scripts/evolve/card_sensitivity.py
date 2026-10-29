@@ -153,6 +153,19 @@ def best_gen0_card(state: dict[str, Any], card_id: str) -> Card:
     raise KeyError(f"no seed card {card_id} in the run's state")
 
 
+def players_for(setting: Setting) -> spark_players.SparkPlayers:
+    """The reply factory of one setting, every field named so none can land in another's place."""
+    spec = SPECS[setting]
+    return spark_players.SparkPlayers(
+        run=f"sens-{setting.value}",
+        run_cap=spec.run_cap,
+        effort=spec.effort,
+        temperature=spec.temperature,
+        max_tokens=spec.max_tokens,
+        placement=spec.placement,
+    )
+
+
 def play_setting(
     setting: Setting, cards: dict[str, Card], root: Path, wad: Path, workers: int
 ) -> dict[str, list[GameResult]]:
@@ -168,9 +181,7 @@ def play_setting(
             "reasoning": f"{spec.effort.value}; {spec.words}",
         }  # fmt: skip
     )
-    replies = spark_players.SparkPlayers(
-        run, spec.run_cap, spec.effort, spec.temperature, spec.placement
-    )
+    replies = players_for(setting)
     engine = play_case.EngineSetup(
         wad=wad,
         episodes=root / run / "episodes",

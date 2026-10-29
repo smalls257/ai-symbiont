@@ -95,3 +95,17 @@ def test_only_the_medium_setting_asks_for_more_than_the_default_reply_tokens():
         cs.SPECS[s].max_tokens == DEFAULT_MAX_TOKENS
         for s in (cs.Setting.A, cs.Setting.B, cs.Setting.D)
     )
+
+
+def test_each_settings_players_carry_exactly_that_settings_fields():
+    from symbiont.egress.spark import DEFAULT_MAX_TOKENS
+
+    for setting, spec in cs.SPECS.items():
+        players = cs.players_for(setting)
+        assert (players.effort, players.temperature, players.placement) == (
+            spec.effort, spec.temperature, spec.placement,
+        )  # fmt: skip
+        assert isinstance(players.max_tokens, int) and players.max_tokens >= DEFAULT_MAX_TOKENS
+        assert players.run == f"sens-{setting.value}" and players.run_cap == spec.run_cap
+    assert cs.players_for(cs.Setting.C).max_tokens == cs.MEDIUM_TOKENS
+    assert cs.players_for(cs.Setting.B).temperature == 0.0
