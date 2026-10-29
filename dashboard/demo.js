@@ -11,7 +11,10 @@
   const HEADLINE_SCHEMA = "demo-headlines-v1";
   const ROLES = ["floor", "ceiling", "reference", "under test"];
   const STATUSES = ["measured", "established", "hypothesis"];
-  const NOTE_SOURCES = ["classifier fired", "Glimmer recalled", "lesson in prompt (pilot)"];
+  const ROUTE_A_REPLAY = "Route A offline replay";
+  // What each source is called on a note card; a source not listed shows as itself.
+  const SOURCE_LABELS = { [ROUTE_A_REPLAY]: "Route A note (offline replay of a real run; the coding model did not see these notes)" };
+  const NOTE_SOURCES = ["classifier fired", "Glimmer recalled", "lesson in prompt (pilot)", ROUTE_A_REPLAY];
   const SPEEDS = [0.5, 1, 2];
   const BASE_MS = 1600; // one step per 1.6 s at 1x: long enough to read a note aloud
   const RUN_COLORS = { plain: "#9a6b1f", personal: "#1d5fa8" };
@@ -240,7 +243,7 @@
     const li = el("li", `note${latest ? " latest" : ""}`);
     const head = el("div", "note-head");
     const kind = { "Glimmer recalled": "recalled", "lesson in prompt (pilot)": "prompt" }[s.note.source] || "classifier";
-    head.append(el("b", "", `Step ${s.step}`), el("span", `source ${kind}`, s.note.source));
+    head.append(el("b", "", `Step ${s.step}`), el("span", `source ${kind}`, SOURCE_LABELS[s.note.source] || s.note.source));
     const dl = el("dl");
     const check = el("dd");
     check.append(el("code", "", s.note.check));
