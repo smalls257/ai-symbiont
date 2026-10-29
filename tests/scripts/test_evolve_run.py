@@ -52,7 +52,7 @@ def test_a_two_generation_dry_run_finishes_and_writes_state_events_and_summary(t
     assert stat.S_IMODE((directory / "state.json").stat().st_mode) == 0o600
     events = [json.loads(line) for line in (directory / "events.jsonl").read_text().splitlines()]
     games = [e for e in events if e["event"] == "game"]
-    assert games and all("seconds" in e and "grade" in e for e in games)
+    assert games and all("since_start_s" in e and "grade" in e for e in games)
     assert events[0]["event"] == "start" and events[-1]["event"] == "end"
     summary = json.loads((directory / "summary.json").read_text())
     assert summary["label"] == "dry run, fake player" and summary["claim"] == "exploratory"

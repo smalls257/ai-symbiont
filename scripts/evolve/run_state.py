@@ -174,11 +174,11 @@ class ResumingPlayer:
         return result_from_json({k: v for k, v in found.items() if k != "player"})
 
     def _keep(self, card: Card, case: Case, result: GameResult, started: float) -> None:
-        """Store a finished game and log its timing."""
+        """Store a finished game; the event says how long since its batch (or game) began."""
         self.store.save_game(game_key(card.card_id, case), result, card)
         self.store.event(
             "game", card=card.card_id, level=case.level, seed=case.seed,
-            grade=result.grade.value, seconds=round(time.monotonic() - started, 3),
+            grade=result.grade.value, since_start_s=round(time.monotonic() - started, 3),
         )  # fmt: skip
 
     def play(self, card: Card, case: Case) -> GameResult:
