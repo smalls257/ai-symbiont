@@ -141,27 +141,52 @@ class _Run:
     def play(
         self, cards: Sequence[Card], cases: Sequence[Case], generation: int, role: GameRole
     ) -> list[GameResult]:
-        """Every card on every case. A pair already played this run is not played again."""
-        results: list[GameResult] = []
-        for card in cards:
+        """Every card on every case. A pair already played this run is not played again.
+
+        A player with `play_many` gets the missing pairs as one batch (parallel games); the games
+        are logged in pair order whatever order they finish in.
+        """
+        pairs = [(card, case) for card in cards for case in cases]
+        for card, case in pairs:
             self.cards[card.card_id] = card
-            results.extend(self._game(card, case, generation, role) for case in cases)
+            self._require_allowed(case, role)
+        todo = list(dict.fromkeys(p for p in pairs if (p[0].card_id, p[1]) not in self._played))
+        fresh = self._play_batch(todo)
+        results = []
+        for card, case in pairs:
+            key = (card.card_id, case)
+            if key in fresh:
+                self._played[key] = fresh.pop(key)
+                log = (
+                    self.record.validation_games
+                    if role == GameRole.VALIDATION
+                    else self.record.games
+                )
+                log.append(PlayedGame(self._played[key], generation, role))
+            results.append(self._played[key])
         return results
 
-    def _game(self, card: Card, case: Case, generation: int, role: GameRole) -> GameResult:
-        """One game through the level guard, logged once."""
-        key = (card.card_id, case)
-        if key in self._played:
-            return self._played[key]
+    def _play_batch(self, todo: list[tuple[Card, Case]]) -> dict[tuple[str, Case], GameResult]:
+        """Play the missing pairs, in parallel if the player can; results by (card id, case)."""
+        done: dict[tuple[str, Case], GameResult] = {}
+
+        def keep(card: Card, case: Case, result: GameResult) -> None:
+            done[(card.card_id, case)] = result
+
+        many = getattr(self.player, "play_many", None)
+        if many is not None and todo:
+            many(todo, keep)
+        else:
+            for card, case in todo:
+                keep(card, case, self.player.play(card, case))
+        return done
+
+    def _require_allowed(self, case: Case, role: GameRole) -> None:
+        """Held-out levels never reach the player."""
         if role == GameRole.VALIDATION and case.level not in self.split.validation:
             raise UnexpectedLevelError(f"{case.level} is not a validation level")
         if role == GameRole.SELECTION:
             self.split.require_selection(case.level)
-        result = self.player.play(card, case)
-        self._played[key] = result
-        log = self.record.validation_games if role == GameRole.VALIDATION else self.record.games
-        log.append(PlayedGame(result, generation, role))
-        return result
 
     def generation_zero(self, seeds: Sequence[Card]) -> tuple[list[GameResult], NoiseReport] | None:
         """Play the seed cards, run the noise check, double the games if told; None on STOP."""

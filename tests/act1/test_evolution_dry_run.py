@@ -163,3 +163,25 @@ def test_each_arm_can_have_its_own_author_and_the_run_is_unchanged():
     )
     shared = evolve(seeds(), SPLIT, FakePlayer(), tools(), rules)
     assert separate.births == shared.births and separate.picks == shared.picks
+
+
+class BatchPlayer(FakePlayer):
+    """A fake player that can play a batch, finishing the games in reverse order."""
+
+    def __init__(self):
+        super().__init__()
+        self.batches = []
+
+    def play_many(self, pairs, on_result):
+        self.batches.append(len(pairs))
+        for card, case in reversed(pairs):
+            on_result(card, case, self.play(card, case))
+
+
+def test_a_player_that_can_play_a_batch_gets_the_missing_pairs_at_once_and_the_run_is_unchanged():
+    batch = BatchPlayer()
+    batched = evolve(seeds(), SPLIT, batch, tools(), RunRules(2, 1, 1, SpendRoom(10.0, 1.0)))
+    plain = evolve(seeds(), SPLIT, FakePlayer(), tools(), RunRules(2, 1, 1, SpendRoom(10.0, 1.0)))
+    assert max(batch.batches) >= 12 and batch.batches[0] == 24
+    assert batched.picks == plain.picks and batched.gaps == plain.gaps
+    assert [g.result.case for g in batched.games] == [g.result.case for g in plain.games]
