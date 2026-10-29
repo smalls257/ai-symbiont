@@ -47,6 +47,7 @@ class NavMap:
     """Routes over one map: lists doors, exits and keys, and finds the shortest walk."""
 
     def __init__(self, geometry: MapGeometry, index: MapIndex) -> None:
+        """Build the walk grid and planner for one parsed map."""
         self._geometry = geometry
         self._index = index
         mechanisms = build_mechanisms(geometry)
@@ -67,6 +68,7 @@ class NavMap:
         raise ValueError(f"unknown feature kind {kind!r}; known: door, exit, key")
 
     def _key_features(self) -> Iterator[Feature]:
+        """Key pickups, each with the sector it lies in so its height can be judged."""
         for k in self._index.keys:
             label = f"{k.color.title()}{'Card' if k.kind == 'card' else 'Skull'}"
             under = self._grid.sector_at(k.x, k.y)
@@ -96,6 +98,7 @@ class NavMap:
             )
 
     def _exit_features(self) -> Iterator[Feature]:
+        """Exit lines, with the face a walker must stand in front of and whether it is crossed."""
         for exit_ in self._index.exits:
             line = self._geometry.linedefs[exit_.line]
             (x1, y1), (x2, y2) = self._geometry.vertices[line.v1], self._geometry.vertices[line.v2]

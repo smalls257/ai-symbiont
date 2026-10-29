@@ -53,10 +53,11 @@ class DoorAwareSearch:
     """Dijkstra over the walk grid; reused across searches so door-face checks are cached."""
 
     def __init__(self, grid: WalkGrid) -> None:
+        """Search over `grid`; flat-index offsets are safe because its border cells are blocked."""
         self._grid = grid
         self._usable: dict[tuple[int, int], bool] = {}
         cols = grid.cols  # flat-index offsets: the grid's border cells are blocked, so none wrap
-        self._orthogonal = tuple((off, CELL) for off in (1, -1, cols, -cols))
+        self._orthogonal = tuple((off, float(CELL)) for off in (1, -1, cols, -cols))
         self._diagonal = tuple(
             (dc + dr * cols, dc, dr * cols, _DIAGONAL) for dc in (1, -1) for dr in (1, -1)
         )
@@ -92,7 +93,7 @@ class DoorAwareSearch:
         grid = self._grid
         blocked, floor_in, doors = grid.blocked, grid.floor_in, grid.door_at
         reach = grid.floor[cell] + STEP_UP
-        found = []
+        found: list[tuple[int, float]] = []
         for offset, cost in self._orthogonal:
             onto = cell + offset
             walkable = not blocked[onto] and floor_in[onto] <= reach
@@ -108,6 +109,7 @@ class DoorAwareSearch:
         return found
 
     def _may_enter(self, origin: int, cell: int, rules: DoorRules, doors: dict[int, int]) -> bool:
+        """Whether the door rules let a walker step from `origin` onto `cell`."""
         if cell not in doors:
             return True
         if self._locked_for(cell, rules.held):
@@ -130,6 +132,7 @@ class DoorAwareSearch:
         return self._usable[key]
 
     def _locked_for(self, cell: int, held: frozenset[str] | None) -> bool:
+        """Whether `cell` is in a keyed door whose color is not held (None: every key is held)."""
         if held is None:
             return False
         color = self._grid.door_colour.get(self._grid.door_at.get(cell, -1))

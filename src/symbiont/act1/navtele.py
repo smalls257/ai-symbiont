@@ -29,7 +29,9 @@ class TeleportEdge:
     landing: tuple[float, float]
 
 
-def landing_of(geometry: MapGeometry, frame: Frame, owner: np.ndarray, tag_sectors: set[int]):
+def landing_of(
+    geometry: MapGeometry, frame: Frame, owner: np.ndarray, tag_sectors: set[int]
+) -> tuple[float, float] | None:
     """Where the first destination thing in a sector with the tag stands, or None."""
     for thing in geometry.things:
         if thing.type != TELEPORT_DESTINATION:

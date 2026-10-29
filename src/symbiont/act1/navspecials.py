@@ -56,15 +56,18 @@ class Special:
 def _group(
     numbers: tuple[int, ...], trigger: Trigger, effect: Effect, amount: int = 0, note: str = ""
 ) -> dict[int, Special]:
+    """Table entries for several special numbers that share one meaning."""
     return {number: Special(trigger, effect, None, amount, note) for number in numbers}
 
 
 def _keyed_switch_doors() -> dict[int, Special]:
+    """Switch doors that need a key, by the key color vanilla gives each number."""
     keyed = {99: "blue", 133: "blue", 134: "red", 135: "red", 136: "yellow", 137: "yellow"}
     return {n: Special(Trigger.USE, Effect.OPEN_DOOR, color) for n, color in keyed.items()}
 
 
 def _build_table() -> dict[int, Special]:
+    """The whole vanilla table, assembled from its groups."""
     use, walk, shoot = Trigger.USE, Trigger.WALK, Trigger.SHOOT
     table: dict[int, Special] = {}
     # manual doors are opened by their own face; map_index lists them with their key colors
@@ -106,6 +109,7 @@ def _build_table() -> dict[int, Special]:
 
 
 def _no_route_effect() -> dict[int, Special]:
+    """Specials that close, lower or change lights; closers are audited, not pressed."""
     use, walk = Trigger.USE, Trigger.WALK
     none = Effect.NO_ROUTE_EFFECT
     table: dict[int, Special] = {}
@@ -124,6 +128,7 @@ def _no_route_effect() -> dict[int, Special]:
 
 
 def _unmodeled() -> dict[int, Special]:
+    """Specials whose effect the planner does not follow, each with its reason."""
     use, walk, un = Trigger.USE, Trigger.WALK, Effect.UNMODELED
     table: dict[int, Special] = {}
     table.update(_group((7, 127), use, un, note="builds stairs"))

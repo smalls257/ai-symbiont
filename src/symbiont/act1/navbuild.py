@@ -97,6 +97,7 @@ def door_tables(
 
 
 def _is_wall(line: Linedef) -> bool:
+    """One-sided and impassable lines stop a walker; a plain two-sided line does not."""
     return line.front_sector is None or line.back_sector is None or bool(line.flags & IMPASSABLE)
 
 
@@ -112,6 +113,7 @@ def block_walls(geometry: MapGeometry, frame: Frame) -> bytearray:
 def _block_around(
     blocked: bytearray, frame: Frame, start: tuple[int, int], end: tuple[int, int]
 ) -> None:
+    """Block the cells whose centers are within the player's clearance of one wall segment."""
     reach = PLAYER_CLEARANCE
     low = (min(start[0], end[0]) - reach, min(start[1], end[1]) - reach)
     high = (max(start[0], end[0]) + reach, max(start[1], end[1]) + reach)
@@ -141,6 +143,7 @@ def block_scenery(geometry: MapGeometry, frame: Frame, blocked: bytearray) -> No
 
 
 def _sector_edges(geometry: MapGeometry) -> dict[int, list[_Edge]]:
+    """Each sector's boundary segments; a line with the same sector on both sides is no boundary."""
     edges: dict[int, list[_Edge]] = {}
     for line in geometry.linedefs:
         if line.front_sector == line.back_sector:
@@ -242,7 +245,12 @@ def base_states(sectors: list[Sector], door_sectors: Container[int]) -> list[Sec
     ]
 
 
-def _spread(values: np.ndarray, reach: int, outside: int, pick: Callable) -> np.ndarray:
+def _spread(
+    values: np.ndarray,
+    reach: int,
+    outside: int,
+    pick: Callable[[np.ndarray, np.ndarray], np.ndarray],
+) -> np.ndarray:
     """Per cell, `pick` (max or min) of the values in the (2*reach+1)-square around it."""
     padded = np.pad(values, reach, constant_values=outside)
     best = values.copy()

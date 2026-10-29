@@ -137,8 +137,9 @@ class Ledger:
 
     def spent(self, run: str | None = None) -> float:
         """Dollars in the whole ledger, or in one run."""
-        rows = self.entries()
-        return float(sum(row["cost_usd"] for row in rows if run is None or row["run"] == run))
+        return float(
+            sum(row["cost_usd"] for row in self.entries() if run is None or row["run"] == run)
+        )
 
     def check_before_call(self, run: str, caps: SpendCaps) -> None:
         """Raise SpendCapError when the total or this run's cap is already reached."""
