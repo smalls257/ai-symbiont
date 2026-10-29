@@ -235,3 +235,19 @@ def test_more_replay_must_also_keep_habits_near_a2(plug_a3):
     lost = plug_a3.verdicts([*base, row("a3_more_replay", 0.6, 0.7, 0.70)])
     assert kept == {"a3_more_replay": "go"}
     assert lost == {"a3_more_replay": "hold"}
+
+
+def test_paired_gives_arm_minus_reference_per_repo(plug_a3):
+    def cell(no_lessons, new, habits):
+        return {"no_lessons": no_lessons, "new_lessons": new, "habits_ranked": habits}
+
+    cells = {}
+    for repo, base in (("r1", 0.1), ("r2", 0.3)):
+        cells[("per_repo", repo)] = cell(base, 0.0, 0.0)
+        cells[("a2v", repo)] = cell(0.0, base, 0.9)
+        cells[("a3", repo)] = cell(base + 0.2, base - 0.1, 0.4)
+    found = plug_a3.paired(cells)
+    assert found["a3_minus_per_repo_no_lessons"]["mean_gain"] == 0.2
+    assert found["a3_minus_a2v_new_lessons"]["mean_gain"] == -0.1
+    assert found["a3_minus_a2v_habits_ranked"]["mean_gain"] == -0.5
+    assert not any(key.startswith("a3_more") for key in found)

@@ -51,7 +51,7 @@ All rows are [measured]. a3-more's lead on (1) is resolved: its interval is abov
 
 ## Reading
 
-- The verdicts compare means. The intervals of (1) for a3-more and the per-repo adapter overlap, and so do those of (3) for a3-more and a2v [measured]. "Go" means the means pass the rule, not that the gap is resolved.
+- The verdicts compare means. Paired by repo (table above), a3-more's lead on (1) over the per-repo adapter is resolved (+0.10 [+0.03, +0.18]); its lead on (3) over a2v is not (+0.05 [−0.02, +0.12]) [measured]. So "go" rests on one resolved gap and one unresolved one.
 - Consolidating without replay wipes the habits: a3 and a3-more fall to chance on ranked choice (0.24 and 0.20). Replaying habit rows keeps them (0.91) at a small cost in new-lesson recall [measured].
 - Every arm meta-trained to read its prompt abstains when another repo's lessons stand in (abstention 0.97 to 1.00, confabulation at most 0.02) [measured]. The per-repo adapter and a1 confabulate 0.04 to 0.05 and never abstain [measured]. The per-repo adapter still answers from its weights under wrong lessons (0.38 recall).
 - a2v alone already reads its prompt best of the no-training arms (0.58 trained, 0.71 new) and keeps habits (0.95) [measured]. That is the arm the frozen Plug run (`prereg/2026-10-29-l2l-a2.md`) scored on 13 unseen repos.
