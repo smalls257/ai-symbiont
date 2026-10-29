@@ -1,0 +1,41 @@
+{
+ "label": "exploratory: general-lessons prompt pilot, 1 run per task per arm",
+ "arms": {
+  "plain": {
+   "label": "reference: plain Glimmer",
+   "all": {
+    "runs": 18,
+    "solved": 5,
+    "submitted": 6
+   },
+   "bug": {
+    "runs": 10,
+    "solved": 4,
+    "submitted": 4
+   },
+   "feature": {
+    "runs": 8,
+    "solved": 1,
+    "submitted": 2
+   }
+  },
+  "card": {
+   "label": "under test: plain Glimmer + general card",
+   "all": {
+    "runs": 18,
+    "solved": 5,
+    "submitted": 5
+   },
+   "bug": {
+    "runs": 10,
+    "solved": 4,
+    "submitted": 4
+   },
+   "feature": {
+    "runs": 8,
+    "solved": 1,
+    "submitted": 1
+   }
+  }
+ }
+}
