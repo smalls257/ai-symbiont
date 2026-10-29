@@ -121,6 +121,13 @@ How to read the sources:
 - The unselected run-1-versus-run-2 row is the best guess. **With 2 runs per arm, the design detects about 10-15 points, not 5.**
 - No Django plain data exists yet, so Django is assumed to vary like sqlglot [hypothesis].
 
+**Measured plain spread (collection stopped 2026-10-29 10:59 PT)** [measured]:
+
+- 30 earlier tasks have 2 graded plain runs at cap 75. The two runs disagree on 3 of them (10%): 2 of 12 sqlglot tasks and 1 of 18 Django tasks. [measured]
+- This gives v of about 0.05. At 45 tasks the MDE is 9.3 points with 2 runs per arm and 6.6 points with 4. [measured]
+- 5 context-window errors were left ungraded and voided.
+- **Ceiling risk:** plain Glimmer passed both runs on 15 of 18 Django history tasks. If the later Django test tasks are as easy, they leave little room above plain [hypothesis].
+
 **What 5 points would cost.** It needs 8-27 runs per arm per task, which is 720-2,430 runs over 45 tasks [measured from the table]. Measured Glimmer throughput at 4 slots was 4.8-5.7 min of wall time per run at cap 50 (pilot and overnight) [measured]. Cap 75 assumed about 6-7 min [hypothesis]. That makes 72-280 Glimmer hours, which is not feasible here [hypothesis].
 
 **Proposal.** 4 runs per arm on the 45 tasks: 360 runs, about 36-42 Glimmer hours, MDE about 7-13 points. The fallback is the planned 2 runs per arm: 180 runs, about 18-21 h, MDE about 10-18 points. In either case the decision rule stays the task-bootstrap CI, and the claim is reported with its MDE beside it [hypothesis].
