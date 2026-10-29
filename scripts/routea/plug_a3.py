@@ -47,7 +47,10 @@ from warm_start import (  # noqa: E402
 BUDGET = 5
 NEW_LESSONS = 3
 TEST_SIZES = range(BUDGET + NEW_LESSONS, 10)  # 8 or 9: a 10-lesson repo belongs to the scored run
-ARMS = ("per_repo", "a1", "a2v", "a3", "a3_more", "a3_replay")
+ARMS = ("per_repo", "a1", "a2v", "a3", "a3_more", "a3_replay", "a3_more_replay")
+# a3-more-replay must also keep habits near a2v: ranked habits at least a2v's minus this,
+# fixed before its run (owner GO, 2026-10-29).
+HABITS_NEAR = 0.10
 ROLE = {"per_repo": "reference", "a1": "reference", "a2v": "reference"}
 SEED = 0
 
@@ -197,21 +200,26 @@ def score_rerun(work: Path) -> dict:
     }
 
 
+def passes(by: dict[str, dict], arm: str) -> bool:
+    """The go conditions; a3-more-replay must also keep habits near a2v's."""
+    go = (
+        by[arm]["no_lessons"] >= by["per_repo"]["no_lessons"]
+        and by[arm]["new_lessons"] >= by["a2v"]["new_lessons"]
+    )
+    if arm == "a3_more_replay":
+        go = go and by[arm]["habits_ranked"] >= by["a2v"]["habits_ranked"] - HABITS_NEAR
+    return go
+
+
 def verdicts(rows: list[dict]) -> dict[str, str]:
-    """go, hold or kill per consolidation arm, by the owner's rule on the pooled means."""
+    """go, hold or kill per consolidation arm present, by the owner's rule on the pooled means."""
     by = {row["arm"]: row for row in rows}
     found = {}
-    for arm in ("a3", "a3_more", "a3_replay"):
-        new = by[arm]["new_lessons"]
-        if new < by["a1"]["new_lessons"]:
+    for arm in (a for a in ("a3", "a3_more", "a3_replay", "a3_more_replay") if a in by):
+        if by[arm]["new_lessons"] < by["a1"]["new_lessons"]:
             found[arm] = "kill"
-        elif (
-            by[arm]["no_lessons"] >= by["per_repo"]["no_lessons"]
-            and new >= by["a2v"]["new_lessons"]
-        ):
-            found[arm] = "go"
         else:
-            found[arm] = "hold"
+            found[arm] = "go" if passes(by, arm) else "hold"
     return found
 
 

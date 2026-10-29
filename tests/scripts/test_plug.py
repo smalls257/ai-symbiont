@@ -224,3 +224,14 @@ def test_rerun_verdicts_follow_the_go_and_kill_rule(plug_a3):
         row("a3_replay", 0.6, 0.3),
     ]
     assert plug_a3.verdicts(rows) == {"a3": "go", "a3_more": "hold", "a3_replay": "kill"}
+
+
+def test_more_replay_must_also_keep_habits_near_a2(plug_a3):
+    def row(arm, no_lessons, new, habits):
+        return {"arm": arm, "no_lessons": no_lessons, "new_lessons": new, "habits_ranked": habits}
+
+    base = [row("per_repo", 0.5, 0.4, 0.2), row("a1", 0.0, 0.4, 0.2), row("a2v", 0.0, 0.6, 0.9)]
+    kept = plug_a3.verdicts([*base, row("a3_more_replay", 0.6, 0.7, 0.85)])
+    lost = plug_a3.verdicts([*base, row("a3_more_replay", 0.6, 0.7, 0.70)])
+    assert kept == {"a3_more_replay": "go"}
+    assert lost == {"a3_more_replay": "hold"}
