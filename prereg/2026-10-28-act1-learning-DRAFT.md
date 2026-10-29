@@ -17,10 +17,10 @@ Does a Freedoom LoRA adapter, trained with the Route B recipe on lessons from Gl
 
 | Arm | Label | What differs |
 |---|---|---|
-| plain Glimmer | floor | adapter scale 0 on every request |
-| personal Glimmer | under test | the Freedoom adapter at scale 1 |
+| plain Glimmer | floor | the base model `Muse-Glimmer-30B-KQuant-17GB-Q4_K_M`, no adapter |
+| personal Glimmer | under test | the router's own model `Muse-Glimmer-30B-freedoom` (the Freedoom adapter at scale 1) |
 
-Both arms ask one llama-server that holds the adapter (`glimmer.plain_and_personal`): same Q4_K_M base, same build, same prompt, same sampling (temperature 0.6, reasoning low, 1500-token reply cap). They differ only in the per-request adapter scales [established: the arms' request bodies are compared in `tests/act1/test_chat_reply.py`]. No counters row applies: Act 1 has no fly learner. No ceiling arm: a lessons-in-prompt ceiling is a possible later run and is not part of this file.
+Both arms ask the one llama-server router (`glimmer.plain_and_personal_by_model`) and differ only in the `model` name: same Q4_K_M base, same build, same prompt, same sampling (temperature 0.6, reasoning low, 1500-token reply cap), no per-request `lora` field [established: the arms' request bodies are compared in `tests/act1/test_chat_reply.py`]. Concurrency does not change play: plain runs up to 4 games at once, personal up to 2 (its slot count). No counters row applies: Act 1 has no fly learner. No ceiling arm: a lessons-in-prompt ceiling is a possible later run and is not part of this file.
 
 ## Data
 

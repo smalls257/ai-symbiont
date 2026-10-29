@@ -123,6 +123,13 @@ class ClipSink:
         self._ffmpeg.stdin.write(frame)
         self.frames += 1
 
+    def discard(self) -> None:
+        """Close ffmpeg and delete the MP4: a clip that must not exist (a drifted replay)."""
+        assert self._ffmpeg.stdin is not None
+        self._ffmpeg.stdin.close()
+        self._ffmpeg.wait()
+        self._mp4.unlink(missing_ok=True)
+
     def finish(self) -> float:
         """Close the MP4; returns its duration in seconds. Raises RuntimeError on ffmpeg failure."""
         assert self._ffmpeg.stdin is not None

@@ -139,3 +139,20 @@ def plain_and_personal(
         GlimmerArm("glimmer_plain", base_url, model, (0.0,) * adapters),
         GlimmerArm("glimmer_personal", base_url, model, personal_scales),
     )
+
+
+def plain_and_personal_by_model(
+    base_url: str, plain_model: str, personal_model: str
+) -> tuple[GlimmerArm, GlimmerArm]:
+    """Each arm names its own served model; the request bodies differ only in `model`.
+
+    The router serves the adapter as a model of its own (`-freedoom`), so no per-request `lora`
+    field is sent and no arm can pass for the other through a scale. Raises ValueError when the
+    two names are equal, because then both arms would be the same player.
+    """
+    if plain_model == personal_model:
+        raise ValueError(f"both arms would ask the model {plain_model!r}")
+    return (
+        GlimmerArm("glimmer_plain", base_url, plain_model),
+        GlimmerArm("glimmer_personal", base_url, personal_model),
+    )

@@ -6,7 +6,12 @@ import urllib.request
 
 import pytest
 
-from symbiont.act1.glimmer import TokenUsage, chat_reply, plain_and_personal
+from symbiont.act1.glimmer import (
+    TokenUsage,
+    chat_reply,
+    plain_and_personal,
+    plain_and_personal_by_model,
+)
 from symbiont.egress import EgressRefusedError
 
 
@@ -82,3 +87,20 @@ def test_plain_and_personal_send_the_same_request_except_the_adapter_scales(monk
 def test_an_adapter_the_server_does_not_hold_is_refused():
     with pytest.raises(ValueError, match="adapter 2"):
         plain_and_personal("http://127.0.0.1:8093/v1", "glimmer", 2, 2)
+
+
+def test_arms_by_model_differ_only_in_the_model_name(monkeypatch):
+    bodies = captured_bodies(monkeypatch)
+    plain, personal = plain_and_personal_by_model(
+        "http://127.0.0.1:8093/v1", "base", "base-freedoom"
+    )
+    plain.reply("the same prompt")
+    personal.reply("the same prompt")
+    assert (bodies[0].pop("model"), bodies[1].pop("model")) == ("base", "base-freedoom")
+    assert bodies[0] == bodies[1]
+    assert "lora" not in bodies[0]
+
+
+def test_two_arms_on_one_model_are_refused():
+    with pytest.raises(ValueError, match="same player|would ask"):
+        plain_and_personal_by_model("http://127.0.0.1:8093/v1", "base", "base")
