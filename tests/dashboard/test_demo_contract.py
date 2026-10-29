@@ -219,3 +219,21 @@ def test_run_without_its_own_text_or_record_is_refused(field):
     doc = _load("demo-replay.json")
     del doc["runs"][1][field]
     assert any(f"missing {field}" in v for v in _replay_violations(doc))
+
+
+PERSONAL_FILES = sorted(p.name for p in SAMPLE.glob("personal-sqlglot-*.json"))
+
+
+@pytest.mark.parametrize("name", PERSONAL_FILES)
+def test_personal_replay_is_honest_about_the_adapter_and_the_floor(name):
+    doc = _load(name)
+    assert _replay_violations(doc) == []
+    plain, personal = doc["runs"]
+    assert doc["status"] == "measured" and "no lesson in the prompt" in doc["source"]
+    assert plain["adapter"] is None and plain["totals"]["result"] == "not solved"
+    assert personal["label"] == "Personal Glimmer (LoRA adapter, sqlglot)"
+    assert personal["adapter"] and personal["totals"]["result"] == "solved"
+    assert personal["runs_total"] >= 1 and plain["runs_total"] >= 1
+    assert "Exploratory, n = 1 per task" in doc["caveats"]
+    for run in doc["runs"]:
+        assert all(s["note"] is None and s["classifier"] is None for s in run["steps"])

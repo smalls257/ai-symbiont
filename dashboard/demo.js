@@ -281,11 +281,13 @@
   function pickerBlock(run, cur) {
     const box = el("div", "decider");
     const head = el("div", "decider-head");
-    head.append(el("b", "", "our network"), el("span", "", "picks the adapter"));
-    box.append(head);
     const pick = seenSteps(run, cur).filter((s) => s.picker).at(-1);
+    const fixed = run.adapter && !run.steps.some((s) => s.picker);
+    if (fixed) head.append(el("b", "", "adapter fixed for this run (sqlglot)"), el("span", "", "our network did not choose"));
+    else head.append(el("b", "", "our network"), el("span", "", "picks the adapter"));
+    box.append(head);
     if (!pick) {
-      box.append(el("p", "off", run.adapter ? "No pick yet." : "Not used in this run."));
+      box.append(el("p", "off", fixed ? `The launcher loaded ${run.adapter} for the whole run.` : "Not used in this run."));
       return box;
     }
     box.append(el("p", "verdict quiet", pick.picker.adapter), el("p", "reason", `Step ${pick.step}: ${pick.picker.reason}`));
@@ -336,7 +338,7 @@
     const d = state.replay;
     $("task-label").textContent = d.task.label;
     $("task-id").textContent = `${d.task.repo}, ${d.task.id}`;
-    $("banner").textContent = `Replay [${d.status}]: ${d.source}`;
+    $("banner").textContent = `Replay [${d.status}]: ${d.source}${d.caveats ? `. ${d.caveats}` : ""}`;
     for (const id of ["tokens-tag", "notes-tag", "brain-tag"]) $(id).replaceChildren(tagEl(d.status));
     $("headlines").replaceChildren(...state.headlines.headlines.map(headlineCard));
     $("results-source").textContent = state.headlines.source;
