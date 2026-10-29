@@ -24,7 +24,11 @@ from plug_r3 import per_repo, ranker_choices  # noqa: E402
 from plug_r3_run import judged, load_items  # noqa: E402
 from warm_start import paired_gain  # noqa: E402
 
-SETS = {"new": "scored", "trained": "seen"}  # label: bundle split
+SETS = {  # label: bundle split; the last needs `plug_r3_trained.py` and one more GPU pass
+    "new": "scored",
+    "trained": "seen",
+    "trained_own_wording": "trained",
+}
 SEEDS = (0, 1, 2)
 
 
@@ -54,6 +58,13 @@ def one_set(work: Path, split: str, thresholds: dict) -> dict:
     }
 
 
+def scored_set(work: Path, split: str, thresholds: dict) -> dict:
+    """`one_set`, or a plain status if that split's judge scores are not there yet."""
+    if not (work / "scores" / f"{split}-judge-s0.jsonl").exists():
+        return {"status": f"not scored yet: no {split}-judge-s0.jsonl"}
+    return one_set(work, split, thresholds)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--work", type=Path, required=True)
@@ -63,7 +74,7 @@ def main() -> None:
     document = {
         "status": "exploratory, after the frozen round-3 scored run, no prereg",
         "source": "round-3 adapters judge-s0 to s2 at amendment 1's thresholds",
-        **{label: one_set(args.work, split, thresholds) for label, split in SETS.items()},
+        **{label: scored_set(args.work, split, thresholds) for label, split in SETS.items()},
     }
     args.out.write_text(json.dumps(document, indent=1) + "\n")
     print(json.dumps(document, indent=1))
