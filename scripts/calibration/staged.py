@@ -34,7 +34,9 @@ GATE_RATE = 0.10
 MAX_ATTEMPTS = 3
 MAX_UNGRADED_IN_A_ROW = 3
 DEFAULT_STEP_LIMIT = 50
-PLAIN_IDENTITY = ("plain", None, None)  # a resumed lesson or adapter run never counts these as done
+# (arm, adapter id, lesson hash, model): a resumed lesson, adapter or personal-model run never
+# counts a plain record as done.
+PLAIN_IDENTITY = ("plain", None, None, MODEL)
 DEFAULT_WALL_LIMIT_MIN = 30
 ANNOUNCED = (
     "instance_id",
@@ -68,9 +70,10 @@ def screen_header(rule: ScreenRule, pool: list[dict], screen: list[str], exclude
     return header
 
 
-def run_identity(rec: dict) -> tuple[str, int | None, str | None]:
-    """(arm, adapter id, lesson hash) a record ran under; a record from before arms is plain."""
-    return rec.get("arm", PLAIN_IDENTITY[0]), rec.get("adapter_id"), rec.get("lesson_sha")
+def run_identity(rec: dict) -> tuple[str, int | None, str | None, str]:
+    """(arm, adapter id, lesson hash, model) a record ran under; one from before arms is plain."""
+    arm, model = rec.get("arm", PLAIN_IDENTITY[0]), rec.get("model", MODEL)
+    return arm, rec.get("adapter_id"), rec.get("lesson_sha"), model
 
 
 def _same_graded_run(rec: dict, key: tuple, identity: tuple) -> bool:
@@ -156,8 +159,8 @@ class Driver:
         self.workers = WORKERS
 
     # -- records -----------------------------------------------------------------------------------
-    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None]:
-        """(arm, adapter id, lesson hash) this driver runs task `iid` under; plain here."""
+    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None, str]:
+        """(arm, adapter id, lesson hash, model) this driver runs task `iid` under; plain here."""
         return PLAIN_IDENTITY
 
     def graded(self, iid: str, run: int, setting: Setting) -> dict | None:

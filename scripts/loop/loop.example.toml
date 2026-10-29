@@ -1,0 +1,25 @@
+# Recursive loop config: copy to ~/.config/symbiont/loop.toml (outside the repo) and fill in.
+# Hosts are ssh aliases from ~/.ssh/config, never addresses. Read by run_loop.py round --go.
+route = "route-b-glimmer-adapter"  # or "route-a-warner-and-memory" (not wired for real rounds)
+start = "plain"                    # or "shared-habits" (fill in [base])
+train_mode = "from-scratch"        # or "continued-with-replay"
+
+[host]  # the training host, as in the nightly job's config
+ssh = "training-host"
+checkout = "/path/to/repo/on/host"
+env_file = "/path/to/routeb.env"
+work_root = "/path/to/work/on/host"
+
+[base]  # only for start = "shared-habits"
+arm = "Muse-Glimmer-30B-sqlglot-habits"
+adapter_dir = "/path/to/adapters/sqlglot-habits"
+
+[coding-sqlglot]
+workdir = "~/work"            # holds data/, calibration-v2/launch.py and the plain logs
+split = "results/general-split.json"
+clone = "~/symbiont-runs/general/sqlglot"
+
+[freedoom]
+repo = "~/Code/ai-symbiont-public"
+episodes = "~/Code/ai-symbiont-public/data/loop/freedoom"
+# prereg = "prereg/<frozen file>.md"   # required before any held-out evaluation

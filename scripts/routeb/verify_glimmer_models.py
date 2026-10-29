@@ -4,12 +4,14 @@ Checks each child's launch args (plain: no --lora at all; adapter: --lora at sca
 held-out sqlglot questions on both paths open-webui and mini-SWE-agent use (chat with tools) and
 the raw /completion path. A lesson card in any plain answer is a leak and fails the run.
 
-Usage: python verify_glimmer_models.py --server U --snapshot S --work SQLGLOT_WORK [--plain N]
+Usage: python verify_glimmer_models.py --server U --snapshot S --work W [--plain N] [--system F]
+         [--gguf glimmer-<set>.gguf]
 """
 
 import argparse
 import json
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from urllib.request import Request, urlopen
 
@@ -82,38 +84,60 @@ def child_args(server: str, model: str) -> list[str]:
     return status.get("args", []) if isinstance(status, dict) else []
 
 
-def adapter_arg_problems(args: list[str]) -> list[str]:
-    """What is wrong with the adapter child's LoRA flags; empty for one sqlglot GGUF at scale 1."""
+def adapter_arg_problems(args: list[str], gguf: str = "sqlglot") -> list[str]:
+    """What is wrong with the adapter child's LoRA flags; empty for one `gguf` file at scale 1.
+
+    `gguf` is a part of the expected file name: "sqlglot" for the per-repo adapter, the exact
+    `glimmer-<set>.gguf` for a nightly or loop round.
+    """
     loras = [args[i + 1] for i, arg in enumerate(args[:-1]) if arg == "--lora"]
     problems = []
     if len(loras) != 1:
         problems.append(f"adapter child loads {len(loras)} --lora files, not exactly one")
-    if any(not (Path(p).suffix == ".gguf" and "sqlglot" in Path(p).name) for p in loras):
-        problems.append(f"adapter child's --lora is not the sqlglot GGUF: {loras}")
+    if any(not (Path(p).suffix == ".gguf" and gguf in Path(p).name) for p in loras):
+        problems.append(f"adapter child's --lora is not the {gguf} GGUF: {loras}")
     if "--lora-scaled" in args or "--lora-init-without-apply" in args:
         problems.append("adapter child is not started with --lora at scale 1")
     return problems
 
 
+@dataclass(frozen=True)
+class Expectation:
+    """What the adapter name must show: answers asked per path, and its GGUF file name part."""
+
+    asked: int = QUESTIONS
+    gguf: str = "sqlglot"
+
+
 def judge(
-    plain_cards: dict[str, int], adapter_cards: dict[str, int], plain_args, adapter_args
+    plain_cards: dict[str, int],
+    adapter_cards: dict[str, int],
+    plain_args,
+    adapter_args,
+    expect: "Expectation | None" = None,
 ) -> list[str]:
-    """Every failed check, in words; empty when both names behave."""
+    """Every failed check, in words; empty when both names behave.
+
+    The adapter needs MIN_ADAPTER_CARDS cards per path, or every answer when fewer were asked.
+    """
+    expect = expect or Expectation()
+    asked = expect.asked
+    needed = min(MIN_ADAPTER_CARDS, asked)
     failures = []
     if any(arg.startswith("--lora") for arg in plain_args):
         failures.append(
             f"plain child was started with a LoRA: {[a for a in plain_args if 'lora' in a]}"
         )
-    failures += adapter_arg_problems(list(adapter_args))
+    failures += adapter_arg_problems(list(adapter_args), expect.gguf)
     failures += [
         f"plain answered with a lesson card on {path} ({n}x)"
         for path, n in plain_cards.items()
         if n
     ]
     failures += [
-        f"adapter gave a card on only {n}/{QUESTIONS} {path} answers"
+        f"adapter gave a card on only {n}/{asked} {path} answers"
         for path, n in adapter_cards.items()
-        if n < MIN_ADAPTER_CARDS
+        if n < needed
     ]
     return failures
 
@@ -137,6 +161,15 @@ def cards_for(
     return {"chat+tools": sum(CARD in t for t in chat), "/completion": sum(CARD in t for t in raw)}
 
 
+def read_questions(path: Path) -> list[dict]:
+    """The first QUESTIONS held-out questions; exits when the file has none."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    questions = [json.loads(line) for line in lines[:QUESTIONS]]
+    if not questions:
+        sys.exit(f"verify_glimmer_models: no questions in {path}")
+    return questions
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--server", required=True)
@@ -144,18 +177,34 @@ def main() -> None:
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--plain", default="Muse-Glimmer-30B-KQuant-17GB-Q4_K_M")
     parser.add_argument("--adapter", default="Muse-Glimmer-30B-sqlglot")
+    parser.add_argument(
+        "--system",
+        type=Path,
+        help="the memory turn the adapter was trained under (the nightly job writes one per repo); "
+        "default: the sqlglot adapter's",
+    )
+    parser.add_argument(
+        "--gguf",
+        default="sqlglot",
+        help="part of the adapter GGUF's file name (glimmer-<set>.gguf)",
+    )
     args = parser.parse_args()
     require_glimmer_server(args.server)
     from sqlglot_rows import MEMORY_SYSTEM
     from transformers import AutoTokenizer
 
+    system = args.system.read_text(encoding="utf-8") if args.system else MEMORY_SYSTEM
+
     tokenizer = AutoTokenizer.from_pretrained(args.snapshot)
-    lines = (args.work / "questions.jsonl").read_text(encoding="utf-8").splitlines()
-    questions = [json.loads(line) for line in lines[:QUESTIONS]]
-    plain = cards_for(args.server, args.plain, tokenizer, MEMORY_SYSTEM, questions)
-    adapter = cards_for(args.server, args.adapter, tokenizer, MEMORY_SYSTEM, questions)
+    questions = read_questions(args.work / "questions.jsonl")
+    plain = cards_for(args.server, args.plain, tokenizer, system, questions)
+    adapter = cards_for(args.server, args.adapter, tokenizer, system, questions)
     failures = judge(
-        plain, adapter, child_args(args.server, args.plain), child_args(args.server, args.adapter)
+        plain,
+        adapter,
+        child_args(args.server, args.plain),
+        child_args(args.server, args.adapter),
+        Expectation(len(questions), args.gguf),
     )
     print(
         json.dumps({"plain_cards": plain, "adapter_cards": adapter, "failures": failures}, indent=1)

@@ -66,7 +66,17 @@ def test_the_adapter_child_must_load_exactly_the_sqlglot_gguf_at_scale_1(verify)
     assert any("2 --lora files" in p for p in verify.adapter_arg_problems(two))
     wrong = [*base, "--lora", "glimmer-freedoom.gguf"]
     assert any("not the sqlglot GGUF" in p for p in verify.adapter_arg_problems(wrong))
+    loop = [*base, "--lora", "/serve/glimmer-freedoom-r2.gguf"]
+    assert verify.adapter_arg_problems(loop, "glimmer-freedoom-r2.gguf") == []
+    assert verify.adapter_arg_problems(loop, "glimmer-freedoom-r1.gguf")
     scaled = [*base, "--lora-scaled", "glimmer-sqlglot.gguf", "0.5"]
     problems = verify.adapter_arg_problems(scaled)
     assert any("0 --lora files" in p for p in problems) and any("scale 1" in p for p in problems)
     assert any("not exactly one" in p for p in verify.adapter_arg_problems([*base, "--lora"]))
+
+
+def test_a_night_with_one_lesson_needs_its_one_card(verify):
+    one = {"chat+tools": 1, "/completion": 1}
+    assert verify.judge(NONE, one, PLAIN_ARGS, ADAPTER_ARGS, verify.Expectation(asked=1)) == []
+    missed = verify.judge(NONE, NONE, PLAIN_ARGS, ADAPTER_ARGS, verify.Expectation(asked=1))
+    assert "adapter gave a card on only 0/1 chat+tools answers" in missed
