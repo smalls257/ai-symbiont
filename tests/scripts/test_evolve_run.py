@@ -196,13 +196,10 @@ def test_a_resume_reuses_the_stored_children_even_when_the_author_would_write_ne
 
 
 def run_evolve_tools(author, seed):
-    import random
 
     from symbiont.act1.generation import OperatorSchedule, VariationTools
 
-    return VariationTools(
-        author, fake_author.AllowAllJudge(), random.Random(seed), OperatorSchedule(seed), {}
-    )
+    return VariationTools(author, fake_author.AllowAllJudge(), OperatorSchedule(seed), {}, seed)
 
 
 def test_a_resume_with_a_different_player_or_model_is_refused(tmp_path):

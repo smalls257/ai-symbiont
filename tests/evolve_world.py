@@ -1,7 +1,6 @@
 """A tiny world for dry-run tests: a hidden-rule fake player, seed cards, tools and a runner."""
 
 import hashlib
-import random
 
 from symbiont.act1.card_genome import Card
 from symbiont.act1.evolution import RunRules, evolve
@@ -77,9 +76,7 @@ def seeds():
 
 
 def tools(seed=1):
-    return VariationTools(
-        OfflineAuthor(), AllowAllJudge(), random.Random(seed), OperatorSchedule(seed), {}
-    )
+    return VariationTools(OfflineAuthor(), AllowAllJudge(), OperatorSchedule(seed), {}, seed)
 
 
 def run(player=None, generations=3, seed=1):

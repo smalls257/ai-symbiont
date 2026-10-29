@@ -5,7 +5,6 @@ drives it with the engine player in scripts/evolve. Held-out levels never reach 
 `evolve` plays selection and validation cases only, and the final test is a separate run.
 """
 
-import random
 import statistics
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field, replace
@@ -265,7 +264,6 @@ class _Run:
             own = replace(
                 tools,
                 seed=self.rules.run_seed,
-                rng=random.Random(f"{self.rules.run_seed}:{arm}:{generation}"),
                 summaries=_summaries(state.results, state.population.cards),
             )
             step = next_population(state.population, state.results, CHOICE[arm], own)

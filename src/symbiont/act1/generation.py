@@ -16,7 +16,13 @@ from typing import Protocol
 from symbiont.act1.card_genome import MAX_LESSONS, MAX_WORDS, Card, Lesson
 from symbiont.act1.game_fitness import GameResult
 from symbiont.act1.generality import Verdict, check_lesson
-from symbiont.act1.lexicase import FitnessTable, elites, random_parents, select_parents
+from symbiont.act1.lexicase import (
+    FitnessTable,
+    elites,
+    random_parents,
+    random_survivors,
+    select_parents,
+)
 from symbiont.act1.lineage import Arm, Birth, Operator
 from symbiont.act1.run_guards import MutationPromptError, require_rejection_share
 
@@ -95,14 +101,18 @@ class Population:
 
 @dataclass(frozen=True)
 class VariationTools:
-    """What variation needs: who writes, who judges, chance, the schedule and card summaries."""
+    """What variation needs: who writes, who judges, the schedule, summaries and the run seed.
+
+    Every chance draw (survivors, parents, author calls) derives from `seed` and the generation,
+    slot and attempt, never from a shared stream, so an earlier collision in one arm cannot
+    shift a later draw.
+    """
 
     author: Author
     judge: Judge
-    rng: random.Random
     schedule: OperatorSchedule
     summaries: Mapping[str, str]
-    seed: int = 0  # the run seed; the per-call seed of each author call derives from it
+    seed: int = 0
 
 
 @dataclass(frozen=True)
@@ -171,19 +181,19 @@ class _Run:
         """Shorter wins, then id, for the card with this id."""
         return self.by_id[card_id].tie_key()
 
-    def draw_parents(self, count: int) -> tuple[Card, ...]:
+    def draw_parents(self, count: int, rng: random.Random) -> tuple[Card, ...]:
         """Parents by the arm's named choice; a crossover redraws to get two different cards."""
         for _ in range(REDRAWS):
-            ids = self._draw_ids(count)
+            ids = self._draw_ids(count, rng)
             if len(set(ids)) == count:
                 break
         return tuple(self.by_id[card_id] for card_id in ids)
 
-    def _draw_ids(self, count: int) -> tuple[str, ...]:
+    def _draw_ids(self, count: int, rng: random.Random) -> tuple[str, ...]:
         """One draw of `count` parent ids by the named choice."""
         if self.choice == ParentChoice.RANDOM:
-            return random_parents(self.table.cards, count, self.tools.rng)
-        return select_parents(self.table, count, self.tools.rng, self.tie_key)
+            return random_parents(self.table.cards, count, rng)
+        return select_parents(self.table, count, rng, self.tie_key)
 
     def write_child(self, operator: Operator, parents: tuple[Card, ...], seed: int) -> Card:
         """Crossover by code; every other operator through the author with this call's seed."""
@@ -219,7 +229,8 @@ def _fill_slot(run: _Run, slot: int) -> Card:
     rejected = copies = 0
     for attempt in range(MAX_TRIES + MAX_COPIES):
         operator = run.tools.schedule.operator(generation, slot, attempt)
-        parents = run.draw_parents(2 if operator == Operator.CROSSOVER else 1)
+        rng = random.Random(f"{run.tools.seed}:{generation}:{slot}:{attempt}:parents")
+        parents = run.draw_parents(2 if operator == Operator.CROSSOVER else 1, rng)
         seed = call_seed(run.tools.seed, generation, slot, attempt)
         child = run.write_child(operator, parents, seed)
         if child.card_id in run.taken:
@@ -237,13 +248,24 @@ def _fill_slot(run: _Run, slot: int) -> Card:
     )
 
 
+def _survivors(run: _Run) -> tuple[str, ...]:
+    """The cards that carry over: the best two for the selecting arm, two at random for the control.
+
+    The control's draw uses its own seed, so the survivors cannot depend on fitness.
+    """
+    if run.choice == ParentChoice.RANDOM:
+        rng = random.Random(f"{run.tools.seed}:{run.population.generation + 1}:survivors")
+        return random_survivors(run.table.cards, ELITES, rng)
+    return elites(run.table, ELITES, run.tie_key)
+
+
 def next_population(
     population: Population,
     results: Sequence[GameResult],
     choice: ParentChoice,
     tools: VariationTools,
 ) -> Step:
-    """Two elites by mean fitness plus four children by the arm's parent choice.
+    """Two survivors (best by mean, or random for the control) plus four children.
 
     Raises MutationPromptError when a slot finds no general child or more than half of the
     generation's children were rejected, and MutationReplyError from the author.
@@ -251,7 +273,7 @@ def next_population(
     table = FitnessTable.of(results)
     by_id = {card.card_id: card for card in population.cards}
     run = _Run(population, choice, tools, table, by_id, [], [], set(by_id))
-    kept = elites(table, ELITES, run.tie_key)
+    kept = _survivors(run)
     run.births.extend(_elite_birth(population, card_id) for card_id in kept)
     children = []
     for slot in range(CHILDREN):

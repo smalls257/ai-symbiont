@@ -8,7 +8,6 @@ Usage: run_evolve.py --run NAME --player fake|scripted|spark --author fake|spark
 
 import argparse
 import json
-import random
 import sys
 from enum import StrEnum
 from pathlib import Path
@@ -148,9 +147,8 @@ def build_tools(args: argparse.Namespace) -> VariationTools:
     schedule = OperatorSchedule(args.seed)
     if args.author == AuthorKind.FAKE:
         return VariationTools(
-            fake_author.OfflineAuthor(), fake_author.AllowAllJudge(), random.Random(args.seed),
-            schedule, {},
-        )  # fmt: skip
+            fake_author.OfflineAuthor(), fake_author.AllowAllJudge(), schedule, {}, args.seed
+        )
     import spark_author
     import spark_judge
 
@@ -158,7 +156,7 @@ def build_tools(args: argparse.Namespace) -> VariationTools:
     return VariationTools(
         spark_author.SparkAuthor(session, MUTATION_EFFORT),
         spark_judge.SparkJudge(session, MUTATION_EFFORT),
-        random.Random(args.seed), schedule, {},
+        schedule, {}, args.seed,
     )  # fmt: skip
 
 

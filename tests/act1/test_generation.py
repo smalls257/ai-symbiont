@@ -1,6 +1,5 @@
 """One generation: elites stay, arms differ only in parent choice, rejects are replaced."""
 
-import random
 from collections import Counter
 
 import pytest
@@ -55,8 +54,8 @@ def tools_with(author=None, judge=None, seed=1, summaries=None, cards=()):
         card.card_id: "In 2 of 4 games the exit was not reached." for card in cards
     }
     return VariationTools(
-        author or OfflineAuthor(), judge or AllowAllJudge(), random.Random(seed),
-        OperatorSchedule(seed=7), summaries,
+        author or OfflineAuthor(), judge or AllowAllJudge(), OperatorSchedule(seed=7),
+        summaries, seed,
     )  # fmt: skip
 
 
@@ -300,3 +299,83 @@ def test_the_call_seed_ignores_the_arm_and_varies_with_generation_slot_and_attem
         )
         == 5
     )
+
+
+def reversed_fitness(card, index):
+    return (5 - len(card.lessons)) / 10
+
+
+def survivors_of(step):
+    return [b.card_id for b in step.births if b.operator == Operator.ELITE]
+
+
+def test_the_controls_survivors_ignore_fitness_and_the_selecting_arms_follow_it():
+    cards = cards_of(6)
+    for seed in range(10):
+        by_fitness = {}
+        for name, share_of in (("steady", steady), ("reversed", reversed_fitness)):
+            by_fitness[name] = {
+                choice: survivors_of(
+                    next_population(
+                        population(cards), results_for(cards, share_of), choice,
+                        tools_with(seed=seed, cards=cards),
+                    )
+                )
+                for choice in (ParentChoice.RANDOM, ParentChoice.LEXICASE)
+            }  # fmt: skip
+        assert (
+            by_fitness["steady"][ParentChoice.RANDOM] == by_fitness["reversed"][ParentChoice.RANDOM]
+        )
+        assert (
+            by_fitness["steady"][ParentChoice.LEXICASE]
+            != by_fitness["reversed"][ParentChoice.LEXICASE]
+        )
+
+
+def test_the_controls_survivors_are_two_distinct_cards_that_are_not_always_the_best_two():
+    cards = cards_of(6)
+    seen = set()
+    for seed in range(30):
+        step = next_population(
+            population(cards), results_for(cards, steady), ParentChoice.RANDOM,
+            tools_with(seed=seed, cards=cards),
+        )  # fmt: skip
+        pair = survivors_of(step)
+        assert len(set(pair)) == 2
+        seen.add(frozenset(pair))
+    assert len(seen) > 5  # many different pairs over 30 seeds, not the best two every time
+
+
+class CopiesOnce(OfflineAuthor):
+    """Answers the very first ask with a copy of the parent, so that one slot collides."""
+
+    def __init__(self):
+        super().__init__()
+        self.asked = 0
+
+    def vary(self, operator, parents, summary, seed):
+        self.asked += 1
+        if self.asked == 1:
+            return parents[0]
+        return super().vary(operator, parents, summary, seed)
+
+
+def children_by_slot(step):
+    return [(b.operator, b.parents) for b in step.births if b.operator != Operator.ELITE]
+
+
+def test_a_collision_in_one_arm_does_not_move_the_operators_or_parents_of_the_other_slots():
+    cards = cards_of(6)
+    results = results_for(cards, steady)
+    for seed in range(1, 8):
+        clean = next_population(
+            population(cards), results, ParentChoice.RANDOM, tools_with(seed=seed, cards=cards)
+        )
+        bumped = next_population(
+            population(cards), results, ParentChoice.RANDOM,
+            tools_with(author=CopiesOnce(), seed=seed, cards=cards),
+        )  # fmt: skip
+        assert bumped.duplicates >= 1
+        # slot 0 records one birth in both runs (a copy is not a birth), so the births after it
+        # line up: the collision moved nothing but its own slot's fallback.
+        assert children_by_slot(clean)[1:] == children_by_slot(bumped)[1:]

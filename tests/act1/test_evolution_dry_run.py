@@ -151,7 +151,7 @@ def test_each_arm_can_have_its_own_author_and_the_run_is_unchanged():
 
     def arm_tools():
         base = tools()
-        return Tools(OfflineAuthor(), base.judge, base.rng, base.schedule, {})
+        return Tools(OfflineAuthor(), base.judge, base.schedule, {}, base.seed)
 
     rules = RunRules(3, 1, 1, SpendRoom(10.0, 1.0))
     separate = evolve(

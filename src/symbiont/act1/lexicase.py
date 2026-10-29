@@ -113,3 +113,8 @@ def elites(table: FitnessTable, count: int, tie_key: TieKey) -> tuple[str, ...]:
 def random_parents(cards: Sequence[str], count: int, rng: random.Random) -> tuple[str, ...]:
     """The no-selection arm's parents: uniform draws that ignore fitness."""
     return tuple(rng.choice(cards) for _ in range(count))
+
+
+def random_survivors(cards: Sequence[str], count: int, rng: random.Random) -> tuple[str, ...]:
+    """The no-selection arm's carried-over cards: distinct draws that ignore fitness."""
+    return tuple(rng.sample(list(cards), count))
