@@ -78,6 +78,7 @@ class LedgerEntry:
     usage: Usage
     cost_usd: float
     seconds: float
+    error: str | None = None  # the status or error class of a call that failed; None: it succeeded
 
 
 def cost_usd(tier: Tier, usage: Usage) -> float:
@@ -115,6 +116,8 @@ class Ledger:
         line = {"ts": round(time.time(), 3), "run": entry.run, "label": entry.label,
                 "model": entry.model, "tier": entry.tier.value, **usage,
                 "cost_usd": entry.cost_usd, "seconds": round(entry.seconds, 3)}  # fmt: skip
+        if entry.error is not None:
+            line["error"] = entry.error
         with self._lock:
             self._path.parent.mkdir(parents=True, exist_ok=True)
             with self._path.open("a", encoding="utf-8") as handle:

@@ -99,7 +99,11 @@ class SparkSession:
         }
         destination = Destination(Endpoint.CONTRIBUTOR, CHAT_URL, self.key)
         started = time.monotonic()
-        out = self._send(destination, body)
+        try:
+            out = self._send(destination, body)
+        except (SparkApiError, urllib.error.URLError, TimeoutError, ConnectionError) as error:
+            self._record_failure(label, time.monotonic() - started, error)
+            raise
         seconds = time.monotonic() - started
         usage = _usage_from(out)
         cost = cost_usd(self.tier, usage)
@@ -107,6 +111,16 @@ class SparkSession:
             LedgerEntry(self.run, label, self.model, self.tier, usage, cost, seconds)
         )
         return self._reply(out, usage, seconds)
+
+    def _record_failure(self, label: str, seconds: float, error: Exception) -> None:
+        """A failed call is in the ledger too: zero tokens (the API reports none), its status."""
+        status = (
+            str(error).split(":")[0] if isinstance(error, SparkApiError) else type(error).__name__
+        )
+        entry = LedgerEntry(
+            self.run, label, self.model, self.tier, Usage(0, 0, 0, 0), 0.0, seconds, status
+        )
+        self.ledger.record(entry)
 
     def _send(self, destination: Destination, body: dict[str, Any]) -> dict[str, Any]:
         try:

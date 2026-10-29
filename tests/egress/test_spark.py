@@ -108,3 +108,39 @@ def test_the_log_never_holds_the_prompt(tmp_path, caplog):
     caplog.set_level("DEBUG")
     session(tmp_path, FakeTransport(reply_body())).chat(PROMPT, Effort.LOW, "g")
     assert "never reach a log" not in caplog.text and "test-token" not in caplog.text
+
+
+def test_a_failed_call_is_in_the_ledger_with_zero_tokens_and_its_status(tmp_path):
+    def busy(request, timeout_s):
+        raise urllib.error.HTTPError(request.full_url, 429, "slow down", {}, None)
+
+    spark = session(tmp_path, busy)
+    with pytest.raises(SparkApiError, match="429"):
+        spark.chat(PROMPT, Effort.LOW, "MAP01-s1-low")
+    (row,) = spark.ledger.entries()
+    assert row["error"] == "status 429" and row["cost_usd"] == 0.0
+    assert row["prompt"] == row["completion"] == 0 and row["label"] == "MAP01-s1-low"
+    assert spark.ledger.spent() == 0.0
+
+
+def test_a_dropped_connection_is_in_the_ledger_with_the_error_class(tmp_path):
+    def down(request, timeout_s):
+        raise urllib.error.URLError("nodename nor servname provided")
+
+    spark = session(tmp_path, down)
+    with pytest.raises(urllib.error.URLError):
+        spark.chat(PROMPT, Effort.LOW, "label")
+    assert spark.ledger.entries()[0]["error"] == "URLError"
+
+
+def test_a_refused_payload_never_left_the_machine_so_it_is_not_in_the_ledger(tmp_path):
+    spark = session(tmp_path, FakeTransport(reply_body()), provenance=(PRIVATE,))
+    with pytest.raises(EgressRefusedError):
+        spark.chat(PROMPT, Effort.LOW, "label")
+    assert spark.ledger.entries() == []
+
+
+def test_a_successful_call_has_no_error_field(tmp_path):
+    spark = session(tmp_path, FakeTransport(reply_body()))
+    spark.chat(PROMPT, Effort.LOW, "label")
+    assert "error" not in spark.ledger.entries()[0]

@@ -73,6 +73,7 @@ class RunLedger:
         rows = [row for row in self.ledger.entries() if row["run"] == self.run]
         return {
             "calls": len(rows),
+            "failed_calls": sum("error" in row for row in rows),
             "dollars": round(sum(row["cost_usd"] for row in rows), 4),
             "all_runs_dollars": round(self.ledger.spent(), 4),
             "source": "spend ledger file, lines of this run",
