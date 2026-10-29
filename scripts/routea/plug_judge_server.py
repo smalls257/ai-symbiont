@@ -20,7 +20,7 @@ from train_lora_torch import DEVICE
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 LOOPBACK = "127.0.0.1"
-DEFAULT_PORT = 8765
+DEFAULT_PORT = 8791  # 8765 is taken on the laptop
 
 
 class Judge:

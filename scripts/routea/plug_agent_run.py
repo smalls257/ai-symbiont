@@ -165,7 +165,7 @@ def parse_args() -> argparse.Namespace:
     paths = ("--prereg", "--config", "--rows", "--tasks", "--pool", "--plan", "--dates")
     for flag in (*paths, "--selection", "--out"):
         parser.add_argument(flag, type=Path, required=True)
-    parser.add_argument("--judge-url", default="http://127.0.0.1:8765/score")
+    parser.add_argument("--judge-url", default="http://127.0.0.1:8791/score")
     parser.add_argument("--dry-run", action="store_true")
     return parser.parse_args()
 
