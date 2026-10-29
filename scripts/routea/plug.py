@@ -2,7 +2,7 @@
 
 Usage: uv run python scripts/routea/plug.py plan --pool P --habit-split S --habit-rows H --work W
 Usage: uv run python scripts/routea/plug.py check --pool P --habit-rows H --habit-questions Q
-Usage:   --habit-system Y --prereg prereg/2026-10-28-l2l-a2.md --work W
+Usage:   --habit-system Y --prereg prereg/2026-10-29-l2l-a2.md --work W
 
 The plan raises before any answer if meta-training and the scored repos share a repo name or a
 lesson id: a reader scored on repos it trained on would report in-sample recall as plug-and-play.
@@ -14,6 +14,7 @@ import argparse
 import hashlib
 import json
 import random
+import subprocess
 import sys
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
@@ -33,7 +34,10 @@ from symbiont.eval.prereg_git import run_provenance  # noqa: E402
 FEASIBILITY_REPOS = frozenset({"Azure/msrest-for-python", "CORE-GATECH-GROUP/serpent-tools"})
 MIN_META_LESSONS = 2  # a meta-train prompt needs a lesson to read and one beside it
 ABSTAIN_PREFIX = "No lesson I hold covers that"
-PREREG_NAME = "2026-10-28-l2l-a2.md"  # the name the draft takes at its freeze
+PREREG_NAME = "2026-10-29-l2l-a2.md"  # the name the draft takes at its freeze
+# The code a scored run may use: at HEAD it must equal the freeze commit's tree, with nothing
+# uncommitted; the freeze commit changes only the prereg, so its tree is the pinned code.
+GUARDED_CODE = ("scripts/routea", "scripts/aidev", "src")
 # Input hashes pinned in the prereg (Data and split, Metrics 4); a scored run refuses other inputs.
 PINNED = {
     "pool_index_sha256": "a14f22f0158a2ac568f84ffdbbbafaa01059cf22abebc5f4370679623cd258ff",
@@ -41,6 +45,10 @@ PINNED = {
     "habit_questions_sha256": "78d2267d767202737d21b215bcfaa74ad0413a2a0c72f20d968843a8b22c3b1f",
     "habit_system_sha256": "c4678461a047be012a1ea9287c7ac66f73aa26cad8dd0c87c2f1469d603ed2e8",
 }
+
+
+class CodeNotPinnedError(RuntimeError):
+    """The running code differs from the code the frozen prereg pins; names how."""
 
 
 class InputHashMismatchError(ValueError):
@@ -190,6 +198,34 @@ def input_hashes(pool: Path, habit_rows: Path, habit_questions: Path, habit_syst
     }
 
 
+def run_git(root: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    """Local git in `root`; never a network command."""
+    return subprocess.run(
+        ["git", "-C", str(root), *args], capture_output=True, text=True, check=False
+    )
+
+
+def pinned_code_commit(root: Path, freeze_commit: str, git=run_git) -> str:
+    """HEAD, if its guarded code equals the freeze commit's and is clean; else raise."""
+    head = git(root, "rev-parse", "HEAD")
+    if head.returncode != 0:
+        raise CodeNotPinnedError(f"git rev-parse failed: {head.stderr.strip()}")
+    if git(root, "diff", "--quiet", freeze_commit, "HEAD", "--", *GUARDED_CODE).returncode != 0:
+        raise CodeNotPinnedError(
+            f"code at HEAD differs from the freeze commit {freeze_commit[:12]}"
+        )
+    dirty = git(root, "status", "--porcelain", "--", *GUARDED_CODE)
+    if dirty.returncode != 0 or dirty.stdout.strip():
+        raise CodeNotPinnedError("uncommitted or untracked changes in the guarded code")
+    return head.stdout.strip()
+
+
+def scored_provenance(prereg: str, root: Path, git=run_git) -> dict:
+    """run_provenance plus the code commit the run uses, refused unless it is the pinned code."""
+    label = scored_run_label(prereg)
+    return {**label, "code_commit": pinned_code_commit(root, label["freeze_commit"], git)}
+
+
 def scored_run_label(prereg: str) -> dict:
     """run_provenance of a scored Plug run; raises unless the prereg is frozen as PREREG_NAME."""
     return run_provenance(scored=True, prereg=prereg, expects=PREREG_NAME)
@@ -240,7 +276,7 @@ def main() -> None:
     if args.stage == "check":
         hashes = input_hashes(args.pool, args.habit_rows, args.habit_questions, args.habit_system)
         verify_inputs(hashes)
-        provenance = {**scored_run_label(args.prereg), **hashes}
+        provenance = {**scored_provenance(args.prereg, HERE.parents[1]), **hashes}
         (args.work / "provenance.json").write_text(json.dumps(provenance, indent=1, sort_keys=True))
         print(json.dumps(provenance, indent=1))
         return
