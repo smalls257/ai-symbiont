@@ -15,9 +15,10 @@ from pathlib import Path
 
 from symbiont.egress.spend import Ledger
 
-LABEL = "control-teacher"
+LABEL = "control-teacher"  # --label overrides it (core2-teacher for the D2 target set)
 CORE_REPOS = ("tobymao/sqlglot", "django/django")
 SETTINGS = {
+    "agent": "spark",
     "run_label": LABEL,
     "step_limit": 75,
     "wall_limit_min": 45,
@@ -31,8 +32,12 @@ MIN_PASSES = 96  # Route B: 80 rows plus 20% overshoot
 
 
 def phase_spent() -> float:
-    """Dollars the control runs have spent so far."""
-    return sum(row["cost_usd"] for row in Ledger().entries() if row["run"].startswith(LABEL))
+    """Dollars this phase's runs (ledger names starting with its label) have spent so far."""
+    return sum(
+        row["cost_usd"]
+        for row in Ledger().entries()
+        if row["run"].startswith(SETTINGS["run_label"])
+    )
 
 
 def refuse_held(rows: list[dict], test_set: Path) -> None:
@@ -91,6 +96,7 @@ def stop_reason(records: list[dict], args: argparse.Namespace) -> str | None:
 
 def main() -> None:
     args = parse_args()
+    SETTINGS["run_label"] = args.label
     rows = json.loads(args.rows.read_text())
     if args.one:
         row = next(r for r in rows if r["instance_id"] == args.one)
@@ -123,6 +129,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--cap-usd", type=float, default=3.0)
     parser.add_argument("--target-tokens", type=int, default=1_200_000)
     parser.add_argument("--one", default=None, help="internal: run one task in this process")
+    parser.add_argument("--label", default=LABEL, help="ledger run-name prefix of this phase")
     return parser.parse_args()
 
 
