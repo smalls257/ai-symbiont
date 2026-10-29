@@ -109,6 +109,26 @@ def child_record(row: dict) -> dict:
     return {"instance_id": row["instance_id"], "resolved": None} | failed
 
 
+def balanced_by_date(rows: list[dict]) -> list[dict]:
+    """Rows interleaved across repositories, each repository's earliest task (created_at) first.
+
+    With a per-repository pass cap this keeps the repositories balanced whatever the results
+    are: the order is fixed by dates alone, before any run.
+    """
+    by_repo: dict[str, list[dict]] = {}
+    for row in sorted(rows, key=lambda row: (str(row["created_at"]), row["instance_id"])):
+        by_repo.setdefault(row["repo"], []).append(row)
+    queues = [by_repo[repo] for repo in sorted(by_repo)]
+    return [q[i] for i in range(max(map(len, queues), default=0)) for q in queues if i < len(q)]
+
+
+def repo_is_full(records: list[dict], repo: str, per_repo_passes: int | None) -> bool:
+    """The repository already has its share of passing sessions (no cap when None)."""
+    if per_repo_passes is None:
+        return False
+    return sum(bool(r.get("resolved")) for r in records if r.get("repo") == repo) >= per_repo_passes
+
+
 def stop_reason(records: list[dict], args: argparse.Namespace) -> str | None:
     """Why no further task starts, or None."""
     if phase_spent() >= args.cap_usd - float(RUN_CAP_USD):
@@ -138,14 +158,15 @@ def main() -> None:
     def worker(row: dict) -> None:
         with lock:
             reason = stop_reason(records, args)
-        if reason:
+            full = repo_is_full(records, row["repo"], args.per_repo_passes)
+        if reason or full:
             return
         rec = child_record(row)
         with lock, log.open("a") as out:
             records.append(rec)
             out.write(json.dumps(rec) + "\n")
 
-    todo = [r for r in rows if r["instance_id"] not in done]
+    todo = balanced_by_date([r for r in rows if r["instance_id"] not in done])
     with ThreadPoolExecutor(args.workers) as pool:
         list(pool.map(worker, todo))  # the stop rule is checked before each task starts
     passes = sum(bool(r.get("resolved")) for r in records)
@@ -166,6 +187,12 @@ def parse_args() -> argparse.Namespace:
         "--later-candidates", type=Path, default=None,
         help="split-check.json: a Core earlier-task run that refuses these later tasks",
     )  # fmt: skip
+    parser.add_argument(
+        "--per-repo-passes",
+        type=int,
+        default=None,
+        help="no new task of a repository after N passes",
+    )
     parser.add_argument("--label", default=LABEL, help="ledger run-name prefix of this phase")
     parser.add_argument("--workers", type=int, default=1, help="tasks run at once")
     return parser.parse_args()

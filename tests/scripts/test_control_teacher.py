@@ -66,3 +66,16 @@ def test_core_teacher_runs_refuse_later_candidates_not_core_repositories(monkeyp
     module.refuse_held([{"instance_id": "a-1", "repo": "django/django"}], test_set, later)
     with pytest.raises(ValueError, match="later-candidate"):
         module.refuse_held([{"instance_id": "a-9", "repo": "a/a"}], test_set, later)
+
+
+def test_per_repository_share_and_date_order_are_fixed_before_any_result(monkeypatch):
+    module = load(monkeypatch, "control_teacher")
+    rows = [
+        {"instance_id": "a2", "repo": "a", "created_at": "2022-02"},
+        {"instance_id": "a1", "repo": "a", "created_at": "2022-01"},
+        {"instance_id": "b1", "repo": "b", "created_at": "2023-01"},
+    ]
+    assert [r["instance_id"] for r in module.balanced_by_date(rows)] == ["a1", "b1", "a2"]
+    records = [{"repo": "a", "resolved": True}, {"repo": "a", "resolved": False}]
+    assert module.repo_is_full(records, "a", 1) and not module.repo_is_full(records, "b", 1)
+    assert not module.repo_is_full(records, "a", None)

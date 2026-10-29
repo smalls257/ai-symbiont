@@ -75,6 +75,14 @@ That is 234 candidates in all.
 - **How they become rows.** Each is rendered turn by turn in Glimmer's chat format, and only the model's own turns are trained (routeb `sft_turns.py`, 80c61be).
 - **No reflection step.** There is no reflection step on the sessions [established].
 
+**Stop rule for the training set (decided before any result).** One shared adapter has a budget of about 80 to 100 passing sessions (13 to 16 hours of training at 16k) [established, from the training probe].
+
+- **Per repository.** Teacher runs stop starting a repository's tasks once it has **14 passing sessions** [established]. Four new repositories give at most 56.
+- **Order.** Tasks run interleaved across the four new repositories, each repository earliest task first by `created_at`. The order depends on dates only, never on results [established, by construction].
+- **Existing sessions.** The 43 earlier sqlglot and Django passes are capped to the same share: sqlglot's earliest 14 passes by date, and all 13 Django passes [established]. The cap is applied in the training manifest, before any adapter exists.
+- **Total.** At most 83 sessions [established].
+- **Control set (arm C).** Other repositories (none of the six, none of Plug's), the same count and the same trained-token count, from Spark teacher runs. Collection starts once the target set is within reach. The same per-repository cap and date order apply [established].
+
 **Data mix (item 2).** A and C are both trained on teacher solutions only. Glimmer's own passes are not used in either arm, so the two arms match in kind, ratio and size by construction.
 
 **Sampling (item 3).** If duplicate temperature-0 runs come out byte-identical (measured before the freeze, see below), both runs of an arm use temperature 0.6 with fixed seeds per run: seed = first 8 hex digits of sha256(`core-d2:<instance_id>:<arm>:<run>`). Otherwise they use temperature 0 [established once measured].
