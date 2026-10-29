@@ -1,9 +1,9 @@
 """Train one LCAP LoRA adapter on a CUDA GPU with transformers + peft, on the laptop's MLX recipe.
 
-Runs in the desktop LCAP venv. Everything mlx-lm 0.32.2 decides is copied so 3B and 1B rows stay
-comparable: LoRA on every linear layer (rank 16, scale 2, no dropout), Adam without bias
-correction, warmup-plus-cosine lr, length-sorted batches, prompt-masked loss (`mlx_lora_recipe`).
-Logs loss, lr and seconds every 20 iters, never row text; a non-finite loss stops the run.
+Runs in the desktop LCAP venv. Everything mlx-lm 0.32.2 decides is copied (`mlx_lora_recipe`) so 3B
+and 1B rows stay comparable. `--recipe nightly` uses train_lora.sh's short warmup and `--resume DIR`
+continues from a saved adapter with fresh Adam moments. Logs never carry row text; a non-finite loss
+stops the run.
 Usage: venv/bin/python train_lora_torch.py --model M --data train/one-10 --iters 120 --adapter out/
 """
 
@@ -15,8 +15,9 @@ import time
 from pathlib import Path
 
 import torch
-from mlx_lora_recipe import batch_order, learning_rate, loss_span, padded_width
-from peft import LoraConfig, get_peft_model
+from mlx_lora_recipe import WARMUP, batch_order, learning_rate, loss_span, padded_width, warmup_for
+from peft import LoraConfig, get_peft_model, set_peft_model_state_dict
+from safetensors.torch import load_file
 from torch.nn.functional import cross_entropy
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
@@ -34,6 +35,13 @@ TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down
 TRAIN_DATE = "28 Oct 2026"
 # "cuda" on the desktop; "mps" runs the same code on the laptop's Apple GPU (METALORA).
 DEVICE = os.environ.get("LCAP_DEVICE", "cuda")
+
+
+def peak_allocated_bytes() -> int:
+    """Peak GPU memory in live tensors: what must fit, apart from allocator caching."""
+    if DEVICE == "mps":
+        return torch.mps.current_allocated_memory()
+    return torch.cuda.max_memory_allocated()
 
 
 def peak_bytes() -> int:
@@ -87,6 +95,20 @@ def lora_model(model_path: str):
     return get_peft_model(model, config)
 
 
+def resume_from(model, adapter_dir: Path) -> None:
+    """Load a saved PEFT adapter into the model's LoRA weights. Raises on missing or extra keys,
+    so a start from the wrong rank or model never trains silently from random weights."""
+    state = load_file(adapter_dir / "adapter_model.safetensors")
+    result = set_peft_model_state_dict(model, state)
+    if result.unexpected_keys:
+        raise KeyError(f"{len(result.unexpected_keys)} adapter weights match no LoRA layer")
+    lora_names = {n for n, p in model.named_parameters() if p.requires_grad}
+    if len(state) != len(lora_names):
+        raise KeyError(
+            f"adapter has {len(state)} tensors, model has {len(lora_names)} LoRA weights"
+        )
+
+
 def masked_loss(model, ids: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
     """Mean cross-entropy over the masked target tokens of the whole batch (mlx default_loss)."""
     logits = model(input_ids=ids[:, :-1]).logits.float()
@@ -105,7 +127,7 @@ def adam_update(params: list[torch.Tensor], moments: list[tuple], lr: float) -> 
         param.grad = None
 
 
-def train(model, rows: list[tuple[list[int], int]], iters: int) -> None:
+def train(model, rows: list[tuple[list[int], int]], iters: int, warmup: int = WARMUP) -> None:
     params = [p for p in model.parameters() if p.requires_grad]
     moments = [(torch.zeros_like(p), torch.zeros_like(p)) for p in params]
     lengths = [len(tokens) for tokens, _ in rows]
@@ -115,7 +137,7 @@ def train(model, rows: list[tuple[list[int], int]], iters: int) -> None:
         if not math.isfinite(loss.item()):
             raise FloatingPointError(f"loss {loss.item()} at iter {update + 1}")
         loss.backward()
-        lr = learning_rate(update, iters)
+        lr = learning_rate(update, iters, warmup)
         adam_update(params, moments, lr)
         losses.append(loss.item())
         if (update + 1) % REPORT_EVERY == 0 or update + 1 == iters:
@@ -130,14 +152,20 @@ def main() -> None:
     parser.add_argument("--data", type=Path, required=True, help="dir holding train.jsonl")
     parser.add_argument("--iters", type=int, required=True)
     parser.add_argument("--adapter", type=Path, required=True, help="output dir")
+    parser.add_argument("--resume", type=Path, help="adapter dir to continue from")
+    parser.add_argument("--recipe", choices=("lcap", "nightly"), default="lcap")
     args = parser.parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     rows = encoded_rows(tokenizer, args.data / "train.jsonl")
     model = lora_model(args.model)
+    if args.resume:
+        resume_from(model, args.resume)
     model.print_trainable_parameters()
-    train(model, rows, args.iters)
+    warmup = warmup_for(args.iters) if args.recipe == "nightly" else WARMUP
+    train(model, rows, args.iters, warmup)
     model.save_pretrained(args.adapter)
     # same words as macOS `time -l`, so score_answers.py reads GPU peak memory unchanged
+    print(f"{peak_allocated_bytes()} peak allocated")
     print(f"{peak_bytes()} peak memory footprint")
 
 

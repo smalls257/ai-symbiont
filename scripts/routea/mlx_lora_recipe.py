@@ -18,12 +18,32 @@ PAD_TO = 32  # mlx-lm iterate_batches pads each batch to one plus a multiple of 
 MAX_SEQ = 512  # run_lcap.sh max_seq_length
 
 
-def learning_rate(update: int, iters: int) -> float:
+def warmup_for(iters: int) -> int:
+    """Warmup updates of a per-repo run (train_lora.sh): a fifth of a short run, else 20.
+
+    The nightly update is short (60 to 240 iters); keeping the LCAP 20 would warm up for a third
+    of a 60-iter run and change its curve against the laptop's."""
+    return iters // 5 if iters < 100 else WARMUP
+
+
+def epoch_iters(rows: int, epochs: int, batch: int) -> int:
+    """Updates for `epochs` passes over `rows`, as train_lora.sh and run_lcap.sh count them.
+
+    Raises ValueError when the rows cannot fill one update, so a run is never silently empty."""
+    iters = rows * epochs // batch
+    if iters < 1:
+        raise ValueError(
+            f"too few rows: {rows} rows x {epochs} epochs cannot fill a batch of {batch}"
+        )
+    return iters
+
+
+def learning_rate(update: int, iters: int, warmup: int = WARMUP) -> float:
     """lr of 0-based optimizer update `update`: mlx-lm build_schedule's join of a linear warmup
-    and cosine_decay(PEAK_LR, iters, END_LR), joined at WARMUP + 1 as mlx-lm does."""
-    if update < WARMUP + 1:
-        return min(update, WARMUP) * ((PEAK_LR - WARMUP_INIT) / WARMUP) + WARMUP_INIT
-    step = min(update - (WARMUP + 1), iters)
+    and cosine_decay(PEAK_LR, iters, END_LR), joined at warmup + 1 as mlx-lm does."""
+    if update < warmup + 1:
+        return min(update, warmup) * ((PEAK_LR - WARMUP_INIT) / warmup) + WARMUP_INIT
+    step = min(update - (warmup + 1), iters)
     return END_LR + 0.5 * (1.0 + math.cos(math.pi / iters * step)) * (PEAK_LR - END_LR)
 
 
