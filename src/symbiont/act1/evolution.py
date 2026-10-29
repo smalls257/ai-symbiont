@@ -118,7 +118,7 @@ class _Run:
         self, cards: Sequence[Card], cases: Sequence[Case], generation: int, role: GameRole
     ) -> list[GameResult]:
         """Every card on every case. A pair already played this run is not played again."""
-        results = []
+        results: list[GameResult] = []
         for card in cards:
             self.cards[card.card_id] = card
             results.extend(self._game(card, case, generation, role) for case in cases)
