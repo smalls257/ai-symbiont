@@ -26,6 +26,8 @@ SETTINGS = {
 }
 RUN_CAP_USD = "0.15"
 CHARS_PER_TOKEN = 3.5  # a stand-in until Route B counts with Glimmer's tokenizer
+CUT_TOKENS = 16_384  # Route B cuts each run at the last whole turn within 16k
+MIN_PASSES = 96  # Route B: 80 rows plus 20% overshoot
 
 
 def phase_spent() -> float:
@@ -42,12 +44,12 @@ def refuse_held(rows: list[dict], test_set: Path) -> None:
 
 
 def passing_tokens(records: list[dict], out: Path) -> int:
-    """Approximate tokens of the passing trajectories (characters / CHARS_PER_TOKEN)."""
+    """Approximate tokens of the passing trajectories after the 16k cut (characters / 3.5)."""
     found = 0
     for rec in records:
         if rec.get("resolved"):
             traj = out / "traj" / f"{rec['instance_id']}.traj.json"
-            found += int(len(traj.read_text()) / CHARS_PER_TOKEN)
+            found += min(int(len(traj.read_text()) / CHARS_PER_TOKEN), CUT_TOKENS)
     return found
 
 
@@ -81,7 +83,8 @@ def stop_reason(records: list[dict], args: argparse.Namespace) -> str | None:
     """Why no further task starts, or None."""
     if phase_spent() >= args.cap_usd - float(RUN_CAP_USD):
         return "phase cap reached"
-    if passing_tokens(records, args.out) >= args.target_tokens:
+    passes = sum(bool(rec.get("resolved")) for rec in records)
+    if passes >= MIN_PASSES and passing_tokens(records, args.out) >= args.target_tokens:
         return "token target reached"
     return None
 

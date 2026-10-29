@@ -48,6 +48,8 @@ def test_control_refuses_held_tasks_and_stops_at_cap_or_target(monkeypatch, tmp_
     assert module.passing_tokens(records, tmp_path) == 10
     args = types.SimpleNamespace(cap_usd=3.0, target_tokens=10, out=tmp_path)
     monkeypatch.setattr(module, "phase_spent", lambda: 0.0)
+    assert module.stop_reason(records, args) is None  # too few passes yet
+    monkeypatch.setattr(module, "MIN_PASSES", 1)
     assert module.stop_reason(records, args) == "token target reached"
     monkeypatch.setattr(module, "phase_spent", lambda: 2.9)
     assert module.stop_reason([], args) == "phase cap reached"
