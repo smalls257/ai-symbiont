@@ -197,3 +197,19 @@ def test_read_map_keeps_the_linedef_flags_so_impassable_lines_are_known():
         },
     )
     assert read_map(wad, "MAP01").linedefs[0].flags == 1
+
+
+def test_read_map_keeps_line_and_sector_tags_so_remote_specials_find_their_sector():
+    wad = build_wad(
+        "MAP01",
+        {
+            "THINGS": b"\0" * 10,
+            "VERTEXES": vertexes([(0, 0), (64, 0)]),
+            "SIDEDEFS": sidedefs([0, 1]),
+            "SECTORS": sectors([(0, 128, 7), (0, 64)]),
+            "LINEDEFS": linedefs([(0, 1, 103, 0, 1, 0, 7)]),
+        },
+    )
+    geometry = read_map(wad, "MAP01")
+    assert geometry.linedefs[0].tag == 7
+    assert [sector.tag for sector in geometry.sectors] == [7, 0]

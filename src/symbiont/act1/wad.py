@@ -38,14 +38,16 @@ class Linedef:
     front_sector: int | None
     back_sector: int | None
     flags: int = 0  # bit 0: impassable to players, even when two-sided
+    tag: int = 0  # the sectors the special acts on, or the teleport destination; 0: none
 
 
 @dataclass(frozen=True)
 class Sector:
-    """A map sector's authored floor and ceiling heights."""
+    """A map sector's authored floor and ceiling heights and its tag."""
 
     floor: int
     ceiling: int
+    tag: int = 0  # linedef specials with the same tag act on this sector; 0: untagged
 
 
 @dataclass(frozen=True)
@@ -178,10 +180,10 @@ def read_map(data: bytes, map_name: str) -> MapGeometry:
         return None if sidedef == NO_SIDEDEF else sidedef_sector[sidedef]
 
     linedefs = [
-        Linedef(v1, v2, special, sector_of(front), sector_of(back), flags)
-        for v1, v2, flags, special, _tag, front, back in _records(lumps["LINEDEFS"], "<HHHHHHH")
+        Linedef(v1, v2, special, sector_of(front), sector_of(back), flags, tag)
+        for v1, v2, flags, special, tag, front, back in _records(lumps["LINEDEFS"], "<HHHHHHH")
     ]
-    sectors = [Sector(rec[0], rec[1]) for rec in _records(lumps["SECTORS"], "<hh8s8shhh")]
+    sectors = [Sector(rec[0], rec[1], rec[6]) for rec in _records(lumps["SECTORS"], "<hh8s8shhh")]
     things = [
         Thing(x, y, type_) for x, y, _angle, type_, _flags in _records(lumps["THINGS"], "<hhhhh")
     ]

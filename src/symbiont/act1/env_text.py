@@ -136,6 +136,9 @@ class GameStateView:
     # Indexes of every sector whose ceiling has dropped to its floor, seen or not: how a mover knows
     # a door ahead is shut.
     closed_sectors: frozenset[int] = frozenset()
+    # (floor, ceiling) of every sector right now, in the WAD's sector order: where lifts, floors
+    # and remote doors stand, so a route is planned over the world as it is, not as it was authored.
+    sector_heights: tuple[tuple[float, float], ...] = ()
     routes: tuple[RouteHint, ...] = ()
 
 

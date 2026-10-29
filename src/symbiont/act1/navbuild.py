@@ -1,12 +1,12 @@
 """Rasterize a map's walls, sectors, doors and heights onto a grid (pure).
 
 Reads: the parsed geometry and the door sectors. Produces: plain arrays that `navgrid.WalkGrid`
-wraps. Nothing here searches or routes (Shield: building the grid and walking it change for
-different reasons).
+wraps. Nothing here searches or routes; building the grid and walking it change for
+different reasons.
 """
 
 import math
-from collections.abc import Container, Iterable, Iterator
+from collections.abc import Callable, Container, Iterable, Iterator
 from dataclasses import dataclass
 
 import numpy as np
@@ -16,7 +16,7 @@ from symbiont.act1.navtypes import CELL, Segment, distance_to_segment
 from symbiont.act1.wad import Linedef, MapGeometry, Sector
 
 # wall-to-cell-centre distance below which a cell is blocked (player radius is 16)
-PLAYER_CLEARANCE = 12.0
+PLAYER_CLEARANCE = 16.0
 PLAYER_HEIGHT = 56  # smallest opening the player fits through
 IMPASSABLE = 1  # linedef flag bit
 # a door sector is judged by where it goes when used, not by its shut ceiling
@@ -24,6 +24,15 @@ OPEN_DOOR_CEILING = 10_000
 FAR = 10**6
 MAX_CELLS = 2_000_000
 STRADDLE_CELLS = 1  # cells either side of a cell that its body overlaps
+# Solid scenery that stops a walker, by THINGS type -> radius (vanilla Doom mobjinfo). Barrels
+# count: a scripted walker does not shoot them, so a barrel in a corridor is part of the wall.
+SOLID_SCENERY: dict[int, int] = {
+    **dict.fromkeys((2035, 70), 10),  # barrel, burning barrel
+    **dict.fromkeys((2028, 85, 86, 35, 25, 26, 27, 28, 29), 16),  # lamps, candelabra, impaled
+    **dict.fromkeys((30, 31, 32, 33, 36, 37, 41, 42, 43, 47, 48), 16),  # pillars, trees, stump
+    **dict.fromkeys((44, 45, 46, 55, 56, 57), 16),  # firesticks
+    54: 32,  # large brown tree
+}
 _Edge = tuple[tuple[int, int], tuple[int, int]]
 
 
@@ -113,6 +122,21 @@ def _block_around(
             blocked[cell] = 1
 
 
+def block_scenery(geometry: MapGeometry, frame: Frame, blocked: bytearray) -> None:
+    """Block the cells a solid decoration or barrel (plus the walker's clearance) covers."""
+    for thing in geometry.things:
+        radius = SOLID_SCENERY.get(thing.type)
+        if radius is None:
+            continue
+        reach = radius + PLAYER_CLEARANCE
+        low, high = (thing.x - reach, thing.y - reach), (thing.x + reach, thing.y + reach)
+        for cell in frame.cells_in(low, high):
+            row, col = divmod(cell, frame.cols)
+            x, y = frame.center(col, row)
+            if math.hypot(x - thing.x, y - thing.y) <= reach:
+                blocked[cell] = 1
+
+
 # --- sectors ----------------------------------------------------------------------------------
 
 
@@ -143,7 +167,10 @@ def sector_owner(geometry: MapGeometry, frame: Frame) -> np.ndarray:
 def _fill_row(
     owner: np.ndarray, frame: Frame, sector: int, segments: list[_Edge], row: int
 ) -> None:
-    """Widen spans by half a cell so a sector thinner than a cell still owns its cells."""
+    """A sector owns the cells centered in its spans; a slab thinner than a cell owns its nearest.
+
+    Widening every span instead let an 8-unit slab steal a neighbor door's cell (door read open).
+    """
     y = frame.center(0, row)[1]
     crossings = sorted(
         a[0] + (y - a[1]) * (b[0] - a[0]) / (b[1] - a[1])
@@ -151,8 +178,11 @@ def _fill_row(
         if (a[1] <= y < b[1]) or (b[1] <= y < a[1])
     )
     for left, right in zip(crossings[0::2], crossings[1::2], strict=False):
-        first = max(math.ceil((left - CELL / 2 - frame.x0) / CELL - 0.5), 0)
-        last = min(math.floor((right + CELL / 2 - frame.x0) / CELL - 0.5), frame.cols - 1)
+        first = max(math.ceil((left - frame.x0) / CELL - 0.5), 0)
+        last = min(math.ceil((right - frame.x0) / CELL - 0.5) - 1, frame.cols - 1)
+        if first > last:
+            nearest = round(((left + right) / 2 - frame.x0) / CELL - 0.5)
+            first = last = min(max(nearest, 0), frame.cols - 1)
         owner[row, first : last + 1] = sector
 
 
@@ -191,35 +221,62 @@ def door_cells(
 # --- heights ----------------------------------------------------------------------------------
 
 
-def effective_heights(
-    sectors: list[Sector], owner: np.ndarray, door_sectors: Container[int], frame: Frame
-) -> tuple[np.ndarray, np.ndarray]:
-    """Per cell: highest floor and lowest ceiling within STRADDLE_CELLS (the body spans them)."""
-    floors = np.full(len(sectors) + 1, -FAR, dtype=np.int64)  # last slot: outside every sector
-    ceilings = np.full(len(sectors) + 1, FAR, dtype=np.int64)
-    for number, sector in enumerate(sectors):
-        floors[number] = sector.floor
-        ceilings[number] = OPEN_DOOR_CEILING if number in door_sectors else sector.ceiling
-    floor, ceiling = floors[owner], ceilings[owner]  # -1 indexes the outside slot
-    reach = STRADDLE_CELLS
-    padded_floor = np.pad(floor, reach, constant_values=-FAR)
-    padded_ceiling = np.pad(ceiling, reach, constant_values=FAR)
-    best_floor, best_ceiling = floor.copy(), ceiling.copy()
+@dataclass(frozen=True)
+class SectorState:
+    """A sector's heights as a walker meets them.
+
+    A lift that has been called has two floors: the low one it is boarded from and the high one it
+    is left from, since it rises again by itself. Every other sector has one floor.
+    """
+
+    floor_in: int
+    floor_out: int
+    ceiling: int
+
+
+def base_states(sectors: list[Sector], door_sectors: Container[int]) -> list[SectorState]:
+    """Every sector as authored, except that a door sector counts as open (judged by USE)."""
+    return [
+        SectorState(s.floor, s.floor, OPEN_DOOR_CEILING if number in door_sectors else s.ceiling)
+        for number, s in enumerate(sectors)
+    ]
+
+
+def _spread(values: np.ndarray, reach: int, outside: int, pick: Callable) -> np.ndarray:
+    """Per cell, `pick` (max or min) of the values in the (2*reach+1)-square around it."""
+    padded = np.pad(values, reach, constant_values=outside)
+    best = values.copy()
+    rows, cols = values.shape
     for dr in range(-reach, reach + 1):
         for dc in range(-reach, reach + 1):
-            window = (
-                slice(reach + dr, reach + dr + frame.rows),
-                slice(reach + dc, reach + dc + frame.cols),
-            )
-            best_floor = np.maximum(best_floor, padded_floor[window])
-            best_ceiling = np.minimum(best_ceiling, padded_ceiling[window])
-    return best_floor, best_ceiling
+            window = padded[reach + dr : reach + dr + rows, reach + dc : reach + dc + cols]
+            best = pick(best, window)
+    return best
+
+
+def effective_heights(
+    states: list[SectorState], owner: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per cell: highest floor to board and to leave by and lowest ceiling within STRADDLE_CELLS."""
+    count = len(states)  # the last slot stands for "outside every sector"
+    floors_in = np.array([st.floor_in for st in states] + [-FAR], dtype=np.int64)
+    floors_out = np.array([st.floor_out for st in states] + [-FAR], dtype=np.int64)
+    ceilings = np.array([st.ceiling for st in states] + [FAR], dtype=np.int64)
+    index = np.where(owner < 0, count, owner)
+    reach = STRADDLE_CELLS
+    return (
+        _spread(floors_in[index], reach, -FAR, np.maximum),
+        _spread(floors_out[index], reach, -FAR, np.maximum),
+        _spread(ceilings[index], reach, FAR, np.minimum),
+    )
 
 
 def block_unusable_cells(
     blocked: bytearray, owner: np.ndarray, floor: np.ndarray, ceiling: np.ndarray
 ) -> None:
     """Block cells outside every sector or with less than PLAYER_HEIGHT of headroom."""
-    unusable = (owner.ravel() < 0) | ((ceiling - floor).ravel() < PLAYER_HEIGHT)
-    for cell in np.flatnonzero(unusable):
-        blocked[int(cell)] = 1
+    unusable = ((owner < 0) | ((ceiling - floor) < PLAYER_HEIGHT)).ravel()
+    view = np.frombuffer(blocked, dtype=np.uint8)
+    view[unusable] = 1
+    edge = view.reshape(owner.shape)  # the grid's border is blocked so no step wraps a row
+    edge[0, :] = edge[-1, :] = edge[:, 0] = edge[:, -1] = 1

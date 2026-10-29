@@ -17,9 +17,18 @@ def things(entries):
 
 
 def linedefs(entries):
-    """entries: (v1, v2, special, front_sidedef, back_sidedef[, flags])."""
+    """entries: (v1, v2, special, front_sidedef, back_sidedef[, flags[, tag]])."""
     return b"".join(
-        struct.pack("<HHHHHHH", e[0], e[1], e[5] if len(e) > 5 else 0, e[2], 0, e[3], e[4])
+        struct.pack(
+            "<HHHHHHH",
+            e[0],
+            e[1],
+            e[5] if len(e) > 5 else 0,
+            e[2],
+            e[6] if len(e) > 6 else 0,
+            e[3],
+            e[4],
+        )
         for e in entries
     )
 
@@ -35,10 +44,10 @@ def vertexes(points):
 
 
 def sectors(heights):
-    """heights: (floor, ceiling)."""
+    """heights: (floor, ceiling[, tag])."""
     return b"".join(
-        struct.pack("<hh8s8shhh", floor, ceiling, b"FLOOR", b"CEIL", 160, 0, 0)
-        for floor, ceiling in heights
+        struct.pack("<hh8s8shhh", h[0], h[1], b"FLOOR", b"CEIL", 160, 0, h[2] if len(h) > 2 else 0)
+        for h in heights
     )
 
 

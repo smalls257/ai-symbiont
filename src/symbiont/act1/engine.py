@@ -280,4 +280,8 @@ def view_from_engine(
         exits=exits,
         reach_doors=doors_in_reach(index, closed, (x, y), DOOR_REACH_UNITS),
         closed_sectors=closed,
+        sector_heights=tuple(
+            (floor_sign * sector.floor_height, sector.ceiling_height)
+            for sector in engine_state.sectors
+        ),
     )

@@ -23,13 +23,20 @@ from symbiont.act1.moves import (
     turn_toward,
 )
 from symbiont.act1.navmap import Feature, NavMap, NoPath, Waypoint
-from symbiont.act1.navtypes import held_colours
+from symbiont.act1.navtele import through_point
+from symbiont.act1.navtypes import Action, WorldNow, held_colours
 
 GO_TO_MAX_TICS = 2500
 WAYPOINT_ARRIVAL_UNITS = 24.0
 STUCK_FORWARD_TICS = 45  # a door needs ~28 tics to rise far enough to walk through
 STUCK_MIN_PROGRESS_UNITS = 16.0
 EXIT_FACING_DEG = 5.0
+EXIT_CROSS_TICS = 60  # a walkover exit is 28 units past the player; this is generous
+SWITCH_STANDING_UNITS = 48.0  # USE reaches 64; the walker closes to this before pressing
+LANDING_UNITS = 48.0  # a teleport lands the player this close to the destination thing
+# [measured] a lift lowers at 4 units a tic and a door opens in about 30, so after a switch is
+# pressed the walk gets this many tics before "no progress" counts as stuck.
+SETTLE_TICS = 105
 # [measured] MAP01, ViZDoom 1.3.2: a clean go_to(exit) walked into monster fire and reached the exit
 # on 5 of 8 seeds; handing control back at 256 units (with shoot_nearest() first) reached it on 8 of
 # 8, while 512 units reached it on 3 of 8 because the move quit for enemies too far away to hit.
@@ -59,6 +66,11 @@ class GoTo:
     _anchor: tuple[float, float] | None = field(default=None, init=False, repr=False, compare=False)
     _forward_tics: int = field(default=0, init=False, repr=False, compare=False)
     _exit_tics: int = field(default=0, init=False, repr=False, compare=False)
+    _exit_through: tuple[float, float] | None = field(
+        default=None, init=False, repr=False, compare=False
+    )
+    _switch_tics: int = field(default=0, init=False, repr=False, compare=False)
+    _grace: int = field(default=0, init=False, repr=False, compare=False)
 
     @property
     def label(self) -> str:
@@ -96,7 +108,8 @@ class GoTo:
         candidates = candidate_features(self.nav, self.target, state)
         if isinstance(candidates, Done):
             return candidates
-        found = self.nav.nearest(state.position, candidates, state.keys_held, state.closed_sectors)
+        world = WorldNow(state.closed_sectors, state.sector_heights)
+        found = self.nav.nearest_now(world, state.position, candidates, state.keys_held)
         if isinstance(found, NoPath):
             return Done(f"no path to {self.target}: {found.reason}")
         self._goal, route = found
@@ -111,13 +124,30 @@ class GoTo:
         if self._next >= len(self._waypoints):
             return self._at_goal(state)
         waypoint = self._waypoints[self._next]
-        if math.dist(state.position, (waypoint.x, waypoint.y)) > WAYPOINT_ARRIVAL_UNITS:
+        if not _arrived(state, waypoint):
             return self._steer(state, waypoint)
         if waypoint.door_sector in state.closed_sectors:
             self._opener = OpenDoor()
             return self._keep_opening(state)
+        if waypoint.action == Action.PRESS_SWITCH:
+            return self._press_switch(state, waypoint)
         self._next += 1
         return self._follow(state)
+
+    def _press_switch(self, state: GameStateView, waypoint: Waypoint) -> StepResult:
+        """Face the switch and press USE; then let the door, lift or floor it moves settle."""
+        assert waypoint.aim is not None
+        bearing = _bearing_to(state, waypoint.aim)
+        if abs(bearing) > FACING_TOLERANCE_DEG:
+            return turn_toward(bearing)
+        if math.dist(state.position, waypoint.aim) > SWITCH_STANDING_UNITS:
+            return hold(Button.FORWARD)  # the waypoint tolerance can leave USE out of reach
+        self._switch_tics += 1
+        if self._switch_tics > USE_TICS:
+            self._switch_tics, self._grace = 0, SETTLE_TICS
+            self._next += 1
+            return self._follow(state)
+        return hold(Button.USE) if self._switch_tics % 2 == 1 else hold()
 
     def _keep_opening(self, state: GameStateView) -> StepResult:
         """Keep opening the door in the way; Done when opening fails."""
@@ -143,6 +173,10 @@ class GoTo:
         if self._anchor is None:
             self._anchor = state.position
         self._forward_tics += 1
+        if self._grace > 0:
+            self._grace -= 1
+            self._anchor, self._forward_tics = state.position, 0
+            return hold(Button.FORWARD)
         if self._forward_tics >= STUCK_FORWARD_TICS:
             moved = math.dist(state.position, self._anchor)
             if moved < STUCK_MIN_PROGRESS_UNITS:
@@ -154,11 +188,26 @@ class GoTo:
             self._anchor, self._forward_tics = state.position, 0
         return hold(Button.FORWARD)
 
+    def _cross_exit(self, state: GameStateView) -> StepResult:
+        """Walk across a walkover exit's line; Done when crossing it has not ended the level."""
+        assert self._goal is not None
+        self._exit_tics += 1
+        if self._exit_tics > EXIT_CROSS_TICS:
+            return Done("walked across the exit line, but the level did not end")
+        if self._exit_through is None:  # fixed on the first tic, before the sides swap
+            self._exit_through = through_point(self._goal.faces[0], *state.position)
+        bearing = _bearing_to(state, self._exit_through)
+        if abs(bearing) > FACING_TOLERANCE_DEG:
+            return turn_toward(bearing)
+        return hold(Button.FORWARD)
+
     def _at_goal(self, state: GameStateView) -> StepResult:
         """Arrive at the goal; at an exit, face it and press USE, Done if the level never ends."""
         assert self._goal is not None
         if self._goal.kind != "exit":
             return Done(f"arrived at {self._goal.label}")
+        if self._goal.walk_through:
+            return self._cross_exit(state)
         bearing = _bearing_to(state, (self._goal.x, self._goal.y))
         if abs(bearing) > EXIT_FACING_DEG:
             return turn_toward(bearing)
@@ -166,6 +215,16 @@ class GoTo:
         if self._exit_tics > USE_TICS:
             return Done("reached exit and pressed USE, but the level did not end")
         return hold(Button.USE) if self._exit_tics % 2 == 1 else hold()
+
+
+def _arrived(state: GameStateView, waypoint: Waypoint) -> bool:
+    """Whether the player is at a waypoint, or at the landing of the teleport it crosses."""
+    if math.dist(state.position, (waypoint.x, waypoint.y)) <= WAYPOINT_ARRIVAL_UNITS:
+        return True
+    return (
+        waypoint.lands_at is not None
+        and math.dist(state.position, waypoint.lands_at) <= LANDING_UNITS
+    )
 
 
 def _nearest_enemy_in_reach(state: GameStateView) -> SeenObject | None:

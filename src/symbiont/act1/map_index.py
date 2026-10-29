@@ -26,6 +26,7 @@ DOOR_SPECIALS: dict[int, str | None] = {
     118: None,
 }
 EXIT_SPECIALS = {11: False, 52: False, 51: True, 124: True}  # special -> leads to the secret level
+WALKOVER_EXITS = frozenset({52, 124})  # the level ends on crossing the line; the rest need USE
 KEY_THINGS = {  # THINGS type -> (color, kind)
     5: ("blue", "card"),
     6: ("yellow", "card"),
@@ -54,6 +55,7 @@ class StaticExit:
     line: int
     mid: tuple[float, float]
     secret: bool
+    walkover: bool = False  # crossed, not pressed
 
 
 @dataclass(frozen=True)
@@ -105,7 +107,14 @@ def build_index(geometry: MapGeometry) -> MapIndex:
                 )
             )
         elif line.special in EXIT_SPECIALS:
-            exits.append(StaticExit(number, _midpoint(geometry, line), EXIT_SPECIALS[line.special]))
+            exits.append(
+                StaticExit(
+                    number,
+                    _midpoint(geometry, line),
+                    EXIT_SPECIALS[line.special],
+                    line.special in WALKOVER_EXITS,
+                )
+            )
     keys = [
         StaticKey(*KEY_THINGS[t.type], t.x, t.y) for t in geometry.things if t.type in KEY_THINGS
     ]

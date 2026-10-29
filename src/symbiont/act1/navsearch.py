@@ -8,7 +8,6 @@ which of them (or neither: plain walls) was the cause.
 
 import heapq
 import math
-from collections.abc import Iterator
 from dataclasses import dataclass, replace
 
 from symbiont.act1.navgrid import STEP_UP, WalkGrid
@@ -16,6 +15,7 @@ from symbiont.act1.navtypes import CELL, can_use_from
 
 _NEIGHBOURS = ((1, 0), (-1, 0), (0, 1), (0, -1), (1, 1), (1, -1), (-1, 1), (-1, -1))
 _DIAGONAL = CELL * math.sqrt(2)
+TELEPORT_COST = 4 * CELL  # walking onto the pad and the fog; keeps teleport loops from looking free
 
 
 @dataclass(frozen=True)
@@ -55,6 +55,11 @@ class DoorAwareSearch:
     def __init__(self, grid: WalkGrid) -> None:
         self._grid = grid
         self._usable: dict[tuple[int, int], bool] = {}
+        cols = grid.cols  # flat-index offsets: the grid's border cells are blocked, so none wrap
+        self._orthogonal = tuple((off, CELL) for off in (1, -1, cols, -cols))
+        self._diagonal = tuple(
+            (dc + dr * cols, dc, dr * cols, _DIAGONAL) for dc in (1, -1) for dr in (1, -1)
+        )
 
     @property
     def grid(self) -> WalkGrid:
@@ -72,33 +77,42 @@ class DoorAwareSearch:
                 continue
             if cell in targets:
                 return SearchResult(cell, length, parent, walked)
-            for neighbor, cost in self._moves(cell):
-                if self._blocked_by_doors(cell, neighbor, rules):
-                    continue
+            for neighbor, cost in self.steps(cell, rules):
                 if length + cost < walked.get(neighbor, math.inf):
                     walked[neighbor] = length + cost
                     parent[neighbor] = cell
                     heapq.heappush(heap, (length + cost, neighbor))
         return SearchResult(None, math.inf, parent, walked)
 
-    def _blocked_by_doors(self, origin: int, cell: int, rules: DoorRules) -> bool:
-        if self._locked_for(cell, rules.held):
-            return True
-        return rules.enforce_faces and not self._enterable(origin, cell, rules.closed)
+    def steps(self, cell: int, rules: DoorRules) -> list[tuple[int, float]]:
+        """Cells a player can step onto from `cell` under the door rules, with the step's length.
 
-    def _moves(self, cell: int) -> Iterator[tuple[int, float]]:
-        """Neighboring cells a player can step onto from here, with the step's length."""
+        A drop is fine, a tall step is not, and a diagonal may not cut a corner.
+        """
         grid = self._grid
-        row, col = divmod(cell, grid.cols)
-        for dc, dr in _NEIGHBOURS:
-            if not grid.free(col + dc, row + dr):
+        blocked, floor_in, doors = grid.blocked, grid.floor_in, grid.door_at
+        reach = grid.floor[cell] + STEP_UP
+        found = []
+        for offset, cost in self._orthogonal:
+            onto = cell + offset
+            walkable = not blocked[onto] and floor_in[onto] <= reach
+            if walkable and self._may_enter(cell, onto, rules, doors):
+                found.append((onto, cost))
+        for offset, across, down, cost in self._diagonal:
+            onto = cell + offset
+            if blocked[onto] or blocked[cell + across] or blocked[cell + down]:
                 continue
-            if dc and dr and not (grid.free(col + dc, row) and grid.free(col, row + dr)):
-                continue  # no cutting corners
-            neighbor = (row + dr) * grid.cols + col + dc
-            # a drop is fine, a tall step is not
-            if grid.floor[neighbor] - grid.floor[cell] <= STEP_UP:
-                yield neighbor, _DIAGONAL if dc and dr else CELL
+            if floor_in[onto] <= reach and self._may_enter(cell, onto, rules, doors):
+                found.append((onto, cost))
+        found.extend((landing, TELEPORT_COST) for landing in grid.landing_cells(cell))
+        return found
+
+    def _may_enter(self, origin: int, cell: int, rules: DoorRules, doors: dict[int, int]) -> bool:
+        if cell not in doors:
+            return True
+        if self._locked_for(cell, rules.held):
+            return False
+        return not rules.enforce_faces or self._enterable(origin, cell, rules.closed)
 
     def _enterable(self, origin: int, cell: int, closed: frozenset[int] | None) -> bool:
         """Entering a shut door's cell from outside needs a use-face in reach and in front."""
