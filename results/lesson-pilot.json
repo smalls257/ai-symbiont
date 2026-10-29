@@ -1,0 +1,789 @@
+{
+ "label": "lesson-in-prompt pilot (exploratory, no prereg)",
+ "status": "exploratory",
+ "model": "Glimmer, reasoning low",
+ "rule": "plain arm reused from earlier logs (Tier 1: cap-50 confirm runs 2-3, unbiased by the screen; Tier 2: runs-tier2 cap 75); lesson arm fresh, 1 run per task",
+ "note": "leaked lessons carried a gold-patch line; their runs count as remembers its own fix, not learned the approach",
+ "roles": {
+  "plain": "reference",
+  "lesson": "under_test",
+  "lesson_reworded": "under_test"
+ },
+ "commit": "33f36c0",
+ "plain_slots": 2,
+ "lesson_slots": 4,
+ "wall_cap_min": {
+  "plain": 30,
+  "lesson_tier2_run1": 30,
+  "lesson_tier1": 45,
+  "lesson_reworded": 45,
+  "lesson_3339_run2": 45
+ },
+ "seconds_per_step": {
+  "plain_2_slots": {
+   "median": 15.0,
+   "min": 10.0,
+   "max": 78.5,
+   "runs": 22
+  },
+  "lesson_4_slots": {
+   "median": 21.4,
+   "min": 15.4,
+   "max": 33.9,
+   "runs": 12
+  },
+  "reworded_4_slots": {
+   "median": 20.4,
+   "min": 20.2,
+   "max": 20.7,
+   "runs": 2
+  }
+ },
+ "totals": {
+  "tier1_cap50_clean": {
+   "plain": {
+    "solved": 2,
+    "runs": 10,
+    "edited_named_within_10": 0,
+    "ran_named_test": 8,
+    "ended_on_wall_time": 1
+   },
+   "lesson": {
+    "solved": 5,
+    "runs": 5,
+    "edited_named_within_10": 1,
+    "ran_named_test": 5,
+    "ended_on_wall_time": 0
+   }
+  },
+  "tier1_cap50_leaked": {
+   "plain": {
+    "solved": 0,
+    "runs": 4,
+    "edited_named_within_10": 0,
+    "ran_named_test": 4,
+    "ended_on_wall_time": 0
+   },
+   "lesson": {
+    "solved": 2,
+    "runs": 2,
+    "edited_named_within_10": 2,
+    "ran_named_test": 2,
+    "ended_on_wall_time": 0
+   },
+   "lesson_reworded": {
+    "solved": 2,
+    "runs": 2,
+    "edited_named_within_10": 2,
+    "ran_named_test": 2,
+    "ended_on_wall_time": 0
+   }
+  },
+  "tier2_cap75_clean": {
+   "plain": {
+    "solved": 0,
+    "runs": 8,
+    "edited_named_within_10": 0,
+    "ran_named_test": 8,
+    "ended_on_wall_time": 0
+   },
+   "lesson": {
+    "solved": 1,
+    "runs": 5,
+    "edited_named_within_10": 0,
+    "ran_named_test": 5,
+    "ended_on_wall_time": 1
+   }
+  }
+ },
+ "tasks": [
+  {
+   "instance_id": "tobymao__sqlglot-1379",
+   "tier": "tier1_cap50",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 2,
+     "resolved": true,
+     "steps": 29,
+     "exit": "Submitted",
+     "wall_s": 377.5,
+     "agent_s": 373.9,
+     "first_edit_step": 20,
+     "first_named_edit_step": 20,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 12.9,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 3,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 802.1,
+     "agent_s": 798.5,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 16.0,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 19,
+     "exit": "Submitted",
+     "wall_s": 384.4,
+     "agent_s": 379.8,
+     "first_edit_step": 14,
+     "first_named_edit_step": 14,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "10f8fbd9dc098dd9",
+     "source": "runs-pilot/tier1",
+     "s_per_step": 20.0,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1944",
+   "tier": "tier1_cap50",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 666.5,
+     "agent_s": 661.1,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 13.2,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 3,
+     "resolved": true,
+     "steps": 40,
+     "exit": "Submitted",
+     "wall_s": 554.6,
+     "agent_s": 549.2,
+     "first_edit_step": 27,
+     "first_named_edit_step": 27,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 13.7,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 45,
+     "exit": "Submitted",
+     "wall_s": 1047.7,
+     "agent_s": 1042.8,
+     "first_edit_step": 18,
+     "first_named_edit_step": 18,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "1d1052e402a77159",
+     "source": "runs-pilot/tier1",
+     "s_per_step": 23.2,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1309",
+   "tier": "tier1_cap50",
+   "lesson_status": "leaked",
+   "plain": [
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 621.4,
+     "agent_s": 617.6,
+     "first_edit_step": 36,
+     "first_named_edit_step": 36,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 12.4,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 3,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 788.2,
+     "agent_s": 784.4,
+     "first_edit_step": 39,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 15.7,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 28,
+     "exit": "Submitted",
+     "wall_s": 570.4,
+     "agent_s": 565.7,
+     "first_edit_step": 10,
+     "first_named_edit_step": 10,
+     "edited_named_within_10": true,
+     "ran_named_test": true,
+     "lesson_sha": "b106c0a8da6aa7c6",
+     "source": "runs-pilot/tier1",
+     "s_per_step": 20.2,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 14,
+     "exit": "Submitted",
+     "wall_s": 286.5,
+     "agent_s": 282.2,
+     "first_edit_step": 8,
+     "first_named_edit_step": 8,
+     "edited_named_within_10": true,
+     "ran_named_test": true,
+     "lesson_sha": "f89f4ceee89ec38b",
+     "source": "runs-pilot/tier1-reworded",
+     "s_per_step": 20.2,
+     "ended_on_wall_time": false
+    }
+   ]
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2443",
+   "tier": "tier1_cap50",
+   "lesson_status": "leaked",
+   "plain": [
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 683.0,
+     "agent_s": 677.4,
+     "first_edit_step": 34,
+     "first_named_edit_step": 34,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 13.5,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 3,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 506.0,
+     "agent_s": 500.4,
+     "first_edit_step": 41,
+     "first_named_edit_step": 41,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 10.0,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 14,
+     "exit": "Submitted",
+     "wall_s": 221.5,
+     "agent_s": 215.8,
+     "first_edit_step": 8,
+     "first_named_edit_step": 8,
+     "edited_named_within_10": true,
+     "ran_named_test": true,
+     "lesson_sha": "85508e0c2c93d6e6",
+     "source": "runs-pilot/tier1",
+     "s_per_step": 15.4,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 14,
+     "exit": "Submitted",
+     "wall_s": 295.3,
+     "agent_s": 289.8,
+     "first_edit_step": 7,
+     "first_named_edit_step": 7,
+     "edited_named_within_10": true,
+     "ran_named_test": true,
+     "lesson_sha": "d79e669d1b1eb099",
+     "source": "runs-pilot/tier1-reworded",
+     "s_per_step": 20.7,
+     "ended_on_wall_time": false
+    }
+   ]
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2095",
+   "tier": "tier1_cap50",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 695.3,
+     "agent_s": 690.8,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 13.8,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 3,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 524.2,
+     "agent_s": 518.5,
+     "first_edit_step": 49,
+     "first_named_edit_step": 49,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 10.4,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 19,
+     "exit": "Submitted",
+     "wall_s": 332.2,
+     "agent_s": 327.4,
+     "first_edit_step": 10,
+     "first_named_edit_step": 10,
+     "edited_named_within_10": true,
+     "ran_named_test": true,
+     "lesson_sha": "699a5f4f7bfa5335",
+     "source": "runs-pilot/tier1",
+     "s_per_step": 17.2,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2529",
+   "tier": "tier1_cap50",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 1012.7,
+     "agent_s": 1008.1,
+     "first_edit_step": 38,
+     "first_named_edit_step": 38,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 20.2,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 3,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 940.3,
+     "agent_s": 935.4,
+     "first_edit_step": 47,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 18.7,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 22,
+     "exit": "Submitted",
+     "wall_s": 477.5,
+     "agent_s": 472.2,
+     "first_edit_step": 16,
+     "first_named_edit_step": 16,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "77d4df856bfacbef",
+     "source": "runs-pilot/tier1",
+     "s_per_step": 21.5,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2658",
+   "tier": "tier1_cap50",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 50,
+     "exit": "LimitsExceeded",
+     "wall_s": 1677.4,
+     "agent_s": 1672.7,
+     "first_edit_step": 26,
+     "first_named_edit_step": 26,
+     "edited_named_within_10": false,
+     "ran_named_test": false,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 33.5,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 3,
+     "resolved": false,
+     "steps": 23,
+     "exit": "TimeExceeded",
+     "wall_s": 1809.9,
+     "agent_s": 1805.2,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": false,
+     "lesson_sha": null,
+     "source": "runs",
+     "s_per_step": 78.5,
+     "ended_on_wall_time": true
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 27,
+     "exit": "Submitted",
+     "wall_s": 727.4,
+     "agent_s": 722.2,
+     "first_edit_step": 18,
+     "first_named_edit_step": 18,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "00c12cf851c88140",
+     "source": "runs-pilot/tier1",
+     "s_per_step": 26.7,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-910",
+   "tier": "tier2_cap75",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 1,
+     "resolved": false,
+     "steps": 75,
+     "exit": "LimitsExceeded",
+     "wall_s": 1132.5,
+     "agent_s": 1129.4,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 15.1,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 60,
+     "exit": "RepeatedFormatError",
+     "wall_s": 831.4,
+     "agent_s": 829.2,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 13.8,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": true,
+     "steps": 30,
+     "exit": "Submitted",
+     "wall_s": 576.0,
+     "agent_s": 573.1,
+     "first_edit_step": 20,
+     "first_named_edit_step": 20,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "d6a8b66f16d5d082",
+     "source": "runs-pilot/tier2",
+     "s_per_step": 19.1,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3339",
+   "tier": "tier2_cap75",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 1,
+     "resolved": false,
+     "steps": 75,
+     "exit": "LimitsExceeded",
+     "wall_s": 1309.8,
+     "agent_s": 1302.7,
+     "first_edit_step": 33,
+     "first_named_edit_step": 33,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 17.4,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 67,
+     "exit": "Submitted",
+     "wall_s": 1163.6,
+     "agent_s": 1155.6,
+     "first_edit_step": 36,
+     "first_named_edit_step": 36,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 17.2,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": false,
+     "steps": 54,
+     "exit": "TimeExceeded",
+     "wall_s": 1837.5,
+     "agent_s": 1831.9,
+     "first_edit_step": 28,
+     "first_named_edit_step": 28,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "bb55ad770dc9425f",
+     "source": "runs-pilot/tier2",
+     "s_per_step": 33.9,
+     "ended_on_wall_time": true
+    },
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 60,
+     "exit": "Submitted",
+     "wall_s": 1382.2,
+     "agent_s": 1376.6,
+     "first_edit_step": 24,
+     "first_named_edit_step": 24,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "bb55ad770dc9425f",
+     "source": "runs-pilot/tier2",
+     "s_per_step": 22.9,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3426",
+   "tier": "tier2_cap75",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 1,
+     "resolved": false,
+     "steps": 65,
+     "exit": "ContextWindowExceededError",
+     "wall_s": 980.4,
+     "agent_s": 970.3,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 14.9,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 72,
+     "exit": "ContextWindowExceededError",
+     "wall_s": 1242.4,
+     "agent_s": 1235.3,
+     "first_edit_step": 67,
+     "first_named_edit_step": 67,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 17.2,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": false,
+     "steps": 52,
+     "exit": "Submitted",
+     "wall_s": 1457.5,
+     "agent_s": 1451.3,
+     "first_edit_step": 34,
+     "first_named_edit_step": 34,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "5c9770a9e5aa4dfc",
+     "source": "runs-pilot/tier2",
+     "s_per_step": 27.9,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3885",
+   "tier": "tier2_cap75",
+   "lesson_status": "clean",
+   "plain": [
+    {
+     "run": 1,
+     "resolved": false,
+     "steps": 75,
+     "exit": "LimitsExceeded",
+     "wall_s": 1057.9,
+     "agent_s": 1052.5,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 14.0,
+     "ended_on_wall_time": false
+    },
+    {
+     "run": 2,
+     "resolved": false,
+     "steps": 69,
+     "exit": "ContextWindowExceededError",
+     "wall_s": 1085.4,
+     "agent_s": 1075.6,
+     "first_edit_step": null,
+     "first_named_edit_step": null,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": null,
+     "source": "runs-tier2",
+     "s_per_step": 15.6,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson": [
+    {
+     "run": 1,
+     "resolved": false,
+     "steps": 45,
+     "exit": "Submitted",
+     "wall_s": 958.4,
+     "agent_s": 952.9,
+     "first_edit_step": 36,
+     "first_named_edit_step": 36,
+     "edited_named_within_10": false,
+     "ran_named_test": true,
+     "lesson_sha": "b2e7ba148f4c3783",
+     "source": "runs-pilot/tier2",
+     "s_per_step": 21.2,
+     "ended_on_wall_time": false
+    }
+   ],
+   "lesson_reworded": []
+  }
+ ]
+}
