@@ -22,15 +22,26 @@ sys.path.insert(0, str(HERE.parents[1] / "src"))
 sys.path.insert(0, str(HERE))
 
 from plug import distinct  # noqa: E402
-from plug_judge import curve, fit_threshold, judge_queries, judge_rows  # noqa: E402
+from plug_judge import (  # noqa: E402
+    Choice,
+    curve,
+    fit_threshold,
+    judge_queries,
+    judge_rows,
+    outcome_rates,
+)
 from plug_r2_rows import meta_split  # noqa: E402
 from plug_round2 import name_hash  # noqa: E402
-from plug_situation import build_items, item_from, ranker_recall  # noqa: E402
-from plug_v2conf import fit_seed_threshold, note_queries, seed_curve  # noqa: E402
+from plug_situation import build_items, item_from, lexical_rank, ranker_recall  # noqa: E402
+from plug_v2conf import fit_seed_threshold, named_lesson, note_queries, seed_curve  # noqa: E402
 from warm_start import _jsonl, _read_jsonl  # noqa: E402
 
 SHORTLIST = 10  # the ranker's top 10 hold the applicable lesson for every validation item
-GRID = tuple(round(step / 100, 2) for step in range(0, 101, 5))
+# P(yes) thresholds: 0.01 steps, finer near 1 where the judges separate. Refined after the first
+# coarse grid (0.05 steps) was seen to jump past every safe point (exploratory, disclosed).
+GRID = tuple(round(step / 100, 2) for step in range(101)) + tuple(
+    round(0.99 + k / 1000, 3) for k in range(1, 10)
+)
 
 
 def bundle(args: argparse.Namespace) -> dict:
@@ -112,7 +123,9 @@ def v2_score(args: argparse.Namespace) -> dict:
     fitting = set(repos[: len(repos) // 2])
     fit_items = [item_from(r) for r in records if r["repo"] in fitting]
     held_items = [item_from(r) for r in records if r["repo"] not in fitting]
-    grid = tuple(round(-4 + step * 0.1, 2) for step in range(41))  # mean log-prob from -4 to 0
+    # Mean log-prob from -1 to 0 in 0.01 steps: V2's confidences all lie there. Refined after the
+    # first grid (0.1 steps from -4) jumped past every safe point (exploratory, disclosed).
+    grid = tuple(round(-1 + step / 100, 2) for step in range(101))
     threshold = fit_seed_threshold(fit_items, seeds, grid)
     return {
         "fitting_repos": sorted(fitting),
@@ -123,23 +136,62 @@ def v2_score(args: argparse.Namespace) -> dict:
     }
 
 
+def references(args: argparse.Namespace) -> dict:
+    """Ranker alone (its top-1 lesson, always answering) and plain 1B (round 2's floor answers on
+    the top-5 prompt) on the held-out validation repos the judges are reported on."""
+    records = _read_jsonl(args.items)
+    repos = sorted({r["repo"] for r in records}, key=name_hash)
+    fitting = set(repos[: len(repos) // 2])
+    held = [item_from(r) for r in records if r["repo"] not in fitting]
+    ranker = [Choice(i.item_id, lexical_rank(i)[0].lesson_id, 1.0) for i in held]
+    top5 = {r["question_id"]: item_from(r) for r in _read_jsonl(args.top5)}
+    held5 = [top5[i.item_id] for i in held]
+    (floor,) = [_answers(path) for path in args.answers]
+    plain = [Choice(i.item_id, named_lesson(i, floor[i.item_id]), 0.0) for i in held5]
+    return {
+        "held_out_items": len(held),
+        "ranker_alone": outcome_rates(held, ranker),
+        "plain_1b": outcome_rates(held5, plain),
+    }
+
+
+def combine(args: argparse.Namespace) -> dict:
+    """One exploratory results document from each arm's score output (`name=path` pairs)."""
+    document = {"status": "exploratory, validation repos only, no prereg", **references(args)}
+    for pair in args.inputs:
+        name, path = pair.split("=", 1)
+        found = json.loads(Path(path).read_text())
+        safe = [r for r in found["curve_all"] if r["silence"] >= 0.80 and r["wrong_pick"] <= 0.05]
+        best = max(safe, key=lambda row: row["pick"]) if safe else None
+        document[name] = {**found, "best_safe_point_all": best}
+    return document
+
+
 def main() -> None:
     """Run one stage."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("stage", choices=("bundle", "score", "v2-queries", "v2-score"))
+    parser.add_argument("stage", choices=("bundle", "score", "v2-queries", "v2-score", "combine"))
+    parser.add_argument("--inputs", nargs="+", help="combine: name=path of each score output")
+    parser.add_argument("--top5", type=Path, help="combine: the top-5 validation items")
     parser.add_argument("--answers", type=Path, nargs="+", help="V2's answer files, one per seed")
     parser.add_argument("--confidences", type=Path, nargs="+", help="V2 note log-probs per seed")
     parser.add_argument("--pool", type=Path)
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--habit-split", type=Path)
-    parser.add_argument("--items", type=Path, required=True, help="validation items (full prompt)")
+    parser.add_argument("--items", type=Path, help="validation items (full prompt)")
     parser.add_argument("--scores", type=Path, nargs="+", help="one P(yes) file per seed")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
-    stages = {"bundle": bundle, "score": score, "v2-queries": v2_queries, "v2-score": v2_score}
+    stages = {
+        "bundle": bundle,
+        "score": score,
+        "v2-queries": v2_queries,
+        "v2-score": v2_score,
+        "combine": combine,
+    }
     result = stages[args.stage](args)
     text = json.dumps(result, indent=1, sort_keys=True)
-    if args.stage in ("score", "v2-score"):
+    if args.stage in ("score", "v2-score", "combine"):
         args.out.write_text(text + "\n")
     print(text)
 
