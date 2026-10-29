@@ -1,0 +1,42 @@
+{
+ "schema": "evolve-levels-v1",
+ "label": "static route check plus scripted explorer on training levels [measured]",
+ "levels": {
+  "MAP01": "pass",
+  "MAP02": "pass",
+  "MAP03": "drop_no_route",
+  "MAP04": "drop_no_route",
+  "MAP05": "pass",
+  "MAP06": "pass",
+  "MAP07": "drop_no_route",
+  "MAP08": "drop_no_route",
+  "MAP09": "drop_no_route",
+  "MAP10": "drop_no_route",
+  "MAP11": "drop_no_route",
+  "MAP12": "drop_no_route",
+  "MAP13": "drop_no_route",
+  "MAP14": "drop_no_route",
+  "MAP15": "drop_no_route",
+  "MAP16": "drop_no_route",
+  "MAP17": "drop_no_route",
+  "MAP18": "drop_no_route",
+  "MAP19": "drop_no_route",
+  "MAP20": "drop_no_route",
+  "MAP21": "drop_no_route",
+  "MAP22": "drop_no_route",
+  "MAP23": "drop_no_route",
+  "MAP24": "pass",
+  "MAP25": "drop_no_route",
+  "MAP26": "drop_no_route",
+  "MAP27": "drop_no_route",
+  "MAP28": "drop_no_route",
+  "MAP29": "pass",
+  "MAP30": "drop_no_route",
+  "MAP31": "drop_no_route",
+  "MAP32": "pass"
+ },
+ "counts": {
+  "pass": 7,
+  "drop": 25
+ }
+}
