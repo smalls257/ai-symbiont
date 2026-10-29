@@ -130,30 +130,98 @@ def caps_from_environment(run_usd: float | None) -> SpendCaps:
         raise ValueError(f"{CAP_VARIABLE} must be a number of dollars, got {raw!r}") from None
 
 
-class Ledger:
-    """Append-only JSON lines shared by every process; a call is reserved before it is sent.
+class LedgerMismatchError(RuntimeError):
+    """The running total and a full scan of the ledger disagree; nothing is guessed."""
 
-    A reservation holds the worst-case cost of the next call, taken under a file lock together
-    with the cap check, so concurrent callers cannot all pass the check and then overshoot. A
-    settled line replaces its reservation at the real (or estimated) cost; a released one
-    removes it. A crash between reserve and settle leaves the reservation: the safe side.
+
+MATCH_TOLERANCE_USD = 1e-9
+State = dict[str, Any]  # {"total": usd, "runs": {run: usd}, "open": {call: [run, reserved_usd]}}
+
+
+def _state_from(rows: list[dict[str, Any]]) -> State:
+    """Totals of the effective rows of a ledger: what a full scan says is spent and held."""
+    state: State = {"total": 0.0, "runs": {}, "open": {}}
+    for row in rows:
+        _add(state, row["run"], row["cost_usd"])
+        if row.get("phase") == PHASE_RESERVED:
+            state["open"][row["call"]] = [row["run"], row["cost_usd"]]
+    return state
+
+
+def _add(state: State, run: str, dollars: float) -> None:
+    state["total"] += dollars
+    state["runs"][run] = state["runs"].get(run, 0.0) + dollars
+
+
+def _drop_reservation(state: State, call: str) -> None:
+    """Take a call's held estimate out of the totals (a no-op for a call not held)."""
+    held = state["open"].pop(call, None)
+    if held is not None:
+        _add(state, held[0], -held[1])
+
+
+def _agree(left: State, right: State) -> bool:
+    """True when two states hold the same total, dollars per run and open reservations."""
+    runs = set(left["runs"]) | set(right["runs"])
+    same_runs = all(
+        abs(left["runs"].get(r, 0.0) - right["runs"].get(r, 0.0)) <= MATCH_TOLERANCE_USD
+        for r in runs
+    )
+    same_total = abs(left["total"] - right["total"]) <= MATCH_TOLERANCE_USD
+    return same_total and same_runs and set(left["open"]) == set(right["open"])
+
+
+class Ledger:
+    """Append-only JSON lines shared by all processes, with a running total beside them.
+
+    reserve checks the caps against `<ledger>.total.json` under a file lock, never the whole
+    ledger. The first use in a process re-scans once and raises LedgerMismatchError on a mismatch.
     """
 
     def __init__(self, path: Path = DEFAULT_LEDGER):
         """Point at the shared ledger file; nothing is created until the first write."""
         self._path = path
         self._lock = threading.Lock()
+        self._validated = False
+
+    @property
+    def _total_path(self) -> Path:
+        return self._path.with_name(self._path.name + ".total.json")
 
     @contextmanager
-    def _exclusive(self) -> Iterator[None]:
-        """Thread lock plus an flock on a sidecar file, so processes take turns too."""
+    def _exclusive(self) -> Iterator[State]:
+        """Thread lock plus an flock, so processes take turns; yields the validated state."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
         with self._lock, self._path.with_name(self._path.name + ".lock").open("w") as guard:
             fcntl.flock(guard, fcntl.LOCK_EX)
             try:
-                yield
+                yield self._load_state()
             finally:
                 fcntl.flock(guard, fcntl.LOCK_UN)
+
+    def _load_state(self) -> State:
+        """The running total; the first load in this process is checked against a full scan."""
+        if not self._validated:
+            scanned = _state_from(self.entries())
+            if self._total_path.exists():
+                kept: State = json.loads(self._total_path.read_text(encoding="utf-8"))
+                if not _agree(kept, scanned):
+                    raise LedgerMismatchError(
+                        f"{self._total_path} says ${kept['total']:.6f} but {self._path} sums to "
+                        f"${scanned['total']:.6f}; inspect both, then Ledger.rebuild_total()"
+                    )
+            else:
+                self._save_state(scanned)
+            self._validated = True
+            return scanned
+        loaded: State = json.loads(self._total_path.read_text(encoding="utf-8"))
+        return loaded
+
+    def _save_state(self, state: State) -> None:
+        """Write the total atomically (temp file, then rename)."""
+        temporary = self._total_path.with_name(self._total_path.name + ".tmp")
+        temporary.write_text(json.dumps(state), encoding="utf-8")
+        os.replace(temporary, self._total_path)
 
     def _append(self, line: dict[str, Any]) -> None:
         """Add one JSON line; callers hold the lock so lines never interleave."""
@@ -173,16 +241,19 @@ class Ledger:
 
     def record(self, entry: LedgerEntry) -> None:
         """Append one settled line for a call that was never reserved (counts and cost only)."""
-        with self._exclusive():
+        with self._exclusive() as state:
             self._append(self._row(entry, uuid.uuid4().hex, PHASE_SETTLED))
+            _add(state, entry.run, entry.cost_usd)
+            self._save_state(state)
 
     def reserve(self, run: str, caps: SpendCaps, estimate_usd: float, label: str) -> str:
         """Check both caps including `estimate_usd`, then hold it; returns the call id.
 
-        Raises SpendCapError when spent plus the estimate would pass the total or run cap.
+        Raises SpendCapError when spent plus the estimate would reach the total or run cap, and
+        LedgerMismatchError when the running total disagrees with the ledger at first use.
         """
-        with self._exclusive():
-            total, in_run = self.spent(), self.spent(run)
+        with self._exclusive() as state:
+            total, in_run = state["total"], state["runs"].get(run, 0.0)
             if total + estimate_usd >= caps.total_usd:
                 raise SpendCapError(
                     f"total spend ${total:.4f} plus this call's worst case ${estimate_usd:.4f} "
@@ -197,22 +268,37 @@ class Ledger:
             held = LedgerEntry(run, label, "", Tier.CONTRIBUTOR, Usage(0, 0, 0, 0), estimate_usd,
                                0.0, "reserved", estimated=True)  # fmt: skip
             self._append(self._row(held, call, PHASE_RESERVED))
+            state["open"][call] = [run, estimate_usd]
+            _add(state, run, estimate_usd)
+            self._save_state(state)
             return call
 
     def settle(self, call: str, entry: LedgerEntry) -> None:
         """Replace the reservation `call` with the call's own line."""
-        with self._exclusive():
+        with self._exclusive() as state:
             self._append(self._row(entry, call, PHASE_SETTLED))
+            _drop_reservation(state, call)
+            _add(state, entry.run, entry.cost_usd)
+            self._save_state(state)
 
     def release(self, call: str) -> None:
         """Drop a reservation for a call that never left the machine."""
-        with self._exclusive():
+        with self._exclusive() as state:
             self._append({"call": call, "phase": PHASE_RELEASED})
+            _drop_reservation(state, call)
+            self._save_state(state)
+
+    def rebuild_total(self) -> None:
+        """Rewrite the running total from a full scan: the operator's repair after a mismatch."""
+        with self._lock:
+            self._save_state(_state_from(self.entries()))
+            self._validated = True
 
     def entries(self) -> list[dict[str, Any]]:
         """One row per call (settled beats reserved; released calls vanish).
 
-        Raises ValueError naming the line when one cannot be parsed.
+        Raises ValueError naming the line when one cannot be parsed. Reads the whole file: for
+        reports and the start-up check, not for the cap.
         """
         if not self._path.exists():
             return []
@@ -230,6 +316,7 @@ class Ledger:
         return list(rows.values())
 
     def spent(self, run: str | None = None) -> float:
-        """Dollars in the whole ledger (reservations included), or in one run."""
-        rows = self.entries()
-        return float(sum(row["cost_usd"] for row in rows if run is None or row["run"] == run))
+        """Dollars spent or held, in the whole ledger or in one run, from the running total."""
+        with self._exclusive() as state:
+            total = state["total"] if run is None else state["runs"].get(run, 0.0)
+        return float(total)
