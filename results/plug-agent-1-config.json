@@ -1,15 +1,13 @@
 {
  "phase": "PLUG-AGENT-1",
- "spark_model": "muse-spark-1.3-contributor",
- "tier": "contributor",
+ "agent": "glimmer",
+ "model": "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
  "reasoning_effort": "low",
  "temperature": 0,
  "seed": 20261029,
  "step_limit": 75,
  "wall_limit_min": 45,
  "max_tokens_per_reply": 4096,
- "per_run_cap_usd": 0.15,
- "phase_cap_usd": 6.0,
- "label": "PLUG-AGENT-1 run settings, shared by all four arms",
- "run_label": "plug-agent-1"
+ "run_label": "plug-agent-1",
+ "label": "PLUG-AGENT-1 run settings, shared by all four arms"
 }

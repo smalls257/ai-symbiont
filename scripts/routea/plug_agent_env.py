@@ -19,7 +19,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "calibration"))
 from minisweagent.agents.default import DefaultAgent  # noqa: E402
 from minisweagent.environments.docker import DockerEnvironment  # noqa: E402
 from plug_agent_notes import NoteSource, failure_of, known_mistake  # noqa: E402
-from run_calibration import Setting, agent_config, classify, token_counts  # noqa: E402
+from run_calibration import Setting, agent_config, agent_model, classify, token_counts  # noqa: E402
 from taskenv import TaskEnvError, grade  # noqa: E402
 from teacher_model import Teacher, teacher_model  # noqa: E402
 
@@ -107,15 +107,11 @@ def _agent_run(
     row: dict, source: NoteSource, config: dict, traj: Path, log: RunLog
 ) -> tuple[str, dict]:
     """Run the agent; the submitted patch and the record's error, exit, steps and tokens."""
-    setting = Setting("low", config["step_limit"], config["wall_limit_min"] * 60, teacher="spark")
-    agent_cfg, model_cfg = agent_config(setting)
-    label = f"{config['run_label']}-{row['instance_id']}-{source.arm}"
     rec: dict[str, Any] = {"error_kind": None}
     env = None
     try:
         env = _environment(row["docker_image"])
-        model = teacher_model(Teacher.SPARK, label, model_cfg, temperature=config["temperature"],
-                              reply_tokens=config["max_tokens_per_reply"])  # fmt: skip
+        model, agent_cfg = _model(row, source, config)
         wrapped = LocalNotedEnvironment(env, source, log)
         agent = DefaultAgent(model, wrapped, output_path=traj, **agent_cfg)
         info = _agent_exit(agent, row, rec)
@@ -125,6 +121,20 @@ def _agent_run(
     finally:
         if env is not None:
             env.cleanup()
+
+
+def _model(row: dict, source: NoteSource, config: dict) -> tuple[Any, dict]:
+    """The agent's model and loop settings: plain Glimmer (the default), or Spark through egress."""
+    teacher = "spark" if config["agent"] == "spark" else None
+    setting = Setting("low", config["step_limit"], config["wall_limit_min"] * 60, teacher=teacher)
+    agent_cfg, model_cfg = agent_config(setting)
+    if teacher is None:  # plain Glimmer on the owner's own server; temperature from the config
+        kwargs = model_cfg["model_kwargs"] | {"temperature": config["temperature"]}
+        return agent_model(setting, model_cfg | {"model_kwargs": kwargs}, {}), agent_cfg
+    label = f"{config['run_label']}-{row['instance_id']}-{source.arm}"
+    model = teacher_model(Teacher.SPARK, label, model_cfg, temperature=config["temperature"],
+                          reply_tokens=config["max_tokens_per_reply"])  # fmt: skip
+    return model, agent_cfg
 
 
 def _agent_exit(agent: DefaultAgent, row: dict, rec: dict) -> dict:

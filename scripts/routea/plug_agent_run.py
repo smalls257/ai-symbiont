@@ -134,9 +134,9 @@ def main() -> None:
     args = parse_args()
     mode = Mode.DRY if args.dry_run else Mode.LIVE
     config = checked_config(args.prereg, args.config, mode)
-    os.environ[RUN_CAP_VARIABLE] = str(
-        config["per_run_cap_usd"]
-    )  # the ledger's total cap stays the owner's
+    spark = config["agent"] == "spark"
+    if spark:  # a paid agent: per-run cap; the ledger's total cap stays the owner's
+        os.environ[RUN_CAP_VARIABLE] = str(config["per_run_cap_usd"])
     by_repo, instance_of = lesson_pool(args.pool)
     plan = Plan(
         config=config,
@@ -152,9 +152,8 @@ def main() -> None:
     rows = {row["instance_id"]: row for row in json.loads(args.rows.read_text())}
     args.out.mkdir(parents=True, exist_ok=True)
     finished = done(args.out)
-    reserve = config["per_run_cap_usd"] * len(NoteArm)  # a task's four arms must fit under the cap
     for task in sorted(json.loads(args.tasks.read_text())["kept"], key=order_key):
-        if phase_spent() >= config["phase_cap_usd"] - reserve:
+        if spark and phase_spent() >= config["phase_cap_usd"] - config["per_run_cap_usd"] * 4:
             print(f"spend cap reached before {task}; stopping")
             break
         run_arms(plan, task, rows[task], finished)

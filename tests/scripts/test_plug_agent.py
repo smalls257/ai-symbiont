@@ -149,7 +149,7 @@ def test_the_wrapper_counts_failures_and_appends_the_arms_note(mods, monkeypatch
                                "run_calibration", "taskenv", "teacher_model"))  # fmt: skip
     sys.modules["minisweagent.agents.default"].DefaultAgent = None
     sys.modules["minisweagent.environments.docker"].DockerEnvironment = None
-    for name in ("Setting", "agent_config", "classify", "token_counts"):
+    for name in ("Setting", "agent_config", "agent_model", "classify", "token_counts"):
         setattr(sys.modules["run_calibration"], name, None)
     sys.modules["taskenv"].TaskEnvError, sys.modules["taskenv"].grade = Exception, None
     sys.modules["teacher_model"].Teacher, sys.modules["teacher_model"].teacher_model = None, None
