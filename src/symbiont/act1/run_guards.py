@@ -26,6 +26,10 @@ class TooManyUngradedError(RuntimeError):
     """More games in a generation ended ungraded than the design allows."""
 
 
+class NoGamesError(ValueError):
+    """A guard was asked about a generation in which no game was played."""
+
+
 class MutationPromptError(RuntimeError):
     """The generality filter rejected more than half of a generation's children."""
 
@@ -136,9 +140,11 @@ class GapWatch:
 
 
 def require_graded_share(results: Sequence[GameResult], limit: float = UNGRADED_LIMIT) -> None:
-    """Raises TooManyUngradedError when the ungraded share of games is above the limit."""
+    """Raises TooManyUngradedError above the limit, and NoGamesError for an empty list."""
+    if not results:
+        raise NoGamesError("no games to judge: an empty generation is not a clean one")
     ungraded = sum(r.grade == Grade.UNGRADED for r in results)
-    if results and ungraded / len(results) > limit:
+    if ungraded / len(results) > limit:
         raise TooManyUngradedError(
             f"{ungraded} of {len(results)} games ungraded; the limit is {limit:.0%}"
         )

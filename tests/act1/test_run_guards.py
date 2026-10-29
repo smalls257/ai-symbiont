@@ -9,6 +9,7 @@ from symbiont.act1.run_guards import (
     GapDecision,
     GapWatch,
     MutationPromptError,
+    NoGamesError,
     NoiseVerdict,
     SpendRoom,
     TooManyUngradedError,
@@ -123,3 +124,8 @@ def test_two_rejections_of_four_passes_and_three_raises_naming_the_counts():
     require_rejection_share(rejected(2, 4))
     with pytest.raises(MutationPromptError, match="3 of 4"):
         require_rejection_share(rejected(3, 4))
+
+
+def test_an_empty_list_of_games_raises_instead_of_passing():
+    with pytest.raises(NoGamesError):
+        require_graded_share([])
