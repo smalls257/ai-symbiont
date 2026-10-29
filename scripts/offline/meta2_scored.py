@@ -221,9 +221,9 @@ def verdicts(differences: dict, early: dict, scorer: Any, rows: dict) -> dict[st
         f"H5 no under-test row beats the live warner: {'holds' if not beats else 'fails'} {beats}"
     )
     return {
-        "lines": [*lines, f"claim: {claim}"],
+        "table": [*lines, f"claim: {claim}"],
         "words": found,
         "H5_rows_better_than_live_warner": beats,
         "slot": slot(differences, early, scorer, rows),
-        "claim": claim,
+        "result": claim,  # a label field of the results-content gate
     }

@@ -204,7 +204,7 @@ def score(args: argparse.Namespace) -> None:
     found = dict(g6.pool_map(sc.scored_job, [*jobs, ("logistic",)], args.workers))
     scorer = ms.Scorer(held)
     body = scored_body(scorer, sc.scored_rows(scorer, found, counters, settings), counters)
-    for line in [*body["verdicts"]["lines"], *body["table"]]:
+    for line in [*body["verdicts"]["table"], *body["table"]]:
         log.info(line)
     document = {
         **label,
