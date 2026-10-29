@@ -1,6 +1,7 @@
 """The run driver: a dry run finishes, a killed run resumes, Spark needs a frozen prereg."""
 
 import json
+import random
 import stat
 import sys
 from pathlib import Path
@@ -156,14 +157,10 @@ def test_the_dry_run_output_says_simulated_at_the_top_and_the_bottom(tmp_path, c
 
 
 class Wobbly(fake_author.OfflineAuthor):
-    """An author that is not deterministic: a different start every time it is built."""
+    """An author that is not deterministic: it ignores the seed and rolls its own dice."""
 
-    instances = 0
-
-    def __init__(self):
-        super().__init__()
-        Wobbly.instances += 1
-        self.calls = 1000 * Wobbly.instances
+    def vary(self, operator, parents, summary, seed):
+        return super().vary(operator, parents, summary, random.getrandbits(32))
 
 
 def test_a_resume_reuses_the_stored_children_even_when_the_author_would_write_new_ones(

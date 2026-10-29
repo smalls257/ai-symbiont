@@ -132,12 +132,12 @@ class NamesAMap:
         self.calls = 0
         self.inner = OfflineAuthor()
 
-    def vary(self, operator, parents, summary):
+    def vary(self, operator, parents, summary, seed):
         self.calls += 1
         bad = Lesson("Got lost in MAP05", "Go back", "Is it MAP05?")
         if self.calls <= 1:
             return Card.of([*parents[0].lessons, bad])
-        return self.inner.vary(operator, parents, summary)
+        return self.inner.vary(operator, parents, summary, seed)
 
 
 def test_a_child_naming_a_map_is_rejected_logged_and_replaced():
@@ -200,9 +200,9 @@ def test_a_crossover_makes_no_author_call():
     seen = []
 
     class Counting(OfflineAuthor):
-        def vary(self, operator, parents, summary):
+        def vary(self, operator, parents, summary, seed):
             seen.append(operator)
-            return super().vary(operator, parents, summary)
+            return super().vary(operator, parents, summary, seed)
 
     next_population(
         population(cards), results_for(cards, steady), ParentChoice.LEXICASE,
@@ -233,7 +233,7 @@ def test_the_same_seed_gives_the_same_next_population():
 
 def test_an_author_reply_error_propagates_instead_of_being_guessed():
     class Broken(OfflineAuthor):
-        def vary(self, operator, parents, summary):
+        def vary(self, operator, parents, summary, seed):
             raise MutationReplyError("not a card")
 
     cards = cards_of(6)
@@ -265,3 +265,38 @@ def test_no_child_is_a_copy_of_a_card_of_the_population_or_of_its_own_parent():
         made = [b for b in step.births if b.operator != Operator.ELITE]
         assert all(b.card_id not in b.parents for b in made)
         assert not {b.card_id for b in made if b.rejection is None} & {c.card_id for c in cards}
+
+
+def test_two_arms_given_the_same_parents_write_the_same_children():
+    cards = cards_of(6)
+    results = results_for(cards, steady)
+    steps = {}
+    for arm in (Arm.EVOLVED, Arm.NO_SELECTION):
+        # RANDOM and LEXICASE would pick different parents, so give both the same choice and
+        # the same chance source: only the arm and its own author instance differ.
+        steps[arm] = next_population(
+            Population(0, arm, cards),
+            results,
+            ParentChoice.LEXICASE,
+            tools_with(seed=3, cards=cards),
+        )
+    assert steps[Arm.EVOLVED].population.cards == steps[Arm.NO_SELECTION].population.cards
+
+
+def test_the_call_seed_ignores_the_arm_and_varies_with_generation_slot_and_attempt():
+    from symbiont.act1.generation import call_seed
+
+    base = call_seed(7, 1, 0, 0)
+    assert base == call_seed(7, 1, 0, 0)
+    assert (
+        len(
+            {
+                base,
+                call_seed(8, 1, 0, 0),
+                call_seed(7, 2, 0, 0),
+                call_seed(7, 1, 1, 0),
+                call_seed(7, 1, 0, 1),
+            }
+        )
+        == 5
+    )

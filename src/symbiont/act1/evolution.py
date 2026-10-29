@@ -206,14 +206,14 @@ class _Run:
         }
 
     def advance(
-        self, generation: int, arms: Mapping[Arm, _ArmState], tools: VariationTools
+        self, generation: int, arms: Mapping[Arm, _ArmState], tools: Mapping[Arm, VariationTools]
     ) -> None:
         """Both arms vary their cards, then play the generation's shared cases."""
         cases = generation_cases(
             self.split, generation, self.rules.run_seed, self.record.games_per_case
         )
         for arm, state in arms.items():
-            cards = self._children(arm, state, generation, tools)
+            cards = self._children(arm, state, generation, tools[arm])
             state.population = Population(generation, arm, cards)
             state.card_ids.update(card.card_id for card in cards)
             state.results = self.play(cards, cases, generation, GameRole.SELECTION)
@@ -238,6 +238,7 @@ class _Run:
         else:
             own = replace(
                 tools,
+                seed=self.rules.run_seed,
                 rng=random.Random(f"{self.rules.run_seed}:{arm}:{generation}"),
                 summaries=_summaries(state.results, state.population.cards),
             )
@@ -286,13 +287,15 @@ def evolve(
     seed_population: Sequence[Card],
     split: EvolveSplit,
     player: Player,
-    tools: VariationTools,
+    tools: VariationTools | Mapping[Arm, VariationTools],
     rules: RunRules,
 ) -> RunRecord:
     """Generation 0, the noise check, then generations 1 to N for both arms, gap watch, picks.
 
     Raises TooManyUngradedError in the generation where more than 10% of games ended ungraded.
+    Pass one VariationTools per arm (each with its own author and session) or one for both.
     """
+    per_arm = tools if isinstance(tools, Mapping) else dict.fromkeys(CHOICE, tools)
     run = _Run(split, player, rules)
     zero = run.generation_zero(seed_population)
     if zero is None:
@@ -310,7 +313,7 @@ def evolve(
     }
     watch = GapWatch(noise.standard_error)
     for generation in range(1, rules.generations + 1):
-        run.advance(generation, arms, tools)
+        run.advance(generation, arms, per_arm)
         run.validate(generation, arms[Arm.EVOLVED])
         watch.record(generation, *run.record.gaps[-1][1:])
         verdict = watch.verdict()

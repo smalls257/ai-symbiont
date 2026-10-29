@@ -16,37 +16,39 @@ PARENT = Card.of(OFFLINE_LESSONS[:3])
 
 
 def test_add_grows_the_card_and_the_same_start_gives_the_same_child():
-    one, two = OfflineAuthor(), OfflineAuthor()
-    child = one.vary(Operator.ADD, (PARENT,), "summary")
+    one, two = OfflineAuthor(), OfflineAuthor()  # separate instances: no hidden state to differ
+    child = one.vary(Operator.ADD, (PARENT,), "summary", 0)
     assert len(child.lessons) == 4
-    assert child == two.vary(Operator.ADD, (PARENT,), "summary")
+    assert child == two.vary(Operator.ADD, (PARENT,), "summary", 0)
 
 
-def test_repeated_asks_about_one_parent_give_different_children():
+def test_the_same_seed_gives_the_same_child_and_another_seed_a_different_one():
     author = OfflineAuthor()
-    assert author.vary(Operator.ADD, (PARENT,), "s") != author.vary(Operator.ADD, (PARENT,), "s")
+    first = author.vary(Operator.ADD, (PARENT,), "s", 1)
+    assert first == author.vary(Operator.ADD, (PARENT,), "s", 1)
+    assert first != author.vary(Operator.ADD, (PARENT,), "s", 2)
 
 
 def test_delete_merge_and_rewrite_edit_a_lesson_each():
     author = OfflineAuthor()
     four = Card.of(OFFLINE_LESSONS[:4])
-    assert len(author.vary(Operator.DELETE, (four,), "s").lessons) == 3
-    assert len(author.vary(Operator.MERGE, (four,), "s").lessons) == 3
-    assert len(author.vary(Operator.REWRITE, (PARENT,), "s").lessons) == 3
+    assert len(author.vary(Operator.DELETE, (four,), "s", 0).lessons) == 3
+    assert len(author.vary(Operator.MERGE, (four,), "s", 0).lessons) == 3
+    assert len(author.vary(Operator.REWRITE, (PARENT,), "s", 0).lessons) == 3
 
 
 def test_an_edit_that_would_shrink_a_tiny_card_adds_a_lesson_instead():
     for operator in (Operator.DELETE, Operator.MERGE, Operator.REWRITE):
-        assert len(OfflineAuthor().vary(operator, (Card.of([]),), "s").lessons) == 1
+        assert len(OfflineAuthor().vary(operator, (Card.of([]),), "s", 0).lessons) == 1
     assert (
-        len(OfflineAuthor().vary(Operator.DELETE, (Card.of(OFFLINE_LESSONS[:2]),), "s").lessons)
+        len(OfflineAuthor().vary(Operator.DELETE, (Card.of(OFFLINE_LESSONS[:2]),), "s", 0).lessons)
         == 3
     )
 
 
 def test_crossover_is_not_an_authors_job_and_raises():
     with pytest.raises(MutationReplyError, match="crossover"):
-        OfflineAuthor().vary(Operator.CROSSOVER, (PARENT, PARENT), "s")
+        OfflineAuthor().vary(Operator.CROSSOVER, (PARENT, PARENT), "s", 0)
 
 
 def test_the_judges_call_a_landmark_only_when_told_to():

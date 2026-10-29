@@ -129,26 +129,22 @@ EDITS = {
 
 
 class OfflineAuthor:
-    """Edits a parent card by operator. Never a model.
+    """Edits a parent card by operator. Never a model, and a pure function of its arguments.
 
-    A call counter goes into the hash so repeated asks about one parent give different children,
-    as a sampling model would. An edit that would collapse a tiny card adds a lesson instead, so
-    a dry run does not burn its tries on copies. Give each arm its own copy so counters start equal.
+    The per-call seed goes into the hash, so repeated asks about one parent (different attempts)
+    give different children while both arms, asking with the same seed, get the same child. An
+    edit that would collapse a tiny card adds a lesson instead, so a dry run does not burn its
+    tries on copies.
     """
 
     name = "offline"
 
-    def __init__(self) -> None:
-        """Start with no calls made."""
-        self.calls = 0
-
-    def vary(self, operator: Operator, parents: tuple[Card, ...], summary: str) -> Card:
+    def vary(self, operator: Operator, parents: tuple[Card, ...], summary: str, seed: int) -> Card:
         """A child of one parent; raises MutationReplyError for an operator it cannot do."""
         edit = EDITS.get(operator)
         if edit is None:
             raise MutationReplyError(f"offline author cannot do {operator}")
-        self.calls += 1
-        return Card.of(edit(list(parents[0].lessons), f"{summary}#{self.calls}")[:MAX_LESSONS])
+        return Card.of(edit(list(parents[0].lessons), f"{summary}#{seed}")[:MAX_LESSONS])
 
 
 @dataclass(frozen=True)

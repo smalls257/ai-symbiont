@@ -7,6 +7,7 @@ import pytest
 from evolve_world import HELD_OUT, SPLIT, FakePlayer, doors, run, seeds, tools
 from symbiont.act1.evolution import RunRules, evolve
 from symbiont.act1.lineage import Arm
+from symbiont.act1.offline_author import OfflineAuthor
 from symbiont.act1.run_guards import GapWatch, NoiseVerdict, SpendRoom, TooManyUngradedError
 
 
@@ -145,26 +146,20 @@ def test_the_same_seed_gives_identical_output_twice():
     ]
 
 
-def test_the_authors_state_is_not_reset_between_generations():
-    from symbiont.act1.offline_author import OfflineAuthor as Author
-
-    author = Author()
-    calls = []
-
-    class Spy(Author):
-        def vary(self, operator, parents, summary):
-            calls.append(self.calls)
-            return super().vary(operator, parents, summary)
-
-    spy = Spy()
+def test_each_arm_can_have_its_own_author_and_the_run_is_unchanged():
     from evolve_world import VariationTools as Tools
 
-    record = evolve(
+    def arm_tools():
+        base = tools()
+        return Tools(OfflineAuthor(), base.judge, base.rng, base.schedule, {})
+
+    rules = RunRules(3, 1, 1, SpendRoom(10.0, 1.0))
+    separate = evolve(
         seeds(),
         SPLIT,
         FakePlayer(),
-        Tools(spy, tools().judge, tools().rng, tools().schedule, {}),
-        RunRules(3, 1, 1, SpendRoom(10.0, 1.0)),
+        {Arm.EVOLVED: arm_tools(), Arm.NO_SELECTION: arm_tools()},
+        rules,
     )
-    assert record.last_played == 3 and author.calls == 0
-    assert calls == sorted(calls) and len(set(calls)) == len(calls)  # one counter, never reset
+    shared = evolve(seeds(), SPLIT, FakePlayer(), tools(), rules)
+    assert separate.births == shared.births and separate.picks == shared.picks

@@ -5,6 +5,7 @@ drift apart. Every rule it applies lives in another module (lexicase, generality
 card_archive); this one only sequences them.
 """
 
+import hashlib
 import math
 import random
 from collections.abc import Mapping, Sequence
@@ -49,8 +50,12 @@ class Author(Protocol):
 
     name: str
 
-    def vary(self, operator: Operator, parents: tuple[Card, ...], summary: str) -> Card:
-        """A child of the parents by the operator."""
+    def vary(self, operator: Operator, parents: tuple[Card, ...], summary: str, seed: int) -> Card:
+        """A child of the parents by the operator.
+
+        `seed` is the same for both arms given the same generation, slot and attempt, so an
+        author that is a function of its arguments writes the same child for the same parent.
+        """
         ...
 
 
@@ -97,6 +102,7 @@ class VariationTools:
     rng: random.Random
     schedule: OperatorSchedule
     summaries: Mapping[str, str]
+    seed: int = 0  # the run seed; the per-call seed of each author call derives from it
 
 
 @dataclass(frozen=True)
@@ -109,6 +115,12 @@ class Step:
     archive_offers: tuple[tuple[Card, float], ...]
     verdicts: tuple[Verdict, ...]
     duplicates: int
+
+
+def call_seed(run_seed: int, generation: int, slot: int, attempt: int) -> int:
+    """The seed of one author call; no arm in it, so both arms ask the same way."""
+    digest = hashlib.sha256(f"{run_seed}:{generation}:{slot}:{attempt}".encode()).digest()
+    return int.from_bytes(digest[:8], "big")
 
 
 def crossover(first: Card, second: Card) -> Card:
@@ -173,12 +185,12 @@ class _Run:
             return random_parents(self.table.cards, count, self.tools.rng)
         return select_parents(self.table, count, self.tools.rng, self.tie_key)
 
-    def write_child(self, operator: Operator, parents: tuple[Card, ...]) -> Card:
-        """Crossover by code; every other operator through the author."""
+    def write_child(self, operator: Operator, parents: tuple[Card, ...], seed: int) -> Card:
+        """Crossover by code; every other operator through the author with this call's seed."""
         if operator == Operator.CROSSOVER:
             return crossover(parents[0], parents[1])
         summary = self.tools.summaries[parents[0].card_id]
-        return self.tools.author.vary(operator, parents[:1], summary)
+        return self.tools.author.vary(operator, parents[:1], summary, seed)
 
     def record(
         self, child: Card, operator: Operator, parents: tuple[Card, ...], why: Verdict
@@ -208,7 +220,8 @@ def _fill_slot(run: _Run, slot: int) -> Card:
     for attempt in range(MAX_TRIES + MAX_COPIES):
         operator = run.tools.schedule.operator(generation, slot, attempt)
         parents = run.draw_parents(2 if operator == Operator.CROSSOVER else 1)
-        child = run.write_child(operator, parents)
+        seed = call_seed(run.tools.seed, generation, slot, attempt)
+        child = run.write_child(operator, parents, seed)
         if child.card_id in run.taken:
             run.duplicates, copies = run.duplicates + 1, copies + 1
         else:

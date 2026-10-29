@@ -283,7 +283,8 @@ def run(args: argparse.Namespace) -> RunRecord:
     rules = RunRules(args.generations, args.seed, 1, DRY_RUN_ROOM, journal=store)
     record = evolve(
         store.seeds(fake_author.dry_run_seed_cards), split_from_levels(args.levels), player,
-        build_tools(args.author, args.seed), rules,
+        {arm: build_tools(args.author, args.seed) for arm in (Arm.EVOLVED, Arm.NO_SELECTION)},
+        rules,
     )  # fmt: skip
     label = (
         f"dry run, {args.player.value} player"
