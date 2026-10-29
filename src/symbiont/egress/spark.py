@@ -55,6 +55,28 @@ class SparkReplyError(RuntimeError):
         self.reason = reason  # the ledger's error field for this failure
 
 
+def _checked_message(out: dict[str, Any], usage: Usage, *, tool_calls_ok: bool) -> dict[str, Any]:
+    """The reply's message; raises SparkReplyError for no choices, a refusal or an empty reply."""
+    choices = out.get("choices") or []
+    if not choices:
+        raise SparkReplyError("the reply has no choices", "no_choices")
+    choice = choices[0]
+    message: dict[str, Any] = choice.get("message") or {}
+    reason = choice.get("finish_reason")
+    if message.get("refusal") or reason == "content_filter":
+        raise SparkReplyError(f"the model refused this request (finish_reason={reason})", "refusal")
+    content = message.get("content")
+    if tool_calls_ok and message.get("tool_calls"):
+        return message
+    if content is None or not str(content).strip():
+        raise SparkReplyError(
+            f"no content (finish_reason={reason}, completion_tokens={usage.completion}, "
+            f"reasoning_tokens={usage.reasoning}); raise max_tokens or lower the effort",
+            "no_content",
+        )
+    return message
+
+
 class SparkApiError(RuntimeError):
     """The server answered with an HTTP error; carries the status and a short server message."""
 
@@ -129,7 +151,9 @@ class SparkSession:
         if self.temperature is not None:
             body["temperature"] = self.temperature
         out, usage, seconds = self._priced_call(body, label, list(self.provenance))
-        return self._reply(out, usage, seconds)
+        message = _checked_message(out, usage, tool_calls_ok=False)
+        finish = str(out["choices"][0].get("finish_reason"))
+        return SparkReply(message["content"], finish, usage, seconds)
 
     def converse(
         self,
@@ -152,7 +176,8 @@ class SparkSession:
         }
         if self.temperature is not None:
             body["temperature"] = self.temperature
-        out, _, _ = self._priced_call(body, label, declared)
+        out, usage, _ = self._priced_call(body, label, declared)
+        _checked_message(out, usage, tool_calls_ok=True)
         return out
 
     def _priced_call(
@@ -203,15 +228,3 @@ class SparkSession:
             raise SparkApiError(f"status {error.code}: {detail}") from error
         except json.JSONDecodeError:
             raise SparkReplyError("the reply is not valid JSON", "bad_json") from None
-
-    @staticmethod
-    def _reply(out: dict[str, Any], usage: Usage, seconds: float) -> SparkReply:
-        choice = out["choices"][0]
-        content = choice["message"].get("content")
-        reason = choice.get("finish_reason")
-        if content is None:
-            raise SparkReplyError(
-                f"no content (finish_reason={reason}, completion_tokens={usage.completion}, "
-                f"reasoning_tokens={usage.reasoning}); raise max_tokens or lower the effort"
-            )
-        return SparkReply(content, str(reason), usage, seconds)
