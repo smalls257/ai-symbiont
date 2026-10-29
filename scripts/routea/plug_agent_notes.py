@@ -25,12 +25,16 @@ JUDGE_TIMEOUT_S = 300
 
 
 class NoteArm(StrEnum):
-    """PLUG-AGENT-1's four arms."""
+    """PLUG-AGENT-1's arms: five runs per task (none twice, the second is the A/A noise floor)."""
 
     NONE = "none"
+    NONE_REPEAT = "none2"
     RAG = "rag"
     RANKER = "ranker"
     JUDGE = "judge"
+
+
+SILENT_ARMS = frozenset({NoteArm.NONE, NoteArm.NONE_REPEAT})
 
 
 class JudgeDownError(RuntimeError):
@@ -108,7 +112,7 @@ class NoteSource:
 
     def note_for(self, step: int, failure: Failure) -> str | None:
         """The note text for this failure, or None (silence, a repeat, or the none arm)."""
-        if self.arm is NoteArm.NONE or (failure.failed, failure.error) in self.seen:
+        if self.arm in SILENT_ARMS or (failure.failed, failure.error) in self.seen:
             return None
         self.seen.add((failure.failed, failure.error))
         item = Item(f"step{step}", failure.situation(self.repo), tuple(self.store), None)
@@ -144,5 +148,8 @@ def _by_id(item: Item, lesson_id: str | None) -> list[Lesson]:
 
 
 def known_mistake(failure: Failure, store: Sequence[Lesson]) -> bool:
-    """The failure's (error class, program) matches a lesson in the task's store."""
-    return failure.key() in {(lesson.error_class, lesson.program) for lesson in store}
+    """The failure's (error class, program) matches a lesson's; an empty part never matches."""
+    error_class, program = failure.key()
+    if not error_class or not program:
+        return False
+    return (error_class, program) in {(lesson.error_class, lesson.program) for lesson in store}

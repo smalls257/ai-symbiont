@@ -81,6 +81,8 @@ def test_each_arm_picks_its_note_once_per_failure(mods):
     assert rag.note_for(1, failure).count("\n") == 1  # two lessons in the store, top 3 asked
     assert rag.note_for(2, failure) is None  # the same failure again: nothing new
     assert notes.NoteSource(notes.NoteArm.NONE, "o/r", store, 0.0, 0.5).note_for(1, failure) is None
+    repeat = notes.NoteSource(notes.NoteArm.NONE_REPEAT, "o/r", store, 0.0, 0.5)
+    assert repeat.note_for(1, failure) is None  # the A/A noise-floor run is as silent as none
     ranker = notes.NoteSource(notes.NoteArm.RANKER, "o/r", store, 1e9, 0.5)
     assert ranker.note_for(1, failure) is None and ranker.events[0]["lessons"] == []
     judged = notes.NoteSource(
@@ -89,6 +91,8 @@ def test_each_arm_picks_its_note_once_per_failure(mods):
     assert "`python a.py` failed" in judged.note_for(1, failure)
     assert judged.events[0]["top"] == 0.9
     assert notes.known_mistake(failure, store)
+    empty = [lesson(mods, "e", program="", error_class="", failed="")]
+    assert not notes.known_mistake(notes.Failure("", "", "", ""), empty)  # empty keys never match
 
 
 def test_a_judge_that_does_not_answer_stops_the_run(mods, monkeypatch):

@@ -1,8 +1,8 @@
-"""PLUG-AGENT-1 runner: every kept task, all four arms per task, in the prereg's seeded order.
+"""PLUG-AGENT-1 runner: every kept task, five runs per task (none twice), in the prereg's order.
 
 Refuses a config whose sha256 differs from the one the frozen prereg records, and a DRAFT prereg
 unless --dry-run lists the plan without a call. The spend cap is checked only between tasks,
-so every finished task has all four arms. Resumable: a (task, arm) with a graded record is done.
+so every finished task has all five runs. Resumable: a (task, arm) with a graded record is done.
 Usage: python plug_agent_run.py --prereg P --config C --rows R --tasks T --pool D --plan J
          --dates J --selection J --judge-url U --out DIR [--dry-run]
 """
@@ -111,7 +111,7 @@ class Plan:
 
 
 def run_arms(plan: Plan, task: str, row: dict, finished: set[tuple[str, str]]) -> None:
-    """All four arms of one task, in the prereg's arm order."""
+    """All five runs of one task (none twice), in the prereg's arm order."""
     store = plan.store(task, row)
     removed = [
         store.removed_scored_repo,

@@ -1,4 +1,4 @@
-"""One PLUG-AGENT-1 run: Spark mini-SWE-agent in the task's SWE-rebench image, notes per arm.
+"""One PLUG-AGENT-1 run: mini-SWE-agent in the task's SWE-rebench image, notes per arm.
 
 The environment wrapper follows `mini_swe_wrapper`: after a failed command the arm's note is
 appended to that command's observation under the `[symbiont]` tag line. Every failed command is

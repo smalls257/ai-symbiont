@@ -9,5 +9,25 @@
  "wall_limit_min": 45,
  "max_tokens_per_reply": 4096,
  "run_label": "plug-agent-1",
- "label": "PLUG-AGENT-1 run settings, shared by all four arms"
+ "runs_per_task": {
+  "none": 2,
+  "rag": 1,
+  "ranker": 1,
+  "judge": 1
+ },
+ "judge_threshold": 0.99,
+ "ranker_threshold": 15.0,
+ "judge_seeds": 3,
+ "prompt_lessons": 60,
+ "shortlist_size": 10,
+ "selection_json_sha256": "278aae2c264eb5939f49e35203532027a303e1b9789d0fdeb731e078580682b8",
+ "judge_adapter_sha256": {
+  "judge-s0": "6375047268eb3e285d21b4632a5661ced347c1aa319ec47ed0ba57c77e0d7bdc",
+  "judge-s1": "a06ab6e0f5b74f8f60ff6d7605dc5be54b970b5a7811ddf95503501dc196bdc4",
+  "judge-s2": "797d169cedf9fde56cac3791cf88245d02e8fb23cd072c0e0bbcce67415837c9"
+ },
+ "task_list_sha256": "668bf2a3965ba4fd2b14168c0769826e20bdf7ea6e4f01b7b052bc67acccbc6a",
+ "llama_server_build": "b10820-74a7c897f",
+ "void_requeue_cap": 1,
+ "label": "PLUG-AGENT-1 run settings, shared by every run"
 }
