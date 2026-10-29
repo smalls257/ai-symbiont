@@ -1,6 +1,6 @@
 # Pre-registration: Plug round 2, a trained reader on agent situations (PLUG-SIT)
 
-**DRAFT, NOT FROZEN.** Committed alone at the freeze, before any answer on the scored repos exists. Validation answers of the variants may exist before the freeze; scored answers may not. After the freeze only a dated amendment may change anything, and an amendment cannot change the data, split, variants, selection rule, scorers, metric or decision rule below.
+**FROZEN 2026-10-29.** Code pinned at `bcbaa16` (this commit's parent; `plug_r2_score.py check` enforces it). Committed alone at the freeze, before any answer on the scored repos exists. Validation answers of the variants may exist before the freeze; scored answers may not. After the freeze only a dated amendment may change anything, and an amendment cannot change the data, split, variants, selection rule, scorers, metric or decision rule below.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or by construction, [hypothesis] = a guess the run can support or refute.
 
