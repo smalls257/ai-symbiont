@@ -21,6 +21,8 @@ from symbiont.act1.run_guards import MutationPromptError, require_rejection_shar
 
 ELITES = 2  # design section 4: the two best survive
 CHILDREN = 4  # six cards: two elites and four children
+REDRAWS = 5  # a crossover of a card with itself is a copy: redraw this many times for two cards
+MAX_COPIES = 6  # a child equal to a card already kept is not a rejection; it has its own budget
 MAX_TRIES = 3  # plan T13: a rejected child is replaced at most three times per slot
 VARIATION_OPERATORS = (
     Operator.REWRITE,
@@ -158,13 +160,18 @@ class _Run:
         return self.by_id[card_id].tie_key()
 
     def draw_parents(self, count: int) -> tuple[Card, ...]:
-        """Parents by the arm's named choice."""
-        rng = self.tools.rng
-        if self.choice == ParentChoice.RANDOM:
-            ids = random_parents(self.table.cards, count, rng)
-        else:
-            ids = select_parents(self.table, count, rng, self.tie_key)
+        """Parents by the arm's named choice; a crossover redraws to get two different cards."""
+        for _ in range(REDRAWS):
+            ids = self._draw_ids(count)
+            if len(set(ids)) == count:
+                break
         return tuple(self.by_id[card_id] for card_id in ids)
+
+    def _draw_ids(self, count: int) -> tuple[str, ...]:
+        """One draw of `count` parent ids by the named choice."""
+        if self.choice == ParentChoice.RANDOM:
+            return random_parents(self.table.cards, count, self.tools.rng)
+        return select_parents(self.table, count, self.tools.rng, self.tie_key)
 
     def write_child(self, operator: Operator, parents: tuple[Card, ...]) -> Card:
         """Crossover by code; every other operator through the author."""
@@ -192,22 +199,28 @@ class _Run:
 
 
 def _fill_slot(run: _Run, slot: int) -> Card:
-    """Write one child, replacing it up to MAX_TRIES times; raises MutationPromptError after."""
+    """Write one child; replace a rejected one up to MAX_TRIES times and a copy up to MAX_COPIES.
+
+    Raises MutationPromptError when either budget runs out.
+    """
     generation = run.population.generation + 1
-    for attempt in range(MAX_TRIES):
+    rejected = copies = 0
+    for attempt in range(MAX_TRIES + MAX_COPIES):
         operator = run.tools.schedule.operator(generation, slot, attempt)
         parents = run.draw_parents(2 if operator == Operator.CROSSOVER else 1)
         child = run.write_child(operator, parents)
         if child.card_id in run.taken:
-            run.duplicates += 1
-            continue
-        why = _verdict_on(child, parents, run.tools.judge)
-        run.record(child, operator, parents, why)
-        if why.general:
-            return child
+            run.duplicates, copies = run.duplicates + 1, copies + 1
+        else:
+            why = _verdict_on(child, parents, run.tools.judge)
+            run.record(child, operator, parents, why)
+            if why.general:
+                return child
+            rejected += 1
+        if rejected >= MAX_TRIES:
+            break
     raise MutationPromptError(
-        f"slot {slot}: {MAX_TRIES} tries gave no new general child "
-        f"({run.duplicates} duplicates so far in this generation)"
+        f"slot {slot}: no new general child after {rejected} rejections and {copies} copies"
     )
 
 

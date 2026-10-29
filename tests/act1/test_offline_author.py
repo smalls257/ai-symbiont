@@ -29,13 +29,19 @@ def test_repeated_asks_about_one_parent_give_different_children():
 
 def test_delete_merge_and_rewrite_edit_a_lesson_each():
     author = OfflineAuthor()
-    assert len(author.vary(Operator.DELETE, (PARENT,), "s").lessons) == 2
-    assert len(author.vary(Operator.MERGE, (PARENT,), "s").lessons) == 2
-    assert author.vary(Operator.REWRITE, (PARENT,), "s").lessons[1:] == PARENT.lessons[1:]
+    four = Card.of(OFFLINE_LESSONS[:4])
+    assert len(author.vary(Operator.DELETE, (four,), "s").lessons) == 3
+    assert len(author.vary(Operator.MERGE, (four,), "s").lessons) == 3
+    assert len(author.vary(Operator.REWRITE, (PARENT,), "s").lessons) == 3
 
 
-def test_an_edit_that_cannot_apply_to_an_empty_card_leaves_it_empty():
-    assert OfflineAuthor().vary(Operator.DELETE, (Card.of([]),), "s").lessons == ()
+def test_an_edit_that_would_shrink_a_tiny_card_adds_a_lesson_instead():
+    for operator in (Operator.DELETE, Operator.MERGE, Operator.REWRITE):
+        assert len(OfflineAuthor().vary(operator, (Card.of([]),), "s").lessons) == 1
+    assert (
+        len(OfflineAuthor().vary(Operator.DELETE, (Card.of(OFFLINE_LESSONS[:2]),), "s").lessons)
+        == 3
+    )
 
 
 def test_crossover_is_not_an_authors_job_and_raises():

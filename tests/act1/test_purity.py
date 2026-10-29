@@ -38,6 +38,7 @@ PURE_FILES = (
     "game_summary.py",
     "offline_author.py",
     "generation.py",
+    "evolution.py",
 )
 
 

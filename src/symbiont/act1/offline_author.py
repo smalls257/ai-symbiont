@@ -66,31 +66,58 @@ def _without_repeats(lessons: Sequence[Lesson]) -> list[Lesson]:
     return list(dict.fromkeys(lessons))
 
 
+# Below this size a delete or merge would collapse into the other small cards of the population.
+SHRINKABLE_ABOVE = 2
+PICK_TRIES = 12  # of 40 pool lessons a card holds at most 8, so a new one turns up quickly
+
+
+def _new_pick(text: str, held: list[Lesson]) -> Lesson:
+    """A pool lesson the card does not hold yet (the first of a few salted picks that is new)."""
+    for salt in range(PICK_TRIES):
+        lesson = _pick(f"{text}/{salt}")
+        if lesson not in held:
+            return lesson
+    return _pick(text)
+
+
+def _slot(text: str, size: int) -> int:
+    """A stable index below `size` from a text."""
+    return int(hashlib.sha256(text.encode()).hexdigest(), 16) % size
+
+
 def _add(lessons: list[Lesson], summary: str) -> list[Lesson]:
-    """Add the pool lesson chosen by the hash of the card and the summary."""
+    """Add the pool lesson the card and summary hash to; at the cap it replaces the last lesson."""
     text = "".join(lesson.went_wrong for lesson in lessons) + summary
-    return _without_repeats([*lessons, _pick(text)])
+    room = lessons[: MAX_LESSONS - 1] if len(lessons) >= MAX_LESSONS else lessons
+    return [*room, _new_pick(text, room)]
 
 
-def _delete(lessons: list[Lesson], _summary: str) -> list[Lesson]:
-    """Drop the last lesson; an empty card stays empty."""
-    return lessons[:-1]
+def _delete(lessons: list[Lesson], summary: str) -> list[Lesson]:
+    """Drop the lesson the summary hashes to; a card of two or fewer gets an addition instead."""
+    if len(lessons) <= SHRINKABLE_ABOVE:
+        return _add(lessons, summary)
+    gone = _slot(summary, len(lessons))
+    return [lesson for index, lesson in enumerate(lessons) if index != gone]
 
 
-def _merge(lessons: list[Lesson], _summary: str) -> list[Lesson]:
-    """Merge the first two lessons into one; fewer than two stay as they are."""
-    if len(lessons) < 2:
-        return lessons
-    first, second = lessons[0], lessons[1]
+def _merge(lessons: list[Lesson], summary: str) -> list[Lesson]:
+    """Merge a hashed neighbor pair into one lesson; a card of two or fewer gets an addition."""
+    if len(lessons) <= SHRINKABLE_ABOVE:
+        return _add(lessons, summary)
+    at = _slot(summary, len(lessons) - 1)
+    first, second = lessons[at], lessons[at + 1]
     merged = Lesson(first.went_wrong, first.instead, second.check, first.source_level)
-    return [merged, *lessons[2:]]
+    return [*lessons[:at], merged, *lessons[at + 2 :]]
 
 
 def _rewrite(lessons: list[Lesson], summary: str) -> list[Lesson]:
-    """Replace the first lesson by the pool lesson its problem hashes to."""
+    """Replace a hashed lesson by a pool lesson; an empty card gets an addition instead."""
     if not lessons:
-        return lessons
-    return _without_repeats([_pick(lessons[0].went_wrong + summary), *lessons[1:]])
+        return _add(lessons, summary)
+    at = _slot(summary, len(lessons))
+    return _without_repeats(
+        [*lessons[:at], _pick(lessons[at].went_wrong + summary), *lessons[at + 1 :]]
+    )
 
 
 EDITS = {
@@ -105,8 +132,8 @@ class OfflineAuthor:
     """Edits a parent card by operator. Never a model.
 
     A call counter goes into the hash so repeated asks about one parent give different children,
-    as a sampling model would. A no-op edit (delete on an empty card) returns the parent's lessons.
-    Give each arm its own copy so the counters start equal.
+    as a sampling model would. An edit that would collapse a tiny card adds a lesson instead, so
+    a dry run does not burn its tries on copies. Give each arm its own copy so counters start equal.
     """
 
     name = "offline"
