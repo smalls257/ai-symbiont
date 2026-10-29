@@ -5,8 +5,8 @@ levels get the static route check and an engine load with zero decisions (plan r
 episode on a held-out level before the freeze). A dropped level is listed with its reason in the
 local file and with a short label in the published one.
 
-Usage: smoke_levels.py --wad data/freedoom/freedoom2.wad --out ~/symbiont-runs/evolve/levels.json
-       --publish results/evolve-levels.json
+Usage: smoke_levels.py --wad data/freedoom/freedoom2.wad [--project freedoom1]
+       --out ~/symbiont-runs/evolve/levels.json --publish results/evolve-levels.json
 """
 
 import argparse
@@ -24,7 +24,7 @@ script_paths.add_script_dirs()
 from symbiont.act1.episode import MapKnowledge, RunLog, run_episode  # noqa: E402 - path set above
 from symbiont.act1.evolve_split import SmokeResult  # noqa: E402
 from symbiont.act1.game_fitness import ALL_KEY_COLORS  # noqa: E402
-from symbiont.act1.levels import LevelSplit, levels_in, split_of  # noqa: E402
+from symbiont.act1.levels import LevelSplit, Project, level_names, split_of  # noqa: E402
 from symbiont.act1.map_index import build_index  # noqa: E402
 from symbiont.act1.navmap import NoPath, build_navmap  # noqa: E402
 from symbiont.act1.policies import policy_named  # noqa: E402
@@ -103,10 +103,11 @@ def smoke_level(wad: Path, level: str, loader: EngineLoader) -> SmokeResult:
         return _drop(f"crash: {type(error).__name__}")
 
 
-def smoke_all(wad: Path, loader: EngineLoader = default_engine_loader) -> dict[str, SmokeResult]:
-    """Every freedoom2 level, in map order."""
-    every = levels_in(LevelSplit.TRAINING) + levels_in(LevelSplit.HELD_OUT)
-    return {level: smoke_level(wad, level, loader) for level in sorted(every)}
+def smoke_all(
+    wad: Path, project: Project, loader: EngineLoader = default_engine_loader
+) -> dict[str, SmokeResult]:
+    """Every level of the project's WAD, in play order."""
+    return {level: smoke_level(wad, level, loader) for level in level_names(project)}
 
 
 def label_of(result: SmokeResult) -> str:
@@ -130,10 +131,11 @@ def main(argv: list[str] | None = None) -> int:
     """Run the smoke test and write the local and published files."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--wad", type=Path, required=True)
+    parser.add_argument("--project", type=Project, choices=list(Project), default=Project.FREEDOOM2)
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--publish", type=Path, required=True)
     args = parser.parse_args(argv)
-    results = smoke_all(args.wad)
+    results = smoke_all(args.wad, args.project)
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps({k: dataclasses.asdict(v) for k, v in results.items()}, indent=1)

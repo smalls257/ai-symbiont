@@ -114,3 +114,13 @@ def test_a_route_that_shuts_its_own_door_is_dropped_as_unsafe_not_passed():
     assert smoke_levels.static_route_check(closing_door(closer=12)).passed
     dropped = smoke_levels.static_route_check(closing_door(closer=3))
     assert not dropped.passed and dropped.reason.startswith("unsafe_route")
+
+
+def test_a_phase_one_smoke_run_covers_the_thirty_six_episode_maps_in_play_order(monkeypatch):
+    from symbiont.act1.levels import Project
+
+    monkeypatch.setattr(
+        smoke_levels, "smoke_level", lambda _wad, _level, _loader: smoke_levels.PASS
+    )
+    results = smoke_levels.smoke_all(Path("unused.wad"), Project.FREEDOOM1)
+    assert list(results)[:2] == ["E1M1", "E1M2"] and len(results) == 36 and "MAP01" not in results
