@@ -17,6 +17,7 @@ from symbiont.act1.engine import (
 from symbiont.act1.episode import MapKnowledge, RunLog, build_prompt, history_before, run_episode
 from symbiont.act1.glimmer import GlimmerReplyError, Reply, TokenUsage, parse_chat_response
 from symbiont.act1.map_index import MapIndex, build_index
+from symbiont.act1.move_cuts import MoveCuts
 from symbiont.act1.steplog import MoveKind
 from symbiont.act1.wad import Sector, read_map
 from wad_builder import sample_wad
@@ -384,3 +385,43 @@ def test_history_before_rebuilds_exactly_the_prompts_the_loop_sent():
     assert rebuilt == sent
     with pytest.raises(IndexError):
         history_before(decisions, len(decisions))
+
+
+def test_a_cut_move_says_so_in_its_outcome_and_in_the_move_run_the_tagger_reads():
+    game, runs = FakeGame(), []
+    decisions = run_episode(
+        game,
+        scripted_replies(Reply("turn(90)", "stop", 0)),
+        1,
+        RunLog(on_move=runs.append, cuts=MoveCuts(share=1.0, seed=1)),
+        knowledge=MapKnowledge(FLOORED_MAP),
+    )
+    cap = len(game.actions)
+    assert 1 <= cap <= 30
+    assert decisions[0].outcomes == (f"scripted turn(90) -> cut short after {cap} tics",)
+    assert runs[0].outcome == f"cut short after {cap} tics" and runs[0].tics == cap
+
+
+def test_a_cut_replays_identically_for_the_same_seed():
+    def played():
+        game = FakeGame()
+        run_episode(
+            game,
+            scripted_replies(*TWO_TURNS_THEN_SHOOT),
+            2,
+            RunLog(cuts=MoveCuts(share=0.5, seed=11)),
+            knowledge=MapKnowledge(FLOORED_MAP),
+        )
+        return len(game.actions)
+
+    assert played() == played()
+
+
+@pytest.mark.periphery
+def test_make_game_refuses_a_skill_outside_one_to_five():
+    from pathlib import Path
+
+    from symbiont.act1.engine import make_game
+
+    with pytest.raises(ValueError, match="skill 6"):
+        make_game(Path("no-such.wad"), skill=6)

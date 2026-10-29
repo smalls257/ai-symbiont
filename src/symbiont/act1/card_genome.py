@@ -2,9 +2,7 @@
 
 A card is a few lessons in the three-part form (what went wrong, what to do instead, the check to
 make), shown to a player as prose and never as a score. An oversized or malformed card raises:
-truncating it quietly would let a mutation smuggle in text the selection never saw (Silent
-Fallback), and a card that carries numbers or flags would leak the scorer to the player (Leaky
-Narrative).
+truncating it quietly would let a mutation smuggle in text the selection never saw.
 """
 
 import hashlib

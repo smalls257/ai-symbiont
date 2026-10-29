@@ -20,8 +20,10 @@ from symbiont.act1.env_text import (
     normalize_degrees,
 )
 from symbiont.act1.map_index import MapIndex, closed_sector_ids
+from symbiont.act1.move_cuts import NORMAL_SKILL
 from symbiont.act1.moves import Button
 
+MIN_SKILL, MAX_SKILL = 1, 5  # Doom's own skill range
 DOOR_RANGE_UNITS = 600.0
 IGNORED_OBJECTS = frozenset({"DoomPlayer", "BulletPuff", "Blood", "TeleportFog"})
 PICKUP_RANGE_UNITS = 64.0
@@ -38,24 +40,8 @@ class FrameSize(StrEnum):
     CLIP = "RES_640X480"  # same 4:3 field of view, so the depth-buffer reading is unchanged in kind
 
 
-def make_game(
-    wad: Path, map_name: str = "MAP01", seed: int = 1, frame_size: FrameSize = FrameSize.PLAY
-) -> Any:
-    """A synchronous, windowless ViZDoom game on the given WAD map."""
-    import vizdoom as vzd
-
-    game = vzd.DoomGame()
-    game.set_doom_game_path(str(wad))
-    game.set_doom_map(map_name)
-    # ViZDoom writes _vizdoom.ini (home path, user name) into the cwd by default; keep it in the
-    # gitignored WAD directory so no run leaves a file the secrets gates must flag.
-    game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
-    game.set_seed(seed)
-    game.set_screen_resolution(getattr(vzd.ScreenResolution, frame_size.value))
-    game.set_labels_buffer_enabled(True)
-    game.set_depth_buffer_enabled(True)
-    game.set_objects_info_enabled(True)
-    game.set_sectors_info_enabled(True)
+def _declare_inputs(game: Any, vzd: Any) -> None:
+    """Tell the engine which buttons the scripts press and which variables the views read."""
     game.set_available_buttons(
         [
             vzd.Button.MOVE_FORWARD,
@@ -75,6 +61,37 @@ def make_game(
             vzd.GameVariable.ANGLE,
         ]
     )
+
+
+def make_game(
+    wad: Path,
+    map_name: str = "MAP01",
+    seed: int = 1,
+    frame_size: FrameSize = FrameSize.PLAY,
+    skill: int = NORMAL_SKILL,
+) -> Any:
+    """A synchronous, windowless ViZDoom game on the given WAD map at a Doom skill from 1 to 5.
+
+    Raises ValueError for a skill outside 1 to 5.
+    """
+    if not MIN_SKILL <= skill <= MAX_SKILL:
+        raise ValueError(f"skill {skill} is outside {MIN_SKILL} to {MAX_SKILL}")
+    import vizdoom as vzd
+
+    game = vzd.DoomGame()
+    game.set_doom_game_path(str(wad))
+    game.set_doom_map(map_name)
+    # ViZDoom writes _vizdoom.ini (home path, user name) into the cwd by default; keep it in the
+    # gitignored WAD directory so no run leaves a file the secrets gates must flag.
+    game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
+    game.set_seed(seed)
+    game.set_doom_skill(skill)
+    game.set_screen_resolution(getattr(vzd.ScreenResolution, frame_size.value))
+    game.set_labels_buffer_enabled(True)
+    game.set_depth_buffer_enabled(True)
+    game.set_objects_info_enabled(True)
+    game.set_sectors_info_enabled(True)
+    _declare_inputs(game, vzd)
     game.set_episode_timeout(20000)
     game.set_window_visible(False)
     game.set_mode(vzd.Mode.PLAYER)  # synchronous: the game waits for us

@@ -25,6 +25,7 @@ PURE_FILES = (
     "lesson_rows.py",
     "demo_replay.py",
     "card_genome.py",
+    "move_cuts.py",
 )
 
 

@@ -30,6 +30,7 @@ from symbiont.act1.env_text import (
 )
 from symbiont.act1.glimmer import Reply, ReplyFn, chat_reply
 from symbiont.act1.map_index import MapIndex, build_index
+from symbiont.act1.move_cuts import MoveCuts
 from symbiont.act1.moves import Button, Done
 from symbiont.act1.navmap import NavMap, build_navmap
 from symbiont.act1.steplog import Decision, MoveRun, kind_of
@@ -69,9 +70,14 @@ def execute_move(
     move: Move,
     observe: Callable[[], GameStateView | None],
     act: Callable[[frozenset[Button]], None],
+    max_tics: int | None = None,
 ) -> str:
-    """Run one scripted move to completion; returns why it stopped."""
-    for _ in range(move.max_tics):
+    """Run one scripted move to completion; returns why it stopped.
+
+    `max_tics` cuts the move short (move_cuts); the outcome then says so.
+    """
+    cut = max_tics is not None and max_tics < move.max_tics
+    for _ in range(max_tics if cut else move.max_tics):
         state = observe()
         if state is None:
             return "episode ended"
@@ -79,7 +85,7 @@ def execute_move(
         if isinstance(result, Done):
             return result.reason
         act(result)
-    return f"timeout after {move.max_tics} tics"
+    return f"cut short after {max_tics} tics" if cut else f"timeout after {move.max_tics} tics"
 
 
 # --- the loop ------------------------------------------------------------------------------------
@@ -103,13 +109,15 @@ def _classify(reply: Reply, nav: NavMap | None = None) -> tuple[list[Move] | Non
 class RunLog:
     """Where decisions are appended, the run header, and who hears of each played move.
 
-    No path: no log file. No `on_move`: no extra observation per move. The observer lives here
-    because `run_episode` is at its five-parameter cap.
+    No path: no log file. No `on_move`: no extra observation per move. No `cuts`: every move runs
+    to its own end. The observer and the cuts live here because `run_episode` is at its
+    five-parameter cap.
     """
 
     path: Path | None = None
     header: dict[str, Any] = field(default_factory=dict)
     on_move: Callable[[MoveRun], None] | None = None
+    cuts: MoveCuts | None = None
 
 
 @dataclass(frozen=True)
@@ -127,13 +135,19 @@ class _Session:
         self,
         game: Any,
         knowledge: MapKnowledge,
-        on_move: Callable[[MoveRun], None] | None,
+        run_log: RunLog,
         convention: SectorConvention,
     ):
         """Wrap a live game with its map knowledge, key tracker and sector convention."""
         self.game, self.knowledge, self.keys = game, knowledge, KeyTracker()
-        self.on_move, self.tics, self.decision = on_move, 0, 0
+        self.on_move, self.cuts = run_log.on_move, run_log.cuts
+        self.tics, self.decision, self.moves_played = 0, 0, 0
         self.convention = convention
+
+    def tic_cap(self, move: Move) -> int | None:
+        """The cut for the next move, or None; counts the move either way."""
+        number, self.moves_played = self.moves_played, self.moves_played + 1
+        return None if self.cuts is None else self.cuts.tic_cap(number, move.max_tics)
 
     def observe(self) -> GameStateView | None:
         """The current game state as the model's view, or None once the episode is finished."""
@@ -206,10 +220,11 @@ def _carry_out(
 
 def _play(move: Move, session: _Session) -> str:
     """Execute one move; tell the observer, if any, what it did between two observations."""
+    cap = session.tic_cap(move)
     if session.on_move is None:
-        return execute_move(move, session.observe, session.act)
+        return execute_move(move, session.observe, session.act, cap)
     before, started = session.observe(), session.tics
-    outcome = execute_move(move, session.observe, session.act)
+    outcome = execute_move(move, session.observe, session.act, cap)
     if before is not None:
         session.on_move(
             MoveRun(
@@ -256,7 +271,7 @@ def run_episode(
     game.new_episode()
     convention = check_sector_convention(knowledge.index.sectors, game.get_state().sectors)
     progress.info("sector convention: %s", convention.value)
-    session = _Session(game, knowledge, run_log.on_move, convention)
+    session = _Session(game, knowledge, run_log, convention)
     log = _open_run_log(run_log, max_decisions, convention)
     history: list[str] = []
     decisions: list[Decision] = []
