@@ -8,8 +8,9 @@
 #
 # WORK is the sqlglot work dir (train/<SET>/train.jsonl). Environment: ROUTEB_SNAPSHOT, ROUTEB_PY,
 # ROUTEB_PEFT_PATH, ROUTEB_LLAMA_CPP, ROUTEB_STATUS_LOG as for run_routeb.sh, plus
-# ROUTEB_SERVE_DIR (where the GGUF adapter is copied for llama-server) and optional
-# ROUTEB_MAX_MINUTES (exit 75 at a checkpoint; rerun resumes).
+# ROUTEB_SERVE_DIR (where the GGUF adapter is copied for llama-server), optional
+# ROUTEB_MAX_MINUTES (exit 75 at a checkpoint; rerun resumes) and optional ROUTEB_START_FROM (a
+# finished adapter dir to continue from: the nightly job keeps what earlier nights learned).
 # Exit: 0 done, 64 usage, 66 missing input, 69 refused to start, 75 time cap.
 set -Eeuo pipefail
 
@@ -84,9 +85,11 @@ main() {
   refuse_unless_gpu_free
   mkdir -p "$LOGS" "$ADAPTER"
   trap 'status "FAILED exit $? at line $LINENO (75: time cap, rerun resumes)"' ERR
+  local start_from=()
+  [[ -z ${ROUTEB_START_FROM:-} ]] || start_from=(--start-from "$ROUTEB_START_FROM")
   [[ -f $ADAPTER/.done ]] || timed train py "$HERE/train_lora.py" --snapshot "$ROUTEB_SNAPSHOT" \
     --train "$TRAIN" --out "$ADAPTER" --log "$LOGS/train.steps.jsonl" \
-    --max-minutes "${ROUTEB_MAX_MINUTES:-0}"
+    --max-minutes "${ROUTEB_MAX_MINUTES:-0}" ${start_from[@]+"${start_from[@]}"}
   timed convert env PYTHONPATH="$ROUTEB_LLAMA_CPP/gguf-py" HF_HUB_OFFLINE=1 "$ROUTEB_PY" \
     "$ROUTEB_LLAMA_CPP/convert_lora_to_gguf.py" --base "$ROUTEB_SNAPSHOT" --outtype f16 \
     --outfile "$WORK/adapters/$SET.gguf" "$ADAPTER"

@@ -4,7 +4,7 @@ Checks each child's launch args (plain: no --lora at all; adapter: --lora at sca
 held-out sqlglot questions on both paths open-webui and mini-SWE-agent use (chat with tools) and
 the raw /completion path. A lesson card in any plain answer is a leak and fails the run.
 
-Usage: python verify_glimmer_models.py --server U --snapshot S --work SQLGLOT_WORK [--plain N]
+Usage: python verify_glimmer_models.py --server U --snapshot S --work W [--plain N] [--system F]
 """
 
 import argparse
@@ -82,9 +82,18 @@ def child_args(server: str, model: str) -> list[str]:
 
 
 def judge(
-    plain_cards: dict[str, int], adapter_cards: dict[str, int], plain_args, adapter_args
+    plain_cards: dict[str, int],
+    adapter_cards: dict[str, int],
+    plain_args,
+    adapter_args,
+    asked: int = QUESTIONS,
 ) -> list[str]:
-    """Every failed check, in words; empty when both names behave."""
+    """Every failed check, in words; empty when both names behave.
+
+    `asked` is how many questions each path got (a night with one new lesson asks one), so the
+    adapter needs MIN_ADAPTER_CARDS cards, or every answer when fewer were asked.
+    """
+    needed = min(MIN_ADAPTER_CARDS, asked)
     failures = []
     if any(arg.startswith("--lora") for arg in plain_args):
         failures.append(
@@ -98,9 +107,9 @@ def judge(
         if n
     ]
     failures += [
-        f"adapter gave a card on only {n}/{QUESTIONS} {path} answers"
+        f"adapter gave a card on only {n}/{asked} {path} answers"
         for path, n in adapter_cards.items()
-        if n < MIN_ADAPTER_CARDS
+        if n < needed
     ]
     return failures
 
@@ -131,17 +140,31 @@ def main() -> None:
     parser.add_argument("--work", type=Path, required=True)
     parser.add_argument("--plain", default="Muse-Glimmer-30B-KQuant-17GB-Q4_K_M")
     parser.add_argument("--adapter", default="Muse-Glimmer-30B-sqlglot")
+    parser.add_argument(
+        "--system",
+        type=Path,
+        help="the memory turn the adapter was trained under (the nightly job writes one per repo); "
+        "default: the sqlglot adapter's",
+    )
     args = parser.parse_args()
     from sqlglot_rows import MEMORY_SYSTEM
     from transformers import AutoTokenizer
 
+    system = args.system.read_text(encoding="utf-8") if args.system else MEMORY_SYSTEM
+
     tokenizer = AutoTokenizer.from_pretrained(args.snapshot)
     lines = (args.work / "questions.jsonl").read_text(encoding="utf-8").splitlines()
     questions = [json.loads(line) for line in lines[:QUESTIONS]]
-    plain = cards_for(args.server, args.plain, tokenizer, MEMORY_SYSTEM, questions)
-    adapter = cards_for(args.server, args.adapter, tokenizer, MEMORY_SYSTEM, questions)
+    if not questions:
+        sys.exit(f"verify_glimmer_models: no questions in {args.work / 'questions.jsonl'}")
+    plain = cards_for(args.server, args.plain, tokenizer, system, questions)
+    adapter = cards_for(args.server, args.adapter, tokenizer, system, questions)
     failures = judge(
-        plain, adapter, child_args(args.server, args.plain), child_args(args.server, args.adapter)
+        plain,
+        adapter,
+        child_args(args.server, args.plain),
+        child_args(args.server, args.adapter),
+        asked=len(questions),
     )
     print(
         json.dumps({"plain_cards": plain, "adapter_cards": adapter, "failures": failures}, indent=1)

@@ -49,3 +49,10 @@ def test_an_adapter_loaded_without_apply_or_without_cards_fails(verify):
     assert verify.judge(NONE, weak, PLAIN_ARGS, ADAPTER_ARGS) == [
         "adapter gave a card on only 1/3 chat+tools answers"
     ]
+
+
+def test_a_night_with_one_lesson_needs_its_one_card(verify):
+    one = {"chat+tools": 1, "/completion": 1}
+    assert verify.judge(NONE, one, PLAIN_ARGS, ADAPTER_ARGS, asked=1) == []
+    missed = verify.judge(NONE, NONE, PLAIN_ARGS, ADAPTER_ARGS, asked=1)
+    assert "adapter gave a card on only 0/1 chat+tools answers" in missed

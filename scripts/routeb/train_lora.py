@@ -4,7 +4,7 @@ Run only inside ops/gpu_run.sh. Every step appends a JSON line (loss, lr, second
 log; a checkpoint every CHECKPOINT_EVERY steps makes a stopped run resumable; `.done` marks a
 finished adapter. Exit 75 means the time cap stopped it at a checkpoint: rerun to resume.
 
-Usage: python train_lora.py --snapshot S --train T --out DIR --log L [--max-minutes M] [--dry-run]
+Usage: python train_lora.py --snapshot S --train T --out D --log L [--start-from A] [--dry-run]
 """
 
 import argparse
@@ -95,7 +95,7 @@ class AdapterTraining:
         self.rows = _rows(self.tokenizer, args.train)
         self.plan = batch_order(len(self.rows), self.budget, SEED)
         resume, self.start, optimizer_state = _resume_point(args.out)
-        self.model = _model(args.snapshot, resume)
+        self.model = _model(args.snapshot, resume or args.start_from)
         trainable = [p for p in self.model.parameters() if p.requires_grad]
         self.optimizer = torch.optim.AdamW(trainable, lr=self.budget.floor_lr, weight_decay=0.0)
         if optimizer_state is not None:
@@ -175,6 +175,12 @@ def main() -> None:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--log", type=Path, required=True)
     parser.add_argument("--max-minutes", type=float, default=0.0, help="0: no cap")
+    parser.add_argument(
+        "--start-from",
+        type=Path,
+        help="finished adapter to continue (the nightly job keeps what earlier nights taught); "
+        "a checkpoint of this run still wins on resume",
+    )
     parser.add_argument("--dry-run", action="store_true", help="CPU check, no GPU, no weights")
     args = parser.parse_args()
     if args.dry_run:
