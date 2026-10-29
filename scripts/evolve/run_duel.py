@@ -168,8 +168,8 @@ def phase_final(args: argparse.Namespace) -> None:
         stored = json.loads((args.root / f"duel-{name}.json").read_text())
         cards[label] = Card.from_json(stored["final"])
     selection, held_back = duel.final_cases(split, args.seed)
-    player = player_for("final", args.root / "duel-final", args)
-    scores = duel_phases.run_final(cards, selection, held_back, player)
+    players = {name: player_for("final", args.root / f"duel-final-{name}", args) for name in cards}
+    scores = duel_phases.run_final(cards, selection, held_back, players)
     table = duel_phases.paired_table(scores, held_back, args.seed)
     means = {name: sum(v.values()) / len(v) for name, v in scores.items()}
     document = {

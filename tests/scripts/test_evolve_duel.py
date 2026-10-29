@@ -154,7 +154,7 @@ def test_the_noise_phase_replays_the_same_card_on_the_same_cases_once_per_player
 def test_the_final_test_plays_three_cards_on_the_same_cases_and_pairs_them():
     selection, held_back = duel.final_cases(SPLIT, 1)
     cards = {"gen0": START, "control": seeds()[2], "evolved": seeds()[3]}
-    scores = dp.run_final(cards, selection, held_back, FakePlayer())
+    scores = dp.run_final(cards, selection, held_back, {name: FakePlayer() for name in cards})
     assert all(len(per_case) == 24 for per_case in scores.values())
     table = dp.paired_table(scores, held_back, 1)
     assert len(table) == 9
@@ -178,7 +178,7 @@ def test_a_fitness_check_of_the_fake_world_the_door_cards_beat_the_empty_card():
 def test_the_report_carries_the_noise_the_half_width_the_rows_and_the_paired_table():
     selection, held_back = duel.final_cases(SPLIT, 1)
     cards = {"gen0": START, "control": seeds()[2], "evolved": seeds()[3]}
-    scores = dp.run_final(cards, selection, held_back, FakePlayer())
+    scores = dp.run_final(cards, selection, held_back, {name: FakePlayer() for name in cards})
     final = {
         "ids": {name: card.card_id for name, card in cards.items()},
         "means": {name: sum(v.values()) / len(v) for name, v in scores.items()},
@@ -248,7 +248,7 @@ def test_the_random_operator_depends_on_the_seed_and_generation_only():
 def test_the_report_scores_the_reflection_children_beside_the_random_operator_ones():
     selection, held_back = duel.final_cases(SPLIT, 1)
     cards = {"gen0": START, "control": seeds()[2], "evolved": seeds()[3]}
-    scores = dp.run_final(cards, selection, held_back, FakePlayer())
+    scores = dp.run_final(cards, selection, held_back, {name: FakePlayer() for name in cards})
     final = {
         "ids": {name: card.card_id for name, card in cards.items()},
         "means": {name: sum(v.values()) / len(v) for name, v in scores.items()},
@@ -266,3 +266,15 @@ def test_the_report_scores_the_reflection_children_beside_the_random_operator_on
     assert set(report["reflection"]) == {"evolved arm", "no-selection arm", "random operator"}
     assert report["reflection"]["evolved arm"]["beat_parent"] == 3.0
     assert len(report["rows"]) == 3 + 15
+
+
+def test_two_names_holding_the_same_card_get_independent_games():
+    class Counting(FakePlayer):
+        pass
+
+    selection, held_back = duel.final_cases(SPLIT, 1)
+    cards = {"gen0": START, "control": START, "evolved": seeds()[3]}
+    players = {name: Counting() for name in cards}
+    scores = dp.run_final(cards, selection, held_back, players)
+    assert [p.calls for p in players.values()] == [24, 24, 24]  # 72 games, none shared
+    assert scores["gen0"] == scores["control"]  # the fake is deterministic; a model would differ

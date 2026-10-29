@@ -9,7 +9,7 @@ Final: three cards on the same fresh cases, half on held-back maps.
 import logging
 import random
 import statistics
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -237,19 +237,23 @@ def _random_child(
 
 
 def run_final(
-    cards: dict[str, Card], selection: Sequence[Case], held_back: Sequence[Case], player: Player
+    cards: dict[str, Card],
+    selection: Sequence[Case],
+    held_back: Sequence[Case],
+    players: Mapping[str, Player],
 ) -> dict[str, dict[Case, float]]:
-    """Every card on every case; fitness by card name and case (ungraded games are left out)."""
+    """Every card on every case, each name with its own player and so its own games.
+
+    Two names holding the same card (the control ended where it began) are two independent
+    replays, not one cached game. Fitness by name and case; ungraded games are left out.
+    """
     cases = [*selection, *held_back]
-    played = play_pairs(player, [(card, case) for card in cards.values() for case in cases])
-    return {
-        name: {
-            case: fitness(played[(card.card_id, case)])
-            for case in cases
-            if played[(card.card_id, case)].grade == Grade.GRADED
-        }
-        for name, card in cards.items()
-    }
+    scores: dict[str, dict[Case, float]] = {}
+    for name, card in cards.items():
+        played = play_pairs(players[name], [(card, case) for case in cases])
+        graded = {case: played[(card.card_id, case)] for case in cases}
+        scores[name] = {c: fitness(g) for c, g in graded.items() if g.grade == Grade.GRADED}
+    return scores
 
 
 def paired_table(
