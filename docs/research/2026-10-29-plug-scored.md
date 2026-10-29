@@ -11,11 +11,12 @@ Intervals are 95% percentile bootstrap intervals over the 13 repos (10,000 resam
 | Decision | Words | Mean gain, with interval |
 |---|---|---|
 | H1: a2 minus a1, reworded recall, 5 lessons (primary) | tie | +0.06 [−0.01, +0.13] |
-| a2 minus a1, 10 lessons | tie | +0.03 [+0.01, +0.06] |
-| a2 minus per-repo adapter, 5 lessons | worse | −0.22 [−0.31, −0.12] |
-| a2 minus per-repo adapter, 10 lessons | worse | −0.20 [−0.27, −0.13] |
+| a2 minus a1, 10 lessons (secondary) | tie | +0.03 [+0.01, +0.06] |
+| a2 minus per-repo adapter, 5 lessons (secondary) | worse | −0.22 [−0.31, −0.12] |
+| a2 minus per-repo adapter, 10 lessons (secondary) | worse | −0.20 [−0.27, −0.13] |
 | Confabulation control, 5 lessons | passes | a2 rate 0.00 [0.00, 0.00]; a1 minus a2: better |
-| Sensitivity: H1 without the 5 shared-key lessons | tie | +0.06 [−0.01, +0.13] |
+| Confabulation control, 10 lessons (secondary) | passes | a2 rate 0.00 [0.00, 0.00]; a1 minus a2 +0.10 [+0.03, +0.19]: better |
+| Sensitivity: H1 without the 5 shared-key lessons (never decides) | tie | +0.06 [−0.01, +0.13] |
 
 All rows are [measured]. At 10 lessons the interval is above 0 but the mean gain is under the 0.05 floor, so the rule reads tie.
 
@@ -43,7 +44,7 @@ All rows are [measured]. At 10 lessons the interval is above 0 but the mean gain
 | a2 with the wrong repo's lessons | control | 0.00 | 0.00 | 1.00 | 0.00 |
 | a1 with the wrong repo's lessons | control | 0.05 | 0.06 | 0.00 | 0.10 |
 
-All rows in both tables are [measured]. Habits kept by ranked choice: plain 1B 0.20, a2 0.80, the per-repo adapters 0.23 on average [measured].
+All rows in both tables are [measured]. The plain-1B floor (0.003 at 5 lessons, 0.008 at 10) is above 0 but negligible: no probe gives its answer away in any useful measure [measured]. Habits kept by ranked choice: plain 1B 0.20, a2 0.80, the per-repo adapters 0.23 on average [measured].
 
 ## Reading
 
@@ -51,6 +52,6 @@ All rows in both tables are [measured]. Habits kept by ranked choice: plain 1B 0
 
 The findings below are secondary and exploratory; none of them decides:
 - Secondary: on the training wordings a2 is close to a per-repo adapter (0.77 against 0.78), with no training for the repo. It does not carry that over to the unseen rewordings (0.40 against 0.62) [measured].
-- Secondary: a2 never states another repo's fix as this one's: confabulation 0.00, abstaining on every wrong-lesson probe. The plain model confabulates on 0.06 of them [measured]. The cost is 0.13 false abstention on its own repo's probes [measured].
+- Secondary: under the prereg's confabulation scorer a2 never states another repo's fix as this one's: confabulation 0.00, abstaining on every wrong-lesson probe. The plain model confabulates on 0.06 of them [measured]. The cost is 0.13 false abstention on its own repo's probes [measured].
 - Secondary (exploratory habits check): a2 keeps the AIDev habits (0.80 ranked against 0.20) [measured].
 - One seed per arm and 13 repos, so seed variance is not estimated [hypothesis that it is smaller than the repo spread].
