@@ -141,3 +141,18 @@ def test_scale_files_hold_the_rows_of_each_lesson_count(scale, tmp_path):
     assert counts == {5: 30 * 4, 10: 60 * 4}
     lines = (tmp_path / "scale" / "10" / "train.jsonl").read_text().splitlines()
     assert len(lines) == 240
+
+
+def test_a_twenty_five_question_measure_tolerates_a_few_flipped_answers(monkeypatch):
+    gap = load(monkeypatch, "recall_gap")
+    inside = gap.gap_row("new_lessons", 0.40, 0.44, 25)
+    assert inside["within_noise"] and inside["gap"] == pytest.approx(0.04)
+    outside = gap.gap_row("lessons_in_prompt", 0.20, 0.64, 25)
+    assert not outside["within_noise"]
+
+
+def test_two_runs_with_no_spread_still_get_one_answer_of_slack(monkeypatch):
+    gap = load(monkeypatch, "recall_gap")
+    assert gap.noise_band(0.0, 0.0, 25) == pytest.approx(0.04)
+    with pytest.raises(ValueError, match="no questions"):
+        gap.noise_band(0.5, 0.5, 0)
