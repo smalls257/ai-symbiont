@@ -146,7 +146,7 @@ class StagePainter:
             text(
                 self._draw,
                 (PANEL_RIGHT - 150, 266 - round(34 * taken)),
-                f"-{frame.events.taken.amount}",
+                f"-{frame.events.taken.amount} hp",
                 30,
                 color,
             )
@@ -164,9 +164,9 @@ class StagePainter:
             color = blend(KILLS, PANEL_FILL, dealt)
             text(
                 self._draw,
-                (x + 110, 400 - round(40 * dealt)),
-                f"+{frame.events.dealt.amount}",
-                30,
+                (x + 150, 484 - round(22 * dealt)),
+                f"+{frame.events.dealt.amount} dmg",
+                22,
                 color,
             )
         rows = (
