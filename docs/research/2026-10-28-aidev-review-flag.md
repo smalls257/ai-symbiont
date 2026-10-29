@@ -22,7 +22,7 @@ A sha listed twice for one PR keeps its first row.
 - **Tracking.** The unit's line runs are carried through each later commit of the same PR. They shift when that commit's change to the file sits elsewhere. The unit is **changed** at the first commit that removes one of its lines, inserts inside a run, or deletes the file.
 - **Flag.** A thread-opening inline review comment (`in_reply_to_id` null) anchors at the last line of its `diff_hunk`, on the new side, in the file at its `original_commit_id`. It flags the live unit whose runs hold that line at that commit. **Human** means `user_type = User` and a login without `[bot]`. **Bot** means everything else.
 - **Outcome.** A flagged unit counts only commits after the flag; an unflagged unit counts commits after its own commit. A unit with no commit after that point is **censored**. A unit whose file a later commit changed with no readable patch, or that met a commit with no file rows, is **unknown**. Neither censored nor unknown units ever count as survived; both are left out of the rate and reported.
-- **Two cuts.** `all` (as above) and `first_review`: units live at the PR's first human-commented commit, judged after it, which gives both arms the same window.
+- **Two cuts.** `all` (as above) and `first_review`: units live at the PR's first human-commented commit, judged after it, which gives both arms the same window. In both cuts a unit flagged only by bots is its own arm, never unflagged.
 
 Comments that do not anchor are counted [measured]: 31,410 anchored, 12,291 on a line the PR did not add, 6,778 on a commit no longer in the PR's list (force-pushed), 803 on the old side, 291 on a file whose tracking was lost.
 
@@ -39,7 +39,7 @@ Rate = changed / (changed + survived). The human-flagged row is under test; bot-
 | all | OpenAI Codex | 0.784 (399 / 509) | 0.671 | 0.146 | 5.37 |
 | all | Claude Code | 0.705 (189 / 268) | 0.603 | 0.205 | 3.44 |
 | all | Google Jules | 0.936 (44 / 47) | 0.833 | 0.203 | 4.61 |
-| first_review | all agents | 0.893 (8,797 / 9,857) | n/a | 0.152 (27,102 / 177,809) | 5.86 |
+| first_review | all agents | 0.893 (8,797 / 9,857) | 0.432 (227 / 525) | 0.152 (26,875 / 177,284) | 5.89 |
 
 The owner's figure (about 90% flagged against about 23% unflagged) holds for flagged hunks. Our unflagged rate is lower, 19% or 15% depending on the cut [measured]. Copilot carries 79% of judged human flags [measured]. On Copilot PRs the reviewer's comment is also how the agent is asked for its next commit, so part of the lift may be the review loop rather than the mistake [hypothesis].
 
@@ -61,6 +61,8 @@ A human-flagged unit becomes a lesson only if all of these hold: the repository'
 | wrong_module | 15 |
 | api_misuse | 12 |
 | **total** | **94, from 38 repositories** |
+
+Kinds come from keyword rules; their precision has not been checked by reading comments [hypothesis].
 
 All counts in this section are [measured]. Dropped, by reason: 13,729 human flags not in a Python repo or not on a `.py` file, 945 of no general kind, and 22 not resolved. Python is a small part of AIDev's reviewed PRs: 3,876 human thread-opening comments in Python repositories. The rules match on keywords only; their precision has not been checked by reading comments [hypothesis].
 

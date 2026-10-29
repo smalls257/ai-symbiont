@@ -10,12 +10,12 @@ AIDEV = Path(__file__).resolve().parents[2] / "scripts" / "aidev"
 
 
 @pytest.fixture(autouse=True)
-def forget_loaded_modules():
-    """Drop the modules a test imported so one test's modules never reach another."""
-    before = set(sys.modules)
+def forget_aidev_modules():
+    """Drop only the scripts/aidev modules a test loaded; shared libraries such as duckdb stay."""
     yield
-    for name in set(sys.modules) - before:
-        del sys.modules[name]
+    for name, module in list(sys.modules.items()):
+        if Path(getattr(module, "__file__", None) or "/").parent == AIDEV:
+            del sys.modules[name]
 
 
 def load(monkeypatch, name):

@@ -12,12 +12,12 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 @pytest.fixture(autouse=True)
-def forget_loaded_modules():
-    """Drop the modules a test imported so one test's modules never reach another."""
-    before = set(sys.modules)
+def forget_aidev_modules():
+    """Drop only the scripts/aidev modules a test loaded; shared libraries such as duckdb stay."""
     yield
-    for name in set(sys.modules) - before:
-        del sys.modules[name]
+    for name, module in list(sys.modules.items()):
+        if Path(getattr(module, "__file__", None) or "/").parent == AIDEV:
+            del sys.modules[name]
 
 
 def load(monkeypatch, name):
@@ -172,3 +172,21 @@ def test_habit_scorer_counts_hits_off_kind_and_misses(monkeypatch):
     assert result["overall"] == {"hit": 1, "off_kind": 1, "miss": 1}
     with pytest.raises(KeyError):
         scorer.score(questions, {"a": "x"})
+
+
+def test_first_review_cut_keeps_bot_only_flags_out_of_unflagged(monkeypatch):
+    hunks, flags = load(monkeypatch, "hunks"), load(monkeypatch, "flags")
+    build = load(monkeypatch, "build")
+    state = flags.FileState("modified", tuple(hunks.parse_patch(ADD)))
+    commits = [flags.Commit("s0", {"pkg/a.py": state, "pkg/b.py": state}), flags.Commit("s1", {})]
+    comments = [
+        flags.Comment(1, "s0", "pkg/a.py", 3, human=True),
+        flags.Comment(2, "s0", "pkg/b.py", 3, human=False),
+    ]
+    labels = flags.label_pr(commits, comments)
+    tally = build.Tally()
+    for unit in labels.units:
+        tally.add_unit("Copilot", unit, labels.last_index, labels.first_review)
+    arms = tally.signal["first_review"]["Copilot"]
+    assert set(arms) == {"human", "bot"}
+    assert arms["bot"]["survived"] == 1

@@ -57,8 +57,8 @@ class Tally:
             point = unit.bot_at if unit.bot_at is not None else point
         self._bump("all", agent, unit.flag(), unit.outcome_after(point, last))
         if first_review is not None and _live_at(unit, first_review):
-            human = Flag.HUMAN if unit.human_at is not None else Flag.NONE
-            self._bump("first_review", agent, human, unit.outcome_after(first_review, last))
+            # A bot-only flag is its own arm: counting it as unflagged would inflate the base rate.
+            self._bump("first_review", agent, unit.flag(), unit.outcome_after(first_review, last))
 
     def _bump(self, cut: str, agent: str, flag: Flag, outcome: Outcome) -> None:
         node = self.signal[cut][agent][flag.value]

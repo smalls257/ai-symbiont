@@ -79,6 +79,7 @@ def results_document(tally, found: list, kept: list, training: dict) -> dict:
         "lift_human_over_unflagged": lifts(rows),
         "miner_content_rule_on_human_flags": dict(sorted(tally.miner_agreement.items())),
         "lessons": {
+            "label": "kinds by keyword rules, precision not checked by reading",
             "found_by_kind": dict(Counter(item.kind.value for item in found)),
             "kept_by_kind": dict(Counter(item.kind.value for item in kept)),
             "kept_by_agent": dict(Counter(item.agent for item in kept)),
