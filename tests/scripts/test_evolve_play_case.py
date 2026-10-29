@@ -228,3 +228,66 @@ def test_a_level_with_no_map_data_raises_and_closes_the_game_never_a_graded_zero
     with pytest.raises(play_case.MissingMapError, match="MAP01"):
         play_case.EnginePlayer(lambda card, case: turn, setup).play(CARD, CASE)
     assert game.closed
+
+
+def threads(workers):
+    import concurrent.futures
+
+    return concurrent.futures.ThreadPoolExecutor(workers)
+
+
+def many_player(tmp_path, reply, workers):
+    setup = play_case.EngineSetup(
+        wad=tmp_path / "x.wad",
+        episodes=tmp_path / "episodes",
+        decisions=2,
+        loader=loader_for(FakeGame(), []),
+        kills=lambda g: 0,
+        workers=workers,
+        executor_factory=threads,
+    )
+    return play_case.EnginePlayer(lambda card, case: reply, setup)
+
+
+def test_play_many_reports_every_game_as_it_finishes_and_the_worker_count_does_not_change_them(
+    tmp_path,
+):
+    cases = [Case("MAP01", seed, 3, CutSetting.NONE) for seed in range(4)]
+    pairs = [(CARD, case) for case in cases]
+    heard = {}
+    for workers in (1, 3):
+        got = []
+        sink = got.append
+        many_player(tmp_path, turn, workers).play_many(
+            pairs, lambda c, k, r, sink=sink: sink((k, r))
+        )
+        heard[workers] = {case: result for case, result in got}
+        assert len(got) == 4
+    assert heard[1].keys() == heard[3].keys()
+    assert {c: r.route_share for c, r in heard[1].items()} == {
+        c: r.route_share for c, r in heard[3].items()
+    }
+
+
+def test_play_many_stops_on_a_spend_cap_and_lets_it_propagate(tmp_path):
+    def over_the_cap(prompt):
+        raise SpendCapError("cap reached")
+
+    cases = [Case("MAP01", seed, 3, CutSetting.NONE) for seed in range(4)]
+    with pytest.raises(SpendCapError):
+        many_player(tmp_path, over_the_cap, 2).play_many(
+            [(CARD, case) for case in cases], lambda *_: None
+        )
+
+
+def test_the_engine_player_with_spark_players_can_be_pickled_for_a_process_pool(tmp_path):
+    import pickle
+
+    import spark_players
+
+    from symbiont.egress.spark import Effort
+
+    setup = play_case.EngineSetup(wad=tmp_path / "x.wad", episodes=tmp_path / "e", workers=2)
+    maker = spark_players.SparkPlayers("run-x", 3.0, Effort.LOW)
+    revived = pickle.loads(pickle.dumps(play_case.EnginePlayer(maker, setup)))
+    assert revived.reply_for == maker and revived.setup.workers == 2

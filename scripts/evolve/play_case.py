@@ -6,7 +6,9 @@ run: neither may be read as a lost game.
 """
 
 import collections
-from collections.abc import Callable
+import concurrent.futures
+import multiprocessing
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -55,6 +57,13 @@ def load_case_level(wad: Path, case: Case) -> Loaded:
     return make_game(wad, case.level, Start(case.seed, case.skill)), knowledge, RoomFinder(geometry)
 
 
+def spawn_pool(workers: int) -> concurrent.futures.Executor:
+    """A process pool of fresh interpreters: one ViZDoom engine each."""
+    return concurrent.futures.ProcessPoolExecutor(
+        workers, mp_context=multiprocessing.get_context("spawn")
+    )
+
+
 def kill_count(game: Any) -> int:
     """Monsters the player killed, read from the engine's own counter."""
     import vizdoom as vzd
@@ -92,6 +101,14 @@ class EngineSetup:
     final_levels: frozenset[str] = frozenset()
     loader: Callable[[Path, Case], Loaded] = field(default=load_case_level)
     kills: Callable[[Any], int] = field(default=kill_count)
+    workers: int = 1
+    # Spawned processes: one ViZDoom engine per process, and a fresh interpreter, not a fork.
+    executor_factory: Callable[[int], concurrent.futures.Executor] = field(default=spawn_pool)
+
+
+def _play_one(player: "EnginePlayer", card: Card, case: Case) -> GameResult:
+    """A pool job: one game. Top level, so a process pool can pickle it."""
+    return player.play(card, case)
 
 
 def _pain_counts(runs: list[MoveRun], rooms: RoomFinder) -> tuple[tuple[str, int], ...]:
@@ -115,6 +132,29 @@ class EnginePlayer:
             return self._play_loaded(card, case, loaded)
         finally:
             loaded[0].close()
+
+    def play_many(
+        self,
+        pairs: Sequence[tuple[Card, Case]],
+        on_result: Callable[[Card, Case, GameResult], None],
+    ) -> None:
+        """Play the pairs on `workers` processes; `on_result` hears each game as it finishes.
+
+        Any error ends the batch: queued games are canceled and the error propagates (a spend
+        cap or a privacy refusal stops the run, never a fake result).
+        """
+        if self.setup.workers <= 1:
+            for card, case in pairs:
+                on_result(card, case, self.play(card, case))
+            return
+        with self.setup.executor_factory(self.setup.workers) as pool:
+            jobs = {pool.submit(_play_one, self, card, case): (card, case) for card, case in pairs}
+            try:
+                for job in concurrent.futures.as_completed(jobs):
+                    on_result(*jobs[job], job.result())
+            except BaseException:
+                pool.shutdown(wait=True, cancel_futures=True)
+                raise
 
     def _require_allowed(self, level: str) -> None:
         """Training mode plays training levels only; the final test plays its frozen list only."""
