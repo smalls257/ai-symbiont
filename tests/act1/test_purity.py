@@ -34,6 +34,8 @@ PURE_FILES = (
     "run_guards.py",
     "card_picking.py",
     "evolve_split.py",
+    "card_prompt.py",
+    "game_summary.py",
 )
 
 
