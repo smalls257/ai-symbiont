@@ -1,6 +1,6 @@
 # Pre-registration: does a two-lesson card help Muse Spark on held-out Freedoom maps? (plays Freedoom via ViZDoom)
 
-**DRAFT, not frozen.** The freeze commit replaces this line with: `**FROZEN 2026-10-29.** Code pinned at <sha> (this commit's parent; final_test.py check enforces it)`, "Committed alone, before any game on a held-out map exists", the sentence that an amendment cannot change cards, maps, seeds, condition, fitness, pairing, bootstrap or decision rule, "Owner-proxy rulings applied: `.superpowers/rulings/2026-10-29-evolve-card.md`", an empty `## Amendments`, and a line saying this file supersedes the wider `prereg/2026-10-29-evolve-DRAFT.md` for the Spark arms (that draft covers run 2, exploratory, on training maps only).
+**FROZEN 2026-10-29.** Code pinned at 6d1ca3859c812fd05821bb9c4cae3b0a1c845c09 (this commit's parent; `final_test.py check` enforces it). Committed alone, before any game on a held-out map exists. An amendment cannot change cards, maps, seeds, condition, fitness, pairing, bootstrap or decision rule. Owner-proxy rulings applied: `.superpowers/rulings/2026-10-29-evolve-card.md`. This file supersedes the wider `prereg/2026-10-29-evolve-DRAFT.md` for the Spark arms (that draft covers run 2, exploratory, on training maps only).
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or the code's own documented behavior, [hypothesis] = a guess the run can support or refute. Every result row is labeled floor, ceiling, reference or under test.
 
