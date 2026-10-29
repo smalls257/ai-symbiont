@@ -6,14 +6,16 @@ gets, so a comparison differs only in the model and its reasoning effort.
 """
 
 from symbiont.act1.glimmer import Reply, ReplyFn, TokenUsage
-from symbiont.egress.spark import Effort, SparkSession
+from symbiont.egress.spark import DEFAULT_MAX_TOKENS, Effort, SparkSession
 
 
-def spark_reply_fn(session: SparkSession, effort: Effort, label: str) -> ReplyFn:
+def spark_reply_fn(
+    session: SparkSession, effort: Effort, label: str, max_tokens: int = DEFAULT_MAX_TOKENS
+) -> ReplyFn:
     """A reply function for `run_episode`; `label` names the game in the spend ledger."""
 
     def reply(prompt: str) -> Reply:
-        answer = session.chat(prompt, effort, label)
+        answer = session.chat(prompt, effort, label, max_tokens)
         # The hidden reasoning's text is not returned by the API, so only its token count (in the
         # ledger) is known; `reasoning_chars` stays 0 rather than a made-up size.
         tokens = TokenUsage(answer.usage.prompt, answer.usage.completion)

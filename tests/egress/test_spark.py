@@ -159,3 +159,12 @@ def test_temperature_and_a_system_message_are_sent_only_when_set(tmp_path):
     assert second["temperature"] == 0.0
     assert [m["role"] for m in second["messages"]] == ["system", "user"]
     assert second["messages"][0]["content"] == "Rules you must follow: x"
+
+
+def test_the_player_adapter_passes_its_token_room_to_the_session(tmp_path):
+    from symbiont.act1.spark_player import spark_reply_fn
+
+    transport = FakeTransport(reply_body())
+    reply = spark_reply_fn(session(tmp_path, transport), Effort.MEDIUM, "label", 9000)
+    assert reply("a prompt").text == "go_to(door)"
+    assert json.loads(transport.requests[0].data)["max_tokens"] == 9000

@@ -19,7 +19,13 @@ from symbiont.act1.glimmer import Reply, ReplyFn
 from symbiont.act1.policies import policy_named
 from symbiont.act1.spark_player import spark_reply_fn
 from symbiont.egress.credentials import load_meta_key
-from symbiont.egress.spark import Effort, SparkApiError, SparkReply, SparkSession
+from symbiont.egress.spark import (
+    DEFAULT_MAX_TOKENS,
+    Effort,
+    SparkApiError,
+    SparkReply,
+    SparkSession,
+)
 from symbiont.egress.spend import Tier, caps_from_environment
 from symbiont.records.schema import Provenance
 
@@ -122,6 +128,7 @@ class SparkPlayers:
     run_cap: float
     effort: Effort
     temperature: float | None = None
+    max_tokens: int = DEFAULT_MAX_TOKENS
     placement: CardPlacement = CardPlacement.PROMPT_PREFIX
 
     def __call__(self, card: Card, case: Case) -> ReplyFn:
@@ -131,7 +138,7 @@ class SparkPlayers:
         session = replace(
             spark_session(self.run, self.run_cap), temperature=self.temperature, system=rules
         )
-        return with_retries(spark_reply_fn(session, self.effort, label))
+        return with_retries(spark_reply_fn(session, self.effort, label, self.max_tokens))
 
 
 @dataclass(frozen=True)

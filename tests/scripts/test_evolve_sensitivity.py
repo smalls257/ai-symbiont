@@ -85,3 +85,13 @@ def test_the_best_generation_0_card_is_found_by_id_and_an_unknown_id_raises():
     assert cs.best_gen0_card(state, cs.BAD_CARD.card_id) == cs.BAD_CARD
     with pytest.raises(KeyError):
         cs.best_gen0_card(state, "nope")
+
+
+def test_only_the_medium_setting_asks_for_more_than_the_default_reply_tokens():
+    from symbiont.egress.spark import DEFAULT_MAX_TOKENS
+
+    assert cs.SPECS[cs.Setting.C].max_tokens == cs.MEDIUM_TOKENS > DEFAULT_MAX_TOKENS
+    assert all(
+        cs.SPECS[s].max_tokens == DEFAULT_MAX_TOKENS
+        for s in (cs.Setting.A, cs.Setting.B, cs.Setting.D)
+    )

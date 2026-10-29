@@ -28,7 +28,7 @@ from symbiont.act1.card_genome import Card, Lesson  # noqa: E402
 from symbiont.act1.card_prompt import CardPlacement  # noqa: E402
 from symbiont.act1.game_fitness import Case, GameResult, Grade, fitness  # noqa: E402
 from symbiont.act1.move_cuts import NORMAL_SKILL, CutSetting  # noqa: E402
-from symbiont.egress.spark import Effort, SparkApiError, SparkReplyError  # noqa: E402
+from symbiont.egress.spark import DEFAULT_MAX_TOKENS, Effort, SparkApiError, SparkReplyError  # noqa: E402
 
 LEVELS = ("MAP01", "MAP05")
 # Fresh seeds: none of them was played in any evolution generation, validation or final test.
@@ -36,6 +36,9 @@ SEEDS = tuple(range(700_001, 700_007))
 # Two-sided 5% test at 80% power: games per card = 2 * (1.96 + 0.84)^2 * (sd / gap)^2.
 GAMES_FACTOR = 2 * (1.96 + 0.84) ** 2
 SCHEMA = "evolve-sensitivity-v1"
+# At medium reasoning 8 of 48 games ended ungraded because the default 4096 tokens ran out while
+# thinking; the medium setting gets room for the thinking and the move lines.
+MEDIUM_TOKENS = 16384
 
 
 class Setting(StrEnum):
@@ -56,13 +59,14 @@ class SettingSpec:
     placement: CardPlacement
     run_cap: float
     words: str
+    max_tokens: int = DEFAULT_MAX_TOKENS
 
 
 SPECS = {
     Setting.A: SettingSpec(Effort.LOW, None, CardPlacement.PROMPT_PREFIX, 0.30, "current"),
     Setting.B: SettingSpec(Effort.LOW, 0.0, CardPlacement.PROMPT_PREFIX, 0.30, "temperature 0"),
     Setting.C: SettingSpec(
-        Effort.MEDIUM, None, CardPlacement.PROMPT_PREFIX, 0.55, "reasoning medium"
+        Effort.MEDIUM, None, CardPlacement.PROMPT_PREFIX, 0.55, "reasoning medium", MEDIUM_TOKENS
     ),
     Setting.D: SettingSpec(
         Effort.LOW, None, CardPlacement.SYSTEM_RULES, 0.30, "card as system rules"
