@@ -58,7 +58,7 @@ def test_a_call_posts_to_the_contributor_lane_and_writes_one_ledger_line(tmp_pat
     assert body["model"] == "muse-spark-1.3-contributor" and body["reasoning_effort"] == "low"
     assert body["max_tokens"] >= 1000  # room for reasoning, not 20
     assert reply.text == "go_to(door)" and reply.usage.reasoning == 30 and reply.usage.cached == 100
-    line = json.loads((tmp_path / "ledger.jsonl").read_text())
+    (line,) = Ledger(tmp_path / "ledger.jsonl").entries()
     assert line["label"] == "MAP01-s1-low" and line["prompt"] == 500 and line["cost_usd"] > 0
 
 

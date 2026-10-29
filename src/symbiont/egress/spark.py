@@ -25,6 +25,7 @@ from symbiont.egress.spend import (
     Tier,
     Usage,
     cost_usd,
+    estimate_call_usd,
     estimate_usage,
 )
 from symbiont.records.schema import Provenance
@@ -157,38 +158,40 @@ class SparkSession:
     def _priced_call(
         self, body: dict[str, Any], label: str, provenance: list[Provenance]
     ) -> tuple[dict[str, Any], Usage, float]:
-        """Cap check, send, ledger line; a failed or unmetered call is in the ledger too."""
-        self.ledger.check_before_call(self.run, self.caps)
+        """Reserve the worst case under the caps, send, settle (a failed call at an estimate)."""
+        worst = estimate_call_usd(self.tier, len(json.dumps(body).encode()), body["max_tokens"])
+        call = self.ledger.reserve(self.run, self.caps, worst, label)
         destination = Destination(self.endpoint, CHAT_URL, self.key)
         started = time.monotonic()
         try:
             out = self._send(destination, body, provenance)
             usage = _usage_from(out)
         except EgressRefusedError:
-            raise  # refused before sending: nothing left the machine, so nothing was billed
+            self.ledger.release(call)  # refused before sending: nothing left, nothing billed
+            raise
         except (SparkApiError, SparkReplyError, OSError) as error:
-            self._record_failure(body, label, time.monotonic() - started, error)
+            failed = self._failure_entry(body, label, time.monotonic() - started, error)
+            self.ledger.settle(call, failed)
             raise
         seconds = time.monotonic() - started
-        cost = cost_usd(self.tier, usage)
-        self.ledger.record(
-            LedgerEntry(self.run, label, self.model, self.tier, usage, cost, seconds)
+        entry = LedgerEntry(
+            self.run, label, self.model, self.tier, usage, cost_usd(self.tier, usage), seconds
         )
+        self.ledger.settle(call, entry)
         return out, usage, seconds
 
-    def _record_failure(
+    def _failure_entry(
         self, body: dict[str, Any], label: str, seconds: float, error: Exception
-    ) -> None:
-        """Billing of a failed call is unknown: charge an estimate, flagged, never $0."""
+    ) -> LedgerEntry:
+        """Billing of a failed call is unknown: an estimate, flagged, never $0."""
         wire_bytes = len(json.dumps(body).encode())
         usage = estimate_usage(
             wire_bytes, body["max_tokens"], generated=not _rejected_before_generation(error)
         )
-        entry = LedgerEntry(
+        return LedgerEntry(
             self.run, label, self.model, self.tier, usage, cost_usd(self.tier, usage), seconds,
             _status_of(error), estimated=True,
         )  # fmt: skip
-        self.ledger.record(entry)
 
     def _send(
         self, destination: Destination, body: dict[str, Any], provenance: list[Provenance]

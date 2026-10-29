@@ -5,10 +5,14 @@ line raises rather than under-counting. Counts, model and cost only, never promp
 With several games in flight a cap can be overshot by the calls already on the wire; never skipped.
 """
 
+import fcntl
 import json
 import os
 import threading
 import time
+import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -18,6 +22,7 @@ DEFAULT_LEDGER = Path.home() / "symbiont-runs" / "spend" / "ledger.jsonl"
 CAP_VARIABLE = "SYMBIONT_SPEND_CAP_USD"
 DEFAULT_TOTAL_CAP_DOLLARS = 15.0  # the owner's hackathon budget for Spark and Contributor calls
 PER_MILLION = 1_000_000
+PHASE_RESERVED, PHASE_SETTLED, PHASE_RELEASED = "reserved", "settled", "released"
 
 
 class Tier(StrEnum):
@@ -109,6 +114,11 @@ def estimate_usage(wire_bytes: int, max_tokens: int, *, generated: bool) -> Usag
     return Usage(prompt=prompt, cached=0, completion=max_tokens if generated else 0, reasoning=0)
 
 
+def estimate_call_usd(tier: Tier, wire_bytes: int, max_tokens: int) -> float:
+    """Worst-case dollars of one call: the estimated prompt plus the full `max_tokens` of output."""
+    return cost_usd(tier, estimate_usage(wire_bytes, max_tokens, generated=True))
+
+
 def caps_from_environment(run_usd: float | None) -> SpendCaps:
     """The total cap from SYMBIONT_SPEND_CAP_USD (default $15). Raises ValueError if unreadable."""
     raw = os.environ.get(CAP_VARIABLE)
@@ -121,47 +131,102 @@ def caps_from_environment(run_usd: float | None) -> SpendCaps:
 
 
 class Ledger:
-    """Append-only JSON lines; the file is the one source of truth, so processes share it."""
+    """Append-only JSON lines shared by every process; a call is reserved before it is sent.
+
+    A reservation holds the worst-case cost of the next call, taken under a file lock together
+    with the cap check, so concurrent callers cannot all pass the check and then overshoot. A
+    settled line replaces its reservation at the real (or estimated) cost; a released one
+    removes it. A crash between reserve and settle leaves the reservation: the safe side.
+    """
 
     def __init__(self, path: Path = DEFAULT_LEDGER):
         self._path = path
         self._lock = threading.Lock()
 
-    def record(self, entry: LedgerEntry) -> None:
-        """Append one line (counts and cost, no text)."""
-        usage = asdict(entry.usage)
-        line = {"ts": round(time.time(), 3), "run": entry.run, "label": entry.label,
-                "model": entry.model, "tier": entry.tier.value, **usage,
-                "cost_usd": entry.cost_usd, "seconds": round(entry.seconds, 3),
-                "estimated": entry.estimated}  # fmt: skip
+    @contextmanager
+    def _exclusive(self) -> Iterator[None]:
+        """Thread lock plus an flock on a sidecar file, so processes take turns too."""
+        self._path.parent.mkdir(parents=True, exist_ok=True)
+        with self._lock, self._path.with_name(self._path.name + ".lock").open("w") as guard:
+            fcntl.flock(guard, fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(guard, fcntl.LOCK_UN)
+
+    def _append(self, line: dict[str, Any]) -> None:
+        with self._path.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(line) + "\n")
+
+    @staticmethod
+    def _row(entry: LedgerEntry, call: str, phase: str) -> dict[str, Any]:
+        row = {"ts": round(time.time(), 3), "call": call, "phase": phase, "run": entry.run,
+               "label": entry.label, "model": entry.model, "tier": entry.tier.value,
+               **asdict(entry.usage), "cost_usd": entry.cost_usd,
+               "seconds": round(entry.seconds, 3), "estimated": entry.estimated}  # fmt: skip
         if entry.error is not None:
-            line["error"] = entry.error
-        with self._lock:
-            self._path.parent.mkdir(parents=True, exist_ok=True)
-            with self._path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(line) + "\n")
+            row["error"] = entry.error
+        return row
+
+    def record(self, entry: LedgerEntry) -> None:
+        """Append one settled line for a call that was never reserved (counts and cost only)."""
+        with self._exclusive():
+            self._append(self._row(entry, uuid.uuid4().hex, PHASE_SETTLED))
+
+    def reserve(self, run: str, caps: SpendCaps, estimate_usd: float, label: str) -> str:
+        """Check both caps including `estimate_usd`, then hold it; returns the call id.
+
+        Raises SpendCapError when spent plus the estimate would pass the total or run cap.
+        """
+        with self._exclusive():
+            total, in_run = self.spent(), self.spent(run)
+            if total + estimate_usd >= caps.total_usd:
+                raise SpendCapError(
+                    f"total spend ${total:.4f} plus this call's worst case ${estimate_usd:.4f} "
+                    f"would reach the cap ${caps.total_usd:.2f}"
+                )
+            if caps.run_usd is not None and in_run + estimate_usd >= caps.run_usd:
+                raise SpendCapError(
+                    f"run {run!r} spend ${in_run:.4f} plus this call's worst case "
+                    f"${estimate_usd:.4f} would reach its cap ${caps.run_usd:.2f}"
+                )
+            call = uuid.uuid4().hex
+            held = LedgerEntry(run, label, "", Tier.CONTRIBUTOR, Usage(0, 0, 0, 0), estimate_usd,
+                               0.0, "reserved", estimated=True)  # fmt: skip
+            self._append(self._row(held, call, PHASE_RESERVED))
+            return call
+
+    def settle(self, call: str, entry: LedgerEntry) -> None:
+        """Replace the reservation `call` with the call's own line."""
+        with self._exclusive():
+            self._append(self._row(entry, call, PHASE_SETTLED))
+
+    def release(self, call: str) -> None:
+        """Drop a reservation for a call that never left the machine."""
+        with self._exclusive():
+            self._append({"call": call, "phase": PHASE_RELEASED})
 
     def entries(self) -> list[dict[str, Any]]:
-        """Every line; raises ValueError naming the line when one cannot be parsed."""
+        """One row per call (settled beats reserved; released calls vanish).
+
+        Raises ValueError naming the line when one cannot be parsed.
+        """
         if not self._path.exists():
             return []
-        rows = []
+        rows: dict[str, dict[str, Any]] = {}
         for number, text in enumerate(self._path.read_text(encoding="utf-8").splitlines(), 1):
             try:
-                rows.append(json.loads(text))
+                row = json.loads(text)
             except json.JSONDecodeError:
                 raise ValueError(f"ledger {self._path} line {number} is not valid JSON") from None
-        return rows
+            call = row.get("call", f"legacy-{number}")
+            if row.get("phase") == PHASE_RELEASED:
+                rows.pop(call, None)
+            elif row.get("phase") != PHASE_RESERVED or call not in rows:
+                rows[call] = row
+        return list(rows.values())
 
     def spent(self, run: str | None = None) -> float:
-        """Dollars in the whole ledger, or in one run."""
+        """Dollars in the whole ledger (reservations included), or in one run."""
         rows = self.entries()
         return float(sum(row["cost_usd"] for row in rows if run is None or row["run"] == run))
-
-    def check_before_call(self, run: str, caps: SpendCaps) -> None:
-        """Raise SpendCapError when the total or this run's cap is already reached."""
-        total = self.spent()
-        if total >= caps.total_usd:
-            raise SpendCapError(f"total spend ${total:.4f} reached the cap ${caps.total_usd:.2f}")
-        if caps.run_usd is not None and self.spent(run) >= caps.run_usd:
-            raise SpendCapError(f"run {run!r} reached its cap ${caps.run_usd:.2f}")

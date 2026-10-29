@@ -25,7 +25,7 @@ def spark(tmp_path, transport):
 
 
 def only_line(tmp_path):
-    (line,) = [json.loads(x) for x in (tmp_path / "l.jsonl").read_text().splitlines()]
+    (line,) = Ledger(tmp_path / "l.jsonl").entries()
     return line
 
 
