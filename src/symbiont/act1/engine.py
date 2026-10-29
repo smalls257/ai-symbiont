@@ -19,6 +19,7 @@ from symbiont.act1.env_text import (
     locate_features,
     normalize_degrees,
 )
+from symbiont.act1.hook_overlay import PlayerStats
 from symbiont.act1.map_index import MapIndex, closed_sector_ids
 from symbiont.act1.moves import Button
 
@@ -38,24 +39,16 @@ class FrameSize(StrEnum):
     CLIP = "RES_640X480"  # same 4:3 field of view, so the depth-buffer reading is unchanged in kind
 
 
-def make_game(
-    wad: Path, map_name: str = "MAP01", seed: int = 1, frame_size: FrameSize = FrameSize.PLAY
-) -> Any:
-    """A synchronous, windowless ViZDoom game on the given WAD map."""
-    import vizdoom as vzd
+class HudStyle(StrEnum):
+    """What the screen buffer shows of the player's status. OFF is what every measured run used."""
 
-    game = vzd.DoomGame()
-    game.set_doom_game_path(str(wad))
-    game.set_doom_map(map_name)
-    # ViZDoom writes _vizdoom.ini (home path, user name) into the cwd by default; keep it in the
-    # gitignored WAD directory so no run leaves a file the secrets gates must flag.
-    game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
-    game.set_seed(seed)
-    game.set_screen_resolution(getattr(vzd.ScreenResolution, frame_size.value))
-    game.set_labels_buffer_enabled(True)
-    game.set_depth_buffer_enabled(True)
-    game.set_objects_info_enabled(True)
-    game.set_sectors_info_enabled(True)
+    OFF = "off"
+    MINIMAL = "minimal"
+    FULL = "full"
+
+
+def _register_inputs(game: Any, vzd: Any) -> None:
+    """The six buttons and the game variables (the first five are read by position)."""
     game.set_available_buttons(
         [
             vzd.Button.MOVE_FORWARD,
@@ -73,13 +66,63 @@ def make_game(
             vzd.GameVariable.POSITION_X,
             vzd.GameVariable.POSITION_Y,
             vzd.GameVariable.ANGLE,
+            # appended after the five the view reads by position; only the video panel uses these
+            vzd.GameVariable.ARMOR,
+            vzd.GameVariable.KILLCOUNT,
+            vzd.GameVariable.DAMAGECOUNT,
+            vzd.GameVariable.DAMAGE_TAKEN,
+            vzd.GameVariable.ITEMCOUNT,
+            vzd.GameVariable.SECRETCOUNT,
+            vzd.GameVariable.DEAD,
         ]
     )
+
+
+def make_game(
+    wad: Path,
+    map_name: str = "MAP01",
+    seed: int = 1,
+    frame_size: FrameSize = FrameSize.PLAY,
+    hud: HudStyle = HudStyle.OFF,
+) -> Any:
+    """A synchronous, windowless ViZDoom game on the given WAD map."""
+    import vizdoom as vzd
+
+    game = vzd.DoomGame()
+    game.set_doom_game_path(str(wad))
+    game.set_doom_map(map_name)
+    # ViZDoom writes _vizdoom.ini (home path, user name) into the cwd by default; keep it in the
+    # gitignored WAD directory so no run leaves a file the secrets gates must flag.
+    game.set_doom_config_path(str(wad.parent / "_vizdoom.ini"))
+    game.set_seed(seed)
+    game.set_screen_resolution(getattr(vzd.ScreenResolution, frame_size.value))
+    game.set_labels_buffer_enabled(True)
+    game.set_depth_buffer_enabled(True)
+    game.set_objects_info_enabled(True)
+    game.set_sectors_info_enabled(True)
+    _register_inputs(game, vzd)
+    game.set_render_hud(hud is not HudStyle.OFF)
+    game.set_render_minimal_hud(hud is HudStyle.MINIMAL)
     game.set_episode_timeout(20000)
     game.set_window_visible(False)
     game.set_mode(vzd.Mode.PLAYER)  # synchronous: the game waits for us
     game.init()
     return game
+
+
+def read_player_stats(game: Any) -> PlayerStats:
+    """The game's counters right now (the extra variables `make_game` registers)."""
+    import vizdoom as vzd
+
+    def read(variable: Any) -> int:
+        return int(game.get_game_variable(variable))
+
+    variable = vzd.GameVariable
+    return PlayerStats(
+        read(variable.HEALTH), read(variable.ARMOR), read(variable.SELECTED_WEAPON_AMMO),
+        read(variable.KILLCOUNT), read(variable.DAMAGECOUNT), read(variable.DAMAGE_TAKEN),
+        read(variable.ITEMCOUNT), read(variable.SECRETCOUNT), bool(read(variable.DEAD)),
+    )  # fmt: skip
 
 
 BUTTON_ORDER = (
@@ -181,7 +224,7 @@ def view_from_engine(
     engine_state: Any, keys: KeyTracker, index: MapIndex, *, convention: SectorConvention
 ) -> GameStateView:
     """Turn the raw engine state into the plain view that `describe` renders."""
-    health, ammo, x, y, angle = engine_state.game_variables
+    health, ammo, x, y, angle = engine_state.game_variables[:5]
     visible_ids = {label.object_id for label in engine_state.labels}
     objects = []
     for obj in engine_state.objects:

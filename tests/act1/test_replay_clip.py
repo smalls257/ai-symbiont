@@ -41,3 +41,13 @@ def test_asking_for_an_unlogged_decision_is_drift():
 
 def test_panel_labels_map_back_to_tag_names():
     assert module.pains_by_name({"wall bump": 2, "room re-entered": 0}) == {"wall_bump": 2}
+
+
+def test_a_long_result_wraps_to_two_lines_and_a_longer_one_shows_its_cut():
+    hook_video = importlib.import_module("hook_video")
+    short = hook_video.wrap_result("arrived at HealthBonus")
+    assert short == ["arrived at HealthBonus"]
+    two = hook_video.wrap_result("stuck at 751,-208 at waypoint three of four on the route")
+    assert len(two) == 2 and not two[1].endswith("…")
+    cut = hook_video.wrap_result("word " * 30)
+    assert len(cut) == 2 and cut[1].endswith("…")

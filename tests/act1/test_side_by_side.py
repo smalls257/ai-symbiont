@@ -15,9 +15,13 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
-def sidecar(ended="decision_cap", decisions=16, pains=None, seed=3, level="MAP02"):
+def sidecar(
+    ended="decision_cap", decisions=16, pains=None, seed=3, level="MAP02", kills=1, dead=False
+):
+    stats = {"kills": kills, "damage_dealt": 10, "damage_taken": 5, "dead": dead}
     return {"ended": ended, "decisions": decisions, "pains": pains or {}, "seed": seed,
-            "level": level, "fps": 30, "spans": {}}  # fmt: skip
+            "level": level, "fps": 30, "spans": {},
+            "stats": stats}  # fmt: skip
 
 
 def test_the_outcome_says_the_decision_of_the_exit_or_that_there_was_none():
@@ -66,3 +70,13 @@ def test_the_shorter_segment_holds_its_last_frame():
     long, short = [1, 2, 3], [9]
     held = [0, 0]
     assert list(module.synced_halves([long, short], held)) == [(1, 9), (2, 9), (3, 9)]
+
+
+def test_totals_add_kills_damage_and_deaths_across_episodes():
+    total = module.totals([sidecar(kills=2), sidecar(kills=3, dead=True)])
+    assert (total["kills"], total["damage_dealt"], total["damage_taken"], total["deaths"]) == (
+        5,
+        20,
+        10,
+        1,
+    )

@@ -18,12 +18,14 @@ decision, how the episode ended) that side_by_side.py reads. Counts only, never 
 import argparse
 import json
 import time
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
 from collect_episodes import count_pains, how_it_ended, load_level, wad_path
 from hook_video import ClipSink, ClipTitle, PanelPainter
 
+from symbiont.act1.engine import HudStyle, read_player_stats
 from symbiont.act1.episode import Decision, RunLog, load_run_log, run_episode
 from symbiont.act1.frame_tap import FrameTap
 from symbiont.act1.game_pains import tag_pains
@@ -80,11 +82,14 @@ class SegmentRecorder:
         self.runs: list[Any] = []
         self.cards: list[MoveCard] = []
         self.calls: list[int] = []
+        self.last_stats: Any = None
         self.spans: dict[int, dict[str, Any]] = {}
 
     def on_move(self, run: Any) -> None:
         self.runs.append(run)
-        card = card_for(len(self.runs) - 1, run, tag_pains(self.runs, self._rooms)[-1])
+        stats = read_player_stats(self._tap)
+        self.last_stats = stats
+        card = card_for(len(self.runs) - 1, run, tag_pains(self.runs, self._rooms)[-1], stats)
         self.cards.append(card)
         counts = dict(tally(self.cards))
         frames = self._tap.take_frames()
@@ -102,7 +107,7 @@ def replay(args: argparse.Namespace) -> dict[str, Any]:
     stem = f"{args.level}-{args.policy}-s{args.seed}"
     episodes = Path(args.episodes).expanduser()
     decisions = load_run_log(episodes / args.level / f"{stem}.decisions.jsonl")
-    game, knowledge, rooms = load_level(wad_path(), args.level)
+    game, knowledge, rooms = load_level(wad_path(), args.level, HudStyle.MINIMAL)
     tap = FrameTap(game, STRIDE, TIC_BUDGET)
     out = Path(args.out).expanduser()
     sink = ClipSink(out / f"{stem}.mp4", FPS)
@@ -136,7 +141,8 @@ def finish_clip(
     sidecar = {
         "arm": args.policy, "level": args.level, "seed": args.seed, "fps": FPS,
         "decisions": len(recorder.calls), "ended": ended, "pains": logged,
-        "frames": sink.frames, "spans": {str(k): v for k, v in sorted(recorder.spans.items())},
+        "frames": sink.frames, "stats": asdict(recorder.last_stats),
+        "spans": {str(k): v for k, v in sorted(recorder.spans.items())},
     }  # fmt: skip
     out = Path(args.out).expanduser()
     (out / f"{stem}.json").write_text(json.dumps(sidecar, indent=1), encoding="utf-8")

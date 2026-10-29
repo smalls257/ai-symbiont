@@ -13,7 +13,7 @@ from pathlib import Path
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
-from symbiont.act1.hook_overlay import PAIN_LABELS, MoveCard
+from symbiont.act1.hook_overlay import PAIN_LABELS, MoveCard, PlayerStats
 
 CANVAS = (1280, 720)
 GAME_AREA = (960, 720)  # 4:3 screen at 1.5x
@@ -25,7 +25,8 @@ ALERT = (214, 60, 52)
 GIF_WIDTH = 640
 GIF_FPS = 12
 MOVE_CHARS = 22
-RESULT_CHARS = 30
+RESULT_CHARS = 32
+RESULT_LINES = 2
 
 
 @dataclass(frozen=True)
@@ -44,12 +45,30 @@ def _clip(text: str, chars: int) -> str:
     return text if len(text) <= chars else text[: chars - 1] + "…"
 
 
+def wrap_result(text: str) -> list[str]:
+    """The result in at most two lines of RESULT_CHARS; a longer one ends in "..." on line two.
+
+    The cut is always shown, never silent, and the full text is in the episode's own records.
+    """
+    words, lines, line = text.split(), [], ""
+    for word in words:
+        if line and len(line) + 1 + len(word) > RESULT_CHARS:
+            lines.append(line)
+            line = word
+        else:
+            line = f"{line} {word}".strip()
+    lines.append(line)
+    if len(lines) > RESULT_LINES:
+        lines = [lines[0], _clip(" ".join(lines[1:]), RESULT_CHARS)]
+    return [_clip(entry, RESULT_CHARS) for entry in lines]
+
+
 class PanelPainter:
     """Composes one 1280x720 frame: the game on the left, the step panel on the right."""
 
     def __init__(self, title: ClipTitle):
         self._title = title
-        self._fonts = {size: _font(size) for size in (12, 15, 18, 22, 26, 44, 40)}
+        self._fonts = {size: _font(size) for size in (13, 16, 18, 20, 22, 26, 32)}
 
     def frame(
         self, screen: np.ndarray, card: MoveCard, counts: dict[str, int], *, shout: bool
@@ -61,6 +80,8 @@ class PanelPainter:
         draw = ImageDraw.Draw(canvas)
         self._header(draw)
         self._move(draw, card, shout=shout)
+        if card.stats is not None:
+            self._player(draw, card.stats)
         self._tally(draw, counts, card if shout else None)
         if shout and card.pains:
             self._banner(draw, " + ".join(card.pains))
@@ -72,36 +93,50 @@ class PanelPainter:
 
     def _header(self, draw: ImageDraw.ImageDraw) -> None:
         x = PANEL_X + 24
-        self._text(draw, (x, 24), "ai-symbiont", 26, INK)
-        self._text(draw, (x, 60), "plays Freedoom via ViZDoom", 15, MUTED)
-        self._text(draw, (x, 84), f"{self._title.level}  |  {self._title.policy_label}", 15, MUTED)
+        self._text(draw, (x, 16), "ai-symbiont", 26, INK)
+        self._text(draw, (x, 50), "plays Freedoom via ViZDoom", 16, MUTED)
+        self._text(draw, (x, 72), f"{self._title.level}  |  {self._title.policy_label}", 16, MUTED)
 
     def _move(self, draw: ImageDraw.ImageDraw, card: MoveCard, *, shout: bool) -> None:
         x = PANEL_X + 24
-        self._text(draw, (x, 140), "STEP", 12, MUTED)
-        self._text(draw, (x, 156), f"{card.step:02d}", 44, INK)
-        self._text(draw, (x, 232), "CHOSEN MOVE", 12, MUTED)
-        self._text(draw, (x, 250), _clip(card.move, MOVE_CHARS), 22, INK)
-        self._text(draw, (x, 300), "RESULT", 12, MUTED)
-        result = _clip(card.outcome, RESULT_CHARS) if shout else "playing..."
-        self._text(draw, (x, 318), result, 15, INK if shout else MUTED)
+        self._text(draw, (x, 104), f"STEP  {card.step:02d}", 22, INK)
+        self._text(draw, (x, 140), "CHOSEN MOVE", 13, MUTED)
+        self._text(draw, (x, 156), _clip(card.move, MOVE_CHARS), 20, INK)
+        self._text(draw, (x, 192), "RESULT", 13, MUTED)
+        lines = wrap_result(card.outcome) if shout else ["playing..."]
+        for row, line in enumerate(lines):
+            self._text(draw, (x, 208 + row * 22), line, 16, INK if shout else MUTED)
+
+    def _player(self, draw: ImageDraw.ImageDraw, stats: PlayerStats) -> None:
+        x = PANEL_X + 24
+        status = "DEAD" if stats.dead else "alive"
+        self._text(draw, (x, 262), "PLAYER (game counters)", 13, MUTED)
+        rows = (
+            f"health {stats.health}   armor {stats.armor}   ammo {stats.ammo}",
+            f"kills {stats.kills}   items {stats.items}   secrets {stats.secrets}",
+            f"damage dealt {stats.damage_dealt}   taken {stats.damage_taken}",
+            f"status: {status}",
+        )
+        for row, line in enumerate(rows):
+            color = ALERT if stats.dead and row == len(rows) - 1 else INK
+            self._text(draw, (x, 280 + row * 24), line, 16, color)
 
     def _tally(
         self, draw: ImageDraw.ImageDraw, counts: dict[str, int], fired: MoveCard | None
     ) -> None:
         x = PANEL_X + 24
-        self._text(draw, (x, 400), "PAIN POINTS SO FAR", 12, MUTED)
+        self._text(draw, (x, 392), "PAIN POINTS SO FAR", 13, MUTED)
         for row, label in enumerate(PAIN_LABELS.values()):
-            y = 424 + row * 40
+            y = 412 + row * 34
             hot = fired is not None and label in fired.pains
-            self._text(draw, (x, y), label, 18, ALERT if hot else INK)
-            self._text(draw, (x + 230, y), str(counts.get(label, 0)), 22, ALERT if hot else INK)
-        self._text(draw, (x, 660), "labels: the real tagger,", 12, MUTED)
-        self._text(draw, (x, 678), "nothing added by hand", 12, MUTED)
+            self._text(draw, (x, y), label, 20, ALERT if hot else INK)
+            self._text(draw, (x + 240, y), str(counts.get(label, 0)), 22, ALERT if hot else INK)
+        self._text(draw, (x, 660), "labels: the real tagger,", 13, MUTED)
+        self._text(draw, (x, 678), "nothing added by hand", 13, MUTED)
 
     def _banner(self, draw: ImageDraw.ImageDraw, label: str) -> None:
         draw.rectangle((0, GAME_AREA[1] - 96, GAME_AREA[0], GAME_AREA[1]), fill=ALERT)
-        self._text(draw, (28, GAME_AREA[1] - 82), label.upper(), 40, INK)
+        self._text(draw, (28, GAME_AREA[1] - 82), label.upper(), 32, INK)
 
 
 class ClipSink:

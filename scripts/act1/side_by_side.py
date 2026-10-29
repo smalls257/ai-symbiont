@@ -94,6 +94,10 @@ def totals(sidecars: list[dict[str, Any]]) -> dict[str, Any]:
         "pain_total": sum(kinds.values()),
         "exits": sum(sidecar["ended"] == EXITED for sidecar in sidecars),
         "decisions": sum(sidecar["decisions"] for sidecar in sidecars),
+        "kills": sum(sidecar["stats"]["kills"] for sidecar in sidecars),
+        "damage_dealt": sum(sidecar["stats"]["damage_dealt"] for sidecar in sidecars),
+        "damage_taken": sum(sidecar["stats"]["damage_taken"] for sidecar in sidecars),
+        "deaths": sum(bool(sidecar["stats"]["dead"]) for sidecar in sidecars),
     }
 
 
@@ -129,7 +133,7 @@ def take(frames: Iterator[np.ndarray], count: int) -> list[np.ndarray]:
 class Painter:
     def __init__(self) -> None:
         self._draw: ImageDraw.ImageDraw
-        self._font = {size: ImageFont.load_default(size=size) for size in (14, 20, 28, 34, 44)}
+        self._font = {size: ImageFont.load_default(size=size) for size in (14, 20, 26, 28, 34, 44)}
 
     def canvas(self) -> Image.Image:
         """A blank frame; later `text` calls draw on the most recent canvas."""
@@ -184,21 +188,17 @@ class Painter:
         return image.tobytes()
 
     def arm_totals(self, x: int, name: str, total: dict[str, Any]) -> None:
-        self.text((x, 130), name, 34)
-        self.text(
-            (x, 190),
-            f"{total['episodes']} episode(s), {total['decisions']} decisions",
-            28,
-            MUTED,
-        )
-        self.text((x, 250), f"{total['pain_total']} pain points", 44, ALERT)
+        episodes = f"{total['episodes']} episode(s), {total['decisions']} decisions"
+        self.text((x, 110), name, 34)
+        self.text((x, 160), episodes, 26, MUTED)
+        self.text((x, 205), f"{total['pain_total']} pain points", 44, ALERT)
         for row, (pain, label) in enumerate(PAIN_LABELS.items()):
-            self.text((x, 330 + row * 46), f"{label}: {total['pains'][pain.value]}", 28)
-        self.text(
-            (x, 540),
-            f"exit reached in {total['exits']} of {total['episodes']} episode(s)",
-            34,
-        )
+            self.text((x, 275 + row * 36), f"{label}: {total['pains'][pain.value]}", 28)
+        self.text((x, 440), f"kills {total['kills']}   deaths {total['deaths']}", 28)
+        damage = f"damage dealt {total['damage_dealt']}   taken {total['damage_taken']}"
+        self.text((x, 476), damage, 28)
+        exits = f"exit reached in {total['exits']} of {total['episodes']} episode(s)"
+        self.text((x, 540), exits, 34)
 
 
 class Encoder:
@@ -281,13 +281,13 @@ def concatenate(parts: list[Path], out: Path) -> None:
     Path(listing.name).unlink()
 
 
-def compile_arm(sidecars: list[str], title: str, out: Path) -> None:
+def compile_arm(sidecars: list[str], arm_name: str, title: str, out: Path) -> None:
     """One arm's episodes back to back (panel clips centered on the canvas), then its totals."""
-    arms = [load_arm(path, title) for path in sidecars]
+    arms = [load_arm(path, arm_name) for path in sidecars]
     fps = arms[0].sidecar["fps"]
     with tempfile.TemporaryDirectory() as scratch:
         closing = Path(scratch) / "closing.mp4"
-        render_closing(title, ((title, totals([arm.sidecar for arm in arms])),), closing, fps)
+        render_closing(title, ((arm_name, totals([arm.sidecar for arm in arms])),), closing, fps)
         inputs = [item for arm in arms for item in ("-i", str(arm.mp4))] + ["-i", str(closing)]
         pads = "".join(
             f"[{n}:v]pad={CANVAS[0]}:{CANVAS[1]}:(ow-iw)/2:0,setsar=1[v{n}];"
@@ -339,10 +339,11 @@ def main(argv: list[str] | None = None) -> None:
     compilation = sub.add_parser("compile")
     compilation.add_argument("--sidecars", nargs="+", required=True)
     compilation.add_argument("--title", required=True)
+    compilation.add_argument("--arm-name", required=True)
     compilation.add_argument("--out", required=True)
     args = parser.parse_args(argv)
     if args.command == "compile":
-        compile_arm(args.sidecars, args.title, Path(args.out).expanduser())
+        compile_arm(args.sidecars, args.arm_name, args.title, Path(args.out).expanduser())
     elif args.command == "pair":
         one = {"left": args.left, "right": args.right, "left_title": args.left_title,
                "right_title": args.right_title, "subtitle": args.subtitle}  # fmt: skip

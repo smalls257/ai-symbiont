@@ -157,14 +157,14 @@ def wad_path() -> Path:
     return install_freedoom(FREEDOOM_DIR)
 
 
-def load_level(wad: Path, level: str) -> tuple[Any, MapKnowledge, RoomFinder]:
+def load_level(wad: Path, level: str, hud: str = "off") -> tuple[Any, MapKnowledge, RoomFinder]:
     """Seam: the only function that touches ViZDoom or the WAD."""
-    from symbiont.act1.engine import make_game
+    from symbiont.act1.engine import HudStyle, make_game
 
     geometry = read_map(wad.read_bytes(), level)
     index = build_index(geometry)
     knowledge = MapKnowledge(index, build_navmap(geometry, index))
-    return make_game(wad, level), knowledge, RoomFinder(geometry)
+    return make_game(wad, level, hud=HudStyle(hud)), knowledge, RoomFinder(geometry)
 
 
 def episode_path(out: Path, episode: Episode) -> Path:
