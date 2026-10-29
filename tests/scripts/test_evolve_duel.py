@@ -43,7 +43,7 @@ SPLIT = EvolveSplit.of(
 START = seeds()[1]
 
 
-class MemoryJournal(dp.Journal):
+class MemoryJournal:
     def __init__(self):
         self.stored = {}
 
@@ -173,3 +173,43 @@ def test_a_fitness_check_of_the_fake_world_the_door_cards_beat_the_empty_card():
     case = duel.noise_cases(SPLIT, 1)[0]
     empty, door = Card.of([]), Card.of([Lesson("w", "Go through the door", "c")])
     assert fitness(player.play(door, case)) > fitness(player.play(empty, case))
+
+
+def test_the_report_carries_the_noise_the_half_width_the_rows_and_the_paired_table():
+    selection, held_back = duel.final_cases(SPLIT, 1)
+    cards = {"gen0": START, "control": seeds()[2], "evolved": seeds()[3]}
+    scores = dp.run_final(cards, selection, held_back, FakePlayer())
+    final = {
+        "ids": {name: card.card_id for name, card in cards.items()},
+        "means": {name: sum(v.values()) / len(v) for name, v in scores.items()},
+        "games": {name: len(v) for name, v in scores.items()},
+        "table": dp.paired_table(scores, held_back, 1),
+    }
+    arms = {
+        "evolved": {"rows": run_arm(Arm.EVOLVED).rows},
+        "control": {"rows": run_arm(Arm.NO_SELECTION).rows},
+    }
+    noise = dp.run_noise(
+        START, duel.noise_cases(SPLIT, 1), [FakePlayer(noise=0.3) for _ in range(5)]
+    )
+    report = dp.build_report(noise, arms, final, {"calls": 0, "dollars": 0.0, "source": "ledger"})
+    assert report["claim"] == "exploratory" and report["noise"]["paired_cases"] == 24
+    assert report["noise"]["expected_half_width_of_a_paired_difference"] == pytest.approx(
+        duel.expected_half_width(noise["replay_variance"], 24)
+    )
+    roles = {row["role"] for row in report["rows"]}
+    assert roles == {"reference", "under_test"} and len(report["rows"]) == 3 + 10
+    assert len(report["paired"]) == 9
+
+
+def test_the_driver_refuses_to_start_a_game_when_it_only_reads_stored_ones():
+    import run_duel
+
+    with pytest.raises(RuntimeError, match="no stored game"):
+        run_duel.NoPlayer().play(START, None)
+    args = run_duel.parse_arguments(
+        ["--phase", "evolve", "--arm", "control", "--root", "r", "--wad", "w", "--state", "s",
+         "--best-card", "x"]
+    )  # fmt: skip
+    assert args.arm == "control" and args.phase == "evolve" and args.workers == 10
+    assert sum(run_duel.CAPS.values()) < 3.0

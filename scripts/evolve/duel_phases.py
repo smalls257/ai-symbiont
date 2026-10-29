@@ -18,7 +18,7 @@ script_paths.add_script_dirs()
 
 from symbiont.act1 import duel  # noqa: E402 - needs the sibling path added above
 from symbiont.act1.card_genome import Card  # noqa: E402
-from symbiont.act1.evolution import Player  # noqa: E402
+from symbiont.act1.evolution import Journal, Player  # noqa: E402
 from symbiont.act1.evolve_split import EvolveSplit  # noqa: E402
 from symbiont.act1.game_fitness import Case, GameResult, Grade, fitness  # noqa: E402
 from symbiont.act1.generation import Author, Judge, ParentChoice, call_seed, verdict_on  # noqa: E402
@@ -27,20 +27,6 @@ from symbiont.act1.run_guards import MutationPromptError  # noqa: E402
 
 CHILD_TRIES = 3
 CHOICE = {Arm.EVOLVED: ParentChoice.LEXICASE, Arm.NO_SELECTION: ParentChoice.RANDOM}
-
-
-class Journal:
-    """Where a child is written down before its games: the RunStore's load and save."""
-
-    def load(self, arm: Arm, generation: int) -> Any:
-        """The stored (cards, births) or None."""
-        raise NotImplementedError
-
-    def save(
-        self, arm: Arm, generation: int, cards: tuple[Card, ...], births: tuple[Birth, ...]
-    ) -> None:
-        """Store them."""
-        raise NotImplementedError
 
 
 def play_pairs(
@@ -223,3 +209,42 @@ def paired_table(
                 }
             )
     return rows
+
+
+def build_report(
+    noise: dict[str, Any],
+    arms: dict[str, dict[str, Any]],
+    final: dict[str, Any],
+    spend: dict[str, Any],
+) -> dict[str, Any]:
+    """The run's report: noise and its half-width, both arms' rows, the paired table, the spend."""
+    cases = sum(final["games"].values()) // len(final["games"])
+    half_width = duel.expected_half_width(noise["replay_variance"], cases)
+    roles = {"gen0": "reference", "control": "reference", "evolved": "under_test"}
+    rows = [
+        {"label": f"{name} card, final test", "role": roles[name], "mean_fitness": mean}
+        for name, mean in final["means"].items()
+    ]
+    for arm_name, arm in arms.items():
+        role = "under_test" if arm_name == "evolved" else "reference"
+        rows += [
+            {
+                "label": f"{arm_name} generation {row['generation']}",
+                "role": role,
+                "current_mean": row["current_mean"],
+                "child_mean": row["child_mean"],
+                "child_kept": row["kept"] == row["child"],
+            }
+            for row in arm["rows"]
+        ]
+    return {
+        "schema": "evolve-run2-v1",
+        "label": "exploratory run 2, Spark low reasoning, temperature 0 [measured]",
+        "claim": "exploratory",
+        "noise": noise
+        | {"expected_half_width_of_a_paired_difference": half_width, "paired_cases": cases},
+        "final_ids": final["ids"],
+        "paired": final["table"],
+        "rows": rows,
+        "spend": spend,
+    }
