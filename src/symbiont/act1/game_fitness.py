@@ -62,6 +62,8 @@ class GameResult:
     kills: int
     cut_moves: int
     ungraded_reason: str | None
+    # Tagger counts by tag name, as pairs so the result stays hashable; their sum is `mistakes`.
+    pains: tuple[tuple[str, int], ...] = ()
 
 
 def fitness(result: GameResult) -> float:

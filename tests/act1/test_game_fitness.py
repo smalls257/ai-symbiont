@@ -96,3 +96,11 @@ def test_an_unroutable_level_raises_naming_what_blocks():
     nav = build_navmap(geometry, build_index(geometry))
     with pytest.raises(NoRouteError, match="exit"):
         remaining_route_units(nav, START)
+
+
+def test_pains_default_to_empty_and_are_hashable_pairs():
+    plain = result()
+    assert plain.pains == ()
+    tagged = result(pains=(("wasted_move", 2), ("wall_bump", 1)), mistakes=3)
+    assert dict(tagged.pains) == {"wasted_move": 2, "wall_bump": 1}
+    assert len({plain, tagged}) == 2

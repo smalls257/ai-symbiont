@@ -36,6 +36,8 @@ PURE_FILES = (
     "evolve_split.py",
     "card_prompt.py",
     "game_summary.py",
+    "offline_author.py",
+    "generation.py",
 )
 
 
