@@ -19,6 +19,7 @@ from pathlib import Path
 
 import torch
 from peft import PeftModel
+from train_lora_torch import DEVICE, peak_bytes
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 SYSTEM = "You are a memory model. Answer in one line of plain prose, naming exact commands."
@@ -51,7 +52,7 @@ def _one_line(text: str) -> str:
 
 
 def _loaded(model_path: str, adapter: str | None):
-    model = AutoModelForCausalLM.from_pretrained(model_path, dtype=torch.bfloat16).to("cuda")
+    model = AutoModelForCausalLM.from_pretrained(model_path, dtype=torch.bfloat16).to(DEVICE)
     if adapter:
         model = PeftModel.from_pretrained(model, adapter)
     return model.eval()
@@ -62,8 +63,8 @@ def _generate(model, tokenizer, chunk: list[list[int]]) -> list[str]:
     """Greedy continuations of left-padded prompts, decoded without special tokens."""
     pad = tokenizer.pad_token_id if tokenizer.pad_token_id is not None else tokenizer.eos_token_id
     width = max(len(p) for p in chunk)
-    ids = torch.tensor([[pad] * (width - len(p)) + p for p in chunk], device="cuda")
-    attention = torch.tensor([[0] * (width - len(p)) + [1] * len(p) for p in chunk], device="cuda")
+    ids = torch.tensor([[pad] * (width - len(p)) + p for p in chunk], device=DEVICE)
+    attention = torch.tensor([[0] * (width - len(p)) + [1] * len(p) for p in chunk], device=DEVICE)
     out = model.generate(
         input_ids=ids,
         attention_mask=attention,
@@ -109,7 +110,7 @@ def main() -> None:
             fh.write(json.dumps({"question_id": question["question_id"], "answer": answer}) + "\n")
     empty = sum(1 for answer in answers if not answer)
     print(f"answered={len(answers)} empty={empty} seconds={seconds:.1f}", file=sys.stderr)
-    print(f"{torch.cuda.max_memory_reserved()} peak memory footprint", file=sys.stderr)
+    print(f"{peak_bytes()} peak memory footprint", file=sys.stderr)
 
 
 if __name__ == "__main__":

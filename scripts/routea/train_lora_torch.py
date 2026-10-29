@@ -14,6 +14,7 @@ never row text; a non-finite loss stops the run (**Silent Fallback** guard).
 import argparse
 import json
 import math
+import os
 import time
 from pathlib import Path
 
@@ -35,6 +36,15 @@ TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down
 # mlx-lm built training prompts without a date_string, so the Llama template stamped the day the
 # laptop trained (2026-10-28); pinning that day gives the same tokens and reproducible reruns.
 TRAIN_DATE = "28 Oct 2026"
+# "cuda" on the desktop; "mps" runs the same code on the laptop's Apple GPU (METALORA).
+DEVICE = os.environ.get("LCAP_DEVICE", "cuda")
+
+
+def peak_bytes() -> int:
+    """Peak GPU memory reserved by this process, on CUDA or Apple MPS."""
+    if DEVICE == "mps":
+        return torch.mps.driver_allocated_memory()
+    return torch.cuda.max_memory_reserved()
 
 
 def encoded_rows(tokenizer, path: Path) -> list[tuple[list[int], int]]:
@@ -73,7 +83,7 @@ def batch_tensors(rows: list[tuple[list[int], int]], members: list[int], device:
 
 
 def lora_model(model_path: str):
-    model = AutoModelForCausalLM.from_pretrained(model_path, dtype=torch.bfloat16).to("cuda")
+    model = AutoModelForCausalLM.from_pretrained(model_path, dtype=torch.bfloat16).to(DEVICE)
     torch.manual_seed(SEED)
     config = LoraConfig(
         r=RANK, lora_alpha=RANK * SCALE, lora_dropout=0.0, target_modules=TARGETS, bias="none"
@@ -105,7 +115,7 @@ def train(model, rows: list[tuple[list[int], int]], iters: int) -> None:
     lengths = [len(tokens) for tokens, _ in rows]
     started, losses = time.monotonic(), []
     for update, members in enumerate(batch_order(lengths, BATCH, iters, SEED)):
-        loss = masked_loss(model, *batch_tensors(rows, members, "cuda"))
+        loss = masked_loss(model, *batch_tensors(rows, members, DEVICE))
         if not math.isfinite(loss.item()):
             raise FloatingPointError(f"loss {loss.item()} at iter {update + 1}")
         loss.backward()
@@ -132,7 +142,7 @@ def main() -> None:
     train(model, rows, args.iters)
     model.save_pretrained(args.adapter)
     # same words as macOS `time -l`, so score_answers.py reads GPU peak memory unchanged
-    print(f"{torch.cuda.max_memory_reserved()} peak memory footprint")
+    print(f"{peak_bytes()} peak memory footprint")
 
 
 if __name__ == "__main__":
