@@ -1,9 +1,7 @@
 """The thin client: policy first, then one POST, logging sizes and provenance only.
 
-Violation this shape prevents: Black Box on the way out (nobody can tell what left the machine)
-and Silent Fallback (a refused or failed send must raise, never return an empty reply).
-The prompt text is never logged. The only module in src/ allowed to open a connection
-(semgrep sym-single-egress).
+A refused or failed send raises, never returns an empty reply, and the prompt text is never
+logged. The only module in src/ allowed to open a connection (semgrep sym-single-egress).
 """
 
 import json
@@ -21,12 +19,30 @@ log = logging.getLogger("symbiont.egress")
 Transport = Callable[[urllib.request.Request, float], bytes]
 
 
+class _RefuseRedirects(urllib.request.HTTPRedirectHandler):
+    """Refuse every redirect.
+
+    urllib would re-send our headers (the bearer key) to whatever host `Location` names, and turns
+    a 301/302/303 POST into a GET that keeps them. Returning None makes the opener raise the 3xx
+    as an HTTPError.
+    """
+
+    def redirect_request(self, *args: Any, **kwargs: Any) -> None:
+        """Refuse: nothing is followed."""
+        return
+
+
+_OPENER = urllib.request.build_opener(_RefuseRedirects)
+
+
 def _urlopen(request: urllib.request.Request, timeout_s: float) -> bytes:
-    with urllib.request.urlopen(request, timeout=timeout_s) as response:
+    """The default transport: one request, no redirects; raises HTTPError on a 3xx, 4xx or 5xx."""
+    with _OPENER.open(request, timeout=timeout_s) as response:
         return bytes(response.read())
 
 
 def _describe(destination: Destination, size: int, provenance: list[Provenance]) -> str:
+    """The log line for a send: endpoint, host, size and dataset names, never the payload."""
     datasets = sorted({p.dataset for p in provenance})
     return (
         f"endpoint={destination.endpoint.value} host={urlsplit(destination.url).hostname} "
@@ -52,6 +68,8 @@ def post_json(
         raise
     log.info("egress send %s", _describe(destination, len(wire_bytes), declared))
     headers = {"Content-Type": "application/json"}
+    if destination.api_key is not None:
+        headers["Authorization"] = f"Bearer {destination.api_key.reveal()}"
     request = urllib.request.Request(destination.url, data=wire_bytes, headers=headers)
     reply: dict[str, Any] = json.loads(transport(request, timeout_s))
     return reply

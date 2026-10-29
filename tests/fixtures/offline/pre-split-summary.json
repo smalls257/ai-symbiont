@@ -3,7 +3,6 @@
  "prereg": "prereg/2026-10-29-offline-selection.md",
  "freeze_commit": "e5214b5",
  "run_host": {
-  "hostname": "framework",
   "python": "3.12.3",
   "numpy": "2.5.4",
   "workers": 21
@@ -454,5 +453,5 @@
   "[established] Scope: random wiring with the fly's published counts. This result says nothing about the real connectome.",
   "[measured] Post-freeze fix d3cb899 (hub checkout fetched by hash) is recorded as an amendment in the prereg; it did not change split, metrics, labels, grids, margin or rule."
  ],
- "follow_up": "Owner decision: bad warnings are penalised. Task 14c runs an exploratory equal-budget analysis; the live operating point will be set by a warning budget, not by this balanced-accuracy gap."
+ "follow_up": "Owner decision: bad warnings are penalized. Task 14c runs an exploratory equal-budget analysis; the live operating point will be set by a warning budget, not by this balanced-accuracy gap."
 }

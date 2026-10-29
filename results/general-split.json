@@ -1,0 +1,396 @@
+{
+ "label": "exploratory: held-out split for the general-lessons pilot, declared first",
+ "rule": "first match: support/add/allow/implement title or feature template = feature; fault title (incorrect, error, fails, bug...) = bug; not-supported title = feature; sqlglot/ patch adding a class, def or mapping entry with removed <= added/4 = feature; else bug",
+ "note": "no run, gold patch or upstream fix of an evaluation task may feed any lesson",
+ "pool_size": 268,
+ "pool_kinds": {
+  "feature": {
+   "unsupported-title": 10,
+   "request-title": 29,
+   "additive-patch": 36,
+   "feature-template": 1,
+   "total": 76
+  },
+  "bug": {
+   "bug-title": 140,
+   "corrective-patch": 52,
+   "total": 192
+  }
+ },
+ "evaluation_kinds": {
+  "bug": 10,
+  "feature": 8
+ },
+ "evaluation": [
+  {
+   "task": "tobymao__sqlglot-1309",
+   "kind": "bug",
+   "kind_reason": "bug-title",
+   "pick": "plain solved 1 of 3 at cap 50",
+   "stratum": "expressions",
+   "size_band": "S",
+   "gold_changed_lines": 1,
+   "plain_cap50": [
+    1,
+    3
+   ],
+   "plain_cap75": [
+    2,
+    2
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-2095",
+   "kind": "bug",
+   "kind_reason": "corrective-patch",
+   "pick": "plain solved 1 of 3 at cap 50",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 2,
+   "plain_cap50": [
+    1,
+    3
+   ],
+   "plain_cap75": [
+    2,
+    2
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-2443",
+   "kind": "bug",
+   "kind_reason": "bug-title",
+   "pick": "plain solved 1 of 3 at cap 50",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 1,
+   "plain_cap50": [
+    1,
+    3
+   ],
+   "plain_cap75": [
+    2,
+    2
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-2529",
+   "kind": "bug",
+   "kind_reason": "corrective-patch",
+   "pick": "plain solved 1 of 3 at cap 50",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 2,
+   "plain_cap50": [
+    1,
+    3
+   ],
+   "plain_cap75": [
+    2,
+    2
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-2658",
+   "kind": "bug",
+   "kind_reason": "bug-title",
+   "pick": "plain solved 1 of 3 at cap 50",
+   "stratum": "multi",
+   "size_band": "S",
+   "gold_changed_lines": 2,
+   "plain_cap50": [
+    1,
+    3
+   ],
+   "plain_cap75": [
+    1,
+    2
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-772",
+   "kind": "bug",
+   "kind_reason": "bug-title",
+   "pick": "plain solved 1 of 3 at cap 50",
+   "stratum": "expressions",
+   "size_band": "S",
+   "gold_changed_lines": 2,
+   "plain_cap50": [
+    1,
+    3
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-4208",
+   "kind": "bug",
+   "kind_reason": "bug-title",
+   "pick": "plain solved 2 of 3 at cap 50",
+   "stratum": "other",
+   "size_band": "M",
+   "gold_changed_lines": 15,
+   "plain_cap50": [
+    2,
+    3
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-2337",
+   "kind": "bug",
+   "kind_reason": "bug-title",
+   "pick": "plain never solved, edited a source file",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 2,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-3166",
+   "kind": "bug",
+   "kind_reason": "bug-title",
+   "pick": "plain never solved, edited a source file",
+   "stratum": "expressions",
+   "size_band": "S",
+   "gold_changed_lines": 4,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-4007",
+   "kind": "bug",
+   "kind_reason": "corrective-patch",
+   "pick": "plain never solved, edited a source file",
+   "stratum": "generator",
+   "size_band": "S",
+   "gold_changed_lines": 8,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-3111",
+   "kind": "feature",
+   "kind_reason": "additive-patch",
+   "pick": "plain unsolved at cap 50, solved 1 of 2 at cap 75",
+   "stratum": "multi",
+   "size_band": "M",
+   "gold_changed_lines": 12,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    1,
+    2
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-3436",
+   "kind": "feature",
+   "kind_reason": "request-title",
+   "pick": "plain never solved, edited a source file",
+   "stratum": "parser",
+   "size_band": "S",
+   "gold_changed_lines": 1,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-4067",
+   "kind": "feature",
+   "kind_reason": "additive-patch",
+   "pick": "plain never solved, edited a source file",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 7,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-4276",
+   "kind": "feature",
+   "kind_reason": "request-title",
+   "pick": "plain never solved, edited a source file",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 1,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-4533",
+   "kind": "feature",
+   "kind_reason": "unsupported-title",
+   "pick": "plain never solved, edited a source file",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 1,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-1551",
+   "kind": "feature",
+   "kind_reason": "additive-patch",
+   "pick": "plain never solved, no source edit",
+   "stratum": "dialects",
+   "size_band": "S",
+   "gold_changed_lines": 3,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-4087",
+   "kind": "feature",
+   "kind_reason": "request-title",
+   "pick": "plain never solved, no source edit",
+   "stratum": "multi",
+   "size_band": "S",
+   "gold_changed_lines": 9,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  },
+  {
+   "task": "tobymao__sqlglot-4148",
+   "kind": "feature",
+   "kind_reason": "request-title",
+   "pick": "plain never solved, no source edit",
+   "stratum": "parser",
+   "size_band": "S",
+   "gold_changed_lines": 2,
+   "plain_cap50": [
+    0,
+    1
+   ],
+   "plain_cap75": [
+    0,
+    0
+   ]
+  }
+ ],
+ "source_tasks_with_plain_runs": [
+  "tobymao__sqlglot-1001",
+  "tobymao__sqlglot-1143",
+  "tobymao__sqlglot-1340",
+  "tobymao__sqlglot-1367",
+  "tobymao__sqlglot-1379",
+  "tobymao__sqlglot-1662",
+  "tobymao__sqlglot-1670",
+  "tobymao__sqlglot-1703",
+  "tobymao__sqlglot-1782",
+  "tobymao__sqlglot-1819",
+  "tobymao__sqlglot-1944",
+  "tobymao__sqlglot-2040",
+  "tobymao__sqlglot-2093",
+  "tobymao__sqlglot-2167",
+  "tobymao__sqlglot-2251",
+  "tobymao__sqlglot-2439",
+  "tobymao__sqlglot-2521",
+  "tobymao__sqlglot-2605",
+  "tobymao__sqlglot-2619",
+  "tobymao__sqlglot-2739",
+  "tobymao__sqlglot-2825",
+  "tobymao__sqlglot-3150",
+  "tobymao__sqlglot-3230",
+  "tobymao__sqlglot-3339",
+  "tobymao__sqlglot-3401",
+  "tobymao__sqlglot-3417",
+  "tobymao__sqlglot-3426",
+  "tobymao__sqlglot-3440",
+  "tobymao__sqlglot-3470",
+  "tobymao__sqlglot-3478",
+  "tobymao__sqlglot-3533",
+  "tobymao__sqlglot-3552",
+  "tobymao__sqlglot-3650",
+  "tobymao__sqlglot-3689",
+  "tobymao__sqlglot-3695",
+  "tobymao__sqlglot-3734",
+  "tobymao__sqlglot-3745",
+  "tobymao__sqlglot-3765",
+  "tobymao__sqlglot-3785",
+  "tobymao__sqlglot-3799",
+  "tobymao__sqlglot-3847",
+  "tobymao__sqlglot-3871",
+  "tobymao__sqlglot-3885",
+  "tobymao__sqlglot-3937",
+  "tobymao__sqlglot-4109",
+  "tobymao__sqlglot-4141",
+  "tobymao__sqlglot-4194",
+  "tobymao__sqlglot-4197",
+  "tobymao__sqlglot-4252",
+  "tobymao__sqlglot-428",
+  "tobymao__sqlglot-4355",
+  "tobymao__sqlglot-4390",
+  "tobymao__sqlglot-4393",
+  "tobymao__sqlglot-4417",
+  "tobymao__sqlglot-4563",
+  "tobymao__sqlglot-4941",
+  "tobymao__sqlglot-559",
+  "tobymao__sqlglot-570",
+  "tobymao__sqlglot-799",
+  "tobymao__sqlglot-829",
+  "tobymao__sqlglot-899",
+  "tobymao__sqlglot-910"
+ ]
+}

@@ -95,13 +95,18 @@ def fake_run(resolved):
     return run_once
 
 
+def driver_workers(staged):
+    return staged.WORKERS
+
+
 def test_three_ungraded_runs_in_a_row_stop_the_driver_as_blocked(monkeypatch, tmp_path):
     staged = load(monkeypatch, "staged", fake_run(lambda *args: None))
     driver = staged.Driver(make_workdir(tmp_path))
     driver.run()
     summary = json.loads(driver.summary_path.read_text())
     assert summary["status"] == "blocked" and "docker down" in summary["blocked_reason"]
-    assert summary["ungraded_runs"] == 3 and "finished" in summary
+    in_flight = 3 + driver_workers(staged) - 1  # the other worker's run may land after the block
+    assert 3 <= summary["ungraded_runs"] <= in_flight and "finished" in summary
 
 
 def test_screen_gate_fails_when_medium_was_tried_and_nothing_solves(monkeypatch, tmp_path):
@@ -146,3 +151,107 @@ def test_blocked_error_names_the_stop_reason(monkeypatch):
     assert issubclass(staged.BlockedError, RuntimeError)
     with pytest.raises(staged.BlockedError, match="3 ungraded runs in a row"):
         raise staged.BlockedError("3 ungraded runs in a row")
+
+
+def test_concurrent_records_never_interleave_log_lines(monkeypatch, tmp_path):
+    import threading
+
+    staged = load(monkeypatch, "staged")
+    driver = staged.Driver(make_workdir(tmp_path))
+    padding = "x" * 20000
+
+    def write(worker):
+        for n in range(25):
+            driver._record(rec(n, True) | {"instance_id": f"w{worker}", "pad": padding})
+
+    threads = [threading.Thread(target=write, args=(w,)) for w in range(4)]
+    [t.start() for t in threads]
+    [t.join() for t in threads]
+    lines = driver.log.read_text().splitlines()
+    assert len(lines) == 100 and all(json.loads(line)["pad"] == padding for line in lines)
+    assert driver.ungraded_in_a_row == 0
+
+
+def test_two_runs_go_at_a_time_and_the_checkpoint_finishes_before_the_decision(
+    monkeypatch, tmp_path
+):
+    import threading
+
+    active, peak, lock = [0], [0], threading.Lock()
+    gate = threading.Barrier(2, timeout=5)
+
+    def run_once(row, run, setting, stage, traj_dir):
+        with lock:
+            active[0] += 1
+            peak[0] = max(peak[0], active[0])
+        if row["instance_id"] in ("task00", "task01"):
+            gate.wait()  # both first tasks must be in flight together
+        with lock:
+            active[0] -= 1
+        return fake_run(lambda *args: False)(row, run, setting, stage, traj_dir)
+
+    staged = load(monkeypatch, "staged", run_once)
+    driver = staged.Driver(make_workdir(tmp_path))
+    driver.run()
+    summary = json.loads(driver.summary_path.read_text())
+    assert peak[0] == staged.WORKERS == 2
+    first_decision = next(i for i, r in enumerate(driver.records) if r["stage"] != "screen")
+    assert first_decision >= staged.CHECKPOINT_N, "medium reruns start after all 10 low runs"
+    assert summary["status"] == "gate_fail"
+
+
+def test_blocked_stops_queued_runs_from_starting(monkeypatch, tmp_path):
+    staged = load(monkeypatch, "staged", fake_run(lambda *args: None))
+    driver = staged.Driver(make_workdir(tmp_path, n_tasks=40))
+    driver.run()
+    assert len(driver.records) <= 3 + staged.WORKERS
+    assert json.loads(driver.summary_path.read_text())["status"] == "blocked"
+
+
+def labeled_workdir(tmp_path, n_tasks=60):
+    workdir = make_workdir(tmp_path, n_tasks)
+    pool = json.loads((workdir / "data/pool.json").read_text())
+    for n, item in enumerate(pool["pool"]):
+        item |= {"subsystem": ("dialects", "parser", "optimizer")[n % 3], "size_band": "S"}
+    (workdir / "data/pool.json").write_text(json.dumps(pool))
+    return workdir
+
+
+def test_stratified_run_uses_its_own_dir_skips_the_old_log_and_records_the_rule(
+    monkeypatch, tmp_path
+):
+    staged = load(monkeypatch, "staged", fake_run(lambda *args: False))
+    workdir = labeled_workdir(tmp_path)
+    old = ["task00", "task01", "task02"]
+    (workdir / "runs/calibration.jsonl").write_text(
+        "".join(json.dumps({"instance_id": iid}) + "\n" for iid in old)
+    )
+    driver = staged.Driver(
+        workdir, staged.ScreenRule.STRATIFIED, "runs-wide", "runs/calibration.jsonl"
+    )
+    assert not set(old) & set(driver.screen) and len(driver.screen) == 40
+    driver.run()
+    assert driver.log == workdir / "runs-wide/calibration.jsonl" and driver.log.exists()
+    assert len((workdir / "runs/calibration.jsonl").read_text().splitlines()) == 3
+    summary = json.loads(driver.summary_path.read_text())
+    assert (
+        summary["screen_rule"] == "stratified" and summary["screen_seed"] == staged.STRATIFIED_SEED
+    )
+    assert sum(summary["screen_cells"].values()) == 40 and summary["screen_excluded_ids"] == 3
+
+
+def test_cli_defaults_reproduce_the_original_command(monkeypatch):
+    staged = load(monkeypatch, "staged")
+    args = staged.parse_args(["/work"])
+    assert (args.screen, args.runs_dir, args.exclude_log) == ("smallest", "runs", None)
+    assert args.screen is staged.ScreenRule.SMALLEST
+    wide = staged.parse_args(["/w", "--screen", "stratified", "--runs-dir", "runs-wide"])
+    assert wide.screen is staged.ScreenRule.STRATIFIED and wide.runs_dir == "runs-wide"
+
+
+def test_smallest_driver_keeps_the_default_run_dir_and_screen(monkeypatch, tmp_path):
+    staged = load(monkeypatch, "staged", fake_run(lambda *args: False))
+    driver = staged.Driver(make_workdir(tmp_path, n_tasks=50))
+    assert driver.screen == [f"task{n:02d}" for n in range(40)]
+    assert driver.log == tmp_path / "runs/calibration.jsonl"
+    assert driver.header["screen_rule"] == "smallest" and "screen_cells" not in driver.header

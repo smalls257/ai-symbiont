@@ -1,15 +1,16 @@
-"""Entry point for the staged calibration driver: `python launch.py <workdir>`.
+"""Entry point for the calibration drivers: staged.py, or cal2.py when --candidates-log is given.
 
-Prevents Silent Fallback at the start of a night-long run: a missing SYMBIONT_GLIMMER_URL
-must stop the process with the variable's name before staged.py loads rows, builds the Driver
-or writes a "finished" summary that sync_results.sh would read as a dead driver.
+A missing SYMBIONT_GLIMMER_URL must stop the process with the variable's name before a driver
+loads rows or writes a "finished" summary that sync_results.sh would read as a dead driver.
 """
 
 import runpy
+import sys
 from pathlib import Path
 
 from run_calibration import glimmer_url
 
 if __name__ == "__main__":
     glimmer_url()
-    runpy.run_path(str(Path(__file__).with_name("staged.py")), run_name="__main__")
+    driver = "cal2.py" if "--candidates-log" in sys.argv else "staged.py"
+    runpy.run_path(str(Path(__file__).with_name(driver)), run_name="__main__")

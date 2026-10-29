@@ -1,11 +1,14 @@
 """Hold-out ids: which spelling of a benchmark task id is which.
 
-Pure (no I/O) so the store, which refuses held-out tasks, and the Route B
-dataset builder, which must never train on them, share one rule. Import it from
-here; `symbiont.store.local` does not re-export it.
+Pure (no I/O) so mining, which refuses held-out tasks before a lesson is
+stored, the Route B dataset builder, which must never train on them, and the
+training-manifest check share one rule. Import it from here.
 """
 
 import re
+from collections.abc import Iterable
+
+from symbiont.records.schema import Record
 
 _BENCHMARK_ID = re.compile(r"^([\w.-]+?)(?:__|/)([\w.-]+?)[-#](\d+)$")
 
@@ -14,6 +17,7 @@ class HoldOutViolationError(ValueError):
     """A held-out (scored) task's trajectory was offered to the store or a dataset."""
 
     def __init__(self, task_id: str, session_id: str):
+        """Name the task and session in the message."""
         super().__init__(
             f"task {task_id!r} (session {session_id!r}) is held out for scoring "
             "and must not enter this store"
@@ -28,6 +32,7 @@ class UnrecognisedTaskIdError(ValueError):
     """
 
     def __init__(self, task_id: str):
+        """Name the id that is in neither benchmark spelling."""
         super().__init__(
             f"task id {task_id!r} is not a benchmark id (owner__repo-123 or owner/repo#123); "
             "it cannot be checked against the hold-out set"
@@ -45,3 +50,16 @@ def normalise_task_id(task_id: str) -> str:
         raise UnrecognisedTaskIdError(task_id)
     owner, repo, number = found.groups()
     return f"{owner.lower()}/{repo.lower()}#{number}"
+
+
+def refuse_held_out(records: Iterable[Record], held_out_tasks: frozenset[str]) -> None:
+    """Raise HoldOutViolationError naming the first record of a held-out task.
+
+    With nothing held out, task ids are free-form; otherwise every id must be a benchmark id.
+    """
+    held_out = {normalise_task_id(t) for t in held_out_tasks}
+    if not held_out:
+        return
+    for record in records:
+        if record.task_id is not None and normalise_task_id(record.task_id) in held_out:
+            raise HoldOutViolationError(record.task_id, record.session_id)

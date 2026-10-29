@@ -1,0 +1,675 @@
+{
+ "anchoring_by_agent": {
+  "Claude_Code": {
+   "anchored": 2039,
+   "commit_not_in_pr": 1962,
+   "file_untracked": 49,
+   "line_not_added_in_pr": 1154,
+   "old_side": 36
+  },
+  "Copilot": {
+   "anchored": 18602,
+   "commit_not_in_pr": 2932,
+   "file_untracked": 114,
+   "line_not_added_in_pr": 7380,
+   "old_side": 532
+  },
+  "Cursor": {
+   "anchored": 1840,
+   "commit_not_in_pr": 425,
+   "file_untracked": 17,
+   "line_not_added_in_pr": 733,
+   "old_side": 35
+  },
+  "Devin": {
+   "anchored": 3498,
+   "commit_not_in_pr": 454,
+   "file_untracked": 63,
+   "line_not_added_in_pr": 1401,
+   "old_side": 150
+  },
+  "Google_Jules": {
+   "anchored": 182,
+   "commit_not_in_pr": 42,
+   "file_untracked": 10,
+   "line_not_added_in_pr": 49
+  },
+  "OpenAI_Codex": {
+   "anchored": 5249,
+   "commit_not_in_pr": 963,
+   "file_untracked": 38,
+   "line_not_added_in_pr": 1574,
+   "old_side": 50
+  }
+ },
+ "commit_order_votes": {
+  "added_before_modified_agree": 61478,
+  "added_before_modified_disagree": 214,
+  "head_not_before_original_agree": 69031,
+  "plan_first_agree": 20516,
+  "plan_first_disagree": 835
+ },
+ "cuts": {
+  "all": "judged after the flag, or after its own commit if unflagged",
+  "first_review": "units live at the first human review, judged after it"
+ },
+ "habit_recall": {
+  "answer_script": "scripts/routea/answer_questions.py",
+  "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+  "rows": [
+   {
+    "arm": "base",
+    "by_kind": {
+     "api_misuse": {
+      "hit": 3,
+      "off_kind": 1
+     },
+     "error_handling": {
+      "hit": 13,
+      "miss": 2,
+      "off_kind": 11
+     },
+     "tests_missing": {
+      "hit": 5,
+      "off_kind": 1
+     },
+     "wrong_module": {
+      "hit": 1,
+      "miss": 2,
+      "off_kind": 5
+     }
+    },
+    "hit_rate": 0.5,
+    "overall": {
+     "hit": 22,
+     "miss": 4,
+     "off_kind": 18
+    },
+    "questions": 44,
+    "role": "floor"
+   },
+   {
+    "arm": "habits",
+    "by_kind": {
+     "api_misuse": {
+      "hit": 4
+     },
+     "error_handling": {
+      "hit": 10,
+      "off_kind": 16
+     },
+     "tests_missing": {
+      "hit": 6
+     },
+     "wrong_module": {
+      "hit": 8
+     }
+    },
+    "hit_rate": 0.6364,
+    "overall": {
+     "hit": 28,
+     "off_kind": 16
+    },
+    "questions": 44,
+    "role": "under_test"
+   }
+  ],
+  "status": "exploratory, Llama 3.2 1B MLX LoRA, laptop, no prereg"
+ },
+ "lessons": {
+  "dropped": {
+   "not_a_general_kind": 945,
+   "not_python": 13729,
+   "not_resolved_api_misuse": 3,
+   "not_resolved_error_handling": 9,
+   "not_resolved_naming_convention": 6,
+   "not_resolved_tests_missing": 4
+  },
+  "found": 94,
+  "found_by_kind": {
+   "api_misuse": 12,
+   "error_handling": 35,
+   "naming_convention": 16,
+   "tests_missing": 16,
+   "wrong_module": 15
+  },
+  "kept": 94,
+  "kept_by_agent": {
+   "Claude_Code": 5,
+   "Copilot": 75,
+   "Cursor": 5,
+   "Devin": 5,
+   "OpenAI_Codex": 4
+  },
+  "kept_by_kind": {
+   "api_misuse": 12,
+   "error_handling": 35,
+   "naming_convention": 16,
+   "tests_missing": 16,
+   "wrong_module": 15
+  },
+  "label": "kinds by keyword rules, precision not checked by reading",
+  "repos": 38
+ },
+ "lift_human_over_unflagged": {
+  "all:Claude_Code": 3.44,
+  "all:Copilot": 4.484,
+  "all:Cursor": 4.141,
+  "all:Devin": 5.058,
+  "all:Google_Jules": 4.607,
+  "all:OpenAI_Codex": 5.366,
+  "all:all_agents": 4.702,
+  "first_review:Claude_Code": 10.496,
+  "first_review:Copilot": 4.936,
+  "first_review:Cursor": 8.967,
+  "first_review:Devin": 7.515,
+  "first_review:Google_Jules": 7.323,
+  "first_review:OpenAI_Codex": 11.698,
+  "first_review:all_agents": 5.887
+ },
+ "miner_content_rule_on_human_flags": {
+  "tracking_changed_content_no": 737,
+  "tracking_changed_content_yes": 11589,
+  "tracking_survived_content_no": 1212,
+  "tracking_survived_content_yes": 80
+ },
+ "notes": "Patch and comment text stay local under each source repository's license; no text from them appears in lessons, rows or this file.",
+ "rows": [
+  {
+   "agent": "Claude_Code",
+   "arm": "bot_flagged",
+   "censored": 278,
+   "changed": 556,
+   "changed_rate": 0.603,
+   "cut": "all",
+   "role": "reference",
+   "survived": 366,
+   "unknown": 14
+  },
+  {
+   "agent": "Claude_Code",
+   "arm": "human_flagged",
+   "censored": 73,
+   "changed": 189,
+   "changed_rate": 0.7052,
+   "cut": "all",
+   "role": "under_test",
+   "survived": 79,
+   "unknown": 1
+  },
+  {
+   "agent": "Claude_Code",
+   "arm": "unflagged",
+   "censored": 8432,
+   "changed": 13704,
+   "changed_rate": 0.205,
+   "cut": "all",
+   "role": "reference",
+   "survived": 53147,
+   "unknown": 4875
+  },
+  {
+   "agent": "Copilot",
+   "arm": "bot_flagged",
+   "censored": 959,
+   "changed": 1274,
+   "changed_rate": 0.6584,
+   "cut": "all",
+   "role": "reference",
+   "survived": 661,
+   "unknown": 19
+  },
+  {
+   "agent": "Copilot",
+   "arm": "human_flagged",
+   "censored": 623,
+   "changed": 9941,
+   "changed_rate": 0.9215,
+   "cut": "all",
+   "role": "under_test",
+   "survived": 847,
+   "unknown": 20
+  },
+  {
+   "agent": "Copilot",
+   "arm": "unflagged",
+   "censored": 112429,
+   "changed": 107224,
+   "changed_rate": 0.2055,
+   "cut": "all",
+   "role": "reference",
+   "survived": 414646,
+   "unknown": 17375
+  },
+  {
+   "agent": "Cursor",
+   "arm": "bot_flagged",
+   "censored": 416,
+   "changed": 347,
+   "changed_rate": 0.6438,
+   "cut": "all",
+   "role": "reference",
+   "survived": 192,
+   "unknown": 2
+  },
+  {
+   "agent": "Cursor",
+   "arm": "human_flagged",
+   "censored": 68,
+   "changed": 272,
+   "changed_rate": 0.8447,
+   "cut": "all",
+   "role": "under_test",
+   "survived": 50,
+   "unknown": 2
+  },
+  {
+   "agent": "Cursor",
+   "arm": "unflagged",
+   "censored": 18514,
+   "changed": 10740,
+   "changed_rate": 0.204,
+   "cut": "all",
+   "role": "reference",
+   "survived": 41899,
+   "unknown": 3905
+  },
+  {
+   "agent": "Devin",
+   "arm": "bot_flagged",
+   "censored": 234,
+   "changed": 345,
+   "changed_rate": 0.6942,
+   "cut": "all",
+   "role": "reference",
+   "survived": 152,
+   "unknown": 10
+  },
+  {
+   "agent": "Devin",
+   "arm": "human_flagged",
+   "censored": 171,
+   "changed": 1481,
+   "changed_rate": 0.8795,
+   "cut": "all",
+   "role": "under_test",
+   "survived": 203,
+   "unknown": 16
+  },
+  {
+   "agent": "Devin",
+   "arm": "unflagged",
+   "censored": 31152,
+   "changed": 21052,
+   "changed_rate": 0.1739,
+   "cut": "all",
+   "role": "reference",
+   "survived": 99994,
+   "unknown": 7039
+  },
+  {
+   "agent": "Google_Jules",
+   "arm": "bot_flagged",
+   "censored": 18,
+   "changed": 40,
+   "changed_rate": 0.8333,
+   "cut": "all",
+   "role": "reference",
+   "survived": 8,
+   "unknown": 1
+  },
+  {
+   "agent": "Google_Jules",
+   "arm": "human_flagged",
+   "censored": 6,
+   "changed": 44,
+   "changed_rate": 0.9362,
+   "cut": "all",
+   "role": "under_test",
+   "survived": 3,
+   "unknown": 3
+  },
+  {
+   "agent": "Google_Jules",
+   "arm": "unflagged",
+   "censored": 992,
+   "changed": 1032,
+   "changed_rate": 0.2032,
+   "cut": "all",
+   "role": "reference",
+   "survived": 4047,
+   "unknown": 206
+  },
+  {
+   "agent": "OpenAI_Codex",
+   "arm": "bot_flagged",
+   "censored": 1336,
+   "changed": 1425,
+   "changed_rate": 0.6712,
+   "cut": "all",
+   "role": "reference",
+   "survived": 698,
+   "unknown": 10
+  },
+  {
+   "agent": "OpenAI_Codex",
+   "arm": "human_flagged",
+   "censored": 188,
+   "changed": 399,
+   "changed_rate": 0.7839,
+   "cut": "all",
+   "role": "under_test",
+   "survived": 110,
+   "unknown": 1
+  },
+  {
+   "agent": "OpenAI_Codex",
+   "arm": "unflagged",
+   "censored": 30824,
+   "changed": 18821,
+   "changed_rate": 0.1461,
+   "cut": "all",
+   "role": "reference",
+   "survived": 110004,
+   "unknown": 4792
+  },
+  {
+   "agent": "all_agents",
+   "arm": "bot_flagged",
+   "censored": 3241,
+   "changed": 3987,
+   "changed_rate": 0.6575,
+   "cut": "all",
+   "role": "reference",
+   "survived": 2077,
+   "unknown": 56
+  },
+  {
+   "agent": "all_agents",
+   "arm": "human_flagged",
+   "censored": 1129,
+   "changed": 12326,
+   "changed_rate": 0.9051,
+   "cut": "all",
+   "role": "under_test",
+   "survived": 1292,
+   "unknown": 43
+  },
+  {
+   "agent": "all_agents",
+   "arm": "unflagged",
+   "censored": 202343,
+   "changed": 172573,
+   "changed_rate": 0.1925,
+   "cut": "all",
+   "role": "reference",
+   "survived": 723737,
+   "unknown": 38192
+  },
+  {
+   "agent": "Claude_Code",
+   "arm": "bot_flagged",
+   "censored": 18,
+   "changed": 12,
+   "changed_rate": 0.3529,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 22,
+   "unknown": 0
+  },
+  {
+   "agent": "Claude_Code",
+   "arm": "human_flagged",
+   "censored": 61,
+   "changed": 166,
+   "changed_rate": 0.6917,
+   "cut": "first_review",
+   "role": "under_test",
+   "survived": 74,
+   "unknown": 1
+  },
+  {
+   "agent": "Claude_Code",
+   "arm": "unflagged",
+   "censored": 1082,
+   "changed": 651,
+   "changed_rate": 0.0659,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 9235,
+   "unknown": 1040
+  },
+  {
+   "agent": "Copilot",
+   "arm": "bot_flagged",
+   "censored": 34,
+   "changed": 142,
+   "changed_rate": 0.429,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 189,
+   "unknown": 2
+  },
+  {
+   "agent": "Copilot",
+   "arm": "human_flagged",
+   "censored": 413,
+   "changed": 6875,
+   "changed_rate": 0.9122,
+   "cut": "first_review",
+   "role": "under_test",
+   "survived": 662,
+   "unknown": 15
+  },
+  {
+   "agent": "Copilot",
+   "arm": "unflagged",
+   "censored": 13024,
+   "changed": 20809,
+   "changed_rate": 0.1848,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 91812,
+   "unknown": 1554
+  },
+  {
+   "agent": "Cursor",
+   "arm": "bot_flagged",
+   "censored": 8,
+   "changed": 13,
+   "changed_rate": 0.4483,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 16,
+   "unknown": 0
+  },
+  {
+   "agent": "Cursor",
+   "arm": "human_flagged",
+   "censored": 64,
+   "changed": 223,
+   "changed_rate": 0.8321,
+   "cut": "first_review",
+   "role": "under_test",
+   "survived": 45,
+   "unknown": 2
+  },
+  {
+   "agent": "Cursor",
+   "arm": "unflagged",
+   "censored": 2707,
+   "changed": 859,
+   "changed_rate": 0.0928,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 8399,
+   "unknown": 725
+  },
+  {
+   "agent": "Devin",
+   "arm": "bot_flagged",
+   "censored": 16,
+   "changed": 18,
+   "changed_rate": 0.5143,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 17,
+   "unknown": 0
+  },
+  {
+   "agent": "Devin",
+   "arm": "human_flagged",
+   "censored": 140,
+   "changed": 1145,
+   "changed_rate": 0.8687,
+   "cut": "first_review",
+   "role": "under_test",
+   "survived": 173,
+   "unknown": 13
+  },
+  {
+   "agent": "Devin",
+   "arm": "unflagged",
+   "censored": 3797,
+   "changed": 3252,
+   "changed_rate": 0.1156,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 24887,
+   "unknown": 2542
+  },
+  {
+   "agent": "Google_Jules",
+   "arm": "human_flagged",
+   "censored": 6,
+   "changed": 39,
+   "changed_rate": 0.9286,
+   "cut": "first_review",
+   "role": "under_test",
+   "survived": 3,
+   "unknown": 3
+  },
+  {
+   "agent": "Google_Jules",
+   "arm": "unflagged",
+   "censored": 11,
+   "changed": 326,
+   "changed_rate": 0.1268,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 2244,
+   "unknown": 93
+  },
+  {
+   "agent": "OpenAI_Codex",
+   "arm": "bot_flagged",
+   "censored": 39,
+   "changed": 42,
+   "changed_rate": 0.4375,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 54,
+   "unknown": 0
+  },
+  {
+   "agent": "OpenAI_Codex",
+   "arm": "human_flagged",
+   "censored": 174,
+   "changed": 349,
+   "changed_rate": 0.7721,
+   "cut": "first_review",
+   "role": "under_test",
+   "survived": 103,
+   "unknown": 1
+  },
+  {
+   "agent": "OpenAI_Codex",
+   "arm": "unflagged",
+   "censored": 5835,
+   "changed": 978,
+   "changed_rate": 0.066,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 13832,
+   "unknown": 559
+  },
+  {
+   "agent": "all_agents",
+   "arm": "bot_flagged",
+   "censored": 115,
+   "changed": 227,
+   "changed_rate": 0.4324,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 298,
+   "unknown": 2
+  },
+  {
+   "agent": "all_agents",
+   "arm": "human_flagged",
+   "censored": 858,
+   "changed": 8797,
+   "changed_rate": 0.8925,
+   "cut": "first_review",
+   "role": "under_test",
+   "survived": 1060,
+   "unknown": 35
+  },
+  {
+   "agent": "all_agents",
+   "arm": "unflagged",
+   "censored": 26456,
+   "changed": 26875,
+   "changed_rate": 0.1516,
+   "cut": "first_review",
+   "role": "reference",
+   "survived": 150409,
+   "unknown": 6513
+  }
+ ],
+ "rule": "Unit: one added hunk, followed through later commits of its PR in pr_commits row order; changed when a later commit removes or inserts inside its lines; flagged when an inline comment's anchor line is in its live lines.",
+ "source": "AIDev v4 (HF hao-li/AIDev, CC-BY-4.0, Hao Li et al., arXiv 2507.15003)",
+ "status": "exploratory, no prereg; counts and labels only",
+ "training": {
+  "held_out": {
+   "by_kind": {
+    "api_misuse": 2,
+    "error_handling": 13,
+    "tests_missing": 3,
+    "wrong_module": 4
+   },
+   "lessons": 22,
+   "rows": 70
+  },
+  "held_out_questions": 44,
+  "repos": {
+   "held_out": 8,
+   "train": 26,
+   "valid": 4
+  },
+  "train": {
+   "by_kind": {
+    "api_misuse": 10,
+    "error_handling": 19,
+    "naming_convention": 15,
+    "tests_missing": 13,
+    "wrong_module": 10
+   },
+   "lessons": 67,
+   "rows": 202
+  },
+  "valid": {
+   "by_kind": {
+    "error_handling": 3,
+    "naming_convention": 1,
+    "wrong_module": 1
+   },
+   "lessons": 5,
+   "rows": 18
+  }
+ },
+ "unreadable": {
+  "commit_patch": 0,
+  "review_hunk": 0
+ }
+}

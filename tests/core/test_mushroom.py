@@ -288,3 +288,16 @@ def test_kc_code_breaks_exact_ties_towards_the_lower_cell():
     x = np.zeros(86, dtype=np.float32)
     assert np.array_equal(kc_code(x, state), _kc_code_by_full_sort(x, state))
     assert kc_code(x, state)[:N_ACTIVE].all()
+
+
+def test_the_remembered_cell_code_equals_a_fresh_one_for_every_input_and_wiring():
+    from symbiont.core.mushroom import kc_code
+
+    fly = Mushroom(seed=3)
+    rng = np.random.default_rng(0)
+    for seed in (0, 1):
+        state = fly.initial_state(seed)
+        for _ in range(20):
+            x = (rng.random(86) < 0.2).astype(np.float64)
+            np.testing.assert_array_equal(fly._code(x, state), kc_code(x, state))
+            np.testing.assert_array_equal(fly._code(x, state), kc_code(x, state))

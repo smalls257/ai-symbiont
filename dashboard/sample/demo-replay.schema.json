@@ -1,0 +1,114 @@
+{
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "$id": "demo-replay-v1",
+ "title": "Two coding runs replayed side by side",
+ "$comment": "Contract in dashboard/AGENTS.md; demo.js checks the cross-field rules.",
+ "type": "object",
+ "additionalProperties": false,
+ "required": ["schema", "status", "source", "task", "runs"],
+ "properties": {
+  "schema": {"const": "demo-replay-v1"},
+  "status": {"$ref": "#/$defs/status"},
+  "source": {"type": "string", "minLength": 1},
+  "task": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["id", "repo", "label"],
+   "properties": {
+    "id": {"type": "string", "minLength": 1},
+    "repo": {"type": "string", "minLength": 1},
+    "label": {"type": "string", "minLength": 1}
+   }
+  },
+  "runs": {"type": "array", "minItems": 2, "maxItems": 2, "items": {"$ref": "#/$defs/run"}}
+ },
+ "$defs": {
+  "status": {"enum": ["measured", "established", "hypothesis"]},
+  "run": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["id", "label", "subtitle", "shown_run", "runs_solved", "runs_total", "role", "status", "model", "adapter", "steps", "totals"],
+   "properties": {
+    "id": {"enum": ["plain", "personal"]},
+    "label": {"type": "string", "minLength": 1},
+    "subtitle": {"type": "string", "minLength": 1},
+    "shown_run": {"type": "integer", "minimum": 1},
+    "runs_solved": {"type": "integer", "minimum": 0},
+    "runs_total": {"type": "integer", "minimum": 1},
+    "role": {"enum": ["floor", "ceiling", "reference", "under test"]},
+    "status": {"$ref": "#/$defs/status"},
+    "model": {"type": "string", "minLength": 1},
+    "adapter": {"type": ["string", "null"]},
+    "steps": {"type": "array", "minItems": 1, "items": {"$ref": "#/$defs/step"}},
+    "totals": {"$ref": "#/$defs/totals"}
+   }
+  },
+  "step": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["step", "action", "outcome", "tokens_in", "tokens_out", "wall_s", "mistake_tag", "wasted", "note", "classifier", "picker"],
+   "properties": {
+    "step": {"type": "integer", "minimum": 1},
+    "action": {"type": "string", "minLength": 1},
+    "outcome": {"enum": ["progress", "failed", "solved", "gave up"]},
+    "tokens_in": {"type": "integer", "minimum": 0},
+    "tokens_out": {"type": "integer", "minimum": 0},
+    "wall_s": {"type": "number", "minimum": 0},
+    "mistake_tag": {"enum": ["repeated", "new", "none"]},
+    "wasted": {"type": "boolean"},
+    "note": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/note"}]},
+    "classifier": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/classifier"}]},
+    "picker": {"oneOf": [{"type": "null"}, {"$ref": "#/$defs/picker"}]}
+   }
+  },
+  "note": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["what", "resolved", "check", "source"],
+   "properties": {
+    "what": {"type": "string", "minLength": 1},
+    "resolved": {"type": "string", "minLength": 1},
+    "check": {"type": "string", "minLength": 1},
+    "source": {"enum": ["classifier fired", "Glimmer recalled", "lesson in prompt (pilot)"]}
+   }
+  },
+  "classifier": {
+   "$comment": "Only the classifier decides speak or stay quiet.",
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["who", "speak", "reason"],
+   "properties": {
+    "who": {"const": "logistic classifier"},
+    "speak": {"enum": ["speak", "stay quiet"]},
+    "reason": {"type": "string", "minLength": 1}
+   }
+  },
+  "picker": {
+   "$comment": "The network picks an adapter; it has no speak field.",
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["who", "adapter", "reason"],
+   "properties": {
+    "who": {"const": "our network"},
+    "adapter": {"type": "string", "minLength": 1},
+    "reason": {"type": "string", "minLength": 1}
+   }
+  },
+  "totals": {
+   "type": "object",
+   "additionalProperties": false,
+   "required": ["steps", "tokens_in", "tokens_out", "wall_s", "repeated_mistakes", "new_mistakes", "wasted_steps", "notes", "result"],
+   "properties": {
+    "steps": {"type": "integer", "minimum": 1},
+    "tokens_in": {"type": "integer", "minimum": 0},
+    "tokens_out": {"type": "integer", "minimum": 0},
+    "wall_s": {"type": "number", "minimum": 0},
+    "repeated_mistakes": {"type": "integer", "minimum": 0},
+    "new_mistakes": {"type": "integer", "minimum": 0},
+    "wasted_steps": {"type": "integer", "minimum": 0},
+    "notes": {"type": "integer", "minimum": 0},
+    "result": {"enum": ["solved", "not solved"]}
+   }
+  }
+ }
+}

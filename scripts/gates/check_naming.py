@@ -1,19 +1,7 @@
-"""QG-RD-02 / QG-RD-03 naming and boolean arity. Pure AST checks, one message per Violation.
+"""QG-RD-02 / QG-RD-03: vague names, single-letter names and two-bool functions fail.
 
-* Vague capability words in function, class and module names (handle, process, manage, do,
-  run_it, helper, util(s), misc, data, info, stuff, Manager, Helper, Handler, Processor)
-  matched as whole snake_case / CamelCase words. Forensic Coding: the reader cannot tell what
-  the unit does. Leaky Narrative: a call site that reads `process(data)` says nothing.
-* Single-letter names outside loop and comprehension targets, `x` / `y` and `_`.
-  Forensic Coding.
-* Two or more bool parameters on one function. God Method in larval form, and a Leaky
-  Narrative at every call site. Replace with a StrEnum or two named functions.
-* Advisory (printed, exit 0): is_ / use_ / enable_ parameters that can be passed positionally.
-
-Waivers: `.naming-waivers.txt`, delete-only, entries `path.py:name  # owner, reason, expires
-YYYY-MM-DD`; an entry with no future expiry date is itself an error.
-
-Usage: check_naming.py FILE.py ...   (exit 1 on any finding, 2 if the waiver file is unusable)
+Waivers: delete-only `.naming-waivers.txt`, `path.py:name  # owner, reason, expires YYYY-MM-DD`.
+Usage: check_naming.py FILE.py ...   (exit 1 on a finding, 2 if the waiver file is unusable)
 """
 
 import ast
@@ -48,6 +36,8 @@ ALLOWED_SINGLE = frozenset({"x", "y", "_"})
 FLAG_PREFIXES = ("is_", "use_", "enable_")
 FUNCTIONS = (ast.FunctionDef, ast.AsyncFunctionDef)
 WORDS = re.compile(r"[A-Z]+(?![a-z])|[A-Z]?[a-z]+|\d+")
+HTTP_VERB_METHOD = re.compile(r"^do_[A-Z]+$")
+HTTP_HANDLER_BASES = frozenset({"BaseHTTPRequestHandler", "SimpleHTTPRequestHandler"})
 EXPIRES = re.compile(r"expires\s+(\d{4}-\d{2}-\d{2})")
 
 
@@ -123,8 +113,35 @@ def _bool_findings(fn: ast.FunctionDef | ast.AsyncFunctionDef) -> tuple[list[str
     return errors, warnings
 
 
-def _definition_finding(node: ast.AST) -> tuple[str, str] | None:
+def _base_name(base: ast.expr) -> str | None:
+    if isinstance(base, ast.Name):
+        return base.id
+    return base.attr if isinstance(base, ast.Attribute) else None
+
+
+def _http_verb_methods(tree: ast.AST) -> set[int]:
+    """ids of do_<VERB> methods in classes deriving from the stdlib HTTP request handlers.
+
+    http.server dispatches on exactly this name, so it is the stdlib's contract, not ours.
+    """
+    ids = set()
+    for cls in ast.walk(tree):
+        if not isinstance(cls, ast.ClassDef):
+            continue
+        if not HTTP_HANDLER_BASES & {_base_name(base) for base in cls.bases}:
+            continue
+        ids.update(
+            id(item)
+            for item in cls.body
+            if isinstance(item, ast.FunctionDef) and HTTP_VERB_METHOD.match(item.name)
+        )
+    return ids
+
+
+def _definition_finding(node: ast.AST, http_verbs: set[int]) -> tuple[str, str] | None:
     if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return None
+    if id(node) in http_verbs:
         return None
     word = vague_in(node.name)
     if not word:
@@ -155,10 +172,10 @@ def _single_letter_finding(node: ast.AST, loops: set[int]) -> tuple[str, str] | 
 
 def _name_findings(tree: ast.AST) -> list[tuple[str, str]]:
     """(name, message) pairs for vague and single-letter names."""
-    loops = _loop_targets(tree)
+    loops, http_verbs = _loop_targets(tree), _http_verb_methods(tree)
     pairs = []
     for node in ast.walk(tree):
-        pairs += [_definition_finding(node), _single_letter_finding(node, loops)]
+        pairs += [_definition_finding(node, http_verbs), _single_letter_finding(node, loops)]
     return [pair for pair in pairs if pair]
 
 

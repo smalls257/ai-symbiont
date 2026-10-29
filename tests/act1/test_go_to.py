@@ -256,3 +256,40 @@ def test_route_hints_skip_doors_that_are_already_open():
     sim = Sim()
     sim.closed = frozenset()
     assert "door" not in {h.kind for h in route_hints(make_nav(), sim.view())}
+
+
+def _at_distance(name, units):
+    return (name, (START[0] + units, START[1]))
+
+
+def test_go_to_stops_when_an_enemy_is_within_reach():
+    sim = Sim(objects=[_at_distance("Zombieman", 37)])
+    result = GoTo("exit", make_nav()).step(sim.view())
+    assert isinstance(result, Done)
+    assert result.reason == "enemy in the way: Zombieman at 37"
+
+
+def test_go_to_ignores_an_enemy_beyond_reach():
+    sim = Sim(objects=[_at_distance("Zombieman", 300)])
+    result = GoTo("exit", make_nav()).step(sim.view())
+    assert not (isinstance(result, Done) and result.reason.startswith("enemy in the way"))
+
+
+def test_go_to_ignores_a_nearby_object_that_is_not_an_enemy():
+    sim = Sim(objects=[_at_distance("Stimpack", 37)])
+    result = GoTo("exit", make_nav()).step(sim.view())
+    assert not isinstance(result, Done)
+
+
+def test_go_to_names_the_nearest_of_several_enemies():
+    sim = Sim(objects=[_at_distance("ShotgunGuy", 200), _at_distance("Zombieman", 37)])
+    result = GoTo("exit", make_nav()).step(sim.view())
+    assert isinstance(result, Done)
+    assert result.reason == "enemy in the way: Zombieman at 37"
+
+
+def test_the_tic_budget_message_wins_over_an_enemy_in_the_way(monkeypatch):
+    monkeypatch.setattr(GoTo, "max_tics", 1)
+    sim = Sim(objects=[_at_distance("Zombieman", 37)])
+    result = GoTo("exit", make_nav()).step(sim.view())
+    assert isinstance(result, Done) and result.reason.startswith("out of tic budget")

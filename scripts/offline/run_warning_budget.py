@@ -1,24 +1,14 @@
 """Exploratory warning-budget run (Task 14c). Periphery script.
 
-Violation prevented: **Silent Fallback** at the claim level. The analysis
-(prereg/2026-10-28-warning-budget-exploratory.md, frozen first, EXPLORATORY /
-POST-HOC) cannot change the G6 verdict. This script replays the same learners
-on the same split as `run_selection.py`, reads the G6 settings from its results
-file, and hands the risk traces to the tested pure code in
-`symbiont.eval.warning_budget_report`. It loads, schedules and writes; it
-chooses no threshold itself.
-
-    run_warning_budget.py run --data ... --meta ... --g6-results results/offline-selection.json \
-        --out results/warning-budget-exploratory.json --freeze-commit <prereg commit>
-    run_warning_budget.py run ... --smoke-train-only   # never touches a real test task
-
-Set OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1: parallelism is by process.
+Post-hoc analysis (prereg/2026-10-28-warning-budget-exploratory.md); it cannot change the G6
+verdict. It replays the same learners on the same split as `run_selection.py` and hands the risk
+traces to `symbiont.eval.warning_budget_report`; it chooses no threshold itself.
+Usage: run_warning_budget.py run --data ... --meta ... --g6-results ... --out ...
 """
 
 import argparse
 import json
 import logging
-import platform
 import sys
 import tempfile
 import time
@@ -32,11 +22,12 @@ import run_selection as g6
 
 from symbiont.eval import selection as sel
 from symbiont.eval.offline import ReplayContext, Start, hub_modules, replay
+from symbiont.eval.prereg_git import run_provenance
 from symbiont.eval.warning_budget_metrics import RiskRecorder, risk_traces
 from symbiont.eval.warning_budget_report import ArmTraces, report
 
 log = logging.getLogger("warning-budget")
-PREREG = "prereg/2026-10-28-warning-budget-exploratory.md"
+PREREG_NAME = "2026-10-28-warning-budget-exploratory.md"
 
 
 @dataclass(frozen=True)
@@ -54,6 +45,8 @@ def g6_settings(path: Path) -> G6Settings:
     document = json.loads(Path(path).read_text())
     if document.get("smoke"):
         raise ValueError(f"{path} is a smoke run; the budget analysis needs the real G6 results")
+    if document.get("freeze_commit") is None:
+        raise ValueError(f"{path} is an exploratory run (no frozen prereg); G6 must be scored")
     chosen = document["calibration_train_only"]
     return G6Settings(
         counters_min_count=int(chosen["counters_min_count"]["chosen"]),
@@ -101,18 +94,18 @@ def trace_all_learners(settings: G6Settings, workers: int):
     return counters, similarity, dict(zip(sel.WIRING_SEEDS, fly_runs, strict=True))
 
 
-def provenance(args: argparse.Namespace, settings: G6Settings) -> dict[str, Any]:
+def provenance(
+    args: argparse.Namespace, settings: G6Settings, label: dict[str, str | None]
+) -> dict[str, Any]:
     """Where the numbers came from: prereg, G6 freeze, host, settings used."""
     return {
         "exploratory": True,
         "post_hoc": True,
         "smoke": args.smoke_train_only,
-        "prereg": PREREG,
-        "prereg_commit": args.freeze_commit,
+        **label,
         "g6_prereg": "prereg/2026-10-29-offline-selection.md",
         "g6_freeze_commit": settings.freeze_commit,
         "run_host": {
-            "hostname": platform.node(),
             "python": sys.version.split()[0],
             "numpy": np.__version__,
             "workers": args.workers,
@@ -127,6 +120,7 @@ def provenance(args: argparse.Namespace, settings: G6Settings) -> dict[str, Any]
 def run(args: argparse.Namespace) -> None:
     """Replay, report, write."""
     t_start = time.time()
+    label = run_provenance(scored=args.scored, prereg=args.prereg, expects=PREREG_NAME)
     settings = g6_settings(Path(args.g6_results))
     g6.TRAIN, g6.TEST, train_ids, test_ids, counts = g6.prepare_sessions(
         Path(args.data), smoke=args.smoke_train_only
@@ -137,7 +131,7 @@ def run(args: argparse.Namespace) -> None:
     for line in result["table_rows"]:
         log.info(line)
     document: dict[str, Any] = {
-        **provenance(args, settings),
+        **provenance(args, settings, label),
         "finished_utc": datetime.now(UTC).isoformat(timespec="seconds"),
         "wall_clock_s": time.time() - t_start,
         "data": {
@@ -166,11 +160,15 @@ def main(argv: list[str] | None = None) -> None:
     )
     sub = parser.add_subparsers(dest="cmd", required=True)
     run_parser = sub.add_parser("run")
-    for name in ("data", "meta", "g6-results", "out", "freeze-commit"):
+    for name in ("data", "meta", "g6-results", "out"):
         run_parser.add_argument(f"--{name}", required=True)
+    run_parser.add_argument("--scored", action="store_true")
+    run_parser.add_argument("--prereg")
     run_parser.add_argument("--workers", type=int, default=4)
     run_parser.add_argument("--smoke-train-only", action="store_true")
     args = parser.parse_args(argv)
+    if args.scored and args.smoke_train_only:
+        parser.error("--smoke-train-only never produces a scored result; drop one of the two")
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", stream=sys.stderr
     )

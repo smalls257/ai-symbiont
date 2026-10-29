@@ -34,6 +34,8 @@ def inlined_page(page_text: str, diagrams_dir: Path) -> str:
         if not svg_path.exists():
             raise DiagramMissingError(f"{svg_path} is missing; run diagrams/render.sh first")
         svg = svg_path.read_text().strip()
+        # Short lines keep the secrets-scan regexes from timing out on one 26 KB line.
+        svg = re.sub(r"(/>|</g>)(?=<)", r"\1\n", svg)
         return f"<!-- diagram:{name} -->\n{svg}\n<!-- /diagram -->"
 
     return MARKER.sub(replace, page_text)

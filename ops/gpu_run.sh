@@ -4,8 +4,8 @@
 #
 #   ops/gpu_run.sh -- <command> [args...]
 #
-# Exists to prevent a Silent Fallback: a crashed or interrupted overnight job
-# that leaves Glimmer stopped, with nobody told. Every exit path (normal,
+# Exists because a crashed or interrupted overnight job can leave Glimmer stopped, with
+# nobody told. Every exit path (normal,
 # job failure, INT, TERM) restores the recorded state and releases the lock.
 # SIGKILL cannot be trapped; it leaves the lock behind on purpose, and the
 # next run refuses and prints the recorded state so a human restores it.
@@ -20,18 +20,28 @@
 # a job outlive the session, run the wrapper under nohup/tmux, not the job.
 # The job runs in the background (job control), so it must not read the tty.
 #
-# Exit status: the job's; 128+n if stopped by signal n; 75 lock held;
-# 64 usage; 69 docker state unreadable or stop failed; 70 restore failed.
+# The other project on this box (llm-symbiont) runs GPU jobs under flock on its own lock files.
+# This wrapper takes every one of them too (polling `flock -n`, so a signal still stops the wait)
+# before it stops llama, so either project's jobs wait for the other's.
+#
+# Exit status: the job's; 128+n if stopped by signal n; 75 lock held or foreign wait timed out;
+# 64 usage; 69 docker state unreadable, stop failed, no flock, or a foreign lock dir missing;
+# 70 restore failed.
 #
 # Environment (tests point these at temp paths):
 #   GPU_RUN_LOG   default ~/gpu_run.log
 #   GPU_RUN_LOCK  default ~/.gpu_run.lock  (a directory: mkdir is atomic)
 #   GPU_RUN_GRACE default 30 seconds between TERM and KILL of the job
+#   GPU_RUN_FOREIGN_LOCKS  space-separated flock files of other projects; default
+#                          ~/llm-symbiont/gpu.lock and gpu.lock.1 (its two job slots)
+#   GPU_RUN_FOREIGN_WAIT   seconds to wait for them; default 0 (wait as long as it takes)
 
 readonly CONTAINER=llama
 readonly LOG="${GPU_RUN_LOG:-$HOME/gpu_run.log}"
 readonly GRACE="${GPU_RUN_GRACE:-30}"
 readonly LOCK="${GPU_RUN_LOCK:-$HOME/.gpu_run.lock}"
+readonly FOREIGN_LOCKS="${GPU_RUN_FOREIGN_LOCKS-$HOME/llm-symbiont/gpu.lock $HOME/llm-symbiont/gpu.lock.1}"
+readonly FOREIGN_WAIT="${GPU_RUN_FOREIGN_WAIT:-0}"
 
 holding_lock=false
 llama_was_running=""   # "true" / "false" once recorded
@@ -71,6 +81,34 @@ restore_llama() {
     return 1
   fi
   [ "$(llama_running)" = "true" ] || { die "$CONTAINER not running after start"; return 1; }
+}
+
+# Holds one foreign flock file open on fd $2 for the rest of the run (the job inherits it).
+# Numbered fds, not {fd}: bash 3.2 (the tests' macOS shell) has no fd allocation.
+take_foreign_lock() {
+  local file=$1 fd=$2 waited=0
+  [ -d "$(dirname "$file")" ] || { die "foreign lock dir missing for $file (set GPU_RUN_FOREIGN_LOCKS)"; return 69; }
+  eval "exec $fd>>\"\$file\"" || { die "cannot open foreign lock $file"; return 69; }
+  until flock -n "$fd"; do
+    [ -z "$signaled" ] || return $((128 + signaled))
+    if [ "$FOREIGN_WAIT" -gt 0 ] && [ "$waited" -ge "$FOREIGN_WAIT" ]; then
+      die "foreign lock $file still held after ${FOREIGN_WAIT}s"
+      return 75
+    fi
+    [ $((waited % 60)) -eq 0 ] && log "waiting for foreign lock $file (${waited}s)"
+    sleep 1
+    waited=$((waited + 1))
+  done
+  log "holding foreign lock $file"
+}
+
+take_foreign_locks() {
+  local file rc fd=20
+  command -v flock >/dev/null || { die "flock not found; it is how the other project locks the GPU"; return 69; }
+  for file in $FOREIGN_LOCKS; do
+    take_foreign_lock "$file" "$fd" || { rc=$?; return "$rc"; }
+    fd=$((fd + 1))
+  done
 }
 
 job_group_alive() { [ -n "$job_pid" ] && kill -0 -- "-$job_pid" 2>/dev/null; }
@@ -120,7 +158,16 @@ main() {
     exit 64
   fi
   shift
+  # Armed before the lock: a signal between mkdir and the traps would leave the lock behind.
+  # Until llama's state is recorded there is nothing to restore: a signal only ends the wait.
+  trap 'on_signal 2' INT
+  trap 'on_signal 15' TERM
+  trap 'on_signal 1' HUP
   acquire_lock || exit 75
+  if [ -n "$signaled" ]; then release_lock; exit $((128 + signaled)); fi
+  local rc=0
+  take_foreign_locks || rc=$?
+  if [ "$rc" -ne 0 ]; then release_lock; exit "$rc"; fi
 
   local state
   state=$(llama_running)

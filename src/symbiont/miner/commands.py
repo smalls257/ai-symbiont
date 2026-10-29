@@ -27,23 +27,21 @@ _LINE_SUFFIX = re.compile(r":\d+(:\d+)?$")
 
 def normalise_command(command: str) -> tuple[str, str]:
     """Return (program, first path-like argument or "-")."""
+    program, args = program_words(command)
+    return (program, _first_path(list(args)))
+
+
+def program_words(command: str) -> tuple[str, tuple[str, ...]]:
+    """Return (program, its arguments) for the segment that does the work; ("-", ()) if none."""
     segment = _working_segment(_tokens(command))
     if not segment:
-        return (NO_PATH, NO_PATH)
+        return (NO_PATH, ())
     program, args = _program_and_args(segment)
-    return (program, _first_path(args))
+    return (program, tuple(args))
 
 
 def status_program(command: str) -> str | None:
-    """Name the program whose exit status the shell reports for `command`.
-
-    None when the text cannot tell.
-
-    `a | b` and `a; b` report b. `a || b` failing means b ran and failed.
-    `a && b` failing may be a's failure with b never run, so b is the reporter
-    only when a just sets up the shell (`cd repo && grep ...`). `git grep` is
-    named as one program because its exit codes are grep's.
-    """
+    """The program whose exit status the shell reports for `command`, or None if unclear."""
     chain = _final_and_or_list(_tokens(command))
     if not chain:
         return None
@@ -91,12 +89,13 @@ def _advance_chain(
 
 
 def _only_sets_up(stage: list[str]) -> bool:
+    """True when a stage only sets up the shell (cd, export, ...)."""
     return os.path.basename(stage[0]) in _SETUP_PROGRAMS
 
 
 def _tokens(command: str) -> list[str]:
-    # Only the first line matters: later lines are heredoc bodies or
-    # continuations, and their free text often has unbalanced quotes.
+    """Shell tokens of the command's first line; later lines are heredoc bodies."""
+    # Their free text often has unbalanced quotes, so only the first line is tokenized.
     first_line = command.strip().splitlines()[0] if command.strip() else ""
     lexer = shlex.shlex(first_line, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
@@ -129,10 +128,12 @@ def _segments(tokens: list[str]) -> list[list[str]]:
 
 
 def _is_redirection(token: str) -> bool:
+    """True for a token made only of redirection characters."""
     return set(token) <= set("<>&") and bool(set(token) & set("<>"))
 
 
 def _working_segment(tokens: list[str]) -> list[str]:
+    """The first segment that does real work, skipping shell setup."""
     segments = _segments(tokens)
     for segment in segments:
         if os.path.basename(segment[0]) not in _SETUP_PROGRAMS:
@@ -141,6 +142,7 @@ def _working_segment(tokens: list[str]) -> list[str]:
 
 
 def _program_and_args(segment: list[str]) -> tuple[str, list[str]]:
+    """The program and its arguments, after env assignments and wrappers."""
     rest = _without_wrappers([token for token in segment if not _ENV_ASSIGNMENT.match(token)])
     if not rest:
         return (NO_PATH, [])
@@ -159,6 +161,7 @@ def _without_wrappers(words: list[str]) -> list[str]:
 
 
 def _first_path(args: list[str]) -> str:
+    """The first argument that is a stable path, or NO_PATH."""
     for arg in args:
         if path := _as_stable_path(arg):
             return path
@@ -166,6 +169,7 @@ def _first_path(args: list[str]) -> str:
 
 
 def _as_stable_path(arg: str) -> str | None:
+    """The argument as a path stable across runs; flags, numbers and temp paths are not."""
     if arg.startswith("-") or _NUMBER.match(arg) or arg.startswith(_TEMP_DIRS):
         return None
     path = _LINE_SUFFIX.sub("", arg.split("::")[0])

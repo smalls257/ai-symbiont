@@ -1,9 +1,9 @@
 flowchart LR
-  H["Your history\nagent sessions · PRs · corrections"] --> M["Miner\nfinds pain points, rule-based, CPU"]
-  M --> S[("Local store\noriginal text kept")]
-  S --> C["Pure core\ncounters · similarity · fly circuit"]
-  C --> A["Route A\nnotes via MCP + hooks\nthe model decides"]
-  S -. optional .-> B["Route B\npersonal LoRA on Muse Glimmer"]
-  A --> G["Your coding agent"]
-  B --> G
-  G -- "new sessions" --> H
+  W["Work\nyou and your agent on your project"] --> H[("Your history\nsessions · PRs · corrections")]
+  H --> M["Mine lessons\nwhat went wrong, how it was fixed"]
+  M --> L["Learn overnight\non your own machine"]
+  L --> B["Better next time\nplain-prose notes, no scores"]
+  B --> W
+  L --- P["Plug: any agent via MCP and hooks\nLlama 3.2 1B reader"]
+  L --- C["Core: personal Glimmer\nlearns from history and teacher runs"]
+  L --- E["Evolve: plays Freedoom via ViZDoom\nlessons tested on unseen levels"]

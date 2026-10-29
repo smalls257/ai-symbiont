@@ -1,0 +1,497 @@
+{
+ "model": "openai/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
+ "reasoning": "low",
+ "harness": "mini-swe-agent 2.4.6, swebench.yaml (tool calling)",
+ "step_limit": 75,
+ "wall_limit_s": 1800,
+ "label": "CAL2 plain Glimmer at step cap 75 (calibration, not a scored run) [measured]",
+ "cal2": {
+  "status": "stopped_by_coordinator",
+  "n_runs": 17,
+  "n_candidates": 77,
+  "skipped_above_band_at_old_cap": [
+   "tobymao__sqlglot-1367",
+   "tobymao__sqlglot-1782",
+   "tobymao__sqlglot-3689"
+  ],
+  "band_counts": {
+   "in_band": 1,
+   "too_easy": 6,
+   "too_hard": 0,
+   "pending": 3
+  },
+  "not_started": 67,
+  "per_stratum": {
+   "dialects/S": {
+    "in_band": 0,
+    "too_easy": 4,
+    "too_hard": 0,
+    "pending": 1
+   },
+   "expressions/S": {
+    "in_band": 0,
+    "too_easy": 1,
+    "too_hard": 0,
+    "pending": 0
+   },
+   "multi/S": {
+    "in_band": 1,
+    "too_easy": 0,
+    "too_hard": 0,
+    "pending": 1
+   },
+   "parser/S": {
+    "in_band": 0,
+    "too_easy": 1,
+    "too_hard": 0,
+    "pending": 1
+   }
+  },
+  "mean_wall_s": 862.2,
+  "tasks": [
+   {
+    "instance_id": "tobymao__sqlglot-1309",
+    "stratum": "expressions/S",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 39,
+      "wall_s": 565.2,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 65,
+      "wall_s": 1073.2,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-1379",
+    "stratum": "parser/S",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 45,
+      "wall_s": 999.4,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 29,
+      "wall_s": 503.9,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-1944",
+    "stratum": "dialects/S",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 39,
+      "wall_s": 653.4,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 27,
+      "wall_s": 417.7,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-2095",
+    "stratum": "dialects/S",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 58,
+      "wall_s": 964.8,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 54,
+      "wall_s": 773.9,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-2443",
+    "stratum": "dialects/S",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 25,
+      "wall_s": 390.0,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 31,
+      "wall_s": 382.7,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-2529",
+    "stratum": "dialects/S",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 48,
+      "wall_s": 1114.6,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 58,
+      "wall_s": 1215.5,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-2658",
+    "stratum": "multi/S",
+    "solved": 1,
+    "graded": 2,
+    "band": "in_band",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 43,
+      "wall_s": 1212.9,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": false,
+      "steps": 57,
+      "wall_s": 1805.4,
+      "exit_status": "TimeExceeded",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-3533",
+    "stratum": "dialects/S",
+    "solved": 1,
+    "graded": 1,
+    "band": "pending",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 35,
+      "wall_s": 428.6,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-1001",
+    "stratum": "parser/S",
+    "solved": 0,
+    "graded": 1,
+    "band": "pending",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 75,
+      "wall_s": 1173.7,
+      "exit_status": "LimitsExceeded",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-1143",
+    "stratum": "multi/S",
+    "solved": 0,
+    "graded": 1,
+    "band": "pending",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 75,
+      "wall_s": 982.3,
+      "exit_status": "LimitsExceeded",
+      "error_kind": null
+     }
+    ]
+   }
+  ],
+  "rule": "adaptive: runs 1-2, run 3 only at 1 of 2; in band = solved 1 or 2 of the graded runs; stopped before any stop rule fired"
+ },
+ "tier2_confirm": {
+  "status": "done",
+  "runs_per_task": 2,
+  "n_runs": 16,
+  "band_counts": {
+   "in_band": 2,
+   "too_easy": 2,
+   "too_hard": 4,
+   "pending": 0
+  },
+  "mean_wall_s": 924.4,
+  "tasks": [
+   {
+    "instance_id": "tobymao__sqlglot-910",
+    "stratum": "expressions/S",
+    "solved": 0,
+    "graded": 2,
+    "band": "too_hard",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 75,
+      "wall_s": 1132.5,
+      "exit_status": "LimitsExceeded",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": false,
+      "steps": 60,
+      "wall_s": 831.4,
+      "exit_status": "RepeatedFormatError",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-1703",
+    "stratum": "parser/S",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 37,
+      "wall_s": 465.0,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 38,
+      "wall_s": 487.5,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-3111",
+    "stratum": "multi/M",
+    "solved": 1,
+    "graded": 2,
+    "band": "in_band",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 75,
+      "wall_s": 912.5,
+      "exit_status": "LimitsExceeded",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 45,
+      "wall_s": 556.9,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-3339",
+    "stratum": "multi/S",
+    "solved": 0,
+    "graded": 2,
+    "band": "too_hard",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 75,
+      "wall_s": 1309.8,
+      "exit_status": "LimitsExceeded",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": false,
+      "steps": 67,
+      "wall_s": 1163.6,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-3426",
+    "stratum": "dialects/S",
+    "solved": 0,
+    "graded": 2,
+    "band": "too_hard",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 65,
+      "wall_s": 980.4,
+      "exit_status": "ContextWindowExceededError",
+      "error_kind": "context"
+     },
+     {
+      "run": 2,
+      "resolved": false,
+      "steps": 72,
+      "wall_s": 1242.4,
+      "exit_status": "ContextWindowExceededError",
+      "error_kind": "context"
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-3478",
+    "stratum": "dialects/M",
+    "solved": 1,
+    "graded": 2,
+    "band": "in_band",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 75,
+      "wall_s": 1365.5,
+      "exit_status": "ContextWindowExceededError",
+      "error_kind": "context"
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 50,
+      "wall_s": 780.6,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-3885",
+    "stratum": "parser/M",
+    "solved": 0,
+    "graded": 2,
+    "band": "too_hard",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": false,
+      "steps": 75,
+      "wall_s": 1057.9,
+      "exit_status": "LimitsExceeded",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": false,
+      "steps": 69,
+      "wall_s": 1085.4,
+      "exit_status": "ContextWindowExceededError",
+      "error_kind": "context"
+     }
+    ]
+   },
+   {
+    "instance_id": "tobymao__sqlglot-4390",
+    "stratum": "parser/M",
+    "solved": 2,
+    "graded": 2,
+    "band": "too_easy",
+    "runs": [
+     {
+      "run": 1,
+      "resolved": true,
+      "steps": 64,
+      "wall_s": 808.8,
+      "exit_status": "Submitted",
+      "error_kind": null
+     },
+     {
+      "run": 2,
+      "resolved": true,
+      "steps": 53,
+      "wall_s": 610.7,
+      "exit_status": "Submitted",
+      "error_kind": null
+     }
+    ]
+   }
+  ],
+  "rule": "fixed 2 runs per task from capability-candidates; 0 of 2 = hard for the capability tier"
+ },
+ "note": "Context-window errors end several tier-2 runs unsolved; counted as unsolved, error_kind kept."
+}
