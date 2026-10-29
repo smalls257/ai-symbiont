@@ -1,0 +1,30 @@
+# Route B nightly job (scripts/routeb/nightly.py). Placeholders only: copy to
+# ~/.config/symbiont/nightly.toml (or point SYMBIONT_NIGHTLY_CONFIG at your copy) and fill it in
+# there. Never commit real hosts, user names or home paths (QG-SEC-05).
+
+# Where the local store lives (the same one `symbiont mine` and `symbiont serve` use).
+data_dir = "~/.symbiont"
+
+[host]
+# An ssh destination; an alias from ~/.ssh/config keeps the address out of this file too.
+ssh = "training-host"
+# The ai-symbiont checkout on the host (ops/routeb_nightly_host.sh runs from it).
+checkout = "/srv/ai-symbiont"
+# Untracked env file on the host: ROUTEB_PRESET, ROUTEB_GLIMMER_URL, ROUTEB_PLAIN_MODEL,
+# ROUTEB_SERVE_DIR, ROUTEB_PY, ROUTEB_SNAPSHOT, ROUTEB_PEFT_PATH, ROUTEB_LLAMA_CPP,
+# ROUTEB_STATUS_LOG (see the ops/routeb_nightly_host.sh header).
+env_file = "/srv/routeb/nightly.env"
+# Each night's rows, adapter and logs go under <work_root>/<repo>/<stamp>.
+work_root = "/srv/routeb/nightly"
+# Personal names are <model_prefix>-<repo>.
+model_prefix = "Muse-Glimmer-30B"
+
+[[repo]]
+name = "sqlglot"
+# The store project `symbiont mine --project` used; defaults to name.
+project = "sqlglot"
+# Logs to register (READER=PATH; PATH may be a glob, so each day's new session files join).
+# Registered logs are re-read every night; a glob that matches nothing stops the night.
+sources = ["claude-code=/srv/agent-logs/sqlglot/*.jsonl"]
+# Benchmark task ids that a scored arm evaluates: mining refuses their trajectories.
+held_out = []
