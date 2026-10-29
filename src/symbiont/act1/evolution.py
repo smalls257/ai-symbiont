@@ -48,6 +48,10 @@ class Player(Protocol):
         ...
 
 
+class SeedReusedError(ValueError):
+    """A selection case (level and seed) that an earlier generation already played."""
+
+
 class UnexpectedLevelError(ValueError):
     """A case on a level that is neither a selection nor a validation level."""
 
@@ -127,6 +131,31 @@ def _summaries(results: Sequence[GameResult], cards: Sequence[Card]) -> dict[str
     return out
 
 
+def seed_pairs(
+    played: Mapping[tuple[str, Case], GameResult],
+    cards: Sequence[Card],
+    first: Sequence[Case],
+    second: Sequence[Case],
+) -> dict[str, tuple[tuple[float, float], ...]]:
+    """Seed pairs per card and level, leaving out a level where any noise game is ungraded."""
+
+    def result(card: Card, case: Case) -> GameResult:
+        return played[(card.card_id, case)]
+
+    def graded(level: int) -> bool:
+        games = [result(card, case) for card in cards for case in (first[level], second[level])]
+        return all(game.grade == Grade.GRADED for game in games)
+
+    whole_levels = [i for i in range(LEVELS_PER_BLOCK) if graded(i)]
+    return {
+        card.card_id: tuple(
+            (fitness(result(card, first[i])), fitness(result(card, second[i])))
+            for i in whole_levels
+        )
+        for card in cards
+    }
+
+
 class _Run:
     """State of one evolve call; each method is one named step of the loop."""
 
@@ -136,6 +165,7 @@ class _Run:
         self.record = RunRecord(games_per_case=rules.games_per_case)
         self.cards = self.record.cards
         self._played: dict[tuple[str, Case], GameResult] = {}
+        self._case_generation: dict[tuple[str, int], int] = {}
 
     def play(
         self, cards: Sequence[Card], cases: Sequence[Case], generation: int, role: GameRole
@@ -149,6 +179,8 @@ class _Run:
         for card, case in pairs:
             self.cards[card.card_id] = card
             self._require_allowed(case, role)
+            if role == GameRole.SELECTION:
+                self._require_fresh(case, generation)
         todo = list(dict.fromkeys(p for p in pairs if (p[0].card_id, p[1]) not in self._played))
         fresh = self._play_batch(todo)
         results = []
@@ -179,6 +211,14 @@ class _Run:
             for card, case in todo:
                 keep(card, case, self.player.play(card, case))
         return done
+
+    def _require_fresh(self, case: Case, generation: int) -> None:
+        """Every generation selects on its own fresh seeds: no (level, seed) is played twice."""
+        first = self._case_generation.setdefault((case.level, case.seed), generation)
+        if first != generation:
+            raise SeedReusedError(
+                f"{case.level} seed {case.seed} was already played by generation {first}"
+            )
 
     def _require_allowed(self, case: Case, role: GameRole) -> None:
         """Held-out levels never reach the player."""
@@ -213,7 +253,7 @@ class _Run:
         replay_results = self._play_graded(noisy, second, GameRole.SELECTION)
         require_graded_share([*results, *replay_results])
         noise = noise_check(
-            self._replays(noisy, first, second),
+            seed_pairs(self._played, noisy, first, second),
             rules.spend_room,
             LEVELS_PER_BLOCK * rules.games_per_case,
         )
@@ -227,27 +267,6 @@ class _Run:
             self.record.games_per_case = rules.games_per_case * 2
         every = generation_cases(self.split, 0, rules.run_seed, self.record.games_per_case)
         return self.play(seeds, every, 0, GameRole.SELECTION), noise
-
-    def _replays(
-        self, cards: Sequence[Card], first: Sequence[Case], second: Sequence[Case]
-    ) -> dict[str, tuple[tuple[float, float], ...]]:
-        """Seed pairs per card and level, leaving out a level where any noise game is ungraded."""
-
-        def result(card: Card, case: Case) -> GameResult:
-            return self._played[(card.card_id, case)]
-
-        def graded(level: int) -> bool:
-            games = [result(c, case) for c in cards for case in (first[level], second[level])]
-            return all(game.grade == Grade.GRADED for game in games)
-
-        whole_levels = [i for i in range(LEVELS_PER_BLOCK) if graded(i)]
-        return {
-            card.card_id: tuple(
-                (fitness(result(card, first[i])), fitness(result(card, second[i])))
-                for i in whole_levels
-            )
-            for card in cards
-        }
 
     def advance(
         self, generation: int, arms: Mapping[Arm, _ArmState], tools: Mapping[Arm, VariationTools]
@@ -295,11 +314,17 @@ class _Run:
         return cards
 
     def validate(self, generation: int, state: _ArmState) -> None:
-        """The evolved arm's best card of this generation plays the validation levels."""
-        table = self.record.tables[Arm.EVOLVED][-1]
-        best = max(
-            state.population.cards, key=lambda card: (_mean_card(table, card), -card.words())
-        )
+        """The card selection favored going in, on this generation's fresh cases and held back.
+
+        It is the best card of the previous generation's scores, so neither number is biased by
+        having picked the card on these games: the gap is training minus held-back seeds.
+        """
+        before = self.record.tables[Arm.EVOLVED][-2]
+        carried = {card.card_id: card for card in state.population.cards}
+        favored = [card_id for card_id in before.cards if card_id in carried]
+        best = carried[
+            max(favored, key=lambda cid: (_mean_card(before, carried[cid]), -carried[cid].words()))
+        ]
         training = _mean([r for r in state.results if r.card_id == best.card_id])
         cases = validation_cases(self.split, generation, self.rules.run_seed)
         results = self.play([best], cases, generation, GameRole.VALIDATION)

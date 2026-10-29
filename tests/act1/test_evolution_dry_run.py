@@ -209,3 +209,50 @@ def test_an_ungraded_noise_game_is_played_again_so_the_verdict_comes_from_graded
 def test_the_noise_verdict_is_judged_at_the_games_per_card_selection_uses():
     report = run(FakePlayer(noise=0.4, effect=0.0), generations=0).noise
     assert report.verdict is NoiseVerdict.DOUBLE_GAMES and report.selection_games == 4
+
+
+def test_no_selection_case_is_ever_played_by_two_generations():
+    record = run(generations=4)
+    owner = {}
+    for played in record.games:
+        key = (played.result.case.level, played.result.case.seed)
+        assert owner.setdefault(key, played.generation) == played.generation, key
+
+
+def test_a_reused_selection_seed_raises(monkeypatch):
+    from symbiont.act1 import evolution
+
+    same = evolution.generation_cases
+    monkeypatch.setattr(
+        evolution, "generation_cases", lambda split, g, seed, n: same(split, 0, seed, n)
+    )
+    with pytest.raises(evolution.SeedReusedError, match="already played by generation 0"):
+        run(generations=2)
+
+
+def test_each_generations_table_holds_only_that_generations_fresh_cases():
+    record = run(generations=3)
+    seen = set()
+    for table in record.tables[Arm.EVOLVED]:
+        cases = {(case.level, case.seed) for case in table.cases}
+        assert cases and cases.isdisjoint(seen)  # no fitness carried over from an earlier set
+        seen |= cases
+
+
+def test_the_gap_scores_the_card_selection_favored_on_fresh_cases_against_held_back_seeds():
+    record = run(generations=3)
+    tables = record.tables[Arm.EVOLVED]
+
+    def mean_in(table, card_id):
+        return sum(table.scores[(card_id, case)] for case in table.cases) / len(table.cases)
+
+    for generation in (1, 2, 3):
+        before, now = tables[generation - 1], tables[generation]
+        carried = [cid for cid in before.cards if cid in now.cards]
+        favored = max(carried, key=lambda cid: mean_in(before, cid))
+        validated = {
+            g.result.card_id for g in record.validation_games if g.generation == generation
+        }
+        assert validated == {favored}  # chosen on the previous cases, scored on fresh ones
+        training = next(t for g, t, _ in record.gaps if g == generation)
+        assert training == pytest.approx(mean_in(now, favored))
