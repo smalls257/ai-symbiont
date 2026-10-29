@@ -13,6 +13,7 @@ Exploratory; no prereg. Laptop MLX, Llama 3.2 1B Instruct. Results: `results/plu
   - a3: from a2v, the repo's rows plus twice as many prompt-reading rows, 8 epochs.
   - a3-more: the same mix for 16 epochs, so twice the exposure to the repo's rows.
   - a3-replay: a3 plus one AIDev habit row replayed for each of the repo's rows.
+  - a3-more-replay (queued after the scored run, owner GO): a3-replay's rows for 16 epochs. Its go rule adds a habits bar fixed before it ran: ranked habits at least a2v's minus 0.10.
 - **Probes.** 25 reworded probes per repo for the trained lessons and 15 for the new lessons [measured]: 250 and 150 pooled. Wrong lessons come from the next repo by name.
 - **Answers.** All answers come from one version of `scripts/routea/answer_questions.py`. The results file records its sha256. That record was written after the answers, from a script unchanged in git since before the run began.
 
@@ -28,11 +29,13 @@ Intervals are 95% percentile bootstrap intervals over repos (10,000 resamples, s
 | a3 | 0.62 [0.54, 0.72] | 0.54 | 0.67 [0.57, 0.77] | 0.24 / 0.25 | 0.00 / 0.00 / 1.00 |
 | a3-more | 0.66 [0.56, 0.77] | 0.53 | 0.76 [0.68, 0.85] | 0.20 / 0.27 | 0.00 / 0.00 / 1.00 |
 | a3-replay | 0.58 [0.52, 0.63] | 0.54 | 0.63 [0.57, 0.69] | 0.91 / 0.82 | 0.00 / 0.02 / 0.97 |
+| a3-more-replay | 0.62 [0.55, 0.69] | 0.53 | 0.70 [0.62, 0.77] | 0.94 / 0.74 | 0.00 / 0.00 / 1.00 |
 
 All rows are [measured]. Verdicts by the unchanged rule on the means (go: (1) at least the per-repo adapter's and (3) at least a2v's; kill: (3) below a1's):
 - **a3-more: go** [measured]. 0.66 against 0.56 on (1); 0.76 against 0.71 on (3).
 - **a3: hold** [measured]. 0.67 on (3) is just under a2v's 0.71.
 - **a3-replay: hold** [measured]. 0.63 on (3) is under a2v's 0.71, but it is the only consolidation arm that keeps the habits (0.91 ranked).
+- **a3-more-replay: hold** [measured]. It passes (1) (0.62 against 0.56) and the habits bar (0.94 against 0.95 − 0.10), and misses (3) by 0.007 (0.700 against 0.707).
 - No arm is killed [measured].
 
 ## Reading
@@ -41,4 +44,4 @@ All rows are [measured]. Verdicts by the unchanged rule on the means (go: (1) at
 - Consolidating without replay wipes the habits: a3 and a3-more fall to chance on ranked choice (0.24 and 0.20). Replaying habit rows keeps them (0.91) at a small cost in new-lesson recall [measured].
 - Every arm meta-trained to read its prompt abstains when another repo's lessons stand in (abstention 0.97 to 1.00, confabulation at most 0.02) [measured]. The per-repo adapter and a1 confabulate 0.04 to 0.05 and never abstain [measured]. The per-repo adapter still answers from its weights under wrong lessons (0.38 recall).
 - a2v alone already reads its prompt best of the no-training arms (0.58 trained, 0.71 new) and keeps habits (0.95) [measured]. That is the arm the frozen Plug run (`prereg/2026-10-28-l2l-a2.md`) scores on 13 unseen repos.
-- One seed per arm and 10 small repos [hypothesis that seed spread is smaller than repo spread]. A combined arm, more steps with replay, was not run.
+- One seed per arm and 10 small repos [hypothesis that seed spread is smaller than repo spread]. a3-more-replay is the combined arm: it keeps the habits and nearly all of a3-more's gain on (1).

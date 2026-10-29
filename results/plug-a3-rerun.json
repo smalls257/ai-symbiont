@@ -483,6 +483,126 @@
    "wrong_lessons": 0.0
   },
   {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7273,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.64,
+   "new_lessons": 0.8667,
+   "no_lessons": 0.6,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 0.96,
+   "wrong_confabulation": 0.04,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 1.0,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.36,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.4,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7955,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.72,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.6,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7727,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.64,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7045,
+   "habits_ranked": 0.8864,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.6,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.75,
+   "habits_ranked": 0.9773,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.64,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.7045,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.8,
+   "no_lessons": 0.52,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.9091,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.8667,
+   "no_lessons": 0.72,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7045,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.68,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.88,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.4318,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.56,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
    "arm": "a3_replay",
    "habits_keyword": 1.0,
    "habits_ranked": 1.0,
@@ -1021,6 +1141,51 @@
     0.0,
     0.0
    ]
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7432,
+   "habits_keyword_ci95": [
+    0.6545,
+    0.8296
+   ],
+   "habits_ranked": 0.9432,
+   "habits_ranked_ci95": [
+    0.8841,
+    0.9841
+   ],
+   "lessons_in_prompt": 0.532,
+   "lessons_in_prompt_ci95": [
+    0.468,
+    0.6
+   ],
+   "new_lessons": 0.7,
+   "new_lessons_ci95": [
+    0.62,
+    0.7733
+   ],
+   "no_lessons": 0.616,
+   "no_lessons_ci95": [
+    0.548,
+    0.692
+   ],
+   "repos": 10,
+   "role": "under_test",
+   "wrong_abstention": 0.996,
+   "wrong_abstention_ci95": [
+    0.988,
+    1.0
+   ],
+   "wrong_confabulation": 0.004,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.012
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
   }
  ],
  "rule": "Go if recall without lessons reaches the per-repo adapter and new-lesson recall reaches a2; kill if new-lesson recall falls below a1.",
@@ -1028,6 +1193,7 @@
  "verdicts": {
   "a3": "hold",
   "a3_more": "go",
+  "a3_more_replay": "hold",
   "a3_replay": "hold"
  }
 }
