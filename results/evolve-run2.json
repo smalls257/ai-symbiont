@@ -1,0 +1,252 @@
+{
+ "schema": "evolve-run2-v1",
+ "label": "exploratory run 2, Spark low reasoning, temperature 0 [measured]",
+ "claim": "exploratory",
+ "noise": {
+  "replay_variance": 0.11677069561745183,
+  "replay_sd": 0.341717274391348,
+  "mean": -0.21003268386204474,
+  "cases": 5.0,
+  "replicates": 5.0,
+  "games": 25,
+  "expected_half_width_of_a_paired_difference": 0.19334474914945818,
+  "paired_cases": 24
+ },
+ "reflection": {
+  "evolved arm": {
+   "children": 5.0,
+   "beat_parent": 3.0,
+   "share": 0.6,
+   "low": 0.23071993220883708,
+   "high": 0.8823817688407467,
+   "mean_gain": -0.08994895377957006
+  },
+  "no-selection arm": {
+   "children": 5.0,
+   "beat_parent": 2.0,
+   "share": 0.4,
+   "low": 0.1176182311592533,
+   "high": 0.769280067791163,
+   "mean_gain": -0.06052838708129197
+  },
+  "random operator": {
+   "children": 5.0,
+   "beat_parent": 2.0,
+   "share": 0.4,
+   "low": 0.1176182311592533,
+   "high": 0.769280067791163,
+   "mean_gain": -0.008381762313081497
+  }
+ },
+ "final_ids": {
+  "gen0": "5984390e1d7c",
+  "evolved": "5e87f3aecc8f",
+  "control": "5984390e1d7c"
+ },
+ "paired": [
+  {
+   "label": "evolved minus control, all",
+   "role": "under_test",
+   "pairs": 24,
+   "mean_difference": -0.001144382266344839,
+   "low": -0.05261773675353365,
+   "high": 0.047150267454043875,
+   "word": "tie"
+  },
+  {
+   "label": "evolved minus control, selection maps",
+   "role": "under_test",
+   "pairs": 12,
+   "mean_difference": 0.004233130196715835,
+   "low": -0.08144137107083832,
+   "high": 0.06366094754189199,
+   "word": "tie"
+  },
+  {
+   "label": "evolved minus control, held-back maps",
+   "role": "under_test",
+   "pairs": 12,
+   "mean_difference": -0.006521894729405513,
+   "low": -0.06499999999999997,
+   "high": 0.07063170331682193,
+   "word": "tie"
+  },
+  {
+   "label": "evolved minus gen0, all",
+   "role": "under_test",
+   "pairs": 24,
+   "mean_difference": -0.11508016048393083,
+   "low": -0.31717977327569447,
+   "high": 0.019924367096729442,
+   "word": "tie"
+  },
+  {
+   "label": "evolved minus gen0, selection maps",
+   "role": "under_test",
+   "pairs": 12,
+   "mean_difference": -0.20374919600831828,
+   "low": -0.5143613684879746,
+   "high": 0.024120558273494175,
+   "word": "tie"
+  },
+  {
+   "label": "evolved minus gen0, held-back maps",
+   "role": "under_test",
+   "pairs": 12,
+   "mean_difference": -0.02641112495954341,
+   "low": -0.15,
+   "high": 0.11148292906298048,
+   "word": "tie"
+  },
+  {
+   "label": "control minus gen0, all",
+   "role": "reference",
+   "pairs": 24,
+   "mean_difference": -0.113935778217586,
+   "low": -0.3211406222495011,
+   "high": -0.006422122923654852,
+   "word": "worse"
+  },
+  {
+   "label": "control minus gen0, selection maps",
+   "role": "reference",
+   "pairs": 12,
+   "mean_difference": -0.2079823262050341,
+   "low": -0.529189291018471,
+   "high": -0.018747398115666888,
+   "word": "worse"
+  },
+  {
+   "label": "control minus gen0, held-back maps",
+   "role": "reference",
+   "pairs": 12,
+   "mean_difference": -0.0198892302301379,
+   "low": -0.08500000000000002,
+   "high": 0.040851225746158557,
+   "word": "tie"
+  }
+ ],
+ "rows": [
+  {
+   "label": "gen0 card, final test",
+   "role": "reference",
+   "mean_fitness": -0.4239852320556206
+  },
+  {
+   "label": "evolved card, final test",
+   "role": "under_test",
+   "mean_fitness": -0.5390653925395515
+  },
+  {
+   "label": "control card, final test",
+   "role": "reference",
+   "mean_fitness": -0.5379210102732066
+  },
+  {
+   "label": "evolved generation 1",
+   "role": "under_test",
+   "current_mean": -0.4752186238731901,
+   "child_mean": -0.5523142504152172,
+   "child_kept": false
+  },
+  {
+   "label": "evolved generation 2",
+   "role": "under_test",
+   "current_mean": -0.06060191853786745,
+   "child_mean": -0.460140795192138,
+   "child_kept": false
+  },
+  {
+   "label": "evolved generation 3",
+   "role": "under_test",
+   "current_mean": -0.5470936783664806,
+   "child_mean": -0.5231900815547705,
+   "child_kept": true
+  },
+  {
+   "label": "evolved generation 4",
+   "role": "under_test",
+   "current_mean": -0.18948299258040902,
+   "child_mean": -0.1869108822368612,
+   "child_kept": true
+  },
+  {
+   "label": "evolved generation 5",
+   "role": "under_test",
+   "current_mean": -0.4859709616138989,
+   "child_mean": -0.4855569344707094,
+   "child_kept": true
+  },
+  {
+   "label": "control generation 1",
+   "role": "reference",
+   "current_mean": -0.46093613170657755,
+   "child_mean": -0.458200798590258,
+   "child_kept": false
+  },
+  {
+   "label": "control generation 2",
+   "role": "reference",
+   "current_mean": -0.12440726641311284,
+   "child_mean": -0.44672224654370585,
+   "child_kept": false
+  },
+  {
+   "label": "control generation 3",
+   "role": "reference",
+   "current_mean": -0.5151886819791731,
+   "child_mean": -0.6575981801836924,
+   "child_kept": false
+  },
+  {
+   "label": "control generation 4",
+   "role": "reference",
+   "current_mean": -0.6048181085665213,
+   "child_mean": -0.07350819627690912,
+   "child_kept": false
+  },
+  {
+   "label": "control generation 5",
+   "role": "reference",
+   "current_mean": -0.0698989702555039,
+   "child_mean": -0.4418616727327832,
+   "child_kept": false
+  },
+  {
+   "label": "random generation 1",
+   "role": "reference",
+   "current_mean": -0.4752186238731901,
+   "child_mean": -0.4776919759982851
+  },
+  {
+   "label": "random generation 2",
+   "role": "reference",
+   "current_mean": -0.06060191853786745,
+   "child_mean": -0.3763048160705191
+  },
+  {
+   "label": "random generation 3",
+   "role": "reference",
+   "current_mean": -0.5470936783664806,
+   "child_mean": -0.5359886247383149
+  },
+  {
+   "label": "random generation 4",
+   "role": "reference",
+   "current_mean": -0.18948299258040902,
+   "child_mean": -0.23437673593615926
+  },
+  {
+   "label": "random generation 5",
+   "role": "reference",
+   "current_mean": -0.4859709616138989,
+   "child_mean": -0.1759148337939752
+  }
+ ],
+ "spend": {
+  "calls": 2763,
+  "failed_calls": 0,
+  "dollars": 0.6824,
+  "source": "spend ledger file, the five duel runs"
+ }
+}

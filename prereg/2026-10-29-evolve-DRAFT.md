@@ -37,6 +37,13 @@ The scored repeat of the final test, on the held-out maps that pass the extended
 
 The first 25 games replay one card on the same cases: one game's variance across replays is 0.117 and its standard deviation 0.342 [measured] (results/evolve-run2.json). A paired difference of two cards over 24 cases, one game each, then has a 95% half-width of 1.96 times the square root of (2 x 0.117 / 24), which is 0.193 [measured]. A difference smaller than that reads as a tie; the generation-0 spread between cards in the first exploratory run was a standard deviation of about 0.023 [measured], so selection among near-identical cards cannot show in 24 games. Per card the sensitivity check saw a gap of 0.3 to 0.6 only between cards that differ a lot (the best generation-0 card against the empty card) [measured].
 
+## What run 2 showed (exploratory, results/evolve-run2.json)
+
+- The final comparison [measured]: evolved best minus no-selection best was -0.001 (95% interval -0.053 to 0.047, a tie); evolved best minus generation-0 best was -0.115 (-0.317 to 0.020, a tie); on the 12 held-back-map cases alone -0.007 and -0.026, both ties.
+- The no-selection arm kept its starting card in all 5 generations (a coin; chance 1 in 32 [hypothesis]), so its best card is the generation-0 card. Its final-test games are therefore a replay of the generation-0 card on the same cases, and the difference between the two was -0.114 (-0.321 to -0.006) [measured]: an identical card read as "worse" by a hair, which is what a 95% interval does about once in 20 comparisons and shows the noise is as large as the noise phase said.
+- The reflection step [measured]: of 5 children written from the best and worst games in the evolved arm, 3 beat their parent on the same cases (95% Wilson interval 0.23 to 0.88); in the no-selection arm 2 of 5 (0.12 to 0.77); of 5 children by a random operator, 2 (0.12 to 0.77). The mean fitness gain of a child over its parent was -0.09, -0.06 and -0.01. Five children a group cannot tell these apart.
+- Cost: 2763 Spark calls and 0.68 dollars for the five runs [measured] (spend ledger).
+
 ## Fitness, picking, guards
 
 - Per game: 1.0 for the exit, plus 0.5 times the furthest share of the walking route to the exit reached, minus 0.02 per tagged mistake, minus 0.5 for dying [hypothesis] (the weights are a judgment call). Kills are reported, never scored. A shot fired with no enemy in view is a wasted move.
