@@ -109,7 +109,7 @@ def _agent_run(
     """Run the agent; the submitted patch and the record's error, exit, steps and tokens."""
     setting = Setting("low", config["step_limit"], config["wall_limit_min"] * 60, teacher="spark")
     agent_cfg, model_cfg = agent_config(setting)
-    label = f"plug-agent-1-{row['instance_id']}-{source.arm}"
+    label = f"{config['run_label']}-{row['instance_id']}-{source.arm}"
     rec: dict[str, Any] = {"error_kind": None}
     env = None
     try:
