@@ -110,10 +110,12 @@ def resume_from(model, adapter_dir: Path) -> None:
 
 
 def masked_loss(model, ids: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-    """Mean cross-entropy over the masked target tokens of the whole batch (mlx default_loss)."""
-    logits = model(input_ids=ids[:, :-1]).logits.float()
-    losses = cross_entropy(logits.transpose(1, 2), ids[:, 1:], reduction="none")
-    return (losses * mask).sum() / mask.sum()
+    """Mean cross-entropy over masked targets (mlx default_loss); projects only those positions."""
+    hidden = model.base_model.model.model(input_ids=ids[:, :-1]).last_hidden_state
+    picked = mask.bool()
+    logits = model.base_model.model.lm_head(hidden[picked]).float()
+    losses = cross_entropy(logits, ids[:, 1:][picked], reduction="sum")
+    return losses / mask.sum()
 
 
 @torch.no_grad()

@@ -29,9 +29,6 @@ LOGS="$RUN/logs"
 EPOCHS=8  # train_lora.sh default; a3 and a3_replay use it on the laptop
 BATCH=4   # must equal train_lora_torch.BATCH
 mkdir -p "$LOGS" "$RUN/adapters"
-# Rows differ in length, so the default allocator caches blocks of every shape (15 GB reserved for a
-# 1B step that holds far less in live tensors); expandable segments make "reserved" track the need.
-export PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 trained() { grep -qx "train-$1 [0-9]*" "$LOGS/timing.txt" 2>/dev/null; }
 
