@@ -128,3 +128,14 @@ def test_a_summary_without_a_ledger_snapshot_is_refused_not_given_a_made_up_spen
     del broken["spend"]
     with pytest.raises(export_progress.MissingSpendError):
         export_progress.export(broken)
+
+
+def test_the_results_document_has_a_labeled_row_per_arm_and_generation_and_the_floor(record):
+    rows = export_progress.results_document(export_progress.export(summary(record)))["rows"]
+    assert {r["role"] for r in rows} == {"under_test", "reference", "floor"}
+    assert len([r for r in rows if r["label"].startswith("evolved")]) == 4
+    assert rows[-1] == {
+        "label": "no card",
+        "role": "floor",
+        "mean_fitness": rows[-1]["mean_fitness"],
+    }

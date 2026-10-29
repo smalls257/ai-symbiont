@@ -56,9 +56,7 @@ PLAY_DECISIONS = 16
 SIMULATED_BANNER = (
     "SIMULATED: a dry run; no real game was played and none of these numbers is a result"
 )
-EXPLORATORY_NOTE = (
-    "validation is held-back seeds on the same maps, weaker than the design's validation levels"
-)
+EXPLORATORY_NOTE = "validation = held-back seeds (weaker than validation levels)"
 
 
 class PlayerKind(StrEnum):
@@ -192,7 +190,7 @@ def label_text(args: argparse.Namespace, label: RunLabel | None) -> str:
     if not args.pool:
         return f"exploratory, {base}"
     maps = len(args.pool.split(","))
-    return f"exploratory, {base}, {maps} navigable training maps; {EXPLORATORY_NOTE}"
+    return f"exploratory, {base}, {maps} training maps; {EXPLORATORY_NOTE}"
 
 
 def run(args: argparse.Namespace) -> RunRecord:

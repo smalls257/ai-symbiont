@@ -261,8 +261,8 @@ def test_the_exploratory_pool_makes_an_exploratory_split_and_a_plain_label(tmp_p
         ["--run", "r", "--player", "scripted", "--exploratory", "--pool", "MAP01,MAP02,MAP05,MAP06"]
     )
     text = run_evolve.label_text(exploratory, run_evolve.label_of(exploratory))
-    assert text.startswith("exploratory, scripted player, 4 navigable training maps")
-    assert "weaker than the design's validation levels" in text
+    assert text.startswith("exploratory, scripted player, 4 training maps")
+    assert "weaker than validation levels" in text and len(text) <= 120
 
 
 def test_a_dry_run_on_the_exploratory_pool_finishes(tmp_path):

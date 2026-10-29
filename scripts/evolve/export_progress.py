@@ -118,6 +118,24 @@ def export(summary: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def results_document(page: dict[str, Any]) -> dict[str, Any]:
+    """The page document as a results file: a labeled row per arm and generation, and the floor."""
+    rows = [
+        {
+            "label": f"{p['arm']} gen {p['generation']}",
+            "role": "under_test" if p["arm"] == "evolved" else "reference",
+            "mean_fitness": p["mean_fitness"],
+            "best_fitness": p["best_fitness"],
+        }
+        for p in page["curves"]
+    ]
+    rows.append(
+        {"label": "no card", "role": "floor", "mean_fitness": page["floor"]["mean_fitness"]}
+    )
+    keep = ("schema", "label", "claim", "validation", "noise", "stop_reason", "spend", "picks")
+    return {**{k: page[k] for k in keep}, "schema": "evolve-generations-v1", "rows": rows}
+
+
 def main(argv: list[str] | None = None) -> int:
     """Write the page JSON, and the owner's local card copy if asked."""
     parser = argparse.ArgumentParser(description=__doc__)
@@ -125,9 +143,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--state", type=Path)
     parser.add_argument("--cards-out", type=Path)
+    parser.add_argument("--results-out", type=Path)
     args = parser.parse_args(argv)
     document = export(json.loads(args.summary.read_text()))
     args.out.write_text(json.dumps(document, indent=1) + "\n")
+    if args.results_out:
+        args.results_out.write_text(json.dumps(results_document(document), indent=1) + "\n")
     if args.state and args.cards_out:
         cards = json.loads(args.state.read_text())["cards"]
         args.cards_out.write_text(json.dumps(cards, indent=1))
