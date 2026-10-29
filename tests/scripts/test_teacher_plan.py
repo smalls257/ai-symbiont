@@ -36,6 +36,9 @@ def test_plan_skips_reliable_tasks_and_refuses_test_tasks():
     module = load()
     test_set = {"test": [{"task": "t"}], "collect": {"sqlglot": ["a", "b"], "django": ["d"]}}
     assert module.plan(test_set, {"a": [2, 2]}) == {"sqlglot": ["b"], "django": ["d"]}
+    test_set["collect"]["sqlglot"] = ["easy", "hard", "unrun"]
+    order = module.plan(test_set, {"easy": [1, 2], "hard": [0, 2]})["sqlglot"]
+    assert order[-1] == "easy"
     test_set["collect"]["django"].append("t")
     with pytest.raises(ValueError, match="test-set tasks"):
         module.plan(test_set, {})

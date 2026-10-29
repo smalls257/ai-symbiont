@@ -1,5 +1,5 @@
-"""Pick the earlier tasks for Spark teacher runs: every collection task plain Glimmer does not
-already pass reliably (2 or more graded plain runs, all resolved), never a test-set task.
+"""Pick the earlier tasks for Spark teacher runs, hardest first: every collection task plain
+Glimmer does not already pass reliably (2+ graded plain runs, all resolved), never a test task.
 
 Writes the sqlglot candidates (CAL2 jsonl) and a Django task file holding only the chosen
 history tasks (the Django driver reads its phase list from data/swev-django-tasks.json).
@@ -35,11 +35,19 @@ def reliable(record: list[int] | None) -> bool:
     return record is not None and record[1] >= RELIABLE_RUNS and record[0] == record[1]
 
 
+def plain_rate(record: list[int] | None) -> float:
+    """Plain solve rate; a task never graded counts as unsolved (hardest first)."""
+    return record[0] / record[1] if record and record[1] else 0.0
+
+
 def plan(test_set: dict, records: dict[str, list[int]]) -> dict[str, list[str]]:
-    """The earlier tasks per repo that teacher runs should attempt; raises on a test-set task."""
+    """Earlier tasks per repo for teacher runs, hardest first; raises on a test-set task."""
     held = {entry["task"] for entry in test_set["test"]}
     chosen = {
-        repo: [task for task in tasks if not reliable(records.get(task))]
+        repo: sorted(
+            (task for task in tasks if not reliable(records.get(task))),
+            key=lambda task: plain_rate(records.get(task)),
+        )
         for repo, tasks in test_set["collect"].items()
     }
     leaked = sorted(held & {task for tasks in chosen.values() for task in tasks})

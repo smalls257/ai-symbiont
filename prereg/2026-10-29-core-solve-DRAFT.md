@@ -42,7 +42,14 @@ The earlier tasks:
 
 **Plain collection.** Plain Glimmer `Muse-Glimmer-30B-KQuant-17GB-Q4_K_M`, reasoning low, step cap 75, wall cap 45 min, 2 runs per task. It stops once about 30 tasks have 2 runs. Its main use is measuring the spread. Self-training on Glimmer's own passes is expected to give only 0 to +3 points (SWE-Gym, 32B: 19.0 to 19.7) [established], which is below this design's MDE.
 
-**Teacher runs (the main lever).** The teacher is Muse Spark (Contributor tier), or Muse Wonder if the budget allows.
+**Teacher runs (the main lever).** The teacher is Muse Spark (Contributor tier). Muse Wonder is out of budget at its unconfirmed standard price [hypothesis].
+
+**Budget.** The ledger enforces a total cap of $60 over all workstreams (owner, 2026-10-29) [established].
+
+- The aim is 1-2 passing runs per earlier task, harder tasks first (lowest plain solve rate).
+- The per-run cap is $0.15, raised to $0.25 only for a task whose run hit the cap once. [established]
+- Runs stop when the ledger would pass the cap.
+- A cap-aborted run is recorded with its reason and is never kept for training.
 
 - It solves the earlier tasks in mini-SWE-agent format, through `symbiont.egress`, with the spend ledger and its caps.
 - The driver refuses any test-set task before its first call.
@@ -61,6 +68,14 @@ The earlier tasks:
 | plain Glimmer | reference | 4 or more runs per test task (fixed by the MDE amendment) |
 | Glimmer + Core adapter (teacher and own passing runs on the earlier tasks of these repositories) | under test | same runs per task; served under its own model name |
 | Glimmer + control adapter (same recipe and row count, trained on passing runs from OTHER repositories) | control | same runs per task; separates "learned this repository" from "learned to act like an agent" |
+
+| Glimmer + worked examples in the prompt (fallback, own arm) | under test | for each test task, the teacher's passing trajectories of the most similar EARLIER tasks, retrieved by similarity of issue text, are put in the prompt as worked examples; same test tasks, same runs per task, paired with plain |
+
+The **worked-examples arm** is pre-registered as the fallback in case the Core adapter ties plain.
+
+- Retrieval uses only earlier-task teacher solves. It never draws on a test task's run or fix.
+- The number of examples and the word budget are fixed before scoring: about 2 examples, each cut to its edit and test commands [hypothesis].
+- The arm is scored with the same statistic as the adapter (worked examples minus plain). It is reported beside the adapter, never instead of it.
 
 Rules for every arm:
 
