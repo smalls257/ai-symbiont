@@ -234,5 +234,6 @@ def test_personal_replay_is_honest_about_the_adapter_and_the_floor(name):
     assert personal["label"] == "Personal Glimmer (LoRA adapter, sqlglot)"
     assert personal["adapter"] and personal["totals"]["result"] == "solved"
     assert personal["runs_total"] >= 1 and plain["runs_total"] >= 1
+    assert "Exploratory, n = 1 per task" in doc["caveats"]
     for run in doc["runs"]:
         assert all(s["note"] is None and s["classifier"] is None for s in run["steps"])

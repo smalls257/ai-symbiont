@@ -136,3 +136,21 @@ def test_write_replay_reads_the_staged_files(tmp_path):
     (tmp_path / "personal-rows.jsonl").write_text(json.dumps(personal_row()) + "\n")
     out = emitter.write_replay(tmp_path, tmp_path, "1379")
     assert json.loads(out.read_text())["task"]["id"] == "sqlglot-1379"
+
+
+def test_the_shown_personal_run_is_the_lowest_numbered_solved_row():
+    rows = [
+        personal_row(run=3, steps=2),
+        personal_row(run=2, steps=2),
+        personal_row(run=1, resolved=False, steps=2),
+    ]
+    assert build(personal=rows)["runs"][1]["shown_run"] == 2
+
+
+def test_arm_totals_line_counts_the_whole_eval_and_says_exploratory():
+    other = {**personal_row(instance_id="tobymao__sqlglot-9"), "resolved": False}
+    plain_other = {**plain_row(2, resolved=False), "instance_id": "tobymao__sqlglot-9"}
+    line = emitter.arm_totals_line(PLAIN + [plain_other], [personal_row(), other])
+    assert "Exploratory, n = 1 per task" in line
+    assert "personal Glimmer solved 1 of 2 runs" in line
+    assert "plain Glimmer solved 1 of 3 confirm runs" in line

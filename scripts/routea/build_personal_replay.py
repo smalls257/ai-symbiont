@@ -117,10 +117,13 @@ def build_replay(
     plain_graded: list[dict[str, Any]],
     personal_graded: list[dict[str, Any]],
 ) -> dict[str, Any]:
-    """One demo-replay-v1 document: a failed plain run, then the solved personal run."""
+    """One demo-replay-v1 document: a failed plain run, then the solved personal run.
+
+    The shown personal run is the lowest-numbered solved row, never a pick by eye."""
     name = f"sqlglot-{number}"
     plain_shown = first_failed(plain_graded, number)
-    personal_shown = next((r for r in personal_graded if r["resolved"]), None)
+    solved = sorted((r for r in personal_graded if r["resolved"]), key=_run_number)
+    personal_shown = solved[0] if solved else None
     if personal_shown is None:
         raise TrajectoryError(f"{name}: personal Glimmer did not solve it; nothing to show")
     plain_steps = steps_from_trajectory(plain_traj, f"{name} plain", NOT_SOLVED)
@@ -139,13 +142,38 @@ def build_replay(
     }
 
 
+def arm_totals_line(plain_all: list[dict[str, Any]], personal_all: list[dict[str, Any]]) -> str:
+    """The whole eval's record, so the solved replays are not read as the whole picture.
+
+    Plain runs are counted over the same tasks the adapter was run on."""
+    tasks = {r["instance_id"] for r in personal_all}
+    plain = [r for r in plain_all if r["instance_id"] in tasks and r["stage"] == PLAIN_STAGE]
+    solved = sum(bool(r["resolved"]) for r in personal_all)
+    plain_solved = sum(bool(r["resolved"]) for r in plain)
+    return (
+        f"Exploratory, n = 1 per task. All {len(tasks)} Tier 1 tasks: personal Glimmer solved "
+        f"{solved} of {len(personal_all)} runs; plain Glimmer solved {plain_solved} of "
+        f"{len(plain)} confirm runs. The replays shown are solved personal runs."
+    )
+
+
+def _all_rows(path: Path) -> list[dict[str, Any]]:
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+
+
 def write_replay(in_dir: Path, out_dir: Path, number: str) -> Path:
     """Emit `personal-sqlglot-<number>.json`; raises TrajectoryError when the pair is not honest."""
     plain_graded = plain_rows(in_dir / "plain-rows.jsonl", number)
     personal_graded = personal_rows(in_dir / "personal-rows.jsonl", number)
     plain = json.loads((in_dir / f"{number}-plain.json").read_text())
     personal = json.loads((in_dir / f"{number}-personal.json").read_text())
-    doc = build_replay(number, plain, personal, plain_graded, personal_graded)
+    caveats = arm_totals_line(
+        _all_rows(in_dir / "plain-rows.jsonl"), _all_rows(in_dir / "personal-rows.jsonl")
+    )
+    doc = {
+        **build_replay(number, plain, personal, plain_graded, personal_graded),
+        "caveats": caveats,
+    }
     target = out_dir / f"personal-sqlglot-{number}.json"
     target.write_text(json.dumps(doc, indent=1) + "\n")
     return target

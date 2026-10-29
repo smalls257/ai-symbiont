@@ -10,6 +10,7 @@
   "schema": {"const": "demo-replay-v1"},
   "status": {"$ref": "#/$defs/status"},
   "source": {"type": "string", "minLength": 1},
+  "caveats": {"type": "string", "minLength": 1},
   "task": {
    "type": "object",
    "additionalProperties": false,
