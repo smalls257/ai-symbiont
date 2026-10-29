@@ -1,0 +1,118 @@
+{
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+ "paired_gain_habits_minus_plain": {
+  "habits_at_10": {
+   "ci95_high": -0.0651,
+   "ci95_low": -0.1833,
+   "mean_gain": -0.1257,
+   "repos": 15
+  },
+  "habits_at_5": {
+   "ci95_high": -0.053,
+   "ci95_low": -0.147,
+   "mean_gain": -0.1,
+   "repos": 15
+  },
+  "paraphrased_at_10": {
+   "ci95_high": -0.0347,
+   "ci95_low": -0.12,
+   "mean_gain": -0.0773,
+   "repos": 15
+  },
+  "paraphrased_at_5": {
+   "ci95_high": -0.008,
+   "ci95_low": -0.1387,
+   "mean_gain": -0.0747,
+   "repos": 15
+  },
+  "verbatim_at_10": {
+   "ci95_high": 0.0089,
+   "ci95_low": -0.0178,
+   "mean_gain": -0.0056,
+   "repos": 15
+  },
+  "verbatim_at_5": {
+   "ci95_high": -0.0022,
+   "ci95_low": -0.0533,
+   "mean_gain": -0.0267,
+   "repos": 15
+  }
+ },
+ "ranked_habits_at_5": {
+  "habits_minus_plain": {
+   "ci95_high": 0.5682,
+   "ci95_low": 0.2758,
+   "mean_gain": 0.4273,
+   "repos": 15
+  },
+  "habits_start": 0.6409,
+  "label": "ranked-choice habits at 5 lessons, chance 0.20, adopted after the keyword score",
+  "plain_start": 0.2136,
+  "repos": 15
+ },
+ "repos": 15,
+ "repos_by_budget": {
+  "5": 15,
+  "10": 15,
+  "20": 1
+ },
+ "rows": [
+  {
+   "arm": "plain_start",
+   "budget": 5,
+   "habits_recall": 0.2894,
+   "paraphrased_recall": 0.6027,
+   "repos": 15,
+   "role": "reference",
+   "verbatim_recall": 0.78
+  },
+  {
+   "arm": "habits_start",
+   "budget": 5,
+   "habits_recall": 0.1894,
+   "paraphrased_recall": 0.528,
+   "repos": 15,
+   "role": "under_test",
+   "verbatim_recall": 0.7533
+  },
+  {
+   "arm": "plain_start",
+   "budget": 10,
+   "habits_recall": 0.3182,
+   "paraphrased_recall": 0.5747,
+   "repos": 15,
+   "role": "reference",
+   "verbatim_recall": 0.7367
+  },
+  {
+   "arm": "habits_start",
+   "budget": 10,
+   "habits_recall": 0.1924,
+   "paraphrased_recall": 0.4973,
+   "repos": 15,
+   "role": "under_test",
+   "verbatim_recall": 0.7311
+  },
+  {
+   "arm": "plain_start",
+   "budget": 20,
+   "habits_recall": 0.3409,
+   "paraphrased_recall": 0.37,
+   "repos": 1,
+   "role": "reference",
+   "verbatim_recall": 0.575
+  },
+  {
+   "arm": "habits_start",
+   "budget": 20,
+   "habits_recall": 0.0909,
+   "paraphrased_recall": 0.43,
+   "repos": 1,
+   "role": "under_test",
+   "verbatim_recall": 0.65
+  }
+ ],
+ "rule": "Per repo, nested lesson budgets train a LoRA from plain 1B and from the AIDev habits adapter on the same rows; recall is the LCAP scorer on that repo's probes.",
+ "status": "exploratory, no prereg; Llama 3.2 1B MLX LoRA on the laptop"
+}

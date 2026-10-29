@@ -8,11 +8,13 @@ task-level failure: the record's `error_kind` says infra, model_api, context or 
 
 from __future__ import annotations
 
+import json
 import os
 import time
 import traceback
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from urllib.request import urlopen
 
 import litellm
 import yaml
@@ -27,6 +29,7 @@ MODEL = "openai/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M"
 GLIMMER_URL_VAR = (
     "SYMBIONT_GLIMMER_URL"  # llama.cpp router, one request at a time; address is never committed
 )
+PREFLIGHT_TIMEOUT_S = 30  # one listing request; a server that cannot answer it cannot run a task
 MAX_TOKENS = 4096  # per reply; bounds one step so the wall limit is checked often enough
 # A stalled request must end in a recorded error: 2 tries x 600 s bounds a dead step to ~21 min
 # (the 2026-10-28 hang was 10 x 1200 s); a healthy step takes 10-17 s.
@@ -47,16 +50,8 @@ class Setting:
     step_limit: int
     wall_limit_s: int
     adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
-    # a router model name that carries its own adapter; None = MODEL
-    served_model: str | None = None
+    model: str = MODEL  # a router name of its own serves a personal Glimmer (the loop's rounds)
     teacher: str | None = None  # "spark" or "wonder": a remote teacher model through egress
-
-
-def model_of(setting: Setting) -> str:
-    """The litellm model name a run talks to: MODEL, or the named served adapter model."""
-    if setting.teacher:
-        return f"teacher/{setting.teacher}"
-    return f"openai/{setting.served_model}" if setting.served_model else MODEL
 
 
 def glimmer_url() -> str:
@@ -66,6 +61,35 @@ def glimmer_url() -> str:
             f"{GLIMMER_URL_VAR} is not set: export the Glimmer endpoint (see env.example)"
         )
     return url
+
+
+def missing_on_server(listing: dict, model: str, adapter_id: int | None) -> str | None:
+    """Why the router's /models `listing` cannot serve this run, in words; None when it can.
+
+    An adapter run also needs the model's child launched with more than `adapter_id` --lora files.
+    """
+    served = {entry["id"]: entry for entry in listing.get("data", [])}
+    if model not in served:
+        return f"{model} is not listed by the Glimmer server (listed: {sorted(served)})"
+    if adapter_id is None:
+        return None
+    status = served[model].get("status")
+    args = status.get("args", []) if isinstance(status, dict) else []
+    loras = sum(arg == "--lora" for arg in args)
+    if loras <= adapter_id:
+        return f"{model} has {loras} --lora adapter(s) loaded; adapter id {adapter_id} is absent"
+    return None
+
+
+def preflight(setting: Setting) -> None:
+    """One /models request before any run; SystemExit naming a missing model or adapter."""
+    root = glimmer_url().rstrip("/").removesuffix("/v1")
+    listing_url = f"{root}/models"  # the configured Glimmer server only, never a typed host
+    with urlopen(listing_url, timeout=PREFLIGHT_TIMEOUT_S) as response:  # noqa: S310  see above
+        listing = json.loads(response.read())
+    problem = missing_on_server(listing, setting.model.removeprefix("openai/"), setting.adapter_id)
+    if problem:
+        raise SystemExit(f"preflight failed, no run started: {problem}")
 
 
 def bound_model_retries() -> None:
@@ -90,7 +114,7 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
             "cost_tracking": "ignore_errors",
         }
     model = cfg["model"] | {
-        "model_name": model_of(setting),
+        "model_name": setting.model,
         "cost_tracking": "ignore_errors",  # local model: cost is 0 by construction
         "model_kwargs": {
             "api_base": glimmer_url(),
@@ -141,7 +165,7 @@ def _new_record(row: dict, run: int, setting: Setting, stage: str) -> dict:
         "run": run,
         **asdict(setting),
         "image": IMAGE,
-        "model": model_of(setting),
+        "model": f"teacher/{setting.teacher}" if setting.teacher else setting.model,
         "error_kind": None,
         "error": None,
         "started": time.time(),
@@ -181,7 +205,7 @@ def _run_agent(agent: DefaultAgent, row: dict, rec: dict) -> dict:
 
 
 def _model(setting: Setting, model_cfg: dict, rec: dict):
-    """Plain or served Glimmer, or a teacher run whose ledger run name is the task and run."""
+    """Plain or personal Glimmer, or a teacher run whose ledger run name is the task and run."""
     if not setting.teacher:
         return LitellmModel(**model_cfg)
     from teacher_model import Teacher, teacher_model  # only teacher runs need egress and the key

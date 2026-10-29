@@ -1,0 +1,206 @@
+{
+ "run_label": "exploratory",
+ "asks": "META2 settings and thresholds fixed on the validation repositories",
+ "code_commit": "2bc451cf1d70fa8d739010b514a046cd47b47d57",
+ "chosen_on": "validation repositories, early-window value at the primary price",
+ "networks": {
+  "fly combined": {
+   "maml_lr_and_outer_step": [
+    0.001,
+    150
+   ],
+   "broad_epochs": 1,
+   "fine_tune_steps": 5,
+   "start_sha256": {
+    "maml seed 0": "a8ba9defc7afd70c6edec9b64ff913b5f8634f218cf8859889fa2abcc685f9a5",
+    "maml seed 1": "3b06de1765c5c2f53138dbca93dacf0382c46a30a6c6ccfd2acd4dea8e03fda2",
+    "maml seed 2": "1353eb6c79fa528e87b257d7ee7a6f4cb86d5ae4c5d413b3a62a149ba2da9c24",
+    "broad seed 0": "1a4de3a3f567e904d38bb318d713e97fef79f13bde791d79f65824be67696339",
+    "broad seed 1": "cef0ff6ea29e620f7264c51de74682a9f7aec60ed83b4573b50519643f4096da",
+    "broad seed 2": "b7728fe3f53ea2f0d650189ba779ee6ed47872c3fbec60f7bad139bdb0b842a7"
+   }
+  },
+  "DenseNet combined": {
+   "maml_lr_and_outer_step": [
+    0.01,
+    175
+   ],
+   "broad_epochs": 1,
+   "fine_tune_steps": 80,
+   "start_sha256": {
+    "maml seed 0": "e32100032b198501ed84acdebadcb100a904ab4bf8cbfd1cbae98dfe48c0a54d",
+    "maml seed 1": "7939754e53d2ca8b70fe5b03f3a209a9eb828005b7a8b888865744b876eff8a0",
+    "maml seed 2": "2aba4b9630494449d57d27f6eaadfd2a6b2d4ac6ab4ceef8469debdd0af898ca",
+    "broad seed 0": "b10928817051c67b903b2b9c99d2d3e495a683aaa0478c1cd175d35ed3841ae1",
+    "broad seed 1": "87b6f8b79253c9faf9d81f05aa72d9a6df2f04499136445adc776430338c5dfe",
+    "broad seed 2": "fb3ca49abc452348dfb5f0dfeac4ccb08be33a4271e1e678eb17c15fdc38b662"
+   }
+  }
+ },
+ "thresholds": {
+  "counters": {
+   "0": [
+    0.0,
+    null
+   ]
+  },
+  "logistic own tasks": {
+   "0": [
+    0.5790297118216245,
+    null
+   ]
+  },
+  "logistic broad": {
+   "0": [
+    0.7113345869971095,
+    null
+   ]
+  },
+  "logistic broad + refit": {
+   "0": [
+    0.6383425921810455,
+    null
+   ]
+  },
+  "fly combined cold": {
+   "0": [
+    0.11890589669347203,
+    null
+   ],
+   "1": [
+    0.24024778263877572,
+    null
+   ],
+   "2": [
+    0.11967921099066244,
+    null
+   ]
+  },
+  "fly combined MAML start": {
+   "0": [
+    0.2619361185279725,
+    null
+   ],
+   "1": [
+    0.2630470515924343,
+    null
+   ],
+   "2": [
+    0.2635899842493326,
+    null
+   ]
+  },
+  "fly combined broad": {
+   "0": [
+    0.41763401429441843,
+    null
+   ],
+   "1": [
+    0.4148420152035881,
+    null
+   ],
+   "2": [
+    0.4149596019550517,
+    null
+   ]
+  },
+  "fly combined broad + fine-tune": {
+   "0": [
+    0.4046719523824789,
+    null
+   ],
+   "1": [
+    0.40491529956474,
+    null
+   ],
+   "2": [
+    0.405863151904638,
+    null
+   ]
+  },
+  "fly combined in-domain": {
+   "0": [
+    0.6827650214033518,
+    null
+   ],
+   "1": [
+    0.6256812162450459,
+    null
+   ],
+   "2": [
+    0.4785511514126646,
+    null
+   ]
+  },
+  "DenseNet combined cold": {
+   "0": [
+    0.21502309423911614,
+    null
+   ],
+   "1": [
+    0.031674474564451285,
+    null
+   ],
+   "2": [
+    0.07284070605914775,
+    null
+   ]
+  },
+  "DenseNet combined MAML start": {
+   "0": [
+    4.158216574250585e-06,
+    null
+   ],
+   "1": [
+    0.05850332018197172,
+    null
+   ],
+   "2": [
+    2.467455277998962e-07,
+    null
+   ]
+  },
+  "DenseNet combined broad": {
+   "0": [
+    0.6279321881231694,
+    null
+   ],
+   "1": [
+    0.5995984244263675,
+    null
+   ],
+   "2": [
+    0.675598818008075,
+    null
+   ]
+  },
+  "DenseNet combined broad + fine-tune": {
+   "0": [
+    0.5238176900674415,
+    null
+   ],
+   "1": [
+    0.44008853826916816,
+    null
+   ],
+   "2": [
+    0.5224624162402544,
+    null
+   ]
+  },
+  "DenseNet combined in-domain": {
+   "0": [
+    0.5626484921927095,
+    null
+   ],
+   "1": [
+    0.6273081772977376,
+    null
+   ],
+   "2": [
+    0.554479395159088,
+    null
+   ]
+  }
+ }
+}

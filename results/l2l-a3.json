@@ -1,0 +1,86 @@
+{
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+ "repo": "Azure__msrest-for-python",
+ "rows": [
+  {
+   "arm": "a1",
+   "budget": 10,
+   "habits_kept_keyword": 0.5,
+   "habits_kept_ranked": 0.2045,
+   "lessons_in_prompt_recall": 0.28,
+   "new_lessons_recall": 0.2667,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a1",
+   "budget": 5,
+   "habits_kept_keyword": 0.5,
+   "habits_kept_ranked": 0.2045,
+   "lessons_in_prompt_recall": 0.28,
+   "new_lessons_recall": 0.2667,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a2",
+   "budget": 10,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.7955,
+   "lessons_in_prompt_recall": 0.48,
+   "new_lessons_recall": 0.4,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a2",
+   "budget": 5,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.7955,
+   "lessons_in_prompt_recall": 0.6,
+   "new_lessons_recall": 0.4,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a3",
+   "budget": 10,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.2727,
+   "lessons_in_prompt_recall": 0.5,
+   "new_lessons_recall": 0.4,
+   "no_lessons_recall": 0.44,
+   "role": "under_test",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a3",
+   "budget": 5,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.2727,
+   "lessons_in_prompt_recall": 0.4,
+   "new_lessons_recall": 0.3333,
+   "no_lessons_recall": 0.4,
+   "role": "under_test",
+   "wrong_lessons_recall": 0.0
+  }
+ ],
+ "rule": "Go if recall without lessons reaches the per-repo adapter and new-lesson recall reaches a2; kill if new-lesson recall falls below a1.",
+ "status": "exploratory feasibility, one repo, no prereg; a3 consolidation vs a2 and a1",
+ "verdict": {
+  "by_budget": {
+   "10": "hold",
+   "5": "hold"
+  },
+  "label": "hold",
+  "per_repo_adapter_no_lessons": {
+   "10": 0.48,
+   "5": 0.64
+  }
+ }
+}

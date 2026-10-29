@@ -1,0 +1,2782 @@
+{
+ "prereg": "prereg/2026-10-28-meta2-amendment-1.md",
+ "freeze_commit": "095e90003d8b070fa72d2c93b13d11f48f5b71ea",
+ "prereg_sha256": "72e0bc0733fcfd26824db6baffd6babd82a044db2e838dfef4b9c0188ed4960a",
+ "run_label": "scored",
+ "code_commit": "095e90003d8b070fa72d2c93b13d11f48f5b71ea",
+ "settings_sha256": "267f2ae1e7cf6520313683992484e3362a25a090c48eba6abb933a59c53ca688",
+ "repos": [
+  "Textualize/textual",
+  "asottile/pyupgrade",
+  "beeware/briefcase",
+  "borgbackup/borg",
+  "encode/httpx",
+  "fitbenchmarking/fitbenchmarking",
+  "geopandas/geopandas",
+  "nilearn/nilearn",
+  "numba/numba",
+  "planetlabs/planet-client-python",
+  "pre-commit/pre-commit",
+  "zarr-developers/zarr-python"
+ ],
+ "tasks": {
+  "Textualize/textual": 46,
+  "asottile/pyupgrade": 33,
+  "beeware/briefcase": 35,
+  "borgbackup/borg": 22,
+  "encode/httpx": 25,
+  "fitbenchmarking/fitbenchmarking": 20,
+  "geopandas/geopandas": 20,
+  "nilearn/nilearn": 22,
+  "numba/numba": 21,
+  "planetlabs/planet-client-python": 20,
+  "pre-commit/pre-commit": 40,
+  "zarr-developers/zarr-python": 26
+ },
+ "torch_equals_numpy_max_gap": {
+  "fly combined": {
+   "one_task_max_gap": 4.440892098500626e-16,
+   "free_running_max_gap": 4.440892098500626e-16
+  },
+  "DenseNet combined": {
+   "one_task_max_gap": 5.540012892879531e-13,
+   "free_running_max_gap": 2.214208816297969e-08
+  }
+ },
+ "verdicts": {
+  "words": {
+   "H1 fly MAML start minus fly cold": {
+    "value": 0.02857212333430604,
+    "ci95_low": -0.006769402223678928,
+    "ci95_high": 0.06765230068271733,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "H2 DenseNet MAML start minus DenseNet cold": {
+    "value": 0.029787958369808354,
+    "ci95_low": -0.016126599271986803,
+    "ci95_high": 0.07722992119776978,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "H3 fly combined broad + fine-tune minus broad": {
+    "value": -0.04559381383133933,
+    "ci95_low": -0.12430085345805829,
+    "ci95_high": 0.036390247041379956,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "H4 fly combined MAML start minus counters": {
+    "value": 0.03647505106507149,
+    "ci95_low": -0.011806144306319178,
+    "ci95_high": 0.08631036592803715,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "H3 DenseNet combined broad + fine-tune minus broad": {
+    "value": -0.08632428752066924,
+    "ci95_low": -0.16338265818906464,
+    "ci95_high": -0.011034801897936358,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "H4 DenseNet combined MAML start minus counters": {
+    "value": 0.13434977142301333,
+    "ci95_low": 0.06358399492900901,
+    "ci95_high": 0.20909268968228906,
+    "undefined_draws": 0,
+    "standing": "better"
+   }
+  },
+  "H5_rows_better_than_live_warner": [],
+  "slot": {
+   "eligible": [
+    "DenseNet combined cold",
+    "DenseNet combined MAML start"
+   ],
+   "slot": "DenseNet combined",
+   "words": "the only eligible network"
+  },
+  "table": [
+   "H1 fly MAML start minus fly cold: tie 0.029 [-0.007, 0.068]",
+   "H2 DenseNet MAML start minus DenseNet cold: tie 0.030 [-0.016, 0.077]",
+   "H3 fly combined broad + fine-tune minus broad: tie -0.046 [-0.124, 0.036]",
+   "H4 fly combined MAML start minus counters: tie 0.036 [-0.012, 0.086]",
+   "H3 DenseNet combined broad + fine-tune minus broad: worse -0.086 [-0.163, -0.011]",
+   "H4 DenseNet combined MAML start minus counters: better 0.134 [0.064, 0.209]",
+   "H5 no under-test row beats the live warner: holds []",
+   "claim: a meta-learned start did not measurably help on new issues at this size"
+  ],
+  "result": "a meta-learned start did not measurably help on new issues at this size"
+ },
+ "floors": {
+  "warn never": {
+   "first 10 tasks": {
+    "value": 0.0,
+    "ci95_low": 0.0,
+    "ci95_high": 0.0,
+    "undefined_draws": 0
+   },
+   "after 10 tasks": {
+    "value": 0.0,
+    "ci95_low": 0.0,
+    "ci95_high": 0.0,
+    "undefined_draws": 0
+   },
+   "all tasks": {
+    "value": 0.0,
+    "ci95_low": 0.0,
+    "ci95_high": 0.0,
+    "undefined_draws": 0
+   }
+  },
+  "note at every allowed step": {
+   "first 10 tasks": {
+    "value": -0.2808578932010505,
+    "ci95_low": -0.40078951692551523,
+    "ci95_high": -0.16540468125298008,
+    "undefined_draws": 0
+   },
+   "after 10 tasks": {
+    "value": -0.3114145406635525,
+    "ci95_low": -0.4001366687928192,
+    "ci95_high": -0.2217333103237029,
+    "undefined_draws": 0
+   },
+   "all tasks": {
+    "value": -0.3006063733711779,
+    "ci95_low": -0.37206549594189176,
+    "ci95_high": -0.22790630688879973,
+    "undefined_draws": 0
+   }
+  }
+ },
+ "rows": {
+  "counters": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.031003793405310766,
+     "ci95_low": -0.07005143144656331,
+     "ci95_high": 0.13144668799455705,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.21559633027522937,
+     "ci95_low": 0.16436689295672202,
+     "ci95_high": 0.2648470850589359,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.590312226437117,
+     "ci95_low": 1.5209099191022977,
+     "ci95_high": 1.6651425141438048,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.8166666666666667,
+     "ci95_low": 1.7333333333333334,
+     "ci95_high": 1.8916666666666666,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.425,
+     "ci95_low": 1.3166666666666667,
+     "ci95_high": 1.5333333333333334,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.11886304909560723,
+     "ci95_low": 0.09067340241796201,
+     "ci95_high": 0.14905270967876774,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.001996247055535593,
+     "ci95_low": -0.07073105653283154,
+     "ci95_high": 0.07626338147351823,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2010178117048346,
+     "ci95_low": 0.1641025641025641,
+     "ci95_high": 0.23929918467453265,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.5690501856509762,
+     "ci95_low": 1.5136075133626992,
+     "ci95_high": 1.6265985236860125,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.8714285714285714,
+     "ci95_low": 1.819047619047619,
+     "ci95_high": 1.9190476190476191,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.4952380952380953,
+     "ci95_low": 1.4142857142857144,
+     "ci95_high": 1.5761904761904761,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.10980966325036604,
+     "ci95_low": 0.08848143326938887,
+     "ci95_high": 0.13207905603028042,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.012256483034447168,
+     "ci95_low": -0.04539266727158261,
+     "ci95_high": 0.07450962439484114,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.20621931260229132,
+     "ci95_low": 0.17703948242421022,
+     "ci95_high": 0.23770491803278687,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.5765707650625727,
+     "ci95_low": 1.5340617128927623,
+     "ci95_high": 1.620759753528486,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.8515151515151516,
+     "ci95_low": 1.809090909090909,
+     "ci95_high": 1.893939393939394,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.4696969696969697,
+     "ci95_low": 1.4090909090909092,
+     "ci95_high": 1.5363636363636364,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.1130841121495327,
+     "ci95_low": 0.09641705772754332,
+     "ci95_high": 0.13102317670160687,
+     "undefined_draws": 0
+    }
+   },
+   "label": "reference (a heads-up at every allowed step: threshold 0 was chosen on validation)"
+  },
+  "logistic own tasks": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.09483513276918587,
+     "ci95_low": 0.024097500632557976,
+     "ci95_high": 0.17167799497617622,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3424657534246575,
+     "ci95_low": 0.2375,
+     "ci95_high": 0.4531302083333333,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.5325357455500438,
+     "ci95_low": 0.42696790871483803,
+     "ci95_high": 0.6449337638390066,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.6083333333333333,
+     "ci95_low": 0.48333333333333334,
+     "ci95_high": 0.7416666666666667,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.4,
+     "ci95_low": 0.3,
+     "ci95_high": 0.5083333333333333,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.06459948320413436,
+     "ci95_low": 0.042251773669311155,
+     "ci95_high": 0.08924001687289088,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.0858386233880305,
+     "ci95_low": 0.01108853220528738,
+     "ci95_high": 0.15856249250394297,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2565789473684211,
+     "ci95_low": 0.20735785953177258,
+     "ci95_high": 0.3049191954423904,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.2137182097656405,
+     "ci95_low": 1.141506254641154,
+     "ci95_high": 1.282461968339703,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.4476190476190476,
+     "ci95_low": 1.3523809523809525,
+     "ci95_high": 1.538214285714285,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.0761904761904761,
+     "ci95_low": 0.9809523809523809,
+     "ci95_high": 1.1666666666666667,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.10834553440702782,
+     "ci95_low": 0.08662466542666607,
+     "ci95_high": 0.1311001219512195,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.08902077151335312,
+     "ci95_low": 0.03509236321981489,
+     "ci95_high": 0.1448733215436921,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.27320954907161804,
+     "ci95_low": 0.2291652628032345,
+     "ci95_high": 0.3169609561107023,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.9727777061024384,
+     "ci95_low": 0.9048305690278566,
+     "ci95_high": 1.0444631521059042,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.1424242424242423,
+     "ci95_low": 1.0545454545454545,
+     "ci95_high": 1.2363636363636363,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.8303030303030303,
+     "ci95_low": 0.7544696969696969,
+     "ci95_high": 0.9151515151515152,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09252336448598131,
+     "ci95_low": 0.07699182119438765,
+     "ci95_high": 0.10988048874139492,
+     "undefined_draws": 0
+    }
+   },
+   "label": "reference (per-k refit, the dispatch's named reference)"
+  },
+  "logistic broad": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.2224978114969361,
+     "ci95_low": 0.1353298377840998,
+     "ci95_high": 0.3143738528707196,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.4489795918367347,
+     "ci95_low": 0.3584732560152328,
+     "ci95_high": 0.5408253301320528,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7149110008754013,
+     "ci95_low": 0.6046842542378257,
+     "ci95_high": 0.8203911826781344,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8166666666666667,
+     "ci95_low": 0.675,
+     "ci95_high": 0.95,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.45,
+     "ci95_low": 0.3416666666666667,
+     "ci95_high": 0.5583333333333333,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09819121447028424,
+     "ci95_low": 0.07446742516234622,
+     "ci95_high": 0.12152334070055586,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.11578232922106439,
+     "ci95_low": 0.049848928982314855,
+     "ci95_high": 0.1838228310119598,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.308411214953271,
+     "ci95_low": 0.24650825749915742,
+     "ci95_high": 0.3710441818648857,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.8543937397692338,
+     "ci95_low": 0.7742680562832691,
+     "ci95_high": 0.931916273265173,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.019047619047619,
+     "ci95_low": 0.9095238095238095,
+     "ci95_high": 1.1285714285714286,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.7047619047619048,
+     "ci95_low": 0.6142857142857143,
+     "ci95_high": 0.8,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.0951683748169839,
+     "ci95_low": 0.07499911598302687,
+     "ci95_high": 0.11610270471040401,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.15352857695781189,
+     "ci95_low": 0.10119009804105879,
+     "ci95_high": 0.20887159527848095,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3525641025641026,
+     "ci95_low": 0.3006259225298564,
+     "ci95_high": 0.40328600702576106,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.8050574119468455,
+     "ci95_low": 0.739970135377817,
+     "ci95_high": 0.8731289981780715,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.9454545454545454,
+     "ci95_low": 0.8575757575757575,
+     "ci95_high": 1.0393939393939393,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.6121212121212121,
+     "ci95_low": 0.5393939393939394,
+     "ci95_high": 0.6848484848484848,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09626168224299066,
+     "ci95_low": 0.07992784084984024,
+     "ci95_high": 0.11215834118755891,
+     "undefined_draws": 0
+    }
+   },
+   "label": "reference (the live warner)"
+  },
+  "logistic broad + refit": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.11124890574846805,
+     "ci95_low": 0.015091344012588367,
+     "ci95_high": 0.20790136105644963,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.27672955974842767,
+     "ci95_low": 0.21052631578947367,
+     "ci95_high": 0.34355828220858897,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.1599066238692735,
+     "ci95_low": 1.0542688613993254,
+     "ci95_high": 1.268807786544575,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.325,
+     "ci95_low": 1.1916666666666667,
+     "ci95_high": 1.4583333333333333,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.9583333333333334,
+     "ci95_low": 0.825,
+     "ci95_high": 1.0916666666666666,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.1111111111111111,
+     "ci95_low": 0.08423711256995264,
+     "ci95_high": 0.14026089981447123,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.1167804527488322,
+     "ci95_low": 0.04636278923557499,
+     "ci95_high": 0.19240799942496187,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2724458204334365,
+     "ci95_low": 0.22909561613789223,
+     "ci95_high": 0.31889203609775374,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.289575597875993,
+     "ci95_low": 1.2153593903051556,
+     "ci95_high": 1.360030863037923,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.5380952380952382,
+     "ci95_low": 1.4476190476190476,
+     "ci95_high": 1.6238095238095238,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.119047619047619,
+     "ci95_low": 1.019047619047619,
+     "ci95_high": 1.2142857142857142,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.1259150805270864,
+     "ci95_low": 0.10464978070983673,
+     "ci95_high": 0.14921197456048307,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.11482389369113663,
+     "ci95_low": 0.05561313711191089,
+     "ci95_high": 0.17716275506557919,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.27385892116182575,
+     "ci95_low": 0.2365562241970471,
+     "ci95_high": 0.31343815545490467,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.2437104889691653,
+     "ci95_low": 1.1863293019254106,
+     "ci95_high": 1.3082246847783552,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.4606060606060607,
+     "ci95_low": 1.3847727272727273,
+     "ci95_high": 1.5393939393939393,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.0606060606060606,
+     "ci95_low": 0.9818181818181818,
+     "ci95_high": 1.1424242424242423,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.1205607476635514,
+     "ci95_low": 0.10284578086343543,
+     "ci95_high": 0.13877962111912817,
+     "undefined_draws": 0
+    }
+   },
+   "label": "reference (per-k refit, the dispatch's named reference)"
+  },
+  "fly combined cold": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.03890672113607622,
+     "ci95_low": -0.054677685218542924,
+     "ci95_high": 0.13342947867006308,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.22094926350245497,
+     "ci95_low": 0.1704301113905857,
+     "ci95_high": 0.2712181958043127,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.4857504133839121,
+     "ci95_low": 1.4130878201230435,
+     "ci95_high": 1.5619558189056815,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.6972222222222224,
+     "ci95_low": 1.6111111111111112,
+     "ci95_high": 1.7805555555555554,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.3222222222222224,
+     "ci95_low": 1.2138888888888886,
+     "ci95_high": 1.427777777777778,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.11369509043927649,
+     "ci95_low": 0.08629367225297384,
+     "ci95_high": 0.14248704663212436,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": -0.011312066648035121,
+     "ci95_low": -0.07658805323609276,
+     "ci95_high": 0.05676321282575858,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.1937842778793418,
+     "ci95_low": 0.15774307949123445,
+     "ci95_high": 0.23125368647912886,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.455929519170626,
+     "ci95_low": 1.3971109168153504,
+     "ci95_high": 1.5199014803494102,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.7365079365079368,
+     "ci95_low": 1.680952380952381,
+     "ci95_high": 1.7888888888888892,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.4000000000000006,
+     "ci95_low": 1.322222222222222,
+     "ci95_high": 1.4793650793650792,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09956076134699851,
+     "ci95_low": 0.07995518136885313,
+     "ci95_high": 0.12072753453572387,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.006450780544445914,
+     "ci95_low": -0.046939353290291676,
+     "ci95_high": 0.061205221373338496,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.20351906158357774,
+     "ci95_low": 0.17468406316214305,
+     "ci95_high": 0.2335150571957244,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.4664774437706967,
+     "ci95_low": 1.422456691186431,
+     "ci95_high": 1.5107310213329161,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.7222222222222228,
+     "ci95_low": 1.678762626262626,
+     "ci95_high": 1.7686868686868689,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.371717171717172,
+     "ci95_low": 1.3120959595959594,
+     "ci95_high": 1.4373737373737374,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.10467289719626174,
+     "ci95_low": 0.08912867432509133,
+     "ci95_high": 0.12155086752796224,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test"
+  },
+  "fly combined MAML start": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.06747884447038226,
+     "ci95_low": -0.02355534730190441,
+     "ci95_high": 0.1602161675018553,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.24157303370786518,
+     "ci95_low": 0.18562285541276996,
+     "ci95_high": 0.29775280898876405,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.2985118179165451,
+     "ci95_low": 1.1760943787891434,
+     "ci95_high": 1.4199098095382792,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.4833333333333334,
+     "ci95_low": 1.3416666666666666,
+     "ci95_high": 1.6166666666666667,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.125,
+     "ci95_low": 0.9916666666666667,
+     "ci95_high": 1.2583333333333333,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.1111111111111111,
+     "ci95_low": 0.08314074045629836,
+     "ci95_high": 0.14173228346456693,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": -0.03393619994410508,
+     "ci95_low": -0.09735139728140843,
+     "ci95_high": 0.03186820525014015,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.1781115879828326,
+     "ci95_low": 0.13690001331162993,
+     "ci95_high": 0.22053142176242882,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.2403348371727818,
+     "ci95_low": 1.1511361738052432,
+     "ci95_high": 1.330624999965868,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.4793650793650794,
+     "ci95_low": 1.380952380952381,
+     "ci95_high": 1.5794047619047618,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.215873015873016,
+     "ci95_low": 1.1142857142857143,
+     "ci95_high": 1.3174603174603172,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.08101512933138116,
+     "ci95_low": 0.061529375584144265,
+     "ci95_high": 0.1018690485585682,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.0019352341633337635,
+     "ci95_low": -0.0475603743870332,
+     "ci95_high": 0.05444323107003697,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.20122783083219645,
+     "ci95_low": 0.16990950500016982,
+     "ci95_high": 0.23468105944070483,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.260912570421021,
+     "ci95_low": 1.194119540211179,
+     "ci95_high": 1.331147784986999,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.4808080808080808,
+     "ci95_low": 1.403030303030303,
+     "ci95_high": 1.5595959595959594,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.1828282828282828,
+     "ci95_low": 1.1050505050505053,
+     "ci95_high": 1.263636363636364,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09190031152647975,
+     "ci95_low": 0.07625262784050225,
+     "ci95_high": 0.10834246324590258,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test"
+  },
+  "fly combined broad": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.13009434879875492,
+     "ci95_low": 0.04345960888956457,
+     "ci95_high": 0.22081325537012494,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.31088082901554404,
+     "ci95_low": 0.23631015277594333,
+     "ci95_high": 0.3850104166666667,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.9386246474078397,
+     "ci95_low": 0.837509218685009,
+     "ci95_high": 1.0322210178986075,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.0722222222222222,
+     "ci95_low": 0.9361111111111111,
+     "ci95_high": 1.200069444444444,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.7388888888888888,
+     "ci95_low": 0.6222222222222221,
+     "ci95_high": 0.8583333333333335,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09732988802756244,
+     "ci95_low": 0.0730213702749141,
+     "ci95_high": 0.12067879340080048,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.09548715082311919,
+     "ci95_low": 0.02281018748799925,
+     "ci95_high": 0.1651619957207326,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2701711491442543,
+     "ci95_low": 0.21674876847290644,
+     "ci95_high": 0.3202811682650393,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0886200609520766,
+     "ci95_low": 1.0144716999413825,
+     "ci95_high": 1.1584445457882844,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.2984126984126982,
+     "ci95_low": 1.1936507936507939,
+     "ci95_high": 1.3968650793650792,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.9476190476190475,
+     "ci95_low": 0.8523809523809524,
+     "ci95_high": 1.0396825396825395,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09956076134699854,
+     "ci95_low": 0.07997929857150332,
+     "ci95_high": 0.11956121472979436,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.10772803509224621,
+     "ci95_low": 0.0510134582186156,
+     "ci95_high": 0.1658131698994394,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2832225913621263,
+     "ci95_low": 0.2398875874831173,
+     "ci95_high": 0.32722736029423466,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0355653034017114,
+     "ci95_low": 0.9791472969191322,
+     "ci95_high": 1.09187745068989,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.216161616161616,
+     "ci95_low": 1.133333333333333,
+     "ci95_high": 1.3,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.8717171717171716,
+     "ci95_low": 0.7989898989898989,
+     "ci95_high": 0.9444444444444446,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09875389408099687,
+     "ci95_low": 0.0835637494459068,
+     "ci95_high": 0.11502693895986577,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test (the fine-tune's comparator)"
+  },
+  "fly combined broad + fine-tune": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.0845005349674156,
+     "ci95_low": 0.012313231121323704,
+     "ci95_high": 0.15644699062083334,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.30859374999999994,
+     "ci95_low": 0.21634566326530613,
+     "ci95_high": 0.4015772740750502,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.6225075381772202,
+     "ci95_low": 0.5100458940421044,
+     "ci95_high": 0.7321933836227195,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.7111111111111111,
+     "ci95_low": 0.5722222222222222,
+     "ci95_high": 0.8417361111111108,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.4916666666666668,
+     "ci95_low": 0.3805555555555556,
+     "ci95_high": 0.6055555555555556,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.06718346253229975,
+     "ci95_low": 0.04493836817901673,
+     "ci95_high": 0.08951431007185484,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.0472445136476757,
+     "ci95_low": 0.007953009316377605,
+     "ci95_high": 0.08801681359617414,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3434343434343434,
+     "ci95_low": 0.2258064516129032,
+     "ci95_high": 0.45455747955747944,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.2635046113306983,
+     "ci95_low": 0.20825768594947838,
+     "ci95_high": 0.3168987614824568,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.3142857142857143,
+     "ci95_low": 0.24603174603174605,
+     "ci95_high": 0.38095238095238093,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.20634920634920637,
+     "ci95_low": 0.15396825396825395,
+     "ci95_high": 0.26031746031746034,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.030258662762323082,
+     "ci95_low": 0.018410351510291363,
+     "ci95_high": 0.04244180750255172,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.060422311099643064,
+     "ci95_low": 0.0247805083482434,
+     "ci95_high": 0.09814427583427184,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3237885462555066,
+     "ci95_low": 0.2511010811226747,
+     "ci95_high": 0.3944646222081689,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.3904872489571238,
+     "ci95_low": 0.3324111928728549,
+     "ci95_high": 0.4491598838872721,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.45858585858585854,
+     "ci95_low": 0.3868686868686869,
+     "ci95_high": 0.5292929292929294,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.31010101010101004,
+     "ci95_low": 0.25351010101010096,
+     "ci95_high": 0.37171717171717167,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.04361370716510904,
+     "ci95_low": 0.032139662362119986,
+     "ci95_high": 0.055199437576865865,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test"
+  },
+  "fly combined in-domain": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.10820931815971205,
+     "ci95_low": 0.040407105315540044,
+     "ci95_high": 0.17728284565825225,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.31986531986531985,
+     "ci95_low": 0.2452830188679245,
+     "ci95_high": 0.3932212911826319,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7222060110884155,
+     "ci95_low": 0.6244027848533299,
+     "ci95_high": 0.8181686566837886,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.825,
+     "ci95_low": 0.6972222222222223,
+     "ci95_high": 0.95,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.5611111111111112,
+     "ci95_low": 0.4611111111111111,
+     "ci95_high": 0.661111111111111,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07924203273040482,
+     "ci95_low": 0.05940327186357449,
+     "ci95_high": 0.09947870628498899,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.04790992933285441,
+     "ci95_low": 2.5777529252886653e-17,
+     "ci95_high": 0.09428950705736736,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.25274725274725296,
+     "ci95_low": 0.20000000000000004,
+     "ci95_high": 0.30411449016100184,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7266339282149554,
+     "ci95_low": 0.6660107920053091,
+     "ci95_high": 0.7842156215311096,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8666666666666661,
+     "ci95_low": 0.7856746031746029,
+     "ci95_high": 0.9476190476190475,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.6476190476190471,
+     "ci95_low": 0.5729761904761902,
+     "ci95_high": 0.7222222222222222,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.06637384089799904,
+     "ci95_low": 0.05192767588828322,
+     "ci95_high": 0.08080880127955736,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.06923837784371883,
+     "ci95_low": 0.031547359063911706,
+     "ci95_high": 0.11015798455428208,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2763938315539736,
+     "ci95_low": 0.23425608630260922,
+     "ci95_high": 0.3202853925711742,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7250677331957168,
+     "ci95_low": 0.6754138734726832,
+     "ci95_high": 0.7800418314449133,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8515151515151517,
+     "ci95_low": 0.7858585858585861,
+     "ci95_high": 0.9272979797979799,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.6161616161616166,
+     "ci95_low": 0.5585858585858589,
+     "ci95_high": 0.6838383838383836,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07102803738317753,
+     "ci95_low": 0.059594969752216786,
+     "ci95_high": 0.08294087448615764,
+     "undefined_draws": 0
+    }
+   },
+   "label": "ceiling (uses future tasks; never a candidate)"
+  },
+  "DenseNet combined cold": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.13556560645851573,
+     "ci95_low": 0.04570011292325576,
+     "ci95_high": 0.22654414618924987,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2862669245647969,
+     "ci95_low": 0.2295026690672478,
+     "ci95_high": 0.34286103189007,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.257173426709464,
+     "ci95_low": 1.158690717923131,
+     "ci95_high": 1.3612384791073213,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.436111111111111,
+     "ci95_low": 1.3138888888888889,
+     "ci95_high": 1.563888888888889,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.025,
+     "ci95_low": 0.9083333333333332,
+     "ci95_high": 1.138958333333333,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.12403100775193797,
+     "ci95_low": 0.09828811369509043,
+     "ci95_high": 0.15034364261168384,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.11278795863776105,
+     "ci95_low": 0.04543008417940268,
+     "ci95_high": 0.17652514200562175,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.27829099307159355,
+     "ci95_low": 0.23177762525737824,
+     "ci95_high": 0.3215123127730394,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.1524999667292157,
+     "ci95_low": 1.0805198456997356,
+     "ci95_high": 1.2187995006462684,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.3746031746031744,
+     "ci95_low": 1.282539682539683,
+     "ci95_high": 1.461944444444444,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.992063492063492,
+     "ci95_low": 0.9063095238095237,
+     "ci95_high": 1.0777777777777777,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.11224987798926304,
+     "ci95_low": 0.09314145603931048,
+     "ci95_high": 0.1310985963503836,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.12084462219928606,
+     "ci95_low": 0.0703434424142921,
+     "ci95_high": 0.17363904127741878,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.28127259580621833,
+     "ci95_low": 0.2474370153462393,
+     "ci95_high": 0.31626684914527703,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.18952393239582,
+     "ci95_low": 1.1322906128193004,
+     "ci95_high": 1.2474368320837406,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.396969696969697,
+     "ci95_low": 1.3262373737373738,
+     "ci95_high": 1.4717171717171715,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.004040404040404,
+     "ci95_low": 0.9312878787878786,
+     "ci95_high": 1.0767929292929292,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.11651090342679123,
+     "ci95_low": 0.1017202312976961,
+     "ci95_high": 0.1324156014421501,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test"
+  },
+  "DenseNet combined MAML start": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.16535356482832408,
+     "ci95_low": 0.07179521863758898,
+     "ci95_high": 0.2607219484644113,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.30018416206261506,
+     "ci95_low": 0.2435387801991228,
+     "ci95_high": 0.35715233881163083,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.320396848555588,
+     "ci95_low": 1.2369219878153466,
+     "ci95_high": 1.4127131983145629,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.5083333333333333,
+     "ci95_low": 1.3972222222222221,
+     "ci95_high": 1.6138888888888892,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.0555555555555556,
+     "ci95_low": 0.9443749999999999,
+     "ci95_high": 1.1666666666666665,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.13522825150732126,
+     "ci95_low": 0.10910533915440342,
+     "ci95_high": 0.16345690467456428,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.08550591554544129,
+     "ci95_low": 0.0214166818566825,
+     "ci95_high": 0.15037461930044183,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.25509110396570206,
+     "ci95_low": 0.21381578947368426,
+     "ci95_high": 0.2968285549935892,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.2416656685431389,
+     "ci95_low": 1.1736444232309964,
+     "ci95_high": 1.3073563763047724,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.480952380952381,
+     "ci95_low": 1.392063492063492,
+     "ci95_high": 1.5651190476190473,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.103174603174603,
+     "ci95_low": 1.0126984126984129,
+     "ci95_high": 1.1968253968253966,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.10883357735480724,
+     "ci95_low": 0.0912073730555459,
+     "ci95_high": 0.12717451212091815,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.11374876360039564,
+     "ci95_low": 0.0607787793368542,
+     "ci95_high": 0.16873132313553474,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.27168021680216803,
+     "ci95_low": 0.23815555559611562,
+     "ci95_high": 0.3061504360122126,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.2695136111469487,
+     "ci95_low": 1.2175450247843833,
+     "ci95_high": 1.3227392877335933,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.490909090909091,
+     "ci95_low": 1.4242424242424245,
+     "ci95_high": 1.5596212121212123,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 1.085858585858586,
+     "ci95_low": 1.0161616161616158,
+     "ci95_high": 1.1545454545454545,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.11838006230529595,
+     "ci95_low": 0.10416000152346129,
+     "ci95_high": 0.13420641499205307,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test"
+  },
+  "DenseNet combined broad": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.15380313199105153,
+     "ci95_low": 0.0797464648580408,
+     "ci95_high": 0.22789906420958003,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.36217948717948717,
+     "ci95_low": 0.28656716417910455,
+     "ci95_high": 0.43597587349143385,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7586810621534873,
+     "ci95_low": 0.6616212268743913,
+     "ci95_high": 0.8447744387353644,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8666666666666669,
+     "ci95_low": 0.736111111111111,
+     "ci95_high": 0.9861111111111109,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.5527777777777778,
+     "ci95_low": 0.4555555555555556,
+     "ci95_high": 0.6583333333333332,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.08957795004306636,
+     "ci95_low": 0.068869324178008,
+     "ci95_high": 0.10932106424041908,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.10280672336008301,
+     "ci95_low": 0.03993278180167301,
+     "ci95_high": 0.16558502148482449,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2887931034482758,
+     "ci95_low": 0.23427312584825818,
+     "ci95_high": 0.34147946084724007,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.9262586337685154,
+     "ci95_low": 0.855563568393564,
+     "ci95_high": 0.9957456930926535,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.1047619047619048,
+     "ci95_low": 1.004722222222222,
+     "ci95_high": 1.201626984126984,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.7857142857142858,
+     "ci95_low": 0.6984126984126986,
+     "ci95_high": 0.8682936507936507,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09468033186920448,
+     "ci95_low": 0.07652503674529446,
+     "ci95_high": 0.11319961478584822,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.12084462219928613,
+     "ci95_low": 0.07203799024919363,
+     "ci95_high": 0.16996953296049952,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.3115079365079365,
+     "ci95_low": 0.26712883742206567,
+     "ci95_high": 0.3544137124824363,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.8669849051735258,
+     "ci95_low": 0.8091926272099951,
+     "ci95_high": 0.9267161143477275,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.018181818181818,
+     "ci95_low": 0.9383585858585858,
+     "ci95_high": 1.1030555555555552,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.7010101010101009,
+     "ci95_low": 0.6393686868686865,
+     "ci95_high": 0.7707070707070705,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.09283489096573208,
+     "ci95_low": 0.0783405579323558,
+     "ci95_high": 0.10686791298499933,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test (the fine-tune's comparator)"
+  },
+  "DenseNet combined broad + fine-tune": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.06747884447038228,
+     "ci95_low": -0.01208411078361889,
+     "ci95_high": 0.1472684970359624,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2517482517482518,
+     "ci95_low": 0.19094547851364443,
+     "ci95_high": 0.31265606481255986,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0431864604610446,
+     "ci95_low": 0.9367186934743831,
+     "ci95_high": 1.1522783747902106,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.1916666666666667,
+     "ci95_low": 1.0582638888888887,
+     "ci95_high": 1.3305555555555553,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.8916666666666667,
+     "ci95_low": 0.7749305555555553,
+     "ci95_high": 1.0166666666666666,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.08957795004306633,
+     "ci95_low": 0.06803727972023797,
+     "ci95_high": 0.11237076024922199,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.11145712726740394,
+     "ci95_low": 0.0496557702998491,
+     "ci95_high": 0.1757921442306605,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.2832298136645962,
+     "ci95_low": 0.23722248046317684,
+     "ci95_high": 0.33171970620698427,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0713192531374356,
+     "ci95_low": 1.0029477394325128,
+     "ci95_high": 1.1395134914503358,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.2777777777777786,
+     "ci95_low": 1.1840873015873012,
+     "ci95_high": 1.3634920634920638,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.9158730158730165,
+     "ci95_low": 0.8206349206349208,
+     "ci95_high": 1.0032142857142858,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.10932162030258667,
+     "ci95_low": 0.09020742884708155,
+     "ci95_high": 0.12906742605987906,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.09590160409409532,
+     "ci95_low": 0.046910134572395616,
+     "ci95_high": 0.14561096925556768,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.27228525121555913,
+     "ci95_low": 0.2355415418971729,
+     "ci95_high": 0.3097645989681051,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 1.0613684255794948,
+     "ci95_low": 1.0019956311031721,
+     "ci95_high": 1.1247311021330844,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 1.246464646464646,
+     "ci95_low": 1.1707070707070708,
+     "ci95_high": 1.3292929292929294,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.9070707070707068,
+     "ci95_low": 0.8363383838383838,
+     "ci95_high": 0.9838383838383837,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.10218068535825542,
+     "ci95_low": 0.0879184470468197,
+     "ci95_high": 0.11765161878704969,
+     "undefined_draws": 0
+    }
+   },
+   "label": "under test"
+  },
+  "DenseNet combined in-domain": {
+   "first 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.12583892617449666,
+     "ci95_low": 0.05749538700314385,
+     "ci95_high": 0.19985747206806473,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.330188679245283,
+     "ci95_low": 0.2610028712059065,
+     "ci95_high": 0.40498551140813455,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7732710825795158,
+     "ci95_low": 0.6709159677641617,
+     "ci95_high": 0.8739533055274007,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8833333333333335,
+     "ci95_low": 0.7527777777777779,
+     "ci95_high": 1.0139583333333329,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.5916666666666669,
+     "ci95_low": 0.48888888888888893,
+     "ci95_high": 0.7,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.08613264427217916,
+     "ci95_low": 0.06532620694652227,
+     "ci95_high": 0.1070503975071813,
+     "undefined_draws": 0
+    }
+   },
+   "after 10 tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.07851905085106671,
+     "ci95_low": 0.02925780546296261,
+     "ci95_high": 0.12762637929768794,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.28519855595667876,
+     "ci95_low": 0.23219941005712147,
+     "ci95_high": 0.3401888592477431,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7372805791778124,
+     "ci95_low": 0.6741554098832477,
+     "ci95_high": 0.7955297034807254,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8793650793650795,
+     "ci95_low": 0.7904761904761907,
+     "ci95_high": 0.9634920634920634,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.6285714285714286,
+     "ci95_low": 0.550793650793651,
+     "ci95_high": 0.707936507936508,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07515861395802832,
+     "ci95_low": 0.05975564552286843,
+     "ci95_high": 0.09119530120375051,
+     "undefined_draws": 0
+    }
+   },
+   "all tasks": {
+    "net_value_per_100_steps": {
+     "value": 0.0952565260396507,
+     "ci95_low": 0.055475689068447964,
+     "ci95_high": 0.13634501316403771,
+     "undefined_draws": 0
+    },
+    "precision": {
+     "value": 0.30160550458715585,
+     "ci95_low": 0.25912245020039476,
+     "ci95_high": 0.34534929197100706,
+     "undefined_draws": 0
+    },
+    "notes_per_100_steps": {
+     "value": 0.7500107513009074,
+     "ci95_low": 0.6923279489563845,
+     "ci95_high": 0.8085663675180081,
+     "undefined_draws": 0
+    },
+    "notes_per_session": {
+     "value": 0.8808080808080808,
+     "ci95_low": 0.806060606060606,
+     "ci95_high": 0.9595959595959597,
+     "undefined_draws": 0
+    },
+    "false_notes_per_session": {
+     "value": 0.6151515151515153,
+     "ci95_low": 0.5535101010101012,
+     "ci95_high": 0.6808080808080809,
+     "undefined_draws": 0
+    },
+    "heads_up_share": {
+     "value": 1.0,
+     "ci95_low": 1.0,
+     "ci95_high": 1.0,
+     "undefined_draws": 0
+    },
+    "spells_hit_share": {
+     "value": 0.07912772585669779,
+     "ci95_low": 0.06654503762925044,
+     "ci95_high": 0.09179197994987467,
+     "undefined_draws": 0
+    }
+   },
+   "label": "ceiling (uses future tasks; never a candidate)"
+  }
+ },
+ "differences": {
+  "fly combined MAML start minus fly combined cold": {
+   "first 10 tasks": {
+    "value": 0.02857212333430604,
+    "ci95_low": -0.006769402223678928,
+    "ci95_high": 0.06765230068271733,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.022624133296069958,
+    "ci95_low": -0.05544828159686737,
+    "ci95_high": 0.010591624029752278,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.004515546381112151,
+    "ci95_low": -0.029019140927190545,
+    "ci95_high": 0.01935769546859617,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined broad + fine-tune minus fly combined broad": {
+   "first 10 tasks": {
+    "value": -0.04559381383133933,
+    "ci95_low": -0.12430085345805829,
+    "ci95_high": 0.036390247041379956,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.04824263717544349,
+    "ci95_low": -0.10878852200345014,
+    "ci95_high": 0.012882989812217928,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.047305723992603146,
+    "ci95_low": -0.1004458395562526,
+    "ci95_high": 0.0025271830039986037,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined in-domain minus fly combined broad": {
+   "first 10 tasks": {
+    "value": -0.021885030639042874,
+    "ci95_low": -0.12320672490422849,
+    "ci95_high": 0.07700279691557461,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.04757722149026478,
+    "ci95_low": -0.11293624180411514,
+    "ci95_high": 0.022672581536318095,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.038489657248527376,
+    "ci95_low": -0.09506760617652538,
+    "ci95_high": 0.02037249243204503,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined cold minus counters": {
+   "first 10 tasks": {
+    "value": 0.007902927730765452,
+    "ci95_low": -0.006190563422307883,
+    "ci95_high": 0.021664683631163667,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.013308313703570714,
+    "ci95_low": -0.028700180778854768,
+    "ci95_high": 0.001715185405892512,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.005805702490001253,
+    "ci95_low": -0.016839662636062083,
+    "ci95_high": 0.00464952853654824,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined cold minus logistic own tasks": {
+   "first 10 tasks": {
+    "value": -0.05592841163310965,
+    "ci95_low": -0.1592217203291732,
+    "ci95_high": 0.054772359835012996,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.09715069003606562,
+    "ci95_low": -0.17298180158220006,
+    "ci95_high": -0.023585925495202623,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "all tasks": {
+    "value": -0.08256999096890721,
+    "ci95_low": -0.1444696578475754,
+    "ci95_high": -0.02141321829862323,
+    "undefined_draws": 0,
+    "standing": "worse"
+   }
+  },
+  "fly combined cold minus logistic broad + refit": {
+   "first 10 tasks": {
+    "value": -0.07234218461239184,
+    "ci95_low": -0.16161260651155432,
+    "ci95_high": 0.016481706170586405,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.12809251939686733,
+    "ci95_low": -0.19590743066297944,
+    "ci95_high": -0.0590737081671636,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "all tasks": {
+    "value": -0.10837311314669072,
+    "ci95_low": -0.1642068901420727,
+    "ci95_high": -0.05154484202003124,
+    "undefined_draws": 0,
+    "standing": "worse"
+   }
+  },
+  "fly combined cold minus logistic broad": {
+   "first 10 tasks": {
+    "value": -0.18359109036085988,
+    "ci95_low": -0.31035167601997066,
+    "ci95_high": -0.056312873723759094,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "after 10 tasks": {
+    "value": -0.1270943958690995,
+    "ci95_low": -0.20794017238052034,
+    "ci95_high": -0.04788006832282781,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "all tasks": {
+    "value": -0.14707779641336596,
+    "ci95_low": -0.21122305147931858,
+    "ci95_high": -0.0790240376866919,
+    "undefined_draws": 0,
+    "standing": "worse"
+   }
+  },
+  "fly combined MAML start minus counters": {
+   "first 10 tasks": {
+    "value": 0.03647505106507149,
+    "ci95_low": -0.011806144306319178,
+    "ci95_high": 0.08631036592803715,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.03593244699964067,
+    "ci95_low": -0.08297567703016087,
+    "ci95_high": 0.010641451705795097,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.010321248871113404,
+    "ci95_low": -0.04382102846508605,
+    "ci95_high": 0.022948580187783958,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined MAML start minus logistic own tasks": {
+   "first 10 tasks": {
+    "value": -0.027356288298803613,
+    "ci95_low": -0.12304419046056324,
+    "ci95_high": 0.07318234754543075,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.11977482333213557,
+    "ci95_low": -0.19939698866864672,
+    "ci95_high": -0.039645628632209585,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "all tasks": {
+    "value": -0.08708553735001937,
+    "ci95_low": -0.15125090707558173,
+    "ci95_high": -0.02439497433745775,
+    "undefined_draws": 0,
+    "standing": "worse"
+   }
+  },
+  "fly combined MAML start minus logistic broad + refit": {
+   "first 10 tasks": {
+    "value": -0.04377006127808579,
+    "ci95_low": -0.1253033668588004,
+    "ci95_high": 0.03976136824269927,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.15071665269293727,
+    "ci95_low": -0.22594052225895836,
+    "ci95_high": -0.07925138195130264,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "all tasks": {
+    "value": -0.11288865952780287,
+    "ci95_low": -0.17095484571883426,
+    "ci95_high": -0.05469125870400191,
+    "undefined_draws": 0,
+    "standing": "worse"
+   }
+  },
+  "fly combined MAML start minus logistic broad": {
+   "first 10 tasks": {
+    "value": -0.15501896702655382,
+    "ci95_low": -0.2824072399692398,
+    "ci95_high": -0.024536518670881278,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "after 10 tasks": {
+    "value": -0.14971852916516948,
+    "ci95_low": -0.23058965739519988,
+    "ci95_high": -0.07027369633272634,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "all tasks": {
+    "value": -0.15159334279447811,
+    "ci95_low": -0.21541469775268163,
+    "ci95_high": -0.086878634282885,
+    "undefined_draws": 0,
+    "standing": "worse"
+   }
+  },
+  "fly combined broad + fine-tune minus counters": {
+   "first 10 tasks": {
+    "value": 0.05349674156210483,
+    "ci95_low": -0.03584607852570649,
+    "ci95_high": 0.13875739503158363,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": 0.04524826659214011,
+    "ci95_low": -0.03438996107868726,
+    "ci95_high": 0.12693353926644962,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": 0.0481658280651959,
+    "ci95_low": -0.013871482800690926,
+    "ci95_high": 0.10704675798995483,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined broad + fine-tune minus logistic own tasks": {
+   "first 10 tasks": {
+    "value": -0.010334597801770276,
+    "ci95_low": -0.09316177369827458,
+    "ci95_high": 0.07246855829571099,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.0385941097403548,
+    "ci95_low": -0.10917654816833872,
+    "ci95_high": 0.032656729688237705,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.02859846041371006,
+    "ci95_low": -0.08521465915508479,
+    "ci95_high": 0.02569406179479156,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined broad + fine-tune minus logistic broad + refit": {
+   "first 10 tasks": {
+    "value": -0.026748370781052452,
+    "ci95_low": -0.111586157461243,
+    "ci95_high": 0.055573947546516976,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.06953593910115649,
+    "ci95_low": -0.14265293924269534,
+    "ci95_high": 0.003965001365453155,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.054401582591493566,
+    "ci95_low": -0.11356413845753238,
+    "ci95_high": 0.002830044337554096,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "fly combined broad + fine-tune minus logistic broad": {
+   "first 10 tasks": {
+    "value": -0.13799727652952049,
+    "ci95_low": -0.24606813828606391,
+    "ci95_high": -0.033577742893497596,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "after 10 tasks": {
+    "value": -0.0685378155733887,
+    "ci95_low": -0.1327433213170099,
+    "ci95_high": -0.0010043208357820921,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "all tasks": {
+    "value": -0.09310626585816882,
+    "ci95_low": -0.15024966129977987,
+    "ci95_high": -0.036357633374778583,
+    "undefined_draws": 0,
+    "standing": "worse"
+   }
+  },
+  "DenseNet combined MAML start minus DenseNet combined cold": {
+   "first 10 tasks": {
+    "value": 0.029787958369808354,
+    "ci95_low": -0.016126599271986803,
+    "ci95_high": 0.07722992119776978,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.027282043092319755,
+    "ci95_low": -0.06790800656736441,
+    "ci95_high": 0.011122984751304445,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.00709585859889042,
+    "ci95_low": -0.035716064717173576,
+    "ci95_high": 0.024793241340186952,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined broad + fine-tune minus DenseNet combined broad": {
+   "first 10 tasks": {
+    "value": -0.08632428752066924,
+    "ci95_low": -0.16338265818906464,
+    "ci95_high": -0.011034801897936358,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "after 10 tasks": {
+    "value": 0.008650403907320928,
+    "ci95_low": -0.05699527659902741,
+    "ci95_high": 0.0756181343812377,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.024943018105190812,
+    "ci95_low": -0.07386727624877816,
+    "ci95_high": 0.028289946341572902,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined in-domain minus DenseNet combined broad": {
+   "first 10 tasks": {
+    "value": -0.02796420581655487,
+    "ci95_low": -0.12143477195965542,
+    "ci95_high": 0.0629789952305275,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.024287672509016298,
+    "ci95_low": -0.07963296490445487,
+    "ci95_high": 0.033071601543225936,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.025588096159635434,
+    "ci95_low": -0.07709320208766735,
+    "ci95_high": 0.02610970407561675,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined cold minus counters": {
+   "first 10 tasks": {
+    "value": 0.10456181305320497,
+    "ci95_low": 0.033389811334398785,
+    "ci95_high": 0.1779651936492738,
+    "undefined_draws": 0,
+    "standing": "better"
+   },
+   "after 10 tasks": {
+    "value": 0.11079171158222545,
+    "ci95_low": 0.04652930704731435,
+    "ci95_high": 0.1758367329569837,
+    "undefined_draws": 0,
+    "standing": "better"
+   },
+   "all tasks": {
+    "value": 0.10858813916483889,
+    "ci95_low": 0.05641286757756037,
+    "ci95_high": 0.15747046374122642,
+    "undefined_draws": 0,
+    "standing": "better"
+   }
+  },
+  "DenseNet combined cold minus logistic own tasks": {
+   "first 10 tasks": {
+    "value": 0.04073047368932986,
+    "ci95_low": -0.052470887108737436,
+    "ci95_high": 0.13704590637716155,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": 0.026949335249730547,
+    "ci95_low": -0.04602693115441048,
+    "ci95_high": 0.0985850635495769,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": 0.031823850685932936,
+    "ci95_low": -0.02728994102498469,
+    "ci95_high": 0.08890791170206866,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined cold minus logistic broad + refit": {
+   "first 10 tasks": {
+    "value": 0.024316700710047684,
+    "ci95_low": -0.057942899949351374,
+    "ci95_high": 0.10762647346358309,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.0039924941110711515,
+    "ci95_low": -0.07823555647104694,
+    "ci95_high": 0.06885936739074552,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": 0.006020728508149428,
+    "ci95_low": -0.052154437071387276,
+    "ci95_high": 0.06126815509520226,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined cold minus logistic broad": {
+   "first 10 tasks": {
+    "value": -0.08693220503842036,
+    "ci95_low": -0.19874999778541755,
+    "ci95_high": 0.019613447669188117,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.0029943705833033463,
+    "ci95_low": -0.07962831081802502,
+    "ci95_high": 0.0729803101537526,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.03268395475852583,
+    "ci95_low": -0.09435729418387195,
+    "ci95_high": 0.028760896650949584,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined MAML start minus counters": {
+   "first 10 tasks": {
+    "value": 0.13434977142301333,
+    "ci95_low": 0.06358399492900901,
+    "ci95_high": 0.20909268968228906,
+    "undefined_draws": 0,
+    "standing": "better"
+   },
+   "after 10 tasks": {
+    "value": 0.0835096684899057,
+    "ci95_low": 0.02877519932722272,
+    "ci95_high": 0.14326576562354756,
+    "undefined_draws": 0,
+    "standing": "better"
+   },
+   "all tasks": {
+    "value": 0.10149228056594847,
+    "ci95_low": 0.054704309771032626,
+    "ci95_high": 0.14779078537780807,
+    "undefined_draws": 0,
+    "standing": "better"
+   }
+  },
+  "DenseNet combined MAML start minus logistic own tasks": {
+   "first 10 tasks": {
+    "value": 0.07051843205913821,
+    "ci95_low": -0.03132350995504876,
+    "ci95_high": 0.17253199395641589,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.00033270784258920827,
+    "ci95_low": -0.07352614686120514,
+    "ci95_high": 0.0709935140687791,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": 0.024727992087042516,
+    "ci95_low": -0.034348503310274434,
+    "ci95_high": 0.08105917980390047,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined MAML start minus logistic broad + refit": {
+   "first 10 tasks": {
+    "value": 0.05410465907985604,
+    "ci95_low": -0.0350339275077592,
+    "ci95_high": 0.14485868602969318,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.031274537203390906,
+    "ci95_low": -0.10294243751391495,
+    "ci95_high": 0.035965363049107545,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.0010751300907409916,
+    "ci95_low": -0.057948536512719424,
+    "ci95_high": 0.05427679303387541,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined MAML start minus logistic broad": {
+   "first 10 tasks": {
+    "value": -0.05714424666861201,
+    "ci95_low": -0.1691474689521041,
+    "ci95_high": 0.05503619417871736,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.0302764136756231,
+    "ci95_low": -0.10972826118138712,
+    "ci95_high": 0.04671274850121069,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.03977981335741625,
+    "ci95_low": -0.0991963388037617,
+    "ci95_high": 0.02211935888928404,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined broad + fine-tune minus counters": {
+   "first 10 tasks": {
+    "value": 0.03647505106507152,
+    "ci95_low": -0.053541440383432636,
+    "ci95_high": 0.12972043331772715,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": 0.10946088021186834,
+    "ci95_low": 0.038575549640443185,
+    "ci95_high": 0.1820944287002396,
+    "undefined_draws": 0,
+    "standing": "better"
+   },
+   "all tasks": {
+    "value": 0.08364512105964815,
+    "ci95_low": 0.023556122615221588,
+    "ci95_high": 0.13971814106389469,
+    "undefined_draws": 0,
+    "standing": "better"
+   }
+  },
+  "DenseNet combined broad + fine-tune minus logistic own tasks": {
+   "first 10 tasks": {
+    "value": -0.027356288298803585,
+    "ci95_low": -0.10379476785720972,
+    "ci95_high": 0.054834601987862185,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": 0.025618503879373436,
+    "ci95_low": -0.03380744209083667,
+    "ci95_high": 0.08482761273431952,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": 0.006880832580742194,
+    "ci95_low": -0.04238242544466118,
+    "ci95_high": 0.05657300690148901,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined broad + fine-tune minus logistic broad + refit": {
+   "first 10 tasks": {
+    "value": -0.04377006127808576,
+    "ci95_low": -0.10394404633934742,
+    "ci95_high": 0.011429719260696426,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "after 10 tasks": {
+    "value": -0.005323325481428262,
+    "ci95_low": -0.05225996328412436,
+    "ci95_high": 0.03965006144705406,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.018922289597041314,
+    "ci95_low": -0.056864494608482176,
+    "ci95_high": 0.019286144645814077,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  },
+  "DenseNet combined broad + fine-tune minus logistic broad": {
+   "first 10 tasks": {
+    "value": -0.15501896702655382,
+    "ci95_low": -0.255533398363022,
+    "ci95_high": -0.0549041577998411,
+    "undefined_draws": 0,
+    "standing": "worse"
+   },
+   "after 10 tasks": {
+    "value": -0.004325201953660457,
+    "ci95_low": -0.0771184508049383,
+    "ci95_high": 0.068850111513007,
+    "undefined_draws": 0,
+    "standing": "tie"
+   },
+   "all tasks": {
+    "value": -0.05762697286371657,
+    "ci95_low": -0.11651438566557874,
+    "ci95_high": 0.001497671015552335,
+    "undefined_draws": 0,
+    "standing": "tie"
+   }
+  }
+ },
+ "share_of_in_domain_gain_recovered": {
+  "fly combined": {
+   "first 10 tasks": null,
+   "after 10 tasks": null,
+   "all tasks": null
+  },
+  "DenseNet combined": {
+   "first 10 tasks": null,
+   "after 10 tasks": null,
+   "all tasks": null
+  }
+ },
+ "table": [
+  "counters | 0.031 [-0.070, 0.131] | 0.002 [-0.071, 0.076]",
+  "logistic own tasks | 0.095 [0.024, 0.172] | 0.086 [0.011, 0.159]",
+  "logistic broad | 0.222 [0.135, 0.314] | 0.116 [0.050, 0.184]",
+  "logistic broad + refit | 0.111 [0.015, 0.208] | 0.117 [0.046, 0.192]",
+  "fly combined cold | 0.039 [-0.055, 0.133] | -0.011 [-0.077, 0.057]",
+  "fly combined MAML start | 0.067 [-0.024, 0.160] | -0.034 [-0.097, 0.032]",
+  "fly combined broad | 0.130 [0.043, 0.221] | 0.095 [0.023, 0.165]",
+  "fly combined broad + fine-tune | 0.085 [0.012, 0.156] | 0.047 [0.008, 0.088]",
+  "fly combined in-domain | 0.108 [0.040, 0.177] | 0.048 [0.000, 0.094]",
+  "DenseNet combined cold | 0.136 [0.046, 0.227] | 0.113 [0.045, 0.177]",
+  "DenseNet combined MAML start | 0.165 [0.072, 0.261] | 0.086 [0.021, 0.150]",
+  "DenseNet combined broad | 0.154 [0.080, 0.228] | 0.103 [0.040, 0.166]",
+  "DenseNet combined broad + fine-tune | 0.067 [-0.012, 0.147] | 0.111 [0.050, 0.176]",
+  "DenseNet combined in-domain | 0.126 [0.057, 0.200] | 0.079 [0.029, 0.128]"
+ ],
+ "logistic_own_silent_tasks": {
+  "Textualize/textual": 1,
+  "asottile/pyupgrade": 1,
+  "beeware/briefcase": 1,
+  "borgbackup/borg": 1,
+  "encode/httpx": 1,
+  "fitbenchmarking/fitbenchmarking": 1,
+  "geopandas/geopandas": 1,
+  "nilearn/nilearn": 1,
+  "numba/numba": 1,
+  "planetlabs/planet-client-python": 1,
+  "pre-commit/pre-commit": 1,
+  "zarr-developers/zarr-python": 1
+ },
+ "wall_clock_s": 212.67281103134155,
+ "results_rekeyed_note": "after the run: verdicts.lines renamed table, verdicts.claim renamed result, a prereg label added per row; values unchanged (scripts/offline/meta2_rekey.py check)"
+}

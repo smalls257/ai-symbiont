@@ -13,7 +13,7 @@ from pathlib import Path
 
 from general_kinds import TaskKind, issue_title, task_kind
 from general_places import entry_reuse
-from general_runs import PlainRun, plain_runs, task_rows
+from general_runs import PLAIN_LOGS, PlainRun, plain_runs, task_rows
 from general_split import evaluation_ids
 from sqlglot_evidence import places_at, source_at
 from sqlglot_places import Place, diff_files
@@ -100,8 +100,10 @@ def refuse_evaluation(evidence: Evidence) -> Evidence:
     return evidence
 
 
-def load_evidence(src: Path, split: Path, clone: Path) -> Evidence:
-    """Non-evaluation pool tasks and plain runs under `src`; eval ids come from `split`."""
+def load_evidence(
+    src: Path, split: Path, clone: Path, logs: Sequence[str] = PLAIN_LOGS
+) -> Evidence:
+    """Non-evaluation pool tasks and the runs in `logs` under `src`; eval ids come from `split`."""
     held = evaluation_ids(split)
     rows = task_rows(src / "data" / "sqlglot_rows.json")
     pool = [
@@ -110,7 +112,7 @@ def load_evidence(src: Path, split: Path, clone: Path) -> Evidence:
     return refuse_evaluation(
         Evidence(
             tasks={task: source_task(rows[task], clone) for task in pool if task not in held},
-            runs=tuple(run for run in plain_runs(src) if run.task not in held),
+            runs=tuple(run for run in plain_runs(src, logs) if run.task not in held),
             evaluation=held,
             evaluation_patches={task: rows[task]["patch"] for task in sorted(held)},
             evaluation_places={

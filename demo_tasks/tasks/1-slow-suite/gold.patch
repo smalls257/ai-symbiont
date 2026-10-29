@@ -1,0 +1,12 @@
+diff --git a/ledgerline/statement.py b/ledgerline/statement.py
+--- a/ledgerline/statement.py
++++ b/ledgerline/statement.py
+@@ -30,7 +30,7 @@
+     if days == 0:
+         return CURRENT
+     for label, last_day in AGING_BUCKETS:
+-        if days < last_day:
++        if days <= last_day:
+             return label
+     return OVERDUE
+ 

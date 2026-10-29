@@ -3,7 +3,7 @@
 The 50-step screen mixed hard tasks with tasks the cap cut off; CAL2 re-measures them at a raised
 cap, adaptively (priority order, sequential stopping, TARGET_IN_BAND / MIN_STRATA / BARREN_LIMIT
 stop rules), keeps tasks solved 1 or 2 of 3, and resumes from its log. Summary: ids, counts, labels.
---fixed-runs/--lessons runs the lesson arm, --adapter personal Glimmer; records carry the arm.
+--lessons runs the lesson arm, --adapter or --model personal Glimmer; records carry arm and model.
 Usage: python launch.py <workdir> --candidates-log runs/calibration.jsonl --runs-dir runs-cal2
 """
 
@@ -17,9 +17,17 @@ import threading
 import time
 from pathlib import Path
 
-from lessons import Arm, lesson_hash, load_lessons, statement_with_lesson
+from lesson_arm import (
+    Arm,
+    LessonCheck,
+    check_lessons,
+    lesson_hash,
+    load_lessons,
+    statement_with_lesson,
+)
+from run_calibration import MODEL
 from screen_rules import cells_of
-from staged import BlockedError, Driver, add_limit_arguments, settings_for
+from staged import BlockedError, Driver, add_limit_arguments, run_identity, settings_for
 from staged_summary import RUN_FIELDS, RUNS_PER_TASK, run_totals
 
 TARGET_IN_BAND = 8  # coordinator ruling 2026-10-28 (was 15): enough in-band tasks for the pool
@@ -163,15 +171,25 @@ class CandidateDriver(Driver):
         self.stop: str | None = None
         self._lock = threading.RLock()  # decide() and _record() both write the summary
         self.arm, self.lesson_hashes = Arm.PLAIN, {}
+        self.lesson_checks: dict[str, LessonCheck] = {}
 
     def give_lessons(self, path: Path) -> None:
         """Lesson arm: each listed task's lesson goes before its statement; raises if one lacks."""
         lessons = load_lessons(path, self.screen)
+        self.lesson_checks = check_lessons(lessons, self.rows)
         for iid, text in lessons.items():
             self.rows[iid] = statement_with_lesson(self.rows[iid], text)
         self.arm = Arm.LESSON
         self.lesson_hashes = {iid: lesson_hash(text) for iid, text in lessons.items()}
-        self.header = self.header | {"arm": str(self.arm), "lesson_sha": self.lesson_hashes}
+        leaked = sorted(iid for iid, c in self.lesson_checks.items() if c != LessonCheck.CLEAN)
+        print(
+            f"lesson check: {len(leaked)} of {len(lessons)} contain fix lines: {leaked}", flush=True
+        )
+        self.header = self.header | {
+            "arm": str(self.arm),
+            "lesson_sha": self.lesson_hashes,
+            "lesson_check": {iid: str(check) for iid, check in self.lesson_checks.items()},
+        }
 
     def use_adapter(self, adapter_id: int) -> None:
         """Personal-Glimmer arm: every model call carries the LoRA; raises if lessons are set."""
@@ -181,17 +199,35 @@ class CandidateDriver(Driver):
         self.arm = Arm.PERSONAL_LORA
         self.header = self.header | {"arm": str(self.arm), "adapter_id": adapter_id}
 
-    def use_served_model(self, name: str) -> None:
-        """Adapter arm by model name: every call goes to `name`; raises if another arm is set."""
-        if self.arm is not Arm.PLAIN:
-            raise ValueError(f"one arm per run: already {self.arm}, cannot add {name}")
-        self.low = dataclasses.replace(self.low, served_model=name)
-        self.arm = Arm.SERVED_ADAPTER
-        self.header = self.header | {"arm": str(self.arm), "served_model": name}
+    def _record(self, rec: dict) -> None:
+        """Stamp the arm, the lesson hash and the adapter id on every record before it is logged."""
+        stamp = {
+            "arm": str(self.arm),
+            "lesson_sha": self.lesson_hashes.get(rec["instance_id"]),
+            "lesson_check": _label(self.lesson_checks.get(rec["instance_id"])),
+            "adapter_id": self.low.adapter_id,
+            "model": self.low.model,
+        }
+        super()._record(rec | stamp)
+
+    def expected_identity(self, iid: str) -> tuple[str, int | None, str | None, str]:
+        """This run's arm, adapter id, the task's lesson hash and the model: the resume key."""
+        return str(self.arm), self.low.adapter_id, self.lesson_hashes.get(iid), self.low.model
+
+    def use_model(self, name: str) -> None:
+        """Personal Glimmer by router name (the loop's Muse-Glimmer-30B-<domain>-r<N>).
+
+        Combines with --lessons (the loop's with-card ablation runs); refuses --adapter, which
+        names a personal Glimmer the other way.
+        """
+        if self.low.adapter_id is not None:
+            raise ValueError("--model and --adapter both name a personal Glimmer; pick one")
+        self.low = dataclasses.replace(self.low, model=f"openai/{name}")
+        self.header = self.header | {"model": self.low.model}
 
     def use_teacher(self, teacher: str, test_set: Path) -> None:
         """Teacher arm on EARLIER tasks only: raises if any listed task is in the test set."""
-        if self.arm is not Arm.PLAIN:
+        if self.arm is not Arm.PLAIN or self.low.model != MODEL or self.low.adapter_id is not None:
             raise ValueError(f"one arm per run: already {self.arm}, cannot add teacher {teacher}")
         held = {entry["task"] for entry in json.loads(test_set.read_text())["test"]}
         if held & set(self.screen):
@@ -202,23 +238,21 @@ class CandidateDriver(Driver):
         self.arm = Arm.TEACHER
         self.header = self.header | {"arm": str(self.arm), "teacher": teacher}
 
-    def _record(self, rec: dict) -> None:
-        """Stamp the arm, the lesson hash and the adapter id on every record before it is logged."""
-        stamp = {
-            "arm": str(self.arm),
-            "lesson_sha": self.lesson_hashes.get(rec["instance_id"]),
-            "adapter_id": self.low.adapter_id,
-        }
-        super()._record(rec | stamp)
-
-    def graded_runs(self, iid: str) -> list[dict]:
-        """The graded records of one task under the current setting."""
+    def arm_records(self, iid: str) -> list[dict]:
+        """Every logged record of one task under this run's arm, graded or not."""
+        expected = self.expected_identity(iid)
         return [
             rec
             for rec in self.records
-            if rec["instance_id"] == iid
-            and rec["step_limit"] == self.low.step_limit
-            and rec["resolved"] is not None
+            if rec["instance_id"] == iid and run_identity(rec) == expected
+        ]
+
+    def graded_runs(self, iid: str) -> list[dict]:
+        """The graded records of one task under the current setting and arm."""
+        return [
+            rec
+            for rec in self.arm_records(iid)
+            if rec["step_limit"] == self.low.step_limit and rec["resolved"] is not None
         ]
 
     def finished_tasks(self) -> list[tuple[str, str]]:
@@ -267,7 +301,7 @@ class CandidateDriver(Driver):
         entries = [
             candidate_entry(iid, self.strata[iid], runs)
             for iid in self.screen
-            if (runs := [rec for rec in self.records if rec["instance_id"] == iid])
+            if (runs := self.arm_records(iid))
         ]
         out = {
             **self.header,
@@ -284,6 +318,11 @@ class CandidateDriver(Driver):
             tmp.replace(self.summary_path)
 
 
+def _label(check: LessonCheck | None) -> str | None:
+    """A lesson check as the record's string; None on rows without a lesson."""
+    return None if check is None else str(check)
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="CAL2 candidate re-measurement driver")
     parser.add_argument("workdir", type=Path)
@@ -294,7 +333,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--lessons", type=Path, default=None, help="lesson arm: id -> text JSON")
     parser.add_argument("--adapter", type=int, default=None, help="personal arm: served LoRA id")
-    parser.add_argument("--served-model", default=None, help="adapter arm: router model name")
+    parser.add_argument("--model", default=None, help="a router model name instead of plain")
     parser.add_argument("--teacher", choices=("spark", "wonder"), default=None)
     parser.add_argument("--test-set", type=Path, default=None, help="refused for --teacher")
     add_limit_arguments(parser)
@@ -310,10 +349,14 @@ if __name__ == "__main__":
         driver.give_lessons(args.lessons)
     if args.adapter is not None:
         driver.use_adapter(args.adapter)
-    if args.served_model:
-        driver.use_served_model(args.served_model)
+    if args.model:
+        driver.use_model(args.model)
     if args.teacher:
         if args.test_set is None:
             raise SystemExit("--teacher needs --test-set (teacher runs are for earlier tasks only)")
         driver.use_teacher(args.teacher, args.test_set)
+    else:
+        from run_calibration import preflight
+
+        preflight(driver.low)
     driver.run()

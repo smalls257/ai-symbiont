@@ -6,7 +6,7 @@
 #
 #   SYMBIONT_GLIMMER_URL=http://host:port/v1 overnight_general_eval.sh WORKDIR
 #
-# WORKDIR holds calibration-general/ (CAL2 driver with --served-model), .venv/, data/, and
+# WORKDIR holds calibration-general/ (CAL2 driver with --model), .venv/, data/, and
 # runs-general-overnight/{eval-tasks.jsonl,general-split.json}. Polls /health and /v1/models
 # every POLL_S. An adapter arm starts only when QUEUE_SUMMARY (a copy of the Strix queue's
 # overnight-summary.txt) has its "end" line and an "install ... ok model=<name>" line for that
@@ -59,7 +59,7 @@ arm() {  # arm <runs-subdir> <workers> [driver flags...]
 run_together() {  # run_together <adapter names...>: one arm each, sharing the slots
   local workers=$((SLOTS / $#)) name
   for name in "$@"; do
-    arm "${name#Muse-Glimmer-30B-}$ARM_SUFFIX" "$workers" --served-model "$name" &
+    arm "${name#Muse-Glimmer-30B-}$ARM_SUFFIX" "$workers" --model "$name" &
   done
   wait
 }

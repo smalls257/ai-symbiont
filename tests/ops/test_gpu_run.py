@@ -34,6 +34,19 @@ case "$1" in
 esac
 """
 
+# util-linux `flock -n FD` locks the open file description behind an inherited fd, so the lock
+# outlives the flock process; fcntl.flock does the same, which makes this a faithful stand-in on
+# machines without util-linux (the Strix has the real one).
+FAKE_FLOCK = """#!/usr/bin/env python3
+import fcntl, sys
+args = sys.argv[1:]
+mode = fcntl.LOCK_EX | (fcntl.LOCK_NB if "-n" in args else 0)
+try:
+    fcntl.flock(int(args[-1]), mode)
+except BlockingIOError:
+    sys.exit(1)
+"""
+
 
 class Rig:
     def __init__(self, tmp_path: Path, running: bool):
@@ -41,6 +54,11 @@ class Rig:
         bin_dir.mkdir()
         (bin_dir / "docker").write_text(FAKE_DOCKER)
         (bin_dir / "docker").chmod(0o755)
+        (bin_dir / "flock").write_text(FAKE_FLOCK)
+        (bin_dir / "flock").chmod(0o755)
+        other = tmp_path / "other-project"
+        other.mkdir()
+        self.foreign = [other / "gpu.lock", other / "gpu.lock.1"]
         self.state = tmp_path / "state"
         self.calls = tmp_path / "calls"
         self.log = tmp_path / "gpu_run.log"
@@ -55,6 +73,7 @@ class Rig:
             "GPU_RUN_LOG": str(self.log),
             "GPU_RUN_LOCK": str(self.lock),
             "GPU_RUN_GRACE": "1",
+            "GPU_RUN_FOREIGN_LOCKS": " ".join(str(path) for path in self.foreign),
             "FAKE_JOB_PIDFILE": str(tmp_path / "job.pid"),
         }
         self.job_pid_file = tmp_path / "job.pid"
@@ -208,6 +227,13 @@ def test_script_never_invokes_sudo():
     assert not any("sudo" in ln for ln in code)
 
 
+def test_signal_traps_are_armed_before_the_lock_is_taken():
+    main = SCRIPT.read_text().split("main() {", 1)[1]
+    first_lock = main.index("acquire_lock")
+    assert all(main.index(f"trap 'on_signal {n}'") < first_lock for n in (1, 2, 15))
+    assert 'if [ -n "$signaled" ]; then release_lock;' in main[first_lock:].splitlines()[1]
+
+
 # --- signals before the job starts, HUP, and jobs that ignore TERM -------------
 
 STOPPING = {signal.SIGINT: 130, signal.SIGTERM: 143, signal.SIGHUP: 129}
@@ -275,4 +301,81 @@ def test_job_ignoring_term_is_killed_after_grace_then_llama_restored(was_running
     assert was_running.job_seen_at_start.read_text().split() == ["gone"]
     assert "KILL" in err
     assert was_running.running() is True
+    assert not was_running.lock.exists()
+
+
+def hold(path: Path):
+    """Take `path` the way the other project's gpu_run does; close the file to release it."""
+    import fcntl
+
+    held = path.open("a")
+    fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    return held
+
+
+def is_free(path: Path) -> bool:
+    import fcntl
+
+    with path.open("a") as probe:
+        try:
+            fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            return False
+        return True
+
+
+def test_a_foreign_job_holding_its_lock_makes_us_wait_before_llama_is_stopped(
+    was_running, tmp_path
+):
+    started = tmp_path / "started"
+    foreign_job = hold(was_running.foreign[1])  # the other project's second slot
+    proc = was_running.start("bash", "-c", f"touch {started}")
+    time.sleep(1.5)
+    assert not started.exists()
+    assert was_running.running() is True  # Glimmer is not stopped while we wait
+    foreign_job.close()
+    assert proc.wait(timeout=20) == 0
+    assert started.exists()
+    assert was_running.running() is True
+    assert "waiting for foreign lock" in was_running.log.read_text()
+
+
+def test_while_our_job_runs_every_foreign_slot_is_held(was_running, tmp_path):
+    started = tmp_path / "started"
+    proc = was_running.start("bash", "-c", f"touch {started}; sleep 3")
+    was_running.wait_for(started)
+    assert not any(is_free(path) for path in was_running.foreign)
+    assert proc.wait(timeout=20) == 0
+    assert all(is_free(path) for path in was_running.foreign)
+
+
+def test_foreign_wait_times_out_with_75_and_touches_nothing(was_running):
+    held = hold(was_running.foreign[0])
+    was_running.env["GPU_RUN_FOREIGN_WAIT"] = "2"
+    done = was_running.run("true")
+    held.close()
+    assert done.returncode == 75
+    assert "still held" in done.stderr
+    assert was_running.docker_calls() == []
+    assert not was_running.lock.exists()
+
+
+def test_a_missing_foreign_lock_dir_refuses_rather_than_skipping_it(was_running, tmp_path):
+    was_running.env["GPU_RUN_FOREIGN_LOCKS"] = str(tmp_path / "nowhere" / "gpu.lock")
+    done = was_running.run("true")
+    assert done.returncode == 69
+    assert "foreign lock dir missing" in done.stderr
+    assert was_running.docker_calls() == []
+    assert not was_running.lock.exists()
+
+
+def test_term_during_the_foreign_wait_ends_it_and_leaves_llama_running(was_running):
+    held = hold(was_running.foreign[0])
+    proc = was_running.start("true")
+    time.sleep(1.5)
+    proc.send_signal(signal.SIGTERM)
+    assert proc.wait(timeout=10) == 128 + signal.SIGTERM
+    held.close()
+    assert was_running.running() is True
+    assert was_running.docker_calls() == []
     assert not was_running.lock.exists()
