@@ -253,3 +253,15 @@ def test_archive_offers_carry_every_card_with_its_mean_fitness():
     assert dict((c.card_id, m) for c, m in step.archive_offers)[cards[3].card_id] == pytest.approx(
         0.15
     )
+
+
+def test_no_child_is_a_copy_of_a_card_of_the_population_or_of_its_own_parent():
+    cards = cards_of(6)
+    for seed in range(30):
+        step = next_population(
+            population(cards), results_for(cards, steady), ParentChoice.LEXICASE,
+            tools_with(seed=seed, cards=cards),
+        )  # fmt: skip
+        made = [b for b in step.births if b.operator != Operator.ELITE]
+        assert all(b.card_id not in b.parents for b in made)
+        assert not {b.card_id for b in made if b.rejection is None} & {c.card_id for c in cards}

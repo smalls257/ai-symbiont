@@ -237,9 +237,8 @@ def next_population(
     """
     table = FitnessTable.of(results)
     by_id = {card.card_id: card for card in population.cards}
-    run = _Run(population, choice, tools, table, by_id, [], [], set())
+    run = _Run(population, choice, tools, table, by_id, [], [], set(by_id))
     kept = elites(table, ELITES, run.tie_key)
-    run.taken.update(kept)
     run.births.extend(_elite_birth(population, card_id) for card_id in kept)
     children = []
     for slot in range(CHILDREN):
