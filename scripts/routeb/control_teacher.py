@@ -18,7 +18,14 @@ from pathlib import Path
 from symbiont.egress.spend import Ledger
 
 LABEL = "control-teacher"  # --label overrides it (core2-teacher for the D2 target set)
-CORE_REPOS = ("tobymao/sqlglot", "django/django")
+CORE_REPOS = (  # Core D2 repositories: never in the control set
+    "tobymao/sqlglot",
+    "django/django",
+    "streamlink/streamlink",
+    "conan-io/conan",
+    "iterative/dvc",
+    "PennyLaneAI/pennylane",
+)
 SETTINGS = {
     "agent": "spark",
     "run_label": LABEL,

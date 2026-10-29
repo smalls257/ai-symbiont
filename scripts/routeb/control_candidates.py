@@ -14,7 +14,14 @@ from pathlib import Path
 import duckdb
 
 SOURCE = "hf://datasets/nebius/SWE-rebench@~parquet/default/filtered/*.parquet"
-CORE_REPOS = ("tobymao/sqlglot", "django/django")
+CORE_REPOS = (  # Core D2 repositories: never in the control set
+    "tobymao/sqlglot",
+    "django/django",
+    "streamlink/streamlink",
+    "conan-io/conan",
+    "iterative/dvc",
+    "PennyLaneAI/pennylane",
+)
 MAX_GOLD_LINES = 15  # small fixes, like the Core earlier tasks (median gold patch of 2-8 lines)
 SEED = 20261029
 COLUMNS = (
