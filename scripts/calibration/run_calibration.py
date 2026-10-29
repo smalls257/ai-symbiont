@@ -47,6 +47,14 @@ class Setting:
     step_limit: int
     wall_limit_s: int
     adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
+    served_model: str | None = (
+        None  # a router model name that carries its own adapter; None = MODEL
+    )
+
+
+def model_of(setting: Setting) -> str:
+    """The litellm model name a run talks to: MODEL, or the named served adapter model."""
+    return f"openai/{setting.served_model}" if setting.served_model else MODEL
 
 
 def glimmer_url() -> str:
@@ -75,7 +83,7 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
         f"Reasoning strength: {setting.reasoning}\n" + agent["system_template"]
     )
     model = cfg["model"] | {
-        "model_name": MODEL,
+        "model_name": model_of(setting),
         "cost_tracking": "ignore_errors",  # local model: cost is 0 by construction
         "model_kwargs": {
             "api_base": glimmer_url(),
@@ -126,7 +134,7 @@ def _new_record(row: dict, run: int, setting: Setting, stage: str) -> dict:
         "run": run,
         **asdict(setting),
         "image": IMAGE,
-        "model": MODEL,
+        "model": model_of(setting),
         "error_kind": None,
         "error": None,
         "started": time.time(),

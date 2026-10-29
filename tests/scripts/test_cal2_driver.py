@@ -20,6 +20,7 @@ class Setting:
     step_limit: int
     wall_limit_s: int
     adapter_id: int | None = None
+    served_model: str | None = None
 
 
 @pytest.fixture(autouse=True)
@@ -353,3 +354,26 @@ def test_adapter_arm_is_stamped_on_every_record_and_cannot_mix_with_lessons(monk
     mixed.give_lessons(tmp_path / "m" / "lessons.json")
     with pytest.raises(ValueError, match="one arm per run"):
         mixed.use_adapter(0)
+
+
+def test_served_model_names_the_model_on_every_call_and_record(monkeypatch):
+    runner = load_runner(monkeypatch)
+    setting = runner.Setting("low", 50, 2700, served_model="Glimmer-x")
+    _, model = runner.agent_config(setting)
+    assert model["model_name"] == "openai/Glimmer-x"
+    assert runner.model_of(runner.Setting("low", 50, 2700)) == runner.MODEL
+
+
+def test_served_model_arm_is_stamped_and_cannot_mix(monkeypatch, tmp_path):
+    cal2, driver, _ = lesson_driver(monkeypatch, tmp_path, {"task00": "Edit it."})
+    args = cal2.parse_args(
+        [str(tmp_path), "--runs-dir", "p", "--candidates-log", "one.jsonl"]
+        + ["--served-model", "Glimmer-x"]
+    )
+    driver.use_served_model(args.served_model)
+    driver.run()
+    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    assert {rec["arm"] for rec in logged} == {"served_adapter"}
+    assert driver.header["served_model"] == "Glimmer-x"
+    with pytest.raises(ValueError, match="one arm per run"):
+        driver.use_adapter(0)

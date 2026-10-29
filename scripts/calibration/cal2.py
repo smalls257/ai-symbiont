@@ -181,6 +181,14 @@ class CandidateDriver(Driver):
         self.arm = Arm.PERSONAL_LORA
         self.header = self.header | {"arm": str(self.arm), "adapter_id": adapter_id}
 
+    def use_served_model(self, name: str) -> None:
+        """Adapter arm by model name: every call goes to `name`; raises if another arm is set."""
+        if self.arm is not Arm.PLAIN:
+            raise ValueError(f"one arm per run: already {self.arm}, cannot add {name}")
+        self.low = dataclasses.replace(self.low, served_model=name)
+        self.arm = Arm.SERVED_ADAPTER
+        self.header = self.header | {"arm": str(self.arm), "served_model": name}
+
     def _record(self, rec: dict) -> None:
         """Stamp the arm, the lesson hash and the adapter id on every record before it is logged."""
         stamp = {
@@ -273,6 +281,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     )
     parser.add_argument("--lessons", type=Path, default=None, help="lesson arm: id -> text JSON")
     parser.add_argument("--adapter", type=int, default=None, help="personal arm: served LoRA id")
+    parser.add_argument("--served-model", default=None, help="adapter arm: router model name")
     add_limit_arguments(parser)
     return parser.parse_args(argv)
 
@@ -286,4 +295,6 @@ if __name__ == "__main__":
         driver.give_lessons(args.lessons)
     if args.adapter is not None:
         driver.use_adapter(args.adapter)
+    if args.served_model:
+        driver.use_served_model(args.served_model)
     driver.run()
