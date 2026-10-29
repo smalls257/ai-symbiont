@@ -16,7 +16,8 @@ done
 HERE=$(cd "$(dirname "$0")" && pwd)
 ROOT=$(cd "$HERE/../.." && pwd)
 LOGS="$WORK/logs"
-PREREG=prereg/2026-10-29-plug-situations.md
+PREREG=prereg/2026-10-29-plug-sit-seeds.md
+SEEDS=(0 1 2)  # each variant trains with every seed; every rule reads the per-repo seed mean
 mkdir -p "$LOGS"
 pure() { (cd "$ROOT" && uv run --no-sync python "$@"); }
 
@@ -48,11 +49,21 @@ items() {  # items DIR REPOS_KEY: the plan's repos under REPOS_KEY, full prompt 
   pure scripts/routea/plug_situation_cli.py ranker-answers --work "$1/top5" --source "$1/full"
 }
 
-train_variant() {  # train_variant VARIANT MODEL ROWS_DIR
-  local adapter="$WORK/adapters/$1"
-  grep -qx "train-$1 [0-9]*" "$LOGS/timing.txt" 2>/dev/null && return 0
+train_variant() {  # train_variant VARIANT MODEL ROWS_DIR SEED
+  local name="$1-s$4" adapter="$WORK/adapters/$1-s$4"
+  grep -qx "train-$name [0-9]*" "$LOGS/timing.txt" 2>/dev/null && return 0
   rm -rf "$adapter" && mkdir -p "$adapter"
-  LORA_EPOCHS=1 LORA_MAX_LENGTH=1024 "$HERE/train_lora.sh" "$PY" "$2" "$3" "$adapter" "$LOGS" "$1"
+  LORA_EPOCHS=1 LORA_MAX_LENGTH=1024 LORA_SEED=$4 "$HERE/train_lora.sh" "$PY" "$2" "$3" "$adapter" \
+    "$LOGS" "$name"
+}
+
+run_variant() {  # run_variant VARIANT MODEL ROWS_DIR: train and answer validation for every seed
+  local seed
+  for seed in "${SEEDS[@]}"; do
+    train_variant "$1" "$2" "$3" "$seed"
+    answer "$WORK/val/top5/answers/$1-s$seed.jsonl" "$WORK/val/top5/items.jsonl" "$2" \
+      "$WORK/adapters/$1-s$seed"
+  done
 }
 
 rows() {  # rows VARIANT: build and fit the variant's rows
@@ -75,15 +86,13 @@ validate() {
   local order=() best=floor
   for variant in V1 V2 V3; do
     rows "$variant"
-    train_variant "$variant" "$MODEL_1B" "$WORK/rows/$variant"
-    answer "$WORK/val/top5/answers/$variant.jsonl" "$WORK/val/top5/items.jsonl" "$MODEL_1B" "$WORK/adapters/$variant"
+    run_variant "$variant" "$MODEL_1B" "$WORK/rows/$variant"
     order+=("$variant")
     best=$(selected "${order[@]}")
     [[ $best == floor ]] && { echo "V1 failed: the round stops at the floor" >>"$LOGS/progress.txt"; return 0; }
   done
   if [[ $best == V1 ]]; then  # 1B topped out: neither V2 nor V3 replaced the current best
-    train_variant V4 "$MODEL_3B" "$WORK/rows/$best"
-    answer "$WORK/val/top5/answers/V4.jsonl" "$WORK/val/top5/items.jsonl" "$MODEL_3B" "$WORK/adapters/V4"
+    run_variant V4 "$MODEL_3B" "$WORK/rows/$best"
     order+=(V4)
     selected "${order[@]}" >/dev/null
   fi
@@ -99,8 +108,12 @@ score() {
   answer "$WORK/scored/top5/answers/floor_plain.jsonl" "$top" "$plain" -
   answer "$WORK/scored/bare/answers/floor_plain_bare.jsonl" "$bare" "$plain" -
   if [[ $best != floor ]]; then
-    answer "$WORK/scored/top5/answers/reader.jsonl" "$top" "$plain" "$WORK/adapters/$best"
-    answer "$WORK/scored/bare/answers/reader_bare.jsonl" "$bare" "$plain" "$WORK/adapters/$best"
+    local seed
+    for seed in "${SEEDS[@]}"; do
+      answer "$WORK/scored/top5/answers/reader-s$seed.jsonl" "$top" "$plain" "$WORK/adapters/$best-s$seed"
+      answer "$WORK/scored/bare/answers/reader_bare-s$seed.jsonl" "$bare" "$plain" \
+        "$WORK/adapters/$best-s$seed"
+    done
   fi
   cp "$WORK/answerer.sha256" "$WORK/scored/answerer.sha256"
   cp "$WORK/provenance.json" "$WORK/scored/provenance.json"

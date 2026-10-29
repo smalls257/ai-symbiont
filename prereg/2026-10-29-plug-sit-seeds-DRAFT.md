@@ -1,10 +1,12 @@
 # Pre-registration: Plug round 2, a trained reader on agent situations (PLUG-SIT)
 
-**FROZEN 2026-10-29.** Code pinned at `bd1fce9` (this commit's parent; `plug_r2_score.py check` enforces it). Committed alone at the freeze, before any answer on the scored repos exists. Validation answers of the variants may exist before the freeze; scored answers may not. After the freeze only a dated amendment may change anything, and an amendment cannot change the data, split, variants, selection rule, scorers, metric or decision rule below.
+**DRAFT, NOT FROZEN.** Committed alone at the freeze, before any answer on the scored repos exists. Validation answers of the variants may exist before the freeze; scored answers may not. After the freeze only a dated amendment may change anything, and an amendment cannot change the data, split, variants, selection rule, scorers, metric or decision rule below.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or by construction, [hypothesis] = a guess the run can support or refute.
 
-Owner-proxy rulings applied: `.superpowers/rulings/2026-10-29-plug-situations.md` (15 items).
+Owner-proxy rulings applied: `.superpowers/rulings/2026-10-29-plug-situations.md` (15 items plus freeze-check edit 16).
+
+Supersedes `prereg/2026-10-29-plug-situations.md`, frozen in commit 233f2ff on an unmerged branch and withdrawn before any variant ran. It trained each variant with one seed, and the CUDA port found a large seed-to-seed spread for the same 1B start (new-lesson recall 0.47 to 0.93 across seeds on 2 repos) [measured, `.superpowers/sdd/2026-10-27-ai-symbiont-build-plan/plug-cuda-report.md`]. That frozen file's own terms forbade changing the selection rule by amendment, so this file replaces it.
 
 Round 1 (`prereg/2026-10-29-l2l-a2.md`, H1 tie) stays reported as it is; this round does not re-slice it.
 
@@ -95,7 +97,7 @@ All on the 10 validation repos (`results/plug-situation-pilot-v2.json`, the revi
 
 ## Variants and the selection rule (fixed before any variant runs)
 
-Each variant changes one thing from the current best, is trained once (seed 0) from plain weights, and runs on the validation repos only. They run in this order:
+Each variant changes one thing from the current best and is trained from plain weights with three seeds (0, 1, 2; `LORA_SEED`). It runs on the validation repos only. Every rule below reads a variant's per-repo rates averaged over its three seeds (`plug_r2_select.seed_mean`) [established]. They run in this order:
 
 1. **V1, situation reader (1B).** LoRA (rank 16, scale 2, all layers, learning rate 1e-4 cosine, batch 4, 1 epoch) with a training window of 1,024 tokens (`LORA_MAX_LENGTH=1024`), on three kinds of rows (`plug_r2_rows.py`) [established]:
    - a2v-style question rows (`l2l_quick.meta_rows` on the V1 meta-train list, capped at 1,600, rows over 1,300 characters dropped);
@@ -108,7 +110,7 @@ Each variant changes one thing from the current best, is trained once (seed 0) f
    - **Scored long notes.** The 3 scored lessons whose note exceeds 96 tokens stay, since a pick needs only the fix tokens [measured].
 2. **V2, many rewordings.** 15 situation phrasings per lesson instead of 1: the test's phrasing plus the 14 fixed templates in `plug_r2_rows.PHRASINGS`. Validation and scoring use only `plug_situation.situation_of`.
 3. **V3, more variety.** 2 AIDev habit lessons (the template-built lessons file written by `scripts/aidev/build.py`, train split; sha256 `197d0d0b05ca51cbfc1ec6e0f2f6126874f835e78e101cf91434e9b6771debd5`, pinned in `plug_r2_score.PINNED`, so `check` refuses any other file) added to each training situation prompt as unrelated lessons (`plug_r2_rows.with_unrelated`). Training rows only; test prompts are unchanged.
-4. **V4, 3B.** The current best variant's rows on Llama 3.2 3B. V4 runs only if 1B "tops out", meaning neither V2 nor V3 replaced the current best. If V4 is selected, every plain-model row in the scored run is Llama 3.2 3B with the same prompt.
+4. **V4, 3B.** The current best variant's rows on Llama 3.2 3B, three seeds. V4 runs only if 1B "tops out", meaning neither V2 nor V3 replaced the current best. If V4 is selected, every plain-model row in the scored run is Llama 3.2 3B with the same prompt.
 
 **Selection rule.**
 - **V1 against the floor.** V1 replaces plain 1B as the current best only if (a) its pick minus plain 1B's pick, paired by repo, has a mean of at least +0.05 with the 95% interval's lower bound above 0, and V1 passes the absolute abstention gate (below) on the validation repos [established]. Plain 1B's validation silence is "no lesson" said to everything, so it never sets a silence bar. If V1 fails, the round stops: V2 to V4 do not run, and the scored run compares plain 1B with the untrained ranker-alone row and reports the floor.
@@ -128,7 +130,7 @@ Each variant changes one thing from the current best, is trained once (seed 0) f
 
 ## Hypotheses
 
-- **H1 (primary).** Selected reader minus plain model, pick, paired over the 40 scored repos. Expected: `better` [hypothesis].
+- **H1 (primary).** Selected reader minus plain model, pick, paired over the 40 scored repos. The selected reader is its variant trained with the same three seeds; its per-repo rates are the seed mean. The plain model decodes greedily, so it has one answer per item. Expected: `better` [hypothesis].
 - **H2 (gate).** The selected reader passes the abstention gate below.
 - Everything else is secondary and never decides.
 
@@ -141,7 +143,7 @@ Each variant changes one thing from the current best, is trained once (seed 0) f
 
 ## Minimum detectable effect (stated before scoring)
 
-Let s be the per-repo standard deviation of the selected variant's validation pick gain over the floor. Validation repos hold 8.3 pick items on average and scored repos 4.1 [measured], so s is scaled for the scored repos as s_scored = s·√(8.3/4.1) [established]. This is still a lower bound, since repos differ more than items. The minimum detectable effect is MDE = max(0.05, 1.96·s_scored/√40) + 0.84·s_scored/√40 [established]. It goes into the selection amendment. If the selected variant's validation gain is below its own MDE, the prereg says the expected read is `tie`, and the scored run still happens.
+Let s be the per-repo standard deviation of the selected variant's validation pick gain over the floor, with the variant's rates averaged over its three seeds. Validation repos hold 8.3 pick items on average and scored repos 4.1 [measured], so s is scaled for the scored repos as s_scored = s·√(8.3/4.1) [established]. This is still a lower bound, since repos differ more than items. The minimum detectable effect is MDE = max(0.05, 1.96·s_scored/√40) + 0.84·s_scored/√40 [established]. It goes into the selection amendment. If the selected variant's validation gain is below its own MDE, the prereg says the expected read is `tie`, and the scored run still happens.
 
 ## Downstream check (sized; a separate prereg, never decides this round)
 
@@ -155,10 +157,10 @@ Let s be the per-repo standard deviation of the selected variant's validation pi
 - **Order leak.** It is closed by the per-item shuffle, but the ranker-alone row remains the number the reader must exceed: 0.735 of pick items are its top 1 [measured].
 - **Ranker tuning.** The lexical ranker is tuned to situations that quote the lesson's own fields; a paraphrased situation is untested.
 - **Coarse per-repo pick.** 40 small repos give per-repo pick in steps of 1/3 to 1/7 [measured].
-- **Forking paths.** One seed per variant, and up to four variants on 10 validation repos, bounded by the fixed order and the frozen selection rule.
+- **Forking paths and seeds.** Three seeds per variant reduce, but do not remove, seed noise; the seed mean is the unit of every rule. Up to four variants run on 10 validation repos, bounded by the fixed order and the frozen selection rule.
 - **Containment scoring.** The scorer matches whole tokens and excuses lessons the right note names. An answer that quotes several fixes is a wrong pick.
 - **Multiplicity.** About five intervals at 95% with no correction (H1, ranker alone, useful note, silence, wrong pick) [established].
 
 ## Spend and machine
 
-Laptop MLX, no paid spend [established by the workstream brief]. Up to four trainings, each about 20 minutes, and validation answers for 166 items per variant, about 6 minutes [hypothesis from the pilot timings]. If V4 runs, 3B training takes about 2.5 times as long [hypothesis]. The scored run answers 330 items over five rows, about 20 minutes [hypothesis].
+Laptop MLX, no paid spend [established by the workstream brief]. Up to four variants with three seeds each, so up to twelve trainings: V1 and V3 about 20 minutes per seed, V2 (15 phrasings) about 70 minutes per seed [hypothesis from row counts and the pilot timings]. Validation answers take about 6 minutes per seed [hypothesis]. If V4 runs, 3B training takes about 2.5 times as long [hypothesis]. The scored run answers 330 items for the plain rows and three times for the reader rows, about 40 minutes [hypothesis]. On one laptop the validation stage may take most of a day [hypothesis].

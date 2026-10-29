@@ -1,7 +1,7 @@
 """Plug round 2's scored run: guard, plan check, no-lesson items, and the frozen decision rule.
 
 Usage: uv run python scripts/routea/plug_r2_score.py check --pool P --habit-rows H --aidev-lessons L
-Usage:   --prereg prereg/2026-10-29-plug-situations.md --work W
+Usage:   --prereg prereg/2026-10-29-plug-sit-seeds.md --work W
 Usage: uv run python scripts/routea/plug_r2_score.py bare --work W  |  score --work W --out F
 
 `check` refuses unless the inputs match their pins and the code at HEAD is the freeze commit's.
@@ -19,14 +19,14 @@ sys.path.insert(0, str(HERE.parents[1] / "src"))
 sys.path.insert(0, str(HERE))
 
 from plug import InputHashMismatchError, pinned_code_commit, pool_index_sha, sha256_of  # noqa: E402
-from plug_r2_select import better, gate, per_repo  # noqa: E402
+from plug_r2_select import better, gate, per_repo, per_repo_seeds  # noqa: E402
 from plug_situation import item_from, item_record  # noqa: E402
 from questions import SYSTEM  # noqa: E402
 from warm_start import _jsonl, _read_jsonl, answerer_provenance, paired_gain  # noqa: E402
 
 from symbiont.eval.prereg_git import run_provenance  # noqa: E402
 
-PREREG_NAME = "2026-10-29-plug-situations.md"
+PREREG_NAME = "2026-10-29-plug-sit-seeds.md"
 PINNED = {
     "pool_index_sha256": "a14f22f0158a2ac568f84ffdbbbafaa01059cf22abebc5f4370679623cd258ff",
     "habit_rows_sha256": "fa863cb3f13bf66907a16d076cf4d2ffab705272ef785d16ea93c19a271c06ea",
@@ -161,13 +161,23 @@ def claim(h1: dict, h2: dict, means: dict[str, dict]) -> str:
     return sentence
 
 
+def row_cells(work: Path, rows: dict) -> dict[str, dict]:
+    """Per-repo rates of each row; reader rows average the selected variant's seeds."""
+    return {
+        row: per_repo_seeds(work / sub, row)
+        if row.startswith("reader")
+        else per_repo(work / sub, row)
+        for row, (sub, _) in rows.items()
+    }
+
+
 def score(work: Path, selected: str) -> dict:
     """Every row's rates and the decisions. If no variant passed validation (`selected` is the
     floor), the reader rows are absent and the floor is reported."""
     rows = {
         r: v for r, v in SCORED_ROWS.items() if selected != "floor" or not r.startswith("reader")
     }
-    cells = {row: per_repo(work / sub, row) for row, (sub, _) in rows.items()}
+    cells = row_cells(work, rows)
     repos = sorted(cells["floor_plain"])
     measures = ("pick", "useful", "silence", "wrong_pick")
     means = {

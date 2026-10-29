@@ -29,6 +29,9 @@ GATE_SILENCE = 0.80  # H2: silence mean at least this
 GATE_SILENCE_LOW = 0.60  # ... with the interval's lower bound above this
 GATE_WRONG = 0.05  # ... and wrong pick at most this
 SCORED_REPOS = 40
+# Seed-to-seed spread of a 1B adapter is large (CUDA port report), so each variant trains with these
+# seeds and every rule reads the per-repo mean over them.
+SEEDS = (0, 1, 2)
 
 
 def per_repo(work: Path, arm: str) -> dict[str, dict[str, float]]:
@@ -40,6 +43,20 @@ def per_repo(work: Path, arm: str) -> dict[str, dict[str, float]]:
         r["question_id"]: r["answer"] for r in _read_jsonl(work / "answers" / f"{arm}.jsonl")
     }
     return {repo: rates(items, answers) for repo, items in sorted(by_repo.items())}
+
+
+def seed_mean(cells: Sequence[dict[str, dict[str, float]]]) -> dict[str, dict[str, float]]:
+    """Per repo and measure, the mean over seeds' rates."""
+    repos = sorted(cells[0])
+    return {
+        repo: {m: sum(c[repo][m] for c in cells) / len(cells) for m in cells[0][repo]}
+        for repo in repos
+    }
+
+
+def per_repo_seeds(work: Path, arm: str) -> dict[str, dict[str, float]]:
+    """Seed-mean rates of a trained arm from its answer files `<arm>-s<seed>.jsonl`."""
+    return seed_mean([per_repo(work, f"{arm}-s{seed}") for seed in SEEDS])
 
 
 def better(gains: Sequence[float]) -> dict:
@@ -128,7 +145,10 @@ def main() -> None:
     args = parser.parse_args()
     arms = ["floor", *args.order]
     # Every listed arm needs answers: a missing file raises in per_repo, never reads as "not run".
-    cells = {arm: per_repo(args.work, arm) for arm in arms}
+    cells = {
+        arm: per_repo(args.work, arm) if arm == "floor" else per_repo_seeds(args.work, arm)
+        for arm in arms
+    }
     result = select(cells, args.order)
     if result["selected"] != "floor":
         chosen, floor = cells[result["selected"]], cells["floor"]

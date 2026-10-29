@@ -189,3 +189,15 @@ def test_check_refuses_any_input_whose_hash_differs_from_its_pin(monkeypatch):
     for name in score.PINNED:
         with pytest.raises(score.InputHashMismatchError, match=name):
             score.verify_pins({**score.PINNED, name: "0" * 64})
+
+
+def test_seed_mean_averages_each_repos_rates_over_seeds(monkeypatch):
+    select = load(monkeypatch, "plug_r2_select")
+    seeds = [
+        {"r": cell(0.3, silence=0.9)},
+        {"r": cell(0.6, silence=0.6)},
+        {"r": cell(0.9, silence=0.9)},
+    ]
+    found = select.seed_mean(seeds)
+    assert found["r"]["pick"] == pytest.approx(0.6) and found["r"]["silence"] == pytest.approx(0.8)
+    assert select.SEEDS == (0, 1, 2)
