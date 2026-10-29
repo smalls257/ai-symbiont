@@ -144,6 +144,8 @@ def write_work_dir(root, lesson, questions, answer_text):
     (root / "data" / "lessons.jsonl").write_text(json.dumps(asdict(lesson)) + "\n")
     held = [asdict(q) for q in questions.held_out_questions(lesson)]
     (root / "data" / "questions.jsonl").write_text("".join(json.dumps(q) + "\n" for q in held))
+    para = [{**q, "question_id": q["question_id"] + "p"} for q in held[:2]]
+    (root / "data" / "questions-para.jsonl").write_text("".join(json.dumps(q) + "\n" for q in para))
     answers = root / "answers" / "t"
     answers.mkdir(parents=True)
     rows = "".join(
@@ -152,34 +154,66 @@ def write_work_dir(root, lesson, questions, answer_text):
     names = ["floor-one-100", *(f"grouped-group-{g:02d}" for g in range(10))] + [
         f"{arm}-one-{n}" for arm in ("ceiling", "adapter") for n in (10, 30, 100)
     ]
+    para_rows = "".join(
+        json.dumps({"question_id": q["question_id"], "answer": answer_text}) + "\n" for q in para
+    )
     for name in names:
         (answers / f"{name}.jsonl").write_text(rows)
+        (answers / f"para-{name}.jsonl").write_text(para_rows)
     logs = root / "logs" / "t"
     logs.mkdir(parents=True)
     (logs / "timing.txt").write_text("train-one-10 12\nlcap t done\n")
     (logs / "budget.txt").write_text("train-one-10 iters=120 rows=60\n")
     (logs / "train-one-10.log").write_text("  2000000000  peak memory footprint\n")
-    return [
-        json.loads(line) for line in (root / "data" / "questions.jsonl").read_text().splitlines()
-    ]
 
 
 def test_every_arm_is_scored_beside_floor_and_ceiling(monkeypatch, tmp_path):
     lesson, questions, _ = lesson_and_modules(monkeypatch)
     score_answers = load(monkeypatch, "score_answers")
-    held = write_work_dir(tmp_path, lesson, questions, "ModuleNotFoundError; use PYTHONPATH=src")
-    scored = score_answers.score_tag(tmp_path, "t", [lesson], held)
-    roles = {row["label"]: row["role"] for row in scored["rows"]}
-    assert roles["floor 10"] == "floor" and roles["ceiling 10"] == "ceiling"
-    assert roles["adapter 100"] == roles["grouped 100"] == "under test"
-    assert all(row["recall"] == 1.0 and row["invented_rate"] == 0.0 for row in scored["rows"])
+    write_work_dir(tmp_path, lesson, questions, "ModuleNotFoundError; use PYTHONPATH=src")
+    scored = score_answers.score_tag(tmp_path, "t", "full", [lesson])
+    roles = {row["label"]: row["role"] for row in scored["rows_template"]}
+    assert roles["t floor 10"] == "floor" and roles["t ceiling 10"] == "ceiling"
+    assert roles["t adapter 100"] == roles["t grouped 100"] == "under test"
+    every = scored["rows_template"] + scored["rows_paraphrase"]
+    assert all(row["recall"] == 1.0 and row["invented_rate"] == 0.0 for row in every)
+    assert {row["questions"] for row in scored["rows_paraphrase"]} == {2}
     assert scored["training"]["one-10"] == {"iters": 120, "seconds": 12, "peak_mem_gb": 2.0}
 
 
 def test_a_missing_answer_file_stops_scoring(monkeypatch, tmp_path):
     lesson, questions, _ = lesson_and_modules(monkeypatch)
     score_answers = load(monkeypatch, "score_answers")
-    held = write_work_dir(tmp_path, lesson, questions, "x")
+    write_work_dir(tmp_path, lesson, questions, "x")
     (tmp_path / "answers" / "t" / "adapter-one-30.jsonl").unlink()
     with pytest.raises(FileNotFoundError, match="adapter-one-30"):
-        score_answers.score_tag(tmp_path, "t", [lesson], held)
+        score_answers.score_tag(tmp_path, "t", "full", [lesson])
+
+
+def test_the_top_matrix_scores_only_the_100_lesson_cells(monkeypatch, tmp_path):
+    lesson, questions, _ = lesson_and_modules(monkeypatch)
+    score_answers = load(monkeypatch, "score_answers")
+    write_work_dir(tmp_path, lesson, questions, "x")
+    (tmp_path / "answers" / "t" / "adapter-one-30.jsonl").unlink()
+    scored = score_answers.score_tag(tmp_path, "t", "top", [lesson])
+    labels = [row["label"] for row in scored["rows_template"]]
+    assert labels == ["t floor 100", "t ceiling 100", "t adapter 100"]
+
+
+def test_a_paraphrase_must_keep_the_repo_and_the_command(monkeypatch):
+    rules = load(monkeypatch, "paraphrase_rules")
+    original = "Which exception did `pytest tests/a.py` hit in org/repo?"
+    assert rules.keeps_details(
+        original, "In org/repo, `pytest tests/a.py` raised what?", "org/repo", "tests/a.py"
+    )
+    assert not rules.keeps_details(
+        original, "What did pytest raise in org/repo?", "org/repo", "tests/a.py"
+    )
+    assert not rules.keeps_details(
+        original, "`pytest tests/a.py` raised what?", "org/repo", "tests/a.py"
+    )
+    assert not rules.keeps_details(original, original, "org/repo", "tests/a.py")
+    plain = "Before I run pytest against tests/a.py in org/repo, anything to know?"
+    assert rules.keeps_details(
+        plain, "Any warning for tests/a.py with pytest in org/repo?", "org/repo", "tests/a.py"
+    )
