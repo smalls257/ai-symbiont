@@ -1,6 +1,6 @@
 # Pre-registration: Plug round 3, a pairwise judge over the ranker's shortlist (PLUG-JUDGE)
 
-**DRAFT, NOT FROZEN.** Committed alone at the freeze, before the judge trained under it answers any validation or scored item. After the freeze only a dated amendment may change anything, and an amendment cannot change the data, split, training mix, scorers, metric, gates or decision rule below. The freeze is this file under the name `2026-10-29-plug-judge.md` (the name `plug_r3.PREREG_NAME` checks), with only this header changed.
+**FROZEN 2026-10-29.** Code pinned at `b057607` (this commit's parent; its code is 98ecc6b's; `plug_r3_run.py check` enforces it). Committed alone at the freeze, before the judge trained under it answers any validation or scored item. After the freeze only a dated amendment may change anything, and an amendment cannot change the data, split, training mix, scorers, metric, gates or decision rule below.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or by construction, [hypothesis] = a guess the run can support or refute.
 
