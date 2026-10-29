@@ -1,6 +1,80 @@
 {
  "answer_script": "scripts/routea/answer_questions.py",
  "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+ "paired": {
+  "a3_minus_a2v_habits_ranked": {
+   "ci95_high": -0.6705,
+   "ci95_low": -0.7727,
+   "mean_gain": -0.7182,
+   "repos": 10
+  },
+  "a3_minus_a2v_new_lessons": {
+   "ci95_high": 0.0333,
+   "ci95_low": -0.12,
+   "mean_gain": -0.04,
+   "repos": 10
+  },
+  "a3_minus_per_repo_no_lessons": {
+   "ci95_high": 0.128,
+   "ci95_low": 0.004,
+   "mean_gain": 0.06,
+   "repos": 10
+  },
+  "a3_more_minus_a2v_habits_ranked": {
+   "ci95_high": -0.7023,
+   "ci95_low": -0.8068,
+   "mean_gain": -0.7523,
+   "repos": 10
+  },
+  "a3_more_minus_a2v_new_lessons": {
+   "ci95_high": 0.12,
+   "ci95_low": -0.02,
+   "mean_gain": 0.0533,
+   "repos": 10
+  },
+  "a3_more_minus_per_repo_no_lessons": {
+   "ci95_high": 0.176,
+   "ci95_low": 0.028,
+   "mean_gain": 0.1,
+   "repos": 10
+  },
+  "a3_more_replay_minus_a2v_habits_ranked": {
+   "ci95_high": 0.0295,
+   "ci95_low": -0.0705,
+   "mean_gain": -0.0114,
+   "repos": 10
+  },
+  "a3_more_replay_minus_a2v_new_lessons": {
+   "ci95_high": 0.06,
+   "ci95_low": -0.0867,
+   "mean_gain": -0.0067,
+   "repos": 10
+  },
+  "a3_more_replay_minus_per_repo_no_lessons": {
+   "ci95_high": 0.12,
+   "ci95_low": -0.008,
+   "mean_gain": 0.056,
+   "repos": 10
+  },
+  "a3_replay_minus_a2v_habits_ranked": {
+   "ci95_high": 0.0159,
+   "ci95_low": -0.1114,
+   "mean_gain": -0.0409,
+   "repos": 10
+  },
+  "a3_replay_minus_a2v_new_lessons": {
+   "ci95_high": -0.0133,
+   "ci95_low": -0.14,
+   "mean_gain": -0.0733,
+   "repos": 10
+  },
+  "a3_replay_minus_per_repo_no_lessons": {
+   "ci95_high": 0.084,
+   "ci95_low": -0.04,
+   "mean_gain": 0.02,
+   "repos": 10
+  }
+ },
  "per_repo_rows": [
   {
    "arm": "a1",
