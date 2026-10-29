@@ -284,7 +284,8 @@
      "ci95_high": 0.13102317670160687,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "reference (a heads-up at every allowed step: threshold 0 was chosen on validation)"
   },
   "logistic own tasks": {
    "first 10 tasks": {
@@ -418,7 +419,8 @@
      "ci95_high": 0.10988048874139492,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "reference (per-k refit, the dispatch's named reference)"
   },
   "logistic broad": {
    "first 10 tasks": {
@@ -552,7 +554,8 @@
      "ci95_high": 0.11215834118755891,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "reference (the live warner)"
   },
   "logistic broad + refit": {
    "first 10 tasks": {
@@ -686,7 +689,8 @@
      "ci95_high": 0.13877962111912817,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "reference (per-k refit, the dispatch's named reference)"
   },
   "fly combined cold": {
    "first 10 tasks": {
@@ -820,7 +824,8 @@
      "ci95_high": 0.12155086752796224,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test"
   },
   "fly combined MAML start": {
    "first 10 tasks": {
@@ -954,7 +959,8 @@
      "ci95_high": 0.10834246324590258,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test"
   },
   "fly combined broad": {
    "first 10 tasks": {
@@ -1088,7 +1094,8 @@
      "ci95_high": 0.11502693895986577,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test (the fine-tune's comparator)"
   },
   "fly combined broad + fine-tune": {
    "first 10 tasks": {
@@ -1222,7 +1229,8 @@
      "ci95_high": 0.055199437576865865,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test"
   },
   "fly combined in-domain": {
    "first 10 tasks": {
@@ -1356,7 +1364,8 @@
      "ci95_high": 0.08294087448615764,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "ceiling (uses future tasks; never a candidate)"
   },
   "DenseNet combined cold": {
    "first 10 tasks": {
@@ -1490,7 +1499,8 @@
      "ci95_high": 0.1324156014421501,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test"
   },
   "DenseNet combined MAML start": {
    "first 10 tasks": {
@@ -1624,7 +1634,8 @@
      "ci95_high": 0.13420641499205307,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test"
   },
   "DenseNet combined broad": {
    "first 10 tasks": {
@@ -1758,7 +1769,8 @@
      "ci95_high": 0.10686791298499933,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test (the fine-tune's comparator)"
   },
   "DenseNet combined broad + fine-tune": {
    "first 10 tasks": {
@@ -1892,7 +1904,8 @@
      "ci95_high": 0.11765161878704969,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "under test"
   },
   "DenseNet combined in-domain": {
    "first 10 tasks": {
@@ -2026,7 +2039,8 @@
      "ci95_high": 0.09179197994987467,
      "undefined_draws": 0
     }
-   }
+   },
+   "label": "ceiling (uses future tasks; never a candidate)"
   }
  },
  "differences": {
@@ -2764,5 +2778,5 @@
   "zarr-developers/zarr-python": 1
  },
  "wall_clock_s": 212.67281103134155,
- "results_rekeyed_note": "verdicts.lines renamed table and verdicts.claim renamed result after the run for QG-SEC-04; values unchanged"
+ "results_rekeyed_note": "after the run: verdicts.lines renamed table, verdicts.claim renamed result, a prereg label added per row; values unchanged (scripts/offline/meta2_rekey.py check)"
 }
