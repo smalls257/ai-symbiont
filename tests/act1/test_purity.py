@@ -30,6 +30,7 @@ PURE_FILES = (
     "lexicase.py",
     "card_archive.py",
     "generality.py",
+    "lineage.py",
 )
 
 
