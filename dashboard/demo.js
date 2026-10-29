@@ -285,7 +285,7 @@
     box.append(head);
     const pick = seenSteps(run, cur).filter((s) => s.picker).at(-1);
     if (!pick) {
-      box.append(el("p", "off", run.adapter ? "No pick yet." : "Not used in this run."));
+      box.append(el("p", "off", run.adapter ? `One fixed adapter for the whole run (${run.adapter}); no per-step pick.` : "Not used in this run."));
       return box;
     }
     box.append(el("p", "verdict quiet", pick.picker.adapter), el("p", "reason", `Step ${pick.step}: ${pick.picker.reason}`));
