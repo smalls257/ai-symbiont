@@ -1,0 +1,60 @@
+{
+ "schema": "evolve-depth-v1",
+ "label": "decision-depth check, Spark no card, 12 training cases [measured]",
+ "depths": {
+  "16": {
+   "games": 12,
+   "ungraded": 0,
+   "exits": 0,
+   "deaths": 6,
+   "route_share": 0.319,
+   "mistakes": 11.58,
+   "fitness": -0.322,
+   "fitness_sd": 0.325,
+   "by_reply_shape": {
+    "single_moves": 19,
+    "single_mistakes": 7,
+    "first_moves": 124,
+    "first_mistakes": 36,
+    "later_moves": 184,
+    "later_mistakes": 96
+   }
+  },
+  "32": {
+   "games": 12,
+   "ungraded": 0,
+   "exits": 4,
+   "deaths": 8,
+   "route_share": 0.471,
+   "mistakes": 13.67,
+   "fitness": -0.038,
+   "fitness_sd": 0.735,
+   "by_reply_shape": {
+    "single_moves": 29,
+    "single_mistakes": 5,
+    "first_moves": 146,
+    "first_mistakes": 48,
+    "later_moves": 218,
+    "later_mistakes": 111
+   }
+  },
+  "48": {
+   "games": 12,
+   "ungraded": 0,
+   "exits": 4,
+   "deaths": 8,
+   "route_share": 0.436,
+   "mistakes": 12.83,
+   "fitness": -0.039,
+   "fitness_sd": 0.915,
+   "by_reply_shape": {
+    "single_moves": 24,
+    "single_mistakes": 7,
+    "first_moves": 143,
+    "first_mistakes": 44,
+    "later_moves": 215,
+    "later_mistakes": 103
+   }
+  }
+ }
+}

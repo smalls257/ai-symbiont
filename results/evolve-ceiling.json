@@ -1,0 +1,51 @@
+{
+ "label": "ceiling check, training maps [measured]",
+ "cases": 12,
+ "rows": {
+  "muse_spark_no_card": {
+   "mean": -0.0881,
+   "sd": 0.4508,
+   "n": 12
+  },
+  "exit_x1": {
+   "mean": -0.2615,
+   "sd": 0.0611,
+   "n": 12
+  },
+  "exit_x3": {
+   "mean": -0.9015,
+   "sd": 0.0611,
+   "n": 12
+  },
+  "key_door_exit": {
+   "mean": -0.8915,
+   "sd": 0.0506,
+   "n": 12
+  },
+  "random": {
+   "mean": -0.3208,
+   "sd": 0.2293,
+   "n": 12
+  },
+  "scripted_explorer": {
+   "mean": -0.1324,
+   "sd": 0.0949,
+   "n": 12
+  },
+  "stand_still": {
+   "mean": -0.62,
+   "sd": 0.0,
+   "n": 12
+  },
+  "fire_in_place": {
+   "mean": -0.96,
+   "sd": 0.0,
+   "n": 12
+  },
+  "spin": {
+   "mean": -0.94,
+   "sd": 0.0,
+   "n": 12
+  }
+ }
+}
