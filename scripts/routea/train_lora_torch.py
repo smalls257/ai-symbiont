@@ -1,14 +1,10 @@
 """Train one LCAP LoRA adapter on a CUDA GPU with transformers + peft, on the laptop's MLX recipe.
 
-Runs in the desktop LCAP venv (torch, transformers, peft), not the repo env. Violation prevented:
-**Paper Tiger**. A port that trained differently would make the 3B rows incomparable with the
-1B rows, so everything mlx-lm 0.32.2 decides is copied: LoRA on every linear layer of every block
-(rank 16, scale 2 = alpha 32, no dropout), plain Adam without bias correction (mlx's default),
-the warmup-plus-cosine lr, the length-sorted batch order and the prompt-masked loss
-(`mlx_lora_recipe`). It logs loss, lr and seconds every 20 iters and peak GPU memory at the end,
-never row text; a non-finite loss stops the run (**Silent Fallback** guard).
-
-    venv/bin/python train_lora_torch.py --model M --data train/one-10 --iters 120 --adapter out/
+Runs in the desktop LCAP venv. Everything mlx-lm 0.32.2 decides is copied so 3B and 1B rows stay
+comparable: LoRA on every linear layer (rank 16, scale 2, no dropout), Adam without bias
+correction, warmup-plus-cosine lr, length-sorted batches, prompt-masked loss (`mlx_lora_recipe`).
+Logs loss, lr and seconds every 20 iters, never row text; a non-finite loss stops the run.
+Usage: venv/bin/python train_lora_torch.py --model M --data train/one-10 --iters 120 --adapter out/
 """
 
 import argparse

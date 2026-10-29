@@ -1,13 +1,9 @@
 """Score METALORA answers: recall and invented-detail rate per start, lessons taught and steps.
 
-Violation prevented: **Paper Tiger**. The meta start's rows are printed beside the blank start
-(reference), the joint-trained start (reference: same lessons, no meta-learning), the floor and
-the ceiling, on the same held-out questions. Invented details are judged against the held-out
-repo's own lessons, so a start that answers with another repo's flags or files is caught. A
-missing answer file stops the run; it is never scored as zero. Repos are reported by index only.
-
-    uv run python scripts/routea/score_meta.py --work ~/symbiont-runs/metalora --split test \
-        --out results/meta-lora-exploratory.json [--extra labels.json]
+The meta start prints beside the blank and joint-trained starts (references), the floor and the
+ceiling on the same held-out questions. Invented details are judged against the repo's own
+lessons; a missing answer file stops the run, never scores zero. Repos are reported by index.
+Usage: uv run python scripts/routea/score_meta.py --work <dir> --split test --out results/X.json
 """
 
 import argparse

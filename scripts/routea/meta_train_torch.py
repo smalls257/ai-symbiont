@@ -1,16 +1,10 @@
 """Meta-learn a starting LoRA adapter across public repos with Reptile, or its joint-training twin.
 
-Runs in the desktop LCAP venv (torch, transformers, peft), not the repo env. Violations
-prevented: **Paper Tiger** and **Black Box**. A Reptile start that only beats a blank start has
-not shown it learned to learn: plain multi-task training on the same lessons also gives a start
-that already knows the answer format. So `joint` trains one adapter on every meta-training row
-for the same number of steps at the same lr, and both are judged on held-out repos. Each run logs
-the outer iteration, the domain's inner loss and seconds every REPORT_EVERY iterations (never
-row text); a non-finite loss stops the run (**Silent Fallback** guard).
-
-    venv/bin/python meta_train_torch.py reptile --model M --data DATA --out starts/r-k10 \
-        --inner-steps 10 --outer-iters 300 --outer-step 1.0
-    venv/bin/python meta_train_torch.py joint --model M --data DATA --out starts/joint --iters 3000
+Runs in the desktop LCAP venv. Multi-task training alone also teaches the answer format, so
+`joint` trains one adapter on every meta-training row for the same steps and lr, and both are
+judged on held-out repos. Logs iteration, inner loss and seconds every REPORT_EVERY iterations
+(never row text); a non-finite loss stops the run.
+Usage: meta_train_torch.py reptile|joint --model M --data DATA --out starts/NAME [...]
 """
 
 import argparse

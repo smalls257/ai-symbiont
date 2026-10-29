@@ -3,9 +3,9 @@
 # The CUDA twin of run_lcap.sh (MLX, laptop); same matrix, budget, file names and log formats, so
 # score_answers.py scores both machines' runs unchanged.
 #
-# Violation prevented: Black Box. Each step logs to its own file under $WORK/logs/<tag>/ and
+# Each step logs to its own file under $WORK/logs/<tag>/ and
 # appends "<step> <seconds>" to timing.txt, so a slow or dead step is visible from the outside;
-# set -e stops the run at the first failed step, never past it. Paper Tiger guard: every size gets
+# set -e stops the run at the first failed step, never past it. Every size gets
 # EPOCHS passes over its rows (iters = rows * EPOCHS / BATCH), as on the laptop.
 #
 #   scripts/routea/run_lcap_cuda.sh WORK MODEL TAG [full|top]

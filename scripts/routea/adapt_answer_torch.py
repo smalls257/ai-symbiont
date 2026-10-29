@@ -1,14 +1,10 @@
 """Teach each held-out repo's lessons from a given start, then answer its held-out questions.
 
-Runs in the desktop LCAP venv. Violation prevented: **Paper Tiger**. Every start (blank, Reptile
-meta, joint) is trained by the LCAP recipe (`learning_rate`, `batch_order`, fresh Adam) on the same
-lessons for the same iterations and asked the same questions, beside a floor (base model) and a
-ceiling (the taught lessons in the prompt). One process keeps the base model loaded and resets the
-LoRA weights per cell, so a cell costs its own training and answering only. Each cell prints arm,
-repo index, size, iterations and seconds (never text); finished cells are skipped on resume.
-
-    venv/bin/python adapt_answer_torch.py --model M --data DATA --split test --out answers/ \
-        --start floor --start ceiling --start blank --start meta=starts/r/start.pt [--cells 5:15]
+Runs in the desktop LCAP venv. Every start (blank, Reptile meta, joint) gets the same LCAP recipe,
+lessons, iterations and questions, beside a floor (base model) and a ceiling (lessons in the
+prompt). One process keeps the base model loaded and resets LoRA weights per cell; each cell
+prints counts and seconds, never text, and finished cells are skipped on resume.
+Usage: adapt_answer_torch.py --model M --data DATA --split test --out answers/ --start blank ...
 """
 
 import argparse
@@ -138,7 +134,13 @@ def _starts(specs: list[str], blank: dict) -> dict[str, dict | None]:
 def _cells(spec: str | None) -> list[tuple[int, int]]:
     if not spec:
         return cells(SIZES)
-    return [tuple(int(n) for n in item.split(":")) for item in spec.split(",")]  # type: ignore[misc]
+    return [_cell(item) for item in spec.split(",")]
+
+
+def _cell(item: str) -> tuple[int, int]:
+    """One `lessons:steps` pair from --cells; anything else raises ValueError."""
+    taught_n, steps = item.split(":")
+    return int(taught_n), int(steps)
 
 
 def main() -> None:

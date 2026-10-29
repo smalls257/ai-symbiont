@@ -1,13 +1,9 @@
 """Answer LCAP held-out questions on a CUDA GPU (transformers + peft), as the MLX script does.
 
-Runs in the desktop LCAP venv, not the repo env. Violation prevented: **Black Box**. Every run
-writes one answer row per question and one stderr line of counts and seconds (never prompt or
-answer text), so a slow or empty arm is visible without reading answers. The prompts, the
-pinned template date, greedy decoding, the 96-token cap and the folded one-line answer match the
-MLX script, so the CUDA rows are scored by the same files and scorer.
-
-    venv/bin/python answer_questions_torch.py --model M --questions ask/one-10.jsonl --out a.jsonl \
-        [--adapter adapters/one-10] [--context context/one-10.txt]
+Runs in the desktop LCAP venv, not the repo env. One answer row per question and one stderr line
+of counts and seconds (never prompt or answer text), so a slow or empty arm shows. Prompts,
+template date, greedy decoding, the 96-token cap and the one-line answer match the MLX script.
+Usage: answer_questions_torch.py --model M --questions Q.jsonl --out A.jsonl [--adapter D]
 """
 
 import argparse

@@ -1,10 +1,8 @@
 """The laptop's mlx-lm LoRA recipe for LCAP, restated without mlx so a CUDA trainer can follow it.
 
-Violation prevented: **Paper Tiger**. The 3B rows train on a CUDA GPU (transformers + peft) while
-the 1B rows train on MLX. If the port changed the learning-rate curve, the batch order or which
-tokens carry loss, a 1B-vs-3B gap could be a trainer gap dressed as a model-size gap. Each
-function below copies one piece of mlx-lm 0.32.2 (named in its docstring), and the tests pin the
-numbers, so both trainers run one recipe. Pure: no torch, no clock, no files.
+The 3B rows train on CUDA, the 1B rows on MLX; a changed lr curve, batch order or loss mask would
+dress a trainer gap as a model-size gap. Each function copies one piece of mlx-lm 0.32.2 (named in
+its docstring) and the tests pin the numbers. Pure: no torch, no clock, no files.
 """
 
 import math
@@ -50,8 +48,8 @@ def padded_width(lengths: list[int]) -> int:
 
 
 def loss_span(offset: int, length: int, width: int) -> range:
-    """Target positions that carry loss in a batch array `width` tokens wide (inputs drop the last
-    column, targets drop the first). mlx-lm default_loss keeps step s = t + 1 when
-    offset <= s <= length, so the completion counts, and so does the one pad target right after
-    it (token id 0); both trainers keep that quirk so their losses match."""
+    """Target positions carrying loss in a `width`-token batch (mlx-lm default_loss).
+
+    Keeps offset <= t + 1 <= length: the completion and the one pad target after it, a quirk both
+    trainers keep so their losses match."""
     return range(max(offset - 1, 0), min(length, width - 1))

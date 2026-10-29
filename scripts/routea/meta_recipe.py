@@ -1,10 +1,8 @@
 """Reptile over LoRA weights, and the test cells it is judged on (METALORA). Pure: no torch.
 
-Violations prevented: **Paper Tiger** and **Forensic Coding**. The meta start is only worth
-anything if it beats a blank start trained by the same recipe on the same lessons for the same
-steps, so the cells (lessons taught x training steps) are one list both arms run, and the outer
-update is the textbook first-order rule (Nichol et al. 2018, "On First-Order Meta-Learning
-Algorithms") with its step size annealed linearly to zero, written once here and pinned by tests.
+The meta start counts only if it beats a blank start on the same recipe, lessons and steps, so
+both arms run one cell list; the outer update is the first-order rule of Nichol et al. 2018
+("On First-Order Meta-Learning Algorithms") with its step size annealed linearly to zero.
 """
 
 from collections.abc import Sequence

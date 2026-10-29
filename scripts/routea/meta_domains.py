@@ -1,10 +1,8 @@
 """Domains for the meta-learned starting adapter (METALORA): one public repo is one domain.
 
-Violation prevented: **Silent Fallback** at the hold-out line. A held-out repo whose lessons
-leaked into meta-training would make the meta start look like it learns fast when it only
-remembers; `split_domains` assigns every repo to exactly one split and `check_held_out` raises
-when a meta-training domain shares a repo or a lesson with a held-out one, never filtering
-quietly. The split is fixed by a hash of the repo name, not by looking at results.
+A held-out repo whose lessons leaked into meta-training would make the meta start look fast when
+it only remembers: `split_domains` puts every repo in exactly one split (by a hash of its name)
+and `check_held_out` raises on a shared repo or lesson, never filtering quietly.
 Pure: lessons in, splits out.
 """
 

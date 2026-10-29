@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # METALORA on a CUDA GPU: meta-learn starting LoRA adapters (Reptile) and judge them on held-out repos.
 #
-# Violation prevented: Black Box. Each step logs to its own file under $WORK/logs/ and appends
+# Each step logs to its own file under $WORK/logs/ and appends
 # "<step> <seconds>" to timing.txt, so a slow or dead step is visible from the outside; set -e stops
-# the run at the first failed step. Paper Tiger guard: the Reptile settings are chosen on the
+# the run at the first failed step. The Reptile settings are chosen on the
 # validation repos only (phase val); the test repos are touched once, in phase test, by the chosen
 # start beside the blank start, a joint-trained start with the same updates, floor and ceiling.
 #

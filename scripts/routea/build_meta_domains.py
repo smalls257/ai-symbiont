@@ -1,16 +1,10 @@
 """Build METALORA domains (one public repo each), training rows and held-out questions.
 
-Violation prevented: **Silent Fallback**. Lessons come from the public nebius OpenHands pool
-through the LCAP lesson builder (a non-public record stops the run); the repo split is checked
-for hold-out leaks before anything is written (`meta_domains.check_held_out` raises). Only counts
-are printed: lesson text stays in the work directory outside the repo.
-
-A later held-out domain (the Freedoom lessons from the Act 1 learning agent) joins the test split
-with `--extra-test NAME=lessons.jsonl`, a file of LCAP `Lesson` rows; it is held-out only, never
-meta-trained.
-
-    uv run python scripts/routea/build_meta_domains.py \
-        --pool ~/symbiont-runs/t47/data/nebius-openhands/pool --out ~/symbiont-runs/metalora/data
+Lessons come from the public nebius OpenHands pool via the LCAP lesson builder (a non-public
+record stops the run); `meta_domains.check_held_out` raises on a leak before anything is written.
+`--extra-test NAME=lessons.jsonl` adds a held-out-only domain (e.g. the Act 1 Freedoom lessons).
+Prints counts only; lesson text stays in the work directory outside the repo.
+Usage: uv run python scripts/routea/build_meta_domains.py --pool <pool dir> --out <data dir>
 """
 
 import argparse
