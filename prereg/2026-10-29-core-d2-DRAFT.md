@@ -6,9 +6,10 @@ Claim tags: [measured] = observed in our own run; [established] = known by const
 
 ## Claim (headline wording fixed now)
 
-"Glimmer solves more of a repository's later issues after training on solved earlier issues of the same repository."
+"Glimmer solves more of a repository's later issues after training on the repository's past agent sessions (by Muse Spark)."
 
-- Most of the training data are Muse Spark teacher solutions, and the claim says so.
+- The training rows are Muse Spark's own passing sessions on the earlier issues, rendered turn by turn in Glimmer's chat format (routeb `sft_turns.py`, 80c61be).
+- There is no separate reflection step on each session, so the claim does not mention reflection [established].
 - The claim needs BOTH co-primaries below.
 - No speed-of-learning words are used.
 
