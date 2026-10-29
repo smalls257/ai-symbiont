@@ -140,3 +140,30 @@ def test_recall_cell_and_prompt_rates(run):
     assert run.prompt_rates(asked, abstain, own, wrong) == {"confabulation": 0.0, "abstention": 1.0}
     with pytest.raises(KeyError):
         run.recall_cell(asked, {}, own)
+
+
+def test_results_roles_add_gate_keys_without_touching_numbers(monkeypatch):
+    monkeypatch.syspath_prepend(str(ROUTEA))
+    spec = importlib.util.spec_from_file_location(
+        "plug_results_roles", ROUTEA / "plug_results_roles.py"
+    )
+    roles = importlib.util.module_from_spec(spec)
+    sys.modules["plug_results_roles"] = roles
+    spec.loader.exec_module(roles)
+    scored = {
+        "rows": [{"row": "a2_wrong", "label": "control", "reworded": 0.0}],
+        "decisions": {"x": 1},
+    }
+    found = roles.with_roles(scored, "abc")
+    assert found["rows"] == [
+        {
+            "row": "a2_wrong",
+            "label": "control",
+            "reworded": 0.0,
+            "arm": "a2_wrong",
+            "role": "reference",
+        }
+    ]
+    assert found["decisions"] == {"x": 1} and found["scored_output_sha256"] == "abc"
+    with pytest.raises(ValueError):
+        roles.with_roles({"rows": [{"row": "r", "label": "mystery"}]}, "abc")
