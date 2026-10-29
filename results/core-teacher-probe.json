@@ -1,0 +1,48 @@
+{
+ "label": "exploratory: Spark teacher cost probe on 2 earlier sqlglot tasks, 2 runs each, cap 75",
+ "teacher": "muse-spark-1.3-contributor",
+ "tier": "contributor",
+ "runs": [
+  {
+   "task": "tobymao__sqlglot-1782",
+   "run": 1,
+   "resolved": true,
+   "steps": 19,
+   "prompt_tokens": 133853,
+   "completion_tokens": 11788,
+   "cost_usd": 0.0157
+  },
+  {
+   "task": "tobymao__sqlglot-1367",
+   "run": 1,
+   "resolved": true,
+   "steps": 30,
+   "prompt_tokens": 372067,
+   "completion_tokens": 15780,
+   "cost_usd": 0.0404
+  },
+  {
+   "task": "tobymao__sqlglot-1782",
+   "run": 2,
+   "resolved": true,
+   "steps": 14,
+   "prompt_tokens": 86834,
+   "completion_tokens": 5716,
+   "cost_usd": 0.0098
+  },
+  {
+   "task": "tobymao__sqlglot-1367",
+   "run": 2,
+   "resolved": true,
+   "steps": 42,
+   "prompt_tokens": 704187,
+   "completion_tokens": 23073,
+   "cost_usd": 0.075
+  }
+ ],
+ "solved": 4,
+ "total_cost_usd": 0.141,
+ "ledger_total_after_usd": 1.846,
+ "cap_usd": 15.0,
+ "note": "both tasks are easy (plain Glimmer solved them 3 of 3); harder earlier tasks will cost more per run; Wonder not probed: standard-tier price (unconfirmed) puts one run of these token counts at 0.12-0.98 dollars"
+}
