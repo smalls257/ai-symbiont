@@ -3,6 +3,9 @@
 Usage: uv run python scripts/routea/plug_judge_cli.py bundle --pool P --plan PLAN --habit-split S
 Usage:   --items V/items.jsonl --out B
 Usage: uv run python scripts/routea/plug_judge_cli.py score --items V --scores S0 S1 S2 --out F
+Usage: uv run python scripts/routea/plug_judge_cli.py v2-queries --items TOP5 --answers A.. --out D
+Usage: uv run python scripts/routea/plug_judge_cli.py v2-score --items TOP5 --answers A..
+Usage:   --confidences C.. --out F
 
 Rows come from meta-train lessons only (the plan's scored and validation repos are held out,
 `plug.check_unseen`). The silence threshold is fitted on the validation repos in the lower half by
@@ -23,6 +26,7 @@ from plug_judge import curve, fit_threshold, judge_queries, judge_rows  # noqa: 
 from plug_r2_rows import meta_split  # noqa: E402
 from plug_round2 import name_hash  # noqa: E402
 from plug_situation import build_items, item_from, ranker_recall  # noqa: E402
+from plug_v2conf import fit_seed_threshold, note_queries, seed_curve  # noqa: E402
 from warm_start import _jsonl, _read_jsonl  # noqa: E402
 
 SHORTLIST = 10  # the ranker's top 10 hold the applicable lesson for every validation item
@@ -80,10 +84,51 @@ def score(args: argparse.Namespace) -> dict:
     }
 
 
+def _answers(path: Path) -> dict[str, str]:
+    return {r["question_id"]: r["answer"] for r in _read_jsonl(path)}
+
+
+def v2_queries(args: argparse.Namespace) -> dict:
+    """One note-scoring file per V2 seed, from that seed's answers on the top-5 items."""
+    items = [item_from(r) for r in _read_jsonl(args.items)]
+    counts = {}
+    for seed, path in enumerate(args.answers):
+        rows = note_queries(items, _answers(path))
+        _jsonl(args.out / f"v2-notes-s{seed}.jsonl", rows)
+        counts[f"s{seed}"] = len(rows)
+    return counts
+
+
+def v2_score(args: argparse.Namespace) -> dict:
+    """V2 with a confidence threshold: fitted on the same validation repos as the judge."""
+    records = _read_jsonl(args.items)
+    if len(args.answers) != len(args.confidences):
+        raise ValueError("one confidence file per answer file")
+    seeds = [
+        (_answers(a), {r["question_id"]: r["logprob"] for r in _read_jsonl(c)})
+        for a, c in zip(args.answers, args.confidences, strict=True)
+    ]
+    repos = sorted({r["repo"] for r in records}, key=name_hash)
+    fitting = set(repos[: len(repos) // 2])
+    fit_items = [item_from(r) for r in records if r["repo"] in fitting]
+    held_items = [item_from(r) for r in records if r["repo"] not in fitting]
+    grid = tuple(round(-4 + step * 0.1, 2) for step in range(41))  # mean log-prob from -4 to 0
+    threshold = fit_seed_threshold(fit_items, seeds, grid)
+    return {
+        "fitting_repos": sorted(fitting),
+        "threshold": threshold,
+        "held_out_at_threshold": seed_curve(held_items, seeds, [threshold])[0],
+        "curve_held_out": seed_curve(held_items, seeds, grid),
+        "curve_all": seed_curve(fit_items + held_items, seeds, grid),
+    }
+
+
 def main() -> None:
     """Run one stage."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("stage", choices=("bundle", "score"))
+    parser.add_argument("stage", choices=("bundle", "score", "v2-queries", "v2-score"))
+    parser.add_argument("--answers", type=Path, nargs="+", help="V2's answer files, one per seed")
+    parser.add_argument("--confidences", type=Path, nargs="+", help="V2 note log-probs per seed")
     parser.add_argument("--pool", type=Path)
     parser.add_argument("--plan", type=Path)
     parser.add_argument("--habit-split", type=Path)
@@ -91,9 +136,10 @@ def main() -> None:
     parser.add_argument("--scores", type=Path, nargs="+", help="one P(yes) file per seed")
     parser.add_argument("--out", type=Path, required=True)
     args = parser.parse_args()
-    result = bundle(args) if args.stage == "bundle" else score(args)
+    stages = {"bundle": bundle, "score": score, "v2-queries": v2_queries, "v2-score": v2_score}
+    result = stages[args.stage](args)
     text = json.dumps(result, indent=1, sort_keys=True)
-    if args.stage == "score":
+    if args.stage in ("score", "v2-score"):
         args.out.write_text(text + "\n")
     print(text)
 

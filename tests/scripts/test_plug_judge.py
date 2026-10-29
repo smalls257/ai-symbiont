@@ -116,3 +116,49 @@ def test_seed_mean_scores_average_and_refuse_mismatched_files(monkeypatch, tmp_p
     assert cli.seed_mean_scores([first, second]) == {"q": pytest.approx(0.4)}
     with pytest.raises(ValueError):
         cli.seed_mean_scores([first, other])
+
+
+@pytest.fixture
+def v2c(monkeypatch, judge):
+    spec = importlib.util.spec_from_file_location("plug_v2conf", ROUTEA / "plug_v2conf.py")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules["plug_v2conf"] = module
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_named_lesson_and_note_queries(judge, v2c):
+    right, others, pick, quiet = items(judge)
+    assert v2c.named_lesson(pick, right.text()) == right.lesson_id
+    assert v2c.named_lesson(pick, others[0].text()) == others[0].lesson_id
+    assert v2c.named_lesson(quiet, "No lesson I hold covers that.") is None
+    answers = {"a-pick": right.text(), "a-silence": "No lesson I hold covers that."}
+    (row,) = v2c.note_queries([pick, quiet], answers)
+    assert row["question_id"] == "a-pick" and row["reply"] == right.text()
+
+
+def test_threshold_keeps_confident_picks_and_raises_on_a_missing_score(judge, v2c):
+    right, others, pick, quiet = items(judge)
+    answers = {"a-pick": right.text(), "a-silence": others[0].text()}
+    confidence = {"a-pick": -0.2, "a-silence": -2.0}
+    chosen = v2c.thresholded([pick, quiet], answers, confidence, threshold=-1.0)
+    assert [c.lesson_id for c in chosen] == [right.lesson_id, None]
+    with pytest.raises(KeyError):
+        v2c.thresholded([pick, quiet], answers, {"a-pick": -0.2}, threshold=-1.0)
+
+
+def test_seed_curve_averages_and_fit_needs_the_gate(judge, v2c):
+    right, others, pick, quiet = items(judge)
+    good = (
+        {"a-pick": right.text(), "a-silence": others[0].text()},
+        {"a-pick": -0.2, "a-silence": -2.0},
+    )
+    loud = (
+        {"a-pick": right.text(), "a-silence": others[0].text()},
+        {"a-pick": -0.2, "a-silence": -0.1},
+    )
+    (row,) = v2c.seed_curve([pick, quiet], [good, loud], [-1.0])
+    assert row["silence"] == pytest.approx(0.5)
+    assert v2c.fit_seed_threshold([pick, quiet], [good], [-3.0, -1.0, -0.5]) == -1.0
+    with pytest.raises(ValueError):
+        v2c.fit_seed_threshold([pick, quiet], [loud], [-3.0, -1.0])
