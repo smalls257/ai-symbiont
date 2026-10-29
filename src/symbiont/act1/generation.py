@@ -152,7 +152,7 @@ def _new_lessons(child: Card, parents: Sequence[Card]) -> list[Lesson]:
     return [lesson for lesson in child.lessons if lesson not in known]
 
 
-def _verdict_on(child: Card, parents: Sequence[Card], judge: Judge) -> Verdict:
+def verdict_on(child: Card, parents: Sequence[Card], judge: Judge) -> Verdict:
     """The first rejection among the child's new lessons (patterns, then the judge)."""
     for lesson in _new_lessons(child, parents):
         verdict = check_lesson(lesson)
@@ -236,7 +236,7 @@ def _fill_slot(run: _Run, slot: int) -> Card:
         if child.card_id in run.taken:
             run.duplicates, copies = run.duplicates + 1, copies + 1
         else:
-            why = _verdict_on(child, parents, run.tools.judge)
+            why = verdict_on(child, parents, run.tools.judge)
             run.record(child, operator, parents, why)
             if why.general:
                 return child

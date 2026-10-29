@@ -117,7 +117,8 @@ def test_both_arms_receive_the_same_operator_sequence():
     ]
     ops = Counter(schedule.operator(g, s, 0) for g in range(1, 201) for s in range(4))
     assert set(ops) == set(Operator) - {
-        Operator.ELITE, Operator.SEED_EMPTY, Operator.SEED_HISTORY, Operator.SEED_SPARK,
+        Operator.ELITE, Operator.COMPARE, Operator.SEED_EMPTY, Operator.SEED_HISTORY,
+        Operator.SEED_SPARK,
     }  # fmt: skip
     assert max(ops.values()) - min(ops.values()) <= 0.3 * min(ops.values())
 

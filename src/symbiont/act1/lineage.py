@@ -22,6 +22,7 @@ class Operator(StrEnum):
     ADD = "add"
     DELETE = "delete"
     MERGE = "merge"
+    COMPARE = "compare"
     CROSSOVER = "crossover"
     ELITE = "elite"
 

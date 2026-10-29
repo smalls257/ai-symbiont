@@ -18,6 +18,10 @@ OPERATOR_TASKS = {
     Operator.ADD: "Add one new lesson for a mistake the games summary describes.",
     Operator.DELETE: "Remove the one lesson that looks least useful.",
     Operator.MERGE: "Merge two lessons of the card that say nearly the same thing into one.",
+    Operator.COMPARE: (
+        "Compare the best game with the worst game below and rewrite the card so the player "
+        "does more of what the best game did and avoids what the worst game did."
+    ),
     Operator.SEED_SPARK: (
         "Write a first card of 3 to 5 lessons for the mistakes the summary describes."
     ),

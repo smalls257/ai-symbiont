@@ -166,3 +166,13 @@ def test_author_and_judge_ask_for_room_to_think_and_answer(tmp_path):
     spark_judge.SparkJudge(session(tmp_path, "GENERAL"), Effort.MEDIUM).landmark(PARENT.lessons[0])
     assert spark.transport.requests[0]["max_tokens"] == spark_author.REPLY_TOKENS >= 16384
     assert spark_judge.REPLY_TOKENS >= 16384
+
+
+def test_the_compare_operator_puts_the_best_and_worst_game_texts_in_the_prompt(tmp_path):
+    spark = session(tmp_path, GOOD)
+    spark_author.SparkAuthor(spark, Effort.MEDIUM).vary(
+        Operator.COMPARE, (PARENT,), "BEST GAME: reached the exit. WORST GAME: stood still.", 1
+    )
+    prompt = spark.transport.requests[0]["messages"][0]["content"]
+    assert "Compare the best game with the worst game" in prompt
+    assert "BEST GAME: reached the exit." in prompt and "WORST GAME: stood still." in prompt
