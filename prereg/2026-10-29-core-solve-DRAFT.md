@@ -27,44 +27,60 @@ Rules for the test set:
 - The collection manifest leaves out every test-task run and prints the count.
 - The `sqlglot-all` adapter, the general and habits adapters and the old task-specific lessons all saw some of these tasks. They are never scored here [established].
 
-## Earlier tasks and collection (unscored)
+## Order of work (owner redirect 2026-10-29)
 
-Model and settings: plain Glimmer `Muse-Glimmer-30B-KQuant-17GB-Q4_K_M`, reasoning low, **step cap 75**, wall cap 45 min, 2 runs per earlier task.
+1. **Measure the plain spread first.** Plain Glimmer runs 2 times on about 30 earlier tasks (about 60 runs, collection below). The per-task disagreement rate (tasks whose two runs differ) gives v for the MDE [established].
+2. **Compute the MDE before any scored run,** from that spread (`scripts/routeb/core_mde.py`), and record it in an amendment. The runs per arm are then fixed: 4 or more [established].
+3. **Train the adapters,** then run the scored arms.
 
-Earlier tasks:
+## Earlier tasks (unscored): plain collection and teacher runs
+
+The earlier tasks:
 
 - **sqlglot, 40 tasks:** the 9 that plain Glimmer ever solved, then the smallest dialects, expressions and parser tasks by date. None is a test task, and none has 2 or more plain cap-75 runs that all failed. [established]
 - **Django, 24 tasks:** the SWE-Bench-CL history positions 1-24. [established]
 
-What enters training:
+**Plain collection.** Plain Glimmer `Muse-Glimmer-30B-KQuant-17GB-Q4_K_M`, reasoning low, step cap 75, wall cap 45 min, 2 runs per task. It stops once about 30 tasks have 2 runs. Its main use is measuring the spread. Self-training on Glimmer's own passes is expected to give only 0 to +3 points (SWE-Gym, 32B: 19.0 to 19.7) [established], which is below this design's MDE.
+
+**Teacher runs (the main lever).** The teacher is Muse Spark (Contributor tier), or Muse Wonder if the budget allows.
+
+- It solves the earlier tasks in mini-SWE-agent format, through `symbiont.egress`, with the spend ledger and its caps.
+- The driver refuses any test-set task before its first call.
+- Published teacher-trajectory gains are +13 to +27 points [established].
+
+**What enters training.**
 
 - Only runs whose official evaluation resolves the task (FAIL_TO_PASS and PASS_TO_PASS pass).
-- Earlier passing plain runs in the same mini-SWE-agent format are reused: 25 plain runs over 9 sqlglot tasks [measured].
-- Lesson-arm and adapter-arm runs are listed but not used.
+- 1-2 kept passing runs per earlier task.
+- Each row is tagged with its source (Glimmer or teacher) and model, and the mix is reported.
 
 ## Arms and labels
 
 | Arm | Label | Notes |
 |---|---|---|
-| plain Glimmer | reference | 2 runs per test task |
-| Glimmer + core adapter (trained on the collection manifest) | under test | 2 runs per test task; served under its own model name |
+| plain Glimmer | reference | 4 or more runs per test task (fixed by the MDE amendment) |
+| Glimmer + Core adapter (teacher and own passing runs on the earlier tasks of these repositories) | under test | same runs per task; served under its own model name |
+| Glimmer + control adapter (same recipe and row count, trained on passing runs from OTHER repositories) | control | same runs per task; separates "learned this repository" from "learned to act like an agent" |
 
-- The same step cap 75, wall cap 45 min and reasoning low apply to both arms. Both arms run in the same hours, with at most 4 concurrent requests.
+Rules for every arm:
+
+- **Same settings.** Every arm uses step cap 75, wall cap 45 min and reasoning low. All arms run in the same hours, with at most 4 concurrent requests.
 - **No adapter that failed its install check is scored.** The install check is the Route B queue's `install ... ok` line, plus a plain-model check showing no LoRA on the plain child. A failed check means the arm is not run. If an arm has already run, it is reported as "not scored: failed install verification".
-- A run that ends on an infrastructure or model_api error is rerun once. If it errors again, it counts as unsolved and is listed.
+- **Infra errors are not failures.** A run that ends on an infrastructure or model_api error, or because Glimmer was stopped, is void and re-queued; it is never scored as a failure. A run that errors twice is listed.
 
 ## Primary analysis
 
-- **Statistic:** the paired per-task solve rate. For each task, take the mean of 2 runs per arm; then take the mean over tasks of (adapter minus plain).
+- **Statistic:** the paired per-task solve rate, compared task by task. For each task, take the mean of its runs per arm; then take the mean over tasks of (Core adapter minus plain). The same statistic for (Core minus control) is the second test.
 - **Interval:** 95% bootstrap CI, resampling **tasks** with replacement 10,000 times, seed 20261029. [established]
 - **Decision rule:** "Glimmer solves more new issues" is claimed only if the CI's lower bound is above 0. A CI that straddles 0 is reported as no detected difference. A CI wholly below 0 is reported as harm.
 - **Reporting:** per repository and per kind (bug, feature), always beside the pooled number. Those breakdowns are descriptive, not tests.
 
 ## Secondary (descriptive)
 
-- The step of the first source edit, as the paired per-task median difference. Runs with no edit count as the step cap.
-- Submitted-but-wrong patches.
-- Repeated identical commands per run.
+- **Empty patches:** runs that submit nothing or end with an empty diff, per arm.
+- **Loops:** repeated identical commands per run, and runs with any command repeated 5 or more times.
+- **Turns:** steps used per run, and the step of the first source edit (paired per-task median difference; a run with no edit counts as the step cap).
+- **Wrong submissions:** patches submitted but not resolving the task.
 
 ## Minimum detectable effect (alpha 0.05, power 0.8, paired by task)
 
