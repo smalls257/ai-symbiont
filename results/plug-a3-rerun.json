@@ -1,0 +1,1273 @@
+{
+ "answer_script": "scripts/routea/answer_questions.py",
+ "answer_script_sha256": "a39607cbf34f0458cec7df8f61a236ce879698927510b9c8d082b3698513ef3e",
+ "paired": {
+  "a3_minus_a2v_habits_ranked": {
+   "ci95_high": -0.6705,
+   "ci95_low": -0.7727,
+   "mean_gain": -0.7182,
+   "repos": 10
+  },
+  "a3_minus_a2v_new_lessons": {
+   "ci95_high": 0.0333,
+   "ci95_low": -0.12,
+   "mean_gain": -0.04,
+   "repos": 10
+  },
+  "a3_minus_per_repo_no_lessons": {
+   "ci95_high": 0.128,
+   "ci95_low": 0.004,
+   "mean_gain": 0.06,
+   "repos": 10
+  },
+  "a3_more_minus_a2v_habits_ranked": {
+   "ci95_high": -0.7023,
+   "ci95_low": -0.8068,
+   "mean_gain": -0.7523,
+   "repos": 10
+  },
+  "a3_more_minus_a2v_new_lessons": {
+   "ci95_high": 0.12,
+   "ci95_low": -0.02,
+   "mean_gain": 0.0533,
+   "repos": 10
+  },
+  "a3_more_minus_per_repo_no_lessons": {
+   "ci95_high": 0.176,
+   "ci95_low": 0.028,
+   "mean_gain": 0.1,
+   "repos": 10
+  },
+  "a3_more_replay_minus_a2v_habits_ranked": {
+   "ci95_high": 0.0295,
+   "ci95_low": -0.0705,
+   "mean_gain": -0.0114,
+   "repos": 10
+  },
+  "a3_more_replay_minus_a2v_new_lessons": {
+   "ci95_high": 0.06,
+   "ci95_low": -0.0867,
+   "mean_gain": -0.0067,
+   "repos": 10
+  },
+  "a3_more_replay_minus_per_repo_no_lessons": {
+   "ci95_high": 0.12,
+   "ci95_low": -0.008,
+   "mean_gain": 0.056,
+   "repos": 10
+  },
+  "a3_replay_minus_a2v_habits_ranked": {
+   "ci95_high": 0.0159,
+   "ci95_low": -0.1114,
+   "mean_gain": -0.0409,
+   "repos": 10
+  },
+  "a3_replay_minus_a2v_new_lessons": {
+   "ci95_high": -0.0133,
+   "ci95_low": -0.14,
+   "mean_gain": -0.0733,
+   "repos": 10
+  },
+  "a3_replay_minus_per_repo_no_lessons": {
+   "ci95_high": 0.084,
+   "ci95_low": -0.04,
+   "mean_gain": 0.02,
+   "repos": 10
+  }
+ },
+ "per_repo_rows": [
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.32,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.2,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.4,
+   "no_lessons": 0.0,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.2,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.0,
+   "repo": "aws/chalice",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.16,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.36,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.0,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.12
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.4,
+   "no_lessons": 0.0,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.36,
+   "new_lessons": 0.6,
+   "no_lessons": 0.0,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.12,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.32,
+   "new_lessons": 0.4,
+   "no_lessons": 0.08,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.08
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.4,
+   "new_lessons": 0.2667,
+   "no_lessons": 0.0,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.8,
+   "no_lessons": 0.0,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.8,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.64,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.0,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.76,
+   "new_lessons": 0.8,
+   "no_lessons": 0.0,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.4,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.0,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.68,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.0,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.0,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.4318,
+   "habits_ranked": 0.2955,
+   "lessons_in_prompt": 0.8,
+   "new_lessons": 0.9333,
+   "no_lessons": 0.92,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.1818,
+   "habits_ranked": 0.1136,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.56,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.2273,
+   "habits_ranked": 0.25,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.64,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.2045,
+   "habits_ranked": 0.2727,
+   "lessons_in_prompt": 0.72,
+   "new_lessons": 0.8,
+   "no_lessons": 0.6,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.2045,
+   "habits_ranked": 0.1818,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.48,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.25,
+   "habits_ranked": 0.0682,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.8,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.3864,
+   "habits_ranked": 0.2727,
+   "lessons_in_prompt": 0.36,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.48,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.1818,
+   "habits_ranked": 0.2727,
+   "lessons_in_prompt": 0.4,
+   "new_lessons": 0.4,
+   "no_lessons": 0.44,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.1591,
+   "habits_ranked": 0.3182,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.72,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.25,
+   "habits_ranked": 0.3182,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.8,
+   "no_lessons": 0.56,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.25,
+   "habits_ranked": 0.2955,
+   "lessons_in_prompt": 0.6,
+   "new_lessons": 0.8,
+   "no_lessons": 0.96,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.0909,
+   "habits_ranked": 0.1818,
+   "lessons_in_prompt": 0.4,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.48,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.2045,
+   "habits_ranked": 0.1818,
+   "lessons_in_prompt": 0.6,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.68,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.5682,
+   "habits_ranked": 0.2727,
+   "lessons_in_prompt": 0.64,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.68,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.2045,
+   "habits_ranked": 0.0909,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.6,
+   "no_lessons": 0.52,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.2727,
+   "habits_ranked": 0.0909,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 1.0,
+   "no_lessons": 0.92,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.2273,
+   "habits_ranked": 0.2727,
+   "lessons_in_prompt": 0.36,
+   "new_lessons": 0.8,
+   "no_lessons": 0.44,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.2045,
+   "habits_ranked": 0.2727,
+   "lessons_in_prompt": 0.36,
+   "new_lessons": 0.8,
+   "no_lessons": 0.56,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.3409,
+   "habits_ranked": 0.2727,
+   "lessons_in_prompt": 0.68,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.76,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.3182,
+   "habits_ranked": 0.0909,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.9333,
+   "no_lessons": 0.6,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7273,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.64,
+   "new_lessons": 0.8667,
+   "no_lessons": 0.6,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 0.96,
+   "wrong_confabulation": 0.04,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 1.0,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.36,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.4,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7955,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.72,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.6,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7727,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.64,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7045,
+   "habits_ranked": 0.8864,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.6,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.75,
+   "habits_ranked": 0.9773,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.64,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.6364,
+   "habits_ranked": 0.7045,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.8,
+   "no_lessons": 0.52,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.9091,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.8667,
+   "no_lessons": 0.72,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7045,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.68,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.88,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.4318,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.56,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 1.0,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.64,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 0.92,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 1.0,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.4,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 0.3409,
+   "habits_ranked": 0.9318,
+   "lessons_in_prompt": 0.72,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.72,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 1.0,
+   "habits_ranked": 1.0,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.6,
+   "no_lessons": 0.6,
+   "repo": "aws/chalice",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 0.9773,
+   "habits_ranked": 0.7955,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.6,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 1.0,
+   "habits_ranked": 0.9773,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.6,
+   "no_lessons": 0.56,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 0.6136,
+   "habits_ranked": 0.9318,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.8,
+   "no_lessons": 0.48,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 0.96,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 0.6591,
+   "habits_ranked": 0.9545,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.56,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 0.6591,
+   "habits_ranked": 0.8864,
+   "lessons_in_prompt": 0.72,
+   "new_lessons": 0.6667,
+   "no_lessons": 0.68,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 1.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 0.9773,
+   "habits_ranked": 0.6591,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.6,
+   "no_lessons": 0.56,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 0.84,
+   "wrong_confabulation": 0.16,
+   "wrong_lessons": 0.0
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.3409,
+   "habits_ranked": 0.1818,
+   "lessons_in_prompt": 0.56,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.68,
+   "repo": "KIT-IAI/pyWATTS",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.36
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.3409,
+   "habits_ranked": 0.2273,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.2667,
+   "no_lessons": 0.52,
+   "repo": "PMEAL/OpenPNM",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.2,
+   "wrong_lessons": 0.4
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.4318,
+   "habits_ranked": 0.2955,
+   "lessons_in_prompt": 0.72,
+   "new_lessons": 0.5333,
+   "no_lessons": 0.56,
+   "repo": "acorg/dark-matter",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.04,
+   "wrong_lessons": 0.48
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.6591,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.2667,
+   "no_lessons": 0.6,
+   "repo": "aws/chalice",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.48
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.2045,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.52,
+   "new_lessons": 0.3333,
+   "no_lessons": 0.52,
+   "repo": "marshmallow-code/marshmallow",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.48
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.2273,
+   "habits_ranked": 0.25,
+   "lessons_in_prompt": 0.64,
+   "new_lessons": 0.4,
+   "no_lessons": 0.64,
+   "repo": "pydap/pydap",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.4
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.3636,
+   "habits_ranked": 0.1818,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.3333,
+   "no_lessons": 0.48,
+   "repo": "robotframework/SeleniumLibrary",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.32
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.25,
+   "habits_ranked": 0.3182,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.48,
+   "repo": "vertexproject/synapse",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.12,
+   "wrong_lessons": 0.36
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.5909,
+   "habits_ranked": 0.1818,
+   "lessons_in_prompt": 0.44,
+   "new_lessons": 0.4667,
+   "no_lessons": 0.76,
+   "repo": "yukinarit/pyserde",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.04,
+   "wrong_lessons": 0.28
+  },
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.3864,
+   "habits_ranked": 0.2045,
+   "lessons_in_prompt": 0.48,
+   "new_lessons": 0.7333,
+   "no_lessons": 0.36,
+   "repo": "zopefoundation/zope.schema",
+   "wrong_abstention": 0.0,
+   "wrong_confabulation": 0.0,
+   "wrong_lessons": 0.28
+  }
+ ],
+ "plan": {
+  "control_of": {
+   "KIT-IAI/pyWATTS": "PMEAL/OpenPNM",
+   "PMEAL/OpenPNM": "acorg/dark-matter",
+   "acorg/dark-matter": "aws/chalice",
+   "aws/chalice": "marshmallow-code/marshmallow",
+   "marshmallow-code/marshmallow": "pydap/pydap",
+   "pydap/pydap": "robotframework/SeleniumLibrary",
+   "robotframework/SeleniumLibrary": "vertexproject/synapse",
+   "vertexproject/synapse": "yukinarit/pyserde",
+   "yukinarit/pyserde": "zopefoundation/zope.schema",
+   "zopefoundation/zope.schema": "KIT-IAI/pyWATTS"
+  },
+  "meta_train_repos": 61,
+  "meta_train_rows": 1373,
+  "test_repos": {
+   "KIT-IAI/pyWATTS": 8,
+   "PMEAL/OpenPNM": 9,
+   "acorg/dark-matter": 8,
+   "aws/chalice": 8,
+   "marshmallow-code/marshmallow": 8,
+   "pydap/pydap": 8,
+   "robotframework/SeleniumLibrary": 8,
+   "vertexproject/synapse": 9,
+   "yukinarit/pyserde": 8,
+   "zopefoundation/zope.schema": 9
+  }
+ },
+ "rows": [
+  {
+   "arm": "per_repo",
+   "habits_keyword": 0.3795,
+   "habits_keyword_ci95": [
+    0.2977,
+    0.4727
+   ],
+   "habits_ranked": 0.225,
+   "habits_ranked_ci95": [
+    0.2,
+    0.2545
+   ],
+   "lessons_in_prompt": 0.52,
+   "lessons_in_prompt_ci95": [
+    0.472,
+    0.58
+   ],
+   "new_lessons": 0.4333,
+   "new_lessons_ci95": [
+    0.3533,
+    0.52
+   ],
+   "no_lessons": 0.56,
+   "no_lessons_ci95": [
+    0.492,
+    0.628
+   ],
+   "repos": 10,
+   "role": "reference",
+   "wrong_abstention": 0.0,
+   "wrong_abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_confabulation": 0.04,
+   "wrong_confabulation_ci95": [
+    0.004,
+    0.084
+   ],
+   "wrong_lessons": 0.384,
+   "wrong_lessons_ci95": [
+    0.34,
+    0.432
+   ]
+  },
+  {
+   "arm": "a1",
+   "habits_keyword": 0.5,
+   "habits_keyword_ci95": [
+    0.5,
+    0.5
+   ],
+   "habits_ranked": 0.2045,
+   "habits_ranked_ci95": [
+    0.2045,
+    0.2045
+   ],
+   "lessons_in_prompt": 0.372,
+   "lessons_in_prompt_ci95": [
+    0.324,
+    0.412
+   ],
+   "new_lessons": 0.4533,
+   "new_lessons_ci95": [
+    0.4,
+    0.5067
+   ],
+   "no_lessons": 0.008,
+   "no_lessons_ci95": [
+    0.0,
+    0.024
+   ],
+   "repos": 10,
+   "role": "reference",
+   "wrong_abstention": 0.0,
+   "wrong_abstention_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_confabulation": 0.048,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.096
+   ],
+   "wrong_lessons": 0.02,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.048
+   ]
+  },
+  {
+   "arm": "a2v",
+   "habits_keyword": 0.6364,
+   "habits_keyword_ci95": [
+    0.6364,
+    0.6364
+   ],
+   "habits_ranked": 0.9545,
+   "habits_ranked_ci95": [
+    0.9545,
+    0.9545
+   ],
+   "lessons_in_prompt": 0.576,
+   "lessons_in_prompt_ci95": [
+    0.496,
+    0.66
+   ],
+   "new_lessons": 0.7067,
+   "new_lessons_ci95": [
+    0.6467,
+    0.7533
+   ],
+   "no_lessons": 0.0,
+   "no_lessons_ci95": [
+    0.0,
+    0.0
+   ],
+   "repos": 10,
+   "role": "reference",
+   "wrong_abstention": 1.0,
+   "wrong_abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "wrong_confabulation": 0.0,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "arm": "a3",
+   "habits_keyword": 0.2477,
+   "habits_keyword_ci95": [
+    0.2,
+    0.3068
+   ],
+   "habits_ranked": 0.2364,
+   "habits_ranked_ci95": [
+    0.1818,
+    0.2841
+   ],
+   "lessons_in_prompt": 0.536,
+   "lessons_in_prompt_ci95": [
+    0.464,
+    0.62
+   ],
+   "new_lessons": 0.6667,
+   "new_lessons_ci95": [
+    0.5667,
+    0.7667
+   ],
+   "no_lessons": 0.62,
+   "no_lessons_ci95": [
+    0.536,
+    0.716
+   ],
+   "repos": 10,
+   "role": "under_test",
+   "wrong_abstention": 1.0,
+   "wrong_abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "wrong_confabulation": 0.0,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "arm": "a3_more",
+   "habits_keyword": 0.2682,
+   "habits_keyword_ci95": [
+    0.2022,
+    0.3477
+   ],
+   "habits_ranked": 0.2023,
+   "habits_ranked_ci95": [
+    0.1477,
+    0.2523
+   ],
+   "lessons_in_prompt": 0.528,
+   "lessons_in_prompt_ci95": [
+    0.46,
+    0.592
+   ],
+   "new_lessons": 0.76,
+   "new_lessons_ci95": [
+    0.68,
+    0.8467
+   ],
+   "no_lessons": 0.66,
+   "no_lessons_ci95": [
+    0.564,
+    0.768
+   ],
+   "repos": 10,
+   "role": "under_test",
+   "wrong_abstention": 1.0,
+   "wrong_abstention_ci95": [
+    1.0,
+    1.0
+   ],
+   "wrong_confabulation": 0.0,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.0
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "arm": "a3_replay",
+   "habits_keyword": 0.8227,
+   "habits_keyword_ci95": [
+    0.6841,
+    0.9568
+   ],
+   "habits_ranked": 0.9136,
+   "habits_ranked_ci95": [
+    0.8432,
+    0.9705
+   ],
+   "lessons_in_prompt": 0.54,
+   "lessons_in_prompt_ci95": [
+    0.484,
+    0.604
+   ],
+   "new_lessons": 0.6333,
+   "new_lessons_ci95": [
+    0.5733,
+    0.6867
+   ],
+   "no_lessons": 0.58,
+   "no_lessons_ci95": [
+    0.524,
+    0.632
+   ],
+   "repos": 10,
+   "role": "under_test",
+   "wrong_abstention": 0.972,
+   "wrong_abstention_ci95": [
+    0.936,
+    1.0
+   ],
+   "wrong_confabulation": 0.016,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.048
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
+  },
+  {
+   "arm": "a3_more_replay",
+   "habits_keyword": 0.7432,
+   "habits_keyword_ci95": [
+    0.6545,
+    0.8296
+   ],
+   "habits_ranked": 0.9432,
+   "habits_ranked_ci95": [
+    0.8841,
+    0.9841
+   ],
+   "lessons_in_prompt": 0.532,
+   "lessons_in_prompt_ci95": [
+    0.468,
+    0.6
+   ],
+   "new_lessons": 0.7,
+   "new_lessons_ci95": [
+    0.62,
+    0.7733
+   ],
+   "no_lessons": 0.616,
+   "no_lessons_ci95": [
+    0.548,
+    0.692
+   ],
+   "repos": 10,
+   "role": "under_test",
+   "wrong_abstention": 0.996,
+   "wrong_abstention_ci95": [
+    0.988,
+    1.0
+   ],
+   "wrong_confabulation": 0.004,
+   "wrong_confabulation_ci95": [
+    0.0,
+    0.012
+   ],
+   "wrong_lessons": 0.0,
+   "wrong_lessons_ci95": [
+    0.0,
+    0.0
+   ]
+  }
+ ],
+ "rule": "Go if recall without lessons reaches the per-repo adapter and new-lesson recall reaches a2; kill if new-lesson recall falls below a1.",
+ "status": "exploratory, no prereg; Llama 3.2 1B MLX on the laptop",
+ "verdicts": {
+  "a3": "hold",
+  "a3_more": "go",
+  "a3_more_replay": "hold",
+  "a3_replay": "hold"
+ }
+}

@@ -62,10 +62,11 @@ for repo in "$WORK"/repos/*/; do
   train "a3-$slug" "$repo/a3" "$repo/adapters/a3" 8 "$A2V"
   train "a3_more-$slug" "$repo/a3" "$repo/adapters/a3_more" 16 "$A2V"
   train "a3_replay-$slug" "$repo/a3_replay" "$repo/adapters/a3_replay" 8 "$A2V"
+  train "a3_more_replay-$slug" "$repo/a3_replay" "$repo/adapters/a3_more_replay" 16 "$A2V"
   measure "$repo" per_repo "$repo/adapters/per_repo"
   measure "$repo" a1 -
   measure "$repo" a2v "$A2V"
-  for arm in a3 a3_more a3_replay; do
+  for arm in a3 a3_more a3_replay a3_more_replay; do
     measure "$repo" "$arm" "$repo/adapters/$arm"
   done
 done
