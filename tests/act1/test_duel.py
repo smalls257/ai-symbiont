@@ -161,3 +161,28 @@ def test_the_interval_excludes_zero_for_a_clear_gain_and_covers_it_for_noise():
 def test_the_interval_is_reproducible_from_its_seed():
     groups = {"MAP01": [0.1, 0.3], "MAP02": [-0.2], "MAP05": [0.4, 0.1]}
     assert duel.paired_interval(groups, seed=3) == duel.paired_interval(groups, seed=3)
+
+
+def test_a_child_beats_its_parent_only_with_a_strictly_higher_mean():
+    assert duel.beats_parent([0.2, 0.4], [0.1, 0.4])
+    assert not duel.beats_parent([0.3], [0.3])
+    assert not duel.beats_parent([0.1], [0.3])
+
+
+def test_the_wilson_interval_brackets_the_share_and_stays_within_zero_and_one():
+    share, low, high = duel.wilson_interval(3, 5)
+    assert share == 0.6 and 0.2 < low < 0.6 < high < 0.95
+    assert duel.wilson_interval(0, 5)[1] == 0.0 and duel.wilson_interval(5, 5)[2] == 1.0
+    with pytest.raises(duel.NotEnoughGamesError):
+        duel.wilson_interval(0, 0)
+
+
+def test_child_share_counts_wins_and_the_mean_gain():
+    rows = [
+        {"child_mean": 0.5, "current_mean": 0.1},
+        {"child_mean": 0.2, "current_mean": 0.3},
+        {"child_mean": 0.4, "current_mean": 0.4},
+    ]
+    stats = duel.child_share(rows)
+    assert stats["beat_parent"] == 1.0 and stats["children"] == 3.0
+    assert stats["mean_gain"] == pytest.approx((0.4 - 0.1 + 0.0) / 3)

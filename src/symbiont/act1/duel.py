@@ -163,3 +163,34 @@ def decision_word(low: float, high: float) -> str:
     if low > 0:
         return "better"
     return "worse" if high < 0 else "tie"
+
+
+def beats_parent(child_scores: Sequence[float], parent_scores: Sequence[float]) -> bool:
+    """A child beats its parent when its mean on the same cases is strictly higher."""
+    return statistics.fmean(child_scores) > statistics.fmean(parent_scores)
+
+
+def wilson_interval(wins: int, total: int) -> tuple[float, float, float]:
+    """The share of wins and its 95% Wilson interval (it behaves with a handful of trials)."""
+    if total == 0:
+        raise NotEnoughGamesError("no children to score")
+    share = wins / total
+    denominator = 1 + Z95**2 / total
+    center = (share + Z95**2 / (2 * total)) / denominator
+    margin = Z95 * math.sqrt(share * (1 - share) / total + Z95**2 / (4 * total**2)) / denominator
+    return share, max(0.0, center - margin), min(1.0, center + margin)
+
+
+def child_share(rows: Sequence[Mapping[str, float]]) -> dict[str, float]:
+    """How many children won of rows with `child_mean` and `current_mean`, with a share interval."""
+    wins = sum(row["child_mean"] > row["current_mean"] for row in rows)
+    share, low, high = wilson_interval(wins, len(rows))
+    gains = [row["child_mean"] - row["current_mean"] for row in rows]
+    return {
+        "children": float(len(rows)),
+        "beat_parent": float(wins),
+        "share": share,
+        "low": low,
+        "high": high,
+        "mean_gain": statistics.fmean(gains),
+    }
