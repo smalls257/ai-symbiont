@@ -21,6 +21,7 @@ class Setting:
     wall_limit_s: int
     adapter_id: int | None = None
     served_model: str | None = None
+    teacher: str | None = None
 
 
 @pytest.fixture(autouse=True)
@@ -377,3 +378,24 @@ def test_served_model_arm_is_stamped_and_cannot_mix(monkeypatch, tmp_path):
     assert driver.header["served_model"] == "Glimmer-x"
     with pytest.raises(ValueError, match="one arm per run"):
         driver.use_adapter(0)
+
+
+def test_teacher_arm_refuses_test_set_tasks_and_stamps_records(monkeypatch, tmp_path):
+    cal2, driver, _ = lesson_driver(monkeypatch, tmp_path, {"task00": "Edit it."})
+    test_set = tmp_path / "test-set.json"
+    test_set.write_text(json.dumps({"test": [{"task": "elsewhere"}]}))
+    driver.use_teacher("spark", test_set)
+    assert driver.low.teacher == "spark" and driver.header["arm"] == "teacher"
+    (tmp_path / "m").mkdir()
+    _, held, _ = lesson_driver(monkeypatch, tmp_path / "m", {"task00": "a"})
+    test_set.write_text(json.dumps({"test": [{"task": held.screen[0]}]}))
+    with pytest.raises(ValueError, match="test-set tasks refused"):
+        held.use_teacher("spark", test_set)
+
+
+def test_teacher_setting_skips_the_glimmer_url_and_names_the_teacher(monkeypatch):
+    runner = load_runner(monkeypatch)
+    monkeypatch.delenv("SYMBIONT_GLIMMER_URL")
+    _, model = runner.agent_config(runner.Setting("low", 75, 2700, teacher="spark"))
+    assert model["model_name"] == "spark"
+    assert runner.model_of(runner.Setting("low", 75, 2700, teacher="wonder")) == "teacher/wonder"

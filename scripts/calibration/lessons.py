@@ -23,6 +23,7 @@ class Arm(StrEnum):
     LESSON = "lesson"
     PERSONAL_LORA = "personal_lora"  # the served sqlglot adapter, no lesson in the prompt
     SERVED_ADAPTER = "served_adapter"  # a router model name that carries its own adapter
+    TEACHER = "teacher"  # Muse Spark or Wonder through egress, earlier tasks only
 
 
 def load_lessons(path: Path, task_ids: list[str]) -> dict[str, str]:

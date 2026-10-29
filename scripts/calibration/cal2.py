@@ -189,6 +189,19 @@ class CandidateDriver(Driver):
         self.arm = Arm.SERVED_ADAPTER
         self.header = self.header | {"arm": str(self.arm), "served_model": name}
 
+    def use_teacher(self, teacher: str, test_set: Path) -> None:
+        """Teacher arm on EARLIER tasks only: raises if any listed task is in the test set."""
+        if self.arm is not Arm.PLAIN:
+            raise ValueError(f"one arm per run: already {self.arm}, cannot add teacher {teacher}")
+        held = {entry["task"] for entry in json.loads(test_set.read_text())["test"]}
+        if held & set(self.screen):
+            raise ValueError(
+                f"teacher runs on test-set tasks refused: {sorted(held & set(self.screen))}"
+            )
+        self.low = dataclasses.replace(self.low, teacher=teacher)
+        self.arm = Arm.TEACHER
+        self.header = self.header | {"arm": str(self.arm), "teacher": teacher}
+
     def _record(self, rec: dict) -> None:
         """Stamp the arm, the lesson hash and the adapter id on every record before it is logged."""
         stamp = {
@@ -282,6 +295,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--lessons", type=Path, default=None, help="lesson arm: id -> text JSON")
     parser.add_argument("--adapter", type=int, default=None, help="personal arm: served LoRA id")
     parser.add_argument("--served-model", default=None, help="adapter arm: router model name")
+    parser.add_argument("--teacher", choices=("spark", "wonder"), default=None)
+    parser.add_argument("--test-set", type=Path, default=None, help="refused for --teacher")
     add_limit_arguments(parser)
     return parser.parse_args(argv)
 
@@ -297,4 +312,8 @@ if __name__ == "__main__":
         driver.use_adapter(args.adapter)
     if args.served_model:
         driver.use_served_model(args.served_model)
+    if args.teacher:
+        if args.test_set is None:
+            raise SystemExit("--teacher needs --test-set (teacher runs are for earlier tasks only)")
+        driver.use_teacher(args.teacher, args.test_set)
     driver.run()
