@@ -84,7 +84,9 @@ A Llama 3.2 1B Instruct LoRA was trained on the laptop with MLX, using the share
 
 | Arm | Role | Hit | Off-kind | Miss | Hit rate |
 |---|---|---|---|---|---|
-| base model, same system prompt | floor | 4 | 3 | 37 | 0.09 |
+| base model, same system prompt | floor | 22 | 18 | 4 | 0.50 |
 | habits adapter | under test | 28 | 16 | 0 | 0.64 |
+
+**Correction (2026-10-28).** The first version of this table gave the base model 4 hits (0.09). That run used the old `answer_questions.py`, which kept only an answer's first line. Base Llama puts its checklist after a newline, so most of its answer was cut. Since ef0954a the answerer keeps the whole answer, and every row above uses that version; the habits adapter's answers are one line either way and score the same [measured]. The adapter's lead over the floor is therefore 6 hits, not 24 [measured]. A longer answer can also mention a kind's key term by chance, so this scorer separates arms weakly [hypothesis].
 
 All rows are [measured]. Error-handling questions account for all 16 off-kind answers (10 of 26 hit). The held-out set covers four kinds, eight repositories and one situation wording per kind, so the adapter may have learned to map each situation to its check rather than a habit that transfers [hypothesis].

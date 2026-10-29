@@ -1,0 +1,76 @@
+{
+ "repo": "Azure__msrest-for-python",
+ "rows": [
+  {
+   "arm": "a1",
+   "budget": 10,
+   "habits_kept_keyword": 0.5,
+   "habits_kept_ranked": 0.2045,
+   "lessons_in_prompt_recall": 0.28,
+   "new_lessons_recall": 0.2667,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a1",
+   "budget": 5,
+   "habits_kept_keyword": 0.5,
+   "habits_kept_ranked": 0.2045,
+   "lessons_in_prompt_recall": 0.28,
+   "new_lessons_recall": 0.2667,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a2",
+   "budget": 10,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.7955,
+   "lessons_in_prompt_recall": 0.48,
+   "new_lessons_recall": 0.4,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a2",
+   "budget": 5,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.7955,
+   "lessons_in_prompt_recall": 0.6,
+   "new_lessons_recall": 0.4,
+   "no_lessons_recall": 0.0,
+   "role": "reference",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a3",
+   "budget": 10,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.2727,
+   "lessons_in_prompt_recall": 0.5,
+   "new_lessons_recall": 0.4,
+   "no_lessons_recall": 0.44,
+   "role": "under_test",
+   "wrong_lessons_recall": 0.0
+  },
+  {
+   "arm": "a3",
+   "budget": 5,
+   "habits_kept_keyword": 0.4091,
+   "habits_kept_ranked": 0.2727,
+   "lessons_in_prompt_recall": 0.4,
+   "new_lessons_recall": 0.3333,
+   "no_lessons_recall": 0.4,
+   "role": "under_test",
+   "wrong_lessons_recall": 0.0
+  }
+ ],
+ "rule": "Go if recall without lessons reaches the per-repo adapter (0.64 at 5, 0.48 at 10) and new-lesson recall reaches a2; kill if new-lesson recall falls below a1.",
+ "status": "exploratory feasibility, one repo, no prereg; a3 consolidation vs a2 and a1",
+ "verdict": {
+  "label": "hold: not go (recall without lessons below the per-repo adapter), not killed"
+ }
+}
