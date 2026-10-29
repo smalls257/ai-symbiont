@@ -1,0 +1,111 @@
+{
+ "status": "exploratory, round 3's 40 scored repos as validation, no training",
+ "judge_alone": {
+  "in_sample": {
+   "rule": "judge",
+   "threshold": 0.993,
+   "pick": 0.2303,
+   "silence": 0.9576,
+   "wrong_pick": 0.0364,
+   "coverage": 0.2606,
+   "precision": 0.76
+  },
+  "cross_validated": {
+   "pick": 0.2545,
+   "silence": 0.9212,
+   "wrong_pick": 0.0606,
+   "coverage": 0.297,
+   "precision": 0.6774
+  }
+ },
+ "judge_top1": {
+  "in_sample": {
+   "rule": "top1",
+   "threshold": 0.991,
+   "pick": 0.2485,
+   "silence": 0.9455,
+   "wrong_pick": 0.0424,
+   "coverage": 0.2788,
+   "precision": 0.7455
+  },
+  "cross_validated": {
+   "pick": 0.3273,
+   "silence": 0.9212,
+   "wrong_pick": 0.0606,
+   "coverage": 0.3697,
+   "precision": 0.7297
+  }
+ },
+ "judge_top2": {
+  "in_sample": {
+   "rule": "top2",
+   "threshold": 0.993,
+   "pick": 0.2303,
+   "silence": 0.9576,
+   "wrong_pick": 0.0333,
+   "coverage": 0.2545,
+   "precision": 0.7755
+  },
+  "cross_validated": {
+   "pick": 0.2545,
+   "silence": 0.9212,
+   "wrong_pick": 0.0606,
+   "coverage": 0.297,
+   "precision": 0.6774
+  }
+ },
+ "judge_top3": {
+  "in_sample": {
+   "rule": "top3",
+   "threshold": 0.993,
+   "pick": 0.2303,
+   "silence": 0.9576,
+   "wrong_pick": 0.0364,
+   "coverage": 0.2606,
+   "precision": 0.76
+  },
+  "cross_validated": {
+   "pick": 0.2545,
+   "silence": 0.9212,
+   "wrong_pick": 0.0606,
+   "coverage": 0.297,
+   "precision": 0.6774
+  }
+ },
+ "two_d_threshold": {
+  "in_sample": {
+   "rule": "idf>=9.5",
+   "threshold": 0.96,
+   "pick": 0.5091,
+   "silence": 0.9273,
+   "wrong_pick": 0.0485,
+   "coverage": 0.5333,
+   "precision": 0.84
+  },
+  "cross_validated": {
+   "pick": 0.497,
+   "silence": 0.9152,
+   "wrong_pick": 0.0606,
+   "coverage": 0.5333,
+   "precision": 0.8039
+  }
+ },
+ "logistic": {
+  "in_sample": {
+   "rule": "logistic",
+   "threshold": 0.71,
+   "pick": 0.2606,
+   "silence": 0.9455,
+   "wrong_pick": 0.0455,
+   "coverage": 0.297,
+   "precision": 0.7414
+  },
+  "cross_validated": {
+   "pick": 0.303,
+   "silence": 0.9212,
+   "wrong_pick": 0.0606,
+   "coverage": 0.3455,
+   "precision": 0.7143
+  }
+ }
+}
