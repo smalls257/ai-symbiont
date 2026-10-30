@@ -114,6 +114,7 @@ def main() -> None:
             "pins",
             "scores",
             "floors",
+            "fpins",
             "untrained",
             "out",
         ),

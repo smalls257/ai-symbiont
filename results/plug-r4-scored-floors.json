@@ -1,0 +1,142 @@
+{
+ "rag_floor_vs_agree_rule": {
+  "items": 501,
+  "repos_without_positives_excluded": 0,
+  "coverage_rule": 0.1359,
+  "coverage_judge_alone": 0.2563,
+  "gain": -0.1204,
+  "gain_interval": [
+   -0.2216,
+   -0.0197
+  ],
+  "reading": "worse",
+  "rule": {
+   "wrong_pick": 0.018,
+   "precision": 0.8163,
+   "answered": 49
+  },
+  "judge_alone": {
+   "wrong_pick": 0.0,
+   "precision": 1.0,
+   "answered": 53
+  },
+  "ranker_at_same_cut_no_judge": {
+   "coverage": 0.1359,
+   "wrong_pick": 0.018,
+   "precision": 0.8163,
+   "answered": 49
+  },
+  "wrong_bound_rule": 0.041,
+  "safety": "safe",
+  "strict_single_fix": {
+   "rule": 0.1598,
+   "judge_alone": 0.2764
+  },
+  "wrong_pick_icc": 0.0
+ },
+ "rag_floor_vs_judge_alone": {
+  "items": 501,
+  "repos_without_positives_excluded": 0,
+  "coverage_rule": 0.1359,
+  "coverage_judge_alone": 0.1276,
+  "gain": 0.0082,
+  "gain_interval": [
+   -0.0887,
+   0.1037
+  ],
+  "reading": "tie",
+  "rule": {
+   "wrong_pick": 0.018,
+   "precision": 0.8163,
+   "answered": 49
+  },
+  "judge_alone": {
+   "wrong_pick": 0.0,
+   "precision": 1.0,
+   "answered": 41
+  },
+  "ranker_at_same_cut_no_judge": {
+   "coverage": 0.1359,
+   "wrong_pick": 0.018,
+   "precision": 0.8163,
+   "answered": 49
+  },
+  "wrong_bound_rule": 0.041,
+  "safety": "safe",
+  "strict_single_fix": {
+   "rule": 0.1598,
+   "judge_alone": 0.1446
+  },
+  "wrong_pick_icc": 0.0
+ },
+ "untrained_1b_vs_agree_rule": {
+  "items": 501,
+  "repos_without_positives_excluded": 0,
+  "coverage_rule": 0.0919,
+  "coverage_judge_alone": 0.2563,
+  "gain": -0.1644,
+  "gain_interval": [
+   -0.2645,
+   -0.0679
+  ],
+  "reading": "worse",
+  "rule": {
+   "wrong_pick": 0.012,
+   "precision": 0.8286,
+   "answered": 35
+  },
+  "judge_alone": {
+   "wrong_pick": 0.0,
+   "precision": 1.0,
+   "answered": 53
+  },
+  "ranker_at_same_cut_no_judge": {
+   "coverage": 0.0919,
+   "wrong_pick": 0.012,
+   "precision": 0.8286,
+   "answered": 35
+  },
+  "wrong_bound_rule": 0.0285,
+  "safety": "safe",
+  "strict_single_fix": {
+   "rule": 0.1065,
+   "judge_alone": 0.2764
+  },
+  "wrong_pick_icc": 0.0
+ },
+ "untrained_1b_vs_judge_alone": {
+  "items": 501,
+  "repos_without_positives_excluded": 0,
+  "coverage_rule": 0.0919,
+  "coverage_judge_alone": 0.1276,
+  "gain": -0.0357,
+  "gain_interval": [
+   -0.126,
+   0.052
+  ],
+  "reading": "tie",
+  "rule": {
+   "wrong_pick": 0.012,
+   "precision": 0.8286,
+   "answered": 35
+  },
+  "judge_alone": {
+   "wrong_pick": 0.0,
+   "precision": 1.0,
+   "answered": 41
+  },
+  "ranker_at_same_cut_no_judge": {
+   "coverage": 0.0919,
+   "wrong_pick": 0.012,
+   "precision": 0.8286,
+   "answered": 35
+  },
+  "wrong_bound_rule": 0.0285,
+  "safety": "safe",
+  "strict_single_fix": {
+   "rule": 0.1065,
+   "judge_alone": 0.1446
+  },
+  "wrong_pick_icc": 0.0
+ }
+}
