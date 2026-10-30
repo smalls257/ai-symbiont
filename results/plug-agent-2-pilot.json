@@ -1,0 +1,51 @@
+{
+ "points_in_list": 11,
+ "valid_points": 9,
+ "voids_by_source": {
+  "own": 1,
+  "core": 1
+ },
+ "void_points": [
+  "twisted__towncrier-588|twisted__towncrier-588.traj.json|0",
+  "tobymao__sqlglot-4390|runs-core-collect/sqlglot/traj/tobymao__sqlglot-4390/cal2-run1-low.traj.json|0"
+ ],
+ "generic_environment_points_in_list": 11,
+ "same_error_line": {
+  "none_share": 0.611,
+  "forced_share": 0.222,
+  "mean_difference": -0.389,
+  "bca_low": -0.63,
+  "bca_high": -0.13,
+  "sign_flip_p": 0.0312,
+  "tied_points": 1
+ },
+ "program_fails_any_error": {
+  "none_share": 0.63,
+  "forced_share": 0.259,
+  "mean_difference": -0.37,
+  "bca_low": -0.63,
+  "bca_high": -0.111,
+  "sign_flip_p": 0.0469,
+  "tied_points": 2
+ },
+ "arms": {
+  "none": {
+   "branches": 54,
+   "mean_steps_lost": 3.52,
+   "replacement_errors": 3,
+   "exit_status": {
+    "LimitsExceeded": 48,
+    "Submitted": 6
+   }
+  },
+  "forced": {
+   "branches": 54,
+   "mean_steps_lost": 2.48,
+   "replacement_errors": 3,
+   "exit_status": {
+    "LimitsExceeded": 48,
+    "Submitted": 6
+   }
+  }
+ }
+}

@@ -155,7 +155,7 @@ def run_branches(
                 branch = graded_branch(inputs.row, point, Continuation(text, silent), config, traj)
             except BranchLostError as error:
                 raise PointVoidError(arm, index, str(error)) from error
-            found.append({"arm": arm, "index": index} | branch)
+            found.append(branch | {"arm": arm, "index": index})
     return found
 
 
