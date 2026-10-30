@@ -9,13 +9,16 @@ Usage: python plug_agent2_measure.py <labels.jsonl> <stores.json> <traj-dir>... 
 import argparse
 import json
 from collections import Counter
+from dataclasses import replace
 from pathlib import Path
 
-from plug_agent2_keys import Key, failures_in, key_of, read_run
+from plug_agent2_branchpoint import find_branch_point, repeated_after
+from plug_agent2_keys import Key, RunReading, failures_in, key_of, read_run
 from plug_agent_notes import Failure
 
 from symbiont.miner.commands import normalise_command
 
+WINDOW = 15  # model calls after the first known mistake, as in the branches
 STOP_MIN_RUNS = (
     10  # smoke go/no-go (frozen in the prereg): at least this many runs with a first known mistake
 )
@@ -38,6 +41,14 @@ def task_of(path: Path) -> str:
     return path.name.removesuffix(".traj.json")
 
 
+def windowed(reading: RunReading, messages: list[dict], known: frozenset[Key]) -> RunReading:
+    """The reading with `repeated` limited to the prereg's W = 15 model calls after the first
+    known mistake (the one stop-rule definition)."""
+    point = find_branch_point(messages, known)
+    within = point is not None and repeated_after(messages, point, WINDOW)
+    return replace(reading, repeated=within)
+
+
 def read_trajectories(labels: dict, stores: dict, directories: list[Path]) -> tuple[list, Counter]:
     """(task, RunReading) per labeled run and the keyed failures' frequencies."""
     readings, frequency = [], Counter()
@@ -46,11 +57,11 @@ def read_trajectories(labels: dict, stores: dict, directories: list[Path]) -> tu
             task = task_of(path)
             if task not in labels:
                 continue
-            fails = failures_in(json.loads(path.read_text())["messages"])
-            keys = [key_of(fail) for fail in fails if fail is not None]
-            frequency.update(key for key in keys if key is not None)
+            messages = json.loads(path.read_text())["messages"]
+            fails = failures_in(messages)
+            frequency.update(key for key in map(key_of, filter(None, fails)) if key is not None)
             known = known_keys(labels[task], stores[task]["lessons"])
-            readings.append((task, read_run(fails, known)))
+            readings.append((task, windowed(read_run(fails, known), messages, known)))
     return readings, frequency
 
 

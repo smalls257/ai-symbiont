@@ -10,7 +10,7 @@ import copy
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from plug_agent2_keys import RETURNCODE, Key, executed_actions, failures_in, key_of
+from plug_agent2_keys import RETURNCODE, Key, executed_actions, key_of
 from plug_agent_notes import Failure, failure_of
 
 from symbiont.delivery.mini_swe_wrapper import tagged
@@ -56,7 +56,15 @@ def resume_messages(point: BranchPoint, note: str | None) -> list[dict]:
     return messages
 
 
-def repeated_after(messages: Sequence[dict], point: BranchPoint) -> bool:
-    """The branch point's key fails again in the steps after the shared history."""
-    later = failures_in(messages[len(point.messages) :])
-    return any(failure is not None and key_of(failure) == point.key for failure in later)
+def repeated_after(messages: Sequence[dict], point: BranchPoint, window: int | None = None) -> bool:
+    """The branch point's key fails again after the shared history, within `window` further model
+    calls when given (the prereg's W)."""
+    later = messages[len(point.messages) :]
+    for step in executed_actions(later):
+        if window is not None and step.model_calls > window:
+            break
+        code = RETURNCODE.search(step.output)
+        failure = failure_of(step.command, int(code.group(1)) if code else None, step.output)
+        if failure is not None and key_of(failure) == point.key:
+            return True
+    return False
