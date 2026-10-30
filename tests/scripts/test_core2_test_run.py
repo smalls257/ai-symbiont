@@ -126,7 +126,8 @@ def test_the_w_arm_is_plain_with_examples_and_other_names_must_exist(mods):
     import core2_test_executors as ex
 
     server = {"models": {"P": "p", "A": "a", "C": "c"}}
-    assert ex.arm_model(server, plan.Arm.W) == "p" and ex.arm_model(server, plan.Arm.A) == "a"
+    assert ex.arm_model(server, plan.Arm.W) == "openai/p"
+    assert ex.arm_model(server, plan.Arm.A) == "openai/a"
     with pytest.raises(KeyError):
         ex.arm_model({"models": {"P": "p"}}, plan.Arm.A)
     sys.modules.pop("core2_test_executors", None)

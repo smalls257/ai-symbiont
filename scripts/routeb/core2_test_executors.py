@@ -25,7 +25,8 @@ KEY_VARIABLE = "SYMBIONT_GLIMMER_KEY"  # Bearer key of a server that needs one; 
 
 def arm_model(server: dict, arm: Arm) -> str:
     """The router model name serving the arm on this server; W uses the plain model."""
-    return server["models"]["P" if arm is Arm.W else str(arm)]
+    name = server["models"]["P" if arm is Arm.W else str(arm)]
+    return name if name.startswith("openai/") else f"openai/{name}"  # litellm routes by prefix
 
 
 def arm_adapter_id(server: dict, arm: Arm) -> int | None:
