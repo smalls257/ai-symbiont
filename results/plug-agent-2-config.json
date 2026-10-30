@@ -5,7 +5,7 @@
  "gguf_sha256": "4cc57c0f51040a226e5a72cc47b7613f7772950e460a665f7083de89f183f60e",
  "llama_server": {
   "laptop": "0.8.0 build 11960 commit 8642541b2",
-  "desktop": "to be recorded at the first desktop branch"
+  "desktop": "0.8.0-dev build 11982 commit 8a199ad31"
  },
  "reasoning_effort": "low",
  "temperature": 0.6,
@@ -30,8 +30,10 @@
   "judge-s1": "a06ab6e0f5b74f8f60ff6d7605dc5be54b970b5a7811ddf95503501dc196bdc4",
   "judge-s2": "797d169cedf9fde56cac3791cf88245d02e8fb23cd072c0e0bbcce67415837c9"
  },
- "cutoff_time_pt": "to be set by the coordinator before the scored run",
- "points_n": "to be set after the smoke, before the scored run",
+ "cutoff_time_pt": "2026-11-01 06:00",
+ "points_n": 60,
  "label": "PLUG-AGENT-2 run settings, shared by every branch",
- "mistake_rule_sha256": "69c306ce2cb1b7f4283810bdba4866b92ec8aadb1d4c0ded74eca73ea2f6dbdc"
+ "mistake_rule_sha256": "69c306ce2cb1b7f4283810bdba4866b92ec8aadb1d4c0ded74eca73ea2f6dbdc",
+ "gguf_size_bytes": 16743567360,
+ "gguf_n_params": 27854794240
 }

@@ -91,14 +91,40 @@ def stubbed_point(monkeypatch: pytest.MonkeyPatch):
     return plug_agent2_point
 
 
-def test_a_changed_pinned_file_stops_the_driver_before_anything_runs(monkeypatch, tmp_path):
-    driver = stubbed_point(monkeypatch)
-    labels = tmp_path / "labels.json"
+def pinned_setup(driver, tmp_path):
+    labels, pool = tmp_path / "labels.json", tmp_path / "pool.json"
     labels.write_text("{}")
-    config = tmp_path / "config.json"
+    pool.write_text("{}")
     pins = {field: driver.sha256_of(path) for field, path in driver.PINS.items()}
-    config.write_text(json.dumps(pins | {"labels_sha256": driver.sha256_of(labels)}))
-    assert driver.checked_config(config, labels)["labels_sha256"]
-    labels.write_text('{"changed": 1}')
+    config = tmp_path / "config.json"
+    config.write_text(
+        json.dumps(
+            pins
+            | {
+                "labels_sha256": driver.sha256_of(labels),
+                "pool_summary_sha256": driver.sha256_of(pool),
+            }
+        )
+    )
+    return config, {"labels_sha256": labels, "pool_summary_sha256": pool}
+
+
+def test_the_whole_config_and_each_pinned_file_must_match(monkeypatch, tmp_path):
+    driver = stubbed_point(monkeypatch)
+    config, pinned = pinned_setup(driver, tmp_path)
+    expected = driver.sha256_of(config)
+    assert driver.checked_config(config, expected, pinned)["labels_sha256"]
     with pytest.raises(driver.ConfigPinError):
-        driver.checked_config(config, labels)
+        driver.checked_config(config, "0" * 64, pinned)  # the config file itself differs
+    pinned["pool_summary_sha256"].write_text('{"changed": 1}')
+    with pytest.raises(driver.ConfigPinError):
+        driver.checked_config(config, expected, pinned)  # a pinned file changed
+
+
+def test_the_served_model_must_be_the_pinned_gguf(monkeypatch):
+    driver = stubbed_point(monkeypatch)
+    config = {"model": "m", "gguf_size_bytes": 10, "gguf_n_params": 5}
+    good = {"data": [{"id": "m", "meta": {"size": 10, "n_params": 5}}]}
+    driver.checked_server(good, config)
+    with pytest.raises(driver.ConfigPinError):
+        driver.checked_server({"data": [{"id": "m", "meta": {"size": 11, "n_params": 5}}]}, config)

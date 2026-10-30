@@ -20,7 +20,7 @@ SETTINGS = {
     "run_label": "plug-agent-2-smoke",
     "step_limit": 75,
     "wall_limit_min": 45,
-    "temperature": 0,
+    "temperature": 0.6,  # the scored branches' temperature; the first smoke runs ran at 0
 }
 
 
@@ -68,7 +68,11 @@ def main() -> None:
     subprocess.run(["docker", "rmi", row["docker_image"]], capture_output=True, check=False)
     speeds = server_speeds(traj) if traj.is_file() else {}
     keep = ("instance_id", "resolved", "error_kind", "exit_status", "agent_steps", "wall_s")
-    print(json.dumps({k: record.get(k) for k in keep} | speeds))
+    print(
+        json.dumps(
+            {k: record.get(k) for k in keep} | speeds | {"temperature": SETTINGS["temperature"]}
+        )
+    )
 
 
 if __name__ == "__main__":
