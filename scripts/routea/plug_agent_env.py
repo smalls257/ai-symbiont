@@ -134,11 +134,18 @@ def _agent_run(
 def _model(row: dict, source: NoteSource, config: dict) -> tuple[Any, dict]:
     """The agent's model and loop settings: plain Glimmer (the default), or Spark through egress."""
     teacher = "spark" if config["agent"] == "spark" else None
-    setting = Setting("low", config["step_limit"], config["wall_limit_min"] * 60, teacher=teacher)
+    named = (
+        {"model": config["model"]} if config.get("model") else {}
+    )  # Core D2: a router name per arm
+    setting = Setting(
+        "low", config["step_limit"], config["wall_limit_min"] * 60, teacher=teacher,
+        temperature=config["temperature"], seed=config.get("seed"), **named,
+    )  # fmt: skip
     agent_cfg, model_cfg = agent_config(setting)
-    if teacher is None:  # plain Glimmer on the owner's own server; temperature from the config
-        kwargs = model_cfg["model_kwargs"] | {"temperature": config["temperature"]}
-        return agent_model(setting, model_cfg | {"model_kwargs": kwargs}, {}), agent_cfg
+    if (
+        teacher is None
+    ):  # Glimmer on the owner's own server: temperature and seed ride in the request
+        return agent_model(setting, model_cfg, {}), agent_cfg
     label = f"{config['run_label']}-{row['instance_id']}-{source.arm}"
     model = teacher_model(Teacher.SPARK, label, model_cfg, temperature=config["temperature"],
                           reply_tokens=config["max_tokens_per_reply"])  # fmt: skip

@@ -1,6 +1,6 @@
 # DRAFT pre-registration: Core D2, does Glimmer solve more later issues of a repository after training on solved earlier ones?
 
-**DRAFT, NOT FROZEN** (revision 2: the Opus proxy's 11 fix-first items). The freeze is a copy without "DRAFT" in its name, committed alone before any adapter result exists. After the freeze, only a dated amendment may change anything, and an amendment cannot change the tasks, arms, measures or decision rule. This supersedes `2026-10-29-core-solve-DRAFT.md`.
+**DRAFT, NOT FROZEN** (revision 4: the Opus proxy's 11 fix-first items, the temperature result, the hash-order test set, the re-check's text fixes and the built runner). The freeze is a copy without "DRAFT" in its name, committed alone before any adapter result exists. After the freeze, only a dated amendment may change anything, and an amendment cannot change the tasks, arms, measures or decision rule. This supersedes `2026-10-29-core-solve-DRAFT.md`.
 
 Claim tags: [measured] = observed in our own run; [established] = known by construction or from the literature; [hypothesis] = a guess this run can support or refute.
 
@@ -57,11 +57,11 @@ That is 234 candidates in all.
 
 **Screening is not used.** Plain Glimmer's own outcomes play no part in choosing tasks. A screening run was started and stopped on the owner's order after 10 graded runs; those runs never count and never select [established].
 
-The test tasks are the first 100 of the 234 later candidates in **fixed hash order**, after two rules. Both rules are disclosed with the count each removes (`results/core-d2-test-set.json`):
+The test tasks are the first 100 of the 234 later candidates in **fixed hash order**, after two rules. Both rules are disclosed with the count each removes (`results/core-d2-test-set.json`; the selection script is `scripts/routeb/core2_select_tests.py`):
 
 1. **Fix-area match, required.** A candidate's gold patch changes a source file some earlier task also changed (part of the 234 above). It removes the later tasks with no earlier counterpart, before the 234 are counted [established].
 2. **No task that no model solved in existing data.** A candidate is dropped if public data shows it was tried and never solved. The source is the nebius OpenHands trajectories' `resolved` flags, about 10 runs on most tasks. Of the 234 candidates, **161 have data and 99 of those 161 are dropped**; the 73 without data stay [measured]. That leaves **135**, and 100 are taken.
-   - The mini-SWE-agent source the owner named was **not available locally**. The one public mini-SWE-agent split with `resolved` flags (Open-SWE-Traces `minisweagent`) failed to download (an HTTP error from the host), and the SWE-bench experiments tree holds a single mini-SWE-agent run on Verified. Neither is used. Using more data could only drop more tasks [established].
+   - The mini-SWE-agent source the owner named was **not available locally**: a search of the run directories and the repository found only the Plug lesson pool (125 repositories, no sqlglot) and no table of resolved flags. The one public mini-SWE-agent split with `resolved` flags (Open-SWE-Traces `minisweagent`) failed to download (an HTTP error from the host), and the SWE-bench experiments tree holds a single mini-SWE-agent run on Verified. Neither is used. Using more data could only drop more tasks [established].
 
 **Hash order.** Candidates are sorted by sha256 of `core-d2:<instance_id>`; the first 100 kept are the test. 35 kept candidates are not taken. The script is `scripts/routeb/core2_select_tests.py`.
 
@@ -76,7 +76,7 @@ The test tasks are the first 100 of the 234 later candidates in **fixed hash ord
 | P: plain Glimmer | 2 | `Muse-Glimmer-30B-KQuant-17GB-Q4_K_M`, no adapter | reference |
 | A: Glimmer + Core adapter | 2 | LoRA (Route B's recipe, 16k) trained on teacher solutions of the six repositories' earlier tasks | under test |
 | C: Glimmer + control adapter | 2 | the same recipe, the same data kind (Spark teacher solutions) and the same trained-token count, from OTHER repositories (none of the six, none of Plug's) | control |
-| W: Glimmer + worked examples | 1, on 50 tasks (the first 50 of the test order) | plain Glimmer with the teacher solutions of the 2 most similar earlier tasks of the same repository in the prompt (word overlap of issue texts; commands and results, about 6k tokens) | descriptive only [established] |
+| W: Glimmer + worked examples | 1, on 50 tasks (the first 50 of the 100 in the fixed selection hash order, sha256 of `core-d2:<instance_id>`, not the run order) | plain Glimmer with the teacher solutions of the 2 most similar earlier tasks of the same repository in the prompt (word overlap of issue texts; commands and results, about 6k tokens) | descriptive only [established] |
 
 **Training data, stated plainly.**
 
@@ -96,19 +96,20 @@ The test tasks are the first 100 of the 234 later candidates in **fixed hash ord
 
 **Sampling (item 3).** Three screened tasks were rerun at temperature 0 on the same server (4 to 6 slots busy). Every model reply that could be compared was byte-identical to the screening run: 53 of 53, 59 of 59 and 43 of 43 replies in the first rerun, and 18, 21 and 5 replies in a second rerun that was cut short by an interruption [measured]. Temperature 0 repeats, so two identical runs would only be duplicates. Both runs of an arm therefore use **temperature 0.6 with a fixed seed per run**: seed = first 8 hex digits of sha256(`core2-d2:<instance_id>:<arm>:<run>`) [established, by construction].
 
+- **Django.** The Django driver honors temperature and seed: its `Setting` puts both into every request (commit afbdee9, with a test). The test runner calls the driver's `run_once` with temperature 0.6 and the per-run seed, so Django runs the same sampling as the other repositories, and Django is pooled with them. The Django adapters are served under the driver's "personal" endpoint name [established].
 - **Wall-cap caveat.** Runs that hit the 45-minute wall cap stopped at different steps (53 against 71 for one task) because Glimmer's speed changed with load, even though every compared reply was identical [measured]. Wall-cap hits are counted per arm.
 
 **Order, cutoff and early stop**
 
 - **Order.** All runs of a task go back to back. Tasks run in the order of sha256 of `core-d2-order:<instance_id>`.
-- **Cutoff.** At **2026-11-01 18:00 PT** no new task starts. The analysis uses every task whose runs all finished; incomplete tasks are excluded and counted.
+- **Cutoff.** At **2026-11-01 18:00 PT** no new task starts. The analysis uses every task whose runs all finished; incomplete tasks are excluded and counted. W's runs sit inside each task's back-to-back block, so a started W task finishes its W run; W is analyzed on the W tasks that finished before the cutoff, which may be fewer than 50, and no arm is cut for time.
 - **Early stop.** When half the planned tasks are complete, arm A stops only if the 95% CI of (A minus P) lies wholly below 0. [established]
 
 **Outcomes and voids (item 9)**
 
 - A run that hits the step or wall cap counts as a fail.
 - Only an infra or model_api error, or a container lost to the machine, makes a run void.
-- A void run is rerun before the next task starts.
+- A void run is rerun before the next task starts, at most twice. A run still void after two reruns drops its task from the analysis, and the report lists the task and the reason. A failed container scrub is an infra error and so is void (`scripts/routeb/core2_test_run.py`).
 - Void counts are reported per arm.
 
 ## Primary analysis (co-primary, both needed for the claim)
@@ -133,7 +134,7 @@ The test tasks are the first 100 of the 234 later candidates in **fixed hash ord
 
 Computed at the expected plain pass rate, before any adapter result.
 
-- **Formula.** Per-task difference of two arms' 2-run means has variance at most p(1-p) when task difficulty is ignored, which is the safe side. MDE = 2.8 x sqrt(p(1-p) / n) at 5% two-sided and 80% power [established].
+- **Formula, a worst-case bound.** No per-task paired SD exists yet, because no adapter has run. The bound takes the per-task variance of the difference of two arms' 2-run means as p(1-p), which ignores that tasks differ in difficulty and so overstates the spread. MDE = 2.8 x sqrt(p(1-p) / n) at 5% two-sided and 80% power [established]. The real SD from the first 30 complete tasks is reported beside it, and the bound is not revised.
 - **Expected plain rate and its source** [measured, estimates only]:
   - sqlglot: 0.38 for plain Glimmer on the former 20-task test set.
   - Django: 39 of 66 graded plain later-task runs (0.59), from the collection runs.

@@ -60,3 +60,23 @@ def test_a_resolved_run_without_its_trajectory_raises(tmp_path):
     (run_dir / "swev.jsonl").write_text(json.dumps(swev) + "\n")
     with pytest.raises(FileNotFoundError, match="without a trajectory"):
         module.passing_runs(run_dir)
+
+
+def test_every_later_candidate_is_refused_not_only_the_test_tasks(tmp_path):
+    module = load()
+    run_dir = tmp_path / "teacher"
+    (run_dir / "traj").mkdir(parents=True)
+    rows = [
+        {"instance_id": "earlier-1", "resolved": True, "agent_steps": 9, "repo": "a/b"},
+        {"instance_id": "later-not-test", "resolved": True, "agent_steps": 7, "repo": "a/b"},
+        {"instance_id": "test-1", "resolved": True, "agent_steps": 5, "repo": "a/b"},
+    ]
+    (run_dir / "runs.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    config = {"info": {"config": {"model": {"model_name": "muse-spark-1.3-contributor"}}}}
+    for row in rows:
+        (run_dir / "traj" / f"{row['instance_id']}.traj.json").write_text(json.dumps(config))
+    split = {"a__b": {"keep_ids": ["later-not-test", "test-1"]}}
+    later = module.later_candidate_ids(split)
+    found, refused = module.manifest({"test": [{"task": "test-1"}]}, [run_dir], later)
+    assert [e["task"] for e in found] == ["earlier-1"] and refused == 2
+    assert found[0]["steps"] == 9 and found[0]["run"] == 1
