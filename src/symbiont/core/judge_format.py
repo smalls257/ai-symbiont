@@ -58,3 +58,9 @@ def judgeable(lesson: Lesson, project: str) -> JudgeableLesson | None:
     if len(lines) < 2 or not lines[0].startswith("$ ") or fix is None:
         return None
     return JudgeableLesson(project.replace("__", "/", 1), lines[0][2:], lines[-1], fix)
+
+
+def fix_commands(lesson: Lesson) -> tuple[str, ...]:
+    """Every command the lesson's resolution ran (twins pool several), in order."""
+    found = (_RAN_COMMAND.search(step) for step in lesson.resolution)
+    return tuple(match.group(1) for match in found if match)

@@ -62,6 +62,14 @@ class EventLog:
         """Record a decision to speak that the delivery rule held back, and why."""
         self._write(call, {**event_fields(decision), "records": [], "notes": [], "held": why})
 
+    def append_note_shown(self, call: Call, note_id: str, rule: str) -> None:
+        """Record a Plug note that was shown: which lesson and which rule let it through."""
+        self._write(call, {"note_shown": {"note_id": note_id, "rule": rule}})
+
+    def append_note_outcome(self, call: Call, note_id: str, rule: str, actions: list[str]) -> None:
+        """Record what the agent's next actions were after the note (followed/ignored/burned)."""
+        self._write(call, {"note_outcome": {"note_id": note_id, "rule": rule, "actions": actions}})
+
     def append_failure(self, call: Call, status: int, reason: str) -> None:
         """Record a call that was refused, so a failure is never silent."""
         self._write(call, {"status": status, "reason": reason})

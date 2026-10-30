@@ -11,6 +11,7 @@ from typing import Any
 
 from symbiont.core.agree import AGREE, NIGHTLY, Verdict, agree
 from symbiont.core.features import featurise
+from symbiont.core.judge_format import fix_commands
 from symbiont.core.memory_note import note_request, recall_request
 from symbiont.core.note_rules import may_speak
 from symbiont.core.notes import NoteKind, render, render_lesson
@@ -26,6 +27,7 @@ from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdEr
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.service.events import Call, EventLog, MemoryCost
+from symbiont.service.follow_up import FollowUp, ShownNote
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
 from symbiont.service.memory_model import (
     MemoryModel,
@@ -107,6 +109,7 @@ class Service:
         self._prefixes: dict[tuple[str, str], list[Record]] = {}
         self._spoken: dict[tuple[str, str], list[int]] = {}
         self._one_call_at_a_time = threading.Lock()
+        self._follow_up = FollowUp(parts.events)
 
     def respond(self, route: str, payload: Any) -> Response:
         """Answer one request; a refusal is a status plus a reason, and an event."""
@@ -149,6 +152,7 @@ class Service:
         key = (request["harness"], request["session_id"])
         prefix = self._prefixes.setdefault(key, [])
         prefix.append(record)
+        self._follow_up.observed(call, project, record)
         # No raw history is stored, so there are no earlier records to recall from here.
         history = tuple(lesson.pain_point for lesson in lessons)
         situation = Situation(project, tuple(prefix), history, ())
@@ -224,10 +228,15 @@ class Service:
         merged = merge_twins(lessons)
         nightly = self._parts.nightly.judge_for(project, merged) if self._parts.nightly else None
         judge, bars = (nightly, NIGHTLY) if nightly else (self._parts.judge, AGREE)
+        rule = "nightly" if nightly else "agree"
         if judge is None:
             raise JudgeOfflineError("no first-night judge is configured (--judge-url)")
         outcome = agree(question, project, merged, judge.p_yes, bars)
         if outcome.verdict is Verdict.AGREED and outcome.lesson and outcome.note:
+            refs = outcome.lesson.pain_point.record_refs
+            note_id = ":".join(map(str, refs[0])) if refs else outcome.lesson.pain_point.session_id
+            fixes = fix_commands(outcome.lesson)
+            self._follow_up.shown(call, project, ShownNote(note_id, rule, fixes))
             return self._answered(call, outcome.note, [outcome.lesson])
         return self._answered(call, NOTHING_MATCHES, [])
 

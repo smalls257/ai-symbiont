@@ -5,10 +5,11 @@ or best-guess note. The judge servers are fakes; no socket opens.
 """
 
 import json
-from dataclasses import replace
+from dataclasses import asdict, replace
 
 import pytest
 
+from record_builders import run
 from symbiont.core.counters import Counters
 from symbiont.egress import EgressRefusedError
 from symbiont.miner.lessons import Lesson
@@ -119,3 +120,30 @@ def test_before_the_first_night_the_agree_rule_decides(tmp_path):
 def test_a_stale_nightly_adapter_is_a_503_not_a_fallback(tmp_path):
     response = recall(nightly_service(tmp_path, digest="old"))
     assert response.status == 503 and "stale" in response.body["error"]
+
+
+def observe_action(service, command, exit_code, step):
+    record = replace(run(command, exit_code), project=PROJECT, session_id="live", step=step)
+    body = {
+        "harness": "claude_code",
+        "session_id": "live",
+        "event": "PostToolUse",
+        "payload": {"record": json.loads(json.dumps(asdict(record)))},
+    }
+    assert service.respond("/observe", body).status == 200
+
+
+def test_a_shown_note_is_logged_with_its_rule_and_the_next_three_actions(tmp_path):
+    service = service_with(tmp_path, judge_saying(0.99))
+    assert recall(service).body["answer"].startswith("What happened: ")
+    for step, (command, code) in enumerate([("ls", 0), ("a", 0), ("make", 2)]):
+        observe_action(service, command, code, step)
+    events = [json.loads(x) for x in (tmp_path / "run" / "events.jsonl").read_text().splitlines()]
+    shown = next(e["note_shown"] for e in events if "note_shown" in e)
+    done = next(e["note_outcome"] for e in events if "note_outcome" in e)
+    assert shown == {"note_id": "s7:1", "rule": "agree"}
+    assert done == {
+        "note_id": "s7:1",
+        "rule": "agree",
+        "actions": ["ignored", "followed", "burned"],
+    }
