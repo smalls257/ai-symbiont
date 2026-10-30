@@ -145,3 +145,29 @@ def test_a_two_adapter_server_picks_the_lora_by_arm(mods):
         1,
     ]
     sys.modules.pop("core2_test_executors", None)
+
+
+def test_every_request_to_a_two_adapter_server_carries_explicit_scales(mods):
+    plan, _ = mods
+    sys.path.insert(0, str(ROUTEB))
+    import core2_test_executors as ex
+
+    server = {"models": {}, "adapter_ids": {"A": 0, "C": 1}}
+    assert ex.lora_scales(server, plan.Arm.P) == [[0, 0.0], [1, 0.0]]
+    assert ex.lora_scales(server, plan.Arm.A) == [[0, 1.0], [1, 0.0]]
+    assert ex.lora_scales(server, plan.Arm.C) == [[0, 0.0], [1, 1.0]]
+    assert ex.lora_scales({"models": {}}, plan.Arm.A) is None  # the router picks by model name
+    sys.modules.pop("core2_test_executors", None)
+
+
+def test_a_failed_probe_voids_the_block_and_stops_the_server(mods, tmp_path):
+    _, run = mods
+    ok = lambda spec: {"resolved": True}  # noqa: E731
+    phase = make_phase(run, tmp_path, ok, guard=lambda: "A")
+    result = run.run_phase(["t"], phase)
+    assert result["stopped_arm"] == "A" and result["finished"] == 0
+    assert (tmp_path / "stopped-strix.json").is_file()
+    assert rows(tmp_path / "voided_blocks.jsonl")[0]["reason"] == "probe failed for arm A"
+    assert run.graded_runs(tmp_path) == []
+    other = make_phase(run, tmp_path, ok, server="desk")
+    assert run.run_phase(["t"], other)["finished"] == 1  # the task goes to a server that passes

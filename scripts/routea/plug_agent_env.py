@@ -140,7 +140,9 @@ def _model(row: dict, source: NoteSource, config: dict) -> tuple[Any, dict]:
     setting = Setting(
         "low", config["step_limit"], config["wall_limit_min"] * 60, teacher=teacher,
         temperature=config["temperature"], seed=config.get("seed"),
-        adapter_id=config.get("adapter_id"), **named,
+        adapter_id=config.get("adapter_id"),
+        lora_scales=tuple(map(tuple, config["lora_scales"])) if config.get("lora_scales") else None,
+        **named,
     )  # fmt: skip
     agent_cfg, model_cfg = agent_config(setting)
     if (

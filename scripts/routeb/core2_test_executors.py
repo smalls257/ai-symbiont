@@ -7,6 +7,7 @@ the server's config raises: an arm never runs as plain under another arm's name.
 Arm W is plain Glimmer with worked examples prepended to the issue (core2_worked_examples).
 """
 
+import hashlib
 import json
 import os
 import urllib.error
@@ -34,6 +35,18 @@ def arm_adapter_id(server: dict, arm: Arm) -> int | None:
     return server.get("adapter_ids", {}).get(str(arm))
 
 
+def lora_scales(server: dict, arm: Arm) -> list[list[float]] | None:
+    """Explicit (id, scale) for EVERY adapter the server loads: the arm's on, the rest off.
+
+    None when the server has no adapter ids (the Strix router picks the adapter by model name).
+    """
+    ids = server.get("adapter_ids")
+    if not ids:
+        return None
+    on = ids.get(str(arm))
+    return [[i, 1.0 if i == on else 0.0] for i in sorted(ids.values())]
+
+
 def load_key(server: dict) -> None:
     """Put the server's Bearer key (from its key file) into the environment for the harness."""
     if server.get("key_file"):
@@ -53,6 +66,38 @@ def server_probe(server: dict) -> bool:
             return reply.status == 200
     except (urllib.error.URLError, OSError):
         return False
+
+
+PROBE_PROMPT = "Fix the failing test in the parser module. The command `pytest tests/test_parser.py` printed a TypeError. First run:\n$ "  # noqa: E501
+PROBE_TOKENS = 150  # long enough that plain, A and C all differ (checked on the 5080 server)
+
+
+def fingerprint(server: dict, arm: Arm) -> str:
+    """sha256 of the arm's greedy completion of the probe prompt, with its explicit LoRA scales."""
+    root = server["url"].rstrip("/").removesuffix("/v1")
+    body = {"prompt": PROBE_PROMPT, "temperature": 0, "seed": 1, "n_predict": PROBE_TOKENS,
+            "cache_prompt": False}  # fmt: skip
+    scales = lora_scales(server, arm)
+    if scales is not None:
+        body["lora"] = [{"id": i, "scale": scale} for i, scale in scales]
+    request = urllib.request.Request(f"{root}/completion", json.dumps(body).encode(),
+                                     {"Content-Type": "application/json"})  # fmt: skip
+    with urllib.request.urlopen(request, timeout=600) as reply:  # noqa: S310  the configured server
+        return hashlib.sha256(json.loads(reply.read())["content"].encode()).hexdigest()
+
+
+def failed_probe(server: dict, arms: frozenset[Arm]) -> str | None:
+    """The first arm whose probe answer differs from its recorded fingerprint, else None.
+
+    A server with no recorded fingerprints is not guarded (the Strix router picks by name).
+    """
+    recorded = server.get("fingerprints")
+    if not recorded:
+        return None
+    for arm in sorted(arms, key=str):
+        if arm is not Arm.W and fingerprint(server, arm) != recorded[str(arm)]:
+            return str(arm)
+    return None
 
 
 def with_examples(row: dict, server: dict) -> dict:
@@ -80,7 +125,7 @@ def rebench_executor(row: dict, server: dict, out: Path, spec: RunSpec) -> dict:
     settings = {
         "agent": "glimmer", "step_limit": STEP_LIMIT, "wall_limit_min": WALL_LIMIT_MIN,
         "temperature": TEMPERATURE, "seed": spec.seed, "model": arm_model(server, spec.arm),
-        "adapter_id": arm_adapter_id(server, spec.arm), "max_tokens_per_reply": 4096,
+        "lora_scales": lora_scales(server, spec.arm), "max_tokens_per_reply": 4096,
         "run_label": "core2-d2",
     }  # fmt: skip
     traj = out / "traj" / row["instance_id"] / f"{spec.arm}-run{spec.run}.traj.json"
@@ -101,7 +146,9 @@ def django_executor(row: dict, server: dict, out: Path, spec: RunSpec) -> dict:
         temperature=TEMPERATURE,
         seed=spec.seed,
         model=model,
-        adapter_id=arm_adapter_id(server, spec.arm),
+        lora_scales=tuple(map(tuple, scales))
+        if (scales := lora_scales(server, spec.arm))
+        else None,
     )
     kind = DjangoArm.PLAIN if spec.arm in (Arm.P, Arm.W) else DjangoArm.PERSONAL
     os.environ["SYMBIONT_PERSONAL_GLIMMER_MODEL"] = model

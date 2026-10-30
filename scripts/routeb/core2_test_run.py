@@ -81,6 +81,7 @@ class Phase:
     server: str
     worker: int = 1
     healthy: Callable[[], bool] = lambda: True
+    guard: Callable[[], str | None] = lambda: None  # the arm whose probe failed, else None
     wait: Callable[[float], None] = time.sleep
     limit: int | None = None
 
@@ -159,6 +160,13 @@ def run_phase(test_ids: list[str], phase: Phase) -> dict:
         if claimed is None:
             break
         task, block = claimed
+        bad_arm = phase.guard()
+        if bad_arm is not None:  # an adapter state we did not choose: no run on this server
+            void_block(phase, task, block, f"probe failed for arm {bad_arm}")
+            book.release(task, block, phase.who)
+            (phase.out / f"stopped-{phase.server}.json").write_text(json.dumps({"arm": bad_arm}))
+            counts["stopped_arm"] = bad_arm
+            break
         started += 1
         block_phase = replace(phase, arms=effective_arms(phase, test_ids))
         outcome = run_task_block(block_phase, task, block, in_w=task in w_tasks)
@@ -191,7 +199,11 @@ def server_settings(config: dict, name: str) -> dict:
 
 
 def main() -> None:
-    from core2_test_executors import build_executor, server_probe  # noqa: PLC0415  heavy imports
+    from core2_test_executors import (  # noqa: PLC0415  heavy imports
+        build_executor,
+        failed_probe,
+        server_probe,
+    )
 
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     for flag in ("--test-set", "--rows", "--config", "--out"):
@@ -212,7 +224,8 @@ def main() -> None:
     os.environ["SYMBIONT_GLIMMER_URL"] = server["url"]
     executor = build_executor(server, args.rows, args.out)
     phase = Phase(executor, args.out, arms, datetime.now().astimezone, args.server, args.worker,
-                  lambda: server_probe(server), limit=args.limit)  # fmt: skip
+                  lambda: server_probe(server), guard=lambda: failed_probe(server, arms),
+                  limit=args.limit)  # fmt: skip
     print(json.dumps(run_phase(test_ids, phase)))
 
 

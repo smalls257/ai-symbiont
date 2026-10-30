@@ -50,6 +50,7 @@ class Setting:
     step_limit: int
     wall_limit_s: int
     adapter_id: int | None = None  # llama-server LoRA id applied at scale 1; None = plain Glimmer
+    lora_scales: tuple[tuple[int, float], ...] | None = None  # EVERY adapter's scale, each request
     model: str = MODEL  # a router name of its own serves a personal Glimmer (the loop's rounds)
     teacher: str | None = None  # "spark" or "wonder": a remote teacher model through egress
     temperature: float | None = None  # None: the server's default (every run before Core D2)
@@ -131,11 +132,22 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
             "max_tokens": MAX_TOKENS,
             "drop_params": True,
             "parallel_tool_calls": True,
-            **adapter_body(setting.adapter_id),
+            **lora_body(setting),
             **sampling(setting),
         },
     }
     return agent, model
+
+
+def lora_body(setting: Setting) -> dict:
+    """The request's LoRA field: explicit scales for every adapter when set, else adapter_body.
+
+    Explicit scales on every request mean a server restart cannot switch an adapter on for a
+    plain run: the server's own default is never relied on.
+    """
+    if setting.lora_scales is None:
+        return adapter_body(setting.adapter_id)
+    return {"extra_body": {"lora": [{"id": i, "scale": scale} for i, scale in setting.lora_scales]}}
 
 
 def adapter_body(adapter_id: int | None) -> dict:

@@ -1,0 +1,8 @@
+# Core D2 run notes (disclosures, not amendments)
+
+Dated 2026-10-30. These notes change no task, arm, measure or decision rule of `2026-10-29-core-d2.md`.
+
+- **Voided starts.** The first three starts of the test (before 13:03 PDT) recorded runs that never reached a model verdict (model-name prefix, a missing module on the runner's Python, and a stale code copy). Their records were moved aside and never scored [measured].
+- **Containers removed.** At the first restart the runner's operator removed every docker container on the 5080, including containers that were not the test's. The downstream laptop runs that used 5080 containers at that moment were voided and rerun [measured].
+- **Adapter state on the 5080 server.** The first 5080 records relied on a one-time server-wide zeroing of both adapters. They were voided. From then on every request to that server carries explicit LoRA scales for both adapters (plain 0 and 0, A 1 and 0, C 0 and 1), and a probe before each task block must reproduce the arm's recorded fingerprint, else the block is voided and the server stops [established].
+- **Arm W runs in a separate pass.** W (descriptive only) does not run inside each task's back-to-back block with P, A and C. It runs in its own pass on the 50 W tasks after the main pass, so "all arms of a task back to back" holds for P, A and C only. W minus P compares runs made at different times and on possibly different servers, so it is reported as descriptive with that caveat [established].
