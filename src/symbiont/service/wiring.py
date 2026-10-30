@@ -10,6 +10,7 @@ from symbiont.core.warner import LogisticWarner, WarnerWeightsError, weights_fro
 from symbiont.service.app import Service, ServiceMode, ServiceParts
 from symbiont.service.events import EventLog
 from symbiont.service.memory_model import AdapterProvenance, MemoryModel
+from symbiont.service.nightly import RecallJudges
 from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
 
@@ -30,6 +31,7 @@ def open_service(
     mode: ServiceMode,
     decider: Decider | None = None,
     memory: MemoryModel | None = None,
+    judges: RecallJudges | None = None,
 ) -> Service:
     """A service over `data_dir/store.db`, logging to `data_dir/runs/<utc stamp>/events.jsonl`.
 
@@ -44,6 +46,8 @@ def open_service(
         EventLog(run_dir, filler.name),
         mode,
         memory=memory,
+        judge=(judges or RecallJudges()).first_night,
+        nightly=(judges or RecallJudges()).nightly,
         consent=read_consent(data_dir),
     )
     return Service(parts)

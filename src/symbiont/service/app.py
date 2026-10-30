@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
+from symbiont.core.agree import AGREE, NIGHTLY, Verdict, agree
 from symbiont.core.features import featurise
 from symbiont.core.memory_note import note_request, recall_request
 from symbiont.core.note_rules import may_speak
@@ -18,18 +19,21 @@ from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.secrets import scrub
+from symbiont.miner.twins import merge_twins
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.service.events import Call, EventLog, MemoryCost
+from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
 from symbiont.service.memory_model import (
     MemoryModel,
     MemoryModelOfflineError,
     MemoryReply,
     may_answer_spark,
 )
+from symbiont.service.nightly import NightlyJudges
 from symbiont.store.local import Source, SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
 
@@ -77,6 +81,10 @@ class ServiceParts:
     readers: Mapping[str, Reader] = field(default_factory=lambda: dict(READERS))
     # Route A: when set, notes and answers for the projects it learned come from this model.
     memory: MemoryModel | None = None
+    # Plug round 4: when set, /recall shows a stored note only if ranker and judge agree.
+    judge: JudgeModel | None = None
+    # The continuous loop: after a repository's first night its own adapter judges (bar 0.98).
+    nightly: NightlyJudges | None = None
     # The user's own-history setting (store.consent); what a Spark-bound call may rest on.
     consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD
 
@@ -195,6 +203,8 @@ class Service:
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
         lessons = self._lessons(request, project)
+        if lessons and (self._parts.judge or self._parts.nightly):
+            return self._agreed_recall(call, project, question, lessons)
         memory = self._memory_for(request, project)
         if memory is not None:
             reply = memory.write_line(recall_request(project, question))
@@ -206,6 +216,20 @@ class Service:
         found = relevant_lessons(question, lessons)
         notes = list(dict.fromkeys(render_lesson(lesson) for lesson in found))
         return self._answered(call, " ".join(notes) or NOTHING_MATCHES, found)
+
+    def _agreed_recall(
+        self, call: Call, project: str, question: str, lessons: list[Lesson]
+    ) -> Response:
+        """The agree rule's stored note, or NOTHING_MATCHES; a down judge raises (503)."""
+        merged = merge_twins(lessons)
+        nightly = self._parts.nightly.judge_for(project, merged) if self._parts.nightly else None
+        judge, bars = (nightly, NIGHTLY) if nightly else (self._parts.judge, AGREE)
+        if judge is None:
+            raise JudgeOfflineError("no first-night judge is configured (--judge-url)")
+        outcome = agree(question, merged, judge.p_yes, bars)
+        if outcome.verdict is Verdict.AGREED and outcome.lesson and outcome.note:
+            return self._answered(call, outcome.note, [outcome.lesson])
+        return self._answered(call, NOTHING_MATCHES, [])
 
     def _answered(self, call: Call, answer: str, found: Sequence[Lesson]) -> Response:
         """Log the answer with the records it cites and return it."""

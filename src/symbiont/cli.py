@@ -27,6 +27,8 @@ from symbiont.delivery.recall import (
 from symbiont.readers import READERS
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.service.app import ServiceMode
+from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
+from symbiont.service.nightly import NightlyJudges, RecallJudges
 from symbiont.service.server import SERVICE_PORT, serve
 from symbiont.service.wiring import (
     MemorySetupError,
@@ -80,6 +82,7 @@ def _parser() -> argparse.ArgumentParser:
     serving.add_argument(
         "--memory-dir", type=Path, help="what train_memory.py wrote: adapter/ and manifests/"
     )
+    _add_judge_options(serving)
     asking = commands.add_parser("recall", help="ask the local service one question")
     asking.add_argument("question")
     asking.add_argument(
@@ -158,6 +161,18 @@ def _add_hook_commands(commands: Any) -> None:
     commands.choices["install"].add_argument("--yes", action="store_true", help="skip the prompt")
 
 
+def _add_judge_options(serving: argparse.ArgumentParser) -> None:
+    """The agree rule's first-night judge servers and the nightly records."""
+    serving.add_argument(
+        "--judge-url",
+        action="append",
+        help="loopback server of one round-3 judge adapter; three times (agree rule)",
+    )
+    serving.add_argument(
+        "--nightly-dir", type=Path, help="per-repository nightly records (nightly_record.py)"
+    )
+
+
 def _serve(args: argparse.Namespace) -> int:
     """Start the local service with the optional warner and memory model; bad setup exits 1."""
     if (args.memory_url is None) != (args.memory_dir is None):
@@ -168,8 +183,18 @@ def _serve(args: argparse.Namespace) -> int:
         memory = None
         if args.memory_url:
             memory = open_memory(args.memory_url, args.memory_dir)
-        service = open_service(args.data_dir, args.mode, warner, memory)
-    except (OSError, WarnerWeightsError, MemorySetupError, ConsentFileError) as unusable:
+        judge = JudgeModel(tuple(args.judge_url)) if args.judge_url else None
+        nightly = NightlyJudges(args.nightly_dir) if args.nightly_dir else None
+        service = open_service(
+            args.data_dir, args.mode, warner, memory, RecallJudges(judge, nightly)
+        )
+    except (
+        OSError,
+        WarnerWeightsError,
+        MemorySetupError,
+        ConsentFileError,
+        JudgeOfflineError,
+    ) as unusable:
         print(f"symbiont serve: {unusable}", file=sys.stderr)
         return 1
     serve(service, args.port)
