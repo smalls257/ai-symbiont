@@ -3,7 +3,7 @@
 Notes at the branch point: nothing, and the forced lesson (the applies-labeled lesson with the
 failing key). After it every arm is silent. The label file, label prompt and mistake rule must hash
 to the config's pins; a branch lost twice or a changed restored state voids the point.
-Usage: python plug_agent2_point.py ROWS TASK OUT CONFIG CONFIG_SHA256 LABELS STORES POOL [RECORDED]
+Usage: plug_agent2_point.py ROWS TASK OUT CONFIG SHA256 LABELS STORES POOL [RUN ORDINAL SOURCE]
 """
 
 import hashlib
@@ -19,6 +19,7 @@ from plug_agent2_branch import (
     Continuation,
     FidelityError,
     ReplayMismatchError,
+    TaskEnvError,
     image_tag,
     run_continuation,
     run_prefix,
@@ -169,15 +170,26 @@ def prefix_point(
         messages, record = run_prefix(row, known, config, traj_dir / "prefix.traj.json")
         source = record | {"source": "own"}
     else:
-        messages = json.loads(Path(recorded).read_text())["messages"]
-        source = {"source": "core-replay", "trajectory": Path(recorded).name}
-    return (restore_branch_point(row, messages, known) if messages else None), source
+        messages = json.loads(Path(recorded[0]).read_text())["messages"]
+        source = {
+            "source": "core-replay",
+            "trajectory": Path(recorded[0]).name,
+            "ordinal": recorded[1],
+        }
+    ordinal = recorded[1] if recorded else 0
+    return (restore_branch_point(row, messages, known, ordinal) if messages else None), source
 
 
-def main() -> None:
-    rows_path, task, out, config_path, expected, labels_path, stores_path, pool_path = sys.argv[1:9]
-    recorded = sys.argv[9] if len(sys.argv) > 9 else None
-    prefix = "core_" if recorded else ""
+VOID_ERRORS = (FidelityError, ReplayMismatchError, TaskEnvError, subprocess.CalledProcessError)
+
+
+def checked_inputs(argv: list[str]) -> tuple[TaskInputs, dict, tuple[str, int] | None, str]:
+    """(task inputs, checked config, recorded run and ordinal or None, task id) from the command
+    line; raises before anything runs if a pin, the server or an input is wrong."""
+    rows_path, task, _, config_path, expected, labels_path, stores_path, pool_path = argv[:8]
+    recorded = (argv[8], int(argv[9]) if len(argv) > 9 else 0) if len(argv) > 8 else None
+    source_name = argv[10] if len(argv) > 10 else ("core" if recorded else "own")
+    prefix = "core_" if source_name == "core" else ""
     pinned = {
         f"{prefix}labels_sha256": Path(labels_path),
         f"{prefix}pool_summary_sha256": Path(pool_path),
@@ -185,18 +197,19 @@ def main() -> None:
     config = checked_config(Path(config_path), expected, pinned)
     checked_server(served_models(), config)
     row = {r["instance_id"]: r for r in json.loads(Path(rows_path).read_text())}[task]
-    inputs = TaskInputs(
-        row,
-        json.loads(Path(labels_path).read_text())["labels"][task],
-        json.loads(Path(stores_path).read_text())[task]["lessons"],
-    )
-    traj_dir = Path(out) / "traj" / task
+    labels = json.loads(Path(labels_path).read_text())["labels"][task]
+    lessons = json.loads(Path(stores_path).read_text())[task]["lessons"]
+    return TaskInputs(row, labels, lessons), config, recorded, task
+
+
+def main() -> None:
+    inputs, config, recorded, task = checked_inputs(sys.argv[1:])
+    traj_dir = Path(sys.argv[3]) / "traj" / task
     traj_dir.mkdir(parents=True, exist_ok=True)
     record: dict = {"instance_id": task, "branches": []}
     try:
-        point, record["prefix"] = prefix_point(
-            row, known_keys(inputs.labels, inputs.lessons), config, traj_dir, recorded
-        )
+        known = known_keys(inputs.labels, inputs.lessons)
+        point, record["prefix"] = prefix_point(inputs.row, known, config, traj_dir, recorded)
         if point is not None:
             record["point"] = {"generic_environment": is_generic_environment(point.key[0])}
             record["branches"] = run_branches(inputs, point, config, traj_dir)
@@ -204,10 +217,10 @@ def main() -> None:
         record["void"] = {"arm": error.arm, "index": error.index, "reason": str(error)}
     except LookupError as error:  # no applies lesson carries the key: listed, never a crash
         record["void"] = {"arm": None, "index": None, "reason": f"LookupError: {error}"}
-    except (FidelityError, ReplayMismatchError) as error:
+    except VOID_ERRORS as error:
         record["void"] = {"arm": None, "index": None, "reason": f"{type(error).__name__}: {error}"}
     finally:
-        for image in (image_tag(task), row["docker_image"]):
+        for image in (image_tag(task), inputs.row["docker_image"]):
             subprocess.run(["docker", "rmi", image], capture_output=True, check=False)
     print(json.dumps(record))
 

@@ -16,11 +16,11 @@ from taskenv import TaskEnvError, history_scrub_script, install_script
 
 
 def restore_branch_point(
-    row: dict, messages: list[dict], known: frozenset[Key]
+    row: dict, messages: list[dict], known: frozenset[Key], ordinal: int = 0
 ) -> BranchPoint | None:
     """The branch point of a recorded run with its pre-command container rebuilt and committed;
     None when the run never makes a known mistake. Raises ReplayMismatchError (point void)."""
-    point = find_branch_point(messages, known)
+    point = find_branch_point(messages, known, ordinal)
     if point is None:
         return None
     env = _environment(row["docker_image"])

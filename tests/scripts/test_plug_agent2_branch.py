@@ -96,6 +96,7 @@ def stubbed_point(monkeypatch: pytest.MonkeyPatch):
         "Continuation",
         "FidelityError",
         "ReplayMismatchError",
+        "TaskEnvError",
         "image_tag",
         "run_continuation",
         "run_prefix",

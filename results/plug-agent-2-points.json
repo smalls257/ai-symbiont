@@ -1,0 +1,137 @@
+{
+ "order": "sha256 of plug-agent-2:<id>",
+ "points": [
+  {
+   "id": "twisted__towncrier-588|twisted__towncrier-588.traj.json|0",
+   "task": "twisted__towncrier-588",
+   "run": "twisted__towncrier-588.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "263d487121f5"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'towncrier'",
+   "generic_environment": true,
+   "source": "own"
+  },
+  {
+   "id": "tobymao__sqlglot-4293|tobymao__sqlglot-4293.traj.json|0",
+   "task": "tobymao__sqlglot-4293",
+   "run": "core2/det/det-a/traj/tobymao__sqlglot-4293.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-4293|tobymao__sqlglot-4293.traj.json|0",
+   "task": "tobymao__sqlglot-4293",
+   "run": "core2/det/det-b/traj/tobymao__sqlglot-4293.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-4293|tobymao__sqlglot-4293.traj.json|0",
+   "task": "tobymao__sqlglot-4293",
+   "run": "core2/screen-strix/traj/tobymao__sqlglot-4293.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-4390|cal2-run1-low.traj.json|0",
+   "task": "tobymao__sqlglot-4390",
+   "run": "runs-core-collect/sqlglot/traj/tobymao__sqlglot-4390/cal2-run1-low.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-3637|tobymao__sqlglot-3637.traj.json|0",
+   "task": "tobymao__sqlglot-3637",
+   "run": "core2/screen-strix/traj/tobymao__sqlglot-3637.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-4041|tobymao__sqlglot-4041.traj.json|0",
+   "task": "tobymao__sqlglot-4041",
+   "run": "core2/screen-5080/traj/tobymao__sqlglot-4041.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-3533|cal2-run2-low.traj.json|0",
+   "task": "tobymao__sqlglot-3533",
+   "run": "runs-core-collect/sqlglot/traj/tobymao__sqlglot-3533/cal2-run2-low.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-3605|tobymao__sqlglot-3605.traj.json|0",
+   "task": "tobymao__sqlglot-3605",
+   "run": "core2/screen-5080/traj/tobymao__sqlglot-3605.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-2605|cal2-run2-low.traj.json|0",
+   "task": "tobymao__sqlglot-2605",
+   "run": "runs-core-collect/sqlglot/traj/tobymao__sqlglot-2605/cal2-run2-low.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  },
+  {
+   "id": "tobymao__sqlglot-4390|cal2-run2-low.traj.json|0",
+   "task": "tobymao__sqlglot-4390",
+   "run": "runs-core-collect/sqlglot/traj/tobymao__sqlglot-4390/cal2-run2-low.traj.json",
+   "ordinal": 0,
+   "lessons": [
+    "d9e51ba3b309"
+   ],
+   "normalized_line": "ModuleNotFoundError: No module named 'sqlglot'",
+   "generic_environment": true,
+   "source": "core"
+  }
+ ]
+}

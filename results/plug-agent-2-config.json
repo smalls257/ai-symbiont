@@ -31,7 +31,7 @@
   "judge-s2": "797d169cedf9fde56cac3791cf88245d02e8fb23cd072c0e0bbcce67415837c9"
  },
  "cutoff_time_pt": "2026-11-01 06:00",
- "points_n": 60,
+ "points_n": 11,
  "label": "PLUG-AGENT-2 run settings, shared by every branch",
  "mistake_rule_sha256": "60ffbdf6dbaf00151acff0b7279f247aed2673defd7470a8cd47f0e116b9c458",
  "gguf_size_bytes": 16743567360,
@@ -39,5 +39,6 @@
  "error_line_rule_sha256": "02891b4b340c2da6bac09bcc554c5f65771239ce40842cdb12c9fef8eb0566f4",
  "core_labels_sha256": "40511c1d3be2ad47ee3e8727bbc169a24f57032e9cbe009e1a5cfd01f269bc27",
  "core_pool_summary_sha256": "da6b7217dd81b95624072e95ed974a96f3ae06d4dcfbbdf426e6da582017f11b",
- "probe_points_sha256": "27084a0e2e18685675fde3f4e099a491c5b04f2c1710d40e1e335f79f5aed6cf"
+ "probe_points_sha256": "27084a0e2e18685675fde3f4e099a491c5b04f2c1710d40e1e335f79f5aed6cf",
+ "points_sha256": "80eba84f98983561959992b83c0756cf698eae7d4d6ab46128f6431348c97b17"
 }

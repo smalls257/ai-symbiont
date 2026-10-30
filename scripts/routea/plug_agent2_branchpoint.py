@@ -29,23 +29,31 @@ class BranchPoint:
     fingerprint: str = ""  # the rebuilt container's state hash, set when it is committed
 
 
-def find_branch_point(messages: Sequence[dict], known: frozenset[Key]) -> BranchPoint | None:
-    """The first executed command that fails with a known key, once its whole step is in the
-    history; the point holds the history before the turn that issued it. None before that."""
+def find_branch_points(messages: Sequence[dict], known: frozenset[Key]) -> list[BranchPoint]:
+    """Every executed command that fails with a known key (a later occurrence in the same run is
+    a point too), once its whole step is in the history; one point per issuing assistant turn."""
+    found: list[BranchPoint] = []
+    turns: set[int] = set()
     for step in executed_actions(messages):
         code = RETURNCODE.search(step.output)
         failure = failure_of(step.command, int(code.group(1)) if code else None, step.output)
         key = key_of(failure) if failure else None
-        if failure is None or key not in known:
+        turn = step.observation_index - step.action_index - 1  # the issuing assistant turn
+        complete = step.observation_index + (step.action_count - step.action_index) <= len(messages)
+        if failure is None or key not in known or turn in turns or not complete:
             continue
-        end = step.observation_index + (step.action_count - step.action_index)
-        if end > len(messages):
-            return None
-        turn = step.observation_index - step.action_index - 1  # index of the issuing assistant turn
-        return BranchPoint(
-            tuple(copy.deepcopy(list(messages[:turn]))), step.model_calls - 1, failure, key
-        )
-    return None
+        turns.add(turn)
+        history = tuple(copy.deepcopy(list(messages[:turn])))
+        found.append(BranchPoint(history, step.model_calls - 1, failure, key))
+    return found
+
+
+def find_branch_point(
+    messages: Sequence[dict], known: frozenset[Key], ordinal: int = 0
+) -> BranchPoint | None:
+    """The `ordinal`-th known mistake of the run (0: the first), or None if there are fewer."""
+    points = find_branch_points(messages, known)
+    return points[ordinal] if ordinal < len(points) else None
 
 
 def resume_messages(point: BranchPoint, note: str | None) -> list[dict]:
