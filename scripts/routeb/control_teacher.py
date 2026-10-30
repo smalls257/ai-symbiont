@@ -60,7 +60,9 @@ def refuse_held(rows: list[dict], test_set: Path, later: set[str] | None = None)
     Control runs (later is None) must come from other repositories. Core's own teacher runs
     (later given) are on Core repositories by design, so the guard is the later-candidate list.
     """
-    held = {entry["task"] for entry in json.loads(test_set.read_text())["test"]}
+    held = {
+        e if isinstance(e, str) else e["task"] for e in json.loads(test_set.read_text())["test"]
+    }
     if later is None:
         bad = [
             r["instance_id"] for r in rows if r["instance_id"] in held or r["repo"] in CORE_REPOS
@@ -134,6 +136,8 @@ def stop_reason(records: list[dict], args: argparse.Namespace) -> str | None:
     if phase_spent() >= args.cap_usd - float(RUN_CAP_USD):
         return "phase cap reached"
     passes = sum(bool(rec.get("resolved")) for rec in records)
+    if args.max_passes is not None and passes >= args.max_passes:
+        return "pass target reached"
     if passes >= MIN_PASSES and passing_tokens(records, args.out) >= args.target_tokens:
         return "token target reached"
     return None
@@ -193,6 +197,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="no new task of a repository after N passes",
     )
+    parser.add_argument("--max-passes", type=int, default=None, help="stop at this many passes")
     parser.add_argument("--label", default=LABEL, help="ledger run-name prefix of this phase")
     parser.add_argument("--workers", type=int, default=1, help="tasks run at once")
     return parser.parse_args()

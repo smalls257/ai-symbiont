@@ -46,7 +46,7 @@ def test_control_refuses_held_tasks_and_stops_at_cap_or_target(monkeypatch, tmp_
     (tmp_path / "traj" / "p.traj.json").write_text("x" * 35)
     records = [{"instance_id": "p", "resolved": True}, {"instance_id": "f", "resolved": False}]
     assert module.passing_tokens(records, tmp_path) == 10
-    args = types.SimpleNamespace(cap_usd=3.0, target_tokens=10, out=tmp_path)
+    args = types.SimpleNamespace(cap_usd=3.0, target_tokens=10, out=tmp_path, max_passes=None)
     monkeypatch.setattr(module, "phase_spent", lambda: 0.0)
     assert module.stop_reason(records, args) is None  # too few passes yet
     monkeypatch.setattr(module, "MIN_PASSES", 1)
@@ -79,3 +79,12 @@ def test_per_repository_share_and_date_order_are_fixed_before_any_result(monkeyp
     records = [{"repo": "a", "resolved": True}, {"repo": "a", "resolved": False}]
     assert module.repo_is_full(records, "a", 1) and not module.repo_is_full(records, "b", 1)
     assert not module.repo_is_full(records, "a", None)
+
+
+def test_the_pass_target_stops_new_tasks(monkeypatch, tmp_path):
+    module = load(monkeypatch, "control_teacher")
+    monkeypatch.setattr(module, "phase_spent", lambda: 0.0)
+    args = types.SimpleNamespace(cap_usd=3.0, target_tokens=10**9, out=tmp_path, max_passes=2)
+    passes = [{"instance_id": "a", "resolved": True}, {"instance_id": "b", "resolved": True}]
+    assert module.stop_reason(passes, args) == "pass target reached"
+    assert module.stop_reason(passes[:1], args) is None
