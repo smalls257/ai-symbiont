@@ -1,6 +1,6 @@
 # Pre-registration: situational lessons and "one move per reply" on held-out maps (Muse Spark plays Freedoom via ViZDoom)
 
-**DRAFT, not frozen.** The owner freezes it with a commit that changes only this header (status and the line "Code pinned at <sha>", the freeze commit's parent). `scripts/evolve/held_out_test.py check` refuses to start unless the file is frozen and committed alone, its parent is the pinned code commit, `scripts/evolve` and `src` at HEAD equal that commit, every quoted hash below matches, and every generated map file matches the sha256 declared in `prereg/2026-10-29-generated-maps.md`. Code pinned at: (filled by the freeze).
+**FROZEN 2026-10-29.** Code pinned at b151ee5636b57e9c79a38140732d862e00f7a520 (this commit's parent; `scripts/evolve/held_out_test.py check` enforces it). Committed alone, before any game on a held-out or generated map was played by a model. An amendment cannot change arms, cards, lessons, cutoff, maps, seeds, condition, fitness, pairing, bootstrap or decision rule.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or the code's own documented behavior, [hypothesis] = a guess the run can support or refute. Every result row is labeled floor, reference or under test.
 
