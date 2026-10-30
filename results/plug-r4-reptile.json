@@ -1,0 +1,18 @@
+{
+ "reptile_init_adapt1epoch_strength_1": {
+  "pick": 0.303,
+  "silence": 0.9091,
+  "wrong_pick": 0.0515,
+  "coverage": 0.3152,
+  "precision": 0.7463,
+  "habits_mean": 0.5773
+ },
+ "reptile_init_adapt1epoch_strength_0.7": {
+  "pick": 0.2545,
+  "silence": 0.9273,
+  "wrong_pick": 0.0424,
+  "coverage": 0.2667,
+  "precision": 0.75,
+  "habits_mean": 0.6136
+ }
+}
