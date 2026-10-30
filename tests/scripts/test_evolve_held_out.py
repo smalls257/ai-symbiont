@@ -152,3 +152,12 @@ def test_more_than_ten_percent_dropped_is_refused():
     ungraded = {c: result(c, Grade.UNGRADED if c.seed < 4002 else Grade.GRADED) for c in cases}
     with pytest.raises(ht.final_test.IncompleteRunError):
         ht.final_test.drop_incomplete({"none": ungraded}, cases)
+
+
+def test_every_arm_gets_a_player_from_the_command_line(tmp_path):
+    import argparse
+
+    args = argparse.Namespace(lessons=tmp_path / "l.json", root=tmp_path, workers=2)
+    players = ht.players_for(args, frozen=object())
+    assert set(players) == set(hc.Arm)
+    assert all((tmp_path / f"{ht.RUN}-{arm.value}").is_dir() for arm in hc.Arm)

@@ -111,6 +111,14 @@ def arm_player(
     return run_state.ResumingPlayer(play_case.EnginePlayer(replies, engine), store)
 
 
+def players_for(args: argparse.Namespace, frozen: Any) -> dict[Any, Any]:
+    """One resumable player per arm, built from the command line."""
+    return {
+        arm: arm_player(arm, args.lessons, args.root, frozen, args.workers)
+        for arm in held_out_cases.Arm
+    }
+
+
 def play_until_graded(player: Any, pairs: list[tuple[Any, Case]]) -> None:
     """Play the pairs; replay an ungraded game up to MAX_REPLAYS times on the same case."""
     grades: dict[Case, Grade] = {}
@@ -229,9 +237,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "run":
         if not args.scored:
             raise final_test.ScoredRefusalError("run needs --scored")
-        players = {
-            a: arm_player(a, args.lessons, args.root, args.workers) for a in held_out_cases.Arm
-        }
+        players = players_for(args, require_frozen(args.prereg))
         play_all(players, held_out_cases.all_cases(Path.cwd() / KEPT_FILE), args.batch_cases)
         return 0
     import vizdoom
