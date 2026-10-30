@@ -1,0 +1,4163 @@
+{
+"label_prompt_sha256": "dad7b47ddb4044355253bc5b108b72ae20f92aedb9be71ed6dc1186b3bd11540",
+"labels": {
+"ARMmbed__mbed-tools-190": {
+"05bb9dab49cf": "does_not_apply",
+"6ea196b354d4": "applies"
+},
+"ARMmbed__mbed-tools-208": {
+"24ba1dae9576": "does_not_apply",
+"bfbd701087d2": "does_not_apply",
+"05bb9dab49cf": "does_not_apply",
+"6ea196b354d4": "does_not_apply"
+},
+"ARMmbed__mbed-tools-207": {
+"05bb9dab49cf": "does_not_apply",
+"6ea196b354d4": "does_not_apply"
+},
+"ARMmbed__mbed-tools-138": {
+"6ea196b354d4": "applies"
+},
+"ARMmbed__mbed-tools-259": {
+"24ba1dae9576": "does_not_apply",
+"bfbd701087d2": "does_not_apply",
+"05bb9dab49cf": "does_not_apply",
+"6ea196b354d4": "does_not_apply"
+},
+"Azure__azure-cli-2053": {
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "does_not_apply",
+"b82eddb5a1ee": "does_not_apply"
+},
+"Azure__azure-cli-2467": {
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "does_not_apply",
+"b82eddb5a1ee": "does_not_apply"
+},
+"ARMmbed__mbed-tools-285": {
+"24ba1dae9576": "applies",
+"a518e7c7af2d": "does_not_apply",
+"05bb9dab49cf": "applies",
+"6ea196b354d4": "applies"
+},
+"ARMmbed__mbed-tools-292": {
+"24ba1dae9576": "applies",
+"a518e7c7af2d": "does_not_apply",
+"05bb9dab49cf": "applies",
+"6ea196b354d4": "applies"
+},
+"ARMmbed__mbed-tools-293": {
+"24ba1dae9576": "applies",
+"a518e7c7af2d": "does_not_apply",
+"05bb9dab49cf": "applies",
+"6ea196b354d4": "does_not_apply"
+},
+"Azure__azure-cli-2844": {
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "does_not_apply",
+"b82eddb5a1ee": "does_not_apply"
+},
+"Azure__azure-cli-3354": {
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "does_not_apply",
+"b82eddb5a1ee": "does_not_apply"
+},
+"Azure__azure-cli-3643": {
+"05053597735a": "applies",
+"e08e3c216cce": "applies",
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "applies",
+"b82eddb5a1ee": "does_not_apply"
+},
+"Azure__azure-cli-3743": {
+"05053597735a": "applies",
+"e08e3c216cce": "does_not_apply",
+"092c88f7c5be": "applies",
+"1d3db3d22459": "does_not_apply",
+"b82eddb5a1ee": "applies"
+},
+"Azure__azure-cli-4265": {
+"2ce014a0dd4e": "applies",
+"7c563cd7a87a": "does_not_apply",
+"f6caaaec0850": "does_not_apply",
+"05053597735a": "applies",
+"5b1760f87df9": "applies",
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "applies",
+"b82eddb5a1ee": "does_not_apply"
+},
+"Azure__azure-cli-2955": {
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "does_not_apply",
+"b82eddb5a1ee": "does_not_apply"
+},
+"DavidVujic__python-polylith-232": {
+"80ebdc12fc1f": "applies",
+"c4f58ab9c3b3": "does_not_apply",
+"cbab4ff723c3": "does_not_apply",
+"cbf6d40fd498": "does_not_apply"
+},
+"DavidVujic__python-polylith-238": {
+"80ebdc12fc1f": "applies",
+"c4f58ab9c3b3": "applies",
+"cbab4ff723c3": "applies",
+"cbf6d40fd498": "applies"
+},
+"DavidVujic__python-polylith-260": {
+"80ebdc12fc1f": "applies",
+"c4f58ab9c3b3": "does_not_apply",
+"cbab4ff723c3": "does_not_apply",
+"cbf6d40fd498": "does_not_apply"
+},
+"Delgan__loguru-1236": {
+"9f39c732912a": "does_not_apply",
+"ed88fac0642c": "does_not_apply",
+"133fccfa4a6c": "does_not_apply",
+"002a4aebd5e7": "applies",
+"4e0f7e1cbdf6": "does_not_apply"
+},
+"Delgan__loguru-1299": {
+"9f39c732912a": "does_not_apply",
+"ed88fac0642c": "does_not_apply",
+"133fccfa4a6c": "does_not_apply",
+"002a4aebd5e7": "applies",
+"4e0f7e1cbdf6": "does_not_apply"
+},
+"Delgan__loguru-1303": {
+"9f39c732912a": "does_not_apply",
+"ed88fac0642c": "does_not_apply",
+"133fccfa4a6c": "does_not_apply",
+"002a4aebd5e7": "applies",
+"4e0f7e1cbdf6": "does_not_apply"
+},
+"Duke-GCB__lando-155": {
+"73aee0d447a8": "does_not_apply",
+"04879078344a": "does_not_apply"
+},
+"Duke-GCB__lando-169": {
+"5a5fd6f5f324": "applies",
+"79da8d12fb62": "does_not_apply",
+"73aee0d447a8": "does_not_apply",
+"04879078344a": "does_not_apply"
+},
+"Delgan__loguru-1239": {
+"9f39c732912a": "does_not_apply",
+"ed88fac0642c": "does_not_apply",
+"133fccfa4a6c": "does_not_apply",
+"002a4aebd5e7": "applies",
+"4e0f7e1cbdf6": "does_not_apply"
+},
+"Duke-GCB__lando-173": {
+"5a5fd6f5f324": "applies",
+"79da8d12fb62": "does_not_apply",
+"73aee0d447a8": "does_not_apply",
+"04879078344a": "does_not_apply"
+},
+"Delgan__loguru-985": {
+"002a4aebd5e7": "does_not_apply",
+"4e0f7e1cbdf6": "applies"
+},
+"Duke-GCB__lando-190": {
+"5a5fd6f5f324": "does_not_apply",
+"79da8d12fb62": "applies",
+"73aee0d447a8": "does_not_apply",
+"04879078344a": "does_not_apply"
+},
+"Azure__azure-cli-2214": {
+"092c88f7c5be": "does_not_apply",
+"1d3db3d22459": "does_not_apply",
+"b82eddb5a1ee": "does_not_apply"
+},
+"Duke-GCB__lando-194": {
+"4173123503f5": "does_not_apply",
+"f646e5d5c8a0": "applies",
+"0312e9d7c0e9": "does_not_apply",
+"5a5fd6f5f324": "does_not_apply",
+"79da8d12fb62": "does_not_apply",
+"73aee0d447a8": "does_not_apply",
+"04879078344a": "does_not_apply"
+},
+"ESSS__oop-ext-23": {
+"b99016cac379": "applies"
+},
+"ESSS__conda-devenv-68": {
+"0705fb63eaca": "does_not_apply",
+"0fb29f1d280b": "applies",
+"178b90d27466": "does_not_apply",
+"4b643f06fa6b": "does_not_apply",
+"679537fd220c": "applies",
+"96a2c471fea1": "does_not_apply"
+},
+"ESSS__conda-devenv-51": {
+"0705fb63eaca": "does_not_apply",
+"0fb29f1d280b": "does_not_apply",
+"178b90d27466": "applies",
+"4b643f06fa6b": "does_not_apply",
+"679537fd220c": "does_not_apply",
+"96a2c471fea1": "does_not_apply"
+},
+"GenericMappingTools__pygmt-1258": {
+"15da3552a5a5": "applies"
+},
+"ESSS__oop-ext-42": {
+"2d231bec6354": "does_not_apply",
+"5b3b741990c9": "applies"
+},
+"GenericMappingTools__pygmt-1329": {
+"15da3552a5a5": "does_not_apply"
+},
+"GenericMappingTools__pygmt-1307": {
+"15da3552a5a5": "does_not_apply"
+},
+"GenericMappingTools__pygmt-1484": {
+"15da3552a5a5": "does_not_apply"
+},
+"ESSS__oop-ext-37": {
+"2d231bec6354": "does_not_apply",
+"b99016cac379": "applies"
+},
+"GenericMappingTools__pygmt-1963": {
+"15da3552a5a5": "does_not_apply"
+},
+"GenericMappingTools__pygmt-1530": {
+"15da3552a5a5": "does_not_apply"
+},
+"GenericMappingTools__pygmt-1382": {
+"15da3552a5a5": "does_not_apply"
+},
+"GenericMappingTools__pygmt-990": {
+"c29603f9c1e5": "applies"
+},
+"ESSS__conda-devenv-114": {
+"0705fb63eaca": "applies",
+"0fb29f1d280b": "applies",
+"178b90d27466": "does_not_apply",
+"4b643f06fa6b": "applies",
+"679537fd220c": "applies",
+"96a2c471fea1": "applies"
+},
+"IAMconsortium__nomenclature-314": {
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "applies",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "applies"
+},
+"IAMconsortium__nomenclature-320": {
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "applies",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "applies",
+"5684e9b469be": "applies",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "applies",
+"bc0f3a8678c4": "applies",
+"e26be739db8a": "applies",
+"ffdb24e7400e": "applies"
+},
+"IAMconsortium__nomenclature-384": {
+"082d23b556e2": "does_not_apply",
+"97517bf19d50": "does_not_apply",
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "does_not_apply"
+},
+"IAMconsortium__nomenclature-390": {
+"082d23b556e2": "applies",
+"97517bf19d50": "applies",
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "does_not_apply"
+},
+"IAMconsortium__nomenclature-419": {
+"fad0f1647e39": "does_not_apply",
+"082d23b556e2": "does_not_apply",
+"97517bf19d50": "does_not_apply",
+"510841acb0e7": "applies",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "does_not_apply"
+},
+"IAMconsortium__nomenclature-477": {
+"72236bdb3ebd": "does_not_apply",
+"fad0f1647e39": "does_not_apply",
+"082d23b556e2": "does_not_apply",
+"97517bf19d50": "does_not_apply",
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "does_not_apply"
+},
+"IAMconsortium__nomenclature-431": {
+"72236bdb3ebd": "does_not_apply",
+"fad0f1647e39": "does_not_apply",
+"082d23b556e2": "does_not_apply",
+"97517bf19d50": "does_not_apply",
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "does_not_apply"
+},
+"IAMconsortium__nomenclature-418": {
+"fad0f1647e39": "does_not_apply",
+"082d23b556e2": "applies",
+"97517bf19d50": "applies",
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "does_not_apply"
+},
+"IAMconsortium__nomenclature-442": {
+"72236bdb3ebd": "does_not_apply",
+"fad0f1647e39": "does_not_apply",
+"082d23b556e2": "applies",
+"97517bf19d50": "applies",
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "does_not_apply",
+"5684e9b469be": "does_not_apply",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "does_not_apply",
+"ffdb24e7400e": "does_not_apply"
+},
+"NCAS-CMS__cf-python-418": {
+"01be6a37bd21": "does_not_apply",
+"5051fd920cb8": "does_not_apply",
+"a30ae407c452": "does_not_apply",
+"e8ebccefd1ce": "does_not_apply",
+"ef632a8925f2": "applies"
+},
+"IAMconsortium__nomenclature-391": {
+"082d23b556e2": "does_not_apply",
+"97517bf19d50": "does_not_apply",
+"510841acb0e7": "does_not_apply",
+"e738903ff6e7": "does_not_apply",
+"27470acb99f2": "does_not_apply",
+"28550d4a2a34": "applies",
+"5684e9b469be": "applies",
+"61e050439e64": "does_not_apply",
+"8ec185e7be52": "does_not_apply",
+"bc0f3a8678c4": "does_not_apply",
+"e26be739db8a": "applies",
+"ffdb24e7400e": "does_not_apply"
+},
+"DavidVujic__python-polylith-289": {
+"185e5d64e32f": "applies",
+"c4f58ab9c3b3": "does_not_apply",
+"cbab4ff723c3": "does_not_apply",
+"cbf6d40fd498": "does_not_apply"
+},
+"NeurodataWithoutBorders__pynwb-1975": {
+"09631f39f640": "does_not_apply",
+"119fd5cba32d": "does_not_apply",
+"25575f1dba53": "applies",
+"3de6dd2f7427": "does_not_apply",
+"688811cad21b": "does_not_apply",
+"b2c960ea58dc": "does_not_apply",
+"bb08f5fa426b": "does_not_apply",
+"d0497facf8db": "does_not_apply"
+},
+"NCAS-CMS__cf-python-551": {
+"c46189582f76": "does_not_apply",
+"1794d1ccd4b8": "does_not_apply",
+"9c345d7911df": "does_not_apply",
+"d8d10d22e523": "does_not_apply",
+"a30ae407c452": "does_not_apply",
+"e8ebccefd1ce": "does_not_apply",
+"ef632a8925f2": "does_not_apply"
+},
+"NeurodataWithoutBorders__pynwb-1986": {
+"09631f39f640": "does_not_apply",
+"119fd5cba32d": "does_not_apply",
+"25575f1dba53": "does_not_apply",
+"3de6dd2f7427": "does_not_apply",
+"688811cad21b": "does_not_apply",
+"b2c960ea58dc": "does_not_apply",
+"bb08f5fa426b": "does_not_apply",
+"d0497facf8db": "does_not_apply"
+},
+"Ouranosinc__xclim-294": {
+"06f8c39e3b6d": "does_not_apply",
+"708678df4ecc": "does_not_apply",
+"8d01bc5145dc": "does_not_apply"
+},
+"NCAS-CMS__cf-python-500": {
+"1794d1ccd4b8": "does_not_apply",
+"01be6a37bd21": "applies",
+"5051fd920cb8": "applies",
+"a30ae407c452": "applies",
+"e8ebccefd1ce": "applies",
+"ef632a8925f2": "does_not_apply"
+},
+"NCAS-CMS__cf-python-627": {
+"c46189582f76": "does_not_apply",
+"1794d1ccd4b8": "applies",
+"9c345d7911df": "does_not_apply",
+"d8d10d22e523": "does_not_apply",
+"a30ae407c452": "does_not_apply",
+"e8ebccefd1ce": "does_not_apply",
+"ef632a8925f2": "applies"
+},
+"Ouranosinc__xclim-377": {
+"06f8c39e3b6d": "does_not_apply",
+"708678df4ecc": "does_not_apply",
+"8d01bc5145dc": "does_not_apply"
+},
+"Ouranosinc__xclim-347": {
+"06f8c39e3b6d": "does_not_apply",
+"708678df4ecc": "does_not_apply",
+"8d01bc5145dc": "does_not_apply"
+},
+"Ouranosinc__xclim-433": {
+"21d4201b21dd": "does_not_apply",
+"390b766a5fd4": "does_not_apply",
+"e07b63402f76": "does_not_apply",
+"06f8c39e3b6d": "does_not_apply",
+"708678df4ecc": "does_not_apply",
+"8d01bc5145dc": "does_not_apply"
+},
+"PyFilesystem__pyfilesystem2-313": {
+"0635ec5df6d0": "does_not_apply"
+},
+"Ouranosinc__xclim-513": {
+"21d4201b21dd": "does_not_apply",
+"390b766a5fd4": "does_not_apply",
+"e07b63402f76": "does_not_apply",
+"06f8c39e3b6d": "does_not_apply",
+"708678df4ecc": "does_not_apply",
+"8d01bc5145dc": "does_not_apply"
+},
+"Ouranosinc__xclim-488": {
+"21d4201b21dd": "does_not_apply",
+"390b766a5fd4": "does_not_apply",
+"e07b63402f76": "does_not_apply",
+"06f8c39e3b6d": "does_not_apply",
+"708678df4ecc": "does_not_apply",
+"8d01bc5145dc": "does_not_apply"
+},
+"PyFilesystem__pyfilesystem2-315": {
+"0635ec5df6d0": "does_not_apply"
+},
+"Ouranosinc__xclim-336": {
+"06f8c39e3b6d": "does_not_apply",
+"708678df4ecc": "applies",
+"8d01bc5145dc": "does_not_apply"
+},
+"PyFilesystem__pyfilesystem2-474": {
+"8e37a902c5f3": "does_not_apply",
+"96673879324f": "does_not_apply",
+"4bb242f5b144": "does_not_apply",
+"7a32ebd71a37": "does_not_apply",
+"7f0572c33efd": "does_not_apply",
+"e1c7d9dfe5d6": "does_not_apply",
+"0635ec5df6d0": "does_not_apply"
+},
+"PyFilesystem__pyfilesystem2-396": {
+"4bb242f5b144": "applies",
+"7a32ebd71a37": "applies",
+"7f0572c33efd": "applies",
+"e1c7d9dfe5d6": "applies",
+"0635ec5df6d0": "does_not_apply"
+},
+"SpikeInterface__spikeinterface-3047": {
+"fc5de16792e0": "does_not_apply"
+},
+"SpikeInterface__spikeinterface-3180": {
+"fc5de16792e0": "does_not_apply"
+},
+"PyFilesystem__pyfilesystem2-473": {
+"4bb242f5b144": "applies",
+"7a32ebd71a37": "applies",
+"7f0572c33efd": "does_not_apply",
+"e1c7d9dfe5d6": "does_not_apply",
+"0635ec5df6d0": "does_not_apply"
+},
+"Stewori__pytypes-38": {
+"0d92d4b9b496": "does_not_apply",
+"172ee90c94dc": "does_not_apply"
+},
+"SpikeInterface__spikeinterface-3347": {
+"045b3204c2b8": "applies",
+"b52831a50eec": "does_not_apply",
+"fc5de16792e0": "does_not_apply"
+},
+"TDAmeritrade__stumpy-1015": {
+"3c030b9a03ca": "does_not_apply",
+"8910af27cfe3": "does_not_apply"
+},
+"TDAmeritrade__stumpy-892": {
+"3c030b9a03ca": "does_not_apply",
+"8910af27cfe3": "does_not_apply"
+},
+"TDAmeritrade__stumpy-649": {
+"3c030b9a03ca": "does_not_apply",
+"8910af27cfe3": "does_not_apply"
+},
+"TDAmeritrade__stumpy-1070": {
+"3c030b9a03ca": "does_not_apply",
+"8910af27cfe3": "does_not_apply"
+},
+"agronholm__anyio-307": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-435": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-604": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"Stewori__pytypes-47": {
+"919c4272a77c": "applies",
+"0d92d4b9b496": "does_not_apply",
+"172ee90c94dc": "does_not_apply"
+},
+"agronholm__anyio-639": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-648": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-666": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-707": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-647": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "applies",
+"39f275e3330a": "applies",
+"e653d6ceac08": "applies",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-732": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-717": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-735": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-772": {
+"0368bd98b770": "does_not_apply",
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"agronholm__anyio-752": {
+"0368bd98b770": "does_not_apply",
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"aiogram__aiogram-1318": {
+"628ffde545d0": "does_not_apply"
+},
+"agronholm__anyio-841": {
+"0368bd98b770": "does_not_apply",
+"02dbb004f14a": "applies",
+"097bd8f762c0": "applies",
+"39f275e3330a": "applies",
+"e653d6ceac08": "applies",
+"ee8116e17b68": "applies"
+},
+"aiogram__aiogram-1370": {
+"628ffde545d0": "does_not_apply"
+},
+"alexgolec__tda-api-105": {
+"7385a021179d": "applies",
+"8b0fae4ea916": "does_not_apply"
+},
+"astropy__photutils-1679": {
+"24c7adf78f58": "does_not_apply",
+"26b175562554": "does_not_apply",
+"72e72088d103": "does_not_apply",
+"e97756139c1d": "does_not_apply",
+"3d0efea03b74": "does_not_apply",
+"620615684ddc": "does_not_apply",
+"29d1ea1e7d2d": "does_not_apply",
+"f7ab7f32dbd4": "does_not_apply"
+},
+"astropy__photutils-1312": {
+"3d0efea03b74": "does_not_apply",
+"620615684ddc": "does_not_apply",
+"29d1ea1e7d2d": "does_not_apply",
+"f7ab7f32dbd4": "does_not_apply"
+},
+"astropy__photutils-1935": {
+"24c7adf78f58": "does_not_apply",
+"26b175562554": "does_not_apply",
+"72e72088d103": "does_not_apply",
+"e97756139c1d": "does_not_apply",
+"3d0efea03b74": "does_not_apply",
+"620615684ddc": "applies",
+"29d1ea1e7d2d": "applies",
+"f7ab7f32dbd4": "applies"
+},
+"astropy__photutils-1943": {
+"24c7adf78f58": "does_not_apply",
+"26b175562554": "does_not_apply",
+"72e72088d103": "does_not_apply",
+"e97756139c1d": "does_not_apply",
+"3d0efea03b74": "does_not_apply",
+"620615684ddc": "does_not_apply",
+"29d1ea1e7d2d": "does_not_apply",
+"f7ab7f32dbd4": "does_not_apply"
+},
+"agronholm__anyio-744": {
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"astropy__photutils-1978": {
+"d559c195c151": "applies",
+"24c7adf78f58": "does_not_apply",
+"26b175562554": "does_not_apply",
+"72e72088d103": "does_not_apply",
+"e97756139c1d": "does_not_apply",
+"3d0efea03b74": "does_not_apply",
+"620615684ddc": "does_not_apply",
+"29d1ea1e7d2d": "does_not_apply",
+"f7ab7f32dbd4": "does_not_apply"
+},
+"alexgolec__tda-api-129": {
+"41955b8cf3fa": "applies",
+"b819fe0134bd": "applies",
+"117ea4650484": "applies",
+"7385a021179d": "applies",
+"8b0fae4ea916": "does_not_apply"
+},
+"astropy__photutils-1956": {
+"d559c195c151": "does_not_apply",
+"24c7adf78f58": "applies",
+"26b175562554": "applies",
+"72e72088d103": "applies",
+"e97756139c1d": "applies",
+"3d0efea03b74": "does_not_apply",
+"620615684ddc": "does_not_apply",
+"29d1ea1e7d2d": "does_not_apply",
+"f7ab7f32dbd4": "does_not_apply"
+},
+"beetbox__beets-3085": {
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-3167": {
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-3702": {
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-3805": {
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-2776": {
+"bfb7a92cee48": "applies",
+"ee5a7e4fc5f9": "applies"
+},
+"beetbox__beets-3508": {
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-3375": {
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"agronholm__anyio-835": {
+"0368bd98b770": "applies",
+"02dbb004f14a": "does_not_apply",
+"097bd8f762c0": "does_not_apply",
+"39f275e3330a": "does_not_apply",
+"e653d6ceac08": "does_not_apply",
+"ee8116e17b68": "does_not_apply"
+},
+"beetbox__beets-3868": {
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-3877": {
+"06649e12c0c5": "applies",
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-4359": {
+"06649e12c0c5": "does_not_apply",
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-3982": {
+"06649e12c0c5": "does_not_apply",
+"bfb7a92cee48": "does_not_apply",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-4549": {
+"06649e12c0c5": "does_not_apply",
+"bfb7a92cee48": "applies",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beetbox__beets-3863": {
+"bfb7a92cee48": "applies",
+"ee5a7e4fc5f9": "does_not_apply"
+},
+"beeware__briefcase-1512": {
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1514": {
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1525": {
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1417": {
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1689": {
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1638": {
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1709": {
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1508": {
+"119123219aba": "applies",
+"357b71f35423": "applies"
+},
+"beeware__briefcase-1972": {
+"01af75f9ae13": "does_not_apply",
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-2035": {
+"01af75f9ae13": "applies",
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1811": {
+"01af75f9ae13": "does_not_apply",
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-2075": {
+"01af75f9ae13": "does_not_apply",
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-1785": {
+"01af75f9ae13": "does_not_apply",
+"119123219aba": "applies",
+"357b71f35423": "applies"
+},
+"beeware__briefcase-1867": {
+"01af75f9ae13": "does_not_apply",
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"beeware__briefcase-2085": {
+"01af75f9ae13": "does_not_apply",
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"berkerpeksag__astor-121": {
+"fc96916cc4cd": "applies"
+},
+"beeware__briefcase-2088": {
+"01af75f9ae13": "does_not_apply",
+"119123219aba": "does_not_apply",
+"357b71f35423": "does_not_apply"
+},
+"berkerpeksag__astor-125": {
+"989bff66b292": "applies",
+"fc96916cc4cd": "does_not_apply"
+},
+"borgbackup__borg-5713": {
+"2141de25c163": "applies"
+},
+"borgbackup__borg-6528": {
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "does_not_apply",
+"2141de25c163": "applies"
+},
+"borgbackup__borg-6527": {
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "applies"
+},
+"berkerpeksag__astor-175": {
+"989bff66b292": "applies",
+"fc96916cc4cd": "does_not_apply"
+},
+"borgbackup__borg-6529": {
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "applies"
+},
+"borgbackup__borg-6682": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7388": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "applies",
+"6ca292b94f1f": "applies",
+"a782aa26c2d2": "applies",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-6684": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "does_not_apply",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "applies",
+"6ca292b94f1f": "applies",
+"a782aa26c2d2": "applies",
+"c0d06e1889e5": "does_not_apply",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-6683": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7448": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "does_not_apply",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "applies",
+"6ca292b94f1f": "applies",
+"a782aa26c2d2": "applies",
+"c0d06e1889e5": "does_not_apply",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7492": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7712": {
+"6e96b6860a9a": "applies",
+"923b9931c5cc": "applies",
+"f887331d89a5": "does_not_apply",
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7549": {
+"6e96b6860a9a": "applies",
+"923b9931c5cc": "applies",
+"f887331d89a5": "does_not_apply",
+"25227242b046": "applies",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7517": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7521": {
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "applies",
+"cdf925973b0b": "applies",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "applies"
+},
+"borgbackup__borg-7941": {
+"6e96b6860a9a": "applies",
+"923b9931c5cc": "applies",
+"f887331d89a5": "does_not_apply",
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-7583": {
+"6e96b6860a9a": "applies",
+"923b9931c5cc": "applies",
+"f887331d89a5": "does_not_apply",
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "applies",
+"cdf925973b0b": "applies",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "applies"
+},
+"bvanelli__actualpy-108": {
+"790c7818b517": "applies"
+},
+"bvanelli__actualpy-55": {
+"0019af5e9643": "applies"
+},
+"canonical__charmcraft-1365": {
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1165": {
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1745": {
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1744": {
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"borgbackup__borg-7942": {
+"6e96b6860a9a": "applies",
+"923b9931c5cc": "does_not_apply",
+"f887331d89a5": "does_not_apply",
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "does_not_apply",
+"6ca292b94f1f": "does_not_apply",
+"a782aa26c2d2": "does_not_apply",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"borgbackup__borg-8257": {
+"6d4d70c37df8": "applies",
+"ad8559bf19ce": "does_not_apply",
+"6e96b6860a9a": "applies",
+"923b9931c5cc": "applies",
+"f887331d89a5": "does_not_apply",
+"25227242b046": "does_not_apply",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "applies",
+"6ca292b94f1f": "applies",
+"a782aa26c2d2": "applies",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"canonical__charmcraft-1741": {
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1763": {
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1759": {
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"borgbackup__borg-8436": {
+"6d4d70c37df8": "applies",
+"ad8559bf19ce": "does_not_apply",
+"6e96b6860a9a": "applies",
+"923b9931c5cc": "applies",
+"f887331d89a5": "does_not_apply",
+"25227242b046": "applies",
+"4bcd389374bc": "applies",
+"a9dfdbac4dad": "does_not_apply",
+"cb603f33f0ff": "does_not_apply",
+"cdf925973b0b": "does_not_apply",
+"0444c25da05e": "applies",
+"6ca292b94f1f": "applies",
+"a782aa26c2d2": "applies",
+"c0d06e1889e5": "applies",
+"2141de25c163": "does_not_apply"
+},
+"canonical__charmcraft-1891": {
+"038c943d6751": "does_not_apply",
+"c3554db146e0": "does_not_apply",
+"fdfba7900da4": "does_not_apply",
+"793483094ddd": "applies",
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1892": {
+"038c943d6751": "does_not_apply",
+"c3554db146e0": "does_not_apply",
+"fdfba7900da4": "does_not_apply",
+"793483094ddd": "applies",
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1850": {
+"038c943d6751": "does_not_apply",
+"c3554db146e0": "does_not_apply",
+"fdfba7900da4": "does_not_apply",
+"793483094ddd": "does_not_apply",
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-866": {
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1823": {
+"793483094ddd": "applies",
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-869": {
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-915": {
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-2042": {
+"038c943d6751": "does_not_apply",
+"c3554db146e0": "does_not_apply",
+"fdfba7900da4": "does_not_apply",
+"793483094ddd": "does_not_apply",
+"7eb85c1f7ec0": "applies",
+"09fd8c285edb": "applies",
+"fab225deb75d": "applies"
+},
+"canonical__charmcraft-917": {
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-1818": {
+"793483094ddd": "does_not_apply",
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"canonical__charmcraft-2060": {
+"038c943d6751": "does_not_apply",
+"c3554db146e0": "does_not_apply",
+"fdfba7900da4": "does_not_apply",
+"793483094ddd": "does_not_apply",
+"7eb85c1f7ec0": "does_not_apply",
+"09fd8c285edb": "does_not_apply",
+"fab225deb75d": "does_not_apply"
+},
+"catalystneuro__neuroconv-1042": {
+"2f75442e996f": "does_not_apply",
+"36bf50968bf3": "does_not_apply",
+"d6038645baa2": "does_not_apply",
+"8c8a0f15e0e1": "does_not_apply",
+"f72943c9046b": "does_not_apply"
+},
+"catalystneuro__neuroconv-894": {
+"f72943c9046b": "does_not_apply"
+},
+"catalystneuro__neuroconv-971": {
+"2f75442e996f": "does_not_apply",
+"36bf50968bf3": "does_not_apply",
+"d6038645baa2": "does_not_apply",
+"8c8a0f15e0e1": "does_not_apply",
+"f72943c9046b": "does_not_apply"
+},
+"catalystneuro__neuroconv-914": {
+"d6038645baa2": "does_not_apply",
+"8c8a0f15e0e1": "does_not_apply",
+"f72943c9046b": "does_not_apply"
+},
+"catalystneuro__neuroconv-907": {
+"8c8a0f15e0e1": "does_not_apply",
+"f72943c9046b": "does_not_apply"
+},
+"cekit__cekit-416": {
+"131ca4435018": "applies",
+"29f450e422fb": "applies",
+"03b6ae34904e": "applies"
+},
+"cekit__cekit-424": {
+"131ca4435018": "applies",
+"29f450e422fb": "does_not_apply",
+"03b6ae34904e": "does_not_apply"
+},
+"cekit__cekit-443": {
+"131ca4435018": "applies",
+"29f450e422fb": "applies",
+"03b6ae34904e": "applies"
+},
+"cekit__cekit-429": {
+"131ca4435018": "applies",
+"29f450e422fb": "does_not_apply",
+"03b6ae34904e": "does_not_apply"
+},
+"cekit__cekit-226": {
+"131ca4435018": "applies",
+"29f450e422fb": "applies",
+"03b6ae34904e": "applies"
+},
+"cekit__cekit-474": {
+"131ca4435018": "applies",
+"29f450e422fb": "does_not_apply",
+"03b6ae34904e": "does_not_apply"
+},
+"cekit__cekit-516": {
+"131ca4435018": "applies",
+"29f450e422fb": "applies",
+"03b6ae34904e": "applies"
+},
+"cekit__cekit-518": {
+"131ca4435018": "applies",
+"29f450e422fb": "applies",
+"03b6ae34904e": "applies"
+},
+"cekit__cekit-636": {
+"8f3b6f57d9b8": "does_not_apply",
+"131ca4435018": "applies",
+"29f450e422fb": "does_not_apply",
+"03b6ae34904e": "does_not_apply"
+},
+"cekit__cekit-803": {
+"8f3b6f57d9b8": "does_not_apply",
+"131ca4435018": "applies",
+"29f450e422fb": "does_not_apply",
+"03b6ae34904e": "does_not_apply"
+},
+"cekit__cekit-532": {
+"8f3b6f57d9b8": "applies",
+"131ca4435018": "applies",
+"29f450e422fb": "does_not_apply",
+"03b6ae34904e": "does_not_apply"
+},
+"cekit__cekit-877": {
+"8f3b6f57d9b8": "does_not_apply",
+"131ca4435018": "applies",
+"29f450e422fb": "does_not_apply",
+"03b6ae34904e": "does_not_apply"
+},
+"cekit__cekit-893": {
+"8f3b6f57d9b8": "does_not_apply",
+"131ca4435018": "applies",
+"29f450e422fb": "applies",
+"03b6ae34904e": "applies"
+},
+"construct__construct-399": {
+"510be5749fda": "applies",
+"d1da957ed8e9": "does_not_apply"
+},
+"cekit__cekit-874": {
+"8f3b6f57d9b8": "does_not_apply",
+"131ca4435018": "applies",
+"29f450e422fb": "applies",
+"03b6ae34904e": "applies"
+},
+"csiro-coasts__emsarray-120": {
+"26f4d2d58410": "applies"
+},
+"construct__construct-889": {
+"8fbcd312ec41": "applies",
+"510be5749fda": "applies",
+"d1da957ed8e9": "does_not_apply"
+},
+"construct__construct-1040": {
+"08452a77df5b": "applies",
+"34a68b1bf185": "applies",
+"3d133626c542": "applies",
+"923675f5a4e8": "applies",
+"d156be97fe0f": "applies",
+"e9c3db37c45c": "applies",
+"8fbcd312ec41": "applies",
+"510be5749fda": "applies",
+"d1da957ed8e9": "does_not_apply"
+},
+"encode__starlette-1164": {
+"cfd7a61bc9a7": "applies"
+},
+"encode__starlette-1147": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1220": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"csiro-coasts__emsarray-126": {
+"8b81ab0951c9": "applies",
+"d0249d705592": "does_not_apply"
+},
+"encode__starlette-1356": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1349": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1395": {
+"cfd7a61bc9a7": "applies"
+},
+"encode__starlette-1240": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1397": {
+"cfd7a61bc9a7": "applies"
+},
+"encode__starlette-1459": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1472": {
+"1a85e1cac40d": "does_not_apply",
+"699da39fbcfc": "does_not_apply",
+"adaa2175f7b7": "does_not_apply",
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1553": {
+"1a85e1cac40d": "does_not_apply",
+"699da39fbcfc": "does_not_apply",
+"adaa2175f7b7": "does_not_apply",
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1648": {
+"1a85e1cac40d": "does_not_apply",
+"699da39fbcfc": "does_not_apply",
+"adaa2175f7b7": "does_not_apply",
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1580": {
+"1a85e1cac40d": "does_not_apply",
+"699da39fbcfc": "does_not_apply",
+"adaa2175f7b7": "does_not_apply",
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-1643": {
+"1a85e1cac40d": "does_not_apply",
+"699da39fbcfc": "does_not_apply",
+"adaa2175f7b7": "does_not_apply",
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-488": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-292": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-2711": {
+"1a85e1cac40d": "does_not_apply",
+"699da39fbcfc": "does_not_apply",
+"adaa2175f7b7": "does_not_apply",
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-291": {
+"cfd7a61bc9a7": "applies"
+},
+"encode__starlette-1715": {
+"1a85e1cac40d": "applies",
+"699da39fbcfc": "applies",
+"adaa2175f7b7": "does_not_apply",
+"cfd7a61bc9a7": "applies"
+},
+"encode__starlette-2812": {
+"1a85e1cac40d": "applies",
+"699da39fbcfc": "applies",
+"adaa2175f7b7": "applies",
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-761": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-701": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__starlette-801": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__typesystem-122": {
+"325a1064bb05": "applies"
+},
+"encode__starlette-867": {
+"cfd7a61bc9a7": "does_not_apply"
+},
+"encode__typesystem-65": {
+"16e3a8e3512d": "applies"
+},
+"exo-lang__exo-254": {
+"5e4498bdd4d6": "applies",
+"6b5de9b69e8e": "does_not_apply"
+},
+"falconry__falcon-1602": {
+"10cf62fbdfd0": "does_not_apply",
+"438b0e71faf5": "does_not_apply",
+"19f40eb67e9b": "does_not_apply",
+"84992c372920": "does_not_apply",
+"71dd94ce47cf": "does_not_apply",
+"c3d1c02dba6c": "does_not_apply",
+"7e3558287883": "does_not_apply"
+},
+"falconry__falcon-1785": {
+"10cf62fbdfd0": "does_not_apply",
+"438b0e71faf5": "does_not_apply",
+"19f40eb67e9b": "does_not_apply",
+"84992c372920": "does_not_apply",
+"71dd94ce47cf": "does_not_apply",
+"c3d1c02dba6c": "does_not_apply",
+"7e3558287883": "does_not_apply"
+},
+"exo-lang__exo-542": {
+"47732b8cca50": "does_not_apply",
+"5e4498bdd4d6": "applies",
+"6b5de9b69e8e": "does_not_apply"
+},
+"exo-lang__exo-315": {
+"5e4498bdd4d6": "applies",
+"6b5de9b69e8e": "does_not_apply"
+},
+"exo-lang__exo-579": {
+"6765fe83caa9": "does_not_apply",
+"47732b8cca50": "does_not_apply",
+"5e4498bdd4d6": "does_not_apply",
+"6b5de9b69e8e": "does_not_apply"
+},
+"falconry__falcon-1873": {
+"0100f9697db5": "does_not_apply",
+"02ad749726ae": "does_not_apply",
+"0472ece45a29": "does_not_apply",
+"05c7596c518f": "does_not_apply",
+"2d316858a04e": "does_not_apply",
+"3018f7f5588c": "does_not_apply",
+"45c2c3ea3916": "does_not_apply",
+"4cbc2be1eeda": "does_not_apply",
+"4f3c664783bb": "does_not_apply",
+"600b3232fa04": "does_not_apply",
+"22641f2f6fc8": "does_not_apply",
+"77d472d1fbfa": "does_not_apply",
+"99d08da3e32c": "does_not_apply",
+"10cf62fbdfd0": "does_not_apply",
+"438b0e71faf5": "does_not_apply",
+"19f40eb67e9b": "does_not_apply",
+"84992c372920": "does_not_apply",
+"71dd94ce47cf": "does_not_apply",
+"c3d1c02dba6c": "does_not_apply",
+"7e3558287883": "does_not_apply"
+},
+"falconry__falcon-1949": {
+"2e98d7c5e90b": "does_not_apply",
+"3d4607adc7f6": "does_not_apply",
+"09cb08c553dc": "does_not_apply",
+"0100f9697db5": "does_not_apply",
+"02ad749726ae": "does_not_apply",
+"0472ece45a29": "does_not_apply",
+"05c7596c518f": "does_not_apply",
+"2d316858a04e": "does_not_apply",
+"3018f7f5588c": "does_not_apply",
+"45c2c3ea3916": "does_not_apply",
+"4cbc2be1eeda": "does_not_apply",
+"4f3c664783bb": "does_not_apply",
+"600b3232fa04": "does_not_apply",
+"22641f2f6fc8": "does_not_apply",
+"77d472d1fbfa": "does_not_apply",
+"99d08da3e32c": "does_not_apply",
+"10cf62fbdfd0": "does_not_apply",
+"438b0e71faf5": "does_not_apply",
+"19f40eb67e9b": "does_not_apply",
+"84992c372920": "does_not_apply",
+"71dd94ce47cf": "does_not_apply",
+"c3d1c02dba6c": "does_not_apply",
+"7e3558287883": "does_not_apply"
+},
+"falconry__falcon-2366": {
+"2e98d7c5e90b": "does_not_apply",
+"3d4607adc7f6": "does_not_apply",
+"09cb08c553dc": "does_not_apply",
+"0100f9697db5": "applies",
+"02ad749726ae": "applies",
+"0472ece45a29": "does_not_apply",
+"05c7596c518f": "applies",
+"2d316858a04e": "applies",
+"3018f7f5588c": "applies",
+"45c2c3ea3916": "applies",
+"4cbc2be1eeda": "applies",
+"4f3c664783bb": "applies",
+"600b3232fa04": "applies",
+"22641f2f6fc8": "applies",
+"77d472d1fbfa": "does_not_apply",
+"99d08da3e32c": "applies",
+"10cf62fbdfd0": "does_not_apply",
+"438b0e71faf5": "does_not_apply",
+"19f40eb67e9b": "does_not_apply",
+"84992c372920": "does_not_apply",
+"71dd94ce47cf": "does_not_apply",
+"c3d1c02dba6c": "does_not_apply",
+"7e3558287883": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1110": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1094": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fatiando__pooch-180": {
+"0085c50f3a89": "applies",
+"9fdd4b0e92fb": "applies",
+"ef48723ec50d": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1085": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fatiando__pooch-171": {
+"9fdd4b0e92fb": "applies",
+"ef48723ec50d": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1150": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1203": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1119": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1041": {
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1337": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1356": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1271": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1353": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1462": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1358": {
+"304fefbecee0": "applies",
+"a4a54e59f5c9": "applies",
+"d56cd884d587": "applies",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-887": {
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-1336": {
+"304fefbecee0": "does_not_apply",
+"a4a54e59f5c9": "does_not_apply",
+"d56cd884d587": "does_not_apply",
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fitbenchmarking__fitbenchmarking-904": {
+"8a587958aeef": "does_not_apply",
+"e839bf9d7b32": "does_not_apply"
+},
+"fniessink__next-action-162": {
+"0aadcc22e195": "does_not_apply",
+"581314783e34": "applies"
+},
+"fitbenchmarking__fitbenchmarking-661": {
+"e839bf9d7b32": "applies"
+},
+"frictionlessdata__frictionless-py-1007": {
+"243c441bd973": "does_not_apply",
+"007c493ea878": "does_not_apply",
+"3f67478f2c4a": "does_not_apply",
+"579e70f1c87f": "does_not_apply",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "does_not_apply",
+"5a98675cebbc": "does_not_apply"
+},
+"fniessink__next-action-99": {
+"581314783e34": "applies"
+},
+"fniessink__next-action-146": {
+"581314783e34": "applies"
+},
+"frictionlessdata__frictionless-py-1045": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-1117": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-1092": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-1112": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "applies",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-1142": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-659": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-724": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-952": {
+"243c441bd973": "does_not_apply",
+"007c493ea878": "does_not_apply",
+"3f67478f2c4a": "does_not_apply",
+"579e70f1c87f": "does_not_apply",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "does_not_apply",
+"5a98675cebbc": "does_not_apply"
+},
+"frictionlessdata__frictionless-py-970": {
+"243c441bd973": "does_not_apply",
+"007c493ea878": "does_not_apply",
+"3f67478f2c4a": "does_not_apply",
+"579e70f1c87f": "does_not_apply",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "does_not_apply",
+"5a98675cebbc": "does_not_apply"
+},
+"frictionlessdata__frictionless-py-1047": {
+"243c441bd973": "does_not_apply",
+"007c493ea878": "does_not_apply",
+"3f67478f2c4a": "does_not_apply",
+"579e70f1c87f": "does_not_apply",
+"78a801999c31": "applies",
+"c2e388597a9c": "does_not_apply",
+"5a98675cebbc": "does_not_apply"
+},
+"geopandas__geopandas-1279": {
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-1475": {
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-1336": {
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-1478": {
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-1674": {
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"frictionlessdata__frictionless-py-994": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"frictionlessdata__frictionless-py-945": {
+"243c441bd973": "applies",
+"007c493ea878": "applies",
+"3f67478f2c4a": "applies",
+"579e70f1c87f": "applies",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "applies",
+"5a98675cebbc": "applies"
+},
+"geopandas__geopandas-1698": {
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"frictionlessdata__frictionless-py-983": {
+"243c441bd973": "does_not_apply",
+"007c493ea878": "does_not_apply",
+"3f67478f2c4a": "does_not_apply",
+"579e70f1c87f": "does_not_apply",
+"78a801999c31": "does_not_apply",
+"c2e388597a9c": "does_not_apply",
+"5a98675cebbc": "does_not_apply"
+},
+"geopandas__geopandas-2067": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-2151": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-1483": {
+"10be81394414": "applies",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "applies"
+},
+"geopandas__geopandas-2319": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-2835": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-2658": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-2858": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-2542": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-2933": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-3363": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-3368": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"geopandas__geopandas-3415": {
+"7dd9e8bb6392": "does_not_apply",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"getsentry__responses-558": {
+"256ce704b427": "applies"
+},
+"getsentry__responses-485": {
+"256ce704b427": "applies"
+},
+"getsentry__responses-480": {
+"256ce704b427": "applies"
+},
+"geopandas__geopandas-3240": {
+"7dd9e8bb6392": "applies",
+"10be81394414": "does_not_apply",
+"8aeb2e64c9d2": "does_not_apply",
+"ae5f74e90dbd": "does_not_apply"
+},
+"getsentry__responses-564": {
+"1c272a1de802": "does_not_apply",
+"51304d819f2b": "does_not_apply",
+"67bd3fd52fa4": "does_not_apply",
+"8bc08209d2b0": "does_not_apply",
+"256ce704b427": "does_not_apply"
+},
+"getsentry__responses-614": {
+"1c272a1de802": "does_not_apply",
+"51304d819f2b": "applies",
+"67bd3fd52fa4": "does_not_apply",
+"8bc08209d2b0": "does_not_apply",
+"256ce704b427": "does_not_apply"
+},
+"getsentry__responses-622": {
+"530da2297916": "applies",
+"8366818e37e0": "does_not_apply",
+"d6e4deff3455": "applies",
+"f98be517bcfa": "applies",
+"1c272a1de802": "does_not_apply",
+"51304d819f2b": "applies",
+"67bd3fd52fa4": "applies",
+"8bc08209d2b0": "does_not_apply",
+"256ce704b427": "does_not_apply"
+},
+"globocom__m3u8-231": {
+"0a103118092a": "applies"
+},
+"globocom__m3u8-211": {
+"0a103118092a": "applies"
+},
+"glotzerlab__signac-211": {
+"6bcfb0bbab51": "does_not_apply",
+"745eaaaf5e00": "does_not_apply",
+"8209cbd59655": "does_not_apply"
+},
+"glotzerlab__signac-269": {
+"6bcfb0bbab51": "does_not_apply",
+"745eaaaf5e00": "does_not_apply",
+"8209cbd59655": "does_not_apply"
+},
+"getsentry__responses-643": {
+"530da2297916": "applies",
+"8366818e37e0": "does_not_apply",
+"d6e4deff3455": "applies",
+"f98be517bcfa": "applies",
+"1c272a1de802": "applies",
+"51304d819f2b": "applies",
+"67bd3fd52fa4": "applies",
+"8bc08209d2b0": "does_not_apply",
+"256ce704b427": "does_not_apply"
+},
+"globocom__m3u8-375": {
+"96990b2f793c": "applies",
+"f606d027bb8f": "applies",
+"0a103118092a": "applies"
+},
+"getsentry__responses-736": {
+"2466b697ce06": "applies",
+"530da2297916": "applies",
+"8366818e37e0": "does_not_apply",
+"d6e4deff3455": "applies",
+"f98be517bcfa": "applies",
+"1c272a1de802": "does_not_apply",
+"51304d819f2b": "applies",
+"67bd3fd52fa4": "applies",
+"8bc08209d2b0": "does_not_apply",
+"256ce704b427": "does_not_apply"
+},
+"glotzerlab__signac-877": {
+"557ddbe2ae63": "applies",
+"c8d06ae83c2a": "does_not_apply",
+"6bcfb0bbab51": "does_not_apply",
+"745eaaaf5e00": "does_not_apply",
+"8209cbd59655": "does_not_apply"
+},
+"glotzerlab__signac-622": {
+"c8d06ae83c2a": "does_not_apply",
+"6bcfb0bbab51": "applies",
+"745eaaaf5e00": "applies",
+"8209cbd59655": "applies"
+},
+"googleapis__google-resumable-media-python-450": {
+"1d25efcb62e8": "does_not_apply",
+"1f60c359dc7e": "does_not_apply",
+"60c57dd84d01": "does_not_apply"
+},
+"googleapis__google-resumable-media-python-290": {
+"1d25efcb62e8": "applies",
+"1f60c359dc7e": "applies",
+"60c57dd84d01": "applies"
+},
+"googleapis__google-resumable-media-python-375": {
+"1d25efcb62e8": "applies",
+"1f60c359dc7e": "applies",
+"60c57dd84d01": "applies"
+},
+"glotzerlab__signac-323": {
+"c8d06ae83c2a": "does_not_apply",
+"6bcfb0bbab51": "does_not_apply",
+"745eaaaf5e00": "does_not_apply",
+"8209cbd59655": "does_not_apply"
+},
+"getsentry__responses-673": {
+"530da2297916": "applies",
+"8366818e37e0": "does_not_apply",
+"d6e4deff3455": "applies",
+"f98be517bcfa": "applies",
+"1c272a1de802": "does_not_apply",
+"51304d819f2b": "applies",
+"67bd3fd52fa4": "applies",
+"8bc08209d2b0": "applies",
+"256ce704b427": "applies"
+},
+"googleapis__python-bigquery-750": {
+"078669b16c4b": "does_not_apply",
+"a09f7c9ece4e": "does_not_apply"
+},
+"googleapis__python-bigquery-660": {
+"078669b16c4b": "does_not_apply",
+"a09f7c9ece4e": "does_not_apply"
+},
+"googleapis__python-bigquery-1944": {
+"184f4dbd8580": "applies",
+"192603ff5167": "applies",
+"3dfb6d3aee71": "applies",
+"891ba8373b39": "does_not_apply",
+"abd0d4cd8f98": "applies",
+"f314aa38bd1d": "does_not_apply",
+"078669b16c4b": "does_not_apply",
+"a09f7c9ece4e": "applies"
+},
+"googleapis__python-bigquery-401": {
+"078669b16c4b": "applies",
+"a09f7c9ece4e": "applies"
+},
+"googleapis__python-bigquery-1930": {
+"184f4dbd8580": "does_not_apply",
+"192603ff5167": "applies",
+"3dfb6d3aee71": "applies",
+"891ba8373b39": "does_not_apply",
+"abd0d4cd8f98": "applies",
+"f314aa38bd1d": "does_not_apply",
+"078669b16c4b": "does_not_apply",
+"a09f7c9ece4e": "does_not_apply"
+},
+"googleapis__python-pubsub-1244": {
+"7e8d8bcebee7": "applies",
+"4887d53f8d61": "does_not_apply",
+"5765ccdb6795": "applies",
+"a2a1b1aded78": "applies",
+"f4fb0fbe0f3f": "does_not_apply"
+},
+"googleapis__python-pubsub-692": {
+"4887d53f8d61": "does_not_apply",
+"5765ccdb6795": "applies",
+"78b1250b1c62": "applies",
+"f4fb0fbe0f3f": "does_not_apply"
+},
+"googleapis__python-bigquery-1999": {
+"184f4dbd8580": "applies",
+"192603ff5167": "does_not_apply",
+"3dfb6d3aee71": "does_not_apply",
+"891ba8373b39": "applies",
+"abd0d4cd8f98": "does_not_apply",
+"f314aa38bd1d": "applies",
+"078669b16c4b": "does_not_apply",
+"a09f7c9ece4e": "does_not_apply"
+},
+"googlefonts__ufo2ft-609": {
+"232dc3c3c651": "does_not_apply",
+"3e44da65bae8": "does_not_apply",
+"68050ff2b0c0": "does_not_apply",
+"1701496344bf": "does_not_apply"
+},
+"googlefonts__ufo2ft-727": {
+"bc704b19e3db": "does_not_apply",
+"232dc3c3c651": "does_not_apply",
+"3e44da65bae8": "does_not_apply",
+"68050ff2b0c0": "applies",
+"1701496344bf": "does_not_apply"
+},
+"googleapis__python-pubsub-738": {
+"7e8d8bcebee7": "applies",
+"4887d53f8d61": "does_not_apply",
+"5765ccdb6795": "applies",
+"a2a1b1aded78": "applies",
+"f4fb0fbe0f3f": "does_not_apply"
+},
+"googleapis__python-pubsub-787": {
+"7e8d8bcebee7": "applies",
+"4887d53f8d61": "does_not_apply",
+"5765ccdb6795": "applies",
+"a2a1b1aded78": "applies",
+"f4fb0fbe0f3f": "does_not_apply"
+},
+"googleapis__synthtool-1294": {
+"b392203d9fde": "does_not_apply",
+"e8d2746c652a": "does_not_apply",
+"f1d75e9d26bf": "does_not_apply"
+},
+"hhatto__autopep8-466": {
+"876d4f87e2c6": "does_not_apply",
+"a8434cd12fb5": "applies",
+"c69767e89454": "applies",
+"cb7cca1c8a78": "applies",
+"f5c4c26d42ce": "applies",
+"88149e22b245": "does_not_apply",
+"cddbf75dcf33": "does_not_apply"
+},
+"horejsek__python-fastjsonschema-112": {
+"4105c4c047d0": "applies",
+"77cbcdc81fa9": "applies",
+"4dc4a9cae51a": "applies"
+},
+"horejsek__python-fastjsonschema-116": {
+"4105c4c047d0": "applies",
+"77cbcdc81fa9": "applies",
+"4dc4a9cae51a": "applies"
+},
+"hhatto__autopep8-464": {
+"88149e22b245": "does_not_apply",
+"cddbf75dcf33": "does_not_apply"
+},
+"googleapis__synthtool-1434": {
+"17923ee3b2e8": "does_not_apply",
+"3a78de083de3": "does_not_apply",
+"7866c347dbef": "does_not_apply",
+"8cf9519b6b59": "does_not_apply",
+"bb40e80d475e": "does_not_apply",
+"b392203d9fde": "does_not_apply",
+"e8d2746c652a": "does_not_apply",
+"f1d75e9d26bf": "does_not_apply"
+},
+"horejsek__python-fastjsonschema-88": {
+"4105c4c047d0": "applies",
+"77cbcdc81fa9": "applies",
+"4dc4a9cae51a": "applies"
+},
+"jd__tenacity-179": {
+"390d8b307786": "applies"
+},
+"horejsek__python-fastjsonschema-144": {
+"10dddad3eaa8": "does_not_apply",
+"4105c4c047d0": "applies",
+"77cbcdc81fa9": "applies",
+"4dc4a9cae51a": "applies"
+},
+"jd__tenacity-201": {
+"390d8b307786": "applies"
+},
+"horejsek__python-fastjsonschema-27": {
+"4dc4a9cae51a": "applies"
+},
+"jd__tenacity-342": {
+"766ec743af98": "applies",
+"390d8b307786": "applies"
+},
+"joke2k__faker-1461": {
+"9ff363edfbed": "applies",
+"b58e319fca2f": "does_not_apply"
+},
+"joke2k__faker-1480": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "does_not_apply",
+"b58e319fca2f": "does_not_apply"
+},
+"iterative__datachain-225": {
+"35f066688d24": "does_not_apply",
+"4161907f6065": "does_not_apply",
+"4396c6a684d0": "does_not_apply",
+"5c91779018cd": "applies",
+"8d241d01644a": "does_not_apply",
+"9b1ef3375122": "applies",
+"aa4e28121181": "does_not_apply",
+"4b0e24fa85e9": "does_not_apply",
+"ea349e0baefe": "applies"
+},
+"jd__tenacity-479": {
+"2dc8c3514927": "applies",
+"62dcc76af79a": "applies",
+"b0f87edbc958": "applies",
+"766ec743af98": "does_not_apply",
+"390d8b307786": "does_not_apply"
+},
+"iterative__datachain-387": {
+"0627189efa69": "does_not_apply",
+"5951658cfd42": "applies",
+"d453f5b5f48d": "does_not_apply",
+"35f066688d24": "does_not_apply",
+"4161907f6065": "does_not_apply",
+"4396c6a684d0": "does_not_apply",
+"5c91779018cd": "does_not_apply",
+"8436619d3a20": "does_not_apply",
+"9b1ef3375122": "does_not_apply",
+"aa4e28121181": "does_not_apply",
+"4b0e24fa85e9": "does_not_apply",
+"ea349e0baefe": "does_not_apply"
+},
+"joke2k__faker-1520": {
+"1b7107944a0e": "applies",
+"329de27a03e5": "applies",
+"9ff363edfbed": "does_not_apply",
+"b58e319fca2f": "does_not_apply"
+},
+"joke2k__faker-1569": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"b58e319fca2f": "applies"
+},
+"joke2k__faker-1711": {
+"1b7107944a0e": "applies",
+"329de27a03e5": "applies",
+"9ff363edfbed": "does_not_apply",
+"b58e319fca2f": "does_not_apply"
+},
+"joke2k__faker-1754": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"b58e319fca2f": "does_not_apply"
+},
+"joke2k__faker-1660": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"b58e319fca2f": "does_not_apply"
+},
+"joke2k__faker-2007": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"b58e319fca2f": "applies"
+},
+"joke2k__faker-1741": {
+"1b7107944a0e": "applies",
+"329de27a03e5": "applies",
+"9ff363edfbed": "does_not_apply",
+"b58e319fca2f": "does_not_apply"
+},
+"jupyterhub__oauthenticator-764": {
+"52197d45a692": "applies"
+},
+"joke2k__faker-1937": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"b58e319fca2f": "does_not_apply"
+},
+"joke2k__faker-2151": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"b58e319fca2f": "does_not_apply"
+},
+"jupyterhub__oauthenticator-671": {
+"52197d45a692": "does_not_apply"
+},
+"joke2k__faker-2190": {
+"0e9f90fa8826": "does_not_apply",
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"8c546d0b0f87": "does_not_apply"
+},
+"joke2k__faker-2155": {
+"1b7107944a0e": "does_not_apply",
+"329de27a03e5": "does_not_apply",
+"9ff363edfbed": "applies",
+"b58e319fca2f": "applies"
+},
+"magpylib__magpylib-789": {
+"7165d719cb91": "does_not_apply",
+"bf97ff10cfe2": "does_not_apply"
+},
+"lightkurve__lightkurve-1468": {
+"28e6cadc0d73": "does_not_apply",
+"9093e95a1ced": "applies",
+"b3263de93174": "applies",
+"25d12bd53f1b": "applies",
+"e13cd8821324": "applies"
+},
+"magpylib__magpylib-706": {
+"7165d719cb91": "applies",
+"8c5a0c3a7ca5": "applies"
+},
+"lightkurve__lightkurve-1426": {
+"21ae63748aca": "does_not_apply",
+"e13cd8821324": "does_not_apply"
+},
+"marshmallow-code__apispec-961": {
+"482104eb652d": "applies",
+"70222bbe5e8a": "applies",
+"8ae387d3cbe2": "applies",
+"6568e6d2bd60": "applies",
+"adc692629ce6": "applies",
+"0f001b83d707": "applies",
+"99d8a5725d52": "applies"
+},
+"marshmallow-code__apispec-950": {
+"482104eb652d": "applies",
+"70222bbe5e8a": "applies",
+"8ae387d3cbe2": "applies",
+"6568e6d2bd60": "applies",
+"adc692629ce6": "applies",
+"0f001b83d707": "applies",
+"99d8a5725d52": "applies"
+},
+"marshmallow-code__apispec-811": {
+"482104eb652d": "does_not_apply",
+"70222bbe5e8a": "does_not_apply",
+"8ae387d3cbe2": "applies",
+"6568e6d2bd60": "does_not_apply",
+"adc692629ce6": "does_not_apply",
+"0f001b83d707": "does_not_apply",
+"99d8a5725d52": "does_not_apply"
+},
+"marshmallow-code__apispec-716": {
+"6568e6d2bd60": "applies",
+"adc692629ce6": "applies",
+"0be69b0de3b6": "applies",
+"99d8a5725d52": "does_not_apply"
+},
+"marshmallow-code__apispec-677": {
+"6568e6d2bd60": "does_not_apply",
+"adc692629ce6": "applies",
+"012c55a22506": "does_not_apply",
+"99d8a5725d52": "does_not_apply"
+},
+"mit-ll-responsible-ai__hydra-zen-207": {
+"1afd6251ac0e": "applies",
+"fa2a3755aa1e": "does_not_apply"
+},
+"mathause__mplotutils-136": {
+"4aa5adeb770c": "applies"
+},
+"mathause__mplotutils-61": {
+"4aa5adeb770c": "applies"
+},
+"mit-ll-responsible-ai__hydra-zen-299": {
+"1afd6251ac0e": "applies",
+"fa2a3755aa1e": "does_not_apply"
+},
+"mit-ll-responsible-ai__hydra-zen-384": {
+"1afd6251ac0e": "applies",
+"fa2a3755aa1e": "does_not_apply"
+},
+"mit-ll-responsible-ai__hydra-zen-367": {
+"1afd6251ac0e": "applies",
+"fa2a3755aa1e": "applies"
+},
+"marshmallow-code__apispec-953": {
+"482104eb652d": "applies",
+"70222bbe5e8a": "applies",
+"8ae387d3cbe2": "applies",
+"6568e6d2bd60": "applies",
+"adc692629ce6": "applies",
+"0f001b83d707": "applies",
+"99d8a5725d52": "applies"
+},
+"mit-ll-responsible-ai__hydra-zen-266": {
+"1afd6251ac0e": "applies",
+"fa2a3755aa1e": "does_not_apply"
+},
+"mne-tools__mne-bids-1357": {
+"1b4725543acb": "does_not_apply",
+"60e12d502ff2": "does_not_apply",
+"9d09878bdee4": "applies"
+},
+"mit-ll-responsible-ai__hydra-zen-459": {
+"19e3cc8b512d": "does_not_apply",
+"2c37375d490e": "does_not_apply",
+"c1beddb7b12e": "does_not_apply",
+"1afd6251ac0e": "applies",
+"fa2a3755aa1e": "applies"
+},
+"netromdk__vermin-173": {
+"0947e01d71dc": "applies"
+},
+"mit-ll-responsible-ai__hydra-zen-708": {
+"19e3cc8b512d": "does_not_apply",
+"2c37375d490e": "does_not_apply",
+"c1beddb7b12e": "does_not_apply",
+"1afd6251ac0e": "applies",
+"fa2a3755aa1e": "does_not_apply"
+},
+"mne-tools__mne-bids-1359": {
+"1b4725543acb": "applies",
+"60e12d502ff2": "does_not_apply",
+"9d09878bdee4": "applies"
+},
+"networkx__networkx-7024": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-7422": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-6798": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-6908": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"netromdk__vermin-196": {
+"0993954dcc92": "does_not_apply",
+"9033b24b1a4d": "does_not_apply",
+"0947e01d71dc": "applies"
+},
+"networkx__networkx-7473": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-7465": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-7445": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-7928": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-7721": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"networkx__networkx-7729": {
+"1ddca9d2cc9f": "does_not_apply"
+},
+"pandas-dev__pandas-61022": {
+"0ccfea107a2e": "applies",
+"4facff0da12c": "applies",
+"ea4174548de0": "applies",
+"32407485e849": "applies",
+"53f52998bff0": "applies",
+"e1d15eb67f5a": "applies"
+},
+"pandas-dev__pandas-61062": {
+"0ccfea107a2e": "applies",
+"4facff0da12c": "applies",
+"ea4174548de0": "applies",
+"32407485e849": "applies",
+"53f52998bff0": "applies",
+"e1d15eb67f5a": "applies"
+},
+"pandas-dev__pandas-61146": {
+"0ccfea107a2e": "applies",
+"4facff0da12c": "applies",
+"ea4174548de0": "applies",
+"32407485e849": "does_not_apply",
+"53f52998bff0": "applies",
+"e1d15eb67f5a": "applies"
+},
+"pandas-dev__pandas-61158": {
+"0ccfea107a2e": "applies",
+"4facff0da12c": "applies",
+"ea4174548de0": "applies",
+"32407485e849": "does_not_apply",
+"53f52998bff0": "applies",
+"e1d15eb67f5a": "applies"
+},
+"peterbe__hashin-106": {
+"9b4a136b446f": "does_not_apply"
+},
+"peterbe__hashin-111": {
+"9b4a136b446f": "applies"
+},
+"pandas-dev__pandas-60000": {
+"0d4e6ee9b87a": "applies",
+"53f52998bff0": "applies",
+"e1d15eb67f5a": "applies"
+},
+"peterbe__hashin-110": {
+"9b4a136b446f": "applies"
+},
+"peterbe__hashin-117": {
+"9b4a136b446f": "applies"
+},
+"peterbe__hashin-109": {
+"9b4a136b446f": "does_not_apply"
+},
+"peterbe__hashin-114": {
+"9b4a136b446f": "applies"
+},
+"peterbe__hashin-131": {
+"9b4a136b446f": "does_not_apply"
+},
+"peterbe__hashin-125": {
+"9b4a136b446f": "applies"
+},
+"peterbe__hashin-92": {
+"9b4a136b446f": "applies"
+},
+"peterbe__hashin-186": {
+"9b4a136b446f": "does_not_apply"
+},
+"peterbe__hashin-95": {
+"9b4a136b446f": "applies"
+},
+"planetlabs__planet-client-python-1018": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "applies",
+"53af5ea8539e": "applies"
+},
+"planetlabs__planet-client-python-654": {
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-429": {
+"0a360a28cc9c": "applies",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-621": {
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-581": {
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-713": {
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-816": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "applies",
+"53af5ea8539e": "applies"
+},
+"planetlabs__planet-client-python-805": {
+"138ce87d9bf6": "applies",
+"47c53070955b": "applies",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "applies"
+},
+"planetlabs__planet-client-python-850": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "applies",
+"53af5ea8539e": "applies"
+},
+"planetlabs__planet-client-python-978": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-852": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-898": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"planetlabs__planet-client-python-870": {
+"31fa34cf876d": "applies",
+"138ce87d9bf6": "applies",
+"47c53070955b": "applies",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "applies"
+},
+"planetlabs__planet-client-python-900": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"pre-commit__pre-commit-1092": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"poliastro__poliastro-330": {
+"740a76a6ed11": "does_not_apply"
+},
+"poliastro__poliastro-658": {
+"1fc7d394de5f": "does_not_apply",
+"14d91d8b39d1": "does_not_apply",
+"131ac90335a8": "does_not_apply"
+},
+"pre-commit__pre-commit-1251": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1248": {
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"planetlabs__planet-client-python-989": {
+"31fa34cf876d": "does_not_apply",
+"138ce87d9bf6": "does_not_apply",
+"47c53070955b": "does_not_apply",
+"0a360a28cc9c": "does_not_apply",
+"53af5ea8539e": "does_not_apply"
+},
+"poliastro__poliastro-470": {
+"14d91d8b39d1": "does_not_apply",
+"131ac90335a8": "does_not_apply"
+},
+"pre-commit__pre-commit-1359": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1179": {
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"pre-commit__pre-commit-1341": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1363": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1259": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1299": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1435": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1382": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1576": {
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1480": {
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1997": {
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1497": {
+"151b44f4012a": "applies",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1778": {
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"pre-commit__pre-commit-2005": {
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"pre-commit__pre-commit-2154": {
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-1715": {
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"pre-commit__pre-commit-2029": {
+"0413cccade17": "applies",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"pre-commit__pre-commit-2312": {
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-2480": {
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "applies",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-2301": {
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-2524": {
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-2345": {
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-803": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-2743": {
+"01977c490a81": "does_not_apply",
+"2b9b5ebe2ff5": "does_not_apply",
+"8e28592fa71b": "does_not_apply",
+"ad9adcb3c180": "does_not_apply",
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "applies",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-933": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-3168": {
+"48e6e58672dc": "does_not_apply",
+"01977c490a81": "does_not_apply",
+"2b9b5ebe2ff5": "does_not_apply",
+"8e28592fa71b": "does_not_apply",
+"ad9adcb3c180": "does_not_apply",
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "applies",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-2686": {
+"01977c490a81": "applies",
+"2b9b5ebe2ff5": "does_not_apply",
+"8e28592fa71b": "does_not_apply",
+"ad9adcb3c180": "does_not_apply",
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-844": {
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"pre-commit__pre-commit-2746": {
+"01977c490a81": "applies",
+"2b9b5ebe2ff5": "applies",
+"8e28592fa71b": "applies",
+"ad9adcb3c180": "applies",
+"0413cccade17": "does_not_apply",
+"5c1779964b85": "does_not_apply",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-977": {
+"099a06de6d16": "does_not_apply",
+"43d9f1177b38": "does_not_apply",
+"59bf3b2087bc": "does_not_apply"
+},
+"pre-commit__pre-commit-3130": {
+"01977c490a81": "does_not_apply",
+"2b9b5ebe2ff5": "applies",
+"8e28592fa71b": "applies",
+"ad9adcb3c180": "applies",
+"0413cccade17": "applies",
+"5c1779964b85": "applies",
+"151b44f4012a": "does_not_apply",
+"099a06de6d16": "applies",
+"43d9f1177b38": "applies",
+"59bf3b2087bc": "applies"
+},
+"pydicom__pydicom-1000": {
+"a18a209fa0eb": "applies"
+},
+"probabl-ai__skore-914": {
+"1d6d827d462e": "does_not_apply",
+"6f003443416f": "applies",
+"484dad25c822": "applies"
+},
+"pydicom__pydicom-1033": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1017": {
+"a18a209fa0eb": "applies"
+},
+"pre-commit__pre-commit-mirror-maker-64": {
+"005c678c356c": "applies",
+"0ac58bce880f": "applies",
+"3425868d64e7": "applies",
+"3beab451a664": "applies",
+"48432dc3f2a7": "applies",
+"4b5df71a863a": "applies",
+"8a53cee7f8dd": "applies",
+"0c8adb36d669": "applies",
+"e7ba6d2abbef": "applies"
+},
+"pydicom__pydicom-1090": {
+"a18a209fa0eb": "applies"
+},
+"pre-commit__pre-commit-mirror-maker-185": {
+"15354eaa7730": "applies",
+"7aeb4c2f8dcb": "does_not_apply",
+"005c678c356c": "applies",
+"0ac58bce880f": "does_not_apply",
+"3425868d64e7": "applies",
+"3beab451a664": "does_not_apply",
+"48432dc3f2a7": "applies",
+"4b5df71a863a": "does_not_apply",
+"8a53cee7f8dd": "applies",
+"a359af91b610": "applies",
+"e7ba6d2abbef": "does_not_apply"
+},
+"probabl-ai__skore-1009": {
+"0379da4661fd": "applies",
+"6ff32545df07": "applies",
+"708e0758431d": "applies",
+"a066dbb02e5c": "applies",
+"9259a16e3ae7": "applies",
+"bfc98acd8fc9": "applies",
+"1d6d827d462e": "does_not_apply",
+"6f003443416f": "applies",
+"484dad25c822": "does_not_apply"
+},
+"pydicom__pydicom-1031": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1192": {
+"a18a209fa0eb": "applies"
+},
+"pydicom__pydicom-1228": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1194": {
+"a18a209fa0eb": "applies"
+},
+"pydicom__pydicom-1050": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1256": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1539": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1931": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1562": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1694": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1842": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1970": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1960": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1995": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-1633": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-2069": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-2065": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-2074": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-2083": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-785": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-683": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-811": {
+"a18a209fa0eb": "applies"
+},
+"pydicom__pydicom-2089": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-737": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-764": {
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-933": {
+"a18a209fa0eb": "applies"
+},
+"pydicom__pydicom-965": {
+"a18a209fa0eb": "applies"
+},
+"pydicom__pydicom-2094": {
+"4b7a303c5680": "applies",
+"86bf3a69001b": "applies",
+"a18a209fa0eb": "does_not_apply"
+},
+"pydicom__pydicom-955": {
+"a18a209fa0eb": "applies"
+},
+"pydicom__pydicom-938": {
+"a18a209fa0eb": "applies"
+},
+"pypa__cibuildwheel-1282": {
+"1b9251fa7df6": "applies",
+"78eb81aad6aa": "applies",
+"f9f9b2f64ecf": "applies"
+},
+"pypa__auditwheel-343": {
+"7456b3e9db00": "applies"
+},
+"pypa__cibuildwheel-1430": {
+"ea8ce03931e1": "does_not_apply",
+"1b9251fa7df6": "does_not_apply",
+"78eb81aad6aa": "does_not_apply",
+"f9f9b2f64ecf": "does_not_apply"
+},
+"pypa__hatch-1148": {
+"3f6128338271": "does_not_apply",
+"6bc86cebbc99": "does_not_apply",
+"7f5fcafd75f1": "does_not_apply",
+"ef31bc970a76": "does_not_apply",
+"d8b15db177fd": "does_not_apply"
+},
+"pypa__hatch-535": {
+"7f5fcafd75f1": "does_not_apply",
+"ef31bc970a76": "does_not_apply",
+"d8b15db177fd": "does_not_apply"
+},
+"pypa__cibuildwheel-1613": {
+"ea8ce03931e1": "does_not_apply",
+"1b9251fa7df6": "does_not_apply",
+"78eb81aad6aa": "does_not_apply",
+"f9f9b2f64ecf": "does_not_apply"
+},
+"pypa__cibuildwheel-1138": {
+"78eb81aad6aa": "applies",
+"f9f9b2f64ecf": "does_not_apply"
+},
+"pypa__hatch-422": {
+"d8b15db177fd": "does_not_apply"
+},
+"pypa__auditwheel-367": {
+"b939a1dbf8b1": "applies",
+"7456b3e9db00": "does_not_apply"
+},
+"pysmt__pysmt-445": {
+"1b84fd7f8c6d": "does_not_apply"
+},
+"pysmt__pysmt-644": {
+"1b84fd7f8c6d": "does_not_apply"
+},
+"pysmt__pysmt-502": {
+"1b84fd7f8c6d": "does_not_apply"
+},
+"pytest-dev__pytest-xdist-885": {
+"1d302a69d9ab": "does_not_apply",
+"3920ddab6a7e": "does_not_apply",
+"68d3377ddca3": "does_not_apply",
+"e493475b392b": "does_not_apply"
+},
+"python-wheel-build__fromager-208": {
+"d1fae39c2b5e": "applies",
+"0bf5f0fc898e": "does_not_apply",
+"ed2263488ff5": "does_not_apply"
+},
+"python-wheel-build__fromager-155": {
+"0bf5f0fc898e": "does_not_apply",
+"104209d22982": "does_not_apply"
+},
+"pytest-dev__pytest-xdist-938": {
+"6f8017835e27": "applies",
+"69937005946b": "applies",
+"1d302a69d9ab": "does_not_apply",
+"3920ddab6a7e": "does_not_apply",
+"68d3377ddca3": "does_not_apply",
+"e493475b392b": "does_not_apply"
+},
+"python-wheel-build__fromager-353": {
+"165fb474d821": "does_not_apply",
+"cd8057218d68": "applies",
+"4b037dfb24ac": "does_not_apply",
+"47f27aed32c6": "does_not_apply",
+"ae6b5e410edb": "does_not_apply",
+"ed2263488ff5": "does_not_apply"
+},
+"python-wheel-build__fromager-352": {
+"47f27aed32c6": "applies",
+"0bf5f0fc898e": "does_not_apply",
+"ed2263488ff5": "applies"
+},
+"python-jsonschema__check-jsonschema-466": {
+"1a037c1c9f11": "does_not_apply",
+"2af5414c0094": "does_not_apply",
+"594f5b09a25c": "does_not_apply",
+"2e9a97d6cfc6": "does_not_apply",
+"6a53386b739a": "does_not_apply",
+"97a62938e5e0": "does_not_apply",
+"c76f21ad8114": "applies",
+"cb482b109af8": "does_not_apply",
+"e10af9d9dbf9": "does_not_apply",
+"ff93ad3b29df": "does_not_apply"
+},
+"ramonhagenaars__nptyping-54": {
+"ca383ec1e0ca": "does_not_apply"
+},
+"qiboteam__qibo-699": {
+"094a288815b2": "applies",
+"0b34377bd19b": "applies",
+"121ad6115e5f": "applies",
+"1c291fbc4ed8": "applies",
+"4fb3adc6e9f0": "applies",
+"8d9cc1414f94": "applies",
+"9566d461fd77": "applies",
+"a86c099831f1": "applies",
+"668a26fe2be5": "applies",
+"bfeab33f9067": "applies"
+},
+"qiboteam__qibo-1371": {
+"424db0d181fe": "applies",
+"7fd2db3f487f": "applies",
+"f4290c77ff64": "does_not_apply",
+"094a288815b2": "applies",
+"0b34377bd19b": "does_not_apply",
+"121ad6115e5f": "applies",
+"1c291fbc4ed8": "does_not_apply",
+"4fb3adc6e9f0": "does_not_apply",
+"8d9cc1414f94": "does_not_apply",
+"9566d461fd77": "does_not_apply",
+"a86c099831f1": "applies",
+"668a26fe2be5": "does_not_apply",
+"bfeab33f9067": "does_not_apply"
+},
+"qiboteam__qibo-446": {
+"668a26fe2be5": "does_not_apply",
+"bfeab33f9067": "applies"
+},
+"reagento__dishka-143": {
+"08aeca592f73": "does_not_apply"
+},
+"reagento__dishka-142": {
+"08aeca592f73": "does_not_apply"
+},
+"ramonhagenaars__nptyping-55": {
+"bc5bd3662eb2": "applies",
+"c7934275275c": "applies",
+"ca383ec1e0ca": "does_not_apply"
+},
+"reagento__dishka-297": {
+"08aeca592f73": "does_not_apply"
+},
+"reagento__dishka-189": {
+"08aeca592f73": "does_not_apply"
+},
+"qiboteam__qibo-805": {
+"094a288815b2": "does_not_apply",
+"0b34377bd19b": "does_not_apply",
+"121ad6115e5f": "does_not_apply",
+"1c291fbc4ed8": "does_not_apply",
+"4fb3adc6e9f0": "does_not_apply",
+"8d9cc1414f94": "does_not_apply",
+"9566d461fd77": "does_not_apply",
+"a86c099831f1": "does_not_apply",
+"668a26fe2be5": "applies",
+"bfeab33f9067": "applies"
+},
+"reagento__dishka-299": {
+"08aeca592f73": "does_not_apply"
+},
+"qiboteam__qibo-642": {
+"668a26fe2be5": "applies",
+"bfeab33f9067": "applies"
+},
+"ramonhagenaars__nptyping-85": {
+"bc5bd3662eb2": "does_not_apply",
+"2d36e4e920d6": "does_not_apply",
+"ca383ec1e0ca": "does_not_apply"
+},
+"repobee__repobee-348": {
+"44192c069f70": "does_not_apply",
+"56aaacf7310e": "does_not_apply",
+"661df8f2bd23": "does_not_apply",
+"f106fb5e2c84": "does_not_apply",
+"dbe24ccb6710": "applies"
+},
+"repobee__repobee-336": {
+"44192c069f70": "does_not_apply",
+"56aaacf7310e": "does_not_apply",
+"661df8f2bd23": "does_not_apply",
+"f106fb5e2c84": "does_not_apply",
+"dbe24ccb6710": "does_not_apply"
+},
+"repobee__repobee-316": {
+"dbe24ccb6710": "does_not_apply"
+},
+"repobee__repobee-330": {
+"44192c069f70": "applies",
+"56aaacf7310e": "does_not_apply",
+"661df8f2bd23": "does_not_apply",
+"f106fb5e2c84": "does_not_apply",
+"dbe24ccb6710": "applies"
+},
+"repobee__repobee-363": {
+"44192c069f70": "does_not_apply",
+"56aaacf7310e": "does_not_apply",
+"661df8f2bd23": "does_not_apply",
+"f106fb5e2c84": "does_not_apply",
+"dbe24ccb6710": "applies"
+},
+"runwayml__model-sdk-46": {
+"0717dbc61589": "does_not_apply",
+"17cd4291304e": "applies",
+"35b42a0ef6cb": "does_not_apply"
+},
+"repobee__repobee-457": {
+"44192c069f70": "does_not_apply",
+"56aaacf7310e": "does_not_apply",
+"661df8f2bd23": "does_not_apply",
+"f106fb5e2c84": "does_not_apply",
+"dbe24ccb6710": "applies"
+},
+"sanic-org__sanic-3015": {
+"6db358b3b09f": "does_not_apply",
+"8bb8ec989adc": "does_not_apply"
+},
+"runwayml__model-sdk-67": {
+"4a4d81eea3bd": "applies",
+"477b4f255530": "does_not_apply",
+"d800b78c9eb7": "does_not_apply",
+"0717dbc61589": "does_not_apply",
+"17cd4291304e": "does_not_apply",
+"35b42a0ef6cb": "does_not_apply"
+},
+"repobee__repobee-428": {
+"44192c069f70": "applies",
+"56aaacf7310e": "does_not_apply",
+"661df8f2bd23": "does_not_apply",
+"f106fb5e2c84": "does_not_apply",
+"dbe24ccb6710": "applies"
+},
+"scikit-hep__awkward-3291": {
+"638f8d0e3afe": "applies",
+"09f4d2b51a10": "applies",
+"d550b6cfb5cc": "applies"
+},
+"scikit-hep__hist-158": {
+"79aa6b2ef8df": "does_not_apply"
+},
+"repobee__repobee-509": {
+"8c3ec963768f": "does_not_apply",
+"44192c069f70": "does_not_apply",
+"56aaacf7310e": "does_not_apply",
+"661df8f2bd23": "does_not_apply",
+"f106fb5e2c84": "does_not_apply",
+"dbe24ccb6710": "applies"
+},
+"scikit-hep__hist-193": {
+"79aa6b2ef8df": "applies"
+},
+"scikit-hep__awkward-3322": {
+"7e2cdc5670d5": "does_not_apply",
+"dbe28bdace36": "applies",
+"214fd4066a37": "applies",
+"fa4a4e18ee9e": "applies",
+"638f8d0e3afe": "applies",
+"09f4d2b51a10": "does_not_apply",
+"99e31236ab22": "applies"
+},
+"scikit-hep__hist-247": {
+"23dc1443059d": "applies",
+"8452033f7532": "does_not_apply",
+"ec5b6f537b7a": "applies",
+"79aa6b2ef8df": "does_not_apply"
+},
+"scikit-hep__hist-241": {
+"23dc1443059d": "applies",
+"8452033f7532": "does_not_apply",
+"ec5b6f537b7a": "applies",
+"79aa6b2ef8df": "does_not_apply"
+},
+"scikit-hep__hist-238": {
+"8452033f7532": "does_not_apply",
+"ec5b6f537b7a": "does_not_apply",
+"79aa6b2ef8df": "does_not_apply"
+},
+"scikit-hep__vector-376": {
+"37b11681f22c": "does_not_apply"
+},
+"scikit-hep__vector-444": {
+"a6c0a42e0fd6": "does_not_apply",
+"37b11681f22c": "applies"
+},
+"scikit-hep__vector-466": {
+"a6c0a42e0fd6": "does_not_apply",
+"37b11681f22c": "applies"
+},
+"scikit-hep__hist-278": {
+"126eceeca1d9": "applies",
+"15fc1ae1a60a": "applies",
+"24bc59365032": "does_not_apply",
+"23dc1443059d": "does_not_apply",
+"8452033f7532": "applies",
+"ec5b6f537b7a": "does_not_apply",
+"79aa6b2ef8df": "applies"
+},
+"scikit-hep__hist-250": {
+"126eceeca1d9": "does_not_apply",
+"15fc1ae1a60a": "does_not_apply",
+"24bc59365032": "does_not_apply",
+"23dc1443059d": "applies",
+"8452033f7532": "applies",
+"ec5b6f537b7a": "applies",
+"79aa6b2ef8df": "applies"
+},
+"stan-dev__cmdstanpy-677": {
+"052805fc1eb8": "does_not_apply"
+},
+"scverse__spatialdata-697": {
+"26f48d4b9dba": "does_not_apply",
+"4228f82e056c": "does_not_apply",
+"50c7655e1982": "does_not_apply",
+"03717fbc749d": "does_not_apply",
+"beb5dc4180c7": "does_not_apply"
+},
+"scverse__spatialdata-610": {
+"50c7655e1982": "does_not_apply",
+"7b2f1a142e89": "applies",
+"beb5dc4180c7": "applies"
+},
+"stan-dev__cmdstanpy-718": {
+"ad8b4d1cd546": "applies",
+"052805fc1eb8": "does_not_apply"
+},
+"scverse__spatialdata-791": {
+"bca3988edc00": "applies",
+"26f48d4b9dba": "does_not_apply",
+"4228f82e056c": "applies",
+"50c7655e1982": "does_not_apply",
+"03717fbc749d": "applies",
+"beb5dc4180c7": "applies"
+},
+"snowflakedb__snowflake-connector-python-1391": {
+"05b003a5fc01": "does_not_apply",
+"31df984b70a6": "does_not_apply",
+"c37f7b770294": "does_not_apply"
+},
+"tefra__xsdata-1010": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"stan-dev__cmdstanpy-731": {
+"7fd50c7aff93": "does_not_apply",
+"8acdfbda78ab": "applies",
+"b3efcb136302": "applies",
+"fff7253bd296": "applies",
+"ad8b4d1cd546": "applies",
+"052805fc1eb8": "applies"
+},
+"tefra__xsdata-1055": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-1067": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-687": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-609": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-1025": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-755": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-787": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-749": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-1098": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-798": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-834": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-788": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-1099": {
+"9478c14f4c8c": "does_not_apply",
+"d19b81eaf8d6": "does_not_apply",
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "applies",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-826": {
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-864": {
+"19264257ca67": "applies"
+},
+"tefra__xsdata-886": {
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-879": {
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-950": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-905": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-994": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"tefra__xsdata-902": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "does_not_apply",
+"72e654c2d419": "does_not_apply",
+"19264257ca67": "does_not_apply"
+},
+"terryyin__lizard-191": {
+"60ed75d98385": "applies",
+"cb3d9ba0ab1e": "applies",
+"e8a642b99661": "applies"
+},
+"tefra__xsdata-901": {
+"3c4bf1852c39": "does_not_apply",
+"877367395f3c": "does_not_apply",
+"aa8a3fa67fdc": "does_not_apply",
+"c081549dc20c": "applies",
+"72e654c2d419": "applies",
+"19264257ca67": "does_not_apply"
+},
+"terryyin__lizard-370": {
+"25b0928753d9": "does_not_apply",
+"369ac2a6170c": "applies",
+"2a3cc6f8dc47": "does_not_apply",
+"cb3d9ba0ab1e": "applies",
+"e8a642b99661": "applies"
+},
+"terryyin__lizard-241": {
+"369ac2a6170c": "does_not_apply",
+"2a3cc6f8dc47": "does_not_apply",
+"cb3d9ba0ab1e": "does_not_apply",
+"e8a642b99661": "does_not_apply"
+},
+"theskumar__python-dotenv-313": {
+"103afefe3315": "does_not_apply"
+},
+"tornadoweb__tornado-2011": {
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"theskumar__python-dotenv-277": {
+"103afefe3315": "applies"
+},
+"tornadoweb__tornado-2045": {
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2048": {
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2047": {
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"theskumar__python-dotenv-407": {
+"465b88c7b4a1": "applies",
+"a41f8b5a0756": "does_not_apply",
+"c951e8817ba4": "does_not_apply",
+"103afefe3315": "does_not_apply"
+},
+"tornadoweb__tornado-2075": {
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2157": {
+"2aa31e045ec5": "applies",
+"4e40e2f44997": "applies",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2270": {
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "applies",
+"84f6aa18b5a4": "applies",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "applies",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2074": {
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "applies",
+"84f6aa18b5a4": "applies",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "applies",
+"a1e30e6f0352": "applies"
+},
+"tornadoweb__tornado-2394": {
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "applies",
+"84f6aa18b5a4": "applies",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "applies",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2397": {
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2058": {
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "applies",
+"84f6aa18b5a4": "applies",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "applies",
+"a1e30e6f0352": "applies"
+},
+"tornadoweb__tornado-2544": {
+"2222e3ce9d4f": "applies",
+"49b9eeda5f5e": "applies",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "applies"
+},
+"tornadoweb__tornado-2581": {
+"2222e3ce9d4f": "does_not_apply",
+"49b9eeda5f5e": "does_not_apply",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "applies",
+"4e40e2f44997": "applies",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2613": {
+"2222e3ce9d4f": "does_not_apply",
+"49b9eeda5f5e": "does_not_apply",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "applies",
+"4e40e2f44997": "applies",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2545": {
+"2222e3ce9d4f": "applies",
+"49b9eeda5f5e": "applies",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "applies"
+},
+"tornadoweb__tornado-2549": {
+"2222e3ce9d4f": "does_not_apply",
+"49b9eeda5f5e": "does_not_apply",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "applies",
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "applies",
+"84f6aa18b5a4": "applies",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "applies",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2589": {
+"2222e3ce9d4f": "does_not_apply",
+"49b9eeda5f5e": "does_not_apply",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "applies",
+"4e40e2f44997": "applies",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tox-dev__tox-travis-83": {
+"b44d5987a688": "applies"
+},
+"tox-dev__tox-travis-93": {
+"b44d5987a688": "applies"
+},
+"tornadoweb__tornado-3317": {
+"21fe2367cb54": "does_not_apply",
+"6add1508be75": "does_not_apply",
+"93b42d2a4f39": "does_not_apply",
+"c0aa08249152": "does_not_apply",
+"4e00d681ca2e": "does_not_apply",
+"f920ba8074af": "does_not_apply",
+"2222e3ce9d4f": "does_not_apply",
+"49b9eeda5f5e": "does_not_apply",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "does_not_apply",
+"84f6aa18b5a4": "does_not_apply",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "does_not_apply",
+"a1e30e6f0352": "does_not_apply"
+},
+"tornadoweb__tornado-2727": {
+"4e00d681ca2e": "applies",
+"f920ba8074af": "does_not_apply",
+"2222e3ce9d4f": "does_not_apply",
+"49b9eeda5f5e": "does_not_apply",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "applies",
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "applies",
+"84f6aa18b5a4": "applies",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "applies",
+"a1e30e6f0352": "does_not_apply"
+},
+"tox-dev__tox-travis-137": {
+"3491735dd171": "applies",
+"b44d5987a688": "does_not_apply"
+},
+"trinodb__trino-python-client-162": {
+"0292e267e184": "does_not_apply",
+"a5dbab1fdaad": "does_not_apply",
+"475b4e0a5efd": "does_not_apply",
+"72a46d643fc3": "does_not_apply"
+},
+"twisted__towncrier-278": {
+"0ece7cc538f4": "does_not_apply"
+},
+"trinodb__trino-python-client-344": {
+"1b56d828e9cd": "applies",
+"4c70972c90dc": "applies",
+"3ab1582a265e": "applies",
+"9573c3d57175": "applies",
+"0292e267e184": "applies",
+"a5dbab1fdaad": "applies",
+"475b4e0a5efd": "applies",
+"72a46d643fc3": "applies"
+},
+"tornadoweb__tornado-2745": {
+"4e00d681ca2e": "does_not_apply",
+"f920ba8074af": "does_not_apply",
+"2222e3ce9d4f": "does_not_apply",
+"49b9eeda5f5e": "does_not_apply",
+"b4cec7b7116c": "does_not_apply",
+"cb02a0a1dc32": "does_not_apply",
+"fc58d8ffd26e": "does_not_apply",
+"5a37db07b219": "does_not_apply",
+"2aa31e045ec5": "does_not_apply",
+"4e40e2f44997": "does_not_apply",
+"52e7745ff4b9": "does_not_apply",
+"8e6fad583288": "does_not_apply",
+"2a01f592dddb": "applies",
+"84f6aa18b5a4": "applies",
+"9d5de45ea2db": "does_not_apply",
+"9d6e52135b28": "applies",
+"a1e30e6f0352": "does_not_apply"
+},
+"trinodb__trino-python-client-307": {
+"3ab1582a265e": "applies",
+"9573c3d57175": "does_not_apply",
+"0292e267e184": "applies",
+"a5dbab1fdaad": "applies",
+"475b4e0a5efd": "applies",
+"72a46d643fc3": "applies"
+},
+"twisted__towncrier-557": {
+"0d2a379a9ccc": "does_not_apply",
+"263d487121f5": "does_not_apply",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-588": {
+"0d2a379a9ccc": "applies",
+"263d487121f5": "applies",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-594": {
+"0d2a379a9ccc": "does_not_apply",
+"263d487121f5": "does_not_apply",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-298": {
+"0d2a379a9ccc": "does_not_apply",
+"263d487121f5": "applies",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-610": {
+"d00b34d6d300": "does_not_apply",
+"0d2a379a9ccc": "applies",
+"263d487121f5": "does_not_apply",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-651": {
+"d00b34d6d300": "does_not_apply",
+"0d2a379a9ccc": "applies",
+"263d487121f5": "does_not_apply",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-624": {
+"d00b34d6d300": "does_not_apply",
+"0d2a379a9ccc": "applies",
+"263d487121f5": "does_not_apply",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-601": {
+"d00b34d6d300": "does_not_apply",
+"0d2a379a9ccc": "applies",
+"263d487121f5": "does_not_apply",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__towncrier-656": {
+"d00b34d6d300": "applies",
+"0d2a379a9ccc": "does_not_apply",
+"263d487121f5": "applies",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__treq-319": {
+"0442a727a72c": "applies",
+"a0e08525b365": "applies"
+},
+"twisted__towncrier-677": {
+"d00b34d6d300": "does_not_apply",
+"0d2a379a9ccc": "does_not_apply",
+"263d487121f5": "does_not_apply",
+"0ece7cc538f4": "does_not_apply"
+},
+"twisted__twisted-12064": {
+"51d6ec4b8128": "applies"
+},
+"twisted__twisted-12324": {
+"921fa14084a6": "does_not_apply",
+"51d6ec4b8128": "applies"
+},
+"twisted__twisted-12096": {
+"51d6ec4b8128": "applies"
+},
+"twisted__twisted-12302": {
+"51d6ec4b8128": "applies"
+},
+"twisted__towncrier-650": {
+"d00b34d6d300": "applies",
+"0d2a379a9ccc": "does_not_apply",
+"263d487121f5": "applies",
+"0ece7cc538f4": "does_not_apply"
+},
+"wyfo__apischema-259": {
+"14087b020019": "does_not_apply"
+},
+"twisted__treq-348": {
+"01cae6249511": "does_not_apply",
+"1727a267a9f2": "does_not_apply",
+"356fb49322fb": "does_not_apply",
+"a77fb631548e": "does_not_apply",
+"8e5bc81da59a": "does_not_apply",
+"0442a727a72c": "applies",
+"a0e08525b365": "does_not_apply"
+},
+"twisted__twisted-12326": {
+"921fa14084a6": "does_not_apply",
+"51d6ec4b8128": "applies"
+},
+"twisted__twisted-12366": {
+"921fa14084a6": "applies",
+"51d6ec4b8128": "does_not_apply"
+},
+"wyfo__apischema-342": {
+"125bd195a67b": "does_not_apply",
+"9882c4fb9550": "applies",
+"14087b020019": "does_not_apply"
+},
+"wyfo__apischema-260": {
+"9882c4fb9550": "applies",
+"14087b020019": "does_not_apply"
+},
+"zarr-developers__zarr-python-1991": {
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"wyfo__apischema-384": {
+"125bd195a67b": "does_not_apply",
+"9882c4fb9550": "applies",
+"14087b020019": "does_not_apply"
+},
+"zarr-developers__zarr-python-1828": {
+"2b4bff21853e": "applies",
+"59b55161323a": "applies"
+},
+"zarr-developers__zarr-python-1968": {
+"00617935cd7a": "applies",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-1992": {
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-1470": {
+"2b4bff21853e": "applies",
+"59b55161323a": "applies"
+},
+"zarr-developers__zarr-python-2006": {
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "applies",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2210": {
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "applies",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2158": {
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2213": {
+"366ae47d5236": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2397": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2286": {
+"366ae47d5236": "applies",
+"64ab9d2b4718": "does_not_apply",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "applies",
+"59b55161323a": "applies"
+},
+"zarr-developers__zarr-python-2348": {
+"366ae47d5236": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2416": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "applies",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2244": {
+"366ae47d5236": "applies",
+"64ab9d2b4718": "does_not_apply",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2576": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "applies",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2512": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2583": {
+"56a425df797d": "does_not_apply",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "does_not_apply",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2494": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2755": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "applies",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zarr-developers__zarr-python-2434": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "applies",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zopefoundation__zope.configuration-42": {
+"00d21b0561b6": "applies"
+},
+"zulip__zulip-terminal-1194": {
+"07b5a96f9854": "does_not_apply"
+},
+"zulip__zulip-terminal-1162": {
+"07b5a96f9854": "does_not_apply"
+},
+"zopefoundation__zope.security-31": {
+"5d13bad00747": "applies",
+"93fb4b511c85": "applies"
+},
+"zopefoundation__zope.publisher-46": {
+"af0dfc7380dd": "does_not_apply"
+},
+"zopefoundation__zope.security-81": {
+"32c573e985c2": "applies",
+"544e3627b0ac": "does_not_apply",
+"8dbf5c568261": "does_not_apply",
+"6678f63b348c": "does_not_apply",
+"a407c797d0b8": "applies",
+"a4d0cb9b1866": "does_not_apply",
+"e5e82187e925": "does_not_apply",
+"eb2cd78182d7": "applies",
+"5d13bad00747": "applies",
+"93fb4b511c85": "applies"
+},
+"zarr-developers__zarr-python-2795": {
+"56a425df797d": "applies",
+"64ab9d2b4718": "applies",
+"76bab9c4d9ae": "does_not_apply",
+"92a833602390": "applies",
+"00617935cd7a": "does_not_apply",
+"2b4bff21853e": "does_not_apply",
+"59b55161323a": "does_not_apply"
+},
+"zulip__zulip-terminal-1449": {
+"53c940b1191c": "applies",
+"df1392692283": "does_not_apply",
+"07b5a96f9854": "applies"
+},
+"zulip__zulip-terminal-1237": {
+"07b5a96f9854": "does_not_apply"
+},
+"zulip__zulip-terminal-967": {
+"07b5a96f9854": "does_not_apply"
+},
+"zulip__zulip-terminal-1260": {
+"53c940b1191c": "applies",
+"df1392692283": "does_not_apply",
+"07b5a96f9854": "does_not_apply"
+},
+"zulip__zulip-terminal-1404": {
+"53c940b1191c": "does_not_apply",
+"df1392692283": "does_not_apply",
+"07b5a96f9854": "does_not_apply"
+}
+},
+"excluded": {}
+}

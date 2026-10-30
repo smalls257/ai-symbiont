@@ -7,6 +7,7 @@ Usage: python plug_agent2_pool.py <pool.json> <sessions-dir> <out-dir>
 """
 
 import json
+import pickle
 import sys
 import time
 from collections import Counter
@@ -27,22 +28,44 @@ STORE_SIZE = 40  # most recent lessons of the repository; a longer list would di
 FETCH_TRIES = 6
 
 
-def fetch_rows(ids: list[str]) -> list[dict]:
-    """SWE-rebench rows of `ids`, retrying the public endpoint's rate limit (HTTP 429)."""
-    for attempt in range(FETCH_TRIES):
-        try:
-            con = duckdb.connect()
-            con.sql("INSTALL httpfs; LOAD httpfs;")
-            marks = ", ".join("?" for _ in ids)
-            cursor = con.execute(
-                f"SELECT {COLUMNS} FROM '{SOURCE}' WHERE instance_id IN ({marks})", ids
-            )  # noqa: S608
-            names = [column[0] for column in cursor.description]
-            return [dict(zip(names, values, strict=True)) for values in cursor.fetchall()]
-        except duckdb.HTTPException as error:
-            print(f"fetch attempt {attempt + 1}: {str(error)[:80]}", flush=True)
-            time.sleep(30 * (attempt + 1))
-    raise RuntimeError("SWE-rebench rows could not be fetched; nothing was guessed")
+def local_shards(cache: Path) -> list[str]:
+    """The SWE-rebench test split's parquet files, downloaded once with backoff on rate limits."""
+    from huggingface_hub import HfApi, hf_hub_download  # noqa: PLC0415  only this stage needs it
+
+    revision = "refs/convert/parquet"
+    listing = HfApi().list_repo_files("nebius/SWE-rebench", repo_type="dataset", revision=revision)
+    names = [x for x in listing if x.startswith("default/test/") and x.endswith(".parquet")]
+    paths = []
+    for name in names:
+        for attempt in range(FETCH_TRIES):
+            try:
+                paths.append(
+                    hf_hub_download(
+                        "nebius/SWE-rebench",
+                        name,
+                        repo_type="dataset",
+                        revision=revision,
+                        local_dir=cache,
+                    )
+                )
+                break
+            except OSError as error:
+                print(f"download {name} attempt {attempt + 1}: {str(error)[:80]}", flush=True)
+                time.sleep(30 * (attempt + 1))
+        else:
+            raise RuntimeError(f"{name} could not be downloaded; nothing was guessed")
+    return paths
+
+
+def fetch_rows(ids: list[str], cache: Path) -> list[dict]:
+    """SWE-rebench rows of `ids` from the local parquet shards."""
+    con = duckdb.connect()
+    marks = ", ".join("?" for _ in ids)
+    files = ", ".join(f"'{path}'" for path in local_shards(cache))
+    query = f"SELECT {COLUMNS} FROM read_parquet([{files}]) WHERE instance_id IN ({marks})"  # noqa: S608
+    cursor = con.execute(query, ids)
+    names = [column[0] for column in cursor.description]
+    return [dict(zip(names, values, strict=True)) for values in cursor.fetchall()]
 
 
 def lessons_by_instance(sessions: Path) -> dict[str, list[Lesson]]:
@@ -72,9 +95,12 @@ def main() -> None:
     pool = json.loads(Path(sys.argv[1]).read_text())
     out = Path(sys.argv[3])
     out.mkdir(parents=True, exist_ok=True)
-    by_instance = lessons_by_instance(Path(sys.argv[2]))
+    cache = out / "lessons.pickle"
+    if not cache.is_file():
+        cache.write_bytes(pickle.dumps(lessons_by_instance(Path(sys.argv[2]))))
+    by_instance = pickle.loads(cache.read_bytes())  # noqa: S301 written by this script a step earlier
     wanted = {name: (repo, v["dates"]) for repo, v in pool.items() for name in v["tasks"][1:]}
-    rows = {row["instance_id"]: row for row in fetch_rows(sorted(wanted))}
+    rows = {row["instance_id"]: row for row in fetch_rows(sorted(wanted), out / "parquet")}
     stores, drops = {}, Counter()
     for task, (repo, dates) in sorted(wanted.items()):
         row = rows.get(task)

@@ -1,0 +1,9 @@
+{
+ "repos": 118,
+ "later_tasks": 946,
+ "candidates": 667,
+ "dropped": {
+  "no docker image": 73,
+  "no earlier lesson": 206
+ }
+}
