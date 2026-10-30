@@ -1,6 +1,6 @@
 # Pre-registration: situational lessons and "one move per reply" on held-out maps (Muse Spark plays Freedoom via ViZDoom)
 
-**FROZEN 2026-10-29.** Code pinned at b151ee5636b57e9c79a38140732d862e00f7a520 (this commit's parent; `scripts/evolve/held_out_test.py check` enforces it). Committed alone, before any game on a held-out or generated map was played by a model. An amendment cannot change arms, cards, lessons, cutoff, maps, seeds, condition, fitness, pairing, bootstrap or decision rule.
+**FROZEN 2026-10-29.** Code pinned at 4b4d83742cf91ffcfea509647e828bfbc5f9cf59 (this commit's parent; `scripts/evolve/held_out_test.py check` enforces it). Re-frozen after the first freeze (6ded1d8): the launch of the first freeze found a missing argument in the runner's run path and stopped before any game was played; the fix is the pinned commit and nothing else changed. Committed alone, before any game on a held-out or generated map was played by a model. An amendment cannot change arms, cards, lessons, cutoff, maps, seeds, condition, fitness, pairing, bootstrap or decision rule.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or the code's own documented behavior, [hypothesis] = a guess the run can support or refute. Every result row is labeled floor, reference or under test.
 
