@@ -17,25 +17,38 @@ from symbiont.act1.game_fitness import Case
 
 BOOTSTRAP_SEED = 20261101
 MIN_GAIN = 0.08  # [hypothesis] whole-game fitness a "one move per reply" win must reach
-NEEDED_WITH_FIRE = 84  # cases with a fire the exploratory noise says the primary needs [measured]
-SHOWN = ("better", "worse", "tie")
+NEEDED_WITH_FIRE = 84  # cases with a fire the old-cutoff (0.969) check said the primary needs
+UNDERPOWERED_BELOW = 126  # 1.5 times the need: under this a set is called underpowered in words
 
 
 @dataclass(frozen=True)
 class Fired:
-    """One game's outcome at its would-fire decisions: how many, mistakes each, route progress."""
+    """One game's outcome at its would-fire decisions.
+
+    `first_*` is the first would-fire decision, reached with identical prompts in every arm; the
+    unprefixed fields average all of them. A progress of None means no route reading, never 0.
+    """
 
     decisions: int
+    first_mistakes: float
+    first_progress: float | None
     mistakes: float
-    progress: float
+    progress: float | None
+    no_progress: int
 
     @staticmethod
-    def of(summary: Mapping[str, float]) -> "Fired":
+    def of(summary: Mapping[str, float | None]) -> "Fired":
         """From fired_outcomes' summary of one game."""
-        return Fired(int(summary["fired"]), summary["mistakes"], summary["progress"])
+        return Fired(
+            int(summary["fired"] or 0), float(summary["first_mistakes"] or 0),
+            summary["first_progress"], float(summary["mistakes"] or 0), summary["progress"],
+            int(summary["no_progress"] or 0),
+        )  # fmt: skip
 
 
 FiredByCase = Mapping[Case, Fired | None]
+FIRST = ("first_mistakes", "first_progress")
+ALL = ("mistakes", "progress")
 
 
 def _both_fired(first: FiredByCase, second: FiredByCase) -> list[Case]:
@@ -43,22 +56,35 @@ def _both_fired(first: FiredByCase, second: FiredByCase) -> list[Case]:
     return [case for case in first if first[case] is not None and second.get(case) is not None]
 
 
+def _paired_measure(
+    lessons: FiredByCase, none: FiredByCase, shared: list[Case], field: str
+) -> dict[str, Any]:
+    """One measure over cases both arms read; mistakes are negated, so higher is better."""
+    direction = -1.0 if "mistakes" in field else 1.0
+    usable = [
+        case for case in shared
+        if getattr(lessons[case], field) is not None and getattr(none[case], field) is not None
+    ]  # fmt: skip
+    if len(usable) < 2:
+        return {"cases": len(usable)}
+    return score_final.compare(
+        {case: direction * getattr(lessons[case], field) for case in usable},
+        {case: direction * getattr(none[case], field) for case in usable},
+        BOOTSTRAP_SEED,
+    )
+
+
 def at_fires(
-    lessons: FiredByCase, none: FiredByCase, cases: set[Case]
+    lessons: FiredByCase, none: FiredByCase, cases: set[Case], fields: tuple[str, str]
 ) -> dict[str, dict[str, Any]]:
-    """Mistakes (fewer is better) and progress over the next 3 decisions, lessons against none."""
+    """Mistakes and progress for the named fields, lessons against none, with-fire cases only."""
     shared = [case for case in _both_fired(lessons, none) if case in cases]
     if len(shared) < 2:
         return {}
-    sign = {"mistakes": -1.0, "progress": 1.0}
-    out = {}
-    for measure, direction in sign.items():
-        out[measure] = score_final.compare(
-            {case: direction * getattr(lessons[case], measure) for case in shared},
-            {case: direction * getattr(none[case], measure) for case in shared},
-            BOOTSTRAP_SEED,
-        )
-    return out
+    return {
+        "mistakes": _paired_measure(lessons, none, shared, fields[0]),
+        "progress": _paired_measure(lessons, none, shared, fields[1]),
+    }
 
 
 def whole_game(
@@ -71,22 +97,34 @@ def whole_game(
     )
 
 
+def _word(measures: Mapping[str, Mapping[str, Any]], name: str) -> str:
+    """The word of one measure; a measure without enough cases reads as a tie."""
+    return measures.get(name, {}).get("word", "tie")
+
+
 def lessons_verdict(measures: Mapping[str, Mapping[str, Any]], with_fire: int) -> str:
     """C1: supported only if mistakes read better and progress does not read worse."""
-    if not measures or with_fire < NEEDED_WITH_FIRE:
+    if not measures or with_fire < UNDERPOWERED_BELOW:
         return "underpowered"
-    if measures["mistakes"]["word"] == "better" and measures["progress"]["word"] != "worse":
-        return "supported"
-    if measures["mistakes"]["word"] == "worse" or measures["progress"]["word"] == "worse":
+    mistakes, progress = _word(measures, "mistakes"), _word(measures, "progress")
+    if mistakes == "worse" or progress == "worse":
         return "worse"
-    return "tie"
+    return "supported" if mistakes == "better" else "tie"
 
 
 def one_move_verdict(claim: Mapping[str, Any]) -> str:
-    """C2: supported only if the word is better and the mean reaches MIN_GAIN."""
-    if claim["word"] == "better" and claim["mean_difference"] >= MIN_GAIN:
-        return "supported"
-    return claim["word"] if claim["word"] == "worse" else "tie"
+    """C2: `supported` needs better and a mean of MIN_GAIN; a smaller better says so."""
+    if claim["word"] == "better":
+        return "supported" if claim["mean_difference"] >= MIN_GAIN else "better but small"
+    return claim["word"]
+
+
+def no_progress_counts(fired: Mapping[held_out_cases.Arm, FiredByCase], cases: set[Case]) -> dict:
+    """Fires without a route reading, per arm: dropped from progress, never scored as 0."""
+    return {
+        arm.value: sum(g.no_progress for c, g in by_case.items() if g is not None and c in cases)
+        for arm, by_case in fired.items()
+    }
 
 
 def analyze_set(
@@ -98,14 +136,17 @@ def analyze_set(
     if not cases:
         return {"cases": 0, "verdict": "no cases played"}
     arm = held_out_cases.Arm
-    measures = at_fires(fired[arm.LESSONS], fired[arm.NONE], cases)
-    with_fire = len([c for c in _both_fired(fired[arm.LESSONS], fired[arm.NONE]) if c in cases])
+    lessons, none = fired[arm.LESSONS], fired[arm.NONE]
+    first = at_fires(lessons, none, cases, FIRST)
+    with_fire = len([c for c in _both_fired(lessons, none) if c in cases])
     one_move = whole_game(fitness[arm.ONE_MOVE], fitness[arm.NONE], cases)
     return {
         "cases": len(cases),
         "cases_with_fire_in_both_arms": with_fire,
-        "C1_lessons_at_fires": {"verdict": lessons_verdict(measures, with_fire), **measures},
+        "fires_without_progress_reading": no_progress_counts(fired, cases),
+        "C1_lessons_at_first_fire": {"verdict": lessons_verdict(first, with_fire), **first},
         "C2_one_move_whole_game": {"verdict": one_move_verdict(one_move), **one_move},
+        "secondary_lessons_all_fires": at_fires(lessons, none, cases, ALL),
         "secondary_lessons_whole_game": whole_game(fitness[arm.LESSONS], fitness[arm.NONE], cases),
     }
 
@@ -128,11 +169,15 @@ def verdict_sentence(primary: Mapping[str, Any]) -> str:
     """The only sentence the pitch may use for the situational lessons, built from the numbers."""
     if not primary["cases"]:
         return "No generated-map cases were scored."
-    c1, c2 = primary["C1_lessons_at_fires"], primary["C2_one_move_whole_game"]
+    c1, c2 = primary["C1_lessons_at_first_fire"], primary["C2_one_move_whole_game"]
     with_fire = primary["cases_with_fire_in_both_arms"]
+    note = (
+        f" (underpowered: {with_fire} cases with a fire, fewer than {UNDERPOWERED_BELOW})"
+        if c1["verdict"] == "underpowered"
+        else f" ({with_fire} cases with a fire)"
+    )
     lessons = (
-        f"Situational lessons at the decisions where one would fire: {c1['verdict']} "
-        f"({with_fire} cases with a fire)."
+        f"Situational lessons at the first decision where one would fire: {c1['verdict']}{note}."
     )
     one_move = f"One move per reply, whole game, against no lesson: {c2['verdict']}."
     return f"{lessons} {one_move}"

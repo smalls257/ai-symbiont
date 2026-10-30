@@ -47,11 +47,15 @@ class DecisionOutcome:
 def progress_over(
     outcomes: list[DecisionOutcome], index: int, window: int = WINDOW
 ) -> float | None:
-    """Route units covered from the start of decision `index` to the start of `index + window`
-    (the end of the game if sooner); None if either point has no route."""
+    """Route units covered from decision `index` to the start of `index + window`; None if unread.
+
+    A window cut by the game's end runs to the last decision that began. A fire at the last
+    decision has no window and a missing route has no reading: None, never 0.0.
+    """
+    if index >= len(outcomes) - 1:
+        return None
     start = outcomes[index].remaining
-    end_index = min(index + window, len(outcomes) - 1)
-    end = outcomes[end_index].remaining
+    end = outcomes[min(index + window, len(outcomes) - 1)].remaining
     return None if start is None or end is None else start - end
 
 
@@ -99,15 +103,18 @@ def _remaining(nav: Any, run: Any) -> float | None:
 
 def fired_summary(
     log: Path, case: Case, args: argparse.Namespace, cutoff: float
-) -> dict[str, float] | None:
-    """Mean mistakes and mean route progress over the game's would-fire decisions; None if none."""
+) -> dict[str, float | None] | None:
+    """Outcomes at the game's would-fire decisions (see fired_in); None if none."""
     return fired_in(log, case, (args.lessons, args.wad, cutoff), play_case.load_case_level)
 
 
 def fired_in(
     log: Path, case: Case, rule: tuple[Path, Path, float], loader: Loader
-) -> dict[str, float] | None:
-    """The same, for a rule of (lessons file, WAD path handed to the loader, cutoff)."""
+) -> dict[str, float | None] | None:
+    """Outcomes at the game's would-fire decisions (`first_*`: the first one); None if none.
+
+    A fire with no progress reading is dropped from `progress` and counted in `no_progress`.
+    """
     lessons, wad, cutoff = rule
     ranker = lesson_players.ranker_from(str(lessons))
     decisions = load_run_log(log)
@@ -115,11 +122,15 @@ def fired_in(
     if not fired:
         return None
     outcomes = replay_outcomes(log, case, wad, loader)
-    progress = [got for i in fired if (got := progress_over(outcomes, i)) is not None]
+    readings = [progress_over(outcomes, i) for i in fired]
+    progress = [got for got in readings if got is not None]
     return {
         "fired": len(fired),
         "mistakes": statistics.fmean(outcomes[i].mistakes for i in fired),
-        "progress": statistics.fmean(progress) if progress else 0.0,
+        "progress": statistics.fmean(progress) if progress else None,
+        "no_progress": len(readings) - len(progress),
+        "first_mistakes": outcomes[fired[0]].mistakes,
+        "first_progress": readings[0],
     }
 
 

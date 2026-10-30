@@ -134,14 +134,24 @@ def play_all(players: dict[Any, Any], cases: tuple[Case, ...], batch: int) -> No
             play_until_graded(player, [(card, case) for case in cases[start : start + batch]])
 
 
-def graded_games(root: Path, arm: held_out_cases.Arm) -> dict[Case, GameResult]:
-    """The graded games of one arm from its state file."""
+def all_games(root: Path, arm: held_out_cases.Arm) -> dict[Case, GameResult]:
+    """The stored game of every case of one arm, graded or not."""
     games = json.loads((root / f"{RUN}-{arm.value}" / "state.json").read_text())["games"]
-    results = (
-        run_state.result_from_json({k: v for k, v in g.items() if k != "player"})
-        for g in games.values()
-    )
-    return {r.case: r for r in results if r.grade == Grade.GRADED}
+    results = (run_state.result_from_json(drop_player(game)) for game in games.values())
+    return {result.case: result for result in results}
+
+
+def drop_player(game: dict[str, Any]) -> dict[str, Any]:
+    """A stored game without the player block the result type does not take."""
+    return {key: value for key, value in game.items() if key != "player"}
+
+
+def attempt_counts(root: Path, arm: held_out_cases.Arm) -> dict[str, int]:
+    """Games started and ungraded attempts (replays) for one arm, from its event log."""
+    events = (root / f"{RUN}-{arm.value}" / "events.jsonl").read_text().splitlines()
+    games = [json.loads(line) for line in events if json.loads(line)["event"] == "game"]
+    ungraded = sum(1 for game in games if game["grade"] != Grade.GRADED.value)
+    return {"attempts": len(games), "ungraded_attempts": ungraded}
 
 
 def score_one(job: tuple[str, Case, str, str, float]) -> tuple[str, Case, dict[str, float] | None]:
@@ -182,12 +192,21 @@ def read_fired(jobs: list[tuple[str, Case, str, str, float]]) -> dict[Any, dict[
 
 
 def score(root: Path, lessons: Path) -> dict[str, Any]:
-    """Replay every graded game for its would-fire outcomes, then score both claims."""
-    games = {arm: graded_games(root, arm) for arm in held_out_cases.Arm}
-    kept = set.intersection(*(set(g) for g in games.values()))
-    fired = read_fired(replay_jobs(root, lessons, kept))
+    """Drop incomplete cases (refusing above 10%), replay for fires, then score both claims.
+
+    Raises final_test.IncompleteRunError when more than 10% of the planned cases are dropped.
+    """
+    planned = held_out_cases.all_cases(Path.cwd() / KEPT_FILE)
+    games = {arm: all_games(root, arm) for arm in held_out_cases.Arm}
+    by_name = {arm.value: games[arm] for arm in games}
+    kept, dropped = final_test.drop_incomplete(by_name, planned)
+    fired = read_fired(replay_jobs(root, lessons, set(kept)))
     fits = {arm: {c: fitness(games[arm][c]) for c in kept} for arm in games}
-    return held_out_score.analyze(kept, fits, fired)
+    return {
+        "cases_planned": len(planned), "cases_scored": len(kept), "cases_dropped": len(dropped),
+        "attempts_by_arm": {a.value: attempt_counts(root, a) for a in held_out_cases.Arm},
+        **held_out_score.analyze(set(kept), fits, fired),
+    }  # fmt: skip
 
 
 def main(argv: list[str] | None = None) -> int:
