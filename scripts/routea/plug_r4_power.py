@@ -63,7 +63,8 @@ def icc(groups: dict) -> float:
     between = sum(len(g) * (sum(g) / len(g) - mean) ** 2 for g in groups.values()) / (repos - 1)
     within = sum((x - sum(g) / len(g)) ** 2 for g in groups.values() for x in g) / (total - repos)
     size = (total - sum(len(g) ** 2 for g in groups.values()) / total) / (repos - 1)
-    return max(0.0, (between - within) / (between + (size - 1) * within))
+    spread = between + (size - 1) * within
+    return max(0.0, (between - within) / spread) if spread else 0.0  # no wrong picks: no clustering
 
 
 def main() -> None:

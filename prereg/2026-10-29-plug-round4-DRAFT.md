@@ -66,11 +66,15 @@ Single changes against the round 3 judge (pick / wrong, in-sample fit) [measured
 - A first power draft (0.0785 gain, MDE 0.150) used a judge-alone comparator refit in cross-validation, not the frozen threshold; it is withdrawn. The code is `plug_r4_power.py`; `nested_choices` and `per_repo_pick` were checked (all 40 repositories have 3 to 7 positive items; pooled and per-repo means differ by under 0.01).
 - Wrong-pick ICC across repositories: 0.093 on validation items [measured]; it is recomputed on the primary's own items once the negatives are counted.
 
-## To be built before the freeze (not yet done)
-- The primary item builder from the 251 recurrences (shortlists, judge queries, ranker scores).
-- The negative-item list, counted from the committed rule and listed by id.
-- The scored runner with its refusals (n = 251 recurrences in 89 repositories, negative-item list by id, code and config hash pins, no silent fallbacks) and tests for each refusal.
-- The ICC on the primary's own items.
+## Built for the freeze (all [measured] counts from the build)
+- **Primary item builder** `scripts/routea/plug_r4_primary.py`: each recurrence is a later failure whose exact key an earlier task's lesson has, with the store as it stood before that task (tasks ordered by SWE-rebench creation date, ties by id; identical lessons merged, different-fix twins kept and scored as one). It reproduces the pre-declared **251 recurrences in 89 repositories** and refuses any other count (`PrimaryCountError`). Prompts hold 60 lessons: the store plus seeded distractors from other primary repositories that never share the failure key.
+- **Negative items:** later failures with no exact or loose match in the store; per repository as many as it has positives, chosen by a seeded hash; one repository had fewer available, so the total is **250 negatives** (a count, not a fallback). Listed by id in `results/plug-r4-primary-negatives.json`. Single-fix positives (strict coverage row): 175 of 251.
+- **Ranker reach:** the applicable lesson is in the ranker's top 10 for 99.6% of positives (top 1: 68.9%, top 3: 95.2%, top 5: 99.2%). [measured]
+- **Agree-rule thresholds, fitted on validation only** (`plug_r4_scored.py fit`, `results/plug-r4-selection.json`): the nested-CV stricter target is 0.03 in-sample wrong pick; the rule is ranker score >= 10.0 and judge P(yes) >= 0.96. The judge-alone comparator uses the frozen 0.99.
+- **Scored runner** `plug_r4_scored.py` (pins, fit, check, decide) with `plug_r4_primary_stats.py` and `plug_r4_scored.sh` (three round 3 adapters, no training), tests in `tests/scripts/test_plug_r4_primary.py`. Refusals: n other than 251 / 89; any changed primary item, query or negative-list file; any changed adapter weight hash; a changed selection file; a missing seed file; scores that do not cover exactly the primary queries; a score outside 0 to 1. Pins are in `results/plug-r4-pins.json`; the desktop adapters have the same hashes as the laptop's.
+- **Secondary row in the decision output:** the ranker at the same cut with no judge (judge threshold 0), so the judge's own contribution to the agree rule is visible.
+- **ICC on the primary's own items** depends on which answers are wrong, so it is computed by `decide` after the scored run (`wrong_pick_icc`) and reported then; the validation ICC (0.093) stands until then.
+- **GPU estimate for the scored run:** 5,010 queries per seed; round 3 scored 3,300 queries in about 35 s per seed, so about 55 s per seed plus about 20 s model load: **about 4 to 5 minutes for all three seeds**, 10 minutes with margin [hypothesis].
 
 ## Known limits
 Twins are merged by the owner's ruling and change what "right" means; the fair reference picks more than nightly training at a matched wrong rate on validation; the nightly adapters lose habits unless the strength is lowered; Spark-invented situations are a learned style; the validation repositories were used for every choice; thresholds must transfer to fresh repositories.

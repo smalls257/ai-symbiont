@@ -1,0 +1,15 @@
+{
+ "positives": 251,
+ "positive_repos": 89,
+ "negatives": 250,
+ "single_fix_positives": 175,
+ "kinds": {
+  "pick": 251,
+  "silence": 250
+ },
+ "sha256": {
+  "primary-items.jsonl": "50f6ca6c4855310ccbfef48dfc4ccb284a33e4dba6cd0c68a4cb3529596db077",
+  "primary-queries.jsonl": "b4973491980f570e81fddcefdea0ff5bb38e85aa0abb9f805608e99fd0c72b8c",
+  "primary-negatives.txt": "56f65fe5505a5956eda89dcfb45582c5d894d05b448f01fffe1093c2e1dcbb43"
+ }
+}
