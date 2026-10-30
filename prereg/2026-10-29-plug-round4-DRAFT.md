@@ -47,6 +47,21 @@ Files: `results/plug-r4-explore.json`, `results/plug-r4-combine.json`, `results/
 
 Reading: the ranker-plus-judge two-threshold rule carries the coverage gain (about 0.45 CV against the round 3 judge's 0.25) but its CV wrong pick is 0.058 to 0.067, above 0.05, at every scale [measured]. Lower scale buys habits (0.891 at 0.5, still under 0.90) at about 0.02 of pick [measured]. Nothing explored meets both bars.
 
+## Fair reference and free checks (owner rulings, after the combo)
+- **Reference** is round 3's judge (3-seed mean, as scored) with the same two-threshold agree rule fitted the same way, so training (arm A) is tested against it; a tie is reported. The rule's own gain (reference with the rule against the round 3 judge alone) is a separate pre-registered row.
+- **Learned-lesson slice check** (`scripts/routea/plug_r4_slice.py`, `results/plug-r4-slice.json`, cross-validated, twins merged, rates over all 330 items) [measured]: every wrong pick of the reference (0.097) and of the nightly combo (0.064 at strength 0.5, 0.058 at 1.0) is a sibling lesson of the same repository; none is a base-training or another repository's lesson. The earlier 0.061 to 0 drop is not reproduced as a learned-slice effect, so training is not given a wrong-pick primary on this evidence. Under the merged-twin scoring the reference picks more (right 0.327 of all items, against 0.224 and 0.236) at a higher cross-validated wrong rate.
+- **Stricter threshold**, if used, is set on validation before the freeze and applied to both arms: nested repo-fold CV, the in-sample target whose CV wrong pick is at most 0.05, and the coverage cost printed.
+- **Arm B** (weights only: the nightly model names a lesson id from the repository's ids or "none", constrained decoding, "none" threshold fitted on validation) is a gated secondary; Holm-corrected together with A, or descriptive. The Opus review chooses; the default here is descriptive.
+
+## Opus round-4 fixes carried into the freeze
+- Negative items join the primary: later failures with no matching lesson; the wrong-pick denominator is all primary items (recurrences plus negatives), stated in the claim sentence.
+- The wrong-pick upper bound is the repo-clustered bootstrap bound (10,000 resamples, seed 0); the Wilson bound and the assumed design effect of 1.5 are dropped, and the measured intraclass correlation is reported.
+- Leakage: `add_records` holds out later tasks; Spark sees only stored lesson text; the base judge's training repos are disjoint from the scored repos; the pre-declared 150 rule ended with never-read plus meta2-only as the primary set.
+- Silent Fallbacks refused: a failed nightly training, unparsable output, invalid lesson id, or missing repository stops the run or counts as a failure, never silence; the run requires n = 251 recurrences in 89 repos.
+- Strict coverage row: single-fix lessons only.
+- The habits mean is stated as the mean over the per-repo nightly adapters (and, for Reference, over the three seeds).
+- The minimum detectable effect uses the measured paired standard deviation, not the assumed correlation above.
+
 ## Arm A setting to pre-register
 Nightly adapter from the fixed merged rich judge, 10% habit replay, rich input, twins merged, read at adapter scale 0.5, decided by the two-threshold rule with both thresholds fitted on validation only. Scale is chosen for habits, the rule for coverage; the 0.5 choice is made now, before any fresh-repo answer, and no scale is re-picked after scoring [established]. Expected: habits just under 0.90, so the habits claim is stated as separate and may fail; the primary has a CV wrong pick above 0.05 on validation, so the upper-bound rule below may refuse the claim [hypothesis]. The Opus review should decide whether a safer margin (a threshold fitted at wrong <= 0.03) is pre-registered instead.
 
