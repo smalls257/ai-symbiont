@@ -13,7 +13,7 @@ import os
 import sys
 import time
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
@@ -23,6 +23,7 @@ from core2_test_plan import (
     TEMPERATURE,
     Arm,
     Executor,
+    early_stop_due,
     may_start_task,
     run_seed,
     runs_of_task,
@@ -99,6 +100,16 @@ def void_block(phase: Phase, task: str, block: str, reason: str) -> None:
     append_jsonl(phase.out / "voided_blocks.jsonl", row)
 
 
+def effective_arms(phase: Phase, test_ids: list[str]) -> frozenset[Arm]:
+    """The arms new tasks run: A is dropped for good once the early-stop check fires."""
+    marker = phase.out / "early_stop.json"
+    if Arm.A in phase.arms and not marker.is_file():
+        records = graded_runs(phase.out)
+        if early_stop_due(records, test_ids, phase.arms):
+            marker.write_text(json.dumps({"rule": "A minus P wholly below 0 at 50 complete tasks"}))
+    return phase.arms - {Arm.A} if marker.is_file() else phase.arms
+
+
 def run_task_block(phase: Phase, task: str, block: str, *, in_w: bool) -> Outcome:
     """Every planned run of one task on this server, recorded with the server and block."""
     for arm, run in runs_of_task(task, in_w=in_w, arms=phase.arms):
@@ -149,7 +160,8 @@ def run_phase(test_ids: list[str], phase: Phase) -> dict:
             break
         task, block = claimed
         started += 1
-        outcome = run_task_block(phase, task, block, in_w=task in w_tasks)
+        block_phase = replace(phase, arms=effective_arms(phase, test_ids))
+        outcome = run_task_block(block_phase, task, block, in_w=task in w_tasks)
         if outcome is Outcome.SERVER_DOWN:
             void_block(phase, task, block, "server stopped answering")
             book.release(task, block, phase.who)

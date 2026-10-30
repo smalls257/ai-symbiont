@@ -142,6 +142,26 @@ def claim_holds(result: dict[str, tuple[float, float, float]]) -> bool:
     return all(low > 0 for _, low, _ in result.values())
 
 
+EARLY_STOP_TASKS = 50  # prereg: the check runs on the first 50 complete tasks in run order
+
+
+def first_complete(
+    records: Sequence[dict], test_ids: Sequence[str], arms: frozenset[Arm] = frozenset(Arm)
+) -> list[str]:
+    """The first EARLY_STOP_TASKS complete tasks in RUN order (the seeded task order)."""
+    complete = set(complete_tasks(records, test_ids, arms))
+    return [task for task in task_order(test_ids) if task in complete][:EARLY_STOP_TASKS]
+
+
+def early_stop_due(records: Sequence[dict], test_ids: Sequence[str], arms: frozenset[Arm]) -> bool:
+    """True once 50 tasks are complete and A minus P over them lies wholly below 0."""
+    first = first_complete(records, test_ids, arms)
+    if len(first) < EARLY_STOP_TASKS:
+        return False
+    result = bootstrap_ci(paired_differences(records, first, Arm.A, Arm.P))
+    return stops_early(result, planned=2 * EARLY_STOP_TASKS, complete=len(first))
+
+
 def stops_early(result: tuple[float, float, float], planned: int, complete: int) -> bool:
     """Early stop: at half the planned tasks, only if A minus P's interval lies wholly below 0."""
     return complete >= planned // 2 and result[2] < 0

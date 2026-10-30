@@ -84,13 +84,13 @@ The test tasks are the first 100 of the 234 later candidates in **fixed hash ord
 - **How they become rows.** Each is rendered turn by turn in Glimmer's chat format, and only the model's own turns are trained (routeb `sft_turns.py`, 80c61be).
 - **No reflection step.** There is no reflection step on the sessions [established].
 
-**Stop rule for the training set (decided before any result).** One shared adapter has a budget of about 80 to 100 passing sessions (13 to 16 hours of training at 16k) [established, from the training probe].
+**Training set A, fixed (counts only, no adapter result)** [measured]. The per-repository cap of 14 is a maximum, not a target. The set was finalized on the passes that existed at **2026-10-29 20:43 PDT** (commit `c6850b7`), because training both adapters takes about 26 hours and the test must start Friday. It holds **68** Spark teacher sessions on earlier tasks: dvc 13, Django 13, streamlink 13, sqlglot 14, conan 7, pennylane 8. Its manifest sha256 is `864715e27f0adac270b95b3f1706d4a520e3b5cc6c8f56e142de9c7da290e83e` (`results/core-d2-train-A-counts.json`), with 747,227 tokens and 121,600 trained tokens at the 16k window.
 
-- **Per repository.** Teacher runs stop starting a repository's tasks once it has **14 passing sessions** [established]. Four new repositories give at most 56.
-- **Order.** Tasks run interleaved across the four new repositories, each repository earliest task first by `created_at`. The order depends on dates only, never on results [established, by construction].
-- **Existing sessions.** The 43 earlier sqlglot and Django passes are capped to the same share: sqlglot's earliest 14 passes by date, and all 13 Django passes [established]. The cap is applied in the training manifest, before any adapter exists.
-- **Total.** At most 83 sessions [established].
-- **Control set (arm C).** Other repositories (none of the six, none of Plug's), the same count and the same trained-token count, from Spark teacher runs. Collection starts once the target set is within reach. The same per-repository cap and date order apply [established].
+- **Rule.** Teacher runs went interleaved across the four new repositories, each repository's earliest task first by `created_at`, and no repository took a new task after 14 passes. The order depended on dates only.
+- **Existing sessions.** The earlier sqlglot and Django teacher passes joined: sqlglot's earliest 14 by date among the 161 earlier tasks (12 sqlglot passes lay outside that pool and were dropped), and all 13 Django passes.
+- **Refusals.** No session is a test task or any of the 234 later candidates (0 refused) [established, by `core2_train_manifest.py`].
+
+**Control set (arm C), fixed now** [established]. The sessions are Spark teacher runs on tasks of OTHER repositories (none of the six, none of Plug's), taken one task per repository in date order. Collection stops at a **finalization time** set before it ends and is trimmed by date order to match A's **68 sessions and 121,600 trained tokens**. A dated amendment will add ONLY the C manifest's sha256 and its counts, committed before the first D2 run; it changes no rule.
 
 **Data mix (item 2).** A and C are both trained on teacher solutions only. Glimmer's own passes are not used in either arm, so the two arms match in kind, ratio and size by construction.
 
@@ -102,8 +102,8 @@ The test tasks are the first 100 of the 234 later candidates in **fixed hash ord
 **Order, cutoff and early stop**
 
 - **Order.** All runs of a task go back to back. Tasks run in the order of sha256 of `core-d2-order:<instance_id>`.
-- **Cutoff.** At **2026-11-01 18:00 PT** no new task starts. The analysis uses every task whose runs all finished; incomplete tasks are excluded and counted. W's runs sit inside each task's back-to-back block, so a started W task finishes its W run; W is analyzed on the W tasks that finished before the cutoff, which may be fewer than 50, and no arm is cut for time.
-- **Early stop.** When half the planned tasks are complete, arm A stops only if the 95% CI of (A minus P) lies wholly below 0. [established]
+- **Cutoff.** At **2026-11-01 18:00 PST (UTC-8)** no new task starts. That Sunday is the daylight-saving changeover (clocks fall back at 02:00), so 18:00 is Pacific Standard Time. The analysis uses every task whose runs all finished; incomplete tasks are excluded and counted. W's runs sit inside each task's back-to-back block, so a started W task finishes its W run; W is analyzed on the W tasks that finished before the cutoff, which may be fewer than 50, and no arm is cut for time.
+- **Early stop.** After the first 50 complete tasks in run order (the seeded task order), arm A stops for all later tasks if the 95% CI of (A minus P) over those 50 lies wholly below 0. The runner checks this before every task and writes `early_stop.json` when it fires [established].
 
 **Outcomes and voids (item 9)**
 
@@ -161,7 +161,7 @@ Computed at the expected plain pass rate, before any adapter result.
 | Test total | **650** [established] |
 | Available after the Plug downstream test | about 690 [hypothesis] |
 
-Machines and servers: the same Glimmer GGUF (sha256 `4cc57c0f…`, greedy parity checked) is served by **three servers**: the Strix, the 5080 and the laptop, each with the plain model and both adapters loaded [measured]. Containers run on the 5080 whatever the server. **Task-level assignment:** a runner process claims the next task in the seeded order and runs ALL of that task's arms on its own server, so P, A and C of one task always share a server and the pairing holds. The server and a block id are recorded with every run. If a server stops answering, the task's block is voided whole and another server runs all its arms; a half-finished block is never scored. Per-server results are reported, and server is a stratum in the secondary analysis [established]. Servers differ in speed, so wall-cap hits are reported per server and arm.
+Machines and servers: the same Glimmer GGUF (sha256 `4cc57c0f…`, greedy parity checked) is served by **three servers**: the Strix, the 5080 and the laptop, each with the plain model and both adapters loaded [measured]. Containers run on the 5080 whatever the server. **Task-level assignment:** tasks are claimed in run order by whichever server is free, which depends on timing and never on outcomes; the claiming process runs ALL of that task's arms on its own server, so P, A and C of one task always share a server and the pairing holds. The server and a block id are recorded with every run. If a server stops answering, the task's block is voided whole and another server runs all its arms; a half-finished block is never scored. Per-server results are reported, and server is a stratum in the secondary analysis [established]. Servers differ in speed, so wall-cap hits are reported per server and arm.
 
 ## Data hygiene
 
