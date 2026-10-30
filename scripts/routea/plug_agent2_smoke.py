@@ -85,11 +85,8 @@ def main() -> None:
     args = parser.parse_args()
     args.out.mkdir(parents=True, exist_ok=True)
     log = args.out / "runs.jsonl"
-    done = (
-        {json.loads(x)["instance_id"] for x in log.read_text().splitlines()}
-        if log.is_file()
-        else set()
-    )
+    finished = [json.loads(x) for x in log.read_text().splitlines()] if log.is_file() else []
+    done = {r["instance_id"] for r in finished if r.get("error_kind") != "infra"}  # voids rerun
     lock = threading.Lock()
 
     def work(row: dict) -> None:
