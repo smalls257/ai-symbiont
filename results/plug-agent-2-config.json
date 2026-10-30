@@ -1,0 +1,37 @@
+{
+ "phase": "PLUG-AGENT-2",
+ "agent": "glimmer",
+ "model": "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
+ "gguf_sha256": "4cc57c0f51040a226e5a72cc47b7613f7772950e460a665f7083de89f183f60e",
+ "llama_server": {
+  "laptop": "0.8.0 build 11960 commit 8642541b2",
+  "desktop": "to be recorded at the first desktop branch"
+ },
+ "reasoning_effort": "low",
+ "temperature": 0.6,
+ "prefix_temperature": 0.6,
+ "step_limit": 75,
+ "wall_limit_min": 45,
+ "max_tokens_per_reply": 4096,
+ "run_label": "plug-agent-2",
+ "window_model_calls": 15,
+ "branches_per_arm": 6,
+ "void_requeue_cap": 1,
+ "labels_sha256": "170f3bb3dddef180216827817bbb6bb699e785cc1dca5bc549ad7a41e73156fc",
+ "label_prompt_sha256": "dad7b47ddb4044355253bc5b108b72ae20f92aedb9be71ed6dc1186b3bd11540",
+ "pool_summary_sha256": "5cdc89f7d3662139940da17cd175a58531515056005af578f708721ce1d9f8ff",
+ "spark_label_cap_usd": 0.8,
+ "judge_threshold": 0.99,
+ "ranker_threshold": 15.0,
+ "judge_seeds": 3,
+ "selection_json_sha256": "278aae2c264eb5939f49e35203532027a303e1b9789d0fdeb731e078580682b8",
+ "judge_adapter_sha256": {
+  "judge-s0": "6375047268eb3e285d21b4632a5661ced347c1aa319ec47ed0ba57c77e0d7bdc",
+  "judge-s1": "a06ab6e0f5b74f8f60ff6d7605dc5be54b970b5a7811ddf95503501dc196bdc4",
+  "judge-s2": "797d169cedf9fde56cac3791cf88245d02e8fb23cd072c0e0bbcce67415837c9"
+ },
+ "cutoff_time_pt": "to be set by the coordinator before the scored run",
+ "points_n": "to be set after the smoke, before the scored run",
+ "label": "PLUG-AGENT-2 run settings, shared by every branch",
+ "mistake_rule_sha256": "69c306ce2cb1b7f4283810bdba4866b92ec8aadb1d4c0ded74eca73ea2f6dbdc"
+}

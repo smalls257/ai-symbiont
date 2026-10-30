@@ -25,6 +25,7 @@ class BranchPoint:
     failing_observation: int  # index of the failing command's observation message
     failure: Failure
     key: Key
+    fingerprint: str = ""  # the prefix container's state hash, set when the container is committed
 
 
 def find_branch_point(messages: Sequence[dict], known: frozenset[Key]) -> BranchPoint | None:

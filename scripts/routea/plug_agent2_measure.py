@@ -22,17 +22,16 @@ STOP_MIN_RUNS = (
 STOP_MIN_SHARE = 0.30  # and at least this share of them repeating it
 
 
+def lesson_key(lesson: dict) -> Key | None:
+    """The lesson's failure key under the frozen rule, or None when it has no usable key."""
+    program, target = normalise_command(lesson["failed"])
+    return key_of(Failure(lesson["failed"], lesson["error"], program, target))
+
+
 def known_keys(labels: dict[str, str], lessons: list[dict]) -> frozenset[Key]:
     """Keys of the task's `applies` lessons that have a usable key."""
-    found = set()
-    for lesson in lessons:
-        if labels.get(lesson["lesson_id"]) != "applies":
-            continue
-        program, target = normalise_command(lesson["failed"])
-        key = key_of(Failure(lesson["failed"], lesson["error"], program, target))
-        if key is not None:
-            found.add(key)
-    return frozenset(found)
+    keys = (lesson_key(x) for x in lessons if labels.get(x["lesson_id"]) == "applies")
+    return frozenset(key for key in keys if key is not None)
 
 
 def task_of(path: Path) -> str:

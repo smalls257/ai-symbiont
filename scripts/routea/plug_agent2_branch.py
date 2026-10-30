@@ -10,6 +10,7 @@ Docker) live here; the decisions are in plug_agent2_branchpoint.py. Logs ids and
 import copy
 import subprocess
 import time
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -21,8 +22,24 @@ from plug_agent_env import LocalNotedEnvironment, RunLog, _agent_exit, _environm
 from plug_agent_notes import NoteArm, NoteSource
 from taskenv import TaskEnvError, history_scrub_script, install_script
 
+FINGERPRINT_SCRIPT = (
+    "cd /testbed && { git diff HEAD | sha256sum; git status --porcelain | sha256sum; "
+    "git ls-files -o --exclude-standard -z | sort -z | xargs -0 -r sha256sum | sha256sum; }"
+)
 WINDOW = 15  # further model calls after the branch point (prereg: W)
 MAX_FORMAT_ERRORS = 3
+
+
+class FidelityError(RuntimeError):
+    """A restored container's state hash differs from the prefix's: the point is void."""
+
+
+def state_fingerprint(env: Any) -> str:
+    """Hash of the working tree's diff, status and untracked files inside the container."""
+    result = env.execute({"command": FINGERPRINT_SCRIPT}, timeout=300)
+    if result["returncode"] != 0:
+        raise FidelityError(f"fingerprint failed rc={result['returncode']}")
+    return result["output"].strip()
 
 
 class PrefixAgent(DefaultAgent):
@@ -99,6 +116,7 @@ def run_prefix(
         )
         _agent_exit(agent, row, record)
         if agent.point is not None:
+            agent.point = replace(agent.point, fingerprint=state_fingerprint(env))
             subprocess.run(
                 ["docker", "commit", env.container_id, image_tag(row["instance_id"])],
                 check=True,
@@ -109,15 +127,26 @@ def run_prefix(
         env.cleanup()
 
 
+@dataclass(frozen=True)
+class Continuation:
+    """One branch: the note under the failing observation (None: nothing) and the silent source
+    that keeps later failures keyed the same way in every arm."""
+
+    note: str | None
+    source: NoteSource
+
+
 def run_continuation(
-    row: dict, point: BranchPoint, source: NoteSource, config: dict, traj: Path
+    row: dict, point: BranchPoint, plan: Continuation, config: dict, traj: Path
 ) -> dict:
-    """One arm from the branch point: its note for the failure, then WINDOW model calls; whether
-    the key repeats."""
-    note = source.note_for(point.model_calls, point.failure)
+    """One branch from the branch point: its note, then WINDOW model calls; whether the key
+    repeats."""
+    source, note = plan.source, plan.note
     started = time.time()
     env = _environment(image_tag(row["instance_id"]))
     try:
+        if state_fingerprint(env) != point.fingerprint:
+            raise FidelityError("restored container differs from the prefix state")
         model, agent_cfg = _model(row, source, config)
         agent_cfg = copy.deepcopy(agent_cfg) | {"step_limit": point.model_calls + WINDOW}
         agent = ResumedAgent(
