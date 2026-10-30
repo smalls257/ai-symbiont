@@ -28,23 +28,51 @@ def key_of(failure: Failure) -> Key | None:
     return (error_class, program, target)
 
 
-def failures_in(messages: Sequence[Mapping]) -> list[Failure | None]:
-    """One entry per executed command of a mini-SWE-agent tool-calling history: its Failure, or
-    None when it passed or names no error class."""
-    found: list[Failure | None] = []
-    command = None
-    for message in messages:
+@dataclass(frozen=True)
+class Executed:
+    """One executed action of a tool-calling history and where it sits."""
+
+    observation_index: int
+    command: str
+    output: str
+    action_index: int  # position among the assistant message's actions
+    action_count: int
+    model_calls: int  # assistant messages up to and including this action's
+
+
+def _commands_of(message: Mapping) -> list[str]:
+    """The bash commands an assistant message asks for, in order."""
+    actions = (message.get("extra") or {}).get("actions")
+    if actions:
+        return [str(action.get("command", "")) for action in actions]
+    calls = message.get("tool_calls") or []
+    return [json.loads(call["function"]["arguments"]).get("command", "") for call in calls]
+
+
+def executed_actions(messages: Sequence[Mapping]) -> list[Executed]:
+    """Every action paired with its observation message (the i-th action, the i-th tool reply)."""
+    found: list[Executed] = []
+    pending: list[tuple[int, str, int]] = []
+    count, model_calls = 0, 0
+    for index, message in enumerate(messages):
         if message["role"] == "assistant":
-            calls = message.get("tool_calls") or []
-            command = (
-                json.loads(calls[0]["function"]["arguments"]).get("command") if calls else None
-            )
-        elif message["role"] == "tool" and command:
-            code = RETURNCODE.search(message["content"])
-            found.append(
-                failure_of(command, int(code.group(1)) if code else None, message["content"])
-            )
-            command = None
+            model_calls += 1
+            commands = _commands_of(message)
+            count = len(commands)
+            pending = [(i, command, count) for i, command in enumerate(commands)]
+        elif message["role"] == "tool" and pending:
+            position, command, total = pending.pop(0)
+            found.append(Executed(index, command, message["content"], position, total, model_calls))
+    return found
+
+
+def failures_in(messages: Sequence[Mapping]) -> list[Failure | None]:
+    """One entry per executed command: its Failure, or None when it passed or names no error
+    class."""
+    found: list[Failure | None] = []
+    for step in executed_actions(messages):
+        code = RETURNCODE.search(step.output)
+        found.append(failure_of(step.command, int(code.group(1)) if code else None, step.output))
     return found
 
 
