@@ -8,7 +8,9 @@ Usage: python plug_agent2_smoke.py <smoke-rows.json> <out-dir> [--workers 2]
 """
 
 import argparse
+import hashlib
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -19,6 +21,20 @@ from pathlib import Path
 IMAGE_LIMIT_GB = 8  # one SWE-rebench image is 1 to 5 GB; a larger one is skipped, not pulled
 DISK_FLOOR_GB = 60  # the desktop's WSL disk is shared with Core's runs
 GB = 1e9
+
+
+def claimed(out: Path, task: str) -> bool:
+    """True if this driver is the first to claim the task (two drivers, one per server, share
+    the output directory)."""
+    (out / "claims").mkdir(exist_ok=True)
+    name = hashlib.sha256(task.encode()).hexdigest()[:24]
+    try:
+        handle = os.open(out / "claims" / name, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        os.write(handle, os.environ.get("PLUG2_SERVER", "laptop").encode())  # who holds the claim
+        os.close(handle)
+    except FileExistsError:
+        return False
+    return True
 
 
 def registry_size_gb(image: str) -> float | None:
@@ -77,6 +93,8 @@ def main() -> None:
     lock = threading.Lock()
 
     def work(row: dict) -> None:
+        if not claimed(args.out, row["instance_id"]):
+            return
         reason = refusal(row, args.out)
         record = (
             {"instance_id": row["instance_id"], "skipped": reason}
