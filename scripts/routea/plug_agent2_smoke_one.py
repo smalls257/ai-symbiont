@@ -14,6 +14,7 @@ from pathlib import Path
 from plug_agent_env import run_task
 from plug_agent_notes import NoteArm, NoteSource
 
+PULL_TIMEOUT_S = 1800
 SETTINGS = {
     "agent": "glimmer",
     "run_label": "plug-agent-2-smoke",
@@ -49,6 +50,19 @@ def main() -> None:
     out = Path(sys.argv[3])
     traj = out / "traj" / f"{row['instance_id']}.traj.json"
     traj.parent.mkdir(parents=True, exist_ok=True)
+    pull = subprocess.run(
+        ["docker", "pull", "--quiet", row["docker_image"]],
+        capture_output=True,
+        check=False,
+        timeout=PULL_TIMEOUT_S,
+    )  # the harness's own pull limit is 120 s, shorter than a large image
+    if pull.returncode:
+        print(
+            json.dumps(
+                {"instance_id": row["instance_id"], "error_kind": "infra", "error": "pull failed"}
+            )
+        )
+        return
     source = NoteSource(NoteArm.NONE, row["repo"], (), 0.0, 1.0)
     record = run_task(row, source, SETTINGS, traj)
     subprocess.run(["docker", "rmi", row["docker_image"]], capture_output=True, check=False)
