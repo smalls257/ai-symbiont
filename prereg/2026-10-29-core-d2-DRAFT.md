@@ -85,7 +85,10 @@ That is 234 candidates in all.
 
 **Data mix (item 2).** A and C are both trained on teacher solutions only. Glimmer's own passes are not used in either arm, so the two arms match in kind, ratio and size by construction.
 
-**Sampling (item 3).** If duplicate temperature-0 runs come out byte-identical (measured before the freeze, see below), both runs of an arm use temperature 0.6 with fixed seeds per run: seed = first 8 hex digits of sha256(`core-d2:<instance_id>:<arm>:<run>`). Otherwise they use temperature 0 [established once measured].
+**Sampling (item 3).** Three screened tasks were rerun at temperature 0 on the same server (4 to 6 slots busy). Every model reply that could be compared was byte-identical to the screening run: 53 of 53, 59 of 59 and 43 of 43 replies in the first rerun, and 18, 21 and 5 replies in a second rerun that was cut short by an interruption [measured]. Temperature 0 repeats, so two identical runs would only be duplicates. Both runs of an arm therefore use **temperature 0.6 with a fixed seed per run**: seed = first 8 hex digits of sha256(`core2-d2:<instance_id>:<arm>:<run>`) [established, by construction].
+
+- **Wall-cap caveat.** Runs that hit the 45-minute wall cap stopped at different steps (53 against 71 for one task) because Glimmer's speed changed with load, even though every compared reply was identical [measured]. Wall-cap hits are counted per arm.
+- **Screening differs from the test.** Screening ran at temperature 0 and the test runs at 0.6, so a screened-out pass is a pass at one sampling setting only.
 
 **Order, cutoff and early stop**
 
