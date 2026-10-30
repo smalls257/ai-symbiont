@@ -52,7 +52,10 @@ def server_probe(server: dict) -> bool:
 def with_examples(row: dict, server: dict) -> dict:
     """The row with the two most similar earlier solved tasks prepended to its issue (arm W)."""
     config = server["examples"]
-    earlier = [r for r in json.loads(Path(config["rows"]).read_text()) if r["repo"] == row["repo"]]
+    repo = row.get("repo", DJANGO)  # Django rows carry no repo field
+    earlier = [
+        r for r in json.loads(Path(config["rows"]).read_text()) if r.get("repo", DJANGO) == repo
+    ]
     solved = Path(config["trajectories"])
     earlier = [r for r in earlier if (solved / f"{r['instance_id']}.traj.json").is_file()]
     picked = most_similar(row["problem_statement"], earlier)
