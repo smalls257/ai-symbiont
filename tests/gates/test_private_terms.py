@@ -47,6 +47,19 @@ def test_a_clean_file_passes(tmp_path, terms):
     assert _run(terms, "files", "a.txt", cwd=tmp_path).returncode == 0
 
 
+def test_a_term_inside_a_public_github_url_passes(tmp_path, terms):
+    (tmp_path / "a.txt").write_text(
+        "see https://github.com/Zorbulax/repo and https://zorbulax.github.io/repo/\n"
+        "raw: https://raw.githubusercontent.com/zorbulax/repo/main/x\n"
+    )
+    assert _run(terms, "files", "a.txt", cwd=tmp_path).returncode == 0
+
+
+def test_the_same_term_in_a_home_path_still_fires(tmp_path, terms):
+    (tmp_path / "a.txt").write_text("link github.com/zorbulax/x but the folder zorbulax-notes\n")
+    assert _run(terms, "files", "a.txt", cwd=tmp_path).returncode == 1
+
+
 def test_a_path_that_holds_a_term_fires(tmp_path, terms):
     (tmp_path / "tree" / "zorbulax").mkdir(parents=True)
     (tmp_path / "tree" / "zorbulax" / "a.txt").write_text("clean\n")
