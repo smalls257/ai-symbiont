@@ -27,6 +27,9 @@ Right-lesson coverage at wrong pick <= 0.05: the **agree rule** against **the ro
 ## Silent Fallbacks refused
 A failed nightly training run, unparsable model output, an invalid lesson id, or a missing repository stops the run or counts as a failure; none is ever read as silence. The scored runner refuses to start unless n = 251 / 89 repositories.
 
+## Pre-declared fallback primary
+If continuous training (the owner's recipe: learn from misses, Spark labels, retrain each night from the round 3 judge on all data, 25% general replay; and the alternate arm with a retrained ranker) does not beat the fair reference (round 3 judge with the agree rule) at the same wrong-pick cap in nested repo-fold CV on validation, the round 4 primary is **"trained judge vs RAG floor + untrained 1B"**: the round 3 judge (with the agree rule) against basic RAG and against the untrained 1B on the same primary items. The exploratory result decides which primary is frozen; the other is then not run as a claim. [established]
+
 ## Arms
 - **Primary arms:** agree rule against the round 3 judge alone (above).
 - **Fair reference for training:** the round 3 judge (3-seed mean) with the same agree rule, fitted the same way.
