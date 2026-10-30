@@ -1,22 +1,13 @@
-"""QG-SEC-05 the owner's own identifiers (user names, e-mail local parts, LAN host names).
+"""QG-SEC-05: the owner's own identifiers (user names, e-mail local parts, LAN host names).
 
-Violation prevented: Silent Fallback at the publish boundary. Regex rules cannot know the owner's
-name, and writing the name into a tracked config would publish it. The terms therefore live
-OUTSIDE the repo, in a file every worktree shares, and this check fails closed when that file is
-missing or holds no term: a scan with nothing to look for reports "clean" and means nothing.
-
-  check_private_terms.py staged          added lines of the staged diff (pre-commit)
-  check_private_terms.py files F [F ...] the working copy of those files
-  check_private_terms.py files0          the same, names NUL-delimited on stdin (any file name)
-  check_private_terms.py tree DIR        every file under DIR (an exported tree)
-
-Terms file: $SYMBIONT_PRIVATE_TERMS or ~/.config/symbiont/private-terms.txt, one term per line,
-`#` comments, case-insensitive substrings of at least 4 characters. A finding prints path and line
-but never the term or the line, so a log of the scan leaks nothing. Exit 1 on a finding, 2 if the
-check cannot run.
+Terms live outside the repo ($SYMBIONT_PRIVATE_TERMS or ~/.config/symbiont/private-terms.txt, one
+case-insensitive term of 4+ characters per line), so naming them never publishes them; the check
+fails closed (exit 2) without them. Findings print path:line only; exit 1 on a finding.
+Usage: check_private_terms.py staged | files F [F ...] | files0 | tree DIR
 """
 
 import os
+import re
 import subprocess
 import sys
 from collections.abc import Iterator
@@ -62,9 +53,21 @@ def load_terms(path: Path) -> list[str]:
     return terms
 
 
+# The owner publishes under a public GitHub handle (repo, Pages, raw links), so a term inside
+# those URL forms is not a leak; the same term in a home path or host name still is.
+PUBLIC_GITHUB_URL = re.compile(
+    r"(?:https?://)?(?:www\.)?(?:github\.com|raw\.githubusercontent\.com)/[a-z0-9-]+"
+    r"|[a-z0-9-]+\.github\.io"
+)
+
+
+def without_public_github_urls(lowered_line: str) -> str:
+    return PUBLIC_GITHUB_URL.sub(" ", lowered_line)
+
+
 def hits_in(label: str, text: str, terms: list[str]) -> Iterator[str]:
     for number, line in enumerate(text.splitlines(), start=1):
-        lowered = line.lower()
+        lowered = without_public_github_urls(line.lower())
         if any(term in lowered for term in terms):
             yield f"{label}:{number}: owner private term (Silent Fallback at the publish boundary)"
 
