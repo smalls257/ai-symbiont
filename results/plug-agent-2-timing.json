@@ -1,0 +1,32 @@
+{
+ "core": {
+  "runs": 77,
+  "marks": 17,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 17,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 2203
+ },
+ "core-all": {
+  "runs": 90,
+  "marks": 0,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 0,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3482
+ },
+ "own": {
+  "runs": 62,
+  "marks": 16,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 16,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3231
+ }
+}
