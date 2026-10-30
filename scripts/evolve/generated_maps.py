@@ -59,6 +59,11 @@ def structure_sha256(wad_bytes: bytes) -> str:
     return wanted.hexdigest()
 
 
+def indices(args: argparse.Namespace) -> range:
+    """The map indices this run covers; the defaults are the original 90."""
+    return range(args.start_index, args.start_index + args.count)
+
+
 def generate(args: argparse.Namespace) -> None:
     """Write every WAD and the recipe (seed, settings, sha256) as lines of text."""
     sys.path.insert(0, str(args.oblige_src))
@@ -66,7 +71,7 @@ def generate(args: argparse.Namespace) -> None:
 
     args.wads.mkdir(parents=True, exist_ok=True)
     lines = []
-    for index in range(COUNT):
+    for index in indices(args):
         generator = DoomLevelGenerator(FIRST_SEED + index)
         generator.set_config(config_for(index))
         path = args.wads / f"{name_for(index).lower()}.wad"
@@ -102,16 +107,16 @@ def check_one(iwad: Path, pwad: Path) -> dict[str, Any]:
 def check(args: argparse.Namespace) -> None:
     """The declared keep rule on every map in seed order; the first KEEP_LIMIT passing are kept."""
     results, kept = {}, []
-    for index in range(COUNT):
+    for index in indices(args):
         name = name_for(index)
         verdict = check_one(args.iwad, args.wads / f"{name.lower()}.wad")
         results[name] = verdict
-        if verdict["kept"] and len(kept) < KEEP_LIMIT:
+        if verdict["kept"] and len(kept) < args.keep_limit:
             kept.append(name)
         print(name, verdict, flush=True)
     stages = {n: "kept" if v["kept"] else v["stage"] for n, v in results.items()}
     passing = sum(v["kept"] for v in results.values())
-    document = {"kept": kept, "checked": COUNT, "passing": passing, "stages": stages}
+    document = {"kept": kept, "checked": args.count, "passing": passing, "stages": stages}
     if args.out:
         args.out.write_text(json.dumps(document, indent=1) + "\n")
     print(json.dumps({k: document[k] for k in ("passing", "checked")}), len(kept), "kept")
@@ -124,6 +129,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--wads", type=Path, default=Path.home() / "symbiont-runs/oblige/wads")
     parser.add_argument("--iwad", type=Path, default=Path("data/freedoom/freedoom2.wad"))
     parser.add_argument("--out", type=Path)
+    parser.add_argument("--start-index", type=int, default=0)
+    parser.add_argument("--count", type=int, default=COUNT)
+    parser.add_argument("--keep-limit", type=int, default=KEEP_LIMIT)
     args = parser.parse_args(argv)
     {"generate": generate, "check": check}[args.phase](args)
     return 0

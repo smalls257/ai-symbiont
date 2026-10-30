@@ -78,6 +78,7 @@ class RunMode(StrEnum):
 
     TRAINING = "training"
     FINAL_TEST = "final_test"
+    EXPLORATORY_LISTED = "exploratory_listed"  # listed maps only, no prereg: results carry no claim
 
 
 class NotInFinalTestError(ValueError):
@@ -165,6 +166,10 @@ class EnginePlayer:
         setup = self.setup
         if setup.mode == RunMode.TRAINING:
             require_training(level)
+            return
+        if setup.mode == RunMode.EXPLORATORY_LISTED:
+            if level not in setup.final_levels:
+                raise NotInFinalTestError(f"{level} is not in the exploratory run's list")
             return
         if setup.frozen_prereg is None:
             raise PreregNotFrozenError("final test", "no frozen prereg was given")
