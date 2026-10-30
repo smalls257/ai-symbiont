@@ -1,9 +1,8 @@
 """Core D2 screening: one plain-Glimmer run per later candidate (temperature 0, 75 steps).
 
-Each task runs in its own process (a long run's memory dies with it); records append to
-<out>/runs.jsonl and a rerun skips graded tasks. A model_api or infra error is void and the
-task is tried again on the next pass. Screening runs never count as test runs. The images of
-passing tasks are removed afterwards (dropped from the test, so not needed again).
+Each task runs in its own process; records append to <out>/runs.jsonl and a rerun skips graded
+tasks. A model_api or infra error is void and retried. Screening runs never count as test runs.
+Every task's image is removed right after its run, pass or fail (the 5080's disk once filled).
 Usage: SYMBIONT_GLIMMER_URL=... python screen_plain.py --rows R --out DIR [--workers N]
 """
 
@@ -38,6 +37,11 @@ def child_record(row: dict, rows_path: Path, out: Path) -> dict:
     command = [sys.executable, __file__, "--rows", str(rows_path), "--out", str(out),
                "--one", row["instance_id"]]  # fmt: skip
     child = subprocess.run(command, capture_output=True, text=True, check=False)
+    removed = subprocess.run(
+        ["docker", "rmi", row["docker_image"]], capture_output=True, check=False
+    )
+    if removed.returncode:
+        print(f"image not removed: {row['docker_image']}", file=sys.stderr)
     lines = [line for line in child.stdout.splitlines() if line.startswith("{")]
     if lines:
         return json.loads(lines[-1]) | {"repo": row["repo"]}
@@ -72,11 +76,6 @@ def main() -> None:
         for rec in pool.map(lambda row: child_record(row, args.rows, args.out), todo):
             log.write(json.dumps(rec) + "\n")
             log.flush()
-            if rec.get("resolved"):
-                image = next(
-                    r["docker_image"] for r in rows if r["instance_id"] == rec["instance_id"]
-                )
-                subprocess.run(["docker", "rmi", image], capture_output=True, check=False)
 
 
 if __name__ == "__main__":
