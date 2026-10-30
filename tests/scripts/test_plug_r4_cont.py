@@ -145,3 +145,49 @@ def test_habit_rows_make_up_the_share_in_every_repository(cont, tmp_path):
     assert cont.add_habits(tmp_path, [habit], 0.15) == 1
     out = [json.loads(x) for x in (folder / "train.jsonl").read_text().splitlines()]
     assert len(out) == 100 and sum(r["messages"][-1]["content"] == "habit" for r in out) == 15
+
+
+def test_cutoffs_take_the_earliest_scored_recurrence_per_repository(monkeypatch):
+    load(monkeypatch, "plug_r4_primary")
+    module = load(monkeypatch, "plug_r4_scored_nightly")
+
+    class Item:
+        def __init__(self, item_id, applies):
+            self.item_id, self.applies = item_id, applies
+
+    items = [
+        Item("o__r:o__r-9:aa-pick", 1),
+        Item("o__r:o__r-3:bb-pick", 1),
+        Item("o__r:o__r-1:cc-silence", None),
+    ]
+    repo_of = {i.item_id: "o/r" for i in items}
+    dates = {"o__r-9": "2024-03-01", "o__r-3": "2024-02-01", "o__r-1": "2024-01-01"}
+    assert module.cutoffs(items, repo_of, dates) == {"o/r": ("2024-02-01", "o__r-3")}
+
+
+def test_only_tasks_strictly_before_the_cutoff_are_known(monkeypatch):
+    primary = load(monkeypatch, "plug_r4_primary")
+    module = load(monkeypatch, "plug_r4_scored_nightly")
+    tasks = [primary.TaskEvents(f"o__r-{n}", f"2024-0{n}-01", (), ()) for n in (1, 2, 3)]
+    kept = module.before(tasks, ("2024-02-01", "o__r-2"))
+    assert [t.task for t in kept] == ["o__r-1"]
+
+
+def test_a_repository_without_scores_is_refused_unless_it_is_idle(monkeypatch, tmp_path):
+    load(monkeypatch, "plug_r4_primary")
+    load(monkeypatch, "plug_r4_scored")
+    load(monkeypatch, "plug_r4_general_arm")
+    arm = load(monkeypatch, "plug_r4_nightly_arm")
+    repo_of = {"q1": "o/r"}
+    with pytest.raises(arm.PinMismatchError):
+        arm.arm_scores(tmp_path, "1", set(), {}, repo_of)
+    assert arm.arm_scores(tmp_path, "1", {"o/r"}, {"q1": 0.4}, repo_of) == {"q1": 0.4}
+
+
+def test_an_adapter_set_with_no_adapters_cannot_be_pinned(monkeypatch, tmp_path):
+    load(monkeypatch, "plug_r4_primary")
+    load(monkeypatch, "plug_r4_scored")
+    load(monkeypatch, "plug_r4_general_arm")
+    arm = load(monkeypatch, "plug_r4_nightly_arm")
+    with pytest.raises(arm.PinMismatchError):
+        arm.adapters_hash(tmp_path, "1")

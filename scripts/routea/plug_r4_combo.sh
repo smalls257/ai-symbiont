@@ -19,9 +19,9 @@ for share in habits10 habits40; do
     out="$COMBO/scores-$share/$repo"
     [[ -f $out/s$LAST/habits.jsonl ]] && continue
     start=$(date +%s)
-    iters=$(( $(wc -l <"$repo_dir/train.jsonl") * 3 / 4 ))
+    iters=$(( $(wc -l <"$repo_dir/train.jsonl") * ${EPOCHS:-3} / 4 ))
     LORA_MAX_LENGTH=1024 "$PY" "$HERE/train_lora_torch.py" --model "$base" --data "$repo_dir" \
-      --iters "$iters" --seed 0 --adapter "$COMBO/adapters/$share-$repo" >"$COMBO/logs/train-$share-$repo.log" 2>&1
+      --iters "$iters" --seed 0 ${RESUME:+--resume "$RESUME"} --adapter "$COMBO/adapters/$share-$repo" >"$COMBO/logs/train-$share-$repo.log" 2>&1
     "$PY" "$HERE/plug_r4_combo_gpu.py" --model "$base" --adapter "$COMBO/adapters/$share-$repo" \
       --queries "$COMBO/queries/$repo.jsonl" --habit-questions "$HQ" --habit-system "$HS" \
       --out "$out" --scales $SCALES >"$COMBO/logs/read-$share-$repo.log" 2>&1

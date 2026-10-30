@@ -1,0 +1,18 @@
+{
+ "nightly_v2_general_base_habits15_strength_1": {
+  "pick": 0.5636,
+  "silence": 0.9212,
+  "wrong_pick": 0.0424,
+  "coverage": 0.5697,
+  "precision": 0.8692,
+  "habits_mean": 0.8057
+ },
+ "nightly_v2_general_base_habits15_strength_0.7": {
+  "pick": 0.5091,
+  "silence": 0.9152,
+  "wrong_pick": 0.0455,
+  "coverage": 0.5152,
+  "precision": 0.8485,
+  "habits_mean": 0.8369
+ }
+}

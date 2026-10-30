@@ -156,6 +156,9 @@ def main() -> None:
     parser.add_argument("--exclude", type=Path, nargs="*", default=[])
     parser.add_argument("--replay", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument(
+        "--tasks-out", type=Path, help="one rows file per repository (Reptile tasks)"
+    )
     args = parser.parse_args()
     excluded: set[str] = set()
     for path in args.exclude:
@@ -167,6 +170,11 @@ def main() -> None:
     mixed = with_replay(rows, _read_jsonl(args.replay), REPLAY_SHARE)
     _jsonl(args.out / "train.jsonl", mixed)
     _jsonl(args.out / "valid.jsonl", mixed[:8])
+    for repo, evs in events.items() if args.tasks_out else ():
+        _jsonl(
+            args.tasks_out / f"{repo.replace('/', '__')}.jsonl",
+            [r for e in evs for r in event_rows(e)],
+        )
     manifest = {
         "normalizer_sha256": digest,
         "repos": len(events),

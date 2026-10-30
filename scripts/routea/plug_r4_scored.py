@@ -143,18 +143,24 @@ def wrong_flags_by_repo(items, repo_of, choices) -> dict:
 
 
 def primary_decision(items, repo_of, scores, selection: dict) -> dict:
-    """Judge alone at 0.99 against the agree rule: rates, interval, verdicts, ICC, strict row."""
+    """Judge alone at 0.99 against the agree rule on these scores."""
     cands = merged_candidates(items, candidates(items, scores))
     alone = decide(items, cands, judge_top(SHORTLIST), FROZEN_JUDGE_THRESHOLD)
     rule_of = two_d_rules()[selection["rule"]]
     rule = decide(items, cands, rule_of, selection["threshold"])
-    ranker = decide(items, cands, rule_of, 0.0)
+    return summarize(items, repo_of, alone, rule, decide(items, cands, rule_of, 0.0))
+
+
+def summarize(items, repo_of, alone, rule, ranker) -> dict:
+    """Rates, interval, verdicts, ICC and strict row of an arm (`rule`) against the comparator
+    (`alone`); `ranker` is the same rule's cut with no judge."""
     t_rule, t_alone = repo_table(items, repo_of, rule), repo_table(items, repo_of, alone)
     boot = bootstrap(t_rule, t_alone)
     gain = coverage(t_rule) - coverage(t_alone)
     keep = [i for i, item in enumerate(items) if is_single_fix(item)]
     strict = [
-        repo_table([items[i] for i in keep], repo_of, [c[i] for i in keep]) for c in (rule, alone)
+        repo_table([items[i] for i in keep], repo_of, [choices[i] for i in keep])
+        for choices in (rule, alone)
     ]
     return {
         "coverage_rule": round(coverage(t_rule), 4),
