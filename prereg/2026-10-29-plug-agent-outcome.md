@@ -1,6 +1,6 @@
 # Pre-registration: Plug agent outcome, phase 1 (PLUG-AGENT-1)
 
-**DRAFT, NOT FROZEN.** Committed alone at the freeze, before any arm runs a task. After the freeze only a dated amendment may change anything, and an amendment cannot change the tasks, arms, store, measures, the single primary contrast or the claim template below.
+**FROZEN 2026-10-29.** Committed alone, before any arm runs a task. After the freeze only a dated amendment may change anything, and an amendment cannot change the tasks, arms, store, measures, the single primary contrast or the claim template below.
 
 Claim tags: [measured] = observed in our own run, [established] = known from the literature or by construction, [hypothesis] = a guess the run can support or refute.
 
