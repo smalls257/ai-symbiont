@@ -176,7 +176,11 @@ def prefix_point(
 def main() -> None:
     rows_path, task, out, config_path, expected, labels_path, stores_path, pool_path = sys.argv[1:9]
     recorded = sys.argv[9] if len(sys.argv) > 9 else None
-    pinned = {"labels_sha256": Path(labels_path), "pool_summary_sha256": Path(pool_path)}
+    prefix = "core_" if recorded else ""
+    pinned = {
+        f"{prefix}labels_sha256": Path(labels_path),
+        f"{prefix}pool_summary_sha256": Path(pool_path),
+    }
     config = checked_config(Path(config_path), expected, pinned)
     checked_server(served_models(), config)
     row = {r["instance_id"]: r for r in json.loads(Path(rows_path).read_text())}[task]

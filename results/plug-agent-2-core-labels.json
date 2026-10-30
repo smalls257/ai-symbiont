@@ -1,0 +1,474 @@
+{
+"label_prompt_sha256": "dad7b47ddb4044355253bc5b108b72ae20f92aedb9be71ed6dc1186b3bd11540",
+"labels": {
+"tobymao__sqlglot-1782": {
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-1819": {
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-1703": {
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"PennyLaneAI__pennylane-5831": {
+"238f9d31e3da": "does_not_apply"
+},
+"tobymao__sqlglot-1379": {
+"65a42904540f": "applies"
+},
+"PennyLaneAI__pennylane-6358": {
+"238f9d31e3da": "applies"
+},
+"tobymao__sqlglot-2605": {
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-1944": {
+"6e62f2b86357": "applies",
+"75776b964545": "applies",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3477": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-2619": {
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "applies",
+"75776b964545": "applies",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-2521": {
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-2439": {
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3533": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3552": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3548": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "applies",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3605": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3620": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3612": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3627": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3621": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3650": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3652": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "applies",
+"6e62f2b86357": "applies",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3637": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3689": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3720": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "applies",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3701": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "applies",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3731": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3870": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3820": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3885": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-3847": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4041": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-3891": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "applies",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4110": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "applies",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4014": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4109": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4141": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4093": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "applies",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4218": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4287": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4239": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "applies",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4293": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4325": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4301": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "applies",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4311": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4390": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4328": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "applies",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4373": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4347": {
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "applies",
+"6e62f2b86357": "applies",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4438": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "applies",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4415": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4459": {
+"2a54f7a22564": "does_not_apply",
+"73786a964bb2": "does_not_apply",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4505": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4545": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "applies",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4472": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "applies",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "applies",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4528": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4941": {
+"2a54f7a22564": "does_not_apply",
+"73786a964bb2": "does_not_apply",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+},
+"tobymao__sqlglot-4546": {
+"2a54f7a22564": "does_not_apply",
+"73786a964bb2": "does_not_apply",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4628": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "applies"
+},
+"tobymao__sqlglot-4987": {
+"2a54f7a22564": "applies",
+"73786a964bb2": "applies",
+"78e8c08a341b": "does_not_apply",
+"d9e51ba3b309": "applies",
+"74ab330aa4fa": "does_not_apply",
+"6e62f2b86357": "does_not_apply",
+"75776b964545": "does_not_apply",
+"65a42904540f": "does_not_apply"
+}
+},
+"excluded": {}
+}
