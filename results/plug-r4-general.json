@@ -1,0 +1,9 @@
+{
+ "general_judge_agree_rule": {
+  "pick": 0.3152,
+  "silence": 0.9091,
+  "wrong_pick": 0.0606,
+  "coverage": 0.3455,
+  "precision": 0.7222
+ }
+}

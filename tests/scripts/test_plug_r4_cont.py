@@ -132,3 +132,16 @@ def test_a_single_failure_is_not_a_repeat(repeats):
 
     session = [Rec(0, "pytest a", 1, "KeyError: x")]
     assert repeats.within_session(session, repeats.session_failures(session, Norm)) == []
+
+
+def test_habit_rows_make_up_the_share_in_every_repository(cont, tmp_path):
+    import json
+
+    folder = tmp_path / "habits10" / "o__r"
+    folder.mkdir(parents=True)
+    rows = [row(cont, "yes")] * 85
+    (folder / "train.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+    habit = {"messages": [{"role": "user"}, {"role": "assistant", "content": "habit"}]}
+    assert cont.add_habits(tmp_path, [habit], 0.15) == 1
+    out = [json.loads(x) for x in (folder / "train.jsonl").read_text().splitlines()]
+    assert len(out) == 100 and sum(r["messages"][-1]["content"] == "habit" for r in out) == 15

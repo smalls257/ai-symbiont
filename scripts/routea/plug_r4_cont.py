@@ -223,6 +223,19 @@ def write_rows(args: argparse.Namespace) -> dict:
     return {"repos": len(sizes), "rows_total": sum(sizes.values()), "labeled_pairs": len(labels)}
 
 
+def add_habits(bundle: Path, habits: list[dict], share: float) -> int:
+    """Habit-replay rows added to every repository's training rows so they make up `share` of
+    them (sampled with replacement, seeded); returns the repositories changed."""
+    from plug_r4_eval import with_habits  # noqa: PLC0415
+
+    folders = sorted((bundle / "habits10").glob("*/train.jsonl"))
+    for path in folders:
+        rows = with_habits(_read_jsonl(path), habits, share)
+        _jsonl(path, rows)
+        _jsonl(path.with_name("valid.jsonl"), rows[:8])
+    return len(folders)
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("stage", choices=("prep", "label", "queries", "rows"))
