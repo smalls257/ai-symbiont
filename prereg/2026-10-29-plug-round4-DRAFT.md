@@ -1,6 +1,6 @@
-# Pre-registration DRAFT: Plug round 4, small trained judge + ranker agreement (NOT FROZEN)
+# Pre-registration: Plug round 4, small trained judge + ranker agreement (FROZEN)
 
-Draft for the Sonnet re-check before the freeze. The freeze is its own commit, before any fresh-repo answer. Claim tags: [measured], [established], [hypothesis]. Round 3 stays reported as scored (judge pick 0.310 against thresholded ranker 0.166; H2 and H3 missed) [measured]. Wording everywhere: "small trained judge + ranker agreement", never "retrieval".
+**FROZEN 2026-10-29.** Code and pins as of commit f93859b (this commit's parent); committed alone, header only, before any model answers any primary item. After the freeze only a dated amendment may add the nightly adapter hashes, idle list and date (see the amendment path); nothing else changes. Claim tags: [measured], [established], [hypothesis].
 
 ## Question
 On real later recurrences of a repository's own failures, does a small trained judge that must agree with the ranker cover more right lessons at no more than 5% wrong [established] than the round 3 judge alone?
