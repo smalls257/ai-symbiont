@@ -1,0 +1,20 @@
+{
+ "servers": {
+  "strix": {
+   "url": "http://STRIX_HOST:8081/v1",
+   "models": {"P": "PLAIN_MODEL_NAME", "A": "CORE_ADAPTER_NAME", "C": "CONTROL_ADAPTER_NAME"},
+   "examples": {"rows": "EARLIER_ROWS.json", "trajectories": "train-A/traj"}
+  },
+  "desk": {
+   "url": "http://127.0.0.1:8099/v1",
+   "models": {"P": "PLAIN_MODEL_NAME", "A": "CORE_ADAPTER_NAME", "C": "CONTROL_ADAPTER_NAME"},
+   "examples": {"rows": "EARLIER_ROWS.json", "trajectories": "train-A/traj"}
+  },
+  "laptop": {
+   "url": "http://LAPTOP_HOST:8090/v1",
+   "key_file": "~/.config/symbiont/glimmer-laptop.key",
+   "models": {"P": "PLAIN_MODEL_NAME", "A": "CORE_ADAPTER_NAME", "C": "CONTROL_ADAPTER_NAME"},
+   "examples": {"rows": "EARLIER_ROWS.json", "trajectories": "train-A/traj"}
+  }
+ }
+}

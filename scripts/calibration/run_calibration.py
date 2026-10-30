@@ -126,7 +126,7 @@ def agent_config(setting: Setting) -> tuple[dict, dict]:
         "cost_tracking": "ignore_errors",  # local model: cost is 0 by construction
         "model_kwargs": {
             "api_base": glimmer_url(),
-            "api_key": "none",
+            "api_key": os.environ.get("SYMBIONT_GLIMMER_KEY", "none"),
             "timeout": REQUEST_TIMEOUT_S,
             "max_tokens": MAX_TOKENS,
             "drop_params": True,

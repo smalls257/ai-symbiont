@@ -161,7 +161,7 @@ Computed at the expected plain pass rate, before any adapter result.
 | Test total | **650** [established] |
 | Available after the Plug downstream test | about 690 [hypothesis] |
 
-Machines: the Strix server and the 5080, the same GGUF (sha256 `4cc57c0f…`, greedy parity checked) [measured]. Each run records its machine and slot count.
+Machines and servers: the same Glimmer GGUF (sha256 `4cc57c0f…`, greedy parity checked) is served by **three servers**: the Strix, the 5080 and the laptop, each with the plain model and both adapters loaded [measured]. Containers run on the 5080 whatever the server. **Task-level assignment:** a runner process claims the next task in the seeded order and runs ALL of that task's arms on its own server, so P, A and C of one task always share a server and the pairing holds. The server and a block id are recorded with every run. If a server stops answering, the task's block is voided whole and another server runs all its arms; a half-finished block is never scored. Per-server results are reported, and server is a stratum in the secondary analysis [established]. Servers differ in speed, so wall-cap hits are reported per server and arm.
 
 ## Data hygiene
 
