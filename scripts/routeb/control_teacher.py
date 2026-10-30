@@ -105,9 +105,24 @@ def voided_if_died_early(rec: dict) -> dict:
     return rec | {"resolved": None, "error_kind": "infra"}
 
 
+REBUILD_LOCK = threading.Lock()  # rebuild_total writes one temporary file; threads must take turns
+
+
+def rebuild_ledger_total() -> None:
+    """Rebuild the ledger's running total; a race with another host's writer is retried."""
+    for attempt in range(3):
+        try:
+            with REBUILD_LOCK:
+                Ledger().rebuild_total()
+            return
+        except FileNotFoundError:
+            if attempt == 2:
+                raise
+
+
 def one_attempt(row: dict) -> dict:
     """Run one task in a fresh process; an empty or broken child is an infra record (void)."""
-    Ledger().rebuild_total()  # other hosts' processes may append without the running total
+    rebuild_ledger_total()  # other hosts' processes may append without the running total
     env = {**os.environ, "SYMBIONT_TEACHER_RUN_CAP_USD": RUN_CAP_USD}
     command = [sys.executable, __file__, *sys.argv[1:], "--one", row["instance_id"]]
     child = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
