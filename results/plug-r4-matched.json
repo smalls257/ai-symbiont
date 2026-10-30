@@ -1,0 +1,50 @@
+{
+ "reference_round3_judge": {
+  "nested_target": {
+   "pick": 0.5273,
+   "silence": 0.9212,
+   "wrong_pick": 0.0394,
+   "coverage": 0.5273,
+   "precision": 0.87
+  },
+  "fixed_target_0.05": {
+   "pick": 0.6545,
+   "silence": 0.8061,
+   "wrong_pick": 0.097,
+   "coverage": 0.6545,
+   "precision": 0.7714
+  }
+ },
+ "nightly_rich_scale_0.5": {
+  "nested_target": {
+   "pick": 0.2727,
+   "silence": 0.9273,
+   "wrong_pick": 0.0394,
+   "coverage": 0.2788,
+   "precision": 0.7759
+  },
+  "fixed_target_0.05": {
+   "pick": 0.4485,
+   "silence": 0.8788,
+   "wrong_pick": 0.0636,
+   "coverage": 0.4545,
+   "precision": 0.7789
+  }
+ },
+ "nightly_rich_scale_1": {
+  "nested_target": {
+   "pick": 0.3939,
+   "silence": 0.903,
+   "wrong_pick": 0.0485,
+   "coverage": 0.3939,
+   "precision": 0.8025
+  },
+  "fixed_target_0.05": {
+   "pick": 0.4727,
+   "silence": 0.8848,
+   "wrong_pick": 0.0576,
+   "coverage": 0.4727,
+   "precision": 0.8041
+  }
+ }
+}
