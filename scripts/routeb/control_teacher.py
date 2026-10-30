@@ -98,7 +98,7 @@ def child_record(row: dict) -> dict:
     command = [sys.executable, __file__, *sys.argv[1:], "--one", row["instance_id"]]
     child = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
     removed = subprocess.run(
-        ["docker", "rmi", row["docker_image"]], capture_output=True, check=False
+        ["docker", "rmi", "-f", row["docker_image"]], capture_output=True, check=False
     )
     if removed.returncode:  # the image is reclaimed after each run: the 5080's disk is shared
         print(f"image not removed: {row['docker_image']}", file=sys.stderr)

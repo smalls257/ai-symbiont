@@ -38,7 +38,7 @@ def child_record(row: dict, rows_path: Path, out: Path) -> dict:
                "--one", row["instance_id"]]  # fmt: skip
     child = subprocess.run(command, capture_output=True, text=True, check=False)
     removed = subprocess.run(
-        ["docker", "rmi", row["docker_image"]], capture_output=True, check=False
+        ["docker", "rmi", "-f", row["docker_image"]], capture_output=True, check=False
     )
     if removed.returncode:
         print(f"image not removed: {row['docker_image']}", file=sys.stderr)
