@@ -75,8 +75,8 @@ def rounded(items, choices) -> dict:
     return {k: round(v, 4) for k, v in outcome_rates(items, choices).items()}
 
 
-def nested(items, repo_of, cands) -> dict:
-    """Pooled outer-fold rates with a per-fold nested target, and the fixed-0.05 contrast."""
+def nested_choices(items, repo_of, cands) -> tuple[list[Choice], list[Choice]]:
+    """Outer-fold choices with a per-fold nested target, and the fixed-0.05 contrast."""
     outer, fixed = [], []
     for held in range(FOLDS):
         parts = [f for f in range(FOLDS) if f != held]
@@ -91,6 +91,12 @@ def nested(items, repo_of, cands) -> dict:
                 if point
                 else [Choice(i.item_id, None, 0.0) for i in test]
             )
+    return outer, fixed
+
+
+def nested(items, repo_of, cands) -> dict:
+    """Pooled outer-fold rates for both choice lists."""
+    outer, fixed = nested_choices(items, repo_of, cands)
     return {"nested_target": rounded(items, outer), "fixed_target_0.05": rounded(items, fixed)}
 
 

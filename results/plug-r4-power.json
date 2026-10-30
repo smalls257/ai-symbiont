@@ -1,0 +1,8 @@
+{
+ "validation_repos": 40,
+ "mean_gain_rule_over_judge_alone": 0.0785,
+ "paired_sd_per_repo": 0.4182,
+ "paired_sd_scaled_to_scored": 0.5057,
+ "mde_89_repos": 0.1501,
+ "wrong_pick_icc": 0.0925
+}
