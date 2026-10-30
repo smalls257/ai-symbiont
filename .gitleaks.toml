@@ -1,0 +1,120 @@
+# QG-SEC-01/02. Extends gitleaks' built-in rules (AWS, GitHub, Hugging Face, generic keys)
+# with this project's own leak shapes. Prevents Silent Fallback: scripts/gates/check_secrets.sh
+# exits 2 if this file or the gitleaks binary is missing, so a scan can never "pass" unrun.
+#
+# Waivers: path allowlists, each with a comment naming owner, reason, expiry. Exactly one exists:
+# the history baseline file, for the e-mail rule only (see personal-email-address below). Fixtures
+# that exercise these rules are built in tests/gates at run time, so no other path needs exempting.
+# A leaked credential is rotated first; history is never rewritten.
+title = "ai-symbiont"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "meta-llama-api-key"
+description = "Meta / Llama API key assigned to a name"
+regex = '''(?i)(?:meta|llama)[_-]?api[_-]?key["'=: ]+([A-Za-z0-9_\-]{24,})'''
+secretGroup = 1
+keywords = ["meta_api_key", "llama_api_key", "meta-api-key", "llama-api-key", "metaapikey", "llamaapikey"]
+
+[[rules]]
+id = "huggingface-token"
+description = "Hugging Face access token (hf_ prefix)"
+regex = '''\bhf_[A-Za-z0-9]{30,}\b'''
+keywords = ["hf_"]
+
+[[rules]]
+id = "glimmer-endpoint-with-token"
+description = "Glimmer / llama-server / Strix endpoint URL carrying a token"
+regex = '''(?i)https?://[^\s"']*(?:glimmer|llama|strix)[^\s"']*(?:token|key|auth)=[^\s"'&]{8,}'''
+keywords = ["glimmer", "llama", "strix"]
+
+[[rules]]
+id = "private-ipv4-address"
+description = "Private IPv4 address (reveals the lab network layout)"
+regex = '''\b(?:10\.\d{1,3}\.\d{1,3}\.\d{1,3}|192\.168\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})\b'''
+keywords = ["10.", "192.168.", "172."]
+
+[[rules]]
+id = "private-hostname"
+description = "Lab hostname reached by user@host or URL (.local, .lan, .home, .internal)"
+regex = '''(?i)(?:@|://)[a-z0-9][a-z0-9-]*\.(?:local|lan|home|internal)\b'''
+keywords = [".local", ".lan", ".home", ".internal"]
+
+[[rules]]
+id = "personal-home-path"
+description = "Absolute path under a real user's home directory (reveals the username)"
+regex = '''(?:/Users/[A-Za-z0-9._-]+|/home/[a-z][a-z0-9_-]*)/'''
+keywords = ["/users/", "/home/"]
+
+[[rules.allowlists]]
+description = "Placeholder users in examples"
+regexTarget = "match"
+regexes = ['''/(?:Users|home)/(?:you|user|username|runner|ubuntu|Shared|name)/''']
+
+[[rules]]
+id = "windows-home-path"
+description = "Absolute Windows path under a real user's profile (reveals the username)"
+regex = '''(?i)[a-z]:\\Users\\[A-Za-z0-9._-]+\\'''
+keywords = ["\\users\\"]
+
+[[rules.allowlists]]
+description = "Placeholder users in examples"
+regexTarget = "match"
+regexes = ['''(?i)\\Users\\(?:you|user|username|public|default)\\''']
+
+[[rules]]
+id = "mac-address"
+description = "Hardware (MAC) address of a lab machine"
+regex = '''\b(?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}\b'''
+keywords = [":", "-"]
+
+[[rules.allowlists]]
+description = "All-zero and broadcast placeholders"
+regexTarget = "match"
+regexes = ['''(?i)^(?:00[:-]){5}00$''', '''(?i)^(?:ff[:-]){5}ff$''']
+
+[[rules]]
+id = "personal-email-address"
+description = "Email address; only noreply, example and placeholder addresses may be committed"
+regex = '''\b[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}\b'''
+keywords = ["@"]
+
+[[rules.allowlists]]
+description = "Addresses that identify nobody: noreply, example.*, git@github.com, the Claude attribution"
+regexTarget = "match"
+regexes = [
+  '''(?i)^noreply@''',
+  '''(?i)@users\.noreply\.github\.com$''',
+  '''(?i)@(?:[a-z0-9-]+\.)*example\.(?:com|org|net)$''',
+  '''(?i)@(?:[a-z0-9-]+\.)*(?:invalid|test|localhost)$''',
+  '''(?i)^git@github\.com$''',
+]
+
+# Path waiver (the only one). owner: lead. reason: the history baseline records each old finding with its commit's
+# author fields, which gitleaks needs to match them; the file would otherwise flag itself on every
+# regeneration. expires: before the first public push, when the fresh public repo resets the baseline
+# to [] (scripts/publish/check_export.sh reports it until then).
+[[rules.allowlists]]
+description = "The history baseline carries commit author fields"
+paths = ['''^\.gitleaks-baseline\.json$''']
+
+[[rules]]
+id = "phone-number"
+description = "Phone number (NANP or international with separators)"
+regex = '''(?:\+\d{1,3}[ .-]?)?\(\d{3}\) ?\d{3}[ .-]\d{4}\b|\b(?:\+\d{1,3}[ .-])?\d{3}[ .-]\d{3}[ .-]\d{4}\b|\+\d{1,3}[ .-]\d{1,4}[ .-]\d{3,4}[ .-]\d{3,4}\b'''
+keywords = ["-", ".", " ", "("]
+
+[[rules.allowlists]]
+description = "Fictional 555-01xx numbers reserved for examples"
+regexTarget = "match"
+regexes = ['''555[ .-]01\d\d''']
+
+# Rule fix, not a path waiver: SWE-style task ids (owner__repo-1234) are public benchmark
+# identifiers, and the built-in generic-api-key rule mistakes a dict keyed by one for a secret.
+[[allowlists]]
+description = "Public benchmark task ids are not secrets"
+targetRules = ["generic-api-key"]
+regexTarget = "match"
+regexes = ['''[A-Za-z0-9_.-]+__[A-Za-z0-9_.-]+-\d+''']

@@ -1,0 +1,5 @@
+# Owner ledger for QG-GATE-01: commits that changed a protected gate file without a
+# GATE-CHANGE trailer and were accepted by the owner after review. Adding a line is itself a
+# gate change, so the commit that adds it must carry its own GATE-CHANGE trailer.
+# Entry: <full commit sha>  # reason
+d1ac8633aec80d8d6acaabf6af9476d56be548a2  # initial introduction of the quality gates (phase 1), written before the per-commit trailer existed

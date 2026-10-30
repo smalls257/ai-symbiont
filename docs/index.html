@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-symbiont: an agent that learns from its own history</title>
+<style>
+  :root {
+    --ink:#e8edf4; --soft:#bcc7d5; --faint:#8e99a9; --line:#2b3648;
+    --page:#0e141d; --card:#17202e; --teal:#45bd97; --tealwash:#123b30;
+    --amber:#d99e35; --amberwash:#3a2d11; --red:#e08075; --redwash:#3c201c;
+    --accent:#45bd97; --thead:#1d2635; --notebg:#17202e;
+  }
+  [data-theme="light"] {
+    --ink:#1a1a2e; --soft:#444; --faint:#777; --line:#ddd;
+    --page:#fff; --card:#fff; --teal:#0e6e5c; --tealwash:#e3efe9;
+    --amber:#9a6206; --amberwash:#f8ecd4; --red:#b3382e; --redwash:#f8e3e1;
+    --accent:#0e6e5c; --thead:#f2f5f8; --notebg:#f6f8f7;
+  }
+  [data-theme="dark"] { color-scheme:dark; }
+  * { box-sizing:border-box; }
+  body { margin:0; color:var(--ink); background:var(--page); font:16px/1.65 Georgia,"Times New Roman",serif; }
+  .wrap { max-width:860px; margin:0 auto; padding:32px 24px 64px; }
+  .toprow { display:flex; align-items:center; gap:10px; font:12px ui-monospace,monospace; color:var(--faint); letter-spacing:.08em; }
+  .toprow .spacer { flex:1; }
+  .theme-btn { border:1px solid var(--line); background:var(--card); color:var(--soft); border-radius:20px; padding:6px 14px; font:13px system-ui,sans-serif; cursor:pointer; }
+  h1 { font-size:36px; line-height:1.2; margin:10px 0 4px; text-align:center; }
+  .authors { color:var(--soft); font-size:15px; text-align:center; font-family:system-ui,sans-serif; }
+  .authors a { color:var(--teal); }
+  .links { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; margin:18px 0 26px; font-family:system-ui,sans-serif; }
+  .links a { border:1.5px solid var(--line); background:var(--card); border-radius:22px; padding:8px 18px; color:var(--ink); text-decoration:none; font-size:14px; }
+  .links a.primary { background:var(--teal); border-color:var(--teal); color:#0e141d; font-weight:700; }
+  [data-theme="light"] .links a.primary { color:#fff; }
+  h2 { font-size:23px; margin:40px 0 8px; }
+  h3 { font-size:17px; margin:18px 0 6px; font-family:system-ui,sans-serif; }
+  p, li { font-size:16px; }
+  p { margin:8px 0; }
+  .abstract { text-align:justify; }
+  code, .code { font:13.5px ui-monospace,SFMono-Regular,Menlo,monospace; }
+  a.code-link { font:13px ui-monospace,monospace; color:var(--teal); text-decoration:none; border-bottom:1px dotted var(--teal); }
+  .tag { font:12px ui-monospace,monospace; background:var(--thead); border-radius:4px; padding:0 6px; white-space:nowrap; }
+  .stats { display:flex; gap:12px; flex-wrap:wrap; margin:16px 0; }
+  .stat { flex:1 1 170px; border:1px solid var(--line); background:var(--card); border-radius:10px; padding:14px; font-family:system-ui,sans-serif; }
+  .stat .v { font-size:26px; font-weight:700; }
+  .stat .l { font-size:13px; color:var(--faint); }
+  .stat .l .tag { margin-left:4px; }
+  table { border-collapse:collapse; width:100%; font:14px system-ui,sans-serif; margin:10px 0; }
+  th,td { border-bottom:1px solid var(--line); padding:8px; text-align:left; vertical-align:top; }
+  th { background:var(--thead); font-size:13px; }
+  td.num,th.num { text-align:right; font-variant-numeric:tabular-nums; }
+  tr.win td { background:var(--tealwash); font-weight:600; }
+  .note { background:var(--notebg); border:1px solid var(--line); border-radius:10px; padding:12px 16px; font-size:14.5px; font-family:system-ui,sans-serif; }
+  .note.warn { border-top:4px solid var(--amber); }
+  .note.good { border-top:4px solid var(--teal); }
+  .diagram { border:1px solid var(--line); background:var(--card); border-radius:10px; padding:16px 18px; margin:16px 0; }
+  .diagram svg { width:100%; height:auto; display:block; }
+  .diagram .cap { font:13px system-ui,sans-serif; color:var(--faint); margin:8px 0 0; }
+  .bars { margin:12px 0; font-family:system-ui,sans-serif; }
+  .bars .row { display:grid; grid-template-columns:150px 1fr 70px; gap:10px; align-items:center; margin:7px 0; font-size:13px; }
+  .bars .track { background:var(--thead); border-radius:6px; height:13px; overflow:hidden; }
+  .bars .fill { display:block; height:100%; background:var(--accent); border-radius:6px; }
+  .bars .fill.dim { background:#8e99a9; }
+  details { border:1px solid var(--line); border-radius:10px; padding:10px 14px; margin:10px 0; font-family:system-ui,sans-serif; font-size:14px; background:var(--card); }
+  details summary { cursor:pointer; font-weight:700; }
+  .fine { font-size:13px; color:var(--faint); font-family:system-ui,sans-serif; }
+  .toc { font:14px system-ui,sans-serif; color:var(--soft); }
+  .toc a { color:var(--teal); text-decoration:none; }
+  footer { margin-top:40px; border-top:1px solid var(--line); padding-top:12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toprow"><span>AI-SYMBIONT</span><span class="spacer"></span><button class="theme-btn" id="theme-btn" type="button">Light mode</button></div>
+  <h1>ai-symbiont: An Agent That Learns From Its Own History</h1>
+  <p class="authors">A personal sidecar for coding agents · <a href="https://github.com/smalls257/ai-symbiont">Code on GitHub</a> · Oct 2026 · <a href="https://github.com/smalls257/ai-symbiont/blob/main/dashboard/present.html">slide deck version</a></p>
+  <div class="links">
+    <a class="primary" href="https://github.com/smalls257/ai-symbiont">Code</a>
+    <a href="#loops">The two routes</a>
+    <a href="#plug">Plug</a>
+    <a href="#evidence">Evidence</a>
+    <a href="#core">Core</a>
+    <a href="#evolve">Evolve</a>
+    <a href="#code">Code map</a>
+  </div>
+  <p class="abstract"><strong>Abstract.</strong> Frontier models serve everyone, and they don't remember anyone. ai-symbiont sits beside your coding agent and reads its past sessions for mistakes that keep repeating — the failed command, the reworked edit, the file that broke because nobody checked its sibling. It stops the next repeat two ways. <strong>Route A (Plug)</strong> warns you in context, showing a stored lesson word for word. <strong>Route B (Core)</strong> retrains the model itself on its own past sessions. What's running today is a small judge, retrained nightly from the base model on everything the repo has taught it so far. Your history doesn't leave your machine. <span class="tag">[established]</span></p>
+  <p class="toc">On this page: <a href="#problem">problem</a> · <a href="#loops">two routes &amp; whole-tool diagram</a> · <a href="#plug">Plug: two systems + training methods</a> · <a href="#evidence">evidence</a> · <a href="#pilot">pilot</a> · <a href="#core">Core</a> · <a href="#evolve">Evolve + operating rule</a> · <a href="#tried">tried &amp; failed</a> · <a href="#state">current state</a> · <a href="#next">next</a> · <a href="#code">code map</a>. Numbers are tagged <span class="tag">[measured]</span>, <span class="tag">[established]</span>, <span class="tag">[hypothesis]</span>. American spelling throughout (<span class="code">license</span>).</p>
+  <h2>Key results</h2>
+  <div class="stats">
+    <div class="stat"><div class="v">0.392</div><div class="l">right lessons shown, nightly judge (vs 0.256 reference) <span class="tag">[measured]</span></div></div>
+    <div class="stat"><div class="v">0 / 501</div><div class="l">wrong picks, ranker + judge reference <span class="tag">[measured]</span></div></div>
+    <div class="stat"><div class="v">61% → 22%</div><div class="l">same error after a shown lesson (pilot, p = 0.031) <span class="tag">[measured]</span></div></div>
+  </div>
+  <p class="fine">Scored Oct 30 on 89 unseen repos: 251 real recurrences plus 250 negatives. "Live" means the best measured results we have, not the strongest claim we can make.</p>
+
+  <h2 id="problem">The problem: agents repeat themselves</h2>
+  <p>A new session doesn't remember the last one. The same failure comes back session after session until you correct it again. A wasted command burns tokens and time. A reworked edit means the first try was wrong in a way your history already knew. A missed blast radius breaks tests in a file the agent never opened. You pay for all three in attention. <span class="tag">[established]</span></p>
+  <div class="note good">We don't score this on "tasks solved" — the sidecar teaches no new skills. We score it on <strong>repeated-mistake rate</strong>: how often a failure the system has seen once happens again. The unit we optimize is <strong>repeats stopped per false warning</strong>. <span class="tag">[established]</span></div>
+  <h3>How we spot a repeat</h3>
+  <p>The miner reduces each failure to a fingerprint — the command plus the normalized error line — so "the same mistake" means the same fingerprint turning up in a later session. When two lessons share an error but carry different fixes, the miner merges them into one card listing every fix that worked. Miner code: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/miner/mine.py">miner/mine.py</a>, signals in <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/miner/signals/failed_command.py">miner/signals/failed_command.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/miner/signals/reworked_edit.py">reworked_edit.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/miner/signals/loop.py">loop.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/miner/signals/blast_radius.py">blast_radius.py</a>. <span class="tag">[established]</span></p>
+
+  <h2 id="loops">The tool as a whole: one memory, two routes</h2>
+  <p>One miner and one lesson store feed two routes. Plug warns you in context and works with any model. Core retrains your own model overnight, so the correction comes out of the weights instead of a note. The fly-brain learner from the early design isn't in either route — it sits under <a href="#tried">tried &amp; failed</a>. <span class="tag">[established]</span></p>
+  <div class="diagram">
+    <svg viewBox="0 0 740 250" role="img" aria-label="Whole tool: past sessions feed a shared miner and lesson store; two routes use them">
+      <defs>
+        <marker id="arrW" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#8e99a9"></path>
+        </marker>
+      </defs>
+      <g font-size="12.5" fill="currentColor" font-family="system-ui,sans-serif">
+        <rect x="270" y="6" width="200" height="46" rx="8" fill="none" stroke="#45bd97" stroke-width="2"/><text x="370" y="26" text-anchor="middle" font-weight="700">Your agent sessions</text><text x="370" y="43" text-anchor="middle" font-size="11">history on this machine</text>
+        <rect x="270" y="76" width="200" height="46" rx="8" fill="none" stroke="#45bd97" stroke-width="2"/><text x="370" y="96" text-anchor="middle" font-weight="700">Miner → lesson store</text><text x="370" y="113" text-anchor="middle" font-size="11">shared memory, word for word</text>
+        <rect x="30" y="160" width="200" height="52" rx="8" fill="none" stroke="#45bd97" stroke-width="2"/><text x="130" y="181" text-anchor="middle" font-weight="700">Route A — Plug</text><text x="130" y="198" text-anchor="middle" font-size="11">warn in context, daily</text>
+        <rect x="510" y="160" width="200" height="52" rx="8" fill="none" stroke="#d99e35" stroke-width="2"/><text x="610" y="181" text-anchor="middle" font-weight="700">Route B — Core</text><text x="610" y="198" text-anchor="middle" font-size="11">learn in weights, nightly</text>
+      </g>
+      <g stroke="#8e99a9" stroke-width="1.5" fill="none">
+        <line x1="370" y1="52" x2="370" y2="72" marker-end="url(#arrW)"/>
+        <path d="M330,122 L330,140 L130,140 L130,156" marker-end="url(#arrW)"/>
+        <path d="M410,122 L410,140 L610,140 L610,156" marker-end="url(#arrW)"/>
+      </g>
+      <text x="130" y="228" font-size="11.5" text-anchor="middle" fill="#8e99a9" font-family="system-ui,sans-serif">ranker + judge → note or silence</text>
+      <text x="610" y="228" font-size="11.5" text-anchor="middle" fill="#8e99a9" font-family="system-ui,sans-serif">LoRA adapter, retrained from base</text>
+      <text x="370" y="244" font-size="11.5" text-anchor="middle" fill="#8e99a9" font-family="system-ui,sans-serif">Evolve (below) replays the same lesson loop inside a game, as a cheap testbed</text>
+    </svg>
+    <p class="cap">One miner and one lesson store serve both routes. Route A reads them when it decides; Route B trains on them overnight. Evolve replays the same lesson loop inside a game — a testbed, not a third route.</p>
+  </div>
+  <div class="diagram">
+    <svg viewBox="0 0 740 130" role="img" aria-label="Plug daily loop diagram">
+      <defs>
+        <marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#8e99a9"></path>
+        </marker>
+      </defs>
+      <g font-size="12.5" fill="currentColor" font-family="system-ui,sans-serif">
+        <rect x="0" y="24" width="104" height="44" rx="8" fill="none" stroke="#8e99a9"/><text x="52" y="50" text-anchor="middle">Past sessions</text>
+        <rect x="128" y="24" width="86" height="44" rx="8" fill="none" stroke="#8e99a9"/><text x="171" y="50" text-anchor="middle">Miner</text>
+        <rect x="238" y="24" width="104" height="44" rx="8" fill="none" stroke="#45bd97" stroke-width="2"/><text x="290" y="50" text-anchor="middle">Lesson store</text>
+        <rect x="366" y="24" width="96" height="44" rx="8" fill="none" stroke="#8e99a9"/><text x="414" y="50" text-anchor="middle">Ranker</text>
+        <rect x="486" y="24" width="96" height="44" rx="8" fill="none" stroke="#45bd97" stroke-width="2"/><text x="534" y="50" text-anchor="middle">Judge (1B)</text>
+        <rect x="606" y="24" width="134" height="44" rx="8" fill="none" stroke="#8e99a9"/><text x="673" y="43" text-anchor="middle">Note shown</text><text x="673" y="59" text-anchor="middle">or silence</text>
+      </g>
+      <g stroke="#8e99a9" stroke-width="1.5" fill="none">
+        <line x1="104" y1="46" x2="124" y2="46" marker-end="url(#arr2)"/>
+        <line x1="214" y1="46" x2="234" y2="46" marker-end="url(#arr2)"/>
+        <line x1="342" y1="46" x2="362" y2="46" marker-end="url(#arr2)"/>
+        <line x1="462" y1="46" x2="482" y2="46" marker-end="url(#arr2)"/>
+        <line x1="582" y1="46" x2="602" y2="46" marker-end="url(#arr2)"/>
+        <path d="M534,68 L534,94 L290,94 L290,72" marker-end="url(#arr2)"/>
+      </g>
+      <text x="412" y="112" font-size="11.5" text-anchor="middle" fill="#8e99a9" font-family="system-ui,sans-serif">lessons grow → judge retrained from base, nightly (live system)</text>
+    </svg>
+    <p class="cap">Each session ends, the miner saves the lesson verbatim, the ranker proposes (score ≥ 10.0), the judge checks (≥ 96%, mean of 3 seeds), and you see the stored note or nothing at all. <span class="tag">[established]</span> Plug doesn't write advice. Every night the judge trains again from base on all lessons so far.</p>
+  </div>
+  <h2 id="plug">Route A: two systems decide</h2>
+  <p>Both systems read the same stored lesson cards, and Plug shows them word for word — it doesn't write advice of its own. The two differ in how their decider learns, and neither replaces the other. <span class="tag">[established]</span></p>
+  <table>
+    <tr><th>System</th><th>How it decides</th><th>Trade-off</th></tr>
+    <tr><td><strong>Ranker + judge</strong> ("agree rule")</td><td>Keyword ranker proposes a lesson (score ≥ 10.0); a once-trained 1B judge must say yes (≥ 96%, mean of 3 seeds) <span class="tag">[established]</span></td><td>Safer: shows less, never wrong in scoring (0/501)</td></tr>
+    <tr><td><strong>Nightly training</strong> (live)</td><td>A fresh per-repo 1B judge, retrained from base each night on all lessons so far (situations + near-misses, 10–25% habit replay) <span class="tag">[established]</span></td><td>Finds more repeats (0.392); some wrong picks (3.0%, disclosed)</td></tr>
+  </table>
+  <p>Retrieval alone kept proposing lessons that looked similar but didn't apply, so the judge exists to say no. When both must agree, the pair doubled the judge-alone score (0.256 vs 0.128) without a single wrong pick — that's why the agree rule became the frozen reference. Nightly keeps the same shape and feeds the judge more of the repo's own history, trading a disclosed error rate for coverage. <span class="tag">[established]</span></p>
+  <h3>How the judges are trained — what was used for what</h3>
+  <p>The ranker learns nothing at all — it counts rare shared words. Each judge is a tiny language model taught yes-or-no on examples the big model wrote, including wrong answers that look right. The nightly judge repeats that schooling every night from scratch, because stacking patches made it forget old lessons. The table names each algorithm so you know what to search. <span class="tag">[established]</span></p>
+  <table>
+    <tr><th>Used for</th><th>Algorithm (search terms)</th><th>What it does here</th></tr>
+    <tr><td><strong>Ranker</strong></td><td>TF-IDF / BM25 scoring</td><td>No training. Rare words weigh more — the same trick search engines use. Top lesson proposed only at score ≥ 10.0. Code: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/similarity.py">core/similarity.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/indexes.py">core/indexes.py</a>.</td></tr>
+    <tr><td><strong>Judge, once-trained</strong></td><td>LoRA supervised fine-tuning (SFT)</td><td>Labeled pairs: situation + lesson → "applies / doesn't apply," with hard negatives (wrong lessons that look right). Base model frozen; only the small patch trains. <span class="tag">[established]</span></td></tr>
+    <tr><td><strong>Judge output</strong></td><td>Seed ensembling · calibration</td><td>Three training runs (seeds), verdicts averaged. The ≥96% cutoff is set by nested cross-validation, then frozen. Results: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/results/calibration-glimmer.json">results/calibration-glimmer.json</a>. <span class="tag">[established]</span></td></tr>
+    <tr><td><strong>Nightly judge</strong> (current state)</td><td>LoRA SFT, retrained from base</td><td>Same recipe, fresh patch every night per repo on all lessons so far. Training data: situations + near-misses, 10–25% habit replay (rehearsal against forgetting). Stacked patches were tried and failed — retrain-from-base replaced them. <span class="tag">[measured]</span></td></tr>
+    <tr><td><strong>Training data</strong></td><td>Synthetic data (teacher-generated)</td><td>The big model invents situations and labels; the tiny judge learns the judgment and runs cheaply. Habit rows keep old behavior alive. Builder: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/routeb/dataset.py">routeb/dataset.py</a>.</td></tr>
+    <tr><td><strong>References</strong></td><td>Logistic regression · counters</td><td>Regression: a weighted vote over signals, trained by cross-entropy — the classical reference. Counters: a plain tally. No tree models (no random forests, no gradient-boosted trees) anywhere in the shipped path. Code: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/counters.py">core/counters.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/features.py">core/features.py</a>.</td></tr>
+    <tr><td><strong>Core adapter</strong></td><td>LoRA rank-64 SFT (Route B)</td><td>Trained on passing sessions of the same repos; separate section below. Not part of the judge story.</td></tr>
+  </table>
+  <h2 id="evidence">Evidence: nightly wins coverage <span class="fine">scored Oct 30</span></h2>
+  <p>On Oct 30 the scorer ran 89 repos it had never seen: 251 real recurrences — the same failed command and error turning up in a later, different task — plus 250 negatives. The frozen safety bar allows at most 5% wrong picks. The split runs by repo, never by example. Validation repos set the thresholds, and resampled repos draw the intervals. A bracket crossing zero means a tie. <span class="tag">[measured]</span></p>
+  <div class="bars">
+    <div class="row"><span>Nightly (live)</span><span class="track"><span class="fill" style="width:98%"></span></span><span>0.392</span></div>
+    <div class="row"><span>Ranker + judge</span><span class="track"><span class="fill" style="width:64%"></span></span><span>0.256</span></div>
+    <div class="row"><span>Retrieval</span><span class="track"><span class="fill dim" style="width:34%"></span></span><span>0.136</span></div>
+    <div class="row"><span>Untrained 1B</span><span class="track"><span class="fill dim" style="width:23%"></span></span><span>0.092</span></div>
+  </div>
+  <table>
+    <tr><th>System</th><th>Role</th><th class="num">Right lesson shown</th><th class="num">Wrong</th><th>Verdict</th></tr>
+    <tr class="win"><td>Nightly training</td><td>under test (current state)</td><td class="num">0.392 vs 0.256, +0.136 [0.035, 0.235] <span class="tag">[measured]</span></td><td class="num">15/501 (3.0%) <span class="tag">[measured]</span></td><td>over bar — owner accepted</td></tr>
+    <tr><td>Agree rule (ranker + judge)</td><td>reference</td><td class="num">0.256 (vs 0.128 judge alone) <span class="tag">[measured]</span></td><td class="num">0/501 <span class="tag">[measured]</span></td><td>safe, lower coverage</td></tr>
+    <tr><td>Basic retrieval (RAG)</td><td>floor</td><td class="num">0.136 <span class="tag">[measured]</span></td><td class="num">9/501 <span class="tag">[measured]</span></td><td>worse</td></tr>
+    <tr><td>Untrained 1B</td><td>floor</td><td class="num">0.092 <span class="tag">[measured]</span></td><td class="num">6/501 <span class="tag">[measured]</span></td><td>worse</td></tr>
+  </table>
+  <p>Retrieval and the untrained model both score below the agree rule, so training beats retrieval as the preregistration demands. <span class="tag">[measured]</span> Scorer: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/eval/offline.py">eval/offline.py</a>, verdict rules <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/eval/offline_verdict.py">eval/offline_verdict.py</a>, frozen record <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/results/offline-selection.json">results/offline-selection.json</a>.</p>
+  <div class="note warn">Nightly catches more repeats (+0.136), but its governing upper bound reads 5.65% against the frozen 5% bar (the exact bound reads 4.9%). The frozen rule grants no claim. <span class="tag">[measured]</span> The owner runs nightly anyway for the coverage and will fine-tune it later; the agree rule stays the zero-error reference. Every external claim carries this disclosure. <span class="tag">[established]</span></div>
+
+  <h2 id="pilot">Does a shown lesson change behavior? <span class="fine">pilot</span></h2>
+  <p>The pilot replays a real session to just before a known failure, then branches: one run sees the stored note, the other doesn't. Both runs share the snapshot, the model, and the history — the note is the only difference. The scorer counts whether the same error returns within 15 steps. <span class="tag">[established]</span></p>
+  <div class="stats">
+    <div class="stat"><div class="v">61.1%</div><div class="l">same error, no note <span class="tag">[measured]</span></div></div>
+    <div class="stat"><div class="v">22.2%</div><div class="l">same error, note shown (−39 pts, p = 0.031) <span class="tag">[measured]</span></div></div>
+    <div class="stat"><div class="v">25.9%</div><div class="l">any error, note shown (vs 63.0% none) <span class="tag">[measured]</span></div></div>
+  </div>
+  <div class="note warn">Don't lean on this too hard. Nine valid points cover only 2 distinct errors, both environment errors (mostly a missing package). The note lands exactly when the mistake is due — oracle timing Plug doesn't have. Coverage comes from the Evidence section; this pilot only shows a shown lesson can change what the agent does. <span class="tag">[measured]</span> The broader next-action test across many lessons is running. <span class="tag">[established]</span></div>
+  <h2 id="core">Route B: Core <span class="fine">trained, D2 running unscored</span></h2>
+  <p>Core trains your agent on its own repo's past sessions, so the correction comes out of the model instead of a note. The 30B base stays frozen while a small LoRA patch (rank 64, 16k-token windows, 1 epoch) learns the repo's earlier passing runs. Each night starts over from the base — patches never stack. Unseen later tasks score plain against adapter against a control that trained on other repos with matching tokens. A gain only counts if it comes from this repo, not from fine-tuning in general. <span class="tag">[established]</span></p>
+  <table>
+    <tr><th>Piece</th><th>State</th></tr>
+    <tr><td>Agent / training</td><td>Glimmer 30B (Q4) via llama.cpp; LoRA rank 64, 16k-token windows, 1 epoch <span class="tag">[measured]</span></td></tr>
+    <tr><td>Adapter A (same repos)</td><td>68 passing sessions on 6 repos: sqlglot 14, Django 13, streamlink 13, dvc 13, pennylane 8, conan 7 <span class="tag">[measured]</span></td></tr>
+    <tr><td>Control C (other repos)</td><td>79 sessions, matched in trained tokens <span class="tag">[measured]</span></td></tr>
+    <tr><td>Earlier recipes</td><td>Habit and lesson-card adapters: 3/18 and 5/18 vs plain 5/18 — no gain <span class="tag">[measured]</span></td></tr>
+    <tr><td>D2 test (frozen)</td><td>100 later tasks; plain x2 / adapter x2 / control x2; co-primary: adapter beats plain <em>and</em> control. Both adapters trained; scoring running <span class="tag">[established]</span></td></tr>
+  </table>
+  <p>Any fine-tuning might flatter a model — it may just learn the harness. So the control trains on <strong>other repos with the same token budget</strong>. If the same-repo adapter doesn't beat it, nothing repo-specific was learned, whatever the raw scores say. <span class="tag">[established]</span> Core has no score yet — today it is design, not evidence. <span class="tag">[measured]</span></p>
+  <p>Code: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/routeb/dataset.py">routeb/dataset.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/routeb/signal_texts.py">routeb/signal_texts.py</a>.</p>
+
+  <h2 id="evolve">Evolve: the same idea in a game <span class="fine">Act 1, separate from Route B</span></h2>
+  <p>Evolve is a third stream, not a third route. The model plays Freedoom through ViZDoom from a text description, and lessons mined from its own episodes come back as cards. Mistakes cost nothing here and count cleanly, which makes the game a good testbed for the lesson idea. Its scores land separately from Core's D2 — different domains on purpose. <span class="tag">[established]</span></p>
+  <table>
+    <tr><th>Test</th><th class="num">Result</th><th>Verdict</th></tr>
+    <tr><td>Lesson card vs no card (held-out maps, scored Oct 29)</td><td class="num">+0.042 <span class="tag">[measured]</span></td><td>tie</td></tr>
+    <tr><td>One operating rule: "one move per reply"</td><td class="num">+0.17 to +0.18 fitness (train and validation seeds) <span class="tag">[measured]</span></td><td>mistakes cut by about two thirds</td></tr>
+    <tr><td>Held-out test: 13 Freedoom maps + 40 generated maps</td><td class="num">primary at first decision where a lesson fires</td><td>frozen, running <span class="tag">[established]</span></td></tr>
+  </table>
+  <h3>What counts as a mistake here</h3>
+  <p>A loop means walking back into the same room or area. A wasted move changes nothing — a wall, a blocked door. Deaths count too: the scorer weighs rooms explored, keys found, wasted moves, loops, and deaths. Situational lessons cut mistakes where they fired but slowed progress. <span class="tag">[established]</span></p>
+  <div class="diagram">
+    <svg viewBox="0 0 740 190" role="img" aria-label="Evolve inner loop (every decision) and outer loop (every episode)">
+      <defs>
+        <marker id="arrE" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#8e99a9"></path>
+        </marker>
+      </defs>
+      <text x="8" y="18" font-size="12" fill="#8e99a9" font-family="system-ui,sans-serif">Inner loop — every decision (the "one move per reply" rule lives here)</text>
+      <g font-size="12" fill="currentColor" font-family="system-ui,sans-serif">
+        <rect x="8" y="28" width="130" height="40" rx="8" fill="none" stroke="#8e99a9"/><text x="73" y="52" text-anchor="middle">Read text state</text>
+        <rect x="162" y="28" width="130" height="40" rx="8" fill="none" stroke="#45bd97" stroke-width="2"/><text x="227" y="52" text-anchor="middle">Pick ONE move</text>
+        <rect x="316" y="28" width="150" height="40" rx="8" fill="none" stroke="#8e99a9"/><text x="391" y="52" text-anchor="middle">Scripted move runs</text>
+        <rect x="490" y="28" width="120" height="40" rx="8" fill="none" stroke="#8e99a9"/><text x="550" y="52" text-anchor="middle">Read again ↺</text>
+      </g>
+      <text x="8" y="104" font-size="12" fill="#8e99a9" font-family="system-ui,sans-serif">Outer loop — every episode (the lesson loop, same shape as Plug)</text>
+      <g font-size="12" fill="currentColor" font-family="system-ui,sans-serif">
+        <rect x="8" y="114" width="130" height="40" rx="8" fill="none" stroke="#8e99a9"/><text x="73" y="138" text-anchor="middle">Episode ends</text>
+        <rect x="162" y="114" width="150" height="40" rx="8" fill="none" stroke="#8e99a9"/><text x="237" y="138" text-anchor="middle">Mine loops+bumps</text>
+        <rect x="336" y="114" width="140" height="40" rx="8" fill="none" stroke="#45bd97" stroke-width="2"/><text x="406" y="138" text-anchor="middle">Lesson card stored</text>
+        <rect x="500" y="114" width="190" height="40" rx="8" fill="none" stroke="#8e99a9"/><text x="595" y="132" text-anchor="middle">Next episode:</text><text x="595" y="147" text-anchor="middle">card may fire ↺</text>
+      </g>
+      <g stroke="#8e99a9" stroke-width="1.5" fill="none">
+        <line x1="138" y1="48" x2="158" y2="48" marker-end="url(#arrE)"/><line x1="292" y1="48" x2="312" y2="48" marker-end="url(#arrE)"/><line x1="466" y1="48" x2="486" y2="48" marker-end="url(#arrE)"/>
+        <line x1="138" y1="134" x2="158" y2="134" marker-end="url(#arrE)"/><line x1="312" y1="134" x2="332" y2="134" marker-end="url(#arrE)"/><line x1="476" y1="134" x2="496" y2="134" marker-end="url(#arrE)"/>
+      </g>
+    </svg>
+    <p class="cap">The operating rule ("one move per reply") constrains the inner loop; lesson cards flow through the outer one. The card test tied, but the one-move rule cut mistakes by about two thirds. <span class="tag">[measured]</span></p>
+  </div>
+  <p>Code: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/act1/episode.py">act1/episode.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/act1/env_text.py">act1/env_text.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/act1/moves.py">act1/moves.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/act1/strategy.py">act1/strategy.py</a>.</p>
+  <h2 id="tried">Tried — didn't make it (yet)</h2>
+  <p>Nothing here carries the current state. Each approach failed or still waits for a score, and the list keeps the claims above honest. <span class="tag">[established]</span></p>
+  <table>
+    <tr><th>Approach</th><th class="num">Result</th><th>Verdict</th></tr>
+    <tr><td>Fly mushroom-body decider</td><td class="num">0.600 balanced accuracy vs counters 0.527 offline; warns on 63.6% of steps <span class="tag">[measured]</span></td><td>didn't work — collapses under a warning budget (all rows below silence)</td></tr>
+    <tr><td>3B judge</td><td class="num">no gain over the 1B</td><td>didn't work</td></tr>
+    <tr><td>Reptile meta-learning</td><td class="num">0.30 at 5% wrong, habits 0.58 — worse than plain nightly <span class="tag">[measured]</span></td><td>didn't work</td></tr>
+    <tr><td>"Applies when" lesson rewrites</td><td class="num">lowered coverage</td><td>didn't work</td></tr>
+    <tr><td>Stacked nightly adapters</td><td class="num">older lessons forgotten (recall collapse)</td><td>didn't work — replaced by retrain-from-base</td></tr>
+    <tr><td>Core early recipes (habit / lesson-card adapters)</td><td class="num">3/18 and 5/18 vs plain 5/18</td><td>no gain <span class="tag">[measured]</span></td></tr>
+    <tr><td>Core LoRA adapters A / C</td><td class="num">trained; D2 scoring running</td><td>not scored yet — not current state</td></tr>
+    <tr><td>Basic retrieval (RAG) / untrained 1B</td><td class="num">0.136 (9 wrong) / 0.092 (6 wrong)</td><td>floors by design — worse than trained systems</td></tr>
+    <tr><td>Counters / logistic regression</td><td class="num">counters: plain tally; logistic: the confirm run's safe warner</td><td>references by design</td></tr>
+  </table>
+  <p>Fly and budget code: <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/mushroom.py">core/mushroom.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/warning_budget.py">core/warning_budget.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/results/warning-budget-exploratory.json">results/warning-budget-exploratory.json</a>.</p>
+
+  <h2 id="state">Current state <span class="fine">one training produced it</span></h2>
+  <div class="note good">One training run produced the current state. Each night a fresh per-repo LoRA patch trains the 1B judge from base on all lessons so far — supervised pairs with hard negatives, 10–25% habit replay, cutoffs frozen by nested cross-validation. <span class="tag">[measured]</span><br>It shows the right lesson 0.392 of the time against the agree rule's 0.256 (+0.136 [0.035, 0.235]), with 15 wrong in 501 (3.0%) — past the frozen 5% bar (governing bound 5.65%, exact 4.9%), so the frozen rule grants no claim, and the owner runs it with the trade-off disclosed. <span class="tag">[measured]</span> Beside it the agree rule stands as the zero-error reference: 0.256, 0 wrong in 501. <span class="tag">[measured]</span></div>
+  <p>The one line for colleagues: <strong>0.392 right lessons at a disclosed 3% wrong</strong> — not the zero-error 0.256 beneath it, not the fly on the tried list, and not Core, which hasn't scored. <span class="tag">[measured]</span></p>
+
+  <h2 id="next">What's next</h2>
+  <table>
+    <tr><th>Item</th><th>State</th></tr>
+    <tr><td>Core D2 readout (100 tasks, frozen design)</td><td>Running <span class="tag">[established]</span></td></tr>
+    <tr><td>Next-action breadth test across many lessons</td><td>Running <span class="tag">[established]</span></td></tr>
+    <tr><td>Evolve held-out test: 13 Freedoom maps + 40 generated</td><td>Frozen, running <span class="tag">[established]</span></td></tr>
+    <tr><td>Delivery: local service, hooks, MCP, setup wizard</td><td>Not yet built <span class="tag">[measured]</span></td></tr>
+    <tr><td>Act 2 prereg with warning budget + net benefit frozen first</td><td>Next <span class="tag">[hypothesis]</span></td></tr>
+  </table>
+  <p class="fine">The house rules: freeze the rules before a scored run, date any amendment as a new file, let hold-out and privacy guards raise instead of filtering quietly, and keep counts and labels in showcases — raw sessions stay local. <span class="tag">[established]</span></p>
+
+  <h2 id="code">Code map: where to look</h2>
+  <p>Each section names the code behind it. Read this table top to bottom and you read the repo in the order the page tells it. Every link opens <span class="code">main</span> on GitHub. <span class="tag">[established]</span></p>
+  <table>
+    <tr><th>What</th><th>Where</th></tr>
+    <tr><td>Mining failure signatures</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/miner/mine.py">miner/mine.py</a> + <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/miner/signals/">miner/signals/</a></td></tr>
+    <tr><td>Ranker + similarity</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/similarity.py">core/similarity.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/indexes.py">core/indexes.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/slot.py">core/slot.py</a></td></tr>
+    <tr><td>Training data builder</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/routeb/dataset.py">routeb/dataset.py</a></td></tr>
+    <tr><td>Scoring + verdicts</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/eval/offline.py">eval/offline.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/eval/offline_verdict.py">eval/offline_verdict.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/eval/selection.py">eval/selection.py</a></td></tr>
+    <tr><td>Frozen result records</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/results/offline-selection.json">results/offline-selection.json</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/results/warning-budget-exploratory.json">results/warning-budget-exploratory.json</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/results/calibration-glimmer.json">results/calibration-glimmer.json</a></td></tr>
+    <tr><td>Fly / budget (tried)</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/mushroom.py">core/mushroom.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/core/warning_budget.py">core/warning_budget.py</a></td></tr>
+    <tr><td>Evolve game loop</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/act1/episode.py">act1/episode.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/act1/env_text.py">act1/env_text.py</a>, <a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/src/symbiont/act1/moves.py">act1/moves.py</a></td></tr>
+    <tr><td>Slide deck version</td><td><a class="code-link" href="https://github.com/smalls257/ai-symbiont/blob/main/dashboard/present.html">dashboard/present.html</a></td></tr>
+  </table>
+  <h2>Try it</h2>
+  <p>Clone the repo, run <span class="code">symbiont setup</span>, and pick your projects. Nothing leaves your machine. <span class="tag">[established]</span></p>
+  <footer><p class="fine">Sources: the repo's progress log and the Oct 30 Plug round-4 scores — <span class="tag">results/offline-selection.json</span>, <span class="tag">results/warning-budget-exploratory.json</span>, <span class="tag">results/calibration-glimmer.json</span>. This page (<span class="tag">dashboard/mockup-page.html</span>) ships fully offline — no CDN, no fetch; open it in Chrome. Dark is the default and the toggle remembers.</p></footer>
+<script>
+(function () {
+  var root = document.documentElement;
+  var btn = document.getElementById('theme-btn');
+  function setTheme(t) {
+    root.setAttribute('data-theme', t);
+    try { localStorage.setItem('symbiont-page-theme', t); } catch (e) {}
+    if (btn) btn.textContent = (t === 'dark') ? 'Light mode' : 'Dark mode';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('symbiont-page-theme'); } catch (e) {}
+  setTheme(saved || 'dark');
+  if (btn) btn.addEventListener('click', function () {
+    setTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
+  });
+})();
+</script>
+</div>
+</body>
+</html>

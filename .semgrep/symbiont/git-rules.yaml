@@ -1,0 +1,27 @@
+# QG-SAST-02. Anchor: history is the record. Project git rules: no stash, amend, reset,
+# rebase or force-push, and commits name explicit paths (no `add -A` / `add .`).
+# The regex matches a git invocation in command position (line start or after ; & | ( or
+# `then`/`do`), so a grep pattern or a message that merely mentions the words is not flagged.
+rules:
+  - id: sym-no-git-rewrite
+    severity: ERROR
+    languages: [generic]
+    message: >
+      Forbidden git command (project git rules): stash, commit --amend, reset, rebase,
+      push --force and add -A / add . rewrite or blur history. Use a temporary WIP commit
+      and add explicit paths.
+    paths:
+      include: ["/ops/", "/scripts/", "/.claude/hooks/"]
+    pattern-either:
+      - pattern-regex: (?m)(?:^|[;&|(]|\b(?:then|do|else)\b)[ \t]*git[ \t]+(?:stash\b|reset\b|rebase\b|commit\b[^\n#]*--amend|push\b[^\n#]*(?:--force|-f\b)|add[ \t]+(?:-A\b|--all\b|\.(?:[ \t]|$)))
+      - pattern-regex: '"git",\s*"(?:stash|reset|rebase)"|"git",\s*"add",\s*"(?:-A|--all|\.)"|"git",[^\]\n]*"--amend"|"git",\s*"push",[^\]\n]*"(?:--force|-f)"'
+
+  - id: sym-hook-no-or-true
+    severity: ERROR
+    languages: [generic]
+    message: >
+      `|| true` after a gate command makes a gate that cannot fail (Silent Fallback). Handle
+      the failure explicitly, or capture the status and report it.
+    paths:
+      include: ["/scripts/gates/", "/scripts/hooks/", "/.claude/hooks/"]
+    pattern-regex: (?m)^[ \t]*(?:uv|ruff|lizard|semgrep|gitleaks|pytest|lint-imports|mypy|scripts/[A-Za-z0-9_./-]+)\b[^\n#]*\|\|[ \t]*true\b

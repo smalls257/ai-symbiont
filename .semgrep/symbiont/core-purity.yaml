@@ -1,0 +1,37 @@
+# QG-SAST-02. Infected Core -> Buffer. Duplicates the AST test in tests/test_boundaries.py
+# for edit-time speed; import-linter (.importlinter) follows transitive chains.
+rules:
+  - id: sym-core-no-env
+    severity: ERROR
+    languages: [python]
+    message: >
+      The pure core (records, miner, core) must pass the Airplane Test: no network, clock,
+      disk, environment or subprocess. Move this to store/, service/ or readers/ and pass
+      the value in.
+    paths:
+      include: ["/src/symbiont/core/", "/src/symbiont/miner/", "/src/symbiont/records/"]
+    pattern-either:
+      - patterns:
+          - pattern: import $M
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(socket|sqlite3|subprocess|time|requests|urllib(\..+)?|http(\..+)?)$
+      - patterns:
+          - pattern: from $M import $X
+          - metavariable-regex:
+              metavariable: $M
+              regex: ^(socket|sqlite3|subprocess|time|requests|urllib(\..+)?|http(\..+)?)$
+      - pattern: os.environ
+      - pattern: os.getenv(...)
+      - pattern: datetime.now(...)
+      - pattern: datetime.utcnow(...)
+      - pattern: datetime.datetime.now(...)
+      - pattern: datetime.datetime.utcnow(...)
+      - pattern: date.today(...)
+      - pattern: datetime.date.today(...)
+      - pattern: open(...)
+      - patterns:
+          - pattern: random.$F(...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: ^(random|randint|choice|choices|shuffle|sample|uniform|randrange|gauss)$

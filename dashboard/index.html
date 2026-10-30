@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ai-symbiont dashboard</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="bar">
+  <div class="title">
+    <h1>ai-symbiont</h1>
+    <span id="act-label" class="act"></span>
+  </div>
+  <nav class="controls" aria-label="Replay controls">
+    <div class="seg" role="group" aria-label="Act">
+      <button id="act-freedoom" data-act="freedoom">Act 1: Freedoom</button>
+      <button id="act-coding" data-act="coding">Act 2: Coding</button>
+    </div>
+    <button id="play" aria-label="Play or pause">Pause</button>
+    <button id="restart">Restart</button>
+    <label class="speed">Speed
+      <select id="speed">
+        <option value="0.5">0.5x</option>
+        <option value="1" selected>1x</option>
+        <option value="2">2x</option>
+        <option value="4">4x</option>
+      </select>
+    </label>
+    <input id="scrub" type="range" min="0" max="0" value="0" aria-label="Step">
+    <output id="step-out" class="step-out"></output>
+  </nav>
+</header>
+<p id="source" class="source"></p>
+
+<main class="grid" id="grid" hidden>
+  <section class="panel race" aria-labelledby="h-race">
+    <h2 id="h-race">Same task, side by side</h2>
+    <p class="hint">Each tick is one step. A red mark is a step that repeats an earlier mistake.</p>
+    <div id="timelines"></div>
+  </section>
+
+  <section class="panel fuel" aria-labelledby="h-fuel">
+    <h2 id="h-fuel">Fuel spent</h2>
+    <div id="gauges"></div>
+  </section>
+
+  <section class="panel loops" aria-labelledby="h-loops">
+    <h2 id="h-loops">Loop spirals</h2>
+    <p class="hint">Steps wind outward; red dots are repeats.</p>
+    <div id="spirals"></div>
+  </section>
+
+  <section class="panel faults" aria-labelledby="h-faults">
+    <h2 id="h-faults"><span data-act-text="faults">Fault map</span> <span id="faults-tag"></span></h2>
+    <div id="faults"></div>
+  </section>
+
+  <section class="panel brain" aria-labelledby="h-brain">
+    <h2 id="h-brain">Fly brain</h2>
+    <div class="brain-wrap">
+      <canvas id="brain" width="1300" height="400" aria-label="5,177 cells, 259 active this step"></canvas>
+      <div class="brain-read">
+        <div class="big"><span id="active-n">259</span><span class="of"> of <span id="cells-n">5,177</span> cells active <span id="cells-tag"></span></span></div>
+        <div id="learn-flag" class="learn" aria-live="polite">no learn event</div>
+        <div class="legend"><i class="sw now"></i>this step <i class="sw prev"></i>last step <i class="sw dopa"></i>learn event</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel score" aria-labelledby="h-score">
+    <h2 id="h-score">Scoreboard</h2>
+    <table id="scoreboard">
+      <thead><tr><th>Arm</th><th>Role</th><th>Claim</th><th class="num">Result</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+</main>
+
+<p id="error" class="error" role="alert" hidden></p>
+<script src="app.js"></script>
+</body>
+</html>

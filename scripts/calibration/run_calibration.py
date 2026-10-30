@@ -1,0 +1,205 @@
+"""One plain-Glimmer run on one sqlglot task with mini-SWE-agent (plan Task 22, Glimmer part).
+
+A run = fresh container from the shared image -> prepare_script(base_commit) (history-free checkout,
+no network) -> mini-SWE-agent's DefaultAgent with its SWE-bench config (tool-calling bash)
+talking to Glimmer -> grade the submitted patch in another fresh container with the task's
+FAIL_TO_PASS + PASS_TO_PASS tests.
+
+run_once never raises for a task-level failure: it returns one record with `error_kind` set
+("infra": container/grading broke, "model_api": Glimmer unreachable, "context": context window
+exceeded, "agent": anything else inside the agent) so the caller logs it; nothing is skipped
+silently.
+`resolved` is None only when grading itself could not happen.
+
+The staged driver (staged.py) decides which runs to do. Raw trajectories stay on the desktop.
+"""
+
+from __future__ import annotations
+
+import os
+import time
+import traceback
+from dataclasses import asdict, dataclass
+from pathlib import Path
+
+import litellm
+import yaml
+from minisweagent.agents.default import DefaultAgent
+from minisweagent.config import builtin_config_dir
+from minisweagent.environments.docker import DockerEnvironment
+from minisweagent.models.litellm_model import LitellmModel
+from taskenv import TaskEnvError, grade, prepare_script
+
+IMAGE = "swerebench/sweb.eval.x86_64.tobymao_1776_sqlglot-5015"  # shared image, see taskenv.py
+MODEL = "openai/Muse-Glimmer-30B-KQuant-17GB-Q4_K_M"
+GLIMMER_URL_VAR = (
+    "SYMBIONT_GLIMMER_URL"  # llama.cpp router, one request at a time; address is never committed
+)
+MAX_TOKENS = 4096  # per reply; bounds one step so the wall limit is checked often enough
+API_ERRORS = (
+    litellm.exceptions.APIConnectionError,
+    litellm.exceptions.Timeout,
+    litellm.exceptions.ServiceUnavailableError,
+    litellm.exceptions.InternalServerError,
+)
+
+
+@dataclass(frozen=True)
+class Setting:
+    reasoning: str  # Glimmer's "Reasoning strength: <x>" system line
+    step_limit: int
+    wall_limit_s: int
+
+
+def glimmer_url() -> str:
+    url = os.environ.get(GLIMMER_URL_VAR)
+    if not url:
+        raise SystemExit(
+            f"{GLIMMER_URL_VAR} is not set: export the Glimmer endpoint (see env.example)"
+        )
+    return url
+
+
+def agent_config(setting: Setting) -> tuple[dict, dict]:
+    cfg = yaml.safe_load((builtin_config_dir / "benchmarks" / "swebench.yaml").read_text())
+    agent = cfg["agent"] | {
+        "step_limit": setting.step_limit,
+        "wall_time_limit_seconds": setting.wall_limit_s,
+        "cost_limit": 0,
+    }
+    agent["system_template"] = (
+        f"Reasoning strength: {setting.reasoning}\n" + agent["system_template"]
+    )
+    model = cfg["model"] | {
+        "model_name": MODEL,
+        "cost_tracking": "ignore_errors",  # local model: cost is 0 by construction
+        "model_kwargs": {
+            "api_base": glimmer_url(),
+            "api_key": "none",
+            "timeout": 1200,
+            "max_tokens": MAX_TOKENS,
+            "drop_params": True,
+            "parallel_tool_calls": True,
+        },
+    }
+    return agent, model
+
+
+def token_counts(messages: list[dict]) -> dict:
+    prompt = completion = 0
+    for message in messages:
+        usage = ((message.get("extra") or {}).get("response") or {}).get("usage") or {}
+        prompt += usage.get("prompt_tokens") or 0
+        completion += usage.get("completion_tokens") or 0
+    return {"prompt_tokens": prompt, "completion_tokens": completion}
+
+
+def classify(error: BaseException) -> str:
+    if (
+        isinstance(error, litellm.exceptions.ContextWindowExceededError)
+        or "context" in str(error).lower()
+    ):
+        return "context"
+    return "model_api" if isinstance(error, API_ERRORS) else "agent"
+
+
+def _new_record(row: dict, run: int, setting: Setting, stage: str) -> dict:
+    return {
+        "instance_id": row["instance_id"],
+        "stage": stage,
+        "run": run,
+        **asdict(setting),
+        "image": IMAGE,
+        "model": MODEL,
+        "error_kind": None,
+        "error": None,
+        "started": time.time(),
+    }
+
+
+def _open_environment() -> DockerEnvironment:
+    return DockerEnvironment(
+        image=IMAGE,
+        cwd="/testbed",
+        timeout=60,
+        env={
+            "PAGER": "cat",
+            "MANPAGER": "cat",
+            "PIP_PROGRESS_BAR": "off",
+            "TQDM_DISABLE": "1",
+            "BASH_ENV": "/root/.bashrc",
+        },
+        interpreter=["bash", "-c"],
+        run_args=["--rm", "--network", "none"],
+    )  # no fetching the upstream fix
+
+
+def _prepare_checkout(env: DockerEnvironment, row: dict) -> None:
+    prep = env.execute({"command": prepare_script(row["base_commit"])}, timeout=900)
+    if prep["returncode"] != 0:
+        raise TaskEnvError(f"prepare failed rc={prep['returncode']}: {prep['output'][-800:]}")
+
+
+def _run_agent(agent: DefaultAgent, row: dict, rec: dict) -> dict:
+    try:
+        return agent.run(row["problem_statement"])
+    except Exception as error:  # noqa: BLE001  the agent already saved its exit message; record it
+        rec["error_kind"] = classify(error)
+        rec["error"] = f"{type(error).__name__}: {str(error)[-300:]}"
+        return {"exit_status": type(error).__name__, "submission": ""}
+
+
+def _attempt(row: dict, setting: Setting, traj: Path, rec: dict, started: float) -> str | None:
+    """Prepare the checkout, run the agent, record its outcome; return the submitted patch."""
+    agent_cfg, model_cfg = agent_config(setting)
+    env = None
+    patch = None
+    try:
+        env = _open_environment()
+        _prepare_checkout(env, row)
+        rec["prepare_s"] = round(time.time() - started, 1)
+        agent_started = time.time()
+        agent = DefaultAgent(LitellmModel(**model_cfg), env, output_path=traj, **agent_cfg)
+        info = _run_agent(agent, row, rec)
+        rec["agent_s"] = round(time.time() - agent_started, 1)
+        rec["exit_status"] = info.get("exit_status")
+        rec["steps"] = agent.n_calls
+        rec |= token_counts(agent.messages)
+        patch = info.get("submission") or ""
+        rec["submitted"] = bool(patch.strip())
+        rec["patch_lines"] = len(patch.splitlines())
+    except Exception as error:  # noqa: BLE001  run_once never raises for a task-level failure
+        rec["error_kind"], rec["error"] = "infra", f"{type(error).__name__}: {str(error)[-500:]}"
+        rec["traceback_tail"] = traceback.format_exc()[-800:]
+    finally:
+        if env is not None:
+            env.cleanup()
+    return patch
+
+
+def _grade_into(rec: dict, row: dict, patch: str) -> None:
+    graded_started = time.time()
+    try:
+        graded = grade(IMAGE, row, patch, prepare=True)
+        rec |= {
+            "resolved": graded.resolved,
+            "patch_applied": graded.patch_applied,
+            "f2p": [graded.f2p_passed, graded.f2p_total],
+            "p2p": [graded.p2p_passed, graded.p2p_total],
+        }
+    except TaskEnvError as error:
+        rec["error_kind"] = "infra"
+        rec["error"] = (rec["error"] or "") + f" | grade: {str(error)[-500:]}"
+    rec["grade_s"] = round(time.time() - graded_started, 1)
+
+
+def run_once(row: dict, run: int, setting: Setting, stage: str, traj_dir: Path) -> dict:
+    rec = _new_record(row, run, setting, stage)
+    started = time.time()
+    traj = traj_dir / row["instance_id"] / f"{stage}-run{run}-{setting.reasoning}.traj.json"
+    patch = _attempt(row, setting, traj, rec, started)
+    if patch is not None and rec["error_kind"] != "model_api":
+        _grade_into(rec, row, patch)
+    rec.setdefault("resolved", None)  # None = not graded (see error); never counted as pass or fail
+    rec["wall_s"] = round(time.time() - started, 1)
+    return rec

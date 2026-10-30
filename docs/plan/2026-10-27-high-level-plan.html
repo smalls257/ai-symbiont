@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>ai-symbiont · high-level plan (draft, 2026-10-27)</title>
+<script type="module">
+  import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+  mermaid.initialize({ startOnLoad: true, theme: "dark" });
+</script>
+<style>
+  :root { --bg:#0f1117; --panel:#171a23; --ink:#e6e8ef; --dim:#9aa1b2; --acc:#7cc4ff; --warn:#f0a35e; --ok:#7bd88f; --bad:#ff7a7a; }
+  body { background:var(--bg); color:var(--ink); font:15px/1.55 -apple-system, system-ui, sans-serif; max-width:1100px; margin:32px auto; padding:0 20px; }
+  h1 { font-size:26px; margin-bottom:4px; } h2 { font-size:19px; margin-top:36px; border-bottom:1px solid #2a2f3d; padding-bottom:6px; }
+  .sub { color:var(--dim); } .tag { font-size:11px; padding:1px 6px; border-radius:8px; margin-left:4px; }
+  .m { background:#1d3b2a; color:var(--ok); } .e { background:#1d2c3b; color:var(--acc); } .h { background:#3b2a1d; color:var(--warn); }
+  .card { background:var(--panel); border-radius:10px; padding:14px 18px; margin:12px 0; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:12px; }
+  table { width:100%; border-collapse:collapse; font-size:14px; } td, th { text-align:left; padding:7px 8px; border-bottom:1px solid #262b38; vertical-align:top; }
+  th { color:var(--dim); font-weight:600; } .core { color:var(--ok); } .opt { color:var(--warn); } code { color:var(--acc); }
+  .mermaid { background:var(--panel); border-radius:10px; padding:12px; }
+</style>
+</head>
+<body>
+
+<h1>ai-symbiont: high-level plan</h1>
+<div class="sub">Draft from brainstorming, 2026-10-27. Not the design doc yet. Building runs Oct 27 to Nov 4, 9:00 PM ET.
+Tags: <span class="tag m">measured</span> <span class="tag e">established</span> <span class="tag h">hypothesis</span></div>
+
+<h2>1. What the judge leaves believing</h2>
+<div class="card">
+  <b>Frontier models serve everyone. A small personal learner, trained on your own agent history, makes them yours.</b><br>
+  For company teams that have session history, and still runnable by a solo dev on one box (Glimmer on the Strix).
+  The dev installs one thing (MCP server + hooks), picks projects in a guided setup, and then sees warnings and recalls appear inline in chat.
+  <span class="tag h">hypothesis: that this helps in practice is what Act 2 measures</span>
+</div>
+
+<h2>2. System at a glance</h2>
+<div class="mermaid">
+flowchart LR
+  subgraph SRC["Dev's history (local)"]
+    S1["Agent sessions<br/>Claude Code · Codex · Muse Code · Cursor"]
+    S2["git history"]
+    S3["PR review comments"]
+  end
+  SRC --> MIN["Miner<br/>pain points: reworked edits,<br/>flagged hunks, user corrections"]
+  MIN --> REC[("Records<br/>original text kept")]
+  REC --> FLY["Sidecar: fly mushroom body (CPU)<br/>flag trouble · pick what to recall<br/>baseline: plain counters"]
+  FLY --> HK["Hooks (push notes)"]
+  FLY --> MCP["MCP recall tool (pull)"]
+  HK --> H["Coding harnesses<br/>Muse Code + Spark · mini-SWE-agent + Glimmer · others"]
+  MCP --> H
+  REC -.optional, Glimmer only.-> LORA["LoRA adapter (GPU, overnight)"]
+  REC -.lab only.-> VEC["Vector injection (bf16, ~3 tok/s)"]
+  FLY --> G["Act 1: Freedoom via ViZDoom<br/>same sidecar, game history as data"]
+</div>
+
+<h2>3. Workstreams</h2>
+<table>
+<tr><th>#</th><th>Workstream</th><th>Scope</th><th>Status</th></tr>
+<tr><td>W0</td><td>Go / no-go</td><td>ViZDoom + one Freedoom level + Glimmer, one episode. Glimmer coding calibration (keep tasks solved ~20-60%). Does Muse act on warnings at all? [hypothesis]</td><td class="core">core · day 1-2</td></tr>
+<tr><td>W1</td><td>Miner</td><td>Harness-agnostic: per-harness log readers that output one common record format. Signals: edits that didn't survive, PR-comment-flagged hunks, user corrections. Fresh code.</td><td class="core">core</td></tr>
+<tr><td>W2</td><td>Sidecar</td><td>Mushroom body (86 → 5,177 KC, top 5%, dopamine-like readout). Jobs: flag trouble, pick recall. <b>Counters baseline from day 1.</b> [established]</td><td class="core">core</td></tr>
+<tr><td>W3</td><td>Delivery</td><td>One install: MCP server (<code>recall</code>) + hooks (SessionStart, UserPromptSubmit, PreLLMCall, PostToolUse). Guided terminal wizard (<code>symbiont setup</code>): find history → pick projects (all or a mix) → preview pain points → train.</td><td class="core">core</td></tr>
+<tr><td>W4</td><td>Act 2 eval: coding</td><td>"A developer's week" on one public repo: real runs with the models (the whole point). Glimmer vs Glimmer + fly (mini-SWE-agent; fewer tasks, carries the open-weights claim); Spark Contributor vs Spark + fly (Muse Code; bulk of the runs). Wonder = reference row. Primary metric: repeated-mistake rate; secondary: tests pass. Fly training is CPU-only from mined history and is not limited by Glimmer speed. Spark recalls only from public agent history, never SWE-chat. Pre-registration frozen before scored runs.</td><td class="core">core</td></tr>
+<tr><td>W5</td><td>Act 1: Freedoom</td><td>State → text → sidecar note → Muse picks strategy → scripted moves (labelled). Exploration + light combat. Harder combat only if exploration works by ~Oct 30.</td><td class="core">core (hook)</td></tr>
+<tr><td>W6</td><td>Open-weight extras</td><td>LoRA from mined records; vector-injection lab test; one timeboxed per-chunk self-study adapter run.</td><td class="opt">optional</td></tr>
+<tr><td>W7</td><td>Visuals + video</td><td>Live dashboard (racing timelines, fuel gauges, loop spirals, blast-radius / fault map, fly brain, scoreboard). One visual style for both acts. Muse Image hero art; ComfyUI overnight; Kenney CC0 fallback. 3-minute video.</td><td class="core">core</td></tr>
+<tr><td>W8</td><td>Publish</td><td>Licence notes, secrets scan before every push, repo creation only on your go.</td><td class="core">core</td></tr>
+</table>
+
+<h2>4. Timeline</h2>
+<div class="mermaid">
+gantt
+  dateFormat YYYY-MM-DD
+  axisFormat %a %d
+  section Gates
+  Go/no-go (Doom episode, calibration, warnings test) :crit, g0, 2026-10-27, 2d
+  Exploration checkpoint                             :milestone, 2026-10-30, 0d
+  Prereg frozen                                      :milestone, 2026-10-31, 0d
+  Submit 9 PM ET                                     :milestone, crit, 2026-11-04, 0d
+  section Build
+  Design doc + repo scaffold     :d0, 2026-10-27, 1d
+  Miner + harness readers        :w1, 2026-10-28, 3d
+  Sidecar + counters baseline    :w2, 2026-10-28, 3d
+  MCP + hooks + guided setup     :w3, 2026-10-29, 3d
+  Freedoom loop                  :w5, 2026-10-28, 4d
+  section Runs (GPU by day)
+  Act 2 scored runs              :w4, 2026-10-31, 3d
+  Act 1 recorded episodes        :2026-11-01, 2d
+  section Overnight GPU
+  LoRA run(s)                    :w6, 2026-10-29, 3d
+  ComfyUI art                    :2026-11-01, 2d
+  section Show
+  Dashboard                      :w7, 2026-10-30, 4d
+  Video capture + edit           :2026-11-03, 2d
+  Secrets scan + publish         :crit, 2026-11-04, 1d
+</div>
+
+<h2>5. Data <span class="tag e">from the licence survey, not yet re-verified</span></h2>
+<div class="grid">
+  <div class="card"><b>Dev history (miner input)</b><br>SWE-chat v2 (ODC-BY): real sessions with labelled corrections. Gated: you accept terms on Hugging Face. Raw rows stay local; only derived features go to Spark.</div>
+  <div class="card"><b>Scored tasks (one repo)</b><br>nvidia Open-SWE-Traces, Claude Code split (CC-BY-4.0; moto 227, click 193) or nebius SWE-rebench-openhands (CC-BY-4.0; sqlglot 275, Docker images).</div>
+  <div class="card"><b>Avoid</b><br>SWE-bench/experiments (no licence). SWE-smith trajectories (mostly Claude output, keep off Spark).</div>
+</div>
+
+<h2>6. Risks and what we do about them</h2>
+<table>
+<tr><th>Risk</th><th>Response</th></tr>
+<tr><td>Muse ignores warnings</td><td>Test day 1-2. Hooks push notes; fallback: harness acts (runs at-risk tests, shows real failures).</td></tr>
+<tr><td>Fly ≤ counters</td><td>Show both rows honestly. The pitch is the personal pipeline, not "the fly beats counting".</td></tr>
+<tr><td>One GPU</td><td>Glimmer runs by day, training and art overnight, one job at a time via gpu_run.</td></tr>
+<tr><td>Scope</td><td>Cuts decided when they come up (your call).</td></tr>
+<tr><td>Licences / privacy</td><td>Download-on-setup, no data/ in repo, no private data to Spark Contributor, Freedoom not "Doom" branding.</td></tr>
+</table>
+
+<h2>7. Open questions</h2>
+<table>
+<tr><td>Setup UI</td><td>DECIDED (you): guided terminal wizard</td></tr>
+<tr><td>Which repo is "the developer's week"?</td><td>sqlglot leads; alternatives being surveyed</td></tr>
+<tr><td>Which harness log readers ship first?</td><td>to decide</td></tr>
+<tr><td>Can pre-event code be a dependency?</td><td>you, on Discord</td></tr>
+<tr><td>Spend: $150 credit [established]</td><td>set by the owner; estimate per run in each prereg; ask before spending</td></tr>
+</table>
+
+</body>
+</html>

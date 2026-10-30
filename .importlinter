@@ -1,0 +1,115 @@
+; QG-ARC-01. Infected Core -> Buffer; Distributed Monolith -> Shield.
+; Mirrors tests/test_boundaries.py (the fast, dependency-free version); the two must agree.
+; An import-graph linter follows chains (core -> helper -> store -> sqlite3) that a
+; per-file check cannot see.
+;
+; include_external_packages is the load-bearing line: without it every external module
+; below is silently ignored and the purity contract passes forever.
+;
+; Packages that are built on other branches (service, delivery, routeb, act1, wizard) are
+; written as `symbiont.<name>.**` because import-linter rejects a module that does not
+; exist yet and accepts a wildcard that matches nothing. A wildcard covers the package's
+; submodules, not its bare __init__; tests/gates/test_importlinter_contracts.py fails when
+; a package under src/symbiont is missing from this file, so none is forgotten at merge.
+[importlinter]
+root_packages =
+    symbiont
+include_external_packages = True
+
+[importlinter:contract:core-layers]
+name = records below miner below core; a lower layer never imports a higher one
+type = layers
+layers =
+    symbiont.core
+    symbiont.miner
+    symbiont.records
+
+[importlinter:contract:core-passes-the-airplane-test]
+name = The pure core reaches no network, clock, process, store or harness
+type = forbidden
+source_modules =
+    symbiont.core
+    symbiont.miner
+    symbiont.records
+forbidden_modules =
+    sqlite3
+    socket
+    http
+    urllib
+    requests
+    subprocess
+    time
+    vizdoom
+    transformers
+    peft
+    mcp
+    symbiont.store
+    symbiont.readers
+    symbiont.eval
+    symbiont.service.**
+    symbiont.delivery.**
+    symbiont.routeb.**
+    symbiont.act1.**
+    symbiont.wizard.**
+    symbiont.egress.**
+
+[importlinter:contract:network-only-through-egress]
+name = Only symbiont.egress reaches the network (a new network module needs a gate change)
+type = forbidden
+source_modules =
+    symbiont.act1
+    symbiont.store
+    symbiont.readers
+    symbiont.eval
+    symbiont.routeb
+    symbiont.core
+    symbiont.miner
+    symbiont.records
+    symbiont.delivery.**
+    symbiont.service.**
+    symbiont.wizard.**
+forbidden_modules =
+    socket
+    ssl
+    http
+    urllib
+    requests
+    httpx
+    aiohttp
+    asyncio
+    ftplib
+    smtplib
+    xmlrpc
+    openai
+    anthropic
+    huggingface_hub
+    grpc
+    boto3
+    litellm
+    ollama
+; Importing symbiont.egress is the sanctioned route, so a chain that ends inside it is fine;
+; a direct import of a network module from any other package is not.
+allow_indirect_imports = True
+
+[importlinter:contract:grader-never-calls-the-live-service]
+name = The grader never calls the live service it grades
+type = forbidden
+source_modules =
+    symbiont.eval
+forbidden_modules =
+    symbiont.delivery.**
+    symbiont.service.**
+
+[importlinter:contract:training-code-cannot-read-the-grader]
+name = Route B and Act 1 reach eval only through the budget guard
+type = forbidden
+source_modules =
+    symbiont.routeb.**
+    symbiont.act1.**
+forbidden_modules =
+    symbiont.eval
+; The one sanctioned hop is the spend guard. It may not exist yet on every branch.
+ignore_imports =
+    symbiont.routeb.** -> symbiont.eval.budget
+    symbiont.act1.** -> symbiont.eval.budget
+unmatched_ignore_imports_alerting = none

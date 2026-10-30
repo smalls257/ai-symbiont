@@ -1,0 +1,322 @@
+# QG-SAST-02. Rules for the outbound boundary.
+#
+# sym-single-egress: Distributed Monolith -> Shield, and Silent Fallback at the privacy boundary.
+# An ALLOWLIST, not a denylist: a denylist of network libraries is never complete (a new SDK is
+# one `pip add` away), so under src/ outside src/symbiont/egress/ an import must name a module in
+# the explicit allowed set: the standard library minus its network and process-plumbing modules
+# (socket, ssl, http, urllib, asyncio, ftplib, smtplib, poplib, imaplib,
+# nntplib, telnetlib, xmlrpc, socketserver, selectors, select, webbrowser, wsgiref, cgi,
+# multiprocessing, ctypes), the project's own package (symbiont) and the listed pure
+# dependencies (numpy, vizdoom). Adding a dependency or a stdlib module to the set is a change
+# to this gate file, so it needs a GATE-CHANGE trailer and a reviewer. tests/gates/
+# test_egress_rules.py recomputes the set from sys.stdlib_module_names (of the Python in
+# .python-version) and fails on drift.
+# Relative imports stay inside the project. `import a, b` is refused outright (one module per
+# statement), so a banned module cannot ride behind an allowed one. Inbound servers (http.server) are not allowed
+# either; when the service package needs one, that is a deliberate gate change.
+#
+# sym-dynamic-import: the allowlist cannot see importlib.import_module("requests"), so a dynamic
+# import must use a string literal naming an allowed module.
+# sym-network-subprocess: curl, wget, nc, ssh and friends launched through subprocess or os are
+# a second HTTP client in disguise.
+# sym-no-prompt-logging: Black Box -> Sensor, and Leaky Narrative at the log boundary. A log line
+# records sizes, ids and provenance; prompt, transcript, reply or message text in a log is private
+# text copied to an unmanaged place. This is a NAME heuristic: it flags any dotted segment such
+# as reply.text, prompt.text, str(prompt) or extra={"p": prompt}; log len(prompt) instead.
+#
+# scripts/ and ops/ fetch public datasets and are outside these rules.
+rules:
+  - id: sym-single-egress
+    severity: ERROR
+    languages: [python]
+    message: >
+      Import of a module outside the allowed set under src/ (Distributed Monolith: a second
+      network client bypasses the spark_safe policy and the egress log). Network access goes
+      through symbiont.egress.post_json(Destination(Endpoint.X, url), body, provenance=...);
+      a new remote API is a new Endpoint member plus a policy test. A new pure dependency is a
+      deliberate edit of the allowed set in this file.
+    paths:
+      include: ["/src/"]
+      exclude: ["/src/symbiont/egress/"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: import $M
+              - pattern: import $M as $A
+          - metavariable-regex:
+              metavariable: $M
+              regex: |-
+                ^(?!.* import )(?!(?:__future__|abc|aifc|antigravity|argparse|array|ast|atexit|audioop|base64|bdb|binascii|bisect|builtins|bz2|cProfile|calendar|chunk|cmath|cmd|code|codecs|codeop|collections|colorsys|compileall|concurrent|configparser|contextlib|contextvars|copy|copyreg|crypt|csv|curses|dataclasses|datetime|dbm|decimal|difflib|dis|doctest|email|encodings|enum|errno|faulthandler|fcntl|filecmp|fileinput|fnmatch|fractions|functools|gc|genericpath|getopt|getpass|gettext|glob|graphlib|grp|gzip|hashlib|heapq|hmac|html|idlelib|imghdr|importlib|inspect|io|ipaddress|itertools|json|keyword|lib2to3|linecache|locale|logging|lzma|mailbox|mailcap|marshal|math|mimetypes|mmap|modulefinder|msilib|msvcrt|netrc|nis|nt|ntpath|nturl2path|numbers|opcode|operator|optparse|os|ossaudiodev|pathlib|pdb|pickle|pickletools|pipes|pkgutil|platform|plistlib|posix|posixpath|pprint|profile|pstats|pty|pwd|py_compile|pyclbr|pydoc|pydoc_data|pyexpat|queue|quopri|random|re|readline|reprlib|resource|rlcompleter|runpy|sched|secrets|shelve|shlex|shutil|signal|site|sndhdr|spwd|sqlite3|sre_compile|sre_constants|sre_parse|stat|statistics|string|stringprep|struct|subprocess|sunau|symtable|sys|sysconfig|syslog|tabnanny|tarfile|tempfile|termios|textwrap|this|threading|time|timeit|tkinter|token|tokenize|tomllib|trace|traceback|tracemalloc|tty|turtle|turtledemo|types|typing|unicodedata|unittest|uu|uuid|venv|warnings|wave|weakref|winreg|winsound|xdrlib|xml|zipapp|zipfile|zipimport|zlib|zoneinfo|symbiont|numpy|vizdoom)(?:\.[\w.]+)?(?:\s+as\s+\w+)?$).+
+      - patterns:
+          - pattern: from $M import $X
+          - metavariable-regex:
+              metavariable: $M
+              regex: |-
+                ^(?!\.|(?:__future__|abc|aifc|antigravity|argparse|array|ast|atexit|audioop|base64|bdb|binascii|bisect|builtins|bz2|cProfile|calendar|chunk|cmath|cmd|code|codecs|codeop|collections|colorsys|compileall|concurrent|configparser|contextlib|contextvars|copy|copyreg|crypt|csv|curses|dataclasses|datetime|dbm|decimal|difflib|dis|doctest|email|encodings|enum|errno|faulthandler|fcntl|filecmp|fileinput|fnmatch|fractions|functools|gc|genericpath|getopt|getpass|gettext|glob|graphlib|grp|gzip|hashlib|heapq|hmac|html|idlelib|imghdr|importlib|inspect|io|ipaddress|itertools|json|keyword|lib2to3|linecache|locale|logging|lzma|mailbox|mailcap|marshal|math|mimetypes|mmap|modulefinder|msilib|msvcrt|netrc|nis|nt|ntpath|nturl2path|numbers|opcode|operator|optparse|os|ossaudiodev|pathlib|pdb|pickle|pickletools|pipes|pkgutil|platform|plistlib|posix|posixpath|pprint|profile|pstats|pty|pwd|py_compile|pyclbr|pydoc|pydoc_data|pyexpat|queue|quopri|random|re|readline|reprlib|resource|rlcompleter|runpy|sched|secrets|shelve|shlex|shutil|signal|site|sndhdr|spwd|sqlite3|sre_compile|sre_constants|sre_parse|stat|statistics|string|stringprep|struct|subprocess|sunau|symtable|sys|sysconfig|syslog|tabnanny|tarfile|tempfile|termios|textwrap|this|threading|time|timeit|tkinter|token|tokenize|tomllib|trace|traceback|tracemalloc|tty|turtle|turtledemo|types|typing|unicodedata|unittest|uu|uuid|venv|warnings|wave|weakref|winreg|winsound|xdrlib|xml|zipapp|zipfile|zipimport|zlib|zoneinfo|symbiont|numpy|vizdoom)(?:\.[\w.]+)?$).+
+
+  - id: sym-dynamic-import
+    severity: ERROR
+    languages: [python]
+    message: >
+      Dynamic import that the egress allowlist cannot judge (Distributed Monolith by the back
+      door). Import the module statically so sym-single-egress sees it; a variable, or a literal
+      naming a module outside the allowed set, in importlib.import_module or __import__ is refused.
+    paths:
+      include: ["/src/"]
+      exclude: ["/src/symbiont/egress/"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: importlib.import_module($X, ...)
+              - pattern: importlib.__import__($X, ...)
+              - pattern: __import__($X, ...)
+              - pattern: builtins.__import__($X, ...)
+          - pattern-not: importlib.import_module("...", ...)
+          - pattern-not: importlib.__import__("...", ...)
+          - pattern-not: __import__("...", ...)
+          - pattern-not: builtins.__import__("...", ...)
+      - patterns:
+          - pattern-either:
+              - pattern: importlib.import_module($X, ...)
+              - pattern: importlib.__import__($X, ...)
+              - pattern: __import__($X, ...)
+              - pattern: builtins.__import__($X, ...)
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                ^["'](?!(?:\.|(?:__future__|abc|aifc|antigravity|argparse|array|ast|atexit|audioop|base64|bdb|binascii|bisect|builtins|bz2|cProfile|calendar|chunk|cmath|cmd|code|codecs|codeop|collections|colorsys|compileall|concurrent|configparser|contextlib|contextvars|copy|copyreg|crypt|csv|curses|dataclasses|datetime|dbm|decimal|difflib|dis|doctest|email|encodings|enum|errno|faulthandler|fcntl|filecmp|fileinput|fnmatch|fractions|functools|gc|genericpath|getopt|getpass|gettext|glob|graphlib|grp|gzip|hashlib|heapq|hmac|html|idlelib|imghdr|importlib|inspect|io|ipaddress|itertools|json|keyword|lib2to3|linecache|locale|logging|lzma|mailbox|mailcap|marshal|math|mimetypes|mmap|modulefinder|msilib|msvcrt|netrc|nis|nt|ntpath|nturl2path|numbers|opcode|operator|optparse|os|ossaudiodev|pathlib|pdb|pickle|pickletools|pipes|pkgutil|platform|plistlib|posix|posixpath|pprint|profile|pstats|pty|pwd|py_compile|pyclbr|pydoc|pydoc_data|pyexpat|queue|quopri|random|re|readline|reprlib|resource|rlcompleter|runpy|sched|secrets|shelve|shlex|shutil|signal|site|sndhdr|spwd|sqlite3|sre_compile|sre_constants|sre_parse|stat|statistics|string|stringprep|struct|subprocess|sunau|symtable|sys|sysconfig|syslog|tabnanny|tarfile|tempfile|termios|textwrap|this|threading|time|timeit|tkinter|token|tokenize|tomllib|trace|traceback|tracemalloc|tty|turtle|turtledemo|types|typing|unicodedata|unittest|uu|uuid|venv|warnings|wave|weakref|winreg|winsound|xdrlib|xml|zipapp|zipfile|zipimport|zlib|zoneinfo|symbiont|numpy|vizdoom)(?:\.|["']))).+
+
+  - id: sym-network-subprocess
+    severity: ERROR
+    languages: [python]
+    message: >
+      A network tool launched as a process (curl, wget, nc, ssh, scp, sftp, telnet, ftp, rsync)
+      or a raw asyncio/loop connection is a second HTTP client in disguise (Distributed
+      Monolith). Send through symbiont.egress.
+    paths:
+      include: ["/src/"]
+      exclude: ["/src/symbiont/egress/"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: subprocess.$F($A, ...)
+              - pattern: os.system($A)
+              - pattern: os.popen($A, ...)
+              - pattern: os.$F($A, ...)
+          - metavariable-regex:
+              metavariable: $A
+              regex: |-
+                (?is).*(?<![\w-])(curl|wget|nc|ncat|netcat|ssh|scp|sftp|telnet|ftp|rsync)(?![\w-]).*
+      - pattern: asyncio.open_connection(...)
+      - pattern: asyncio.start_server(...)
+      - pattern: $LOOP.create_connection(...)
+      - pattern: $LOOP.create_server(...)
+
+  - id: sym-no-prompt-logging
+    severity: ERROR
+    languages: [python]
+    message: >
+      Prompt, transcript, reply or message text reaches a log or print (Black Box on the wrong
+      axis: the log becomes an unmanaged copy of private text). Name heuristic: any dotted
+      segment such as reply.text or prompt.text, str(prompt) or extra={"p": prompt} fires. Log
+      sizes, ids and provenance (len(prompt), a count), as symbiont.egress does.
+    paths:
+      include: ["/src/"]
+    pattern-either:
+      - patterns:
+          - pattern-either:
+              - pattern: $L.$M(..., $ARG, ...)
+              - pattern: $L.$M(..., $K=$ARG, ...)
+              - pattern: |-
+                  $L.$M(..., extra={..., $K: $ARG, ...}, ...)
+              - pattern: $L.$M(..., extra=$ARG, ...)
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $ARG
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+          - focus-metavariable: $ARG
+      - patterns:
+          - pattern-either:
+              - pattern: logging.getLogger(...).$M(..., $ARG, ...)
+              - pattern: |-
+                  logging.getLogger(...).$M(..., extra={..., $K: $ARG, ...}, ...)
+              - pattern: print(..., $ARG, ...)
+              - pattern: sys.stdout.write($ARG)
+              - pattern: sys.stderr.write($ARG)
+          - metavariable-regex:
+              metavariable: $ARG
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+          - focus-metavariable: $ARG
+      - patterns:
+          - pattern: |-
+              $L.$M(..., f"...{$X}...", ...)
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              $L.$M(..., "...".format(..., $X, ...), ...)
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              $L.$M("..." % $X)
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              $L.$M("..." % ($X, ...))
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              $L.$M("..." % ($A, $X, ...))
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              $L.$M("..." % ($A, $B, $X, ...))
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              $L.$M("..." % ($A, $B, $C, $X, ...))
+          - metavariable-regex:
+              metavariable: $L
+              regex: |-
+                (?i)^(?:self\.)?_?\w*(log|logger|logging|progress)$
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              logging.getLogger(...).$M(..., f"...{$X}...", ...)
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              print(..., f"...{$X}...", ...)
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              print(..., "...".format(..., $X, ...), ...)
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              print("..." % $X)
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              print("..." % ($X, ...))
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              print("..." % ($A, $X, ...))
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              print("..." % ($A, $B, $X, ...))
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              sys.stderr.write(f"...{$X}...")
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+      - patterns:
+          - pattern: |-
+              sys.stdout.write(f"...{$X}...")
+          - metavariable-regex:
+              metavariable: $X
+              regex: |-
+                (?is)^(?![rbfuRBFU]{0,2}[\"'])(?!len\().*(?:^|[^A-Za-z0-9])(?:\w*_)?(?:prompt|transcripts?|messages?|completions?|observations?|repl(?:y|ies)|text|body|content|payload)s?(?!_(?:tokens?|chars|len|count|size|bytes|number|ids?)\b)(?:_\w+)?(?:[^A-Za-z0-9]|$).*$
+
+  - id: sym-subprocess-literal-command
+    severity: ERROR
+    languages: [python]
+    message: >
+      A process started from a command that is a variable, a concatenation or an f-string hides
+      what it runs from sym-network-subprocess (a second HTTP client by the back door). Pass a
+      list whose first element is a string literal, or a literal string. Allowed set for a
+      computed command: no module today; adding one is an edit of this rule (GATE-CHANGE) with
+      the module named in the exclude list below.
+    paths:
+      include: ["/src/"]
+      exclude: ["/src/symbiont/egress/"]
+    pattern-either:
+      - patterns:
+          - pattern: subprocess.$F($A, ...)
+          - pattern-not: subprocess.$F(["...", ...], ...)
+          - pattern-not: subprocess.$F("...", ...)
+          - metavariable-regex:
+              metavariable: $F
+              regex: |-
+                ^(run|call|check_call|check_output|Popen|getoutput|getstatusoutput)$
+      - patterns:
+          - pattern-either:
+              - pattern: os.system($A)
+              - pattern: os.popen($A, ...)
+          - pattern-not: os.system("...")
+          - pattern-not: os.popen("...", ...)

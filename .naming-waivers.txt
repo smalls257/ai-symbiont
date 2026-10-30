@@ -1,0 +1,6 @@
+# QG-RD-02/03 waivers for scripts/gates/check_naming.py. DELETE-ONLY: lines may be removed,
+# never added by an agent; the owner adds one in a commit whose message says why.
+# Entry: `path.py:name` (function, class or parameter name) or `path.py` (module name), then
+#   # owner, reason, expires YYYY-MM-DD
+# An entry with no future expiry date makes the gate fail (exit 2). Phase 1 checks changed
+# files only, so none are needed; existing offenders are counted in scripts/gates/baseline.json.

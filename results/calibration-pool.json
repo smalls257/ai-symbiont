@@ -1,0 +1,1906 @@
+{
+ "source": "hf://datasets/nebius/SWE-rebench@~parquet/default/filtered/*.parquet",
+ "repo": "tobymao/sqlglot",
+ "rows_for_repo": 294,
+ "rule": "docker_image present and gold patch changed lines < 60",
+ "excluded": {
+  "no_image": 0,
+  "too_big": 26
+ },
+ "pool_size": 268,
+ "pool": [
+  {
+   "instance_id": "tobymao__sqlglot-292",
+   "gold_changed_lines": 27,
+   "gold_diff_lines": 106,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-428",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 8
+  },
+  {
+   "instance_id": "tobymao__sqlglot-437",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 41,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-444",
+   "gold_changed_lines": 14,
+   "gold_diff_lines": 61,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-445",
+   "gold_changed_lines": 16,
+   "gold_diff_lines": 70,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 29
+  },
+  {
+   "instance_id": "tobymao__sqlglot-446",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 20,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-550",
+   "gold_changed_lines": 26,
+   "gold_diff_lines": 83,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 20
+  },
+  {
+   "instance_id": "tobymao__sqlglot-552",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 14,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-555",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 55,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 0
+  },
+  {
+   "instance_id": "tobymao__sqlglot-559",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 37,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 2
+  },
+  {
+   "instance_id": "tobymao__sqlglot-570",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 39,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-632",
+   "gold_changed_lines": 14,
+   "gold_diff_lines": 74,
+   "n_fail_to_pass": 6,
+   "n_pass_to_pass": 23
+  },
+  {
+   "instance_id": "tobymao__sqlglot-700",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 20,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 19
+  },
+  {
+   "instance_id": "tobymao__sqlglot-702",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 34,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 8
+  },
+  {
+   "instance_id": "tobymao__sqlglot-749",
+   "gold_changed_lines": 59,
+   "gold_diff_lines": 158,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 2
+  },
+  {
+   "instance_id": "tobymao__sqlglot-767",
+   "gold_changed_lines": 20,
+   "gold_diff_lines": 95,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-772",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-784",
+   "gold_changed_lines": 14,
+   "gold_diff_lines": 47,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 0
+  },
+  {
+   "instance_id": "tobymao__sqlglot-790",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 31,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 0
+  },
+  {
+   "instance_id": "tobymao__sqlglot-799",
+   "gold_changed_lines": 23,
+   "gold_diff_lines": 59,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-829",
+   "gold_changed_lines": 13,
+   "gold_diff_lines": 33,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 20
+  },
+  {
+   "instance_id": "tobymao__sqlglot-884",
+   "gold_changed_lines": 43,
+   "gold_diff_lines": 115,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 0
+  },
+  {
+   "instance_id": "tobymao__sqlglot-899",
+   "gold_changed_lines": 33,
+   "gold_diff_lines": 69,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 0
+  },
+  {
+   "instance_id": "tobymao__sqlglot-910",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 16,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-923",
+   "gold_changed_lines": 37,
+   "gold_diff_lines": 104,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 8
+  },
+  {
+   "instance_id": "tobymao__sqlglot-930",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 17,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 8
+  },
+  {
+   "instance_id": "tobymao__sqlglot-960",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 19
+  },
+  {
+   "instance_id": "tobymao__sqlglot-975",
+   "gold_changed_lines": 23,
+   "gold_diff_lines": 45,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1001",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 16
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1050",
+   "gold_changed_lines": 25,
+   "gold_diff_lines": 84,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1060",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 43,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1062",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 57,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 15
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1083",
+   "gold_changed_lines": 48,
+   "gold_diff_lines": 199,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 17
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1089",
+   "gold_changed_lines": 15,
+   "gold_diff_lines": 49,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 23
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1143",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1177",
+   "gold_changed_lines": 27,
+   "gold_diff_lines": 92,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 2
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1270",
+   "gold_changed_lines": 45,
+   "gold_diff_lines": 141,
+   "n_fail_to_pass": 4,
+   "n_pass_to_pass": 25
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1304",
+   "gold_changed_lines": 41,
+   "gold_diff_lines": 148,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1309",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1316",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 19,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 25
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1318",
+   "gold_changed_lines": 19,
+   "gold_diff_lines": 77,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 29
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1325",
+   "gold_changed_lines": 17,
+   "gold_diff_lines": 46,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 21
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1328",
+   "gold_changed_lines": 21,
+   "gold_diff_lines": 47,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 3
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1340",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1367",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 3
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1375",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 39,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1379",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1436",
+   "gold_changed_lines": 23,
+   "gold_diff_lines": 105,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 26
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1468",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 16,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 27
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1470",
+   "gold_changed_lines": 17,
+   "gold_diff_lines": 51,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 1
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1540",
+   "gold_changed_lines": 20,
+   "gold_diff_lines": 58,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1548",
+   "gold_changed_lines": 20,
+   "gold_diff_lines": 77,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 18
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1551",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 14,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1627",
+   "gold_changed_lines": 51,
+   "gold_diff_lines": 119,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1640",
+   "gold_changed_lines": 5,
+   "gold_diff_lines": 38,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 13
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1662",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 6
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1670",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1703",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 15,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1744",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 43,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 6
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1782",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1819",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1825",
+   "gold_changed_lines": 35,
+   "gold_diff_lines": 104,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1871",
+   "gold_changed_lines": 42,
+   "gold_diff_lines": 171,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 28
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1924",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 28,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1944",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 6
+  },
+  {
+   "instance_id": "tobymao__sqlglot-1973",
+   "gold_changed_lines": 23,
+   "gold_diff_lines": 78,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2007",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 16,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 16
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2040",
+   "gold_changed_lines": 54,
+   "gold_diff_lines": 96,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2047",
+   "gold_changed_lines": 25,
+   "gold_diff_lines": 68,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2049",
+   "gold_changed_lines": 18,
+   "gold_diff_lines": 42,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2063",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 21,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2082",
+   "gold_changed_lines": 22,
+   "gold_diff_lines": 77,
+   "n_fail_to_pass": 6,
+   "n_pass_to_pass": 38
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2083",
+   "gold_changed_lines": 47,
+   "gold_diff_lines": 122,
+   "n_fail_to_pass": 7,
+   "n_pass_to_pass": 75
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2093",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2095",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2127",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2165",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 18,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 8
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2167",
+   "gold_changed_lines": 32,
+   "gold_diff_lines": 81,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2172",
+   "gold_changed_lines": 39,
+   "gold_diff_lines": 104,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 29
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2179",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 49,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2199",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 30,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 29
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2208",
+   "gold_changed_lines": 38,
+   "gold_diff_lines": 142,
+   "n_fail_to_pass": 4,
+   "n_pass_to_pass": 33
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2226",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 18,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 55
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2251",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 17
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2255",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 14,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2260",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 43,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2293",
+   "gold_changed_lines": 13,
+   "gold_diff_lines": 67,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 46
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2295",
+   "gold_changed_lines": 16,
+   "gold_diff_lines": 67,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 53
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2296",
+   "gold_changed_lines": 35,
+   "gold_diff_lines": 91,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2305",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 56,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2306",
+   "gold_changed_lines": 24,
+   "gold_diff_lines": 96,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2337",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 17
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2358",
+   "gold_changed_lines": 39,
+   "gold_diff_lines": 138,
+   "n_fail_to_pass": 4,
+   "n_pass_to_pass": 60
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2412",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 21,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2432",
+   "gold_changed_lines": 13,
+   "gold_diff_lines": 49,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 22
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2439",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 5
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2443",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2450",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 15,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 19
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2499",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2507",
+   "gold_changed_lines": 21,
+   "gold_diff_lines": 54,
+   "n_fail_to_pass": 9,
+   "n_pass_to_pass": 0
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2521",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 40
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2529",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 19
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2576",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 47,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 32
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2591",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 37,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 41
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2605",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 20
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2619",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 11
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2658",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 29
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2659",
+   "gold_changed_lines": 32,
+   "gold_diff_lines": 68,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 11
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2739",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 5,
+   "n_pass_to_pass": 57
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2754",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 29,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 21
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2794",
+   "gold_changed_lines": 30,
+   "gold_diff_lines": 43,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 53
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2800",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 14,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 21
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2821",
+   "gold_changed_lines": 24,
+   "gold_diff_lines": 93,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 6
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2822",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 44,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 30
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2825",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 14,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 21
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2857",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 49,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 8
+  },
+  {
+   "instance_id": "tobymao__sqlglot-2935",
+   "gold_changed_lines": 48,
+   "gold_diff_lines": 162,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3045",
+   "gold_changed_lines": 45,
+   "gold_diff_lines": 122,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 48
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3111",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 71,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3129",
+   "gold_changed_lines": 25,
+   "gold_diff_lines": 39,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 0
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3150",
+   "gold_changed_lines": 39,
+   "gold_diff_lines": 57,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 43
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3160",
+   "gold_changed_lines": 40,
+   "gold_diff_lines": 139,
+   "n_fail_to_pass": 5,
+   "n_pass_to_pass": 122
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3166",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 22,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 53
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3179",
+   "gold_changed_lines": 32,
+   "gold_diff_lines": 102,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3191",
+   "gold_changed_lines": 30,
+   "gold_diff_lines": 95,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 42
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3198",
+   "gold_changed_lines": 23,
+   "gold_diff_lines": 76,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 84
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3201",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 53,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 85
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3230",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3238",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 49,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 6
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3242",
+   "gold_changed_lines": 22,
+   "gold_diff_lines": 70,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3255",
+   "gold_changed_lines": 16,
+   "gold_diff_lines": 86,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 31
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3272",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 54,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 32
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3284",
+   "gold_changed_lines": 29,
+   "gold_diff_lines": 69,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 31
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3290",
+   "gold_changed_lines": 17,
+   "gold_diff_lines": 42,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3330",
+   "gold_changed_lines": 51,
+   "gold_diff_lines": 91,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 62
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3333",
+   "gold_changed_lines": 32,
+   "gold_diff_lines": 90,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3339",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 38,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 80
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3352",
+   "gold_changed_lines": 41,
+   "gold_diff_lines": 102,
+   "n_fail_to_pass": 41,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3367",
+   "gold_changed_lines": 21,
+   "gold_diff_lines": 43,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 32
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3376",
+   "gold_changed_lines": 26,
+   "gold_diff_lines": 80,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3392",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 35,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3394",
+   "gold_changed_lines": 41,
+   "gold_diff_lines": 113,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 56
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3401",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 41
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3417",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 81
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3418",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 39,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 98
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3425",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 51,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 33
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3426",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 32
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3436",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 32
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3440",
+   "gold_changed_lines": 18,
+   "gold_diff_lines": 58,
+   "n_fail_to_pass": 4,
+   "n_pass_to_pass": 85
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3470",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 21,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3478",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 37,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3515",
+   "gold_changed_lines": 37,
+   "gold_diff_lines": 113,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3533",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 14,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3547",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 34,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3548",
+   "gold_changed_lines": 27,
+   "gold_diff_lines": 49,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3549",
+   "gold_changed_lines": 57,
+   "gold_diff_lines": 122,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 34
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3552",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3566",
+   "gold_changed_lines": 15,
+   "gold_diff_lines": 26,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 34
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3605",
+   "gold_changed_lines": 14,
+   "gold_diff_lines": 47,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 34
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3620",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 25,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 34
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3621",
+   "gold_changed_lines": 20,
+   "gold_diff_lines": 78,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 67
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3627",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 17,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 34
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3630",
+   "gold_changed_lines": 51,
+   "gold_diff_lines": 104,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 11
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3641",
+   "gold_changed_lines": 29,
+   "gold_diff_lines": 73,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 14
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3650",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 40,
+   "n_fail_to_pass": 4,
+   "n_pass_to_pass": 50
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3682",
+   "gold_changed_lines": 20,
+   "gold_diff_lines": 31,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3689",
+   "gold_changed_lines": 33,
+   "gold_diff_lines": 168,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3695",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 33
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3696",
+   "gold_changed_lines": 17,
+   "gold_diff_lines": 76,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 44
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3699",
+   "gold_changed_lines": 36,
+   "gold_diff_lines": 94,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 54
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3701",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 33,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 4
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3720",
+   "gold_changed_lines": 34,
+   "gold_diff_lines": 71,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 42
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3731",
+   "gold_changed_lines": 55,
+   "gold_diff_lines": 131,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 35
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3734",
+   "gold_changed_lines": 56,
+   "gold_diff_lines": 143,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 42
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3745",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 58,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 56
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3756",
+   "gold_changed_lines": 17,
+   "gold_diff_lines": 79,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 49
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3765",
+   "gold_changed_lines": 32,
+   "gold_diff_lines": 70,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 26
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3785",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 11
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3798",
+   "gold_changed_lines": 47,
+   "gold_diff_lines": 116,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3799",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3806",
+   "gold_changed_lines": 24,
+   "gold_diff_lines": 89,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 41
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3820",
+   "gold_changed_lines": 33,
+   "gold_diff_lines": 70,
+   "n_fail_to_pass": 45,
+   "n_pass_to_pass": 2
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3839",
+   "gold_changed_lines": 28,
+   "gold_diff_lines": 64,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 21
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3842",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 39,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 67
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3847",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 29,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 42
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3848",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 37,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 41
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3855",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 23,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3870",
+   "gold_changed_lines": 16,
+   "gold_diff_lines": 64,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 45
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3871",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 11
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3885",
+   "gold_changed_lines": 13,
+   "gold_diff_lines": 38,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 35
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3891",
+   "gold_changed_lines": 28,
+   "gold_diff_lines": 56,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 35
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3935",
+   "gold_changed_lines": 15,
+   "gold_diff_lines": 69,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3937",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 35,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3954",
+   "gold_changed_lines": 13,
+   "gold_diff_lines": 62,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3971",
+   "gold_changed_lines": 48,
+   "gold_diff_lines": 85,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3975",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 15,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 35
+  },
+  {
+   "instance_id": "tobymao__sqlglot-3994",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 42,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 22
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4004",
+   "gold_changed_lines": 5,
+   "gold_diff_lines": 16,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 54
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4007",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 26,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 39
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4014",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 29,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 35
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4015",
+   "gold_changed_lines": 13,
+   "gold_diff_lines": 71,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 43
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4040",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 53,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4041",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 38,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 41
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4051",
+   "gold_changed_lines": 52,
+   "gold_diff_lines": 153,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 60
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4067",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 22,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 43
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4079",
+   "gold_changed_lines": 20,
+   "gold_diff_lines": 46,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 45
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4087",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 51,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4093",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 15,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4096",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 22,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 15
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4104",
+   "gold_changed_lines": 42,
+   "gold_diff_lines": 104,
+   "n_fail_to_pass": 3,
+   "n_pass_to_pass": 68
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4106",
+   "gold_changed_lines": 27,
+   "gold_diff_lines": 64,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4109",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 34,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 35
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4110",
+   "gold_changed_lines": 34,
+   "gold_diff_lines": 110,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 40
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4127",
+   "gold_changed_lines": 3,
+   "gold_diff_lines": 14,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4130",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 33,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 47
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4141",
+   "gold_changed_lines": 30,
+   "gold_diff_lines": 60,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4148",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 16
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4151",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 28,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4165",
+   "gold_changed_lines": 25,
+   "gold_diff_lines": 59,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4194",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4197",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 21,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4208",
+   "gold_changed_lines": 15,
+   "gold_diff_lines": 56,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 9
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4218",
+   "gold_changed_lines": 20,
+   "gold_diff_lines": 76,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 25
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4239",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 17,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4252",
+   "gold_changed_lines": 35,
+   "gold_diff_lines": 86,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4276",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 44
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4287",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 17,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 15
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4293",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 19,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 7
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4311",
+   "gold_changed_lines": 17,
+   "gold_diff_lines": 39,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 15
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4325",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 17,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 6
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4328",
+   "gold_changed_lines": 25,
+   "gold_diff_lines": 57,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 28
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4331",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 15,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 61
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4347",
+   "gold_changed_lines": 22,
+   "gold_diff_lines": 52,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 30
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4355",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 46
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4373",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 59,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 67
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4390",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 30,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 55
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4393",
+   "gold_changed_lines": 19,
+   "gold_diff_lines": 43,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 36
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4415",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 28,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4417",
+   "gold_changed_lines": 26,
+   "gold_diff_lines": 80,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 74
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4430",
+   "gold_changed_lines": 37,
+   "gold_diff_lines": 81,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 22
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4448",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 45,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4457",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 28,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 22
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4459",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 40,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4472",
+   "gold_changed_lines": 17,
+   "gold_diff_lines": 32,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 11
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4488",
+   "gold_changed_lines": 11,
+   "gold_diff_lines": 37,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 38
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4493",
+   "gold_changed_lines": 23,
+   "gold_diff_lines": 83,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 36
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4505",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 17,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 37
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4506",
+   "gold_changed_lines": 23,
+   "gold_diff_lines": 49,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 59
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4516",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 19,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 10
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4519",
+   "gold_changed_lines": 10,
+   "gold_diff_lines": 24,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4523",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 46
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4528",
+   "gold_changed_lines": 24,
+   "gold_diff_lines": 47,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 17
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4533",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 38
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4546",
+   "gold_changed_lines": 16,
+   "gold_diff_lines": 60,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 17
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4550",
+   "gold_changed_lines": 7,
+   "gold_diff_lines": 47,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4563",
+   "gold_changed_lines": 1,
+   "gold_diff_lines": 12,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 47
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4569",
+   "gold_changed_lines": 12,
+   "gold_diff_lines": 34,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 62
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4618",
+   "gold_changed_lines": 2,
+   "gold_diff_lines": 13,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 47
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4628",
+   "gold_changed_lines": 55,
+   "gold_diff_lines": 154,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 42
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4643",
+   "gold_changed_lines": 50,
+   "gold_diff_lines": 97,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 25
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4652",
+   "gold_changed_lines": 53,
+   "gold_diff_lines": 116,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 18
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4661",
+   "gold_changed_lines": 8,
+   "gold_diff_lines": 42,
+   "n_fail_to_pass": 2,
+   "n_pass_to_pass": 20
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4683",
+   "gold_changed_lines": 15,
+   "gold_diff_lines": 62,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 12
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4696",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 15,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 38
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4935",
+   "gold_changed_lines": 6,
+   "gold_diff_lines": 18,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 23
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4941",
+   "gold_changed_lines": 4,
+   "gold_diff_lines": 15,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 8
+  },
+  {
+   "instance_id": "tobymao__sqlglot-4987",
+   "gold_changed_lines": 39,
+   "gold_diff_lines": 133,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 47
+  },
+  {
+   "instance_id": "tobymao__sqlglot-5015",
+   "gold_changed_lines": 9,
+   "gold_diff_lines": 17,
+   "n_fail_to_pass": 1,
+   "n_pass_to_pass": 15
+  }
+ ],
+ "gold_check": {
+  "image": "swerebench/sweb.eval.x86_64.tobymao_1776_sqlglot-5015 (shared, prepared per task)",
+  "checked": 268,
+  "gold_not_resolved": [],
+  "script": "scripts/calibration/check_gold.py"
+ },
+ "disk_check": {
+  "script": "scripts/calibration/verify_disk.py",
+  "tasks": [
+   "tobymao__sqlglot-1001",
+   "tobymao__sqlglot-1050",
+   "tobymao__sqlglot-1060",
+   "tobymao__sqlglot-3191",
+   "tobymao__sqlglot-5015"
+  ],
+  "result": "per-test F2P+P2P statuses identical between stock per-task image and shared prepared image, empty and gold patch, on 3191 and 5015 with the final prepare_script; 1001/1050/1060 matched with an earlier variant that also ran pip install -e . [measured]"
+ }
+}

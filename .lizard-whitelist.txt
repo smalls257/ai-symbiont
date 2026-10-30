@@ -1,0 +1,6 @@
+# QG-CPX-01/02/03 waivers. DELETE-ONLY: lines may be removed, never added (agents may not
+# edit this file; the owner adds a line in a commit whose message says why).
+# Entry: `path.py:function` (complexity, nesting) or `path.py` (file length), then
+#   # owner · reason · expires YYYY-MM-DD
+# Phase 1 holds only changed files to the caps, so no waivers are needed: existing
+# offenders are counted in scripts/gates/baseline.json for the phase 2 cleanup.

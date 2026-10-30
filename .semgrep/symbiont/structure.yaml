@@ -1,0 +1,35 @@
+# QG-SAST-02. God Method / Distributed Monolith / history-is-the-record rules.
+rules:
+  - id: sym-no-bool-pair
+    severity: ERROR
+    languages: [python]
+    message: >
+      Two bool parameters on one function (God Method, and a Leaky Narrative at every call
+      site). Replace with a StrEnum or two named functions; an options dict only respells it.
+    paths:
+      include: ["/src/"]
+    pattern: |
+      def $F(..., $A: bool, ..., $B: bool, ...):
+        ...
+
+  - id: sym-one-price-table
+    severity: ERROR
+    languages: [python]
+    message: >
+      A price literal outside eval/budget.py (Distributed Monolith): a price change must be
+      one edit. Import the figure from the budget module.
+    paths:
+      include: ["/src/", "/scripts/"]
+      exclude: ["/src/symbiont/eval/budget.py"]
+    patterns:
+      - pattern-either:
+          - pattern: $X = $N
+          - pattern: '$X: $T = $N'
+          - pattern: '{..., $X: $N, ...}'
+      - metavariable-regex:
+          metavariable: $N
+          regex: ^\d+\.\d+$
+      - metavariable-pattern:
+          metavariable: $X
+          language: generic
+          pattern-regex: (?i)(per_m|price|usd|cost_per)

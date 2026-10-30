@@ -1,0 +1,278 @@
+"""One synchronous Freedoom episode (periphery: ViZDoom, the model endpoint, files).
+
+The model reads `describe(state)` and replies with a strategy of scripted
+moves; `execute_move` carries each one out against the live game. Invalid
+model replies are recorded as rejected, never replaced by a default move.
+Plays Freedoom via ViZDoom. Moves are scripted, and every log line says so.
+"""
+
+import json
+import logging
+import time
+from collections.abc import Callable
+from dataclasses import asdict, dataclass, field, replace
+from datetime import UTC, datetime
+from pathlib import Path
+from typing import IO, Any
+
+from symbiont.act1.engine import (
+    KeyTracker,
+    button_vector,
+    check_sector_convention,
+    make_game,
+    view_from_engine,
+)
+from symbiont.act1.env_text import (
+    GameStateView,
+    describe,
+    route_hints,
+)
+from symbiont.act1.glimmer import Reply, ReplyFn, chat_reply
+from symbiont.act1.map_index import MapIndex, build_index
+from symbiont.act1.moves import Button, Done
+from symbiont.act1.navmap import NavMap, build_navmap
+from symbiont.act1.strategy import Move, StrategyError, parse_strategy
+from symbiont.act1.wad import read_map
+
+# Progress goes to the logging module (Sensor); the game text itself is in the run log under runs/.
+progress = logging.getLogger(__name__)
+HISTORY_IN_PROMPT = 6
+
+
+def build_prompt(observation: str, history: list[str]) -> str:
+    """The text the model sees: move rules, recent history, then the observation."""
+    return (
+        "You play a Freedoom level through a text description. Goal: find keys and doors, "
+        "reach the exit, shoot enemies that threaten you. You do not press buttons: you choose "
+        "a short strategy of SCRIPTED moves (1 to 3), one per line, and the scripts carry them "
+        "out. Allowed moves:\n"
+        "  walk_to(ObjectName)   walk to a visible object, a door (write: walk_to(door)) "
+        "or the exit (walk_to(exit))\n"
+        "  go_to(door|exit|key|ObjectName)  route around walls to the nearest such thing, "
+        "even out of view, opening doors on "
+        'the way; "Reachable with go_to" lists them with path distances\n'
+        "  open_door()           walk to the nearest door and press USE; "
+        "reports opened, locked or did not open\n"
+        "  turn(degrees)         positive turns left, negative right\n"
+        "  shoot_nearest()       aim at and shoot the nearest visible enemy\n"
+        "  retreat_to(ObjectName) move to a visible object, backing off from close enemies\n"
+        "Reply with only the move lines.\n\nRecent scripted moves:\n"
+        + ("\n".join(history[-HISTORY_IN_PROMPT:]) or "(none)")
+        + "\n\nNow: "
+        + observation
+    )
+
+
+def execute_move(
+    move: Move,
+    observe: Callable[[], GameStateView | None],
+    act: Callable[[frozenset[Button]], None],
+) -> str:
+    """Run one scripted move to completion; returns why it stopped."""
+    for _ in range(move.max_tics):
+        state = observe()
+        if state is None:
+            return "episode ended"
+        result = move.step(state)
+        if isinstance(result, Done):
+            return result.reason
+        act(result)
+    return f"timeout after {move.max_tics} tics"
+
+
+# --- the loop ------------------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class Decision:
+    """One model decision: what it saw, what it said, how the scripts fared."""
+
+    index: int
+    observation: str
+    reply: str
+    status: (
+        str  # "ok", "invalid" (not a valid strategy) or "truncated" (cut off by the token limit)
+    )
+    rejected: str | None
+    finish_reason: str
+    reasoning_chars: int
+    outcomes: tuple[str, ...]
+    model_seconds: float
+
+
+def _classify(reply: Reply, nav: NavMap | None = None) -> tuple[list[Move] | None, str, str | None]:
+    """(moves, status, rejection reason). A truncated reply is never parsed."""
+    if reply.finish_reason == "length":
+        return (
+            None,
+            "truncated",
+            f"reply cut off by the token limit after {reply.reasoning_chars} reasoning chars",
+        )
+    try:
+        return parse_strategy(reply.text, nav), "ok", None
+    except StrategyError as error:
+        return None, "invalid", str(error)
+
+
+@dataclass(frozen=True)
+class RunLog:
+    """Where decisions are appended, and what the run header line says. No path: no log file."""
+
+    path: Path | None = None
+    header: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class MapKnowledge:
+    """What the runner knows about the level: the WAD index and, optionally, the route graph."""
+
+    index: MapIndex
+    nav: NavMap | None = None
+
+
+class _Session:
+    """The live game seen through the key tracker; the two callables the scripted moves need."""
+
+    def __init__(self, game: Any, knowledge: MapKnowledge):
+        self.game, self.knowledge, self.keys = game, knowledge, KeyTracker()
+
+    def observe(self) -> GameStateView | None:
+        if self.game.is_episode_finished():
+            return None
+        return view_from_engine(self.game.get_state(), self.keys, self.knowledge.index)
+
+    def act(self, buttons: frozenset[Button]) -> None:
+        self.game.make_action(button_vector(buttons))
+
+
+def _open_run_log(run_log: RunLog, max_decisions: int) -> IO[str] | None:
+    """Open the log in append mode with a header line, so reruns never erase evidence."""
+    if run_log.path is None:
+        return None
+    run_log.path.parent.mkdir(parents=True, exist_ok=True)
+    handle = run_log.path.open("a")
+    started_at = datetime.now(UTC).isoformat()
+    run_header = {"started_at": started_at, "max_decisions": max_decisions, **run_log.header}
+    handle.write(json.dumps({"run_header": run_header}) + "\n")
+    handle.flush()
+    return handle
+
+
+def _carry_out(
+    moves: list[Move] | None, rejected: str | None, session: _Session, history: list[str]
+) -> list[str]:
+    """Run the parsed moves; a rejected reply goes to the history, never replaced by a move."""
+    if moves is None:
+        history.append(f"(rejected reply: {rejected})")
+        return []
+    outcomes = []
+    for move in moves:
+        outcomes.append(f"{move.label} -> {execute_move(move, session.observe, session.act)}")
+        history.append(outcomes[-1])
+    return outcomes
+
+
+def _decide(
+    number: int, session: _Session, reply_fn: ReplyFn, history: list[str]
+) -> Decision | None:
+    """One model decision; None when the episode has ended."""
+    state = session.observe()
+    if state is None:
+        return None
+    nav = session.knowledge.nav
+    observation = describe(replace(state, routes=route_hints(nav, state)) if nav else state)
+    started = time.monotonic()
+    reply = reply_fn(build_prompt(observation, history))
+    seconds = time.monotonic() - started
+    moves, status, rejected = _classify(reply, nav)
+    outcomes = _carry_out(moves, rejected, session, history)
+    return Decision(
+        number, observation, reply.text, status, rejected, reply.finish_reason,
+        reply.reasoning_chars, tuple(outcomes), seconds,
+    )  # fmt: skip
+
+
+def run_episode(
+    game: Any,
+    reply_fn: ReplyFn,
+    max_decisions: int,
+    run_log: RunLog | None = None,
+    *,
+    knowledge: MapKnowledge,
+) -> list[Decision]:
+    """Play up to `max_decisions` model decisions, appending each to the run log as it finishes."""
+    run_log = run_log or RunLog()
+    game.new_episode()
+    check_sector_convention(knowledge.index.sectors, game.get_state().sectors)
+    session = _Session(game, knowledge)
+    log = _open_run_log(run_log, max_decisions)
+    history: list[str] = []
+    decisions: list[Decision] = []
+    try:
+        for number in range(max_decisions):
+            decision = _decide(number, session, reply_fn, history)
+            if decision is None:
+                break
+            decisions.append(decision)
+            if log is not None:
+                log.write(json.dumps(asdict(decision)) + "\n")
+                log.flush()
+            progress.info(
+                "[%d] %5.1fs %s %s",
+                number,
+                decision.model_seconds,
+                decision.status,
+                list(decision.outcomes),
+            )
+    finally:
+        if log is not None:
+            log.close()
+    return decisions
+
+
+def share_without_objects_or_doors(decisions: list[Decision]) -> float:
+    """Fraction of observations with no objects, doors or exits (day-1 'nothing notable')."""
+    if not decisions:
+        return 0.0
+    return sum("No objects, doors or exits in view" in d.observation for d in decisions) / len(
+        decisions
+    )
+
+
+def _play_from_the_command_line(decisions_wanted: int, base_url: str, model: str) -> None:
+    from symbiont.act1.setup_assets import install_freedoom
+
+    wad = install_freedoom(Path("data") / "freedoom")
+    geometry = read_map(wad.read_bytes(), "MAP01")
+    index = build_index(geometry)
+    knowledge = MapKnowledge(index, build_navmap(geometry, index))
+    run_log = RunLog(Path("runs") / "act1_episode.jsonl", {"model": model, "base_url": base_url})
+    game = make_game(wad)
+    try:
+        done = run_episode(
+            game,
+            lambda prompt: chat_reply(base_url, model, prompt),
+            decisions_wanted,
+            run_log,
+            knowledge=knowledge,
+        )
+    finally:
+        game.close()
+    progress.info(
+        "DONE decisions=%d invalid=%d truncated=%d no_objects_or_doors=%.0f%%",
+        len(done),
+        sum(d.status == "invalid" for d in done),
+        sum(d.status == "truncated" for d in done),
+        100 * share_without_objects_or_doors(done),
+    )
+
+
+if __name__ == "__main__":
+    import sys
+
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    _play_from_the_command_line(
+        int(sys.argv[1]) if len(sys.argv) > 1 else 10,
+        sys.argv[2] if len(sys.argv) > 2 else "http://127.0.0.1:8081/v1",
+        sys.argv[3] if len(sys.argv) > 3 else "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M",
+    )
