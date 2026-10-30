@@ -54,6 +54,8 @@ def resume_messages(point: BranchPoint, note: str | None) -> list[dict]:
     messages = copy.deepcopy(list(point.messages))
     if note:
         last = messages[-1]
+        if not isinstance(last["content"], str):
+            raise TypeError("the last message of the history has no text content to carry the note")
         last["content"] = f"{last['content']}\n{tagged(note)}"
     return messages
 
@@ -76,6 +78,41 @@ def occurrences_after(
 def repeated_after(messages: Sequence[dict], point: BranchPoint, window: int | None = None) -> bool:
     """The same normalized error line occurs in the branch (the primary outcome)."""
     return occurrences_after(messages, point, window) > 0
+
+
+def failures_after(
+    messages: Sequence[dict], point: BranchPoint, window: int | None = None
+) -> list[tuple[str, Failure]]:
+    """(program, failure) of every failed command in the branch within `window` model calls."""
+    found = []
+    for step in executed_actions(messages[len(point.messages) :]):
+        if window is not None and step.model_calls > window:
+            break
+        code = RETURNCODE.search(step.output)
+        failure = failure_of(step.command, int(code.group(1)) if code else None, step.output)
+        if failure is not None:
+            found.append((normalise_command(step.command)[0], failure))
+    return found
+
+
+def program_failed_after(
+    messages: Sequence[dict], point: BranchPoint, window: int | None = None
+) -> bool:
+    """The point's program fails with ANY error in the branch (the co-primary: a note that only
+    swaps one error for another does not count as prevention)."""
+    return any(
+        program == point.failure.program for program, _ in failures_after(messages, point, window)
+    )
+
+
+def replacement_errors(
+    messages: Sequence[dict], point: BranchPoint, window: int | None = None
+) -> int:
+    """Failures of the point's program in the branch whose error line differs from the point's."""
+    return sum(
+        program == point.failure.program and key_of(failure) != point.key
+        for program, failure in failures_after(messages, point, window)
+    )
 
 
 def _outcome(step: Executed, point: BranchPoint) -> str:

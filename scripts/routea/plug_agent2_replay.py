@@ -28,8 +28,8 @@ def restore_branch_point(
         if env.execute({"command": history_scrub_script()}, timeout=600)["returncode"] != 0:
             raise TaskEnvError("history scrub failed")
         install = install_script(row)
-        if install:
-            env.execute({"command": install}, timeout=600)
+        if install and env.execute({"command": install}, timeout=600)["returncode"] != 0:
+            raise TaskEnvError("package install failed in the replay container")
         for step in executed_actions(point.messages):
             if not matches_record(step, env.execute({"command": step.command})):
                 raise ReplayMismatchError(

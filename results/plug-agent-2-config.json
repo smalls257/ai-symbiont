@@ -38,5 +38,6 @@
  "gguf_n_params": 27854794240,
  "error_line_rule_sha256": "02891b4b340c2da6bac09bcc554c5f65771239ce40842cdb12c9fef8eb0566f4",
  "core_labels_sha256": "40511c1d3be2ad47ee3e8727bbc169a24f57032e9cbe009e1a5cfd01f269bc27",
- "core_pool_summary_sha256": "da6b7217dd81b95624072e95ed974a96f3ae06d4dcfbbdf426e6da582017f11b"
+ "core_pool_summary_sha256": "da6b7217dd81b95624072e95ed974a96f3ae06d4dcfbbdf426e6da582017f11b",
+ "probe_points_sha256": "27084a0e2e18685675fde3f4e099a491c5b04f2c1710d40e1e335f79f5aed6cf"
 }

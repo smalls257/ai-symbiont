@@ -6,7 +6,7 @@ from pathlib import Path
 ROUTEA = Path(__file__).resolve().parents[2] / "scripts" / "routea"
 sys.path.insert(0, str(ROUTEA))
 
-from plug_agent2_stats import bca_interval, sign_flip_p  # noqa: E402
+from plug_agent2_stats import bca_interval, cluster_means, sign_flip_p  # noqa: E402
 
 
 def test_exact_sign_flip_matches_hand_count():
@@ -38,3 +38,7 @@ def test_bca_interval_brackets_the_mean_and_is_reproducible():
 def test_bca_interval_excludes_zero_for_a_clear_shift():
     low, _ = bca_interval([0.2 + 0.02 * (i % 5) for i in range(40)], resamples=2000)
     assert low > 0
+
+
+def test_cluster_means_average_points_that_share_a_key():
+    assert cluster_means([1.0, 0.0, 0.5], ["a", "a", "b"]) == [0.5, 0.5]

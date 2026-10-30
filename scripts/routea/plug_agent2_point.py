@@ -24,6 +24,7 @@ from plug_agent2_branch import (
     run_prefix,
 )
 from plug_agent2_branchpoint import BranchPoint
+from plug_agent2_errorline import is_generic_environment
 from plug_agent2_measure import known_keys, lesson_key
 from plug_agent_notes import NoteArm, NoteSource
 
@@ -140,14 +141,14 @@ PROBE_BRANCHES = 3  # the stop-rule probe: none arm only, 3 branches per point, 
 def run_branches(
     inputs: TaskInputs, point: BranchPoint, config: dict, traj_dir: Path
 ) -> list[dict]:
-    """B branches for each note: nothing, then the forced lesson (the probe runs `none` only)."""
+    """B branches for each note, interleaved by index (none, forced, none, forced, ...) so a drift
+    of the server over the point's hours falls on both arms. The probe runs `none` only."""
     silent = NoteSource(NoteArm.NONE, inputs.row["repo"], (), 0.0, 1.0)
     probing = os.environ.get("PLUG2_PROBE") == "1"
     arms = [("none", None)] if probing else [("none", None), ("forced", forced_note(inputs, point))]
-    count = PROBE_BRANCHES if probing else config["branches_per_arm"]
     found = []
-    for arm, text in arms:
-        for index in range(count):
+    for index in range(PROBE_BRANCHES if probing else config["branches_per_arm"]):
+        for arm, text in arms:
             traj = traj_dir / f"{arm}-{index}.traj.json"
             try:
                 branch = graded_branch(inputs.row, point, Continuation(text, silent), config, traj)
@@ -197,9 +198,12 @@ def main() -> None:
             row, known_keys(inputs.labels, inputs.lessons), config, traj_dir, recorded
         )
         if point is not None:
+            record["point"] = {"generic_environment": is_generic_environment(point.key[0])}
             record["branches"] = run_branches(inputs, point, config, traj_dir)
     except PointVoidError as error:
         record["void"] = {"arm": error.arm, "index": error.index, "reason": str(error)}
+    except LookupError as error:  # no applies lesson carries the key: listed, never a crash
+        record["void"] = {"arm": None, "index": None, "reason": f"LookupError: {error}"}
     except (FidelityError, ReplayMismatchError) as error:
         record["void"] = {"arm": None, "index": None, "reason": f"{type(error).__name__}: {error}"}
     finally:

@@ -20,6 +20,9 @@ from symbiont.miner.commands import normalise_command
 
 WINDOW = 15  # model calls after the first known mistake, as in the branches
 PROBE_POINTS = 5  # restored probe points with 3 none branches each
+MIN_POOLED_POINTS = 20  # identified branch points the scored phase needs
+MAX_MDE_POINTS = 20  # largest acceptable minimum detectable difference
+MDE_SD = 0.33  # frozen SD of the per-point paired difference (shares near 0.6 and 0.3, B = 6)
 STOP_MIN_RUNS = (
     10  # smoke go/no-go (frozen in the prereg): at least this many runs with a first known mistake
 )
@@ -79,10 +82,23 @@ def probe_share(points: list[list[bool]]) -> float | None:
     )
 
 
-def go_ahead(valid_points: int, share: float | None) -> bool:
-    """The frozen stop rule's probe part: enough restored probe points and a none-arm occurrence
-    share high enough that a note has something to prevent."""
-    return share is not None and valid_points >= PROBE_POINTS and share >= STOP_MIN_SHARE
+def mde_points(pooled_points: int, sd: float = MDE_SD) -> float:
+    """Smallest detectable paired difference in points (80% power, two-sided 5%) for the frozen
+    SD assumption; the probe has no forced arm, so the SD cannot be measured by it."""
+    return 100 * 2.8 * sd / pooled_points**0.5
+
+
+def go_ahead(valid_points: int, voids: int, share: float | None, pooled_points: int) -> bool:
+    """The frozen stop rule: five restored probe points with no void, a none-arm occurrence share
+    of at least 30 percent, at least 20 pooled points and an MDE of at most 20 points."""
+    return (
+        share is not None
+        and valid_points >= PROBE_POINTS
+        and voids == 0
+        and share >= STOP_MIN_SHARE
+        and pooled_points >= MIN_POOLED_POINTS
+        and mde_points(pooled_points) <= MAX_MDE_POINTS
+    )
 
 
 def summary_of(readings: list) -> dict:
@@ -104,7 +120,7 @@ def summary_of(readings: list) -> dict:
     }
 
 
-def probe_summary(records_path: Path) -> dict:
+def probe_summary(records_path: Path, pooled_points: int) -> dict:
     """The stop rule's probe reading: valid points (no void), the none-arm occurrence share."""
     records = [json.loads(line) for line in records_path.read_text().splitlines()]
     points = [
@@ -116,9 +132,11 @@ def probe_summary(records_path: Path) -> dict:
     return {
         "records": len(records),
         "valid_points": len(points),
-        "voids": sum("void" in r for r in records),
+        "voids": len(records) - len(points),
         "none_occurrence_share": None if share is None else round(share, 3),
-        "go": go_ahead(len(points), share),
+        "pooled_points": pooled_points,
+        "mde_points": round(mde_points(pooled_points), 1),
+        "go": go_ahead(len(points), len(records) - len(points), share, pooled_points),
     }
 
 
@@ -129,9 +147,10 @@ def main() -> None:
     parser.add_argument("trajs", type=Path, nargs="+")
     parser.add_argument("--top", type=int, default=0)
     parser.add_argument("--probe", type=Path, default=None, help="probe records (JSON lines)")
+    parser.add_argument("--pooled-points", type=int, default=0, help="identified branch points")
     args = parser.parse_args()
     if args.probe:
-        print(json.dumps(probe_summary(args.probe), indent=1))
+        print(json.dumps(probe_summary(args.probe, args.pooled_points), indent=1))
         return
     rows = map(json.loads, args.labels.read_text().splitlines())
     labels = {row["task"]: row["labels"] for row in rows if "labels" in row}

@@ -57,3 +57,11 @@ def _index(z0: float, accel: float, quantile: float, normal: NormalDist, resampl
     quantile_z = normal.inv_cdf(quantile)
     adjusted = normal.cdf(z0 + (z0 + quantile_z) / (1 - accel * (z0 + quantile_z)))
     return min(max(int(adjusted * resamples), 0), resamples - 1)
+
+
+def cluster_means(values: Sequence[float], clusters: Sequence[str]) -> list[float]:
+    """Mean per cluster (for the sensitivity analysis clustered by (repository, key))."""
+    groups: dict[str, list[float]] = {}
+    for value, cluster in zip(values, clusters, strict=True):
+        groups.setdefault(cluster, []).append(value)
+    return [fmean(group) for _, group in sorted(groups.items())]

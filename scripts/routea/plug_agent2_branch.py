@@ -14,7 +14,15 @@ from typing import Any
 
 from minisweagent.agents.default import DefaultAgent
 from minisweagent.exceptions import FormatError, InterruptAgentFlow
-from plug_agent2_branchpoint import BranchPoint, find_branch_point, repeated_after, resume_messages
+from plug_agent2_branchpoint import (
+    BranchPoint,
+    find_branch_point,
+    program_failed_after,
+    repeated_after,
+    replacement_errors,
+    resume_messages,
+    steps_lost,
+)
 from plug_agent2_keys import Key
 from plug_agent_env import LocalNotedEnvironment, RunLog, _agent_exit, _environment, _model
 from plug_agent_notes import NoteArm, NoteSource
@@ -105,8 +113,8 @@ def run_prefix(
         if scrubbed["returncode"] != 0:
             raise TaskEnvError(f"history scrub failed rc={scrubbed['returncode']}")
         install = install_script(row)
-        if install:
-            env.execute({"command": install}, timeout=600)
+        if install and env.execute({"command": install}, timeout=600)["returncode"] != 0:
+            raise TaskEnvError("package install failed in the prefix container")
         source = NoteSource(NoteArm.NONE, row["repo"], (), 0.0, 1.0)
         model, agent_cfg = _model(row, source, config)
         wrapped = LocalNotedEnvironment(env, source, RunLog())
@@ -147,7 +155,10 @@ def run_continuation(
         return {
             "arm": str(source.arm),
             "note_shown": bool(note),
-            "repeated": repeated_after(agent.messages, point),
+            "repeated": repeated_after(agent.messages, point, WINDOW),
+            "same_program_failed": program_failed_after(agent.messages, point, WINDOW),
+            "replacement_errors": replacement_errors(agent.messages, point, WINDOW),
+            "steps_lost": steps_lost(agent.messages, point, WINDOW),
             "exit_status": extra.get("exit_status"),
             "calls_after": agent.n_calls - point.model_calls,
             "wall_s": round(time.time() - started, 1),

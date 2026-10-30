@@ -178,3 +178,29 @@ def test_a_replayed_command_must_return_the_recorded_code_and_error_line():
     assert matches_record(step, {"returncode": 1, "output": "E   ValueError: bad\n"})
     assert not matches_record(step, {"returncode": 0, "output": "ok"})
     assert not matches_record(step, {"returncode": 1, "output": "E   KeyError: other\n"})
+
+
+def test_the_co_primary_counts_any_failure_of_the_program_and_replacements_separately():
+    from plug_agent2_branchpoint import program_failed_after, replacement_errors  # noqa: PLC0415
+
+    point = find_branch_point(
+        [TASK, ask("pytest t/a.py"), answer(FAIL)], known_for("pytest t/a.py")
+    )
+    assert point is not None
+    other = "<returncode>1</returncode>\n<output>\nE   KeyError: other\n</output>"
+    start = list(point.messages)
+    swapped = [*start, ask("pytest t/b.py"), answer(other)]
+    assert not repeated_after(swapped, point) and program_failed_after(swapped, point)
+    assert replacement_errors(swapped, point) == 1
+    clean = [*start, ask("pytest t/b.py"), answer(PASS)]
+    assert not program_failed_after(clean, point) and replacement_errors(clean, point) == 0
+
+
+def test_a_note_cannot_be_attached_to_a_message_without_text():
+    point = find_branch_point(
+        [{"role": "user", "content": None}, ask("pytest t/a.py"), answer(FAIL)],
+        known_for("pytest t/a.py"),
+    )
+    assert point is not None
+    with pytest.raises(TypeError):
+        resume_messages(point, "NOTE")

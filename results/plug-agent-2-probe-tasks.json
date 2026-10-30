@@ -1,0 +1,10 @@
+{
+ "probe_points": [
+  "tobymao__sqlglot-2521",
+  "tobymao__sqlglot-2619",
+  "tobymao__sqlglot-4218",
+  "tobymao__sqlglot-3891",
+  "tobymao__sqlglot-3552"
+ ],
+ "rule": "first 5 in sha256 order of plug-agent-2-probe:<task> among the identified Core points; excluded from scoring"
+}
