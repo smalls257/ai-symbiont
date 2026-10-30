@@ -34,7 +34,11 @@ def local_shards(cache: Path) -> list[str]:
 
     revision = "refs/convert/parquet"
     listing = HfApi().list_repo_files("nebius/SWE-rebench", repo_type="dataset", revision=revision)
-    names = [x for x in listing if x.startswith("default/test/") and x.endswith(".parquet")]
+    names = [
+        x
+        for x in listing
+        if x.startswith(("default/test/", "default/filtered/")) and x.endswith(".parquet")
+    ]
     paths = []
     for name in names:
         for attempt in range(FETCH_TRIES):
