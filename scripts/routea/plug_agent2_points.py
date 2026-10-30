@@ -35,7 +35,7 @@ def points_of_run(
         )
         found.append(
             {
-                "id": f"{task}|{Path(run).name}|{ordinal}",
+                "id": f"{task}|{run}|{ordinal}",
                 "task": task,
                 "run": run,
                 "ordinal": ordinal,

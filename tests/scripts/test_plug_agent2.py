@@ -91,3 +91,20 @@ def test_normalizer_is_stable_and_masks_the_volatile_parts():
     assert normalize_error_line(once) == once
     assert "pytest-7" not in once and "2026" not in once
     assert normalize_error_line("KeyError: 'application/json'") == "KeyError: '<path>'"
+
+
+def test_points_in_the_same_task_but_different_runs_have_different_ids():
+    from plug_agent2_points import points_of_run  # noqa: PLC0415
+
+    lesson = {"lesson_id": "L1", "failed": "pytest t/a.py", "error": "ValueError: bad"}
+    messages = [
+        {"role": "user", "content": "task"},
+        {"role": "assistant", "content": "", "extra": {"actions": [{"command": "pytest t/a.py"}]}},
+        {
+            "role": "tool",
+            "content": "<returncode>1</returncode>\n<output>\nE   ValueError: bad\n</output>",
+        },
+    ]
+    first = points_of_run("t-1", "a/run.traj.json", messages, {"L1": "applies"}, [lesson])
+    second = points_of_run("t-1", "b/run.traj.json", messages, {"L1": "applies"}, [lesson])
+    assert first[0]["id"] != second[0]["id"] and first[0]["lessons"] == ["L1"]
