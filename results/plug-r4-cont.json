@@ -1,0 +1,33 @@
+{
+ "reference_round3_judge_agree_rule": {
+  "pick": 0.5273,
+  "silence": 0.9212,
+  "wrong_pick": 0.0394,
+  "coverage": 0.5273,
+  "precision": 0.87
+ },
+ "continuous_judge_strength_1": {
+  "pick": 0.5697,
+  "silence": 0.9273,
+  "wrong_pick": 0.0364,
+  "coverage": 0.5697,
+  "precision": 0.8868,
+  "habits_mean": 0.4835
+ },
+ "continuous_judge_strength_0.5": {
+  "pick": 0.4667,
+  "silence": 0.8909,
+  "wrong_pick": 0.0545,
+  "coverage": 0.4667,
+  "precision": 0.8105,
+  "habits_mean": 0.5966
+ },
+ "ranker_retrained_judge_frozen": {
+  "pick": 0.4667,
+  "silence": 0.8788,
+  "wrong_pick": 0.0606,
+  "coverage": 0.4667,
+  "precision": 0.7938
+ },
+ "labeled_pairs": 2778
+}
