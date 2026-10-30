@@ -94,29 +94,43 @@ def run_one(row: dict, out: Path) -> dict:
     return run_task(row, source, SETTINGS, out / "traj" / f"{row['instance_id']}.traj.json")
 
 
-def voided_if_ledger_mismatch(rec: dict) -> dict:
-    """A run that died on a spend-ledger mismatch never reached the model: void, not a fail."""
-    if rec.get("exit_status") != "LedgerMismatchError":
+VOID_DEATHS = ("LedgerMismatchError", "MemoryError")  # the run died before it could be judged
+LEDGER_RETRIES = 5  # another host's old-code writer can race the running total; try again
+
+
+def voided_if_died_early(rec: dict) -> dict:
+    """A run that died on a ledger mismatch or the memory cap never reached a verdict: void."""
+    if rec.get("exit_status") not in VOID_DEATHS:
         return rec
     return rec | {"resolved": None, "error_kind": "infra"}
 
 
-def child_record(row: dict) -> dict:
+def one_attempt(row: dict) -> dict:
     """Run one task in a fresh process; an empty or broken child is an infra record (void)."""
     Ledger().rebuild_total()  # other hosts' processes may append without the running total
     env = {**os.environ, "SYMBIONT_TEACHER_RUN_CAP_USD": RUN_CAP_USD}
     command = [sys.executable, __file__, *sys.argv[1:], "--one", row["instance_id"]]
     child = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
+    lines = [line for line in child.stdout.splitlines() if line.startswith("{")]
+    if lines:
+        return voided_if_died_early(json.loads(lines[-1]))
+    failed = {"error_kind": "infra", "error": child.stderr[-200:]}
+    return {"instance_id": row["instance_id"], "resolved": None} | failed
+
+
+def child_record(row: dict) -> dict:
+    """The task's record; a ledger-mismatch death is retried before it is left void."""
+    rec = one_attempt(row)
+    for _ in range(LEDGER_RETRIES):
+        if rec.get("exit_status") != "LedgerMismatchError":
+            break
+        rec = one_attempt(row)
     removed = subprocess.run(
         ["docker", "rmi", "-f", row["docker_image"]], capture_output=True, check=False
     )
     if removed.returncode:  # the image is reclaimed after each run: the 5080's disk is shared
         print(f"image not removed: {row['docker_image']}", file=sys.stderr)
-    lines = [line for line in child.stdout.splitlines() if line.startswith("{")]
-    if lines:
-        return voided_if_ledger_mismatch(json.loads(lines[-1]))
-    failed = {"error_kind": "infra", "error": child.stderr[-200:]}
-    return {"instance_id": row["instance_id"], "resolved": None} | failed
+    return rec
 
 
 def balanced_by_date(rows: list[dict]) -> list[dict]:

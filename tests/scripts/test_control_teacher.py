@@ -93,6 +93,19 @@ def test_the_pass_target_stops_new_tasks(monkeypatch, tmp_path):
 def test_a_ledger_mismatch_is_a_void_run_not_a_failed_one(monkeypatch):
     module = load(monkeypatch, "control_teacher")
     died = {"instance_id": "t", "exit_status": "LedgerMismatchError", "resolved": False}
-    assert module.voided_if_ledger_mismatch(died)["resolved"] is None
+    assert module.voided_if_died_early(died)["resolved"] is None
     fine = {"instance_id": "t", "exit_status": "Submitted", "resolved": False}
-    assert module.voided_if_ledger_mismatch(fine) == fine
+    assert module.voided_if_died_early(fine) == fine
+
+
+def test_a_ledger_race_is_retried_and_a_memory_death_is_void(monkeypatch):
+    module = load(monkeypatch, "control_teacher")
+    answers = iter([{"exit_status": "LedgerMismatchError", "resolved": None},
+                    {"exit_status": "Submitted", "resolved": True}])  # fmt: skip
+    monkeypatch.setattr(module, "one_attempt", lambda row: next(answers))
+    monkeypatch.setattr(
+        module.subprocess, "run", lambda *a, **k: types.SimpleNamespace(returncode=0)
+    )
+    assert module.child_record({"docker_image": "i"})["resolved"] is True
+    dead = module.voided_if_died_early({"exit_status": "MemoryError", "resolved": False})
+    assert dead["resolved"] is None
