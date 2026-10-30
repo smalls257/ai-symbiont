@@ -1,0 +1,21 @@
+{
+ "passes": 68,
+ "per_repo": {
+  "PennyLaneAI__pennylane": 8,
+  "conan-io__conan": 7,
+  "django__django": 13,
+  "iterative__dvc": 13,
+  "streamlink__streamlink": 13,
+  "tobymao__sqlglot": 14
+ },
+ "refused": {
+  "test_or_later_candidate": 0,
+  "outside_earlier_pool": 12
+ },
+ "per_repo_cap": 14,
+ "manifest_sha256": "864715e27f0adac270b95b3f1706d4a520e3b5cc6c8f56e142de9c7da290e83e",
+ "tokens": 747227,
+ "trained_tokens": 121600,
+ "window": 16384,
+ "finalized": "2026-10-29 evening, on counts only"
+}
