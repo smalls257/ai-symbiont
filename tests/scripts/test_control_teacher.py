@@ -88,3 +88,11 @@ def test_the_pass_target_stops_new_tasks(monkeypatch, tmp_path):
     passes = [{"instance_id": "a", "resolved": True}, {"instance_id": "b", "resolved": True}]
     assert module.stop_reason(passes, args) == "pass target reached"
     assert module.stop_reason(passes[:1], args) is None
+
+
+def test_a_ledger_mismatch_is_a_void_run_not_a_failed_one(monkeypatch):
+    module = load(monkeypatch, "control_teacher")
+    died = {"instance_id": "t", "exit_status": "LedgerMismatchError", "resolved": False}
+    assert module.voided_if_ledger_mismatch(died)["resolved"] is None
+    fine = {"instance_id": "t", "exit_status": "Submitted", "resolved": False}
+    assert module.voided_if_ledger_mismatch(fine) == fine

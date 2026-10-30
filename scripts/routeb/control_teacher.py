@@ -94,8 +94,16 @@ def run_one(row: dict, out: Path) -> dict:
     return run_task(row, source, SETTINGS, out / "traj" / f"{row['instance_id']}.traj.json")
 
 
+def voided_if_ledger_mismatch(rec: dict) -> dict:
+    """A run that died on a spend-ledger mismatch never reached the model: void, not a fail."""
+    if rec.get("exit_status") != "LedgerMismatchError":
+        return rec
+    return rec | {"resolved": None, "error_kind": "infra"}
+
+
 def child_record(row: dict) -> dict:
     """Run one task in a fresh process; an empty or broken child is an infra record (void)."""
+    Ledger().rebuild_total()  # other hosts' processes may append without the running total
     env = {**os.environ, "SYMBIONT_TEACHER_RUN_CAP_USD": RUN_CAP_USD}
     command = [sys.executable, __file__, *sys.argv[1:], "--one", row["instance_id"]]
     child = subprocess.run(command, capture_output=True, text=True, check=False, env=env)
@@ -106,7 +114,7 @@ def child_record(row: dict) -> dict:
         print(f"image not removed: {row['docker_image']}", file=sys.stderr)
     lines = [line for line in child.stdout.splitlines() if line.startswith("{")]
     if lines:
-        return json.loads(lines[-1])
+        return voided_if_ledger_mismatch(json.loads(lines[-1]))
     failed = {"error_kind": "infra", "error": child.stderr[-200:]}
     return {"instance_id": row["instance_id"], "resolved": None} | failed
 
