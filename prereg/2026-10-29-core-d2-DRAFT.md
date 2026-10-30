@@ -53,12 +53,21 @@ That is 234 candidates in all.
 
 **Training refusal.** The training manifest refuses any run on ANY of the 234 later candidates, not only on test tasks, and reports how many it refused [established, by construction].
 
-## Screening (set before any adapter result) [established]
+## Test-set selection (set before any adapter result)
 
-1. **Rule.** One plain-Glimmer run per candidate at step cap 75. A pass drops the candidate as a near-certain pass; a failure keeps it. Screening runs never count as test runs, and P runs fresh in the test.
-2. **Sampling.** sqlglot and the new repositories are screened at temperature 0. The Django runs used the driver's default sampling, because the Django driver had no temperature setting then. It has one now, and Django test runs use the test sampling.
-3. **Django analysis.** Because of that difference, Django results are reported pooled and also separately.
-4. **Picking the 100 test tasks.** If more than 100 candidates are kept, the 100 test tasks are the first in the order of sha256 of `core-d2:<instance_id>`. If fewer are kept, all of them are used. The per-repository count is reported, and the test set is committed before any adapter result.
+**Screening is not used.** Plain Glimmer's own outcomes play no part in choosing tasks. A screening run was started and stopped on the owner's order after 10 graded runs; those runs never count and never select [established].
+
+The test tasks are the first 100 of the 234 later candidates in **fixed hash order**, after two rules. Both rules are disclosed with the count each removes (`results/core-d2-test-set.json`):
+
+1. **Fix-area match, required.** A candidate's gold patch changes a source file some earlier task also changed (part of the 234 above). It removes the later tasks with no earlier counterpart, before the 234 are counted [established].
+2. **No task that no model solved in existing data.** A candidate is dropped if public data shows it was tried and never solved. The source is the nebius OpenHands trajectories' `resolved` flags, about 10 runs on most tasks. Of the 234 candidates, **161 have data and 99 of those 161 are dropped**; the 73 without data stay [measured]. That leaves **135**, and 100 are taken.
+   - The mini-SWE-agent source the owner named was **not available locally**. The one public mini-SWE-agent split with `resolved` flags (Open-SWE-Traces `minisweagent`) failed to download (an HTTP error from the host), and the SWE-bench experiments tree holds a single mini-SWE-agent run on Verified. Neither is used. Using more data could only drop more tasks [established].
+
+**Hash order.** Candidates are sorted by sha256 of `core-d2:<instance_id>`; the first 100 kept are the test. 35 kept candidates are not taken. The script is `scripts/routeb/core2_select_tests.py`.
+
+**Per repository** [measured]: Django 41, sqlglot 31, pennylane 14, dvc 8, conan 4, streamlink 2. The rule removes most streamlink and conan candidates, so results are reported per repository and the pooled claim leans on Django and sqlglot.
+
+**Sampling of the data this rests on.** The nebius runs are a different agent and model, so "solved by some model" is a floor on how solvable a task is, not a prediction for Glimmer [established].
 
 ## Arms (paired by task; step cap 75, wall cap 45 min, reasoning low)
 
@@ -88,7 +97,6 @@ That is 234 candidates in all.
 **Sampling (item 3).** Three screened tasks were rerun at temperature 0 on the same server (4 to 6 slots busy). Every model reply that could be compared was byte-identical to the screening run: 53 of 53, 59 of 59 and 43 of 43 replies in the first rerun, and 18, 21 and 5 replies in a second rerun that was cut short by an interruption [measured]. Temperature 0 repeats, so two identical runs would only be duplicates. Both runs of an arm therefore use **temperature 0.6 with a fixed seed per run**: seed = first 8 hex digits of sha256(`core2-d2:<instance_id>:<arm>:<run>`) [established, by construction].
 
 - **Wall-cap caveat.** Runs that hit the 45-minute wall cap stopped at different steps (53 against 71 for one task) because Glimmer's speed changed with load, even though every compared reply was identical [measured]. Wall-cap hits are counted per arm.
-- **Screening differs from the test.** Screening ran at temperature 0 and the test runs at 0.6, so a screened-out pass is a pass at one sampling setting only.
 
 **Order, cutoff and early stop**
 
@@ -110,7 +118,7 @@ That is 234 candidates in all.
 - **Claim.** The headline is claimed only if BOTH lower bounds are above 0.
   - If A minus P clears but A minus C does not, the report says the gain cannot be told apart from training on any repository's solutions.
   - A CI below 0 is reported as harm.
-- **Why A minus C is co-primary.** Screening keeps tasks plain Glimmer failed, so P sits near 0 on them by selection, and any change to the model can only gain on those tasks (regression to the mean). A minus C cancels that, because C went through the same screen.
+- **Why A minus C is co-primary.** A minus P alone cannot tell the effect of the repository's own sessions from the effect of any teacher-solution training. C went through the same recipe on other repositories' sessions, so A minus C isolates the repository.
 
 ## Secondary (descriptive, no claim)
 
@@ -123,11 +131,25 @@ That is 234 candidates in all.
 
 ## Smallest detectable gain (said plainly)
 
-The gain that can be detected depends on how often two arms disagree on a task, not on plain Glimmer's run-to-run spread.
+Computed at the expected plain pass rate, before any adapter result.
 
-- **Method.** Per-task differences of 2-run means have an SD of about 0.40-0.50 when 20-30% of task pairs disagree [hypothesis]. MDE = 2.8 x SD / sqrt(n) [established].
-- **At n = 100 analyzed tasks: about 11-14 points.** At n = 90 it is about 12-15 points.
-- **Practical meaning.** Gains smaller than about 12 points of solve rate will likely read as "no detected difference". Published teacher-trajectory gains are +13 to +27 points [established].
+- **Formula.** Per-task difference of two arms' 2-run means has variance at most p(1-p) when task difficulty is ignored, which is the safe side. MDE = 2.8 x sqrt(p(1-p) / n) at 5% two-sided and 80% power [established].
+- **Expected plain rate and its source** [measured, estimates only]:
+  - sqlglot: 0.38 for plain Glimmer on the former 20-task test set.
+  - Django: 39 of 66 graded plain later-task runs (0.59), from the collection runs.
+  - The new repositories: unknown. 1 pass in 10 graded screening runs is too few to use.
+  - The task rule (no never-solved tasks) tends to raise the rate. The planning range is therefore 0.25 to 0.50.
+- **Result at n = 100 analyzed tasks:**
+
+| Expected plain rate | MDE (points) |
+|---|---|
+| 0.15 | 10.0 |
+| 0.25 | 12.1 |
+| 0.38 | 13.6 |
+| 0.50 | 14.0 |
+
+- **Headline: about 12 to 14 points at n = 100; at n = 90, about 13 to 15 points** [established, by the formula].
+- **Practical meaning.** Gains smaller than about 12 to 14 points read as "no detected difference". Published teacher-trajectory gains are +13 to +27 points [established].
 
 ## Runs and capacity
 
@@ -136,7 +158,7 @@ The gain that can be detected depends on how often two arms disagree on a task, 
 | P2 + A2 + C2 on 100 tasks | 600 [established] |
 | W1 on 50 tasks | 50 [established] |
 | Test total | **650** [established] |
-| Available after screening and the Plug downstream test | about 690 [hypothesis] |
+| Available after the Plug downstream test | about 690 [hypothesis] |
 
 Machines: the Strix server and the 5080, the same GGUF (sha256 `4cc57c0f…`, greedy parity checked) [measured]. Each run records its machine and slot count.
 
@@ -150,4 +172,4 @@ Machines: the Strix server and the 5080, the same GGUF (sha256 `4cc57c0f…`, gr
 
 - One shared adapter serves six repositories, so effects in any one repository are diluted.
 - Teacher pass rates differ by repository [measured: 30/37 sqlglot, 13/16 Django; new repositories in progress].
-- The screen keeps tasks plain Glimmer failed once, so some kept tasks may be unsolvable for every arm.
+- Tasks some model solved can still be unsolvable for Glimmer, so a floor near 0 on some tasks is possible.
