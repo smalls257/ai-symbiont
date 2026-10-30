@@ -3,8 +3,9 @@ pick gain over the round 3 judge alone, the intraclass correlation of wrong pick
 
 Usage: uv run python scripts/routea/plug_r4_power.py --work R3 --out F
 
-Both arms are read by repo-fold cross-validation, twins merged. MDE = (1.96 + 0.84) * SD / sqrt(n)
-with the SD scaled from the validation pick items per repo to the scored set's (251 / 89).
+The rule is read by nested repo-fold CV, the judge alone at its frozen threshold, twins merged.
+MDE = (1.96 + 0.84) * SD / sqrt(n); the SD is scaled from validation's pick items per repo
+to the scored set's (251 / 89).
 """
 
 import argparse
@@ -19,11 +20,15 @@ sys.path.insert(0, str(HERE))
 
 from plug_judge_cli import seed_mean_scores  # noqa: E402
 from plug_r3_run import load_items  # noqa: E402
-from plug_r4_combine import candidates, cv_choices  # noqa: E402
+from plug_r4_combine import candidates, decide, judge_top  # noqa: E402
 from plug_r4_combo import merged_candidates  # noqa: E402
-from plug_r4_matched import nested_choices  # noqa: E402
+from plug_r4_matched import nested_choices, rounded  # noqa: E402
 
 SCORED_PICKS, SCORED_REPOS = 251, 89
+FROZEN_THRESHOLD = (
+    0.99  # amendment 1: the 3-seed judge's threshold, applied as deployed, never refit
+)
+SHORTLIST = 10
 Z_ALPHA_POWER = 1.96 + 0.84
 
 
@@ -70,7 +75,7 @@ def main() -> None:
     scores = seed_mean_scores([args.work / "scores" / f"scored-judge-s{s}.jsonl" for s in range(3)])
     cands = merged_candidates(items, candidates(items, scores))
     rule, _ = nested_choices(items, repo_of, cands)
-    alone = cv_choices(items, repo_of, cands, "judge_alone")
+    alone = decide(items, cands, judge_top(SHORTLIST), FROZEN_THRESHOLD)
     with_rule, without = per_repo_pick(items, repo_of, rule), per_repo_pick(items, repo_of, alone)
     diffs = [with_rule[r] - without[r] for r in with_rule]
     mean = sum(diffs) / len(diffs)
@@ -79,6 +84,10 @@ def main() -> None:
     sd_scored = sd * math.sqrt(picks_per_repo / (SCORED_PICKS / SCORED_REPOS))
     found = {
         "validation_repos": len(with_rule),
+        "per_repo_mean_coverage_rule": round(sum(with_rule.values()) / len(with_rule), 4),
+        "per_repo_mean_coverage_judge_alone": round(sum(without.values()) / len(without), 4),
+        "pooled_rule": rounded(items, rule),
+        "pooled_judge_alone": rounded(items, alone),
         "mean_gain_rule_over_judge_alone": round(mean, 4),
         "paired_sd_per_repo": round(sd, 4),
         "paired_sd_scaled_to_scored": round(sd_scored, 4),

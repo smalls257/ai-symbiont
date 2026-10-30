@@ -1,12 +1,12 @@
 # Pre-registration DRAFT: Plug round 4, small trained judge + ranker agreement (NOT FROZEN)
 
-Draft for the Sonnet re-check before the freeze. The freeze is its own commit, before any fresh-repo answer. Claim tags: [measured], [established], [hypothesis]. Round 3 stays reported as scored (judge pick 0.310 against thresholded ranker 0.166; H2 and H3 missed) [measured]. . Wording everywhere: "small trained judge + ranker agreement", never "retrieval".
+Draft for the Sonnet re-check before the freeze. The freeze is its own commit, before any fresh-repo answer. Claim tags: [measured], [established], [hypothesis]. Round 3 stays reported as scored (judge pick 0.310 against thresholded ranker 0.166; H2 and H3 missed) [measured]. Wording everywhere: "small trained judge + ranker agreement", never "retrieval".
 
 ## Question
 On real later recurrences of a repository's own failures, does a small trained judge that must agree with the ranker cover more right lessons at no more than 5% wrong [established] than the round 3 judge alone?
 
 ## Primary (one)
-Right-lesson coverage at wrong pick <= 0.05: the **agree rule** against **the round 3 judge alone as scored in round 3's design**. The agree rule = the round 3 judge (3-seed mean P(yes), as scored, no retraining) plus the ranker: the ranker's top lesson is answered only if the ranker's own score reaches a cut and the judge's P(yes) on it reaches a threshold. Both thresholds are fitted on validation only, with the nested repo-fold CV stricter target: the in-sample wrong target is the one whose nested-CV wrong pick is at most 0.05, and the coverage cost is printed (`scripts/routea/plug_r4_matched.py`). The judge-alone arm keeps round 3's frozen threshold. Habits (ranked-choice, 44 questions, >= 0.90) are a separate claim and never part of the primary.
+Right-lesson coverage at wrong pick <= 0.05: the **agree rule** against **the round 3 judge alone as scored in round 3's design**. The agree rule = the round 3 judge (3-seed mean P(yes), as scored, no retraining) plus the ranker: the ranker's top lesson is answered only if the ranker's own score reaches a cut and the judge's P(yes) on it reaches a threshold. Both thresholds are fitted on validation only, with the nested repo-fold CV stricter target: the in-sample wrong target is the one whose nested-CV wrong pick is at most 0.05, and the coverage cost is printed (`scripts/routea/plug_r4_matched.py`). **The judge-alone comparator is defined once, as deployed:** the round 3 judge, 3-seed mean P(yes), over the ranker's top-10 shortlist, at its frozen round 3 threshold 0.99 (amendment 1), applied to its own scores and never refit; twins merged in the store for both arms. **Metric:** coverage = the per-repository mean of right answers over that repository's positive items (each repository weighs the same; repositories with no positive item are excluded and counted), and the bootstrap resamples repositories. Wrong pick = answered-but-not-right over all primary items, negatives included (negatives count in the wrong-pick denominator and in silence). Habits (ranked-choice, 44 questions, >= 0.90) are a separate claim and never part of the primary.
 
 "Right" for a merged twin lesson = the true fix is among the listed fixes (owner ruling). Twin lessons (same failed command and error) are merged in the store.
 
@@ -60,11 +60,17 @@ Single changes against the round 3 judge (pick / wrong, in-sample fit) [measured
 5. No per-seed re-slicing, no threshold or gate change after results, amendments only as new dated files.
 6. Multiplicity: one primary; the rule-gain row is a pre-registered secondary, reported without correction, none changes the primary's reading.
 
-## Power (measured on validation, `results/plug-r4-power.json`)
-- Mean per-repo gain of the agree rule over the judge alone (nested CV, twins merged): 0.0785; paired SD per repo 0.418, scaled to the scored set's pick items per repo (251 / 89 against 4.1 on validation): 0.506 [measured].
-- MDE at 80% power, 5% two-sided, 89 repos: (1.96 + 0.84) x 0.506 / sqrt(89) = 0.150 [established]. **The expected gain (0.08) is below the MDE: the primary is underpowered and may read "tie" even if the effect is real.** This is stated before the run.
-- Wrong-pick ICC across repositories: 0.093 [measured]; the clustered bootstrap bound carries it.
-- Validation is itself the fit set, so these are optimistic; the repo-fold CV removes that for the rates but not for the SD.
+## Power (measured on validation on exactly the primary metric, `results/plug-r4-power.json`)
+- Per-repo mean coverage over the 40 validation repos, twins merged [measured]: agree rule (nested CV) 0.519, round 3 judge alone at the frozen 0.99 threshold 0.348; mean paired gain 0.171. Pooled over items: 0.527 against 0.358, so per-repo and pooled agree. Wrong pick is 0.039 for both (pooled, validation items including silence items as negatives).
+- Paired SD per repo 0.377, scaled to the scored set's pick items per repo (251 / 89 against 4.1) 0.456. MDE at 80% power, 5% two-sided, 89 repos: (1.96 + 0.84) x 0.456 / sqrt(89) = 0.135 [established]. The validation gain is above the MDE, but validation is also the fit set, so the gain is optimistic and no expected gain is claimed for the scored set [hypothesis].
+- A first power draft (0.0785 gain, MDE 0.150) used a judge-alone comparator refit in cross-validation, not the frozen threshold; it is withdrawn. The code is `plug_r4_power.py`; `nested_choices` and `per_repo_pick` were checked (all 40 repositories have 3 to 7 positive items; pooled and per-repo means differ by under 0.01).
+- Wrong-pick ICC across repositories: 0.093 on validation items [measured]; it is recomputed on the primary's own items once the negatives are counted.
+
+## To be built before the freeze (not yet done)
+- The primary item builder from the 251 recurrences (shortlists, judge queries, ranker scores).
+- The negative-item list, counted from the committed rule and listed by id.
+- The scored runner with its refusals (n = 251 recurrences in 89 repositories, negative-item list by id, code and config hash pins, no silent fallbacks) and tests for each refusal.
+- The ICC on the primary's own items.
 
 ## Known limits
 Twins are merged by the owner's ruling and change what "right" means; the fair reference picks more than nightly training at a matched wrong rate on validation; the nightly adapters lose habits unless the strength is lowered; Spark-invented situations are a learned style; the validation repositories were used for every choice; thresholds must transfer to fresh repositories.

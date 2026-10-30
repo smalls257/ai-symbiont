@@ -1,8 +1,24 @@
 {
  "validation_repos": 40,
- "mean_gain_rule_over_judge_alone": 0.0785,
- "paired_sd_per_repo": 0.4182,
- "paired_sd_scaled_to_scored": 0.5057,
- "mde_89_repos": 0.1501,
+ "per_repo_mean_coverage_rule": 0.5189,
+ "per_repo_mean_coverage_judge_alone": 0.3479,
+ "pooled_rule": {
+  "pick": 0.5273,
+  "silence": 0.9212,
+  "wrong_pick": 0.0394,
+  "coverage": 0.5273,
+  "precision": 0.87
+ },
+ "pooled_judge_alone": {
+  "pick": 0.3576,
+  "silence": 0.9212,
+  "wrong_pick": 0.0394,
+  "coverage": 0.3576,
+  "precision": 0.8194
+ },
+ "mean_gain_rule_over_judge_alone": 0.171,
+ "paired_sd_per_repo": 0.377,
+ "paired_sd_scaled_to_scored": 0.456,
+ "mde_89_repos": 0.1353,
  "wrong_pick_icc": 0.0925
 }
