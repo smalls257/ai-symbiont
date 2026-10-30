@@ -11,6 +11,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 
+from symbiont.core.judge_format import judge_input, judgeable
 from symbiont.core.notes import render_lesson
 from symbiont.miner.lessons import Lesson
 
@@ -30,10 +31,6 @@ NIGHTLY = Bars(ranker_min_score=0.0, judge_min_p_yes=0.98)
 RANKER_MIN_SCORE = AGREE.ranker_min_score
 JUDGE_MIN_P_YES = AGREE.judge_min_p_yes
 JUDGE_SEEDS = 3
-JUDGE_SYSTEM = (
-    "You decide whether one stored lesson applies to what a coding agent is doing now. "
-    "Answer yes or no."
-)
 _WORD = re.compile(r"[a-z0-9_]{2,}")
 
 
@@ -57,12 +54,7 @@ class Agreement:
     judge_p_yes: float | None
 
 
-JudgeScore = Callable[[str], float]  # judge prompt -> mean P(yes); raises when it cannot answer
-
-
-def judge_prompt(question: str, lesson: Lesson) -> str:
-    """The judge's question for a situation and one lesson (round 3's pair layout)."""
-    return f"Situation:\n{question}\n\nLesson:\n{render_lesson(lesson)}\n\nDoes this lesson apply?"
+JudgeScore = Callable[[str], float]  # judge user message -> mean P(yes); raises if it cannot
 
 
 def ranker_scores(question: str, lessons: Sequence[Lesson]) -> list[float]:
@@ -74,9 +66,15 @@ def ranker_scores(question: str, lessons: Sequence[Lesson]) -> list[float]:
 
 
 def agree(
-    question: str, lessons: Sequence[Lesson], judge: JudgeScore, bars: Bars = AGREE
+    question: str,
+    project: str,
+    lessons: Sequence[Lesson],
+    judge: JudgeScore,
+    bars: Bars = AGREE,
 ) -> Agreement:
     """The ranker's top lesson if ranker and judge clear `bars`; a silent judge raises."""
+    pairs = [(lesson, found) for lesson in lessons if (found := judgeable(lesson, project))]
+    lessons = [lesson for lesson, _ in pairs]
     if not lessons:
         return Agreement(Verdict.NO_LESSONS, None, None, 0.0, None)
     scores = ranker_scores(question, lessons)
@@ -84,7 +82,7 @@ def agree(
     top, score = lessons[best], scores[best]
     if score < bars.ranker_min_score:
         return Agreement(Verdict.RANKER_TOO_LOW, None, None, score, None)
-    p_yes = judge(judge_prompt(question, top))
+    p_yes = judge(judge_input(question, pairs[best][1]))
     if p_yes < bars.judge_min_p_yes:
         return Agreement(Verdict.JUDGE_TOO_LOW, None, None, score, p_yes)
     return Agreement(Verdict.AGREED, top, render_lesson(top), score, p_yes)

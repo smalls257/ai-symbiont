@@ -5,7 +5,6 @@ or best-guess note. The judge servers are fakes; no socket opens.
 """
 
 import json
-import math
 from dataclasses import replace
 
 import pytest
@@ -24,7 +23,7 @@ from symbiont.store.local import Source, Store
 pytestmark = pytest.mark.periphery
 
 PROJECT = "demo"
-URLS = ("http://127.0.0.1:8091", "http://127.0.0.1:8092", "http://127.0.0.1:8093")
+URL = "http://127.0.0.1:8791"
 QUESTION = "tool7 module7 failed with Oops7 again, what now?"
 
 
@@ -38,15 +37,9 @@ def lesson(index, fix):
 
 def judge_saying(p_yes):
     def transport(request, timeout_s):
-        top = [
-            {"token": "yes", "logprob": math.log(p_yes)},
-            {"token": "no", "logprob": math.log(1 - p_yes)},
-        ]
-        return json.dumps(
-            {"choices": [{"logprobs": {"content": [{"top_logprobs": top}]}}]}
-        ).encode()
+        return json.dumps({"p_yes": [p_yes]}).encode()
 
-    return JudgeModel(URLS, transport)
+    return JudgeModel(URL, transport)
 
 
 def service_with(tmp_path, judge):
@@ -78,30 +71,29 @@ def test_a_judge_that_is_down_is_a_503_never_an_empty_note(tmp_path):
     def down(request, timeout_s):
         raise ConnectionRefusedError
 
-    response = recall(service_with(tmp_path, JudgeModel(URLS, down)))
+    response = recall(service_with(tmp_path, JudgeModel(URL, down)))
     assert response.status == 503 and "judge at" in response.body["error"]
 
 
-def test_a_reply_without_yes_and_no_is_offline_not_a_zero():
+@pytest.mark.parametrize("reply", [{"p_yes": []}, {"oops": 1}, {"p_yes": [1.5]}, {"p_yes": [True]}])
+def test_a_reply_without_a_probability_is_offline_not_a_zero(reply):
     def odd(request, timeout_s):
-        return json.dumps({"choices": [{"message": {"content": "maybe"}}]}).encode()
+        return json.dumps(reply).encode()
 
     with pytest.raises(JudgeOfflineError):
-        JudgeModel(URLS, odd).p_yes("x")
+        JudgeModel(URL, odd).p_yes("x")
 
 
-def test_the_judge_needs_three_loopback_servers():
-    with pytest.raises(JudgeOfflineError):
-        JudgeModel(URLS[:2])
+def test_the_judge_must_be_on_loopback():
     with pytest.raises(EgressRefusedError):
-        JudgeModel(("http://example.com:1", *URLS[1:]))
+        JudgeModel("http://example.com:1")
 
 
 def nightly_service(tmp_path, digest, p_yes=0.99):
     base = service_with(tmp_path, judge_saying(0.5))
     if digest is not None:
         merged = merge_twins(base._parts.store.lessons(PROJECT))
-        record = {"lessons_digest": digest or lessons_digest(merged), "judge_url": URLS[0]}
+        record = {"lessons_digest": digest or lessons_digest(merged), "judge_url": URL}
         (tmp_path / "n" / PROJECT).mkdir(parents=True)
         (tmp_path / "n" / PROJECT / RECORD).write_text(json.dumps(record))
     nightly = NightlyJudges(tmp_path / "n", judge_saying(p_yes).transport)

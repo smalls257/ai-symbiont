@@ -226,7 +226,7 @@ class Service:
         judge, bars = (nightly, NIGHTLY) if nightly else (self._parts.judge, AGREE)
         if judge is None:
             raise JudgeOfflineError("no first-night judge is configured (--judge-url)")
-        outcome = agree(question, merged, judge.p_yes, bars)
+        outcome = agree(question, project, merged, judge.p_yes, bars)
         if outcome.verdict is Verdict.AGREED and outcome.lesson and outcome.note:
             return self._answered(call, outcome.note, [outcome.lesson])
         return self._answered(call, NOTHING_MATCHES, [])

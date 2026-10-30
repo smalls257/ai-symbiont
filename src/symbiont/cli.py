@@ -165,8 +165,7 @@ def _add_judge_options(serving: argparse.ArgumentParser) -> None:
     """The agree rule's first-night judge servers and the nightly records."""
     serving.add_argument(
         "--judge-url",
-        action="append",
-        help="loopback server of one round-3 judge adapter; three times (agree rule)",
+        help="loopback plug_judge_server.py with the 3 round-3 adapters (first night)",
     )
     serving.add_argument(
         "--nightly-dir", type=Path, help="per-repository nightly records (nightly_record.py)"
@@ -183,7 +182,7 @@ def _serve(args: argparse.Namespace) -> int:
         memory = None
         if args.memory_url:
             memory = open_memory(args.memory_url, args.memory_dir)
-        judge = JudgeModel(tuple(args.judge_url)) if args.judge_url else None
+        judge = JudgeModel(args.judge_url) if args.judge_url else None
         nightly = NightlyJudges(args.nightly_dir) if args.nightly_dir else None
         service = open_service(
             args.data_dir, args.mode, warner, memory, RecallJudges(judge, nightly)

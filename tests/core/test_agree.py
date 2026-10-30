@@ -38,13 +38,13 @@ def test_the_ranker_scores_a_lesson_by_idf_overlap_and_the_matching_one_wins():
 
 
 def test_both_clearing_their_bars_shows_the_stored_note_verbatim():
-    outcome = agree(QUESTION, LESSONS, lambda prompt: JUDGE_MIN_P_YES)
+    outcome = agree(QUESTION, "demo", LESSONS, lambda prompt: JUDGE_MIN_P_YES)
     assert outcome.verdict is Verdict.AGREED
     assert outcome.note == render_lesson(LESSONS[7])
 
 
 def test_a_judge_under_its_bar_means_silence():
-    outcome = agree(QUESTION, LESSONS, lambda prompt: JUDGE_MIN_P_YES - 0.01)
+    outcome = agree(QUESTION, "demo", LESSONS, lambda prompt: JUDGE_MIN_P_YES - 0.01)
     assert (outcome.verdict, outcome.note) == (Verdict.JUDGE_TOO_LOW, None)
 
 
@@ -55,14 +55,15 @@ def test_a_weak_ranker_means_silence_and_the_judge_is_never_asked():
         asked.append(prompt)
         return 1.0
 
-    outcome = agree("tool7 failed", LESSONS, judge)
+    outcome = agree("tool7 failed", "demo", LESSONS, judge)
     assert (outcome.verdict, outcome.note, asked) == (Verdict.RANKER_TOO_LOW, None, [])
 
 
-def test_the_judge_is_asked_about_the_ranked_lesson_in_domain_prose():
+def test_the_judge_is_asked_in_the_scored_layout_about_the_ranked_lesson():
     asked = []
-    agree(QUESTION, LESSONS, lambda prompt: asked.append(prompt) or 1.0)
-    assert asked[0].startswith(f"Situation:\n{QUESTION}\n\nLesson:\nWhat happened: `tool7 module7`")
+    agree(QUESTION, "demo", LESSONS, lambda prompt: asked.append(prompt) or 1.0)
+    expected = f"Situation:\n{QUESTION}\n\nLesson:\nIn demo, `tool7 module7` failed with Oops7;"
+    assert asked[0].startswith(expected)
 
 
 def test_a_judge_that_cannot_answer_raises_instead_of_reading_as_no():
@@ -70,8 +71,8 @@ def test_a_judge_that_cannot_answer_raises_instead_of_reading_as_no():
         raise ConnectionError("judge offline")
 
     with pytest.raises(ConnectionError):
-        agree(QUESTION, LESSONS, down)
+        agree(QUESTION, "demo", LESSONS, down)
 
 
 def test_no_lessons_is_its_own_verdict():
-    assert agree(QUESTION, [], lambda prompt: 1.0).verdict is Verdict.NO_LESSONS
+    assert agree(QUESTION, "demo", [], lambda prompt: 1.0).verdict is Verdict.NO_LESSONS

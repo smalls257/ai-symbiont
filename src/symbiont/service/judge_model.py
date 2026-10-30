@@ -1,101 +1,67 @@
-"""The judge: adapters on loopback servers, mean P(yes); it never guesses.
+"""The judge client: one loopback `plug_judge_server.py` that answers the mean P(yes).
 
-An unreachable server, a reply without a yes/no token or a wrong server count raises
-`JudgeOfflineError` (a `MemoryModelOfflineError`: the service answers 503, the hook prints
-"symbiont offline"). Calls go through `symbiont.egress.post_json`, loopback only.
+POST /score {"pairs": [{"system", "prompt"}]} -> {"p_yes": [...]}. The first-night server holds the
+three round-3 seed adapters and averages them; a repository's nightly server holds its one adapter.
+An unreachable server or a reply without a number raises `JudgeOfflineError` (a
+`MemoryModelOfflineError`: the service answers 503, the hook prints "symbiont offline").
 """
 
-import math
 from dataclasses import dataclass
 from typing import Any
 
-from symbiont.core.agree import JUDGE_SEEDS, JUDGE_SYSTEM
+from symbiont.core.judge_format import JUDGE_SYSTEM
 from symbiont.egress import Destination, EgressRefusedError, Endpoint, check_outbound, post_json
 from symbiont.egress.client import Transport
-from symbiont.service.memory_model import SERVER_DEFAULT, MemoryModelOfflineError
+from symbiont.service.memory_model import MemoryModelOfflineError
 
-TIMEOUT_S = 8.0
-# The answer is one token; twenty alternatives always include both "yes" and "no" when trained.
-TOP_LOGPROBS = 20
+# Three adapters on a laptop, 1B model, one pair: seconds, not milliseconds.
+TIMEOUT_S = 60.0
 
 
 class JudgeOfflineError(MemoryModelOfflineError):
-    """The judge cannot give a P(yes): unreachable server, bad reply or wrong server count."""
+    """The judge cannot give a P(yes): unreachable server or an unusable reply."""
 
 
 @dataclass(frozen=True)
 class JudgeModel:
-    """The loopback judge servers, one per seed adapter."""
+    """A loopback judge server."""
 
-    urls: tuple[str, ...]
+    url: str
     # None sends through urllib; tests pass a fake that never opens a socket.
     transport: Transport | None = None
-    # Three for the agree rule; one for a repository's nightly adapter.
-    servers: int = JUDGE_SEEDS
 
     def __post_init__(self) -> None:
-        """Refuse a wrong seed count or a non-loopback URL at launch (EgressRefusedError)."""
-        if len(self.urls) != self.servers:
-            raise JudgeOfflineError(
-                f"the judge needs {self.servers} server(s), got {len(self.urls)}"
-            )
-        for url in self.urls:
-            check_outbound(_destination(url))
+        """Refuse a non-loopback URL at launch (EgressRefusedError)."""
+        check_outbound(self._destination())
+
+    def _destination(self) -> Destination:
+        return Destination(Endpoint.LOCAL_MEMORY_MODEL, self.url.rstrip("/") + "/score")
 
     def p_yes(self, prompt: str) -> float:
-        """Mean over seeds of P(yes) against P(no) for the judge prompt."""
-        found = [self._one_seed(url, prompt) for url in self.urls]
-        return sum(found) / len(found)
-
-    def _one_seed(self, url: str, prompt: str) -> float:
-        """One adapter's P(yes) from its first-token log-probabilities."""
-        destination = _destination(url)
+        """The server's mean P(yes) for one judge user message."""
+        body = {"pairs": [{"system": JUDGE_SYSTEM, "prompt": prompt}]}
         try:
             if self.transport is None:
-                reply = post_json(destination, _request(prompt), timeout_s=TIMEOUT_S)
+                reply = post_json(self._destination(), body, timeout_s=TIMEOUT_S)
             else:
                 reply = post_json(
-                    destination, _request(prompt), timeout_s=TIMEOUT_S, transport=self.transport
+                    self._destination(), body, timeout_s=TIMEOUT_S, transport=self.transport
                 )
         except EgressRefusedError:
             raise
         except (OSError, ValueError) as failed:
-            raise JudgeOfflineError(f"judge at {url} failed: {type(failed).__name__}") from failed
-        return _p_yes(reply, url)
+            raise JudgeOfflineError(
+                f"judge at {self.url} failed: {type(failed).__name__}"
+            ) from failed
+        return _single_p_yes(reply, self.url)
 
 
-def _destination(url: str) -> Destination:
-    """The loopback chat-completions endpoint of one judge server."""
-    return Destination(Endpoint.LOCAL_MEMORY_MODEL, url.rstrip("/") + "/v1/chat/completions")
-
-
-def _request(prompt: str) -> dict[str, object]:
-    """A one-token greedy chat request that returns the first token's alternatives."""
-    return {
-        "model": SERVER_DEFAULT,
-        "messages": [
-            {"role": "system", "content": JUDGE_SYSTEM},
-            {"role": "user", "content": prompt},
-        ],
-        "max_tokens": 1,
-        "temperature": 0.0,
-        "logprobs": True,
-        "top_logprobs": TOP_LOGPROBS,
-    }
-
-
-def _p_yes(reply: dict[str, Any], url: str) -> float:
-    """P(yes) / (P(yes) + P(no)) from the first token's alternatives; raises if either is absent."""
+def _single_p_yes(reply: Any, url: str) -> float:
+    """The one P(yes) of a /score reply; anything else raises."""
     try:
-        alternatives = reply["choices"][0]["logprobs"]["content"][0]["top_logprobs"]
-        odds = {
-            str(entry["token"]).strip().lower(): math.exp(float(entry["logprob"]))
-            for entry in reversed(alternatives)
-        }
+        value = reply["p_yes"][0]
+        if isinstance(value, bool) or not 0.0 <= float(value) <= 1.0:
+            raise ValueError(value)
+        return float(value)
     except (KeyError, IndexError, TypeError, ValueError) as malformed:
-        raise JudgeOfflineError(
-            f"judge at {url} replied without token log-probabilities"
-        ) from malformed
-    if "yes" not in odds or "no" not in odds:
-        raise JudgeOfflineError(f"judge at {url} did not rank both yes and no")
-    return odds["yes"] / (odds["yes"] + odds["no"])
+        raise JudgeOfflineError(f"judge at {url} replied without a P(yes)") from malformed

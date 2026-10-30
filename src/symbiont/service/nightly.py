@@ -61,7 +61,7 @@ class NightlyJudges:
             raise NightlyStaleError(
                 f"the nightly adapter for {project} is stale: run scripts/routea/nightly_record.py"
             )
-        return JudgeModel((url,), self.transport, servers=1)
+        return JudgeModel(url, self.transport)
 
 
 @dataclass(frozen=True)
