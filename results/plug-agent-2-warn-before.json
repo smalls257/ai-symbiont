@@ -1,0 +1,92 @@
+{
+ "core@0.5": {
+  "runs": 77,
+  "marks": 17,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 17,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 2203
+ },
+ "core@0.8": {
+  "runs": 77,
+  "marks": 17,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 17,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 2203
+ },
+ "core@0.96": {
+  "runs": 77,
+  "marks": 17,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 17,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 2203
+ },
+ "core-all@0.5": {
+  "runs": 90,
+  "marks": 0,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 0,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3482
+ },
+ "core-all@0.8": {
+  "runs": 90,
+  "marks": 0,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 0,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3482
+ },
+ "core-all@0.96": {
+  "runs": 90,
+  "marks": 0,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 0,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3482
+ },
+ "own@0.5": {
+  "runs": 62,
+  "marks": 16,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 16,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3231
+ },
+ "own@0.8": {
+  "runs": 62,
+  "marks": 16,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 16,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3231
+ },
+ "own@0.96": {
+  "runs": 62,
+  "marks": 16,
+  "hits": 0,
+  "early_late": 0,
+  "misses": 16,
+  "speaks": 0,
+  "false_alarms": 0,
+  "steps": 3231
+ }
+}

@@ -6,7 +6,6 @@ speech is scored against the frozen known-mistake marks. Usage: plug_agent2_timi
 """
 
 import json
-import os
 import sys
 import urllib.request
 from pathlib import Path
@@ -15,6 +14,7 @@ from lessons import Lesson
 from plug_agent2_branchpoint import find_branch_points
 from plug_agent2_keys import RETURNCODE, Key, executed_actions
 from plug_agent2_measure import known_keys, lesson_key
+from plug_agent2_nextaction import same_invocation
 from plug_agent_notes import failure_of
 from plug_judge import JUDGE_SYSTEM, pair_prompt, shortlist
 from plug_r3 import ranker_choices
@@ -55,6 +55,35 @@ def speaks(item: Item) -> str | None:
         if best >= JUDGE_THRESHOLD and lesson.lesson_id == choice.lesson_id
         else None
     )
+
+
+THRESHOLDS = (0.5, 0.8, 0.96)
+
+
+def best_match(item: Item, command: str) -> tuple[str, float] | None:
+    """Warn-before trigger: among same-repo lessons whose stored failing command matches the
+    planned command (the frozen next-action matcher), the judge's best lesson and its P(yes)."""
+    candidates = [x for x in item.prompt_lessons if same_invocation(command, x.failed)]
+    if not candidates:
+        return None
+    pairs = [{"system": JUDGE_SYSTEM, "prompt": pair_prompt(item.situation, x)} for x in candidates]
+    best, lesson = max(zip(judge_scores(pairs), candidates, strict=True), key=lambda pair: pair[0])
+    return lesson.lesson_id, best
+
+
+def warn_speech(
+    messages: list[dict], repo: str, store: tuple[Lesson, ...]
+) -> dict[int, tuple[str, float] | None]:
+    """Turn index to (lesson id, P(yes)) of the judge's best matching lesson before that turn."""
+    result: dict[int, tuple[str, float] | None] = {}
+    error = None
+    for step in executed_actions(messages):
+        turn = step.model_calls - 1
+        if step.action_index == 0:
+            item = Item(f"t{turn}", situation_of(step.command, repo, error), store, None)
+            result[turn] = best_match(item, step.command)
+        error = previous_error(step.output, step.command)
+    return result
 
 
 def previous_error(step_output: str, command: str) -> str | None:
@@ -159,16 +188,19 @@ def runs_of(data: Path) -> list[tuple[str, Path, dict, dict]]:
 def main() -> None:
     data, out = Path(sys.argv[1]), Path(sys.argv[2])
     totals: dict[str, dict] = {}
-    for source, path, labels, entry in runs_of(data)[
-        : int(os.environ.get("TIMING_LIMIT", "0")) or None
-    ]:
+    for source, path, labels, entry in runs_of(data):
         messages = json.loads(path.read_text())["messages"]
         marks = marks_of(messages, known_keys(labels, entry["lessons"]), entry["lessons"], labels)
-        result = score(step_speech(messages, entry["repo"], lessons_of(entry["lessons"])), marks)
-        bucket = totals.setdefault(source, {"runs": 0})
-        bucket["runs"] += 1
-        for key, value in result.items():
-            bucket[key] = bucket.get(key, 0) + value
+        speech = warn_speech(messages, entry["repo"], lessons_of(entry["lessons"]))
+        for threshold in THRESHOLDS:
+            spoken = {
+                t: found[0] if found and found[1] >= threshold else None
+                for t, found in speech.items()
+            }
+            bucket = totals.setdefault(f"{source}@{threshold}", {"runs": 0})
+            bucket["runs"] += 1
+            for key, value in score(spoken, marks).items():
+                bucket[key] = bucket.get(key, 0) + value
     out.write_text(json.dumps(totals, indent=1))
     print(json.dumps(totals))
 
