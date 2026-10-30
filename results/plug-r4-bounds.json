@@ -1,0 +1,47 @@
+{
+ "status": "correction after scoring: the pre-registered bootstrap is degenerate at zero",
+ "arms": {
+  "plug-r4-scored-primary": {
+   "arm": {
+    "wrong": 0,
+    "items": 501,
+    "exact_upper": 0.0073,
+    "bootstrap_upper": 0.0,
+    "bootstrap_note": "degenerate at zero"
+   },
+   "comparator": {
+    "wrong": 0,
+    "items": 501,
+    "exact_upper": 0.0073
+   }
+  },
+  "plug-r4-scored-general": {
+   "arm": {
+    "wrong": 5,
+    "items": 501,
+    "exact_upper": 0.0231,
+    "bootstrap_upper": 0.0268,
+    "bootstrap_note": "clustered"
+   },
+   "comparator": {
+    "wrong": 0,
+    "items": 501,
+    "exact_upper": 0.0073
+   }
+  },
+  "plug-r4-scored-nightly": {
+   "arm": {
+    "wrong": 15,
+    "items": 501,
+    "exact_upper": 0.0489,
+    "bootstrap_upper": 0.0565,
+    "bootstrap_note": "clustered"
+   },
+   "comparator": {
+    "wrong": 0,
+    "items": 501,
+    "exact_upper": 0.0073
+   }
+  }
+ }
+}

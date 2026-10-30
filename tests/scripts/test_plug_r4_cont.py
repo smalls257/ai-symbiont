@@ -237,3 +237,19 @@ def test_a_general_arm_without_its_scores_is_refused(monkeypatch, tmp_path):
     (tmp_path / "primary-general.jsonl").write_text('{"question_id": "other", "p_yes": 0.5}\n')
     with pytest.raises(general.PinMismatchError):
         general.read_general(tmp_path, tmp_path / "q.jsonl")
+
+
+def test_exact_bound_for_zero_of_501_is_not_zero(monkeypatch):
+    bounds = load(monkeypatch, "plug_r4_bounds")
+    assert 0.006 < bounds.clopper_pearson_upper(0, 501) < 0.0075
+    assert bounds.clopper_pearson_upper(15, 501) < 0.05  # below the clustered bootstrap's 0.0565
+
+
+def test_untrained_scores_must_cover_exactly_the_primary_queries(monkeypatch, tmp_path):
+    load(monkeypatch, "plug_r4_primary")
+    load(monkeypatch, "plug_r4_scored")
+    floors = load(monkeypatch, "plug_r4_floors")
+    (tmp_path / "q.jsonl").write_text('{"question_id": "a::1"}\n')
+    (tmp_path / "u.jsonl").write_text('{"question_id": "a::2", "p_yes": 0.5}\n')
+    with pytest.raises(floors.PinMismatchError):
+        floors.read_untrained(tmp_path / "u.jsonl", tmp_path / "q.jsonl")
