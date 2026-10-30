@@ -234,7 +234,12 @@ def main(argv: list[str] | None = None) -> int:
         }
         play_all(players, held_out_cases.all_cases(Path.cwd() / KEPT_FILE), args.batch_cases)
         return 0
-    document = {"schema": "evolve-onemove-v1", **asdict(report), **score(args.root, args.lessons)}
+    import vizdoom
+
+    document = {
+        "schema": "evolve-onemove-v1", "vizdoom_version": vizdoom.__version__,
+        **asdict(report), **score(args.root, args.lessons),
+    }  # fmt: skip
     args.out.write_text(json.dumps(document, indent=1, default=str) + "\n")
     print(document["result"])
     return 0
