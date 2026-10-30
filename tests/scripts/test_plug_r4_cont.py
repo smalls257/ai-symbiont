@@ -191,3 +191,49 @@ def test_an_adapter_set_with_no_adapters_cannot_be_pinned(monkeypatch, tmp_path)
     arm = load(monkeypatch, "plug_r4_nightly_arm")
     with pytest.raises(arm.PinMismatchError):
         arm.adapters_hash(tmp_path, "1")
+
+
+@pytest.fixture
+def nightly(monkeypatch):
+    load(monkeypatch, "plug_r4_primary")
+    load(monkeypatch, "plug_r4_scored")
+    load(monkeypatch, "plug_r4_general_arm")
+    return load(monkeypatch, "plug_r4_nightly_arm")
+
+
+def test_better_needs_the_interval_and_a_wrong_pick_bound_of_five_percent(nightly):
+    base = {"reading": "better", "wrong_bound_rule": 0.04}
+    assert nightly.nightly_reading(base)["reading"] == "better"
+    assert nightly.nightly_reading({**base, "wrong_bound_rule": 0.06})["reading"] == "no claim"
+    assert (
+        nightly.nightly_reading({"reading": "tie", "wrong_bound_rule": 0.01})["reading"]
+        == "no claim"
+    )
+
+
+def test_an_amendment_may_add_only_the_adapter_hashes_idle_list_and_date(nightly, tmp_path):
+    adapters = tmp_path / "a" / "habits10-o__r"
+    adapters.mkdir(parents=True)
+    (adapters / "adapter_model.safetensors").write_text("w")
+    idle = tmp_path / "idle.json"
+    idle.write_text("[]")
+    pins = nightly.amendment_pins(tmp_path / "a", idle, "2026-10-30")
+    assert set(pins) == nightly.AMENDMENT_KEYS
+
+
+def test_freeze_pins_carry_only_selection_and_strength(nightly, tmp_path):
+    selection = tmp_path / "s.json"
+    selection.write_text("{}")
+    assert set(nightly.freeze_pins(selection, "1")) == {"nightly_selection", "nightly_scale"}
+
+
+def test_a_general_arm_without_its_scores_is_refused(monkeypatch, tmp_path):
+    load(monkeypatch, "plug_r4_primary")
+    load(monkeypatch, "plug_r4_scored")
+    general = load(monkeypatch, "plug_r4_general_arm")
+    (tmp_path / "q.jsonl").write_text('{"question_id": "a::1"}\n')
+    with pytest.raises(general.PinMismatchError):
+        general.read_general(tmp_path, tmp_path / "q.jsonl")
+    (tmp_path / "primary-general.jsonl").write_text('{"question_id": "other", "p_yes": 0.5}\n')
+    with pytest.raises(general.PinMismatchError):
+        general.read_general(tmp_path, tmp_path / "q.jsonl")

@@ -163,6 +163,8 @@ def summarize(items, repo_of, alone, rule, ranker) -> dict:
         for choices in (rule, alone)
     ]
     return {
+        "items": len(items),
+        "repos_without_positives_excluded": int((t_rule.positives == 0).sum()),
         "coverage_rule": round(coverage(t_rule), 4),
         "coverage_judge_alone": round(coverage(t_alone), 4),
         "gain": round(gain, 4),
@@ -184,15 +186,19 @@ def summarize(items, repo_of, alone, rule, ranker) -> dict:
     }
 
 
-def claim(found: dict) -> str:
-    """The claim sentence, built from the numbers; it always carries the judge alone."""
+def claim(
+    found: dict, arm: str = "small trained judge + ranker agreement", base: str = "the judge alone"
+) -> str:
+    """The claim sentence, built from the numbers; it always carries the comparator and states
+    the wrong-pick denominator."""
     return (
-        f"On {PRIMARY_POSITIVES} real later recurrences in {PRIMARY_REPOS} repositories, small "
-        f"trained judge + ranker agreement covers {found['coverage_rule']} against "
-        f"{found['coverage_judge_alone']} for the judge alone (gain {found['gain']}, interval "
-        f"{found['gain_interval']}, reading {found['reading']}); wrong pick "
-        f"{found['rule']['wrong_pick']} against {found['judge_alone']['wrong_pick']}, "
-        f"{found['safety']}."
+        f"On {PRIMARY_POSITIVES} real later recurrences in {PRIMARY_REPOS} repositories, {arm} "
+        f"covers {found['coverage_rule']} against {found['coverage_judge_alone']} for {base} "
+        f"(gain {found['gain']}, interval {found['gain_interval']}, reading {found['reading']}); "
+        f"wrong pick {found['rule']['wrong_pick']} against {found['judge_alone']['wrong_pick']} "
+        f"over all {found['items']} primary items, negatives included "
+        f"({found['repos_without_positives_excluded']} repositories excluded for having no "
+        f"positive item), wrong-pick upper bound {found['wrong_bound_rule']}, {found['safety']}."
     )
 
 

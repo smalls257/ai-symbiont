@@ -272,12 +272,16 @@ def test_the_claim_always_carries_the_judge_alone(scored):
         "gain": 0.2,
         "gain_interval": [0.1, 0.3],
         "reading": "better",
+        "items": 501,
+        "repos_without_positives_excluded": 0,
+        "wrong_bound_rule": 0.07,
         "rule": {"wrong_pick": 0.04},
         "judge_alone": {"wrong_pick": 0.05},
         "safety": "safe",
     }
     sentence = scored.claim(found)
     assert "0.3 for the judge alone" in sentence and "251 real later recurrences" in sentence
+    assert "over all 501 primary items, negatives included" in sentence
 
 
 def test_icc_with_no_wrong_picks_is_zero_not_a_crash(monkeypatch):

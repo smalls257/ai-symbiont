@@ -27,6 +27,7 @@ from plug_r4_scored import (  # noqa: E402
     SHORTLIST,
     PinMismatchError,
     check,
+    claim,
     read_scores,
     sha256_of,
     summarize,
@@ -83,7 +84,9 @@ def run_decide(args: argparse.Namespace) -> dict:
     rule_of = two_d_rules()[selection["rule"]]
     alone = decide(items, r3, judge_top(SHORTLIST), FROZEN_JUDGE_THRESHOLD)
     rule = decide(items, gen, rule_of, selection["threshold"])
-    return summarize(items, repo_of, alone, rule, decide(items, gen, rule_of, 0.0))
+    found = summarize(items, repo_of, alone, rule, decide(items, gen, rule_of, 0.0))
+    arm = "the judge trained on mined real repeats with the ranker agreeing"
+    return {**found, "claim": claim(found, arm, "the round 3 judge alone")}
 
 
 def main() -> None:
