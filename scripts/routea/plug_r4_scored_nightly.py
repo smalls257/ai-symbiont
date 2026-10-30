@@ -115,7 +115,7 @@ def load_primary(args: argparse.Namespace):
 
     records = _read_jsonl(args.primary / "primary-items.jsonl")
     dates: dict[str, str] = {}
-    for path in args.dates:
+    for path in args.dates or ():
         dates |= json.loads(path.read_text())
     return [item_from(r) for r in records], {r["question_id"]: r["repo"] for r in records}, dates
 
