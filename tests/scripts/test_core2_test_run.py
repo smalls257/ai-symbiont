@@ -130,3 +130,17 @@ def test_the_w_arm_is_plain_with_examples_and_other_names_must_exist(mods):
     with pytest.raises(KeyError):
         ex.arm_model({"models": {"P": "p"}}, plan.Arm.A)
     sys.modules.pop("core2_test_executors", None)
+
+
+def test_a_two_adapter_server_picks_the_lora_by_arm(mods):
+    plan, _ = mods
+    sys.path.insert(0, str(ROUTEB))
+    import core2_test_executors as ex
+
+    server = {"models": {"P": "m", "A": "m", "C": "m"}, "adapter_ids": {"A": 0, "C": 1}}
+    assert [ex.arm_adapter_id(server, a) for a in (plan.Arm.P, plan.Arm.A, plan.Arm.C)] == [
+        None,
+        0,
+        1,
+    ]
+    sys.modules.pop("core2_test_executors", None)

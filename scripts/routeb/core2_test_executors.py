@@ -28,6 +28,11 @@ def arm_model(server: dict, arm: Arm) -> str:
     return server["models"]["P" if arm is Arm.W else str(arm)]
 
 
+def arm_adapter_id(server: dict, arm: Arm) -> int | None:
+    """The LoRA id applied per request on a server that loads both adapters in one process."""
+    return server.get("adapter_ids", {}).get(str(arm))
+
+
 def load_key(server: dict) -> None:
     """Put the server's Bearer key (from its key file) into the environment for the harness."""
     if server.get("key_file"):
@@ -71,9 +76,12 @@ def rebench_executor(row: dict, server: dict, out: Path, spec: RunSpec) -> dict:
     from plug_agent_env import run_task  # noqa: PLC0415
     from plug_agent_notes import NoteArm, NoteSource  # noqa: PLC0415
 
-    settings = {"agent": "glimmer", "step_limit": STEP_LIMIT, "wall_limit_min": WALL_LIMIT_MIN,
-                "temperature": TEMPERATURE, "seed": spec.seed, "model": arm_model(server, spec.arm),
-                "max_tokens_per_reply": 4096, "run_label": "core2-d2"}  # fmt: skip
+    settings = {
+        "agent": "glimmer", "step_limit": STEP_LIMIT, "wall_limit_min": WALL_LIMIT_MIN,
+        "temperature": TEMPERATURE, "seed": spec.seed, "model": arm_model(server, spec.arm),
+        "adapter_id": arm_adapter_id(server, spec.arm), "max_tokens_per_reply": 4096,
+        "run_label": "core2-d2",
+    }  # fmt: skip
     traj = out / "traj" / row["instance_id"] / f"{spec.arm}-run{spec.run}.traj.json"
     return run_task(row, NoteSource(NoteArm.NONE, row["repo"], (), 0.0, 1.0), settings, traj)
 
@@ -86,7 +94,13 @@ def django_executor(row: dict, server: dict, out: Path, spec: RunSpec) -> dict:
 
     model = arm_model(server, spec.arm)
     setting = Setting(
-        "low", STEP_LIMIT, WALL_LIMIT_MIN * 60, temperature=TEMPERATURE, seed=spec.seed, model=model
+        "low",
+        STEP_LIMIT,
+        WALL_LIMIT_MIN * 60,
+        temperature=TEMPERATURE,
+        seed=spec.seed,
+        model=model,
+        adapter_id=arm_adapter_id(server, spec.arm),
     )
     kind = DjangoArm.PLAIN if spec.arm in (Arm.P, Arm.W) else DjangoArm.PERSONAL
     os.environ["SYMBIONT_PERSONAL_GLIMMER_MODEL"] = model

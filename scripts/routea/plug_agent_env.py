@@ -139,7 +139,8 @@ def _model(row: dict, source: NoteSource, config: dict) -> tuple[Any, dict]:
     )  # Core D2: a router name per arm
     setting = Setting(
         "low", config["step_limit"], config["wall_limit_min"] * 60, teacher=teacher,
-        temperature=config["temperature"], seed=config.get("seed"), **named,
+        temperature=config["temperature"], seed=config.get("seed"),
+        adapter_id=config.get("adapter_id"), **named,
     )  # fmt: skip
     agent_cfg, model_cfg = agent_config(setting)
     if (
