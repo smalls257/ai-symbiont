@@ -1,0 +1,12 @@
+{
+ "rag_floor": {
+  "target": 0.03,
+  "rule": "idf>=16.0",
+  "threshold": 0.0
+ },
+ "untrained_1b": {
+  "target": 0.02,
+  "rule": "idf>=16.0",
+  "threshold": 0.76
+ }
+}

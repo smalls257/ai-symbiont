@@ -1,0 +1,180 @@
+{
+ "status": "exploratory, validation only, no label changed",
+ "wrong_in_every_form": 5,
+ "forms": {
+  "judge_alone": {
+   "wrong_picks": 20,
+   "by_kind_and_category": {
+    "silence item: same failed command and error line": 13,
+    "pick item: same failed command and error line": 7
+   },
+   "item_ids": [
+    "061d641dcf7c-silence",
+    "1a1a07ba5714-pick",
+    "1a1a07ba5714-silence",
+    "2901cc28b424-pick",
+    "2901cc28b424-silence",
+    "2e1c7f1c66f5-pick",
+    "2e1c7f1c66f5-silence",
+    "3756b9a096d9-pick",
+    "3756b9a096d9-silence",
+    "40433ba2278c-pick",
+    "40433ba2278c-silence",
+    "4ef2ebc0f939-pick",
+    "4ef2ebc0f939-silence",
+    "6932d9952f90-silence",
+    "6c28bac425f6-silence",
+    "734f011e0a98-silence",
+    "9b74dd1ec624-silence",
+    "aa075dfa5aff-silence",
+    "f9c51b8e2546-pick",
+    "f9c51b8e2546-silence"
+   ]
+  },
+  "judge_top1": {
+   "wrong_picks": 20,
+   "by_kind_and_category": {
+    "silence item: same failed command and error line": 13,
+    "pick item: same failed command and error line": 7
+   },
+   "item_ids": [
+    "061d641dcf7c-silence",
+    "0e3a50de2f57-silence",
+    "1a1a07ba5714-silence",
+    "2901cc28b424-silence",
+    "2e1c7f1c66f5-pick",
+    "2e1c7f1c66f5-silence",
+    "3756b9a096d9-silence",
+    "4ef2ebc0f939-silence",
+    "6932d9952f90-pick",
+    "6932d9952f90-silence",
+    "6c28bac425f6-pick",
+    "6c28bac425f6-silence",
+    "9b74dd1ec624-pick",
+    "9b74dd1ec624-silence",
+    "aa075dfa5aff-pick",
+    "aa075dfa5aff-silence",
+    "f6c4fc48123f-pick",
+    "f6c4fc48123f-silence",
+    "f9c51b8e2546-pick",
+    "f9c51b8e2546-silence"
+   ]
+  },
+  "judge_top2": {
+   "wrong_picks": 20,
+   "by_kind_and_category": {
+    "silence item: same failed command and error line": 13,
+    "pick item: same failed command and error line": 7
+   },
+   "item_ids": [
+    "061d641dcf7c-silence",
+    "1a1a07ba5714-pick",
+    "1a1a07ba5714-silence",
+    "2901cc28b424-pick",
+    "2901cc28b424-silence",
+    "2e1c7f1c66f5-silence",
+    "3756b9a096d9-pick",
+    "3756b9a096d9-silence",
+    "40433ba2278c-silence",
+    "4ef2ebc0f939-pick",
+    "4ef2ebc0f939-silence",
+    "6932d9952f90-pick",
+    "6932d9952f90-silence",
+    "6c28bac425f6-silence",
+    "734f011e0a98-pick",
+    "734f011e0a98-silence",
+    "9b74dd1ec624-silence",
+    "aa075dfa5aff-silence",
+    "f9c51b8e2546-pick",
+    "f9c51b8e2546-silence"
+   ]
+  },
+  "judge_top3": {
+   "wrong_picks": 20,
+   "by_kind_and_category": {
+    "silence item: same failed command and error line": 13,
+    "pick item: same failed command and error line": 7
+   },
+   "item_ids": [
+    "061d641dcf7c-silence",
+    "1a1a07ba5714-pick",
+    "1a1a07ba5714-silence",
+    "2901cc28b424-pick",
+    "2901cc28b424-silence",
+    "2e1c7f1c66f5-pick",
+    "2e1c7f1c66f5-silence",
+    "3756b9a096d9-pick",
+    "3756b9a096d9-silence",
+    "40433ba2278c-pick",
+    "40433ba2278c-silence",
+    "4ef2ebc0f939-pick",
+    "4ef2ebc0f939-silence",
+    "6932d9952f90-silence",
+    "6c28bac425f6-silence",
+    "734f011e0a98-silence",
+    "9b74dd1ec624-silence",
+    "aa075dfa5aff-silence",
+    "f9c51b8e2546-pick",
+    "f9c51b8e2546-silence"
+   ]
+  },
+  "two_d_threshold": {
+   "wrong_picks": 20,
+   "by_kind_and_category": {
+    "silence item: same failed command and error line": 14,
+    "pick item: same failed command and error line": 6
+   },
+   "item_ids": [
+    "05fff14108fa-silence",
+    "061d641dcf7c-silence",
+    "195500d46033-silence",
+    "4b82b8d38083-pick",
+    "4b82b8d38083-silence",
+    "4ef2ebc0f939-silence",
+    "6230e5bf4e5e-silence",
+    "6bafb66c38a9-pick",
+    "6bafb66c38a9-silence",
+    "6df27bdbe717-silence",
+    "9b74dd1ec624-pick",
+    "9b74dd1ec624-silence",
+    "b3c0d6c49981-pick",
+    "b3c0d6c49981-silence",
+    "d310baea6ba9-silence",
+    "eeb2adcc44fd-pick",
+    "eeb2adcc44fd-silence",
+    "f6c4fc48123f-silence",
+    "f9c51b8e2546-pick",
+    "f9c51b8e2546-silence"
+   ]
+  },
+  "logistic": {
+   "wrong_picks": 20,
+   "by_kind_and_category": {
+    "silence item: same failed command and error line": 13,
+    "pick item: same failed command and error line": 7
+   },
+   "item_ids": [
+    "061d641dcf7c-silence",
+    "1a1a07ba5714-pick",
+    "1a1a07ba5714-silence",
+    "2901cc28b424-pick",
+    "2901cc28b424-silence",
+    "2e1c7f1c66f5-pick",
+    "2e1c7f1c66f5-silence",
+    "3756b9a096d9-pick",
+    "3756b9a096d9-silence",
+    "40433ba2278c-pick",
+    "40433ba2278c-silence",
+    "4ef2ebc0f939-pick",
+    "4ef2ebc0f939-silence",
+    "6932d9952f90-silence",
+    "6c28bac425f6-silence",
+    "734f011e0a98-silence",
+    "9b74dd1ec624-silence",
+    "aa075dfa5aff-silence",
+    "f9c51b8e2546-pick",
+    "f9c51b8e2546-silence"
+   ]
+  }
+ }
+}

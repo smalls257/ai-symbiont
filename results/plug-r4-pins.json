@@ -1,0 +1,17 @@
+{
+ "positives": 251,
+ "positive_repos": 89,
+ "negatives": 250,
+ "files": {
+  "primary-items.jsonl": "50f6ca6c4855310ccbfef48dfc4ccb284a33e4dba6cd0c68a4cb3529596db077",
+  "primary-queries.jsonl": "b4973491980f570e81fddcefdea0ff5bb38e85aa0abb9f805608e99fd0c72b8c",
+  "primary-negatives.txt": "56f65fe5505a5956eda89dcfb45582c5d894d05b448f01fffe1093c2e1dcbb43"
+ },
+ "adapters": {
+  "judge-s0": "6375047268eb3e285d21b4632a5661ced347c1aa319ec47ed0ba57c77e0d7bdc",
+  "judge-s1": "a06ab6e0f5b74f8f60ff6d7605dc5be54b970b5a7811ddf95503501dc196bdc4",
+  "judge-s2": "797d169cedf9fde56cac3791cf88245d02e8fb23cd072c0e0bbcce67415837c9"
+ },
+ "selection": "1280411db064e91be018d6667780c9ee0d133a92e311948a2013d02f6b8d5b4d",
+ "judge_threshold": 0.99
+}

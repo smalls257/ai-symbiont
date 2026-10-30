@@ -1,0 +1,2185 @@
+{
+ "aidev_lessons_sha256": "197d0d0b05ca51cbfc1ec6e0f2f6126874f835e78e101cf91434e9b6771debd5",
+ "code_commit": "1b6a65556654ea4bbd9abba3fec59512896c590f",
+ "freeze_commit": "f5c362b6435385b936fd7cd450eb3614db45402e",
+ "gates": {
+  "habits": {
+   "judge": 0.7955,
+   "judge_wilson95": [
+    0.655,
+    0.8885
+   ],
+   "passes": false,
+   "untrained_1b": 0.2273
+  },
+  "new lessons": {
+   "ci95_high": 0.1857,
+   "ci95_low": -0.0583,
+   "gap": 0.0652,
+   "passes": true
+  },
+  "safety": {
+   "passes": false,
+   "silence": {
+    "ci95_high": 0.9833,
+    "ci95_low": 0.8667,
+    "mean_gain": 0.9313,
+    "repos": 40
+   },
+   "wrong_pick": {
+    "ci95_high": 0.1031,
+    "ci95_low": 0.0125,
+    "mean_gain": 0.0531,
+    "repos": 40
+   }
+  }
+ },
+ "h1": {
+  "ci95_high": 0.2391,
+  "ci95_low": 0.0582,
+  "decision": "better",
+  "mean_gain": 0.1449,
+  "repos": 40
+ },
+ "habit_rows_sha256": "fa863cb3f13bf66907a16d076cf4d2ffab705272ef785d16ea93c19a271c06ea",
+ "per_repo_rows": [
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "AzureAD/microsoft-authentication-library-for-python",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "BAMWelDX/weldx",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "DOV-Vlaanderen/pydov",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "judge",
+   "coverage": 0.6666666666666666,
+   "pick": 0.6666666666666666,
+   "precision": 1.0,
+   "repo": "Materials-Consortia/optimade-python-tools",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "judge",
+   "coverage": 0.6666666666666666,
+   "pick": 0.6666666666666666,
+   "precision": 1.0,
+   "repo": "PyCQA/flake8-bugbear",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "TheFriendlyCoder/friendlypins",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "andialbrecht/sqlparse",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 4,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.16666666666666666,
+   "precision": 0.25,
+   "repo": "awdeorio/mailmerge",
+   "silence": 0.6666666666666667,
+   "wrong_pick": 0.25
+  },
+  {
+   "answered": 4,
+   "arm": "judge",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 1.0,
+   "repo": "bids-standard/pybids",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 9,
+   "arm": "judge",
+   "coverage": 0.8333333333333334,
+   "pick": 0.5,
+   "precision": 0.3333333333333333,
+   "repo": "codalab/codalab-worksheets",
+   "silence": 0.33333333333333337,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "datalad/datalad",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 6,
+   "arm": "judge",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.5,
+   "repo": "devopshq/artifactory",
+   "silence": 0.5,
+   "wrong_pick": 0.375
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "dwavesystems/dwave-cloud-client",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.16666666666666666,
+   "pick": 0.16666666666666666,
+   "precision": 1.0,
+   "repo": "dwavesystems/dwave-system",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "fjosw/pyerrors",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "graphql-python/graphene-django",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 3,
+   "arm": "judge",
+   "coverage": 0.6,
+   "pick": 0.6,
+   "precision": 1.0,
+   "repo": "hgrecco/pint-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 6,
+   "arm": "judge",
+   "coverage": 0.75,
+   "pick": 0.25,
+   "precision": 0.16666666666666666,
+   "repo": "keras-team/keras-nlp",
+   "silence": 0.25,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "lincc-frameworks/nested-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "matchms/matchms",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "mhostetter/galois",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mikedh/trimesh",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "judge",
+   "coverage": 0.4,
+   "pick": 0.4,
+   "precision": 1.0,
+   "repo": "missionpinball/mpf",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mwouts/jupytext",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 5,
+   "arm": "judge",
+   "coverage": 0.75,
+   "pick": 0.5,
+   "precision": 0.4,
+   "repo": "narwhals-dev/narwhals",
+   "silence": 0.5,
+   "wrong_pick": 0.375
+  },
+  {
+   "answered": 6,
+   "arm": "judge",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 1.0,
+   "repo": "ncclient/ncclient",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "nltk/nltk",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "nosarthur/gita",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "omni-us/jsonargparse",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "optuna/optuna",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "pre-commit/pre-commit-hooks",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "psf/black",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pypa/setuptools_scm",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "pypa/virtualenv",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "python-cmd2/cmd2",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 4,
+   "arm": "judge",
+   "coverage": 0.6666666666666666,
+   "pick": 0.6666666666666666,
+   "precision": 1.0,
+   "repo": "sqlfluff/sqlfluff",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 4,
+   "arm": "judge",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 1.0,
+   "repo": "sunpy/sunpy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "judge",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "tophat/syrupy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "judge",
+   "coverage": 0.5,
+   "pick": 0.5,
+   "precision": 1.0,
+   "repo": "yt-dlp/yt-dlp",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "judge",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "zalando-stups/senza",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "AzureAD/microsoft-authentication-library-for-python",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "BAMWelDX/weldx",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "DOV-Vlaanderen/pydov",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "Materials-Consortia/optimade-python-tools",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 4,
+   "arm": "ranker_threshold",
+   "coverage": 0.6666666666666666,
+   "pick": 0.6666666666666666,
+   "precision": 0.5,
+   "repo": "PyCQA/flake8-bugbear",
+   "silence": 0.33333333333333337,
+   "wrong_pick": 0.3333333333333333
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "TheFriendlyCoder/friendlypins",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "andialbrecht/sqlparse",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "awdeorio/mailmerge",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "bids-standard/pybids",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.16666666666666666,
+   "pick": 0.16666666666666666,
+   "precision": 1.0,
+   "repo": "codalab/codalab-worksheets",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "ranker_threshold",
+   "coverage": 0.2857142857142857,
+   "pick": 0.2857142857142857,
+   "precision": 1.0,
+   "repo": "datalad/datalad",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "devopshq/artifactory",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "dwavesystems/dwave-cloud-client",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 3,
+   "arm": "ranker_threshold",
+   "coverage": 0.16666666666666666,
+   "pick": 0.16666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "dwavesystems/dwave-system",
+   "silence": 0.6666666666666667,
+   "wrong_pick": 0.16666666666666666
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "fjosw/pyerrors",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "graphql-python/graphene-django",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.2,
+   "pick": 0.2,
+   "precision": 1.0,
+   "repo": "hgrecco/pint-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "keras-team/keras-nlp",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "lincc-frameworks/nested-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 3,
+   "arm": "ranker_threshold",
+   "coverage": 0.3333333333333333,
+   "pick": 0.0,
+   "precision": 0.0,
+   "repo": "matchms/matchms",
+   "silence": 0.33333333333333337,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 3,
+   "arm": "ranker_threshold",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 0.3333333333333333,
+   "repo": "mhostetter/galois",
+   "silence": 0.5,
+   "wrong_pick": 0.25
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mikedh/trimesh",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 3,
+   "arm": "ranker_threshold",
+   "coverage": 0.6,
+   "pick": 0.6,
+   "precision": 1.0,
+   "repo": "missionpinball/mpf",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.2,
+   "pick": 0.2,
+   "precision": 1.0,
+   "repo": "mwouts/jupytext",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "narwhals-dev/narwhals",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.16666666666666666,
+   "pick": 0.16666666666666666,
+   "precision": 1.0,
+   "repo": "ncclient/ncclient",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 0.0,
+   "repo": "nltk/nltk",
+   "silence": 0.33333333333333337,
+   "wrong_pick": 0.3333333333333333
+  },
+  {
+   "answered": 4,
+   "arm": "ranker_threshold",
+   "coverage": 0.5,
+   "pick": 0.25,
+   "precision": 0.25,
+   "repo": "nosarthur/gita",
+   "silence": 0.5,
+   "wrong_pick": 0.375
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_threshold",
+   "coverage": 0.5,
+   "pick": 0.5,
+   "precision": 0.3333333333333333,
+   "repo": "omni-us/jsonargparse",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "optuna/optuna",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pre-commit/pre-commit-hooks",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "ranker_threshold",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 0.5,
+   "repo": "psf/black",
+   "silence": 0.75,
+   "wrong_pick": 0.125
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pypa/setuptools_scm",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "pypa/virtualenv",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "python-cmd2/cmd2",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "ranker_threshold",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "sqlfluff/sqlfluff",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.25,
+   "pick": 0.25,
+   "precision": 1.0,
+   "repo": "sunpy/sunpy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "ranker_threshold",
+   "coverage": 0.3333333333333333,
+   "pick": 0.3333333333333333,
+   "precision": 1.0,
+   "repo": "tophat/syrupy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 2,
+   "arm": "ranker_threshold",
+   "coverage": 0.5,
+   "pick": 0.5,
+   "precision": 1.0,
+   "repo": "yt-dlp/yt-dlp",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "ranker_threshold",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "zalando-stups/senza",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "AzureAD/microsoft-authentication-library-for-python",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "BAMWelDX/weldx",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "DOV-Vlaanderen/pydov",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "Materials-Consortia/optimade-python-tools",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "PyCQA/flake8-bugbear",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "TheFriendlyCoder/friendlypins",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "andialbrecht/sqlparse",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "awdeorio/mailmerge",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "bids-standard/pybids",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "codalab/codalab-worksheets",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "datalad/datalad",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "devopshq/artifactory",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "dwavesystems/dwave-cloud-client",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "dwavesystems/dwave-system",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "fjosw/pyerrors",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "graphql-python/graphene-django",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "hgrecco/pint-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "keras-team/keras-nlp",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "lincc-frameworks/nested-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "matchms/matchms",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mhostetter/galois",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mikedh/trimesh",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "missionpinball/mpf",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mwouts/jupytext",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "narwhals-dev/narwhals",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "ncclient/ncclient",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "nltk/nltk",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "nosarthur/gita",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 5,
+   "arm": "untrained_1b",
+   "coverage": 0.75,
+   "pick": 0.25,
+   "precision": 0.2,
+   "repo": "omni-us/jsonargparse",
+   "silence": 0.5,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "optuna/optuna",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pre-commit/pre-commit-hooks",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "psf/black",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pypa/setuptools_scm",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pypa/virtualenv",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "python-cmd2/cmd2",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 1,
+   "arm": "untrained_1b",
+   "coverage": 0.16666666666666666,
+   "pick": 0.16666666666666666,
+   "precision": 1.0,
+   "repo": "sqlfluff/sqlfluff",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "sunpy/sunpy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "tophat/syrupy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 4,
+   "arm": "untrained_1b",
+   "coverage": 0.5,
+   "pick": 0.25,
+   "precision": 0.25,
+   "repo": "yt-dlp/yt-dlp",
+   "silence": 0.5,
+   "wrong_pick": 0.375
+  },
+  {
+   "answered": 0,
+   "arm": "untrained_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "zalando-stups/senza",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "AzureAD/microsoft-authentication-library-for-python",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "BAMWelDX/weldx",
+   "silence": 0.0,
+   "wrong_pick": 0.6666666666666666
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "DOV-Vlaanderen/pydov",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "Materials-Consortia/optimade-python-tools",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "PyCQA/flake8-bugbear",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "TheFriendlyCoder/friendlypins",
+   "silence": 0.0,
+   "wrong_pick": 0.6666666666666666
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.3333333333333333,
+   "precision": 0.16666666666666666,
+   "repo": "andialbrecht/sqlparse",
+   "silence": 0.0,
+   "wrong_pick": 0.8333333333333334
+  },
+  {
+   "answered": 12,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "awdeorio/mailmerge",
+   "silence": 0.0,
+   "wrong_pick": 0.6666666666666666
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "bids-standard/pybids",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 12,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.5,
+   "precision": 0.25,
+   "repo": "codalab/codalab-worksheets",
+   "silence": 0.0,
+   "wrong_pick": 0.75
+  },
+  {
+   "answered": 14,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.8571428571428571,
+   "precision": 0.42857142857142855,
+   "repo": "datalad/datalad",
+   "silence": 0.0,
+   "wrong_pick": 0.5714285714285714
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "devopshq/artifactory",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "dwavesystems/dwave-cloud-client",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 12,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.5,
+   "precision": 0.25,
+   "repo": "dwavesystems/dwave-system",
+   "silence": 0.0,
+   "wrong_pick": 0.75
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "fjosw/pyerrors",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "graphql-python/graphene-django",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 10,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "hgrecco/pint-pandas",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.25,
+   "precision": 0.125,
+   "repo": "keras-team/keras-nlp",
+   "silence": 0.0,
+   "wrong_pick": 0.875
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.5,
+   "precision": 0.25,
+   "repo": "lincc-frameworks/nested-pandas",
+   "silence": 0.0,
+   "wrong_pick": 0.75
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "matchms/matchms",
+   "silence": 0.0,
+   "wrong_pick": 0.6666666666666666
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "mhostetter/galois",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "mikedh/trimesh",
+   "silence": 0.0,
+   "wrong_pick": 0.6666666666666666
+  },
+  {
+   "answered": 10,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "missionpinball/mpf",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 10,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "mwouts/jupytext",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "narwhals-dev/narwhals",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 12,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.8333333333333334,
+   "precision": 0.4166666666666667,
+   "repo": "ncclient/ncclient",
+   "silence": 0.0,
+   "wrong_pick": 0.5833333333333334
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "nltk/nltk",
+   "silence": 0.0,
+   "wrong_pick": 0.6666666666666666
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "nosarthur/gita",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "omni-us/jsonargparse",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.3333333333333333,
+   "precision": 0.16666666666666666,
+   "repo": "optuna/optuna",
+   "silence": 0.0,
+   "wrong_pick": 0.8333333333333334
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6666666666666666,
+   "precision": 0.3333333333333333,
+   "repo": "pre-commit/pre-commit-hooks",
+   "silence": 0.0,
+   "wrong_pick": 0.6666666666666666
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.75,
+   "precision": 0.375,
+   "repo": "psf/black",
+   "silence": 0.0,
+   "wrong_pick": 0.625
+  },
+  {
+   "answered": 10,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.6,
+   "precision": 0.3,
+   "repo": "pypa/setuptools_scm",
+   "silence": 0.0,
+   "wrong_pick": 0.7
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "pypa/virtualenv",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "python-cmd2/cmd2",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 12,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.8333333333333334,
+   "precision": 0.4166666666666667,
+   "repo": "sqlfluff/sqlfluff",
+   "silence": 0.0,
+   "wrong_pick": 0.5833333333333334
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "sunpy/sunpy",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 6,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "tophat/syrupy",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 8,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 1.0,
+   "precision": 0.5,
+   "repo": "yt-dlp/yt-dlp",
+   "silence": 0.0,
+   "wrong_pick": 0.5
+  },
+  {
+   "answered": 12,
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.8333333333333334,
+   "precision": 0.4166666666666667,
+   "repo": "zalando-stups/senza",
+   "silence": 0.0,
+   "wrong_pick": 0.5833333333333334
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "AzureAD/microsoft-authentication-library-for-python",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "BAMWelDX/weldx",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "DOV-Vlaanderen/pydov",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "Materials-Consortia/optimade-python-tools",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "PyCQA/flake8-bugbear",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "TheFriendlyCoder/friendlypins",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "andialbrecht/sqlparse",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "awdeorio/mailmerge",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "bids-standard/pybids",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "codalab/codalab-worksheets",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "datalad/datalad",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "devopshq/artifactory",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "dwavesystems/dwave-cloud-client",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "dwavesystems/dwave-system",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "fjosw/pyerrors",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "graphql-python/graphene-django",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "hgrecco/pint-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "keras-team/keras-nlp",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "lincc-frameworks/nested-pandas",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "matchms/matchms",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mhostetter/galois",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mikedh/trimesh",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "missionpinball/mpf",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "mwouts/jupytext",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "narwhals-dev/narwhals",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "ncclient/ncclient",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "nltk/nltk",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "nosarthur/gita",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "omni-us/jsonargparse",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "optuna/optuna",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pre-commit/pre-commit-hooks",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "psf/black",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pypa/setuptools_scm",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "pypa/virtualenv",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "python-cmd2/cmd2",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "sqlfluff/sqlfluff",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "sunpy/sunpy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "tophat/syrupy",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "yt-dlp/yt-dlp",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  },
+  {
+   "answered": 0,
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": 1.0,
+   "repo": "zalando-stups/senza",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  }
+ ],
+ "pool_index_sha256": "a14f22f0158a2ac568f84ffdbbbafaa01059cf22abebc5f4370679623cd258ff",
+ "prereg": "prereg/2026-10-29-plug-judge.md",
+ "prereg_sha256": "e6add8e4aa4d567e80e36322760aac1b77fb46b92bfb96d6c780fbf9f86c5d6f",
+ "result": "the judge beat the thresholded ranker but failed the safety and habits gate; the judge's pick, precision, wrong pick 0.31, 0.72, 0.05 (ranker alone 0.76, 0.38, 0.62)",
+ "rows": [
+  {
+   "arm": "judge",
+   "coverage": 0.3479,
+   "pick": 0.3104,
+   "precision": 0.7222,
+   "role": "under_test",
+   "silence": 0.9313,
+   "wrong_pick": 0.0531
+  },
+  {
+   "arm": "ranker_threshold",
+   "coverage": 0.1801,
+   "pick": 0.1655,
+   "precision": 0.5957,
+   "role": "reference",
+   "silence": 0.8854,
+   "wrong_pick": 0.0646
+  },
+  {
+   "arm": "untrained_1b",
+   "coverage": 0.0354,
+   "pick": 0.0167,
+   "precision": 0.3,
+   "role": "floor",
+   "silence": 0.975,
+   "wrong_pick": 0.0219
+  },
+  {
+   "arm": "ranker_alone",
+   "coverage": 1.0,
+   "pick": 0.7635,
+   "precision": 0.3818,
+   "role": "reference",
+   "silence": 0.0,
+   "wrong_pick": 0.6182
+  },
+  {
+   "arm": "plain_1b",
+   "coverage": 0.0,
+   "pick": 0.0,
+   "precision": null,
+   "role": "floor",
+   "silence": 1.0,
+   "wrong_pick": 0.0
+  }
+ ],
+ "run_label": "scored",
+ "secondary": {
+  "new_key_lessons": {
+   "coverage": 0.36875,
+   "items": 320,
+   "pick": 0.325,
+   "precision": 0.7222222222222222,
+   "silence": 0.91875,
+   "wrong_pick": 0.0625
+  },
+  "per_seed_safety": [
+   {
+    "passes": false,
+    "seed": 0,
+    "silence": {
+     "ci95_high": 0.9833,
+     "ci95_low": 0.8667,
+     "mean_gain": 0.9313,
+     "repos": 40
+    },
+    "threshold": 0.991,
+    "wrong_pick": {
+     "ci95_high": 0.1094,
+     "ci95_low": 0.0125,
+     "mean_gain": 0.0563,
+     "repos": 40
+    }
+   },
+   {
+    "passes": true,
+    "seed": 1,
+    "silence": {
+     "ci95_high": 0.9833,
+     "ci95_low": 0.8708,
+     "mean_gain": 0.9354,
+     "repos": 40
+    },
+    "threshold": 0.99,
+    "wrong_pick": {
+     "ci95_high": 0.0969,
+     "ci95_low": 0.0104,
+     "mean_gain": 0.049,
+     "repos": 40
+    }
+   },
+   {
+    "passes": true,
+    "seed": 2,
+    "silence": {
+     "ci95_high": 0.9875,
+     "ci95_low": 0.8854,
+     "mean_gain": 0.9437,
+     "repos": 40
+    },
+    "threshold": 0.99,
+    "wrong_pick": {
+     "ci95_high": 0.0885,
+     "ci95_low": 0.0083,
+     "mean_gain": 0.0427,
+     "repos": 40
+    }
+   }
+  ],
+  "versus_ranker_alone": {
+   "pick": {
+    "ci95_high": -0.3592,
+    "ci95_low": -0.5429,
+    "mean_gain": -0.4531,
+    "repos": 40
+   },
+   "precision": {
+    "ci95_high": 0.558,
+    "ci95_low": 0.3861,
+    "mean_gain": 0.4778,
+    "repos": 27
+   }
+  },
+  "wrong_picks_of_meta_lessons": {
+   "share": 0.0,
+   "wrong_picks": 20
+  }
+ },
+ "thresholds": {
+  "judge": 0.99,
+  "ranker_threshold": 15.0,
+  "untrained_1b": 0.91
+ }
+}

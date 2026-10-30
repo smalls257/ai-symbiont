@@ -1,0 +1,20 @@
+{
+ "reference_round3_judge_two_threshold": {
+  "right": 0.3273,
+  "wrong_repo_own": 0.097,
+  "wrong_base_trained": 0.0,
+  "wrong_other_repo": 0.0
+ },
+ "nightly_rich_scale_0.5": {
+  "right": 0.2242,
+  "wrong_repo_own": 0.0636,
+  "wrong_base_trained": 0.0,
+  "wrong_other_repo": 0.0
+ },
+ "nightly_rich_scale_1": {
+  "right": 0.2364,
+  "wrong_repo_own": 0.0576,
+  "wrong_base_trained": 0.0,
+  "wrong_other_repo": 0.0
+ }
+}

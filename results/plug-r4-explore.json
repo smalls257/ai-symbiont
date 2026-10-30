@@ -1,0 +1,79 @@
+{
+ "status": "exploratory, round 3's 40 scored repos as validation, no prereg",
+ "rows": {
+  "round3_judge_3_seeds": {
+   "threshold": 0.993,
+   "pick": 0.2303,
+   "silence": 0.9576,
+   "wrong_pick": 0.0364,
+   "coverage": 0.2606,
+   "precision": 0.76
+  },
+  "round3_judge_seed0": {
+   "threshold": 0.994,
+   "pick": 0.2545,
+   "silence": 0.9515,
+   "wrong_pick": 0.0394,
+   "coverage": 0.2848,
+   "precision": 0.7636
+  },
+  "rewritten_lessons": {
+   "threshold": 0.61,
+   "pick": 0.1273,
+   "silence": 0.9515,
+   "wrong_pick": 0.0455,
+   "coverage": 0.1697,
+   "precision": 0.5833
+  },
+  "rich_situations_seed0": {
+   "threshold": 0.995,
+   "pick": 0.2606,
+   "silence": 0.9576,
+   "wrong_pick": 0.0273,
+   "coverage": 0.2727,
+   "precision": 0.8269
+  },
+  "five_seeds": {
+   "threshold": 0.993,
+   "pick": 0.2606,
+   "silence": 0.9333,
+   "wrong_pick": 0.0485,
+   "coverage": 0.2909,
+   "precision": 0.7288
+  },
+  "judge_3b_tuned_seed0": {
+   "threshold": 0.998,
+   "pick": 0.2303,
+   "silence": 0.9697,
+   "wrong_pick": 0.0303,
+   "coverage": 0.2606,
+   "precision": 0.7917
+  },
+  "nightly_habits10_seed0": {
+   "threshold": 0.996,
+   "pick": 0.3455,
+   "silence": 0.9455,
+   "wrong_pick": 0.0424,
+   "coverage": 0.3758,
+   "precision": 0.8028
+  },
+  "nightly_habits25_seed0": {
+   "threshold": 0.996,
+   "pick": 0.3212,
+   "silence": 0.9273,
+   "wrong_pick": 0.0485,
+   "coverage": 0.3455,
+   "precision": 0.7681
+  }
+ },
+ "habits": {
+  "3b-s0": 0.7955,
+  "judge-s3": 0.8636,
+  "judge-s4": 0.6136,
+  "rich-s0": 0.9091
+ },
+ "habit_summary": {
+  "nightly_habits10_mean": 0.6119,
+  "nightly_habits25_mean": 0.6881
+ }
+}

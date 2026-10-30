@@ -1,0 +1,104 @@
+{
+ "status": "exploratory, validation repos only, no prereg",
+ "source": "judge 1B of the round-3 exploration (618 rows, no rewordings or habits)",
+ "held_out_repos": 5,
+ "held_out_items": 84,
+ "wrong_pick_at_most_0.05": {
+  "threshold": 0.95,
+  "pick": 0.2619,
+  "silence": 1.0,
+  "wrong_pick": 0.0,
+  "coverage": 0.2619,
+  "precision": 1.0,
+  "applicable_items": 42,
+  "coverage_wilson95": [
+   0.153,
+   0.4107
+  ],
+  "pick_wilson95": [
+   0.153,
+   0.4107
+  ],
+  "repo_bootstrap95": {
+   "coverage": {
+    "repos": 5,
+    "mean_gain": 0.2611,
+    "ci95_low": 0.1861,
+    "ci95_high": 0.3361
+   },
+   "pick": {
+    "repos": 5,
+    "mean_gain": 0.2611,
+    "ci95_low": 0.1861,
+    "ci95_high": 0.3361
+   },
+   "precision": {
+    "repos": 5,
+    "mean_gain": 1.0,
+    "ci95_low": 1.0,
+    "ci95_high": 1.0
+   },
+   "wrong_pick": {
+    "repos": 5,
+    "mean_gain": 0.0,
+    "ci95_low": 0.0,
+    "ci95_high": 0.0
+   },
+   "silence": {
+    "repos": 5,
+    "mean_gain": 1.0,
+    "ci95_low": 1.0,
+    "ci95_high": 1.0
+   }
+  }
+ },
+ "silence_at_least_0.90": {
+  "threshold": 0.93,
+  "pick": 0.5952,
+  "silence": 0.9286,
+  "wrong_pick": 0.0595,
+  "coverage": 0.6429,
+  "precision": 0.8333,
+  "applicable_items": 42,
+  "coverage_wilson95": [
+   0.4917,
+   0.7701
+  ],
+  "pick_wilson95": [
+   0.4449,
+   0.7296
+  ],
+  "repo_bootstrap95": {
+   "coverage": {
+    "repos": 5,
+    "mean_gain": 0.6361,
+    "ci95_low": 0.4111,
+    "ci95_high": 0.85
+   },
+   "pick": {
+    "repos": 5,
+    "mean_gain": 0.5861,
+    "ci95_low": 0.3611,
+    "ci95_high": 0.825
+   },
+   "precision": {
+    "repos": 5,
+    "mean_gain": 0.875,
+    "ci95_low": 0.625,
+    "ci95_high": 1.0
+   },
+   "wrong_pick": {
+    "repos": 5,
+    "mean_gain": 0.0625,
+    "ci95_low": 0.0,
+    "ci95_high": 0.1875
+   },
+   "silence": {
+    "repos": 5,
+    "mean_gain": 0.925,
+    "ci95_low": 0.775,
+    "ci95_high": 1.0
+   }
+  }
+ }
+}
