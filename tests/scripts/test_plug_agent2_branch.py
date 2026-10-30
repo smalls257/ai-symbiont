@@ -128,3 +128,15 @@ def test_the_served_model_must_be_the_pinned_gguf(monkeypatch):
     driver.checked_server(good, config)
     with pytest.raises(driver.ConfigPinError):
         driver.checked_server({"data": [{"id": "m", "meta": {"size": 11, "n_params": 5}}]}, config)
+
+
+def test_steps_lost_counts_calls_until_the_program_next_succeeds():
+    from plug_agent2_branchpoint import steps_lost  # noqa: PLC0415
+
+    history = [ask("pytest t/a.py"), answer(FAIL)]
+    point = find_branch_point(history, known_for("pytest t/a.py"))
+    assert point is not None
+    later = [*history, ask("ls"), answer(PASS), ask("pytest t/a.py"), answer(PASS)]
+    assert steps_lost(later, point, window=15) == 2
+    never = [*history, ask("ls"), answer(PASS), ask("ls"), answer(PASS)]
+    assert steps_lost(never, point, window=15) == 2

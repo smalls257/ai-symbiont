@@ -14,6 +14,7 @@ from plug_agent2_keys import RETURNCODE, Key, executed_actions, key_of
 from plug_agent_notes import Failure, failure_of
 
 from symbiont.delivery.mini_swe_wrapper import tagged
+from symbiont.miner.commands import normalise_command
 
 
 @dataclass(frozen=True)
@@ -68,3 +69,20 @@ def repeated_after(messages: Sequence[dict], point: BranchPoint, window: int | N
         if failure is not None and key_of(failure) == point.key:
             return True
     return False
+
+
+def steps_lost(messages: Sequence[dict], point: BranchPoint, window: int | None = None) -> int:
+    """Model calls from the erroring command to the next successful run of the same program, or
+    to the end of the branch (or `window`) when there is none (the secondary measure)."""
+    program = point.failure.program
+    later = messages[len(point.messages) :]
+    lost = 0
+    for step in executed_actions(later):
+        if window is not None and step.model_calls > window:
+            break
+        lost = step.model_calls
+        code = RETURNCODE.search(step.output)
+        if code and int(code.group(1)) == 0 and normalise_command(step.command)[0] == program:
+            return lost
+    last = max((step.model_calls for step in executed_actions(later)), default=0)
+    return min(last, window) if window is not None else last

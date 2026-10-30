@@ -3,7 +3,7 @@
 Notes at the branch point: nothing, and the forced lesson (the applies-labeled lesson with the
 failing key). After it every arm is silent. The label file, label prompt and mistake rule must hash
 to the config's pins; a branch lost twice or a changed restored state voids the point.
-Usage: python plug_agent2_point.py ROWS TASK OUT CONFIG CONFIG_SHA256 LABELS STORES POOL
+Usage: python plug_agent2_point.py ROWS TASK OUT CONFIG CONFIG_SHA256 LABELS STORES POOL [RECORDED]
 """
 
 import hashlib
@@ -24,6 +24,7 @@ HERE = Path(__file__).resolve().parent
 PINS = {
     "label_prompt_sha256": HERE / "plug_agent2_label_prompt.md",
     "mistake_rule_sha256": HERE / "plug_agent2_keys.py",
+    "error_line_rule_sha256": HERE / "plug_agent2_errorline.py",
 }
 
 
@@ -99,6 +100,10 @@ def forced_note(inputs: TaskInputs, point: BranchPoint) -> str:
     return lesson_text(matches[0])
 
 
+class ReplayVoidError(RuntimeError):
+    """Base of replay mismatches, so the driver need not import the replay module."""
+
+
 class BranchLostError(RuntimeError):
     """A branch failed twice with an infra or model error."""
 
@@ -143,8 +148,25 @@ def run_branches(
     return found
 
 
+def prefix_point(
+    row: dict, known: frozenset, config: dict, traj_dir: Path, recorded: str | None
+) -> tuple:
+    """(branch point or None, prefix record): a fresh own prefix, or a recorded run replayed."""
+    if recorded is None:
+        point, record = run_prefix(row, known, config, traj_dir / "prefix.traj.json")
+        return point, record | {"source": "own"}
+    from plug_agent2_replay import replay_branch_point  # noqa: PLC0415  heavy imports only here
+
+    messages = json.loads(Path(recorded).read_text())["messages"]
+    return replay_branch_point(row, messages, known), {
+        "source": "core-replay",
+        "trajectory": Path(recorded).name,
+    }
+
+
 def main() -> None:
     rows_path, task, out, config_path, expected, labels_path, stores_path, pool_path = sys.argv[1:9]
+    recorded = sys.argv[9] if len(sys.argv) > 9 else None
     pinned = {"labels_sha256": Path(labels_path), "pool_summary_sha256": Path(pool_path)}
     config = checked_config(Path(config_path), expected, pinned)
     checked_server(served_models(), config)
@@ -157,15 +179,16 @@ def main() -> None:
     traj_dir = Path(out) / "traj" / task
     traj_dir.mkdir(parents=True, exist_ok=True)
     record: dict = {"instance_id": task, "branches": []}
-    known = known_keys(inputs.labels, inputs.lessons)
     try:
-        point, record["prefix"] = run_prefix(row, known, config, traj_dir / "prefix.traj.json")
+        point, record["prefix"] = prefix_point(
+            row, known_keys(inputs.labels, inputs.lessons), config, traj_dir, recorded
+        )
         if point is not None:
             record["branches"] = run_branches(inputs, point, config, traj_dir)
     except PointVoidError as error:
         record["void"] = {"arm": error.arm, "index": error.index, "reason": str(error)}
-    except FidelityError as error:
-        record["void"] = {"arm": None, "index": None, "reason": f"fidelity: {error}"}
+    except (FidelityError, ReplayVoidError) as error:
+        record["void"] = {"arm": None, "index": None, "reason": f"{type(error).__name__}: {error}"}
     finally:
         for image in (image_tag(task), row["docker_image"]):
             subprocess.run(["docker", "rmi", image], capture_output=True, check=False)

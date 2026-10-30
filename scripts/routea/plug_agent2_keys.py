@@ -1,9 +1,7 @@
 """PLUG-AGENT-2: what counts as a known mistake and a repeat of one, frozen before the smoke test.
 
-A failure's key is (error class, program, target file). A generic key such as
-(ModuleNotFoundError, python) says only "a Python command failed", so a part that is empty or "-"
-(no file-like argument) gives no key and never counts as known (counting it would make
-every Python task "repeat" it). Pure.
+A failure's key is its normalized error line (plug_agent2_errorline.py). A failure whose line is
+empty after masking has no key and never counts as known. Pure.
 """
 
 import json
@@ -11,21 +9,18 @@ import re
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
+from plug_agent2_errorline import normalize_error_line
 from plug_agent_notes import Failure, failure_of
 
-NO_TARGET = "-"
 RETURNCODE = re.compile(r"<returncode>(-?\d+)</returncode>")
 
-Key = tuple[str, str, str]
+Key = tuple[str, ...]
 
 
 def key_of(failure: Failure) -> Key | None:
-    """(error class, program, file) or None when any part is empty or has no file-like target."""
-    error_class, program = failure.key()
-    target = failure.file
-    if not error_class or program in ("", NO_TARGET) or target in ("", NO_TARGET):
-        return None
-    return (error_class, program, target)
+    """The normalized error line as a one-part key, or None when nothing meaningful is left."""
+    line = normalize_error_line(failure.error)
+    return (line,) if line else None
 
 
 @dataclass(frozen=True)

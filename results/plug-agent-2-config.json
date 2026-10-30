@@ -33,7 +33,8 @@
  "cutoff_time_pt": "2026-11-01 06:00",
  "points_n": 60,
  "label": "PLUG-AGENT-2 run settings, shared by every branch",
- "mistake_rule_sha256": "69c306ce2cb1b7f4283810bdba4866b92ec8aadb1d4c0ded74eca73ea2f6dbdc",
+ "mistake_rule_sha256": "60ffbdf6dbaf00151acff0b7279f247aed2673defd7470a8cd47f0e116b9c458",
  "gguf_size_bytes": 16743567360,
- "gguf_n_params": 27854794240
+ "gguf_n_params": 27854794240,
+ "error_line_rule_sha256": "02891b4b340c2da6bac09bcc554c5f65771239ce40842cdb12c9fef8eb0566f4"
 }

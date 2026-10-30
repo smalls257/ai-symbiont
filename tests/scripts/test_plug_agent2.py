@@ -9,31 +9,39 @@ import pytest
 ROUTEA = Path(__file__).resolve().parents[2] / "scripts" / "routea"
 sys.path.insert(0, str(ROUTEA))
 
+from plug_agent2_errorline import is_generic_environment, normalize_error_line  # noqa: E402
 from plug_agent2_keys import failures_in, key_of, read_run  # noqa: E402
 from plug_agent2_label import LabelReplyError, parsed_labels  # noqa: E402
 from plug_agent_notes import Failure  # noqa: E402
 
 
-def failure(error: str, program: str, target: str) -> Failure:
+def failure(error: str, program: str = "pytest", target: str = "t/a.py") -> Failure:
     return Failure(f"{program} {target}", error, program, target)
 
 
-def test_generic_key_without_a_file_target_gives_no_key():
-    assert key_of(failure("ModuleNotFoundError: x", "python", "-")) is None
-    assert key_of(failure("ModuleNotFoundError: x", "-", "a.py")) is None
-    assert key_of(failure("no class here", "python", "a.py")) is None
+def test_key_is_the_normalized_error_line_and_masks_volatile_parts():
+    first = key_of(failure("ValueError: bad file /tmp/abc/x.py line 12 at 0xdeadbeef"))
+    second = key_of(failure("ValueError: bad file /home/u/y.py line 98 at 0xcafe1234"))
+    assert first == second and first is not None
+    assert key_of(failure("ValueError: other")) != first
 
 
-def test_specific_key_has_class_program_and_file():
-    assert key_of(failure("ValueError: bad", "pytest", "tests/a.py")) == (
-        "ValueError",
-        "pytest",
-        "tests/a.py",
+def test_an_empty_or_placeholder_only_line_gives_no_key():
+    assert key_of(failure("")) is None
+    assert key_of(failure("/tmp/x/y 12345")) is None
+
+
+def test_generic_environment_errors_are_split_from_code_specific_ones():
+    assert is_generic_environment(normalize_error_line("ModuleNotFoundError: No module named 'x'"))
+    assert is_generic_environment(normalize_error_line("bash: pip: command not found"))
+    assert not is_generic_environment(normalize_error_line("KeyError: 'application/json'"))
+    assert not is_generic_environment(
+        normalize_error_line("AttributeError: 'A' has no attribute 'b'")
     )
 
 
 def test_repeat_is_counted_only_for_the_first_known_key():
-    a, b = failure("ValueError: x", "pytest", "t/a.py"), failure("KeyError: y", "python", "b.py")
+    a, b = failure("ValueError: x"), failure("KeyError: y")
     known = frozenset({key_of(a)})
     reading = read_run([b, a, None, b, a], known)
     assert (reading.first_known, reading.repeated, reading.any_key_repeats) == (1, True, 2)
@@ -42,8 +50,7 @@ def test_repeat_is_counted_only_for_the_first_known_key():
 
 
 def test_keyless_failures_are_counted_apart():
-    generic = failure("OSError: z", "python", "-")
-    reading = read_run([generic, generic], frozenset())
+    reading = read_run([failure(""), failure("")], frozenset())
     assert (reading.failures, reading.keyless) == (2, 2)
 
 
@@ -75,3 +82,12 @@ def test_label_reply_must_be_exact():
     for bad in ('{"labels": ["applies"]}', "yes", '{"labels": ["maybe", "applies"]}'):
         with pytest.raises(LabelReplyError):
             parsed_labels(bad, 2)
+
+
+def test_normalizer_is_stable_and_masks_the_volatile_parts():
+    path = "/tmp/pytest-of-root/pytest-7/x.py"
+    line = f"FileNotFoundError: [Errno 2] No such file: '{path}' at 2026-10-29 10:00:01"
+    once = normalize_error_line(line)
+    assert normalize_error_line(once) == once
+    assert "pytest-7" not in once and "2026" not in once
+    assert normalize_error_line("KeyError: 'application/json'") == "KeyError: '<path>'"
