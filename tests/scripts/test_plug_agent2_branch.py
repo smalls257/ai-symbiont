@@ -34,13 +34,17 @@ def known_for(command: str) -> frozenset:
     return frozenset({key_of(failure)})
 
 
+TASK = {"role": "user", "content": "task text"}
+
+
 def test_no_branch_point_without_a_known_failure():
-    history = [ask("pytest t/a.py"), answer(PASS)]
+    history = [TASK, ask("pytest t/a.py"), answer(PASS)]
     assert find_branch_point(history, known_for("pytest t/a.py")) is None
 
 
-def test_branch_point_is_the_first_known_failure_with_the_history_up_to_it():
+def test_branch_point_holds_the_history_before_the_turn_that_issued_the_first_known_failure():
     history = [
+        TASK,
         ask("ls"),
         answer(PASS),
         ask("pytest t/a.py"),
@@ -50,39 +54,52 @@ def test_branch_point_is_the_first_known_failure_with_the_history_up_to_it():
     ]
     point = find_branch_point(history, known_for("pytest t/a.py"))
     assert point is not None
-    assert (point.model_calls, point.failing_observation, len(point.messages)) == (2, 3, 4)
+    assert list(point.messages) == history[:3] and point.model_calls == 1
 
 
-def test_a_step_with_two_actions_is_cut_after_both_observations():
+def test_a_step_with_two_actions_is_cut_before_its_whole_turn_once_both_observations_are_in():
     known = known_for("pytest t/a.py")
-    history = [ask("pytest t/a.py", "ls"), answer(FAIL)]
+    history = [TASK, ask("pytest t/a.py", "ls"), answer(FAIL)]
     assert find_branch_point(history, known) is None  # the second observation is not in yet
     point = find_branch_point([*history, answer(PASS)], known)
-    assert point is not None and len(point.messages) == 3 and point.failing_observation == 1
+    assert point is not None and list(point.messages) == [TASK] and point.model_calls == 0
 
 
-def test_resume_puts_the_note_under_the_failing_observation_without_touching_the_original():
-    history = [ask("pytest t/a.py"), answer(FAIL)]
+def test_resume_puts_the_note_under_the_last_message_without_touching_the_original():
+    history = [TASK, ask("ls"), answer(PASS), ask("pytest t/a.py"), answer(FAIL)]
     point = find_branch_point(history, known_for("pytest t/a.py"))
     assert point is not None
-    with_note = resume_messages(point, "NOTE TEXT")
-    without = resume_messages(point, None)
-    assert "NOTE TEXT" in with_note[1]["content"] and "NOTE TEXT" not in without[1]["content"]
-    assert without == list(point.messages) and "NOTE" not in history[1]["content"]
+    with_note, without = resume_messages(point, "NOTE TEXT"), resume_messages(point, None)
+    assert "NOTE TEXT" in with_note[-1]["content"] and "NOTE TEXT" not in without[-1]["content"]
+    assert without == list(point.messages) and "NOTE" not in history[2]["content"]
 
 
-def test_repeat_is_the_same_key_failing_after_the_shared_history():
-    history = [ask("pytest t/a.py"), answer(FAIL)]
+def test_the_outcome_is_the_same_error_line_occurring_in_the_branch():
+    history = [TASK, ask("pytest t/a.py"), answer(FAIL)]
     point = find_branch_point(history, known_for("pytest t/a.py"))
     assert point is not None
-    assert repeated_after([*history, ask("pytest t/a.py"), answer(FAIL)], point) is True
-    assert repeated_after([*history, ask("pytest t/a.py"), answer(PASS)], point) is False
+    start = list(point.messages)
+    assert repeated_after([*start, ask("pytest t/a.py"), answer(FAIL)], point) is True
+    assert repeated_after([*start, ask("pytest t/a.py"), answer(PASS)], point) is False
+    assert (
+        repeated_after(
+            [*start, ask("ls"), answer(PASS), ask("pytest t/a.py"), answer(FAIL)], point, window=1
+        )
+        is False
+    )
 
 
 def stubbed_point(monkeypatch: pytest.MonkeyPatch):
     """plug_agent2_point with the heavy branch module replaced by a stub."""
     stub = ModuleType("plug_agent2_branch")
-    for name in ("Continuation", "FidelityError", "image_tag", "run_continuation", "run_prefix"):
+    for name in (
+        "Continuation",
+        "FidelityError",
+        "ReplayMismatchError",
+        "image_tag",
+        "run_continuation",
+        "run_prefix",
+    ):
         setattr(stub, name, type(name, (Exception,), {}))
     monkeypatch.setitem(sys.modules, "plug_agent2_branch", stub)
     monkeypatch.delitem(sys.modules, "plug_agent2_point", raising=False)
@@ -130,13 +147,34 @@ def test_the_served_model_must_be_the_pinned_gguf(monkeypatch):
         driver.checked_server({"data": [{"id": "m", "meta": {"size": 11, "n_params": 5}}]}, config)
 
 
-def test_steps_lost_counts_calls_until_the_program_next_succeeds():
+def test_steps_lost_counts_calls_from_the_error_to_the_next_success_of_the_program():
     from plug_agent2_branchpoint import steps_lost  # noqa: PLC0415
 
-    history = [ask("pytest t/a.py"), answer(FAIL)]
-    point = find_branch_point(history, known_for("pytest t/a.py"))
+    point = find_branch_point(
+        [TASK, ask("pytest t/a.py"), answer(FAIL)], known_for("pytest t/a.py")
+    )
     assert point is not None
-    later = [*history, ask("ls"), answer(PASS), ask("pytest t/a.py"), answer(PASS)]
-    assert steps_lost(later, point, window=15) == 2
-    never = [*history, ask("ls"), answer(PASS), ask("ls"), answer(PASS)]
-    assert steps_lost(never, point, window=15) == 2
+    start = list(point.messages)
+    fixed = [
+        *start,
+        ask("pytest t/a.py"),
+        answer(FAIL),
+        ask("ls"),
+        answer(PASS),
+        ask("pytest t/a.py"),
+        answer(PASS),
+    ]
+    assert steps_lost(fixed, point, window=15) == 2
+    assert (
+        steps_lost([*start, ask("ls"), answer(PASS)], point, window=15) == 0
+    )  # the error never occurs
+
+
+def test_a_replayed_command_must_return_the_recorded_code_and_error_line():
+    from plug_agent2_branchpoint import matches_record  # noqa: PLC0415
+    from plug_agent2_keys import executed_actions  # noqa: PLC0415
+
+    step = executed_actions([TASK, ask("pytest t/a.py"), answer(FAIL)])[0]
+    assert matches_record(step, {"returncode": 1, "output": "E   ValueError: bad\n"})
+    assert not matches_record(step, {"returncode": 0, "output": "ok"})
+    assert not matches_record(step, {"returncode": 1, "output": "E   KeyError: other\n"})

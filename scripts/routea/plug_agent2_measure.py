@@ -12,13 +12,14 @@ from collections import Counter
 from dataclasses import replace
 from pathlib import Path
 
-from plug_agent2_branchpoint import find_branch_point, repeated_after
+from plug_agent2_branchpoint import find_branch_point, occurrences_after
 from plug_agent2_keys import Key, RunReading, failures_in, key_of, read_run
 from plug_agent_notes import Failure
 
 from symbiont.miner.commands import normalise_command
 
 WINDOW = 15  # model calls after the first known mistake, as in the branches
+PROBE_POINTS = 5  # restored probe points with 3 none branches each
 STOP_MIN_RUNS = (
     10  # smoke go/no-go (frozen in the prereg): at least this many runs with a first known mistake
 )
@@ -42,10 +43,11 @@ def task_of(path: Path) -> str:
 
 
 def windowed(reading: RunReading, messages: list[dict], known: frozenset[Key]) -> RunReading:
-    """The reading with `repeated` limited to the prereg's W = 15 model calls after the first
-    known mistake (the one stop-rule definition)."""
+    """The reading with `repeated` set to the natural repeat in the source run: the first known
+    line occurs again within W = 15 model calls of the point (descriptive; the stop rule uses the
+    none-arm probe, not this)."""
     point = find_branch_point(messages, known)
-    within = point is not None and repeated_after(messages, point, WINDOW)
+    within = point is not None and occurrences_after(messages, point, WINDOW) >= 2
     return replace(reading, repeated=within)
 
 
@@ -70,9 +72,17 @@ def ratio(part: int, whole: int) -> float | None:
     return round(part / whole, 3) if whole else None
 
 
-def go_ahead(conditioned_runs: int, share: float | None) -> bool:
-    """The frozen stop rule: enough runs hit a first known mistake and enough of them repeat it."""
-    return share is not None and conditioned_runs >= STOP_MIN_RUNS and share >= STOP_MIN_SHARE
+def probe_share(points: list[list[bool]]) -> float | None:
+    """Mean over probe points of the share of none branches in which the line occurs again."""
+    return (
+        sum(sum(branches) / len(branches) for branches in points) / len(points) if points else None
+    )
+
+
+def go_ahead(valid_points: int, share: float | None) -> bool:
+    """The frozen stop rule's probe part: enough restored probe points and a none-arm occurrence
+    share high enough that a note has something to prevent."""
+    return share is not None and valid_points >= PROBE_POINTS and share >= STOP_MIN_SHARE
 
 
 def summary_of(readings: list) -> dict:
@@ -91,7 +101,24 @@ def summary_of(readings: list) -> dict:
         "repeated_after_first_known": repeated,
         "conditional_repeat_share": share,
         "any_key_repeats_per_run": ratio(sum(run.any_key_repeats for run in runs), len(runs)),
-        "go": go_ahead(len(conditioned), share),
+    }
+
+
+def probe_summary(records_path: Path) -> dict:
+    """The stop rule's probe reading: valid points (no void), the none-arm occurrence share."""
+    records = [json.loads(line) for line in records_path.read_text().splitlines()]
+    points = [
+        [b["repeated"] for b in r["branches"] if b["arm"] == "none"]
+        for r in records
+        if "void" not in r and r.get("branches")
+    ]
+    share = probe_share(points)
+    return {
+        "records": len(records),
+        "valid_points": len(points),
+        "voids": sum("void" in r for r in records),
+        "none_occurrence_share": None if share is None else round(share, 3),
+        "go": go_ahead(len(points), share),
     }
 
 
@@ -101,7 +128,11 @@ def main() -> None:
     parser.add_argument("stores", type=Path)
     parser.add_argument("trajs", type=Path, nargs="+")
     parser.add_argument("--top", type=int, default=0)
+    parser.add_argument("--probe", type=Path, default=None, help="probe records (JSON lines)")
     args = parser.parse_args()
+    if args.probe:
+        print(json.dumps(probe_summary(args.probe), indent=1))
+        return
     rows = map(json.loads, args.labels.read_text().splitlines())
     labels = {row["task"]: row["labels"] for row in rows if "labels" in row}
     readings, frequency = read_trajectories(labels, json.loads(args.stores.read_text()), args.trajs)

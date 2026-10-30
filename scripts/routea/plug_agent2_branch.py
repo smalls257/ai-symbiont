@@ -1,16 +1,14 @@
-"""PLUG-AGENT-2 branch execution: one shared prefix, then every arm continues from the same state.
+"""PLUG-AGENT-2 branch execution: a shared `none` prefix, then every arm continues from one state.
 
-The prefix runs the `none` arm in the task's scrubbed image until its first known mistake
-(`find_branch_point` on the message history), then stops, commits the container to a local image
-and keeps the history. Each arm starts a container from that image with the history replayed, its
-note under the failing observation, and W further model calls. Heavy imports (mini-SWE-agent,
-Docker) live here; the decisions are in plug_agent2_branchpoint.py. Logs ids and counts only.
+The prefix runs until its first known mistake and stops; the state just before that command is
+rebuilt by replay (plug_agent2_replay.py) and committed. Each arm starts a container from that
+image with the history replayed (the forced arm's note under its last message) and W further model
+calls. Heavy imports live here; the decisions are in plug_agent2_branchpoint.py.
 """
 
 import copy
-import subprocess
 import time
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +30,10 @@ MAX_FORMAT_ERRORS = 3
 
 class FidelityError(RuntimeError):
     """A restored container's state hash differs from the prefix's: the point is void."""
+
+
+class ReplayMismatchError(RuntimeError):
+    """A replayed command did not reproduce its recorded outcome: the point is void."""
 
 
 def state_fingerprint(env: Any) -> str:
@@ -93,9 +95,9 @@ def image_tag(task: str) -> str:
 
 def run_prefix(
     row: dict, known: frozenset[Key], config: dict, traj: Path
-) -> tuple[BranchPoint | None, dict]:
-    """Run the `none` prefix; (branch point or None, record). The container state is committed to
-    `image_tag` when a branch point is reached."""
+) -> tuple[list | None, dict]:
+    """Run the `none` prefix until its first known mistake; (the run's messages, or None when it
+    never makes one, and the record). The branch state is rebuilt by replay, not kept."""
     record: dict[str, Any] = {"instance_id": row["instance_id"], "error_kind": None}
     env = _environment(row["docker_image"])
     try:
@@ -107,22 +109,11 @@ def run_prefix(
             env.execute({"command": install}, timeout=600)
         source = NoteSource(NoteArm.NONE, row["repo"], (), 0.0, 1.0)
         model, agent_cfg = _model(row, source, config)
-        agent = PrefixAgent(
-            model,
-            LocalNotedEnvironment(env, source, RunLog()),
-            known=known,
-            output_path=traj,
-            **agent_cfg,
-        )
+        wrapped = LocalNotedEnvironment(env, source, RunLog())
+        agent = PrefixAgent(model, wrapped, known=known, output_path=traj, **agent_cfg)
         _agent_exit(agent, row, record)
-        if agent.point is not None:
-            agent.point = replace(agent.point, fingerprint=state_fingerprint(env))
-            subprocess.run(
-                ["docker", "commit", env.container_id, image_tag(row["instance_id"])],
-                check=True,
-                capture_output=True,
-            )
-        return agent.point, record | {"model_calls": agent.n_calls}
+        messages = copy.deepcopy(agent.messages) if agent.point is not None else None
+        return messages, record | {"model_calls": agent.n_calls}
     finally:
         env.cleanup()
 

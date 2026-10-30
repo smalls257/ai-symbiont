@@ -1,48 +1,25 @@
-"""PLUG-AGENT-2 replay: rebuild a recorded run's state at its first known mistake.
+"""PLUG-AGENT-2 replay: rebuild a recorded run's container just before its first known mistake.
 
-For Core's plain runs no container survives. The recorded commands are executed in order in a
-scrubbed container; the erroring command must return the recorded code and the same normalized
-error line, else the point is void. The rebuilt container is committed, as for own prefixes.
+Recorded commands before the erroring turn run in order in a scrubbed container; each must return
+its recorded code (a failed one also the same normalized error line), else the point is void. The
+state hash is taken and the container committed; every branch checks the hash at start.
 """
 
 import subprocess
 from dataclasses import replace
-from typing import Any
 
-from plug_agent2_branch import FidelityError, image_tag, state_fingerprint
-from plug_agent2_branchpoint import BranchPoint, find_branch_point
-from plug_agent2_keys import RETURNCODE, Key, executed_actions, key_of
-from plug_agent2_point import ReplayVoidError  # noqa: E402
+from plug_agent2_branch import ReplayMismatchError, image_tag, state_fingerprint
+from plug_agent2_branchpoint import BranchPoint, find_branch_point, matches_record
+from plug_agent2_keys import Key, executed_actions
 from plug_agent_env import _environment
-from plug_agent_notes import failure_of
 from taskenv import TaskEnvError, history_scrub_script, install_script
 
 
-class ReplayMismatchError(ReplayVoidError):
-    """The replayed erroring command did not reproduce the recorded outcome: the point is void."""
-
-
-def recorded_code(output: str) -> int | None:
-    found = RETURNCODE.search(output)
-    return int(found.group(1)) if found else None
-
-
-def reproduces(point: BranchPoint, command: str, result: dict[str, Any]) -> bool:
-    """The replayed result has the recorded return code and the same normalized error line."""
-    failure = failure_of(command, result.get("returncode"), result.get("output", ""))
-    recorded = recorded_code(point.messages[point.failing_observation]["content"])
-    return (
-        recorded == result.get("returncode")
-        and failure is not None
-        and key_of(failure) == point.key
-    )
-
-
-def replay_branch_point(
+def restore_branch_point(
     row: dict, messages: list[dict], known: frozenset[Key]
 ) -> BranchPoint | None:
-    """The branch point of a recorded run with its container rebuilt and committed; None when the
-    run never makes a known mistake. Raises ReplayMismatchError or FidelityError (point void)."""
+    """The branch point of a recorded run with its pre-command container rebuilt and committed;
+    None when the run never makes a known mistake. Raises ReplayMismatchError (point void)."""
     point = find_branch_point(messages, known)
     if point is None:
         return None
@@ -54,22 +31,13 @@ def replay_branch_point(
         if install:
             env.execute({"command": install}, timeout=600)
         for step in executed_actions(point.messages):
-            result = env.execute({"command": step.command})
-            if step.observation_index == point.failing_observation and not reproduces(
-                point, step.command, result
-            ):
+            if not matches_record(step, env.execute({"command": step.command})):
                 raise ReplayMismatchError(
-                    "the erroring command did not reproduce its recorded outcome"
+                    f"command {step.model_calls} did not reproduce its record"
                 )
         point = replace(point, fingerprint=state_fingerprint(env))
-        subprocess.run(
-            ["docker", "commit", env.container_id, image_tag(row["instance_id"])],
-            check=True,
-            capture_output=True,
-        )
+        tag = image_tag(row["instance_id"])
+        subprocess.run(["docker", "commit", env.container_id, tag], check=True, capture_output=True)
         return point
     finally:
         env.cleanup()
-
-
-__all__ = ["FidelityError", "ReplayMismatchError", "replay_branch_point"]

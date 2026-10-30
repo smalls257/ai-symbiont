@@ -15,7 +15,14 @@ import urllib.request
 from dataclasses import dataclass
 from pathlib import Path
 
-from plug_agent2_branch import Continuation, FidelityError, image_tag, run_continuation, run_prefix
+from plug_agent2_branch import (
+    Continuation,
+    FidelityError,
+    ReplayMismatchError,
+    image_tag,
+    run_continuation,
+    run_prefix,
+)
 from plug_agent2_branchpoint import BranchPoint
 from plug_agent2_measure import known_keys, lesson_key
 from plug_agent_notes import NoteArm, NoteSource
@@ -100,10 +107,6 @@ def forced_note(inputs: TaskInputs, point: BranchPoint) -> str:
     return lesson_text(matches[0])
 
 
-class ReplayVoidError(RuntimeError):
-    """Base of replay mismatches, so the driver need not import the replay module."""
-
-
 class BranchLostError(RuntimeError):
     """A branch failed twice with an infra or model error."""
 
@@ -131,14 +134,20 @@ def graded_branch(
     raise BranchLostError(last)
 
 
+PROBE_BRANCHES = 3  # the stop-rule probe: none arm only, 3 branches per point, never scored
+
+
 def run_branches(
     inputs: TaskInputs, point: BranchPoint, config: dict, traj_dir: Path
 ) -> list[dict]:
-    """B branches for each distinct note: nothing, then the forced lesson."""
+    """B branches for each note: nothing, then the forced lesson (the probe runs `none` only)."""
     silent = NoteSource(NoteArm.NONE, inputs.row["repo"], (), 0.0, 1.0)
+    probing = os.environ.get("PLUG2_PROBE") == "1"
+    arms = [("none", None)] if probing else [("none", None), ("forced", forced_note(inputs, point))]
+    count = PROBE_BRANCHES if probing else config["branches_per_arm"]
     found = []
-    for arm, text in (("none", None), ("forced", forced_note(inputs, point))):
-        for index in range(config["branches_per_arm"]):
+    for arm, text in arms:
+        for index in range(count):
             traj = traj_dir / f"{arm}-{index}.traj.json"
             try:
                 branch = graded_branch(inputs.row, point, Continuation(text, silent), config, traj)
@@ -151,17 +160,17 @@ def run_branches(
 def prefix_point(
     row: dict, known: frozenset, config: dict, traj_dir: Path, recorded: str | None
 ) -> tuple:
-    """(branch point or None, prefix record): a fresh own prefix, or a recorded run replayed."""
-    if recorded is None:
-        point, record = run_prefix(row, known, config, traj_dir / "prefix.traj.json")
-        return point, record | {"source": "own"}
-    from plug_agent2_replay import replay_branch_point  # noqa: PLC0415  heavy imports only here
+    """(branch point or None, prefix record): an own prefix run or a recorded Core run, either way
+    rebuilt by replay to the state just before the first known mistake."""
+    from plug_agent2_replay import restore_branch_point  # noqa: PLC0415  heavy imports only here
 
-    messages = json.loads(Path(recorded).read_text())["messages"]
-    return replay_branch_point(row, messages, known), {
-        "source": "core-replay",
-        "trajectory": Path(recorded).name,
-    }
+    if recorded is None:
+        messages, record = run_prefix(row, known, config, traj_dir / "prefix.traj.json")
+        source = record | {"source": "own"}
+    else:
+        messages = json.loads(Path(recorded).read_text())["messages"]
+        source = {"source": "core-replay", "trajectory": Path(recorded).name}
+    return (restore_branch_point(row, messages, known) if messages else None), source
 
 
 def main() -> None:
@@ -187,7 +196,7 @@ def main() -> None:
             record["branches"] = run_branches(inputs, point, config, traj_dir)
     except PointVoidError as error:
         record["void"] = {"arm": error.arm, "index": error.index, "reason": str(error)}
-    except (FidelityError, ReplayVoidError) as error:
+    except (FidelityError, ReplayMismatchError) as error:
         record["void"] = {"arm": None, "index": None, "reason": f"{type(error).__name__}: {error}"}
     finally:
         for image in (image_tag(task), row["docker_image"]):
