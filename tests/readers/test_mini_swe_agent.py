@@ -94,8 +94,8 @@ def test_default_read_is_never_spark_safe():
 
 def test_local_run_refuses_a_well_formed_id_from_another_repo(tmp_path):
     row = fixture_rows()[0]
-    row["instance_id"] = "django__django-15000"
-    with pytest.raises(ReadError, match="django/django") as err:
+    row["instance_id"] = "psf__requests-1000"
+    with pytest.raises(ReadError, match="psf/requests") as err:
         list(read_local_run(write_lines(tmp_path, [json.dumps(row)]), PROJECT))
     assert err.value.line_no == 1
 

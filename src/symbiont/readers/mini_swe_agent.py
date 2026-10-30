@@ -27,7 +27,16 @@ LOCAL_RUN = Provenance(dataset="local-run", license="own-output", spark_safe=Tru
 
 # Repos of the public benchmark tasks our Glimmer runs may use; a run on any other repo
 # could hold private code and must not be labeled spark safe.
-PUBLIC_BENCHMARK_REPOS = frozenset({"tobymao/sqlglot"})
+PUBLIC_BENCHMARK_REPOS = frozenset(
+    {  # public SWE-rebench repositories whose own mini-SWE-agent runs may become template lessons
+        "tobymao/sqlglot",
+        "django/django",
+        "streamlink/streamlink",
+        "conan-io/conan",
+        "iterative/dvc",
+        "pennylaneai/pennylane",
+    }
+)
 
 _BASH_BLOCK = re.compile(r"```bash[ \t]*\n(.*?)\n?```", re.DOTALL)
 _RETURN_CODE = re.compile(r"<returncode>\s*(-?\d+)\s*</returncode>")
