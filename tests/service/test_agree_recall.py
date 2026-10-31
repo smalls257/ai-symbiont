@@ -147,3 +147,12 @@ def test_a_shown_note_is_logged_with_its_rule_and_the_next_three_actions(tmp_pat
         "rule": "agree",
         "actions": ["ignored", "followed", "burned"],
     }
+
+
+def test_silence_is_diagnosable_the_log_names_the_bar_and_the_numbers(tmp_path):
+    service = service_with(tmp_path, judge_saying(0.5))
+    recall(service)
+    events = [json.loads(x) for x in (tmp_path / "run" / "events.jsonl").read_text().splitlines()]
+    held = next(e["note_held"] for e in events if "note_held" in e)
+    assert held["why"] == "agree:judge_too_low" and held["judge_p_yes"] == 0.5
+    assert held["ranker_score"] >= held["ranker_cut"] > 0 and "question" not in json.dumps(held)

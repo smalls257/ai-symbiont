@@ -70,6 +70,10 @@ class EventLog:
         """Record what the agent's next actions were after the note (followed/ignored/burned)."""
         self._write(call, {"note_outcome": {"note_id": note_id, "rule": rule, "actions": actions}})
 
+    def append_note_held(self, call: Call, why: str, numbers: dict[str, float | None]) -> None:
+        """Record why Plug stayed silent (which bar blocked it, with the scores), never the text."""
+        self._write(call, {"note_held": {"why": why, **numbers}})
+
     def append_failure(self, call: Call, status: int, reason: str) -> None:
         """Record a call that was refused, so a failure is never silent."""
         self._write(call, {"status": status, "reason": reason})

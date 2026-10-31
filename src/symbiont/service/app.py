@@ -238,6 +238,13 @@ class Service:
             fixes = fix_commands(outcome.lesson)
             self._follow_up.shown(call, project, ShownNote(note_id, rule, fixes))
             return self._answered(call, outcome.note, [outcome.lesson])
+        numbers = {
+            "ranker_score": outcome.ranker_score,
+            "ranker_cut": outcome.ranker_cut,
+            "ceiling": outcome.ceiling,
+            "judge_p_yes": outcome.judge_p_yes,
+        }
+        self._parts.events.append_note_held(call, f"{rule}:{outcome.verdict.value}", numbers)
         return self._answered(call, NOTHING_MATCHES, [])
 
     def _answered(self, call: Call, answer: str, found: Sequence[Lesson]) -> Response:

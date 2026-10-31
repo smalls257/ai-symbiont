@@ -28,6 +28,8 @@ class Bars:
 AGREE = Bars(ranker_min_score=10.0, judge_min_p_yes=0.96)
 # results/plug-r4-selection-nightly.json: rule "idf>=0.0" (no ranker cut), threshold 0.98.
 NIGHTLY = Bars(ranker_min_score=0.0, judge_min_p_yes=0.98)
+# Median best-lesson ceiling over 165 round-3-run items of 60 lessons (mean 42.7, min 27.3).
+ROUND4_CEILING = 43.0
 RANKER_MIN_SCORE = AGREE.ranker_min_score
 JUDGE_MIN_P_YES = AGREE.judge_min_p_yes
 JUDGE_SEEDS = 3
@@ -52,6 +54,9 @@ class Agreement:
     note: str | None
     ranker_score: float
     judge_p_yes: float | None
+    # What the ranker's cut was for this store and the store's attainable ceiling (for the log).
+    ranker_cut: float = 0.0
+    ceiling: float = 0.0
 
 
 JudgeScore = Callable[[str], float]  # judge user message -> mean P(yes); raises if it cannot
@@ -63,6 +68,22 @@ def ranker_scores(question: str, lessons: Sequence[Lesson]) -> list[float]:
     frequency = Counter(word for doc in docs for word in doc)
     wanted = _words(question)
     return [sum(math.log(len(docs) / frequency[word]) for word in doc & wanted) for doc in docs]
+
+
+def attainable_ceiling(lessons: Sequence[Lesson]) -> float:
+    """The score of an exact repeat: the best lesson's own words, each worth log(N/df)."""
+    docs = [_words(_lesson_text(lesson)) for lesson in lessons]
+    frequency = Counter(word for doc in docs for word in doc)
+    return max((sum(math.log(len(docs) / frequency[w]) for w in doc) for doc in docs), default=0.0)
+
+
+def ranker_cut(lessons: Sequence[Lesson], bars: Bars) -> float:
+    """The ranker cut for this store: 10.0/43.0 of its ceiling.
+
+    43.0 is the median attainable ceiling over 165 round-3-run scored items of 60 lessons each
+    (plug/round3 scripts/routea/plug_situation.py `lexical_scores`); 10.0 is the frozen cut.
+    """
+    return bars.ranker_min_score / ROUND4_CEILING * attainable_ceiling(lessons)
 
 
 def agree(
@@ -80,12 +101,15 @@ def agree(
     scores = ranker_scores(question, lessons)
     best = max(range(len(lessons)), key=lambda index: (scores[index], -index))
     top, score = lessons[best], scores[best]
-    if score < bars.ranker_min_score:
-        return Agreement(Verdict.RANKER_TOO_LOW, None, None, score, None)
+    cut, ceiling = ranker_cut(lessons, bars), attainable_ceiling(lessons)
+    # A zero-overlap question never passes a cut, even a store too small to have one (ceiling 0).
+    blocked = score < cut or (bars.ranker_min_score > 0 and score <= 0)
+    if blocked:
+        return Agreement(Verdict.RANKER_TOO_LOW, None, None, score, None, cut, ceiling)
     p_yes = judge(judge_input(question, pairs[best][1]))
     if p_yes < bars.judge_min_p_yes:
-        return Agreement(Verdict.JUDGE_TOO_LOW, None, None, score, p_yes)
-    return Agreement(Verdict.AGREED, top, render_lesson(top), score, p_yes)
+        return Agreement(Verdict.JUDGE_TOO_LOW, None, None, score, p_yes, cut, ceiling)
+    return Agreement(Verdict.AGREED, top, render_lesson(top), score, p_yes, cut, ceiling)
 
 
 def _lesson_text(lesson: Lesson) -> str:
