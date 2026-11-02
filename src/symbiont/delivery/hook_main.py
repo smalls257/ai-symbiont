@@ -20,6 +20,7 @@ from symbiont.delivery.hooks import (
     HookInputError,
     HookSettings,
     NoteStyle,
+    NoteVisibility,
     resolve_harness,
     run_hook,
 )
@@ -35,6 +36,13 @@ def add_hook_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("event", type=HookEvent, choices=list(HookEvent))
     parser.add_argument("--harness", choices=HARNESS_CHOICES, default=AUTO)
     parser.add_argument("--notes", type=NoteStyle, choices=list(NoteStyle), default=NoteStyle.PLAIN)
+    parser.add_argument(
+        "--visibility",
+        type=NoteVisibility,
+        choices=list(NoteVisibility),
+        default=NoteVisibility.ALSO_DEVELOPER,
+        help="also-developer shows each note on screen via systemMessage, as well as to the model",
+    )
     parser.add_argument("--project", default=Path.cwd().name, help="used when the input has no cwd")
     parser.add_argument("--port", type=int, default=LOCAL_SERVICE_PORT)
     parser.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
@@ -45,7 +53,7 @@ def forward_hook(args: argparse.Namespace, stdin_text: str) -> int:
     trace = trace_path(os.environ, args.data_dir)
     record_received(trace, args.event, stdin_text)
     harness = resolve_harness(args.harness, os.environ)
-    settings = HookSettings(harness, args.notes, args.port, args.project)
+    settings = HookSettings(harness, args.notes, args.port, args.project, args.visibility)
     try:
         result = run_hook(args.event, stdin_text, settings, reviving_call(args.data_dir, args.port))
     except (HookInputError, ServiceRefusedError, ServiceReplyError) as unusable:
