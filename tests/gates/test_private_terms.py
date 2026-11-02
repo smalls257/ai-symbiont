@@ -55,6 +55,18 @@ def test_a_term_inside_a_public_github_url_passes(tmp_path, terms):
     assert _run(terms, "files", "a.txt", cwd=tmp_path).returncode == 0
 
 
+def test_a_term_inside_a_public_hugging_face_url_passes(tmp_path, terms):
+    (tmp_path / "a.txt").write_text(
+        "adapters: https://huggingface.co/Zorbulax/model and hf.co/zorbulax/model\n"
+    )
+    assert _run(terms, "files", "a.txt", cwd=tmp_path).returncode == 0
+
+
+def test_the_same_term_beside_a_hugging_face_url_still_fires(tmp_path, terms):
+    (tmp_path / "a.txt").write_text("see huggingface.co/zorbulax/m in the folder zorbulax-cache\n")
+    assert _run(terms, "files", "a.txt", cwd=tmp_path).returncode == 1
+
+
 def test_the_same_term_in_a_home_path_still_fires(tmp_path, terms):
     (tmp_path / "a.txt").write_text("link github.com/zorbulax/x but the folder zorbulax-notes\n")
     assert _run(terms, "files", "a.txt", cwd=tmp_path).returncode == 1

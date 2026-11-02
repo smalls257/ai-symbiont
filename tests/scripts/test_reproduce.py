@@ -258,3 +258,12 @@ def test_the_adapter_repository_must_be_named_when_the_pins_do_not_keep_it(monke
     assert rescore.adapter_repo("a/b", {"repo_id": None}) == "a/b"
     monkeypatch.setenv("SYMBIONT_ADAPTER_REPO", "c/d")
     assert rescore.adapter_repo(None, {"repo_id": None}) == "c/d"
+
+
+def test_the_adapter_repository_may_be_given_as_its_hub_url():
+    import rescore
+
+    assert rescore.adapter_repo("https://huggingface.co/a/b", {"repo_id": None}) == "a/b"
+    assert rescore.adapter_repo("hf.co/a/b/", {"repo_id": None}) == "a/b"
+    named = rescore.repo_id_of(rescore.ADAPTER_REPO_URL)
+    assert named.endswith("/Llama-3.2-1B-symbiont-judge-adapters")

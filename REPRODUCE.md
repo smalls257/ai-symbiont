@@ -126,7 +126,7 @@ adapters would learn from.
 ### 3b. Rescore the judge arms with the published adapters
 
 **What is and is not re-scorable.** The owner publishes only some of our LoRA adapters on Hugging
-Face (`OWNER/Llama-3.2-1B-symbiont-judge-adapters`, where OWNER is the owner's Hugging Face handle, given in the pull request that introduced this file): the three round 3 judge seeds and the
+Face (https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters): the three round 3 judge seeds and the
 general judge, no Llama weights, no merged copies, no training data. The two nightly per-repository
 adapters are **withheld** pending a check of the terms on the model-written training targets.
 So:
@@ -144,7 +144,7 @@ hf download meta-llama/Llama-3.2-1B-Instruct --local-dir data/repro/llama-3.2-1b
 uv venv data/repro/torch-venv && uv pip install --python data/repro/torch-venv/bin/python torch transformers peft
 export SYMBIONT_TORCH_PYTHON=$PWD/data/repro/torch-venv/bin/python LCAP_DEVICE=mps         # or cuda
 scripts/reproduce/rerun_learning.sh data                                                    # 3a, makes the items
-uv run --with huggingface_hub python scripts/reproduce/rerun_learning.py fetch-adapters --repo OWNER/Llama-3.2-1B-symbiont-judge-adapters --dest data/repro/adapters
+uv run --with huggingface_hub python scripts/reproduce/rerun_learning.py fetch-adapters --repo https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters --dest data/repro/adapters
 uv run python scripts/reproduce/rerun_learning.py rescore --items data/repro/work/items \
   --base data/repro/llama-3.2-1b-instruct --adapters data/repro/adapters --work data/repro/rescore
 ```
