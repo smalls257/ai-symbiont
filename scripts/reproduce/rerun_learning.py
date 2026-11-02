@@ -213,7 +213,9 @@ def main() -> int:
     stages.add_parser("compare").add_argument("rerun", type=Path)
     fetching = stages.add_parser("fetch-adapters")
     fetching.add_argument("--dest", type=Path, required=True)
-    fetching.add_argument("--repo", help="OWNER/Llama-3.2-1B-symbiont-judge-adapters")
+    fetching.add_argument(
+        "--repo", help="the adapter repository URL or id (default: REPRODUCE.md's URL)"
+    )
     scoring = stages.add_parser("rescore")
     for flag in ("items", "base", "adapters", "work"):
         scoring.add_argument(f"--{flag}", type=Path, required=True)

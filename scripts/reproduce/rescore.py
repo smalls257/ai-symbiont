@@ -46,9 +46,22 @@ def adapter_repo(chosen: str | None, pins: dict) -> str:
     named = chosen or os.environ.get("SYMBIONT_ADAPTER_REPO") or pins.get("repo_id")
     if not named:
         raise AdapterPinError(
-            "name the model repository: --repo OWNER/Llama-3.2-1B-symbiont-judge-adapters "
-            "or set SYMBIONT_ADAPTER_REPO (the owner's handle is not kept in tracked files)"
+            f"name the model repository: --repo {ADAPTER_REPO_URL} or set SYMBIONT_ADAPTER_REPO"
         )
+    return repo_id_of(named)
+
+
+# The owner's handle may appear in tracked files only inside a public URL (QG-SEC-05), so the
+# repository is written as its URL and reduced to the "owner/name" id the hub client expects.
+ADAPTER_REPO_URL = "https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters"
+_HUB_PREFIXES = ("https://huggingface.co/", "http://huggingface.co/", "huggingface.co/", "hf.co/")
+
+
+def repo_id_of(named: str) -> str:
+    """'owner/name' from either the id or a huggingface.co / hf.co URL of it."""
+    for prefix in _HUB_PREFIXES:
+        if named.startswith(prefix):
+            return named.removeprefix(prefix).strip("/")
     return named
 
 
