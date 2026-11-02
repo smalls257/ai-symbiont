@@ -2,8 +2,10 @@
 
 import io
 import json
+import re
 from typing import Any
 
+from symbiont.miner.lesson_context import AppliesTo
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.store.local import Source
 
@@ -79,3 +81,32 @@ def named_project(request: dict[str, Any]) -> str:
     if not isinstance(project, str):
         raise BadRequestError("project must be text")
     return project
+
+
+_PERCENT = re.compile(r"%([0-9A-Fa-f]{2})")
+
+
+def percent_decoded(text: str) -> str:
+    """`text` with %XX escapes decoded (the stdlib decoder lives in a network module)."""
+    return _PERCENT.sub(lambda hexed: chr(int(hexed[1], 16)), text.replace("+", " "))
+
+
+MAX_TAGS = 30
+MAX_TAG_CHARS = 60
+
+
+def parse_applies(value: Any) -> AppliesTo:
+    """`{terms: [...], areas: [...]}` as written by the session model or the dashboard."""
+    if value is None:
+        return AppliesTo()
+    if not isinstance(value, dict) or not set(value) <= {"terms", "areas"}:
+        raise BadRequestError("applies_to takes only terms and areas")
+    return AppliesTo(_tags(value.get("terms", []), "terms"), _tags(value.get("areas", []), "areas"))
+
+
+def _tags(value: Any, name: str) -> tuple[str, ...]:
+    """A list of short strings, or BadRequestError naming the field."""
+    ok = isinstance(value, list) and len(value) <= MAX_TAGS
+    if not ok or not all(isinstance(tag, str) and 0 < len(tag) <= MAX_TAG_CHARS for tag in value):
+        raise BadRequestError(f"applies_to.{name} must be a list of up to {MAX_TAGS} short strings")
+    return tuple(tag.strip() for tag in value)

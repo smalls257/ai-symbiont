@@ -46,6 +46,15 @@ def _routes_for(service: Service) -> type[BaseHTTPRequestHandler]:
             self.end_headers()
             self.wfile.write(payload)
 
+        def do_GET(self) -> None:  # http.server dispatches by this name
+            """Answer one GET with the dashboard page or one of its files."""
+            page = service.page(self.path)
+            self.send_response(page.status)
+            self.send_header("Content-Type", page.content_type)
+            self.send_header("Content-Length", str(len(page.body)))
+            self.end_headers()
+            self.wfile.write(page.body)
+
         def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
             """The event log is the record of calls; the stderr access line adds nothing."""
 

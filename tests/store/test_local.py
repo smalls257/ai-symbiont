@@ -68,7 +68,7 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
     assert Store.open(tmp_path / "store.sqlite").lessons(PROJECT) == [lesson]
     db = sqlite3.connect(tmp_path / "store.sqlite")
     tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert tables == {"sources", "lessons", "trained", "contexts"}
+    assert tables == {"sources", "lessons", "trained", "contexts", "authored", "reviews", "decided"}
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
     assert "fix it" not in body, "only the cited record's bounded quote is kept"
 
@@ -215,7 +215,7 @@ def test_forgetting_a_trouble_deletes_only_its_lessons(tmp_path, store):
     (lesson,) = remine(store, PROJECT, rules(), adding=[source])
     other = Signature(Signal.REWORKED_EDIT, ("somewhere.py",))
 
-    assert store.forget_trouble(PROJECT, other) == 0
+    assert store.catalog.forget(PROJECT, other) == 0
     assert store.lessons(PROJECT) == [lesson]
-    assert store.forget_trouble(PROJECT, lesson.pain_point.signature) == 1
+    assert store.catalog.forget(PROJECT, lesson.pain_point.signature) == 1
     assert store.lessons(PROJECT) == []

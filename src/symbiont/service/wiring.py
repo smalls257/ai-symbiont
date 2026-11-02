@@ -8,14 +8,20 @@ from pathlib import Path
 from symbiont.core.counters import Counters
 from symbiont.core.slot import Decider
 from symbiont.core.warner import LogisticWarner, WarnerWeightsError, weights_from
+from symbiont.miner.trained import lesson_id
+from symbiont.readers import READERS
 from symbiont.service.app import Service, ServiceMode, ServiceParts
+from symbiont.service.curation_routes import CurationRoutes
+from symbiont.service.effective_context import effective_contexts
 from symbiont.service.events import EventLog
 from symbiont.service.memory_model import AdapterProvenance, MemoryModel
 from symbiont.service.nightly import NightlyJudges, RecallJudges
+from symbiont.service.onboarding import Lookups
 from symbiont.service.repo_gate import RepoGate
 from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry
+from symbiont.store.settings import read_correction_settings
 
 # Layout `scripts/routea/train_memory.py` writes: the adapter, one training manifest per run
 # (ids and counts, written by `Store.forget_trained`), and the adapter's record (base model and
@@ -69,9 +75,28 @@ def open_service(
         judge=guards.judges.first_night,
         nightly=guards.judges.nightly,
         consent=read_consent(data_dir),
-        gate=RepoGate(guards.repos, guards.nightly_news, store.contexts.all),
+        curation=CurationRoutes(
+            store, guards.repos, lambda: read_correction_settings(data_dir), dict(READERS)
+        ),
+        gate=RepoGate(guards.repos, guards.nightly_news, _lookups(store)),
     )
     return Service(parts)
+
+
+def _lookups(store: Store) -> Lookups:
+    """What the gate reads from the store."""
+    return Lookups(
+        contexts=lambda project: effective_contexts(store, project),
+        written=store.curation.authored,
+        pending_reviews=lambda project: _pending_reviews(store, project),
+        lesson_count=lambda project: len(store.lessons(project)),
+    )
+
+
+def _pending_reviews(store: Store, project: str) -> int:
+    """Mined pain points the session's model has not judged yet."""
+    reviewed = store.curation.reviews(project)
+    return sum(1 for lesson in store.lessons(project) if lesson_id(lesson) not in reviewed)
 
 
 def load_warner(path: Path) -> LogisticWarner:

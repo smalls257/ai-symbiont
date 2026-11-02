@@ -16,7 +16,8 @@ from symbiont.miner.mine import mine_history, sessions_of
 from symbiont.service.app import Service, ServiceMode, ServiceParts
 from symbiont.service.events import EventLog, last_note_event
 from symbiont.service.nightly import NightlyJudges
-from symbiont.service.repo_gate import NIGHTLY_LIVE, ONBOARDING, RepoGate
+from symbiont.service.onboarding import NIGHTLY_LIVE, ONBOARDING, Lookups
+from symbiont.service.repo_gate import RepoGate
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
 
@@ -42,7 +43,7 @@ class Rig:
         self.events = EventLog(tmp_path / "runs" / "20261102T000000Z", "counters")
         store = Store.open(tmp_path / "store.db")
         store.save_mining(PROJECT, [], fixed_failure_lessons(), held_out_tasks=frozenset())
-        gate = RepoGate(self.registry, nightly, store.contexts.all)
+        gate = RepoGate(self.registry, nightly, Lookups(contexts=store.contexts.all))
         parts = ServiceParts(store, Counters(), self.events, ServiceMode.WARN_AND_RECALL, gate=gate)
         self.service = Service(parts)
         self.runs = tmp_path / "runs"
@@ -144,8 +145,8 @@ def test_the_first_night_is_announced_once(tmp_path):
     rig = Rig(tmp_path, NightlyJudges(nightly_dir))
     rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
 
-    assert rig.start()["announce"] == [NIGHTLY_LIVE]
-    assert "announce" not in rig.start("second")
+    assert NIGHTLY_LIVE in rig.start()["announce"]
+    assert NIGHTLY_LIVE not in rig.start("second").get("announce", [])
 
 
 def test_status_reports_the_answer_lessons_and_silenced_kinds(rig):
@@ -285,7 +286,7 @@ def test_unrelated_work_and_passing_results_get_no_rule_and_the_hold_is_logged(r
 
     assert passed == {"notes": []}
     held = [json.loads(line) for line in rig.events.path.read_text().splitlines()]
-    assert any("no stored rule is related" in str(event.get("note_held")) for event in held)
+    assert any("unrelated to this work" in str(event.get("note_held")) for event in held)
 
 
 def test_a_failure_with_a_different_signature_in_a_related_file_gets_the_rule(rig):
@@ -325,3 +326,59 @@ def test_an_intentional_rule_is_never_delivered(rig):
     with_rule(rig, intentional=True)
 
     assert prompt(rig, "speed up app/parser.py") == {"notes": []}
+
+
+def test_the_context_endpoint_stores_applicability_tags_that_make_a_rule_fire(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+    lesson = lesson_id_of_fixture()
+
+    saved = post_context(
+        rig,
+        lesson,
+        {
+            "text": "Imports stay lazy.",
+            "applies_to": {"terms": ["BHD", "credit note"], "areas": []},
+        },
+    )
+    fired = prompt(rig, "Handle the BHD credit note for the team")
+
+    assert saved.status == 200
+    assert fired["notes"] == ["[symbiont] In this repo: Imports stay lazy."]
+    assert "bhd" in last_note_event(rig.runs, PROJECT)["fired_by"]
+    assert post_context(rig, lesson, {"text": "x", "applies_to": {"terms": "BHD"}}).status == 400
+    assert post_context(rig, lesson, {"text": "x", "applies_to": {"words": []}}).status == 400
+
+
+def test_after_yes_the_session_asks_the_focus_question_until_it_is_answered(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+
+    first = rig.start()["announce"]
+    rig.registry.record_focus(PROJECT, {"text": "money", "keywords": ["money"], "sources": []})
+    after = rig.start("second").get("announce", [])
+
+    assert any("Anything symbiont should pay attention to" in line for line in first)
+    assert any("symbiont_add_lessons" in line for line in first)
+    assert not any("pay attention" in line for line in after)
+
+
+def test_the_dashboard_link_is_shown_once_when_the_repository_has_lessons_and_reviews_are_asked(
+    tmp_path,
+):
+    from symbiont.service.onboarding import Announcements
+
+    registry = RepoRegistry(tmp_path)
+    registry.record_stance(PROJECT, RepoStance.GIVEN)
+    registry.record_focus(PROJECT, {"text": "x", "keywords": [], "sources": []})
+    lookups = Lookups(pending_reviews=lambda project: 3, lesson_count=lambda project: 5)
+    news = Announcements(registry, lookups)
+
+    first = news.at_session_start(PROJECT)
+    second = news.at_session_start(PROJECT)
+
+    assert any("{dashboard}" in line for line in first)
+    assert any("3 pain points" in line and "symbiont_save_reviews" in line for line in first)
+    assert not any("{dashboard}" in line for line in second)
+    assert (
+        Announcements(registry, Lookups(lesson_count=lambda project: 0)).at_session_start(PROJECT)
+        == ()
+    )

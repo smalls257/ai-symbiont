@@ -114,7 +114,7 @@ def run_hook(
     notes = reply.get("notes")
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
-    told = _announcements(reply)
+    told = _announcements(reply, dashboard_url(settings.port, body["payload"]["record"]["project"]))
     text = "\n".join(filter(None, [_worded(event, notes, settings.style), *told]))
     if not text or event not in speaking_events(settings.harness):
         return HookResult()
@@ -232,12 +232,23 @@ def _exit_code(response: Any, event: HookEvent) -> int | None:
     return 1 if event is HookEvent.POST_TOOL_USE_FAILURE else None
 
 
-def _announcements(reply: dict[str, Any]) -> list[str]:
-    """What the service wants the developer to read directly (onboarding, one-time news)."""
+def dashboard_url(port: int, project: str) -> str:
+    """Where the local dashboard for `project` is served."""
+    safe = "".join(
+        char
+        if char.isascii() and (char.isalnum() or char in "-._~")
+        else "".join(f"%{b:02X}" for b in char.encode())
+        for char in project
+    )
+    return f"http://127.0.0.1:{port}/dashboard?project={safe}"
+
+
+def _announcements(reply: dict[str, Any], dashboard: str) -> list[str]:
+    """What the service wants the developer to read directly, with the dashboard link filled in."""
     told = reply.get("announce", [])
     if not isinstance(told, list) or not all(isinstance(line, str) for line in told):
         raise ServiceReplyError("the local service sent an announcement that is not sentences")
-    return told
+    return [line.replace("{dashboard}", dashboard) for line in told]
 
 
 def _worded(event: HookEvent, notes: list[str], style: NoteStyle) -> str:

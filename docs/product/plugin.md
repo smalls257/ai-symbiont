@@ -74,6 +74,26 @@ flowchart LR
   record appears), the next session start says so, once. Until then the learner is whatever
   `symbiont serve` was started with (plain counters by default).
 
+## Curation by the session's own model
+
+symbiont makes no model calls. It offers batches, and the model already running the session judges
+them through MCP tools: `symbiont_add_lessons` (lessons written from notes or reports the developer
+points to, with optional `applies_to` terms and path prefixes), `symbiont_review_candidates` and
+`symbiont_save_reviews` (mistake, expected or noise; the plain-words rule becomes the note's lead),
+`symbiont_correction_candidates` and `symbiont_save_corrections`, and `symbiont_set_focus` (the
+answer to "Anything symbiont should pay attention to?").
+
+- Correction candidates are short user turns after an agent action that use a correcting phrase,
+  capped at 200 excerpts, each trimmed. History is shown only to a session of the same harness
+  (Claude Code history in Claude Code, Muse Code history in Muse Code); showing one to the other
+  needs `symbiont settings set cross_harness true`. Both same-harness switches default on and live in
+  `settings.json` in the data directory. The consent note says the session's model will read short
+  excerpts of past messages.
+- Nothing is stored for a repository that has not said yes.
+- The dashboard is served by the local service at `/dashboard?project=NAME`, filled from the store;
+  `symbiont dashboard` prints its address. Turns and minutes per occurrence are estimates from the
+  length of the recorded fix [hypothesis]; the proof band shows the measured results with their tags.
+
 ## Where it lives
 
 | Concern | Module |

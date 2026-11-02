@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.core.notes import happened
-from symbiont.miner.lesson_context import LessonContext, Priority
+from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
 from symbiont.readers import READERS
@@ -25,6 +25,7 @@ from symbiont.service.events import last_note_event
 from symbiont.store.local import Source, Store
 from symbiont.store.mining import MiningRules, remine
 from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.settings import read_correction_settings, write_correction_setting
 
 AskService = Callable[[str, dict[str, object], int], dict[str, Any]]
 
@@ -45,7 +46,9 @@ class ServiceAnswerError(RuntimeError):
     """An `AskService` reached the service but got no usable answer; the message says why."""
 
 
-COMMANDS = frozenset({"repo", "status", "why", "mute", "forget", "lessons", "context"})
+COMMANDS = frozenset(
+    {"repo", "status", "why", "mute", "forget", "lessons", "context", "dashboard", "settings"}
+)
 CLAUDE_CODE_READER = "claude-code"
 MUSE_CODE_READER = "muse-code"
 
@@ -75,6 +78,14 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     words.add_argument("text", help="what symbiont should say about it, in your words")
     words.add_argument("--intentional", action="store_true", help="the failure is on purpose")
     words.add_argument("--priority", choices=[p.value for p in Priority], default="normal")
+    words.add_argument("--terms", default="", help="comma-separated words this applies to")
+    words.add_argument("--areas", default="", help="comma-separated path prefixes it applies to")
+    dashboard = commands.add_parser("dashboard", help="print this repository's dashboard address")
+    dashboard.add_argument("--port", type=int, default=defaults.port)
+    setting = commands.add_parser("settings", help="show or switch correction-finding settings")
+    setting.add_argument("action", choices=["show", "set"])
+    setting.add_argument("name", nargs="?", help="claude_code, muse_code or cross_harness")
+    setting.add_argument("value", nargs="?", choices=["true", "false"])
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
         parser.add_argument("--data-dir", type=Path, default=defaults.data_dir)
@@ -116,7 +127,8 @@ def _answer_message(project: str, stance: RepoStance) -> str:
     return (
         f"{project}: symbiont is on. Everything stays on this computer. "
         "Run `symbiont repo mine` to learn from this repository's past Claude Code "
-        "and Muse Code sessions."
+        "and Muse Code sessions. To find your past corrections, the model running your session "
+        "reads short excerpts of past messages from the same tool's history."
     )
 
 
@@ -229,7 +241,7 @@ def _forget(args: argparse.Namespace) -> int:
     """Delete the lessons behind the last note (or one chosen id) and keep them silenced."""
     store = Store.open(args.data_dir / "store.db")
     trouble = _trouble_chosen(args, store)
-    deleted = store.forget_trouble(args.project, trouble)
+    deleted = store.catalog.forget(args.project, trouble)
     RepoRegistry(args.data_dir).mute(args.project, (trouble.signal.value, *trouble.key))
     _say(f"forgot {deleted} lesson(s) because {happened(trouble)}; they stay silenced if re-mined.")
     return 0
@@ -249,13 +261,39 @@ def _context(args: argparse.Namespace) -> int:
     """Store the developer's words for a lesson (an id, or "last"); says which one it picked."""
     store = Store.open(args.data_dir / "store.db")
     wanted = _newest_lesson_id(args, store) if args.lesson == "last" else args.lesson
-    found = store.find_lesson(wanted)
+    found = store.catalog.find(wanted)
     if found is None:
         raise LookupError(f"no lesson {wanted}; see `symbiont lessons`")
-    words = LessonContext(args.text.strip(), args.intentional, Priority(args.priority))
+    applies = AppliesTo(_listed(args.terms), _listed(args.areas))
+    words = LessonContext(args.text.strip(), args.intentional, Priority(args.priority), applies)
     store.contexts.save(wanted, found[0], words)
     _say(f"saved for {wanted} ({happened(found[1].pain_point.signature)}).")
     return 0
+
+
+def _dashboard(args: argparse.Namespace) -> int:
+    """Print the dashboard address for this repository."""
+    _say(f"http://127.0.0.1:{args.port}/dashboard?project={args.project}")
+    return 0
+
+
+def _settings(args: argparse.Namespace) -> int:
+    """Show, or switch, which histories the session's model may read for correction finding."""
+    if args.action == "set":
+        if args.name is None or args.value is None:
+            raise ValueError("settings set needs a name and true or false")
+        write_correction_setting(args.data_dir, args.name, value=args.value == "true")
+    current = read_correction_settings(args.data_dir)
+    _say(
+        f"corrections: claude_code={current.claude_code} muse_code={current.muse_code} "
+        f"cross_harness={current.cross_harness}"
+    )
+    return 0
+
+
+def _listed(commas: str) -> tuple[str, ...]:
+    """A comma-separated option as a tuple of non-empty items."""
+    return tuple(item.strip() for item in commas.split(",") if item.strip())
 
 
 def _newest_lesson_id(args: argparse.Namespace, store: Store) -> str:
@@ -264,7 +302,7 @@ def _newest_lesson_id(args: argparse.Namespace, store: Store) -> str:
     refs = [] if event is None else event.get("records", [])
     if event is not None and event.get("trouble") and refs:
         behind = f"{refs[0][0]}:{refs[0][1]}:{event['trouble'][0]}"
-        if store.find_lesson(behind) is not None:
+        if store.catalog.find(behind) is not None:
             return behind
     lessons = store.lessons(args.project)
     if not lessons:
@@ -296,4 +334,6 @@ _COMMANDS = {
     "forget": _forget,
     "lessons": _lessons,
     "context": _context,
+    "dashboard": _dashboard,
+    "settings": _settings,
 }

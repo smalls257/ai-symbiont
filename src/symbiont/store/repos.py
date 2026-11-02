@@ -70,6 +70,22 @@ class RepoRegistry:
         """Remember that the developer was told."""
         self._update(project, "nightly_announced", value=True)
 
+    def focus(self, project: str) -> dict[str, Any] | None:
+        """What the developer said symbiont should pay attention to, or None when not asked."""
+        return self._entry(project).get("focus")
+
+    def record_focus(self, project: str, focus: dict[str, Any]) -> None:
+        """Remember the developer's answer: {text, keywords, sources}."""
+        self._update(project, "focus", focus)
+
+    def dashboard_linked(self, project: str) -> bool:
+        """Whether the developer was already shown the dashboard link."""
+        return bool(self._entry(project).get("dashboard_linked", False))
+
+    def link_dashboard(self, project: str) -> None:
+        """Remember that the dashboard link was shown."""
+        self._update(project, "dashboard_linked", value=True)
+
     def _entry(self, project: str) -> dict[str, Any]:
         """The stored fields of one project; empty when it was never mentioned."""
         entry = self._document()["projects"].get(project, {})

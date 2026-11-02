@@ -13,14 +13,16 @@ import sqlite3
 from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any
 
 from symbiont.miner.lessons import Lesson, spark_allowed
-from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.secrets import scrubbed
 from symbiont.miner.trained import lesson_id, refuse_held_out_lessons, training_manifest
 from symbiont.records.privacy import OwnHistoryConsent
+from symbiont.store.catalog import LessonCatalog
 from symbiont.store.contexts import LessonContexts
+from symbiont.store.curation import Curation
+from symbiont.store.lesson_rows import lesson_from_json
 
 log = logging.getLogger("symbiont.store")
 
@@ -38,7 +40,20 @@ CREATE INDEX IF NOT EXISTS lessons_by_project ON lessons (project, spark_safe);
 -- The developer's own words about a lesson (store.contexts); not record text.
 CREATE TABLE IF NOT EXISTS contexts (
     lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, text TEXT NOT NULL,
-    intentional INTEGER NOT NULL, priority TEXT NOT NULL
+    intentional INTEGER NOT NULL, priority TEXT NOT NULL, applies TEXT NOT NULL
+);
+-- Lessons written in plain words, verdicts on mined pain points, judged correction candidates.
+CREATE TABLE IF NOT EXISTS authored (
+    id TEXT PRIMARY KEY, project TEXT NOT NULL, text TEXT NOT NULL, kind TEXT NOT NULL,
+    files TEXT NOT NULL, source_label TEXT NOT NULL, severity TEXT NOT NULL,
+    applies TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS reviews (
+    lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, verdict TEXT NOT NULL,
+    rule TEXT NOT NULL, title TEXT NOT NULL, merge_with TEXT, applies TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS decided (
+    project TEXT NOT NULL, candidate_id TEXT NOT NULL, PRIMARY KEY (project, candidate_id)
 );
 CREATE TABLE IF NOT EXISTS trained (
     project TEXT NOT NULL, lesson_id TEXT NOT NULL, export_id TEXT NOT NULL,
@@ -133,7 +148,7 @@ class Store:
         rows = self._db.execute(
             "SELECT body FROM lessons WHERE project=? ORDER BY rowid", (project,)
         ).fetchall()
-        return [_lesson_from_json(body) for (body,) in rows]
+        return [lesson_from_json(body) for (body,) in rows]
 
     def pain_points(self, project: str) -> list[PainPoint]:
         """The pain points behind `project`'s lessons, in the order they were mined."""
@@ -160,24 +175,10 @@ class Store:
         log.info("deleted %d trained lessons of %s; manifest %s", deleted, project, manifest_path)
         return deleted
 
-    def forget_trouble(self, project: str, trouble: Signature) -> int:
-        """Delete the lessons of `project` about this kind of trouble; returns how many.
-
-        For the developer who asks symbiont to forget a lesson. Re-mining would bring it back, so
-        the caller also mutes the trouble (`store.repos`).
-        """
-        rows = self._db.execute("SELECT rowid, body FROM lessons WHERE project=?", (project,))
-        doomed = [
-            row for row, body in rows if _lesson_from_json(body).pain_point.signature == trouble
-        ]
-        with self._db:
-            self._db.executemany("DELETE FROM lessons WHERE rowid=?", [(row,) for row in doomed])
-        return len(doomed)
-
     def _rows_of(self, project: str, ids: set[str]) -> list[int]:
         """Row ids of the project's stored lessons whose ids are in `ids`."""
         rows = self._db.execute("SELECT rowid, body FROM lessons WHERE project=?", (project,))
-        return [row for row, body in rows if lesson_id(_lesson_from_json(body)) in ids]
+        return [row for row, body in rows if lesson_id(lesson_from_json(body)) in ids]
 
     def trained_lesson_ids(self, project: str) -> frozenset[str]:
         """Ids of `project`'s lessons a model has already been trained on."""
@@ -196,14 +197,15 @@ class Store:
         """The developer's own words about lessons, in the same database."""
         return LessonContexts(self._db)
 
-    def find_lesson(self, wanted: str) -> tuple[str, Lesson] | None:
-        """(project, lesson) for the lesson id `wanted`, or None when no stored lesson has it."""
-        rows = self._db.execute("SELECT project, body FROM lessons").fetchall()
-        for project, body in rows:
-            lesson = _lesson_from_json(body)
-            if lesson_id(lesson) == wanted:
-                return project, lesson
-        return None
+    @property
+    def curation(self) -> Curation:
+        """Written lessons, verdicts and judged correction candidates, in the same database."""
+        return Curation(self._db)
+
+    @property
+    def catalog(self) -> LessonCatalog:
+        """Questions across projects: which projects exist, which project owns a lesson id."""
+        return LessonCatalog(self._db)
 
     def spark_view(self, consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD) -> "SparkView":
         """A read-only view that raises rather than return anything Spark may not see.
@@ -264,32 +266,3 @@ def _lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]
 def _lesson_json(lesson: Lesson) -> str:
     """Serialize a lesson for the lessons table."""
     return json.dumps(asdict(lesson))
-
-
-def _lesson_from_json(body: str) -> Lesson:
-    """Rebuild a lesson from its stored JSON."""
-    data = json.loads(body)
-    return Lesson(
-        pain_point=_pain_point_from_dict(data["pain_point"]),
-        quote=data["quote"],
-        resolution=tuple(data["resolution"]),
-        unresolved_because=data["unresolved_because"],
-        spark_safe=data["spark_safe"],
-        sources=tuple((ref[0], ref[1]) for ref in data["sources"]),
-        task_ids=tuple(data["task_ids"]),
-        # Rows written before this field existed recorded no such changes.
-        changed_alongside=tuple(data.get("changed_alongside", ())),
-        # Rows written before this field existed name no dataset: a private one stays blocked.
-        private_datasets=tuple(data.get("private_datasets", ())),
-    )
-
-
-def _pain_point_from_dict(data: dict[str, Any]) -> PainPoint:
-    """A pain point from its stored dict."""
-    signature = data["signature"]
-    return PainPoint(
-        signature=Signature(Signal(signature["signal"]), tuple(signature["key"])),
-        session_id=data["session_id"],
-        step=data["step"],
-        record_refs=tuple((ref[0], ref[1]) for ref in data["record_refs"]),
-    )
