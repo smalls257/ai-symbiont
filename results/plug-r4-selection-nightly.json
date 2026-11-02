@@ -1,0 +1,6 @@
+{
+ "target": 0.04,
+ "rule": "idf>=0.0",
+ "threshold": 0.98,
+ "scale": "1"
+}

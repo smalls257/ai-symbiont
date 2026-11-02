@@ -87,8 +87,8 @@ def words(text: str) -> set[str]:
     return set(_WORD.findall(text.lower()))
 
 
-def lexical_rank(item: Item) -> list[Lesson]:
-    """The item's lessons, best first, by inverse-document-frequency overlap with the situation."""
+def lexical_scores(item: Item) -> dict[str, float]:
+    """Each prompt lesson's inverse-document-frequency overlap with the situation, by lesson id."""
     situation = words(item.situation)
     docs = {
         lesson.lesson_id: words(
@@ -97,11 +97,18 @@ def lexical_rank(item: Item) -> list[Lesson]:
         for lesson in item.prompt_lessons
     }
     df = Counter(word for doc in docs.values() for word in doc)
+    return {
+        lesson_id: sum(math.log(len(docs) / df[word]) for word in doc & situation)
+        for lesson_id, doc in docs.items()
+    }
 
-    def score(lesson: Lesson) -> float:
-        return sum(math.log(len(docs) / df[word]) for word in docs[lesson.lesson_id] & situation)
 
-    return sorted(item.prompt_lessons, key=lambda lesson: (-score(lesson), lesson.lesson_id))
+def lexical_rank(item: Item) -> list[Lesson]:
+    """The item's lessons, best first, by `lexical_scores` (ties by lesson id)."""
+    scores = lexical_scores(item)
+    return sorted(
+        item.prompt_lessons, key=lambda lesson: (-scores[lesson.lesson_id], lesson.lesson_id)
+    )
 
 
 def narrowed(item: Item, keep: int, seed: int = 0) -> Item:

@@ -1,0 +1,48 @@
+{
+ "dataset": "SWE-bench/SWE-smith-trajectories",
+ "dataset_revision": "08e109b4a59eaeebf80e4675cd125d42e7ac99a4",
+ "license": "MIT (dataset card)",
+ "repositories": [
+  "getmoto__moto",
+  "pydantic__pydantic"
+ ],
+ "raw_sha256": {
+  "getmoto__moto": "fd38ac346347b1ab9aed1de021cc8c9a2f2e7578220f0c18a73c6c023f3da41c",
+  "pydantic__pydantic": "56798b3eaab4f4b74f830f4303b1e9a457506337e0a1fe1dd5dcbbd915019035"
+ },
+ "rows": {
+  "pydantic__pydantic": 2280,
+  "getmoto__moto": 4646
+ },
+ "shard_sha256_for_audit": {
+  "ticks-00000-of-00008.parquet": "4c8932359650337d396c9b3019f312f97f2db7761b7e1324cc23ce54d4b56090",
+  "ticks-00001-of-00008.parquet": "3af8307e3e198602b152fab538c68131c1f49b8c8ee6c400c6143ad92751903d",
+  "ticks-00002-of-00008.parquet": "7dde9b3e7f3ff47d467a7992fa8db5ba704eee4145eb6046204f8b3a8b3c7e76",
+  "ticks-00003-of-00008.parquet": "f77f88efc19c01f5507c7e0d4569c89f705b0d589d7a6650b871e5cac93b0b9f",
+  "ticks-00004-of-00008.parquet": "5ceadc30c5d093b9f6e62cb84dc18e88d11679f946306d1e13a8b20eff744c8d",
+  "ticks-00005-of-00008.parquet": "aa63a55a5b960dc745904b56082078d0facccd2209e6b5017b8a9fbbe92064e1",
+  "ticks-00006-of-00008.parquet": "5522d7404a3a575300951bcfc0fd7f9da0984f47beba5a0d983a571ac60154a0",
+  "ticks-00007-of-00008.parquet": "61085c94ea66d31dc93e958afa32938a280ebe7265ea8796f419dab1171ec316",
+  "tool-00000-of-00008.parquet": "ac76e9efe75978f83d4daec98a55604587dd58b0f1509364893b8778cbf5b487",
+  "tool-00001-of-00008.parquet": "2d3a4fcdb89bf4ec4485a1abc41d92645a446d115705cbe882dd5fe148afec3a",
+  "tool-00002-of-00008.parquet": "13a95587cfc2fac8e2d6130b25167c02362add1cf969888574328a49dc8ad319",
+  "tool-00003-of-00008.parquet": "677831f640fb14e5b7bc02fd2aa729c05cd2068750777eaf877084de03157594",
+  "tool-00004-of-00008.parquet": "e41ffbd3f9d1571917ac5b9f4d0108ded4799d9776f597a054203467135a5715",
+  "tool-00005-of-00008.parquet": "487a3a6bc8d00c4d2e6ace23da10a82c03349ada8b0f6758d5abf8c7f7fa61d4",
+  "tool-00006-of-00008.parquet": "c20d2fc45e67af5d5c6d4c91ca7dfeac69cbaf40442bc2bfe7bac528a99e4b59",
+  "tool-00007-of-00008.parquet": "29b684a990ec25345e9c7ade1b8287a6e41fa7fbabd4734f45420ed29280c868",
+  "xml-00000-of-00008.parquet": "094264cf8d9803a669b8d663b52bb8f2be3feab4b160e82ec5f6deea725de6b3",
+  "xml-00001-of-00008.parquet": "e5232aa06727b748f111a47382e85364b710aa02485962e12d4795a26e46be2c",
+  "xml-00002-of-00008.parquet": "74d7f8f34f27204ed849182e1c8be796cd760291d697acad4e4bc820b7a00732",
+  "xml-00003-of-00008.parquet": "f7e4fd065ee320493cc9b9ee89997955bd1e61826c888dfa1b56dce463b5b2af",
+  "xml-00004-of-00008.parquet": "38ffb17191935937e74ea34ecec686f7d7d407d5a273554a6d53a693a2fb118d",
+  "xml-00005-of-00008.parquet": "f94b7e7a6869b0c92b5e9181919dc7f376fb12d4a085aa7c2680a4f676038a7c",
+  "xml-00006-of-00008.parquet": "6006adc2b0dcc0d76e22d51a58dd1970fe4d1ee2c93434c4f7db1009aa9d25ff",
+  "xml-00007-of-00008.parquet": "bb3abe6b680abc935d78686549392c31ecb851304e26897c84f23935de7ca80e"
+ },
+ "prep_sha256": {
+  "lessons.jsonl": "6035348f8c8c72f894e9ec08645f075360fa6cd83e4601aec9a17548ea7756aa",
+  "pairs.jsonl": "9fe04554cdcdafc50401fc0fe9de1cb81ef2a666e92978ff217fd54852fa41f9"
+ },
+ "note": "hashes of the study's own files rebuilt from the pinned revision: raw rows per repository, then the history lessons and the pairs the nightly arm learns from"
+}

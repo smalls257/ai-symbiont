@@ -1,0 +1,35 @@
+{
+ "items": 501,
+ "repos_without_positives_excluded": 0,
+ "coverage_rule": 0.2563,
+ "coverage_judge_alone": 0.1276,
+ "gain": 0.1287,
+ "gain_interval": [
+  0.0334,
+  0.2297
+ ],
+ "reading": "better",
+ "rule": {
+  "wrong_pick": 0.0,
+  "precision": 1.0,
+  "answered": 53
+ },
+ "judge_alone": {
+  "wrong_pick": 0.0,
+  "precision": 1.0,
+  "answered": 41
+ },
+ "ranker_at_same_cut_no_judge": {
+  "coverage": 0.4343,
+  "wrong_pick": 0.1158,
+  "precision": 0.6527,
+  "answered": 167
+ },
+ "wrong_bound_rule": 0.0,
+ "safety": "safe",
+ "strict_single_fix": {
+  "rule": 0.2764,
+  "judge_alone": 0.1446
+ },
+ "wrong_pick_icc": 0.0
+}

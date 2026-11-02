@@ -118,8 +118,9 @@ def verify_pins(found: dict[str, str]) -> None:
             raise InputHashMismatchError(f"{name} is {found.get(name)}, the prereg pins {expected}")
 
 
-def check(args: argparse.Namespace) -> dict:
-    """Inputs against their pins, the frozen prereg and the code commit; refuses any mismatch."""
+def check(args: argparse.Namespace, expects: str = PREREG_NAME) -> dict:
+    """Inputs against their pins, the frozen prereg named `expects` (round 2's by default; round 3
+    passes its own) and the code commit; refuses any mismatch."""
     found = {
         "pool_index_sha256": pool_index_sha(args.pool),
         "habit_rows_sha256": sha256_of(args.habit_rows),
@@ -127,7 +128,7 @@ def check(args: argparse.Namespace) -> dict:
     }
     verify_pins(found)
     check_plan(json.loads((args.work / "plan.json").read_text()))
-    label = run_provenance(scored=True, prereg=args.prereg, expects=PREREG_NAME)
+    label = run_provenance(scored=True, prereg=args.prereg, expects=expects)
     code = pinned_code_commit(HERE.parents[1], label["freeze_commit"])
     provenance = {**label, **found, "code_commit": code}
     (args.work / "provenance.json").write_text(json.dumps(provenance, indent=1, sort_keys=True))

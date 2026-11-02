@@ -1,0 +1,24 @@
+{
+ "repo_id": null,
+ "revision": "283ffd909d12ff5ec5db16ddc67d118099e084d3",
+ "status": "published; four adapters, nightly adapters withheld",
+ "adapters": {
+  "judge-s0": {
+   "adapter_config.json": "1392cf3d1ede31462db905ddf42ad2c4603d3d9799b1033aaa69ce15b21c2870",
+   "adapter_model.safetensors": "6375047268eb3e285d21b4632a5661ced347c1aa319ec47ed0ba57c77e0d7bdc"
+  },
+  "judge-s1": {
+   "adapter_config.json": "756eefba06821302e901016e0dac6bdf2175a8fb41bbd55821371380e2e7801a",
+   "adapter_model.safetensors": "a06ab6e0f5b74f8f60ff6d7605dc5be54b970b5a7811ddf95503501dc196bdc4"
+  },
+  "judge-s2": {
+   "adapter_config.json": "2d7cefdc039a3c1e8caf92ca640fe8eb21e841a323eb0126d9068e3c7f456e32",
+   "adapter_model.safetensors": "797d169cedf9fde56cac3791cf88245d02e8fb23cd072c0e0bbcce67415837c9"
+  },
+  "general": {
+   "adapter_config.json": "476047be323df42a6e04a76180d7fbacc159fc1247097fde84ddcf1c61d01e16",
+   "adapter_model.safetensors": "9dd0422fd53df8e6bac98db972a88e002f5ad28180d25dfd312790e12204a863"
+  }
+ },
+ "repo_name": "Llama-3.2-1B-symbiont-judge-adapters"
+}

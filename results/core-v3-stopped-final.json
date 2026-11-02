@@ -1,0 +1,71 @@
+{
+ "label": "STOPPED EARLY by owner decision (5080 heat) 2026-11-01 23:40; 37 of 60 blocks",
+ "complete_blocks": 37,
+ "solve_rate": {
+  "V3": 0.05405405405405406,
+  "P": 0.10810810810810811
+ },
+ "v3_minus_P": {
+  "mean": -0.05405405405405406,
+  "low": -0.10810810810810811,
+  "high": -0.013513513513513514
+ },
+ "tasks_better_worse_same": [
+  0,
+  4,
+  33
+ ],
+ "blocks_by_server": {
+  "strix": 22,
+  "desk": 15
+ },
+ "steps_per_run": {
+  "V3": 50.8,
+  "P": 63.6
+ },
+ "reasoning_chars_per_step": {
+  "V3": {
+   "steps": 3761,
+   "median_chars": 63,
+   "mean_chars": 142.8
+  },
+  "P": {
+   "steps": 4689,
+   "median_chars": 68,
+   "mean_chars": 236.2
+  }
+ },
+ "pain_points_V3_minus_P": {
+  "reworked_edit": {
+   "mean": 0.0,
+   "low": 0.0,
+   "high": 0.0,
+   "tasks": 42
+  },
+  "loop": {
+   "mean": 0.14285714285714285,
+   "low": 0.023809523809523808,
+   "high": 0.32142857142857145,
+   "tasks": 42
+  },
+  "blast_radius": {
+   "mean": 0.0,
+   "low": 0.0,
+   "high": 0.0,
+   "tasks": 42
+  },
+  "failed_command": {
+   "mean": 0.4642857142857143,
+   "low": -0.09523809523809523,
+   "high": 1.0476190476190477,
+   "tasks": 42
+  },
+  "code_level_total": {
+   "mean": 0.14285714285714285,
+   "low": 0.023809523809523808,
+   "high": 0.32142857142857145,
+   "tasks": 42
+  }
+ },
+ "pain_point_tasks": 37
+}

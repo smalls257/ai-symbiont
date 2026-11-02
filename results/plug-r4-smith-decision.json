@@ -1,0 +1,74 @@
+{
+ "agree_vs_judge_alone": {
+  "items": 924,
+  "repos_without_positives_excluded": 38,
+  "coverage_rule": 0.0,
+  "coverage_judge_alone": 0.0,
+  "gain": 0.0,
+  "gain_interval": [
+   0.0,
+   0.0
+  ],
+  "reading": "tie",
+  "rule": {
+   "wrong_pick": 0.0,
+   "precision": null,
+   "answered": 0
+  },
+  "judge_alone": {
+   "wrong_pick": 0.0,
+   "precision": null,
+   "answered": 0
+  },
+  "ranker_at_same_cut_no_judge": {
+   "coverage": 0.0,
+   "wrong_pick": 0.0,
+   "precision": null,
+   "answered": 0
+  },
+  "wrong_bound_rule": 0.0,
+  "safety": "safe",
+  "strict_single_fix": {
+   "rule": 0.0,
+   "judge_alone": 0.0
+  },
+  "wrong_pick_icc": 0.0
+ },
+ "nightly_vs_agree": {
+  "items": 924,
+  "repos_without_positives_excluded": 38,
+  "coverage_rule": 0.6113,
+  "coverage_judge_alone": 0.0,
+  "gain": 0.6113,
+  "gain_interval": [
+   0.5556,
+   0.6662
+  ],
+  "reading": "better",
+  "rule": {
+   "wrong_pick": 0.0054,
+   "precision": 0.978,
+   "answered": 227
+  },
+  "judge_alone": {
+   "wrong_pick": 0.0,
+   "precision": null,
+   "answered": 0
+  },
+  "ranker_at_same_cut_no_judge": {
+   "coverage": 0.6113,
+   "wrong_pick": 0.0054,
+   "precision": 0.978,
+   "answered": 227
+  },
+  "wrong_bound_rule": 0.0105,
+  "safety": "safe",
+  "strict_single_fix": {
+   "rule": 0.6338,
+   "judge_alone": 0.0
+  },
+  "wrong_pick_icc": 0.0,
+  "wrong_exact_upper": 0.0126,
+  "claim_reading": "better"
+ }
+}

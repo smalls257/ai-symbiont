@@ -32,6 +32,10 @@ Start a session in a repository. The first time, symbiont says what it does and 
 repository's past Claude Code and Muse Code sessions (it finds both on its own). `/symbiont` shows status, explains the last note, mutes it
 or forgets its lessons.
 
+## Reproduce it
+
+`REPRODUCE.md` has three tiers: a one-command demo (about a second, no model), a check that recomputes our headline numbers from committed files (about 10 seconds), and the rebuild of the code-fix study's data from a pinned public dataset.
+
 ## Privacy
 
 Everything stays on this computer. The service listens on 127.0.0.1 only, the lessons live in
