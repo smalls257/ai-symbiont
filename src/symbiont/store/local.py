@@ -20,6 +20,7 @@ from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.secrets import scrubbed
 from symbiont.miner.trained import lesson_id, refuse_held_out_lessons, training_manifest
 from symbiont.records.privacy import OwnHistoryConsent
+from symbiont.store.contexts import LessonContexts
 
 log = logging.getLogger("symbiont.store")
 
@@ -34,6 +35,11 @@ CREATE TABLE IF NOT EXISTS lessons (
 );
 CREATE INDEX IF NOT EXISTS lessons_by_project ON lessons (project, spark_safe);
 -- Ids (no text) of lessons a model was trained on, with the export that carried them.
+-- The developer's own words about a lesson (store.contexts); not record text.
+CREATE TABLE IF NOT EXISTS contexts (
+    lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, text TEXT NOT NULL,
+    intentional INTEGER NOT NULL, priority TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS trained (
     project TEXT NOT NULL, lesson_id TEXT NOT NULL, export_id TEXT NOT NULL,
     PRIMARY KEY (project, lesson_id)
@@ -184,6 +190,20 @@ class Store:
             "SELECT 1 FROM lessons WHERE project=? AND spark_safe=0 LIMIT 1", (project,)
         ).fetchone()
         return row is not None
+
+    @property
+    def contexts(self) -> LessonContexts:
+        """The developer's own words about lessons, in the same database."""
+        return LessonContexts(self._db)
+
+    def find_lesson(self, wanted: str) -> tuple[str, Lesson] | None:
+        """(project, lesson) for the lesson id `wanted`, or None when no stored lesson has it."""
+        rows = self._db.execute("SELECT project, body FROM lessons").fetchall()
+        for project, body in rows:
+            lesson = _lesson_from_json(body)
+            if lesson_id(lesson) == wanted:
+                return project, lesson
+        return None
 
     def spark_view(self, consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD) -> "SparkView":
         """A read-only view that raises rather than return anything Spark may not see.

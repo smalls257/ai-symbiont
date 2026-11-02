@@ -5,10 +5,11 @@ does and how to answer. The gate also keeps a silenced kind of trouble silent, l
 exact-repeat rule speak once per lesson per session, and makes the nightly announcement once.
 """
 
-from collections.abc import Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
 from symbiont.core.repeat import RepeatNote, repeat_note
+from symbiont.miner.lesson_context import LessonContext
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signature
 from symbiont.records.schema import Record
@@ -45,9 +46,16 @@ class RepoGate:
     """
 
     def __init__(
-        self, registry: RepoRegistry | None = None, nightly: NightlyJudges | None = None
+        self,
+        registry: RepoRegistry | None = None,
+        nightly: NightlyJudges | None = None,
+        contexts: Callable[[str], Mapping[str, LessonContext]] | None = None,
     ) -> None:
-        """Read answers from `registry`; `nightly` says when a repository's first night is done."""
+        """Read answers from `registry`; `nightly` says when a first night is done.
+
+        `contexts` gives a repository's lesson contexts (the developer's own words).
+        """
+        self._contexts = contexts or (lambda project: {})
         self.registry = registry
         self._nightly = nightly
         self._said: set[tuple[str, Signature]] = set()
@@ -72,7 +80,7 @@ class RepoGate:
         self, session_id: str, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
     ) -> RepeatNote | None:
         """The exact-repeat note for `record`, unless muted or already said in this session."""
-        found = repeat_note(record, earlier, lessons) if self.registry else None
+        found = self._repeat(record, earlier, lessons)
         if found is None or self.silenced(record.project, found.lesson.pain_point.signature):
             return None
         signature = found.lesson.pain_point.signature
@@ -91,6 +99,18 @@ class RepoGate:
             "muted": len(self.registry.muted(project)) if self.registry else 0,
             "nightly": self._nightly is not None and self._nightly.has_record(project),
         }
+
+    def speaks_only_on_match(self) -> bool:
+        """Whether a note needs a stored lesson with this failure's signature (plugin mode)."""
+        return self.registry is not None
+
+    def _repeat(
+        self, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
+    ) -> RepeatNote | None:
+        """The matching note, with the developer's words for the repository's lessons."""
+        if self.registry is None:
+            return None
+        return repeat_note(record, earlier, lessons, self._contexts(record.project))
 
     def _nightly_news(self, project: str, event: str) -> tuple[str, ...]:
         """The one-time announcement that the repository's nightly training is live."""

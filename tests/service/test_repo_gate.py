@@ -42,7 +42,7 @@ class Rig:
         self.events = EventLog(tmp_path / "runs" / "20261102T000000Z", "counters")
         store = Store.open(tmp_path / "store.db")
         store.save_mining(PROJECT, [], fixed_failure_lessons(), held_out_tasks=frozenset())
-        gate = RepoGate(self.registry, nightly)
+        gate = RepoGate(self.registry, nightly, store.contexts.all)
         parts = ServiceParts(store, Counters(), self.events, ServiceMode.WARN_AND_RECALL, gate=gate)
         self.service = Service(parts)
         self.runs = tmp_path / "runs"
@@ -160,3 +160,81 @@ def test_status_reports_the_answer_lessons_and_silenced_kinds(rig):
         "muted": 0,
         "nightly": False,
     }
+
+
+def lesson_id_of_fixture():
+    from symbiont.miner.trained import lesson_id
+
+    return lesson_id(fixed_failure_lessons()[0])
+
+
+def post_context(rig, lesson, body):
+    return rig.service.respond(f"/lessons/{lesson}/context", body)
+
+
+def test_a_passing_result_never_gets_a_note_even_after_a_matching_failure(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+    assert rig.fail()["notes"]
+
+    passed = rig.send(
+        "PostToolUse",
+        "command",
+        "live",
+        raw="1 passed",
+        command="pytest -q tests/test_parser.py",
+        exit_code=0,
+    )
+    unknown = rig.send(
+        "PostToolUse", "command", "live", raw="1 passed", command="pytest -q tests/test_parser.py"
+    )
+
+    assert passed["notes"] == [] and unknown["notes"] == []
+
+
+def test_the_developers_words_lead_the_note_once_saved_through_the_endpoint(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+    lesson = lesson_id_of_fixture()
+
+    saved = post_context(rig, lesson, {"text": "Keep parser imports lazy.", "priority": "high"})
+    (note,) = rig.fail()["notes"]
+
+    assert saved.status == 200 and saved.body["project"] == PROJECT
+    assert note.startswith("[symbiont] In this repo: Keep parser imports lazy. Last time")
+
+
+def test_an_intentional_lesson_is_suppressed(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+    post_context(rig, lesson_id_of_fixture(), {"text": "on purpose", "intentional": True})
+
+    assert rig.fail() == {"notes": []}
+
+
+def test_the_context_endpoint_refuses_unknown_lessons_and_bad_payloads(rig):
+    lesson = lesson_id_of_fixture()
+
+    assert post_context(rig, "no:such:lesson", {"text": "x"}).status == 404
+    assert post_context(rig, lesson, {"text": "x", "priority": "urgent"}).status == 400
+    assert post_context(rig, lesson, {"text": "x", "intentional": "yes"}).status == 400
+    assert post_context(rig, lesson, {"text": "x", "score": 3}).status == 400
+    assert post_context(rig, lesson, {}).status == 400
+
+
+def test_a_different_assertion_is_not_matched_by_command_and_exception_class_alone(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+
+    body = rig.send(
+        "PostToolUseFailure",
+        "command",
+        "live",
+        raw="E   assert 1 == 2\nTypeError: x",
+        command="pytest -q tests/test_parser.py",
+        exit_code=1,
+    )
+
+    assert body == {"notes": []}
+
+
+def test_a_percent_encoded_lesson_id_in_the_path_is_decoded(rig):
+    encoded = lesson_id_of_fixture().replace(":", "%3A")
+
+    assert post_context(rig, encoded, {"text": "x"}).status == 200

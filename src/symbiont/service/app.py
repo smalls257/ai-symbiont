@@ -7,27 +7,26 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
-from symbiont.core.agree import AGREE, NIGHTLY, Verdict, agree
 from symbiont.core.features import featurise
-from symbiont.core.judge_format import fix_commands
 from symbiont.core.memory_note import note_request, recall_request
 from symbiont.core.note_rules import may_speak
 from symbiont.core.notes import NoteKind, render, render_lesson
 from symbiont.core.recall import relevant_lessons
-from symbiont.core.repeat import RepeatNote
+from symbiont.core.repeat import RepeatNote, failed_now
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.secrets import scrub
-from symbiont.miner.twins import merge_twins
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record
+from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall
+from symbiont.service.context_route import UnknownLessonError, context_target, save_context
 from symbiont.service.events import Call, EventLog, MemoryCost
-from symbiont.service.follow_up import FollowUp, ShownNote
-from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
+from symbiont.service.follow_up import FollowUp
+from symbiont.service.judge_model import JudgeModel
 from symbiont.service.memory_model import (
     MemoryModel,
     MemoryModelOfflineError,
@@ -52,11 +51,11 @@ from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, 
 
 log = logging.getLogger("symbiont.service")
 SPARK_WITHHELD = "private history withheld from Spark"
-NOTHING_MATCHES = "nothing in this project's history matches that question"
 RECALL_KEYS = frozenset({"question", "project", "spark_bound"})
 OBSERVE_REQUIRED = frozenset({"harness", "session_id", "event", "payload"})
 OBSERVE_KEYS = OBSERVE_REQUIRED | {"spark_bound"}
 LEARN_KEYS = frozenset({"reader", "session_log_path", "project"})
+NO_MATCHING_LESSON = "no stored lesson has this failure signature"
 SILENCED = "the developer silenced this kind of note"
 HELD_BY_RULE = "the note budget is spent or the last note was too recent"
 
@@ -120,6 +119,7 @@ class Service:
         self._spoken: dict[tuple[str, str], list[int]] = {}
         self._one_call_at_a_time = threading.Lock()
         self._follow_up = FollowUp(parts.events)
+        self._agreed = AgreedRecall(parts, self._follow_up)
 
     def respond(self, route: str, payload: Any) -> Response:
         """Answer one request; a refusal is a status plus a reason, and an event."""
@@ -136,12 +136,19 @@ class Service:
             "learn": self._learn,
             "status": lambda request, call: _status(self._parts, self._lessons, request),
         }
+        lesson = context_target(name)
+        if lesson is not None:
+            routes[name] = lambda request, _: Response(
+                200, save_context(self._parts.store, lesson, request)
+            )
         if name not in routes:
             return self._refuse(call, 404, f"no such route: {route}")
         try:
             return routes[name](as_object(payload), call)
         except BadRequestError as exc:
             return self._refuse(call, 400, str(exc))
+        except UnknownLessonError as exc:
+            return self._refuse(call, 404, str(exc))
         except (SparkPrivacyViolationError, SparkWithheldError):
             return self._refuse(call, 409, SPARK_WITHHELD)
         except HoldOutViolationError as exc:
@@ -175,6 +182,9 @@ class Service:
         spoken = gate.repeat(request["session_id"], record, prefix[:-1], lessons)
         if spoken is not None:
             return _repeat_response(self._parts.events, call, spoken, door)
+        if _passing_result(request["event"], record) or gate.speaks_only_on_match():
+            _hold_unmatched(self._parts.events, call, record)
+            return _said(door, [])
         # No raw history is stored, so there are no earlier records to recall from here.
         history = tuple(lesson.pain_point for lesson in lessons)
         situation = Situation(project, tuple(prefix), history, ())
@@ -233,7 +243,8 @@ class Service:
             raise BadRequestError("question and project must be text")
         lessons = self._lessons(request, project)
         if lessons and (self._parts.judge or self._parts.nightly):
-            return self._agreed_recall(call, project, question, lessons)
+            answer, found = self._agreed.answer(call, project, question, lessons)
+            return self._answered(call, answer, found)
         memory = self._memory_for(request, project)
         if memory is not None:
             reply = memory.write_line(recall_request(project, question))
@@ -245,32 +256,6 @@ class Service:
         found = relevant_lessons(question, lessons)
         notes = list(dict.fromkeys(render_lesson(lesson) for lesson in found))
         return self._answered(call, " ".join(notes) or NOTHING_MATCHES, found)
-
-    def _agreed_recall(
-        self, call: Call, project: str, question: str, lessons: list[Lesson]
-    ) -> Response:
-        """The agree rule's stored note, or NOTHING_MATCHES; a down judge raises (503)."""
-        merged = merge_twins(lessons)
-        nightly = self._parts.nightly.judge_for(project, merged) if self._parts.nightly else None
-        judge, bars = (nightly, NIGHTLY) if nightly else (self._parts.judge, AGREE)
-        rule = "nightly" if nightly else "agree"
-        if judge is None:
-            raise JudgeOfflineError("no first-night judge is configured (--judge-url)")
-        outcome = agree(question, project, merged, judge.p_yes, bars)
-        if outcome.verdict is Verdict.AGREED and outcome.lesson and outcome.note:
-            refs = outcome.lesson.pain_point.record_refs
-            note_id = ":".join(map(str, refs[0])) if refs else outcome.lesson.pain_point.session_id
-            fixes = fix_commands(outcome.lesson)
-            self._follow_up.shown(call, project, ShownNote(note_id, rule, fixes))
-            return self._answered(call, outcome.note, [outcome.lesson])
-        numbers = {
-            "ranker_score": outcome.ranker_score,
-            "ranker_cut": outcome.ranker_cut,
-            "ceiling": outcome.ceiling,
-            "judge_p_yes": outcome.judge_p_yes,
-        }
-        self._parts.events.append_note_held(call, f"{rule}:{outcome.verdict.value}", numbers)
-        return self._answered(call, NOTHING_MATCHES, [])
 
     def _answered(self, call: Call, answer: str, found: Sequence[Lesson]) -> Response:
         """Log the answer with the records it cites and return it."""
@@ -313,6 +298,17 @@ def _status(
     """The repository's state for `symbiont status`; it changes nothing."""
     name = named_project(request)
     return Response(200, parts.gate.status(name, lessons_of(request, name)))
+
+
+def _passing_result(event: str, record: Record) -> bool:
+    """A tool's result that is not a failed command: no note is ever about a pass."""
+    return "post" in event.lower() and not failed_now(record)
+
+
+def _hold_unmatched(events: EventLog, call: Call, record: Record) -> None:
+    """Log why a failed command got no note; a passing result is not worth a line."""
+    if failed_now(record):
+        events.append_note_held(call, NO_MATCHING_LESSON, {})
 
 
 def _repeat_response(events: EventLog, call: Call, found: RepeatNote, door: Door) -> Response:

@@ -62,6 +62,8 @@ flowchart LR
   failed-command finder, so a planned failure (the TDD red) is never a repeat, and it says each
   lesson once per session. Prevents Paper Tiger: a plugin that needs weeks of history before it may
   speak fails the first-week user.
+- **A pass never gets a note.** A note is about a failed command whose normalized failure signature (the failing test and the message, with numbers, paths and hashes normalized) matches a stored lesson. A command and an exception class alone never match, and a passing or unreported result gets nothing.
+- **The developer's words lead.** `symbiont context add <lesson id or last> "<words>"` (or `POST /lessons/<id>/context` with `{text, intentional, priority}`) stores words per lesson. The note then reads "[symbiont] In this repo: <words>. Last time …"; `intentional` silences the lesson.
 - **Notes are domain prose.** No scores, thresholds or feature names. `recall` takes one question.
 - **Every note can be explained and undone.** Events carry the repository and the kind of trouble,
   never text of the prompt. `symbiont why` reads the last note's cause from the log; `symbiont

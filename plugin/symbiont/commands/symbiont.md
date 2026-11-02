@@ -1,6 +1,6 @@
 ---
 description: Show what symbiont is doing here, explain a note, silence it, forget a lesson, or answer for this repository
-argument-hint: "[status | why | mute | forget | lessons | allow | decline | mine | uninstall]"
+argument-hint: "[status | why | mute | forget | lessons | context | allow | decline | mine | uninstall]"
 allowed-tools: Bash(symbiont:*)
 ---
 
@@ -16,6 +16,7 @@ one or two plain sentences. Never invent output; if a command fails, quote its m
 | `mute` | `symbiont mute` | stop notes about the kind of trouble the last note was about |
 | `forget` | `symbiont forget` | delete the lessons behind the last note and keep them silenced |
 | `lessons` | `symbiont lessons` | list the stored lessons for this repository with their ids |
+| `context <id or last> <words>` | `symbiont context add <id or last> "<words>"` | put the developer's own words in front of a lesson's note (`--intentional` silences it, `--priority low\|normal\|high`) |
 | `allow` | `symbiont repo allow` | switch symbiont on for this repository |
 | `decline` | `symbiont repo decline` | keep symbiont off for this repository |
 | `mine` | `symbiont repo mine` | learn from this repository's past agent sessions (needs `allow` first) |
