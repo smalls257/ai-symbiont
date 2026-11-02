@@ -4,6 +4,7 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from symbiont.core.slot import Decision, event_fields
 from symbiont.miner.painpoint import Signature
@@ -15,6 +16,8 @@ class Call:
 
     route: str
     hook: str
+    # Whose history the call is about; lets `symbiont why` find the last note of one repository.
+    project: str = ""
 
 
 @dataclass(frozen=True)
@@ -62,6 +65,18 @@ class EventLog:
         """Record a decision to speak that the delivery rule held back, and why."""
         self._write(call, {**event_fields(decision), "records": [], "notes": [], "held": why})
 
+    def append_note_shown(self, call: Call, note_id: str, rule: str) -> None:
+        """Record a Plug note that was shown: which lesson and which rule let it through."""
+        self._write(call, {"note_shown": {"note_id": note_id, "rule": rule}})
+
+    def append_note_outcome(self, call: Call, note_id: str, rule: str, actions: list[str]) -> None:
+        """Record what the agent's next actions were after the note (followed/ignored/burned)."""
+        self._write(call, {"note_outcome": {"note_id": note_id, "rule": rule, "actions": actions}})
+
+    def append_note_held(self, call: Call, why: str, numbers: dict[str, float | None]) -> None:
+        """Record why Plug stayed silent (which bar blocked it, with the scores), never the text."""
+        self._write(call, {"note_held": {"why": why, **numbers}})
+
     def append_failure(self, call: Call, status: int, reason: str) -> None:
         """Record a call that was refused, so a failure is never silent."""
         self._write(call, {"status": status, "reason": reason})
@@ -70,6 +85,26 @@ class EventLog:
         """Append one timestamped event line."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         stamped = {"ts": time.time(), "route": call.route, "hook": call.hook, **event}
+        if call.project:
+            stamped["project"] = call.project
         line = json.dumps({**stamped, "filler": self.filler})
         with self.path.open("a", encoding="utf-8") as log:
             log.write(line + "\n")
+
+
+def last_note_event(runs_dir: Path, project: str) -> dict[str, Any] | None:
+    """The newest logged event of `project` that carried a note, searching the newest run first.
+
+    Returns None when there is none. A line that is not JSON raises ValueError naming the file.
+    """
+    for events in sorted(runs_dir.glob("*/events.jsonl"), reverse=True):
+        for line in reversed(events.read_text(encoding="utf-8").splitlines()):
+            try:
+                event = json.loads(line)
+            except ValueError as exc:
+                raise ValueError(f"{events} holds a line that is not JSON: {exc}") from exc
+            if not isinstance(event, dict):
+                raise ValueError(f"{events} holds a line that is not a JSON object")
+            if event.get("project") == project and event.get("notes"):
+                return event
+    return None

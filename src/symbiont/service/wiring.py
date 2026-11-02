@@ -2,6 +2,7 @@
 
 import json
 import time
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from symbiont.core.counters import Counters
@@ -10,8 +11,11 @@ from symbiont.core.warner import LogisticWarner, WarnerWeightsError, weights_fro
 from symbiont.service.app import Service, ServiceMode, ServiceParts
 from symbiont.service.events import EventLog
 from symbiont.service.memory_model import AdapterProvenance, MemoryModel
+from symbiont.service.nightly import NightlyJudges, RecallJudges
+from symbiont.service.repo_gate import RepoGate
 from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
+from symbiont.store.repos import RepoRegistry
 
 # Layout `scripts/routea/train_memory.py` writes: the adapter, one training manifest per run
 # (ids and counts, written by `Store.forget_trained`), and the adapter's record (base model and
@@ -25,17 +29,34 @@ class MemorySetupError(ValueError):
     """The memory directory does not describe a trained adapter; the message names the path."""
 
 
+@dataclass(frozen=True)
+class Guards:
+    """What stands between a decision and the agent: the recall judges and the repository answers.
+
+    No `repos` means every repository is observed, which only tests and the demo service want.
+    """
+
+    judges: RecallJudges = field(default_factory=RecallJudges)
+    repos: RepoRegistry | None = None
+    # Where a repository's finished first night shows up, to tell the developer once. It is not
+    # the recall judge: a repository with no record yet must keep the plain recall.
+    nightly_news: NightlyJudges | None = None
+
+
 def open_service(
     data_dir: Path,
     mode: ServiceMode,
     decider: Decider | None = None,
     memory: MemoryModel | None = None,
+    guards: Guards | None = None,
 ) -> Service:
     """A service over `data_dir/store.db`, logging to `data_dir/runs/<utc stamp>/events.jsonl`.
 
-    Counters fill the slot until a selection result names a live learner.
+    Counters fill the slot until a selection result names a live learner. With `guards.repos`, a
+    repository that did not say yes is not observed (the plugin's per-repository consent).
     """
     data_dir.mkdir(parents=True, exist_ok=True)
+    guards = guards or Guards()
     filler = decider or Counters()
     run_dir = data_dir / "runs" / time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     parts = ServiceParts(
@@ -44,7 +65,10 @@ def open_service(
         EventLog(run_dir, filler.name),
         mode,
         memory=memory,
+        judge=guards.judges.first_night,
+        nightly=guards.judges.nightly,
         consent=read_consent(data_dir),
+        gate=RepoGate(guards.repos, guards.nightly_news),
     )
     return Service(parts)
 

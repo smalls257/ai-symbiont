@@ -8,7 +8,8 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.core.warner import WarnerWeightsError
-from symbiont.delivery.hooks import HookEvent, HookInputError, HookSettings, NoteStyle, run_hook
+from symbiont.delivery.hook_main import add_hook_arguments, forward_hook
+from symbiont.delivery.hooks import NoteStyle
 from symbiont.delivery.install.claude_code import claude_code_install
 from symbiont.delivery.install.muse_code import muse_code_install
 from symbiont.delivery.install.transaction import (
@@ -17,18 +18,31 @@ from symbiont.delivery.install.transaction import (
     install,
     uninstall,
 )
+from symbiont.delivery.launch import DEFAULT_DATA_DIR
 from symbiont.delivery.mcp_server import serve_stdio
 from symbiont.delivery.recall import (
     ServiceOfflineError,
     ServiceRefusedError,
     ServiceReplyError,
+    call_service,
     recall_answer,
 )
 from symbiont.readers import READERS
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.service.app import ServiceMode
+from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
+from symbiont.service.nightly import NightlyJudges, RecallJudges
+from symbiont.service.operator_commands import (
+    COMMANDS,
+    Defaults,
+    ServiceAnswerError,
+    ServiceUnavailableError,
+    add_repo_commands,
+    run_repo_command,
+)
 from symbiont.service.server import SERVICE_PORT, serve
 from symbiont.service.wiring import (
+    Guards,
     MemorySetupError,
     load_warner,
     open_memory,
@@ -37,8 +51,8 @@ from symbiont.service.wiring import (
 from symbiont.store.consent import SETTING, ConsentFileError, read_consent, record_consent
 from symbiont.store.local import Source, Store
 from symbiont.store.mining import MiningRules, coverage_lines, remine
+from symbiont.store.repos import RepoRegistry
 
-DEFAULT_DATA_DIR = Path.home() / ".symbiont"
 INSTALLERS = {"muse_code": muse_code_install, "claude_code": claude_code_install}
 HARNESSES = sorted(INSTALLERS)
 
@@ -46,6 +60,8 @@ HARNESSES = sorted(INSTALLERS)
 def main(argv: Sequence[str] | None = None) -> int:
     """Run one subcommand; returns the exit code."""
     args = _parser().parse_args(argv)
+    if args.command in COMMANDS:
+        return run_repo_command(args, _ask_service)
     if args.command == "serve":
         return _serve(args)
     if args.command == "mcp":
@@ -80,6 +96,7 @@ def _parser() -> argparse.ArgumentParser:
     serving.add_argument(
         "--memory-dir", type=Path, help="what train_memory.py wrote: adapter/ and manifests/"
     )
+    _add_judge_options(serving)
     asking = commands.add_parser("recall", help="ask the local service one question")
     asking.add_argument("question")
     asking.add_argument(
@@ -90,6 +107,7 @@ def _parser() -> argparse.ArgumentParser:
     mcp.add_argument("--project", default=Path.cwd().name, help="defaults to this directory's name")
     mcp.add_argument("--port", type=int, default=SERVICE_PORT)
     _add_hook_commands(commands)
+    add_repo_commands(commands, Defaults(DEFAULT_DATA_DIR, SERVICE_PORT))
     _add_mine_command(commands)
     consent = commands.add_parser(
         "consent",
@@ -143,11 +161,7 @@ def _mine(args: argparse.Namespace) -> int:
 def _add_hook_commands(commands: Any) -> None:
     """Register `hook`, `install` and `uninstall`; the hook reads its event JSON from stdin."""
     hook = commands.add_parser("hook", help="forward one harness hook event (JSON on stdin)")
-    hook.add_argument("event", type=HookEvent, choices=list(HookEvent))
-    hook.add_argument("--harness", choices=HARNESSES, required=True)
-    hook.add_argument("--notes", type=NoteStyle, choices=list(NoteStyle), default=NoteStyle.PLAIN)
-    hook.add_argument("--project", default=Path.cwd().name, help="used when the input has no cwd")
-    hook.add_argument("--port", type=int, default=SERVICE_PORT)
+    add_hook_arguments(hook)
     for name in ("install", "uninstall"):
         setup = commands.add_parser(name, help=f"{name} symbiont's hooks in a project directory")
         setup.add_argument("harness", choices=HARNESSES)
@@ -158,8 +172,32 @@ def _add_hook_commands(commands: Any) -> None:
     commands.choices["install"].add_argument("--yes", action="store_true", help="skip the prompt")
 
 
+def _ask_service(route: str, body: dict[str, object], port: int) -> dict[str, Any]:
+    """Ask the running service; the two ways it can fail become the operator commands' errors."""
+    try:
+        return call_service(route, body, port)
+    except ServiceOfflineError as offline:
+        raise ServiceUnavailableError(str(offline)) from offline
+    except (ServiceRefusedError, ServiceReplyError) as unusable:
+        raise ServiceAnswerError(str(unusable)) from unusable
+
+
+def _add_judge_options(serving: argparse.ArgumentParser) -> None:
+    """The agree rule's first-night judge servers and the nightly records."""
+    serving.add_argument(
+        "--judge-url",
+        help="loopback plug_judge_server.py with the 3 round-3 adapters (first night)",
+    )
+    serving.add_argument(
+        "--nightly-dir", type=Path, help="per-repository nightly records (nightly_record.py)"
+    )
+
+
 def _serve(args: argparse.Namespace) -> int:
     """Start the local service with the optional warner and memory model; bad setup exits 1."""
+    logging.basicConfig(
+        stream=sys.stderr, level=logging.INFO, format="symbiont-service: %(message)s"
+    )
     if (args.memory_url is None) != (args.memory_dir is None):
         print("symbiont serve: --memory-url and --memory-dir go together", file=sys.stderr)
         return 1
@@ -168,8 +206,26 @@ def _serve(args: argparse.Namespace) -> int:
         memory = None
         if args.memory_url:
             memory = open_memory(args.memory_url, args.memory_dir)
-        service = open_service(args.data_dir, args.mode, warner, memory)
-    except (OSError, WarnerWeightsError, MemorySetupError, ConsentFileError) as unusable:
+        judge = JudgeModel(args.judge_url) if args.judge_url else None
+        nightly = NightlyJudges(args.nightly_dir) if args.nightly_dir else None
+        service = open_service(
+            args.data_dir,
+            args.mode,
+            warner,
+            memory,
+            Guards(
+                RecallJudges(judge, nightly),
+                RepoRegistry(args.data_dir),
+                NightlyJudges(args.nightly_dir or args.data_dir / "nightly"),
+            ),
+        )
+    except (
+        OSError,
+        WarnerWeightsError,
+        MemorySetupError,
+        ConsentFileError,
+        JudgeOfflineError,
+    ) as unusable:
         print(f"symbiont serve: {unusable}", file=sys.stderr)
         return 1
     serve(service, args.port)
@@ -215,26 +271,7 @@ def _recall(args: argparse.Namespace) -> int:
 
 def _hook(args: argparse.Namespace) -> int:
     """Forward one hook event; a down service prints the offline notice, not an empty note."""
-    try:
-        result = run_hook(
-            args.event,
-            sys.stdin.read(),
-            HookSettings(args.harness, args.notes, args.port, args.project),
-        )
-    except HookInputError as bad:
-        print(f"symbiont hook {args.event}: {bad}", file=sys.stderr)
-        return 1
-    except ServiceRefusedError as refused:
-        print(f"symbiont refused the event: {refused}", file=sys.stderr)
-        return 1
-    except ServiceReplyError as unusable:
-        print(f"symbiont got no usable reply: {unusable}", file=sys.stderr)
-        return 1
-    if result.warning:
-        print(result.warning, file=sys.stderr)
-    if result.context:
-        print(result.context)
-    return 0
+    return forward_hook(args, sys.stdin.read())
 
 
 def _installation(args: argparse.Namespace) -> int:

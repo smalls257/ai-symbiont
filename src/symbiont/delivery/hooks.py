@@ -6,6 +6,7 @@ about", so offline prints a visible note and exits 0: the harness is never block
 
 import json
 import time
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -62,8 +63,20 @@ _SPEAKING_EVERYWHERE = frozenset(
     {HookEvent.SESSION_START, HookEvent.USER_PROMPT_SUBMIT, HookEvent.POST_TOOL_USE}
 )
 CLAUDE_CODE = "claude_code"
+MUSE_CODE = "muse_code"
+AUTO = "auto"
+# Muse Code sets this for every plugin hook it runs (measured with `muse plugins hook test`);
+# Claude Code does not, so one plugin bundle can tell its two hosts apart without an argument.
+MUSE_MARKER = "MUSE_PLUGIN_ROOT"
 _EDIT_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
 _SHELL_TOOLS = frozenset({"Bash", "shell", "bash"})
+
+
+def resolve_harness(chosen: str, environ: Mapping[str, str]) -> str:
+    """The harness a hook runs under: `auto` reads the host's environment, else as given."""
+    if chosen != AUTO:
+        return chosen
+    return MUSE_CODE if MUSE_MARKER in environ else CLAUDE_CODE
 
 
 def speaking_events(harness: str) -> frozenset[HookEvent]:
@@ -78,12 +91,21 @@ def offline_note(reason: object) -> str:
     return f"symbiont offline: {reason}"
 
 
-def run_hook(event: HookEvent, stdin_text: str, settings: HookSettings) -> HookResult:
-    """What to print; raises HookInputError for unusable input."""
+ServiceCall = Callable[[str, dict[str, object], int], dict[str, Any]]
+
+
+def run_hook(
+    event: HookEvent, stdin_text: str, settings: HookSettings, call: ServiceCall | None = None
+) -> HookResult:
+    """What to print; raises HookInputError for unusable input.
+
+    `call` is how the service is reached (default: as is); the plugin passes one that starts a
+    down service.
+    """
     data = _parsed(stdin_text)
     body = observe_body(event, data, settings.harness, settings.fallback_project)
     try:
-        reply = call_service("/observe", body, settings.port)
+        reply = (call or call_service)("/observe", body, settings.port)
     except ServiceOfflineError as offline:
         note = offline_note(offline)
         if event in speaking_events(settings.harness):
@@ -92,10 +114,11 @@ def run_hook(event: HookEvent, stdin_text: str, settings: HookSettings) -> HookR
     notes = reply.get("notes")
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
-    text = _worded(event, notes, settings.style)
+    told = _announcements(reply)
+    text = "\n".join(filter(None, [_worded(event, notes, settings.style), *told]))
     if not text or event not in speaking_events(settings.harness):
         return HookResult()
-    return HookResult(context=_inline_context(event, text))
+    return HookResult(context=_inline_context(event, text, shown_to="\n".join(told)))
 
 
 def observe_body(
@@ -164,7 +187,8 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
     tool = str(data.get("tool_name", ""))
     given = data.get("tool_input")
     arguments: dict[str, Any] = given if isinstance(given, dict) else {}
-    raw = json.dumps(data.get("tool_response", data.get("error", "")))
+    printed = data.get("tool_response")
+    raw = _output_text(data.get("error", "") if printed is None else printed)
     if tool in _SHELL_TOOLS:
         command = str(arguments.get("command", ""))
         return {
@@ -182,6 +206,23 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
     return {"kind": "tool_result", "raw": raw, "files": files}
 
 
+def _output_text(response: Any) -> str:
+    """What the tool printed, as the text a person would read.
+
+    JSON-encoding it would write every newline as two characters glued to the next word, so the
+    miner would never see an error class that starts a line.
+    """
+    if isinstance(response, str):
+        return response
+    if isinstance(response, dict):
+        printed = [
+            response[k] for k in ("stdout", "stderr", "output") if isinstance(response.get(k), str)
+        ]
+        if printed:
+            return "\n".join(part for part in printed if part)
+    return json.dumps(response)
+
+
 def _exit_code(response: Any, event: HookEvent) -> int | None:
     """What the harness reported; a failure with no code is 1, a success is never assumed 0."""
     if isinstance(response, dict):
@@ -189,6 +230,14 @@ def _exit_code(response: Any, event: HookEvent) -> int | None:
             if isinstance(response.get(key), int):
                 return int(response[key])
     return 1 if event is HookEvent.POST_TOOL_USE_FAILURE else None
+
+
+def _announcements(reply: dict[str, Any]) -> list[str]:
+    """What the service wants the developer to read directly (onboarding, one-time news)."""
+    told = reply.get("announce", [])
+    if not isinstance(told, list) or not all(isinstance(line, str) for line in told):
+        raise ServiceReplyError("the local service sent an announcement that is not sentences")
+    return told
 
 
 def _worded(event: HookEvent, notes: list[str], style: NoteStyle) -> str:

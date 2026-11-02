@@ -1,0 +1,14 @@
+{
+  "name": "symbiont",
+  "version": "0.1.0",
+  "description": "Warns your coding agent about mistakes this repository has already made, from your own agent history. Everything stays on your computer.",
+  "license": "MIT",
+  "keywords": [
+    "memory",
+    "warnings",
+    "agent-history",
+    "local-first"
+  ],
+  "hooks": "./hooks/hooks.json",
+  "mcpServers": "./.mcp.json"
+}

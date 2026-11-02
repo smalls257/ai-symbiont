@@ -1,15 +1,8 @@
-"""Signal: a command that exited non-zero.
+"""Signal: a command that exited non-zero, keyed by the attempt and how it broke.
 
-The key names the attempt and how it broke, e.g.
-`("pytest", "tests/dialects/test_duckdb.py", "ImportError")`, so the note can
-say "this failed last time with an ImportError" in plain words.
-
-Exit 1 is an answer, not a failure, for programs that use it to say "no":
-grep and its kin ("no match"), diff and cmp ("files differ"), test and `[`
-("false"). An empty search is the agent learning something, not a mistake.
-Exit 2 and above from them is still a failure (bad pattern, missing file).
-When the text cannot tell which program set the status (`pytest && grep`),
-exit 1 counts as a failure: the signal is kept rather than guessed away.
+Exit 1 from grep, diff, cmp, test and `[` is an answer ("no match"), not a failure; exit 2 and
+above still is. When the text cannot tell which program set the status, exit 1 counts.
+A planned failure (an assertion in a test edited this session) is not a mistake.
 """
 
 import re
@@ -17,6 +10,7 @@ from collections.abc import Sequence
 
 from symbiont.miner.commands import normalise_command, status_program
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.planned_failure import FailureKind, failure_kind
 from symbiont.records.schema import Kind, Record
 
 _ERROR_CLASS = re.compile(r"\b([A-Z]\w*Error)\b")
@@ -26,8 +20,15 @@ EXIT_1_IS_AN_ANSWER = frozenset(
 
 
 def find_failed_commands(session: Sequence[Record]) -> list[PainPoint]:
-    """Find commands that exited non-zero, excluding exit 1 from answer-by-status tools."""
-    return [_pain_point(record) for record in session if _failed(record)]
+    """Find commands that exited non-zero, excluding exit 1 from answer-by-status tools.
+
+    A planned failure (an assertion in a test written this session) is not a mistake: skipped.
+    """
+    return [
+        _pain_point(record)
+        for position, record in enumerate(session)
+        if _failed(record) and failure_kind(record, session[:position]) is FailureKind.MISTAKE
+    ]
 
 
 def _failed(record: Record) -> bool:

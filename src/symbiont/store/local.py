@@ -154,6 +154,20 @@ class Store:
         log.info("deleted %d trained lessons of %s; manifest %s", deleted, project, manifest_path)
         return deleted
 
+    def forget_trouble(self, project: str, trouble: Signature) -> int:
+        """Delete the lessons of `project` about this kind of trouble; returns how many.
+
+        For the developer who asks symbiont to forget a lesson. Re-mining would bring it back, so
+        the caller also mutes the trouble (`store.repos`).
+        """
+        rows = self._db.execute("SELECT rowid, body FROM lessons WHERE project=?", (project,))
+        doomed = [
+            row for row, body in rows if _lesson_from_json(body).pain_point.signature == trouble
+        ]
+        with self._db:
+            self._db.executemany("DELETE FROM lessons WHERE rowid=?", [(row,) for row in doomed])
+        return len(doomed)
+
     def _rows_of(self, project: str, ids: set[str]) -> list[int]:
         """Row ids of the project's stored lessons whose ids are in `ids`."""
         rows = self._db.execute("SELECT rowid, body FROM lessons WHERE project=?", (project,))

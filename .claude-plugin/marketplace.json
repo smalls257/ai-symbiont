@@ -1,0 +1,20 @@
+{
+  "name": "ai-symbiont",
+  "owner": {
+    "name": "ai-symbiont"
+  },
+  "metadata": {
+    "description": "Plugins from ai-symbiont",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "symbiont",
+      "source": "./plugin/symbiont",
+      "description": "Warns your coding agent about mistakes this repository has already made, from your own agent history. Everything stays on your computer.",
+      "version": "0.1.0",
+      "license": "MIT",
+      "category": "productivity"
+    }
+  ]
+}

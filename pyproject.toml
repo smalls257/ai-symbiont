@@ -10,6 +10,8 @@ dependencies = [
 
 [project.scripts]
 symbiont = "symbiont.cli:main"
+# The harness hook command: its own entry point so it imports no learner and starts fast.
+symbiont-hook = "symbiont.delivery.hook_main:main"
 
 [dependency-groups]
 dev = [

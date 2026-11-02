@@ -13,7 +13,7 @@ import pytest
 
 from record_builders import PUBLIC, edit, replace_text, run, session, user
 from symbiont.eval.training_manifest import check_manifest_against_hold_out
-from symbiont.miner.painpoint import Signal
+from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import export_id_of
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
@@ -208,3 +208,14 @@ def test_the_write_path_itself_refuses_a_held_out_lesson(tmp_path, store):
     with pytest.raises(HoldOutViolationError):
         store.save_mining(PROJECT, [], [lesson], held_out_tasks=frozenset({"tobymao/sqlglot#1000"}))
     assert store.lessons(PROJECT) == [lesson]
+
+
+def test_forgetting_a_trouble_deletes_only_its_lessons(tmp_path, store):
+    source = log_of(tmp_path, "a", failing_session())
+    (lesson,) = remine(store, PROJECT, rules(), adding=[source])
+    other = Signature(Signal.REWORKED_EDIT, ("somewhere.py",))
+
+    assert store.forget_trouble(PROJECT, other) == 0
+    assert store.lessons(PROJECT) == [lesson]
+    assert store.forget_trouble(PROJECT, lesson.pain_point.signature) == 1
+    assert store.lessons(PROJECT) == []

@@ -14,6 +14,10 @@ class ServiceOfflineError(ConnectionError):
     """The local service could not be reached; the message says where."""
 
 
+class ServiceUnreachableError(ServiceOfflineError):
+    """Nothing is listening on the service port: the one offline case a hook may repair."""
+
+
 class ServiceRefusedError(RuntimeError):
     """The service answered with a refusal (for example 400); the message is its reason."""
 
@@ -22,19 +26,21 @@ class ServiceReplyError(ValueError):
     """The service replied without a usable answer."""
 
 
-def call_service(route: str, body: dict[str, object], port: int) -> dict[str, Any]:
+def call_service(
+    route: str, body: dict[str, object], port: int, timeout_s: float = TIMEOUT_S
+) -> dict[str, Any]:
     """POST `body` to the local service; offline and refusal are distinct errors, never a blank."""
     url = f"http://127.0.0.1:{port}"
     try:
         reply = post_json(
-            Destination(Endpoint.LOCAL_SERVICE, f"{url}{route}"), body, timeout_s=TIMEOUT_S
+            Destination(Endpoint.LOCAL_SERVICE, f"{url}{route}"), body, timeout_s=timeout_s
         )
     except EgressRefusedError as refusal:
         raise ServiceRefusedError(f"egress policy refused the call: {refusal}") from refusal
     except OSError as exc:
         code = getattr(exc, "code", None)
         if code is None:
-            raise ServiceOfflineError(f"could not reach the local service at {url}") from exc
+            raise ServiceUnreachableError(f"could not reach the local service at {url}") from exc
         if code == UNAVAILABLE:
             raise ServiceOfflineError(_reason(exc)) from exc
         raise ServiceRefusedError(_reason(exc)) from exc

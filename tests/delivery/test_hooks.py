@@ -6,7 +6,7 @@ import threading
 import pytest
 
 from symbiont import cli
-from symbiont.delivery import hooks
+from symbiont.delivery import hooks, launch
 from symbiont.delivery.hooks import HookEvent, HookInputError, HookSettings, NoteStyle
 from symbiont.service import server
 from symbiont.service.app import ServiceMode
@@ -62,7 +62,8 @@ def test_service_down_prints_offline_note_and_exits_zero(monkeypatch, capsys):
     code, out, _ = run_cli(monkeypatch, capsys, HookEvent.USER_PROMPT_SUBMIT, PROMPT_INPUT, free)
     assert code == 0
     assert json.loads(out)["hookSpecificOutput"]["hookEventName"] == "UserPromptSubmit"
-    assert inline_text(out).startswith("symbiont offline: could not reach")
+    assert inline_text(out).startswith("symbiont offline:")
+    assert "service.log" in inline_text(out), "the offline note says where to look"
     assert json.loads(out)["systemMessage"] == inline_text(out)
 
 
@@ -149,10 +150,12 @@ def test_no_notes_prints_nothing(monkeypatch):
     assert hooks.run_hook(HookEvent.USER_PROMPT_SUBMIT, *args) == hooks.HookResult()
 
 
-def test_unusable_input_is_named_and_exits_one(monkeypatch, capsys):
+def test_unusable_input_is_named_visibly_and_exits_zero(monkeypatch, capsys):
     monkeypatch.setattr("sys.stdin", io.StringIO("not json"))
-    assert cli.main(["hook", "SessionStart", "--harness", "muse_code"]) == 1
-    assert "hook input is not JSON" in capsys.readouterr().err
+    assert cli.main(["hook", "SessionStart", "--harness", "muse_code"]) == 0
+    captured = capsys.readouterr()
+    assert "hook input is not JSON" in captured.err
+    assert "hook input is not JSON" in json.loads(captured.out)["systemMessage"]
     with pytest.raises(HookInputError, match="session_id"):
         hooks.observe_body(HookEvent.SESSION_START, {}, "muse_code", "p")
 
@@ -167,10 +170,11 @@ def test_recall_with_an_unusable_reply_prints_one_line_and_exits_one(monkeypatch
 
 
 def test_a_malformed_service_reply_is_one_line_not_a_traceback(monkeypatch, capsys):
-    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: {"notes": 3})
+    monkeypatch.setattr(launch, "call_service", lambda route, body, port, timeout_s: {"notes": 3})
     code, out, err = run_cli(monkeypatch, capsys, HookEvent.USER_PROMPT_SUBMIT, PROMPT_INPUT, 1)
-    assert (code, out) == (1, "")
-    assert err.count("\n") == 1 and "no usable reply" in err
+    assert code == 0
+    assert err.count("\n") == 1 and "not a list of sentences" in err
+    assert "not a list of sentences" in json.loads(out)["systemMessage"]
 
 
 @pytest.mark.parametrize(("harness", "speaks"), [("claude_code", True), ("muse_code", False)])
@@ -197,3 +201,100 @@ def test_an_egress_refusal_is_a_refusal_not_offline(monkeypatch):
     monkeypatch.setattr(recall, "post_json", refuse)
     with pytest.raises(ServiceRefusedError, match="egress policy refused"):
         recall.call_service("/observe", {}, 1)
+
+
+@pytest.mark.parametrize(
+    ("chosen", "environ", "expected"),
+    [
+        ("auto", {"MUSE_PLUGIN_ROOT": "/x"}, "muse_code"),
+        ("auto", {}, "claude_code"),
+        ("claude_code", {"MUSE_PLUGIN_ROOT": "/x"}, "claude_code"),
+        ("muse_code", {}, "muse_code"),
+    ],
+)
+def test_the_harness_is_read_from_the_host_only_when_asked_to(chosen, environ, expected):
+    assert hooks.resolve_harness(chosen, environ) == expected
+
+
+def test_an_announcement_reaches_the_developer_and_the_model(monkeypatch):
+    reply = {"notes": [], "announce": ["symbiont is installed but not switched on."]}
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: reply)
+    settings = HookSettings("claude_code", NoteStyle.PLAIN, 1, "p")
+
+    result = hooks.run_hook(
+        HookEvent.SESSION_START, json.dumps(INPUTS[HookEvent.SESSION_START]), settings
+    )
+
+    shown = json.loads(result.context)
+    assert shown["systemMessage"] == reply["announce"][0]
+    assert shown["hookSpecificOutput"]["additionalContext"] == reply["announce"][0]
+
+
+def test_an_announcement_that_is_not_sentences_is_refused_not_dropped(monkeypatch):
+    monkeypatch.setattr(
+        hooks, "call_service", lambda route, body, port: {"notes": [], "announce": 5}
+    )
+    settings = HookSettings("claude_code", NoteStyle.PLAIN, 1, "p")
+
+    with pytest.raises(hooks.ServiceReplyError, match="announcement"):
+        hooks.run_hook(
+            HookEvent.SESSION_START, json.dumps(INPUTS[HookEvent.SESSION_START]), settings
+        )
+
+
+def test_a_tool_error_reaches_the_service_as_text_not_as_escaped_json():
+    error = "Exit code 1\nImportError: cannot import name 'parse'"
+    body = hooks.observe_body(
+        HookEvent.POST_TOOL_USE_FAILURE,
+        TOOL_INPUT | {"tool_response": None, "error": error},
+        "claude_code",
+        "p",
+    )
+    assert body["payload"]["record"]["raw"] == error
+
+
+def test_a_failure_repeated_through_the_real_hook_gets_the_last_time_note(
+    tmp_path, monkeypatch, capsys
+):
+    from dataclasses import replace
+
+    from record_builders import edit, run, session
+    from symbiont.miner.lessons import lessons_from
+    from symbiont.miner.mine import mine_history, sessions_of
+    from symbiont.service.wiring import Guards
+    from symbiont.store.local import Store
+    from symbiont.store.repos import RepoRegistry, RepoStance
+
+    error = "File \"app/parser.py\", line 1\nImportError: cannot import name 'parse'"
+    steps = session(
+        run("pytest tests/test_parser.py", 1, error),
+        edit("app/parser.py", diff="-a\n+def parse(text):\n"),
+        run("pytest tests/test_parser.py", 0, "1 passed"),
+    )
+    records = [replace(r, project="demo") for r in steps]
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
+    Store.open(tmp_path / "store.db").save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    registry = RepoRegistry(tmp_path)
+    registry.record_stance("demo", RepoStance.GIVEN)
+    httpd = server.bind(
+        open_service(tmp_path, ServiceMode.WARN_AND_RECALL, guards=Guards(repos=registry)), 0
+    )
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    failure = TOOL_INPUT | {
+        "tool_input": {"command": "pytest -q tests/test_parser.py"},
+        "tool_response": None,
+        "error": "Exit code 1\n" + error,
+    }
+    monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(failure)))
+    port = str(httpd.server_address[1])
+    try:
+        code = cli.main(["hook", "PostToolUseFailure", "--harness", "claude_code", "--port", port])
+        out = capsys.readouterr().out
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+    assert code == 0
+    assert inline_text(out).startswith(
+        "Last time, `pytest tests/test_parser.py` failed with ImportError"
+    )

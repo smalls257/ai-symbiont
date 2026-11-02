@@ -7,7 +7,8 @@ from typing import Any
 
 from symbiont.service.app import Service
 
-# 7377 spells SYMB on a phone keypad; any free loopback port works for tests.
+# 7377 spells SYMB on a phone keypad; any free loopback port works for tests. The clients'
+# copy is egress.policy.LOCAL_SERVICE_PORT; this file may not import egress, so a test keeps both.
 SERVICE_PORT = 7377
 MAX_BODY_BYTES = 1_000_000
 

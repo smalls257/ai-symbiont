@@ -35,6 +35,16 @@ class _MalformedError(Exception):
     """Internal: an event is not in the shape this reader knows. Becomes a ReadError."""
 
 
+def session_logs(repo_dir: Path, home: Path) -> list[Path]:
+    """Claude Code's session logs for the repository at `repo_dir`, oldest first.
+
+    Claude Code keeps them under `~/.claude/projects/<directory path with every character that
+    is not a letter or digit written as "-">/`. Missing folder: no logs, an empty list.
+    """
+    folder = home / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(repo_dir.resolve()))
+    return sorted(folder.glob("*.jsonl"), key=lambda log: log.stat().st_mtime)
+
+
 def read(path: Path, project: str) -> Iterator[Record]:
     """Yield records of the owner's private sessions (never spark safe)."""
     return _read(path, project, PRIVATE_SESSIONS)
