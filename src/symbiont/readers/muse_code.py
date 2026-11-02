@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.readers.errors import ReadError
+from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
 
 HARNESS = "muse-code"
@@ -193,7 +194,8 @@ def _call_fields(call: dict[str, Any], results: dict[str, dict[str, Any]]) -> di
         command = args.get("cmd") or args.get("command")
         if not isinstance(command, str):
             raise _MalformedError("a shell call has no command")
-        return {"kind": Kind.COMMAND, "raw": raw, "command": command, "exit_code": _exit(result)}
+        code = exit_code_with_output(command, raw, _exit(result))
+        return {"kind": Kind.COMMAND, "raw": raw, "command": command, "exit_code": code}
     if tool in _EDIT_TOOLS:
         return {"kind": Kind.EDIT, "raw": raw, "files": files, "diff": _edit_diff(args)}
     kind = Kind.READ if tool == "read_file" else Kind.TOOL_RESULT

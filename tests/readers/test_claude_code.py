@@ -269,3 +269,27 @@ def test_a_repository_with_no_session_folder_has_no_logs(tmp_path):
     from symbiont.readers.claude_code import session_logs
 
     assert session_logs(tmp_path, tmp_path / "home") == []
+
+
+def piped_run(tmp_path, command, output):
+    use = {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": command}}
+    result = {"type": "tool_result", "tool_use_id": "t1", "content": output}
+    head = {"sessionId": "s", "timestamp": "2026-01-01T10:00:00Z", "cwd": "/w"}
+    lines = [
+        json.dumps(
+            {"type": "assistant", **head, "message": {"role": "assistant", "content": [use]}}
+        ),
+        json.dumps({"type": "user", **head, "message": {"role": "user", "content": [result]}}),
+    ]
+    (command_record,) = of_kind(list(read(write_lines(tmp_path, lines), PROJECT)), Kind.COMMAND)
+    return command_record
+
+
+def test_a_failing_test_run_piped_through_head_is_a_failed_command(tmp_path):
+    record = piped_run(tmp_path, "pytest -q 2>&1 | head -n 200", "F\n1 failed, 2 passed in 0.3s")
+    assert record.exit_code == 1
+
+
+def test_a_passing_test_run_piped_through_head_is_not_a_failure(tmp_path):
+    record = piped_run(tmp_path, "pytest -q 2>&1 | head -n 200", "3 passed in 0.3s")
+    assert record.exit_code == 0

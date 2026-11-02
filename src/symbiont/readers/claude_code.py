@@ -18,6 +18,7 @@ from typing import Any
 
 from symbiont.readers.errors import ReadError
 from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAME, split_our_output
+from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
 
 HARNESS = "claude-code"
@@ -254,7 +255,10 @@ def _tool_use(
     own, ours = ("", text) if name == RECALL_TOOL_NAME else split_our_output(text)
     fields = _TOOLS.get(name, _other_tool)(name, args, _make_relative(cwd))
     fields["raw"] = own
-    fields["exit_code"] = _exit_code(fields["kind"], result, own)
+    code = _exit_code(fields["kind"], result, own)
+    if fields["kind"] == Kind.COMMAND:
+        code = exit_code_with_output(str(fields.get("command") or ""), own, code)
+    fields["exit_code"] = code
     yield fields
     if ours:
         yield {"kind": Kind.TOOL_RESULT, "raw": ours, "tags": (OUR_OUTPUT_RECORD_TAG,)}

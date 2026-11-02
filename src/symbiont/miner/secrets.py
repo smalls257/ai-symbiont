@@ -52,4 +52,5 @@ def scrubbed(lesson: Lesson) -> Lesson:
         resolution=tuple(scrub(step) for step in lesson.resolution),
         unresolved_because=None if unresolved is None else scrub(unresolved),
         changed_alongside=tuple(scrub(step) for step in lesson.changed_alongside),
+        error_lines=tuple(scrub(line) for line in lesson.error_lines),
     )

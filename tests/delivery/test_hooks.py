@@ -120,6 +120,16 @@ def test_a_shell_success_with_no_reported_code_is_not_assumed_zero():
     assert observed(TOOL_INPUT | {"tool_response": {"stdout": "ok"}})["exit_code"] is None
 
 
+def test_a_piped_failing_test_run_is_recorded_as_failed_though_the_pager_exited_zero():
+    piped = TOOL_INPUT | {
+        "tool_input": {"command": "pytest -q 2>&1 | head -n 200"},
+        "tool_response": {"stdout": "F\n1 failed, 2 passed in 0.3s\n"},
+    }
+    assert observed(piped)["exit_code"] == 1
+    green = piped | {"tool_response": {"stdout": "3 passed in 0.3s\n", "exit_code": 0}}
+    assert observed(green)["exit_code"] == 0
+
+
 def test_edits_and_reads_name_their_file():
     data = TOOL_INPUT | {"tool_input": {"file_path": "a.py"}}
     edit, read = observed(data, "Edit"), observed(data, "Read")

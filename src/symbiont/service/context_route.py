@@ -5,7 +5,7 @@ Payload: {text, intentional, priority, applies_to}; `project`, if given, must ma
 
 from typing import Any
 
-from symbiont.miner.lesson_context import LessonContext, Priority
+from symbiont.miner.lesson_context import LessonContext, Priority, ReviewOverride
 from symbiont.service.request_shapes import (
     BadRequestError,
     parse_applies,
@@ -14,7 +14,7 @@ from symbiont.service.request_shapes import (
 )
 from symbiont.store.local import Store
 
-FIELDS = frozenset({"text", "intentional", "priority", "project", "applies_to"})
+FIELDS = frozenset({"text", "intentional", "priority", "project", "applies_to", "review_override"})
 MAX_TEXT_CHARS = 2000
 
 
@@ -38,7 +38,20 @@ def save_context(store: Store, lesson_id: str, request: dict[str, Any]) -> dict[
     if found is None or request.get("project", found[0]) != found[0]:
         raise UnknownLessonError(f"no lesson {lesson_id}")
     store.contexts.save(lesson_id, found[0], context)
+    answer = _override_of(request)
+    if answer is not None:
+        store.contexts.save_override(lesson_id, found[0], answer)
     return {"lesson": lesson_id, "project": found[0]}
+
+
+def _override_of(request: dict[str, Any]) -> ReviewOverride | None:
+    """The keep/dismiss answer in a request, None when absent, or BadRequestError."""
+    if "review_override" not in request:
+        return None
+    try:
+        return ReviewOverride(request["review_override"])
+    except ValueError as exc:
+        raise BadRequestError("review_override must be keep or dismiss") from exc
 
 
 def _context_of(request: dict[str, Any]) -> LessonContext:
