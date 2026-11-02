@@ -21,7 +21,7 @@ FORBIDDEN="(^|/)(data|runs)/|transcript|trajector|adapter_(model|config)|(^|/)id
 JSONL_OK='^tests/fixtures/.*\.jsonl$'
 # dashboard/package.json and its lockfile are npm's pinned tooling manifests (QG-FE-01/03): two exact
 # names, never a pattern, so any other dashboard JSON is still refused.
-JSON_OK='^(tests/fixtures/|results/|dashboard/sample/|\.claude/).*\.json$|^(scripts/gates/baseline|\.gitleaks-baseline)\.json$|^dashboard/(package|package-lock)\.json$'
+JSON_OK='^(tests/fixtures/|results/|dashboard/sample/|\.claude/).*\.json$|^(scripts/gates/baseline|\.gitleaks-baseline)\.json$|^dashboard/(package|package-lock)\.json$|^\.claude-plugin/marketplace\.json$|^plugin/symbiont/(\.claude-plugin/plugin|\.mcp|hooks/hooks)\.json$'
 RESULTS_JSON_ONLY='^(results|dashboard/sample)/'
 BINARY_OK='\.(png|jpe?g|gif|ico|woff2?|pdf)$'
 # unsafe_name NAME: true when NAME holds a control character, a double quote or a backslash
