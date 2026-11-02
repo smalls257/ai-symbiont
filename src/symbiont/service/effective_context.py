@@ -1,7 +1,9 @@
 """The words and silences in force for each lesson: the developer's own, over the review verdicts.
 
-A `mistake` verdict's plain-words rule follows the developer's words; `expected` and `noise` silence
-the lesson. A developer's own saved context overrides a verdict's silence.
+A `mistake` verdict's rule follows the developer's words. `expected` and `noise` silence a lesson
+only when the developer said nothing about it: any saved context (words, a priority, or an
+explicit intentional choice) keeps it active, the verdict stays a suggestion, and the dashboard
+shows the conflict. The developer's choice wins.
 """
 
 from symbiont.miner.lesson_context import LessonContext, Priority, Review, Verdict
@@ -20,9 +22,7 @@ def effective_contexts(store: Store, project: str) -> dict[str, LessonContext]:
 def _merged(own: LessonContext | None, review: Review) -> LessonContext:
     """One lesson's words: the developer's first, then the reviewed rule; their silence wins."""
     priority = own.priority if own else Priority.NORMAL
-    silent = review.verdict is not Verdict.MISTAKE
-    if own is not None:
-        silent = own.intentional
+    silent = own.intentional if own is not None else review.verdict is not Verdict.MISTAKE
     rule = review.rule.strip(" .") if review.verdict is Verdict.MISTAKE else ""
     text = ". ".join(part for part in (own.text.strip(" .") if own else "", rule) if part)
     applies = own.applies if own and (own.applies.terms or own.applies.areas) else review.applies
