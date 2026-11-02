@@ -42,6 +42,10 @@ CREATE TABLE IF NOT EXISTS contexts (
     lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, text TEXT NOT NULL,
     intentional INTEGER NOT NULL, priority TEXT NOT NULL, applies TEXT NOT NULL
 );
+-- The developer's answer to "the reviewer thinks this is noise": keep or dismiss.
+CREATE TABLE IF NOT EXISTS review_overrides (
+    lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, choice TEXT NOT NULL
+);
 -- Lessons written in plain words, verdicts on mined pain points, judged correction candidates.
 CREATE TABLE IF NOT EXISTS authored (
     id TEXT PRIMARY KEY, project TEXT NOT NULL, text TEXT NOT NULL, kind TEXT NOT NULL,

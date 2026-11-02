@@ -11,8 +11,15 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
+from symbiont.miner.error_lines import key_error_lines
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
-from symbiont.miner.resolutions import Resolution, Unresolved, reason_of, resolution_of
+from symbiont.miner.resolutions import (
+    NoResolution,
+    Resolution,
+    Unresolved,
+    reason_of,
+    resolution_of,
+)
 from symbiont.records.privacy import OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Kind, Record
 
@@ -46,6 +53,11 @@ class Lesson:
     # Datasets of the quoted records that are not Spark-safe; () when spark_safe. A private
     # lesson with none named counts as third-party (unknown privacy is never shareable).
     private_datasets: tuple[str, ...] = ()
+    # The failing tests and the assertion or exception line of the cited output, trimmed: the
+    # quote keeps the end of the output, which is often just a pass/fail footer.
+    error_lines: tuple[str, ...] = ()
+    # Files the cited records and the fix touched, in order of appearance; () when none.
+    files: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -86,8 +98,7 @@ def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
 def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> Lesson:
     """One lesson: the pain point, its resolution and the quote it carries."""
     found = resolution_of(pain, cited, records)
-    steps = found.steps if isinstance(found, Resolution) else ()
-    alongside = found.alongside if isinstance(found, Resolution | Unresolved) else ()
+    steps, alongside = _fix_parts(found)
     used = [*cited, *alongside, *steps]
     return Lesson(
         pain_point=pain,
@@ -99,7 +110,18 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
         task_ids=tuple(dict.fromkeys(r.task_id for r in used if r.task_id is not None)),
         changed_alongside=tuple(_step_words(step) for step in alongside),
         private_datasets=_private_datasets(used),
+        error_lines=key_error_lines(cited[0].raw),
+        files=tuple(dict.fromkeys(name for r in used for name in r.files)),
     )
+
+
+def _fix_parts(
+    found: Resolution | NoResolution,
+) -> tuple[tuple[Record, ...], tuple[Record, ...]]:
+    """The steps that fixed it and the changes made alongside; both () when there is neither."""
+    steps = found.steps if isinstance(found, Resolution) else ()
+    alongside = found.alongside if isinstance(found, Resolution | Unresolved) else ()
+    return steps, alongside
 
 
 def _private_datasets(used: Sequence[Record]) -> tuple[str, ...]:

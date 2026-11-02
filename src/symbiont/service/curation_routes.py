@@ -10,8 +10,6 @@ from collections.abc import Callable
 from typing import Any, cast
 
 from symbiont.core.correction_candidates import CAP, correction_candidates
-from symbiont.core.failure_signature import failure_detail
-from symbiont.core.notes import happened, resolution_clause
 from symbiont.miner.lesson_context import (
     AuthoredLesson,
     LessonKind,
@@ -22,6 +20,7 @@ from symbiont.miner.lesson_context import (
 from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
 from symbiont.service.request_shapes import BadRequestError, parse_applies, require_keys
+from symbiont.service.review_candidate import review_candidate
 from symbiont.store.local import Store
 from symbiont.store.mining import read_source
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -84,7 +83,13 @@ class CurationRoutes:
         batch = found[-CAP:][:BATCH]
         return {
             "candidates": [
-                {"candidate_id": c.candidate_id, "excerpt": scrub(c.excerpt), "after": c.after}
+                {
+                    "candidate_id": c.candidate_id,
+                    "excerpt": scrub(c.excerpt),
+                    "after": c.after,
+                    "files": list(c.files),
+                    "agent_said": scrub(c.agent_said),
+                }
                 for c in batch
             ],
             "remaining": max(0, len(found) - len(batch)),
@@ -115,10 +120,13 @@ class CurationRoutes:
     def review_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
         """A capped batch of mined pain points that have no verdict yet."""
         project = self._allowed_project(request, {"project"})
-        reviewed = self._store.curation.reviews(project)
+        reviewed, words = self._store.curation.reviews(project), self._store.contexts.all(project)
         waiting = [item for item in self._store.lessons(project) if lesson_id(item) not in reviewed]
         return {
-            "candidates": [_candidate(item) for item in waiting[:REVIEW_BATCH]],
+            "candidates": [
+                review_candidate(item, words.get(lesson_id(item)))
+                for item in waiting[:REVIEW_BATCH]
+            ],
             "remaining": max(0, len(waiting) - REVIEW_BATCH),
         }
 
@@ -190,19 +198,6 @@ class CurationRoutes:
 def _records(sources: list[Any], readers: dict[str, Any]) -> list[Any]:
     """Every record of the given sources, read fresh."""
     return [record for source in sources for record in read_source(source, readers)]
-
-
-def _candidate(lesson: Any) -> dict[str, Any]:
-    """One pain point as the model sees it for review: short, plain, no scores."""
-    signature = lesson.pain_point.signature
-    return {
-        "id": lesson_id(lesson),
-        "kind": signature.signal.value,
-        "what_happened": happened(signature),
-        "error": failure_detail(lesson.quote),
-        "fix": resolution_clause(lesson) if lesson.resolution else None,
-        "context": scrub(lesson.quote[:200]),
-    }
 
 
 def _review(item: dict[str, Any]) -> Review:

@@ -13,7 +13,7 @@ from typing import Any
 from symbiont.core.failure_signature import failure_detail
 from symbiont.core.notes import happened, render_lesson, resolution_clause
 from symbiont.core.rule_relevance import situation_terms
-from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review
+from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review, Verdict
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
@@ -42,18 +42,18 @@ class RepoView:
     reviews: Mapping[str, Review] = field(default_factory=dict)
     written: Sequence[AuthoredLesson] = ()
     focus: frozenset[str] = frozenset()
+    # Lesson ids the developer annotated (words, priority or an explicit intentional choice).
+    annotated: frozenset[str] = frozenset()
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
     """The object the dashboard page reads; session ids missing from the dates use today."""
-    project, lessons, contexts = view.project, view.lessons, view.contexts
+    project, lessons = view.project, view.lessons
     order = _session_order(lessons, view.session_dates, today)
     if not order and view.written:
         order = {"written": (0, today)}
     groups = _grouped(lessons, view.reviews, view.focus)
-    points = [
-        _pain_point(n, group, order, contexts, view.reviews) for n, group in enumerate(groups, 1)
-    ]
+    points = [_pain_point(n, group, order, view) for n, group in enumerate(groups, 1)]
     points += [
         _written_point(len(points) + n, item, order) for n, item in enumerate(view.written, 1)
     ]
@@ -126,10 +126,10 @@ def _pain_point(
     number: int,
     group: list[Lesson],
     order: Mapping[str, tuple[int, date]],
-    contexts: Mapping[str, LessonContext],
-    reviews: Mapping[str, Review],
+    view: RepoView,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """One pain point and its lesson, for a group of lessons about the same trouble."""
+    reviews, contexts = view.reviews, view.contexts
     review = next(
         (reviews[lesson_id(item)] for item in reversed(group) if lesson_id(item) in reviews), None
     )
@@ -138,7 +138,9 @@ def _pain_point(
         (contexts[lesson_id(item)] for item in reversed(group) if lesson_id(item) in contexts), None
     )
     sessions = sorted(order[item.pain_point.session_id][0] for item in group)
-    return _point(number, latest, sessions, review), _lesson(number, latest, words, review)
+    return _point(number, latest, sessions, review), _lesson(
+        number, latest, words, review, view.annotated
+    )
 
 
 def _point(
@@ -153,7 +155,7 @@ def _point(
         "kind": KIND_OF_SIGNAL[signature.signal],
         "title": title[:90],
         "file": _file_of(signature),
-        "command": _command_of(signature),
+        "command": command_of_signature(signature),
         "sessions": sessions,
         "turnsPerOccurrence": turns,
         "minutesPerOccurrence": round(turns * MINUTES_PER_TURN, 1),
@@ -164,7 +166,11 @@ def _point(
 
 
 def _lesson(
-    number: int, latest: Lesson, words: LessonContext | None, review: Review | None
+    number: int,
+    latest: Lesson,
+    words: LessonContext | None,
+    review: Review | None,
+    annotated: frozenset[str],
 ) -> dict[str, Any]:
     """The lesson's fields: its note, the developer's words and the reviewer's verdict."""
     return {
@@ -173,6 +179,7 @@ def _lesson(
         "confirmed": bool(latest.resolution or words or review),
         "verdict": review.verdict.value if review else None,
         "rule": review.rule if review else "",
+        "reviewConflict": _conflict(lesson_id(latest), review, annotated),
         "appliesTo": _tags(words, review),
         "note": render_lesson(latest),
         "exampleContext": latest.quote[:200],
@@ -180,6 +187,17 @@ def _lesson(
         "intentional": words.intentional if words else False,
         "priority": words.priority.value if words else "normal",
     }
+
+
+def _conflict(ident: str, review: Review | None, annotated: frozenset[str]) -> str | None:
+    """The reviewer's silencing verdict on a lesson the developer annotated, else None.
+
+    The lesson stays active (the developer's words outrank the model); the dashboard asks
+    whether to keep it or dismiss it, and that choice wins.
+    """
+    if review is None or ident not in annotated or review.verdict is Verdict.MISTAKE:
+        return None
+    return review.verdict.value
 
 
 def _tags(words: LessonContext | None, review: Review | None) -> dict[str, list[str]]:
@@ -217,6 +235,7 @@ def _written_point(
         "confirmed": True,
         "verdict": None,
         "rule": "",
+        "reviewConflict": None,
         "appliesTo": {"terms": list(item.applies.terms), "areas": list(item.applies.areas)},
         "note": item.text,
         "exampleContext": item.source_label,
@@ -235,7 +254,7 @@ def _file_of(signature: Signature) -> str:
     return first if "/" in first or "." in first else ""
 
 
-def _command_of(signature: Signature) -> str | None:
+def command_of_signature(signature: Signature) -> str | None:
     """The command of a failed-command trouble, else None."""
     if signature.signal is not Signal.FAILED_COMMAND:
         return None

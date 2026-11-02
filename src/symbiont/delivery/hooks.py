@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
+from symbiont.records.output_failure import exit_code_with_output
 
 DATASET_PREFIX = "live-"
 LIVE_LICENSE = "local-session"
@@ -200,7 +201,7 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
             "kind": "command",
             "raw": raw,
             "command": command,
-            "exit_code": _exit_code(printed, event),
+            "exit_code": exit_code_with_output(command, raw, _exit_code(printed, event)),
         }
     path = arguments.get("file_path") or arguments.get("path")
     files = [path] if isinstance(path, str) else []
