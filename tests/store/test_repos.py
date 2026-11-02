@@ -56,3 +56,14 @@ def test_a_file_that_is_not_a_registry_raises_naming_it(tmp_path):
 
     with pytest.raises(RepoRegistryError, match="repos.json"):
         RepoRegistry(tmp_path).stance("demo")
+
+
+def test_the_focus_and_the_dashboard_link_are_remembered_once(tmp_path):
+    registry = RepoRegistry(tmp_path)
+    assert registry.focus("demo") is None and not registry.dashboard_linked("demo")
+
+    registry.record_focus("demo", {"text": "money rules", "keywords": ["money"], "sources": []})
+    registry.link_dashboard("demo")
+
+    again = RepoRegistry(tmp_path)
+    assert again.focus("demo")["keywords"] == ["money"] and again.dashboard_linked("demo")

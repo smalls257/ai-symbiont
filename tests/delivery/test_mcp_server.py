@@ -65,7 +65,7 @@ def test_full_round_trip(monkeypatch):
     assert [reply["id"] for reply in replies] == [1, 2, 3, 4]
     assert replies[0]["result"]["capabilities"] == {"tools": {}}
     assert replies[1]["result"] == {}
-    assert replies[2]["result"]["tools"] == [RECALL_TOOL]
+    assert replies[2]["result"]["tools"][0] == RECALL_TOOL
     assert replies[3]["result"]["content"] == [{"type": "text", "text": "rework: a.py"}]
 
 

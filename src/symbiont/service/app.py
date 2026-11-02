@@ -4,6 +4,7 @@ import logging
 import threading
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import date
 from enum import StrEnum
 from typing import Any
 
@@ -24,6 +25,8 @@ from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record
 from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall
 from symbiont.service.context_route import UnknownLessonError, context_target, save_context
+from symbiont.service.curation_routes import CurationRoutes
+from symbiont.service.dashboard_page import Page, dashboard_page
 from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.follow_up import FollowUp
 from symbiont.service.judge_model import JudgeModel
@@ -102,6 +105,8 @@ class ServiceParts:
     consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD
     # The per-repository answers; when set, a repository that did not say yes is not observed.
     gate: RepoGate = field(default_factory=RepoGate)
+    # Routes the session's model calls to curate lessons (symbiont makes no model calls itself).
+    curation: CurationRoutes | None = None
 
 
 class SparkWithheldError(PermissionError):
@@ -121,6 +126,13 @@ class Service:
         self._follow_up = FollowUp(parts.events)
         self._agreed = AgreedRecall(parts, self._follow_up)
 
+    def page(self, target: str) -> Page:
+        """Answer a GET: the dashboard and its files."""
+        with self._one_call_at_a_time:
+            return dashboard_page(
+                self._parts.store, self._parts.gate.registry, target, date.today()
+            )
+
     def respond(self, route: str, payload: Any) -> Response:
         """Answer one request; a refusal is a status plus a reason, and an event."""
         with self._one_call_at_a_time:
@@ -136,6 +148,9 @@ class Service:
             "learn": self._learn,
             "status": lambda request, call: _status(self._parts, self._lessons, request),
         }
+        if self._parts.curation is not None:
+            for path, handler in self._parts.curation.routes().items():
+                routes[path] = lambda request, _, handler=handler: Response(200, handler(request))
         lesson = context_target(name)
         if lesson is not None:
             routes[name] = lambda request, _: Response(

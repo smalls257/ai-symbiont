@@ -1,0 +1,113 @@
+<!doctype html>
+<!-- Data contract: see dashboard_view.py. The service injects the store's data below. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>symbiont dashboard</title>
+<link rel="stylesheet" href="/dashboard/dashboard.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">ai-symbiont</div>
+  <div class="repo" id="repoName"></div>
+  <nav id="nav" aria-label="Stages"></nav>
+  <span class="demotag" id="demotag" title="Demo view: names, files and numbers may be synthetic">demo data</span>
+  <button class="playdemo" id="playdemo">Play demo</button>
+</header>
+<main>
+<section class="stage" id="s0" aria-label="Live mining">
+  <div class="mine-left">
+    <div class="hero">
+      <h1 id="h1">Turn symbiont on and it reads your past sessions.</h1>
+      <p class="lede" id="lede">Everything stays on this machine. Nothing is uploaded.</p>
+      <button class="cta" id="startBtn">Turn on symbiont</button>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="counters">
+      <div class="ctr"><div class="num" id="c0">0</div><div class="lbl">sessions read<span class="of" id="ofN"></span></div></div>
+      <div class="ctr"><div class="num" id="c1">0</div><div class="lbl">failures found</div></div>
+      <div class="ctr"><div class="num" id="c2">0</div><div class="lbl">fixes paired to failures</div></div>
+      <div class="ctr"><div class="num" id="c3">0</div><div class="lbl">lessons formed</div></div>
+    </div>
+    <div class="sgrid" id="sgrid" aria-label="Sessions scanned"></div>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+  <div class="panel feed">
+    <h2>Pain points, as they turn up</h2>
+    <p class="sub">A pain point appears once the same trouble has happened twice.</p>
+    <ul id="feed"></ul>
+  </div>
+</section>
+
+<section class="stage" id="s1" aria-label="Pain-point dashboard">
+  <div class="kpis" id="kpis"></div>
+  <div class="panel" id="pKinds"><h2>What kind of trouble</h2><p class="sub">Turns the agent lost, by kind</p><div class="kbars" id="kbars"></div></div>
+  <div class="panel" id="pTree"><h2>Where in the repo</h2><p class="sub">Tile size and warmth show turns lost per file. Click to add context.</p><svg id="tm" viewBox="0 0 700 360" role="img" aria-label="Treemap of turns lost per file"></svg></div>
+  <div class="panel" id="pLes"><h2>Most costly lessons</h2><p class="sub">Each time it recurred, this much was lost</p><ul class="les" id="les"></ul></div>
+  <div class="panel tl" id="pTl"><h2>The same mistake, session after session</h2><p class="sub">Every dot is one session where it happened again. The dashed line marks the last 30 days, replayed on the fourth screen.</p><svg id="tlsvg" viewBox="0 0 1800 280" role="img" aria-label="Timeline of recurring mistakes across 40 sessions"></svg></div>
+</section>
+
+<section class="stage" id="s2" aria-label="Add context">
+  <div class="panel plist" id="plist"></div>
+  <div class="panel edit" id="edit"></div>
+  <div class="panel agent" id="agent">
+    <div class="bar2"><i></i><i></i><i></i><span>What the agent sees</span></div>
+    <div class="run" id="run"></div>
+    <div class="notebox" id="note"></div>
+    <div class="cap" id="cap"></div>
+    <div class="toast" id="toast">Saved. Used from the next session.</div>
+  </div>
+</section>
+
+<section class="stage" id="s3" aria-label="30-day replay">
+  <div class="rkpis">
+    <div class="panel"><div class="num" id="r0">0</div><div class="lbl">repeats it would have caught</div></div>
+    <div class="panel"><div class="num" id="r1">0</div><div class="lbl">agent turns saved, about</div></div>
+    <div class="panel"><div class="num" id="r2">0</div><div class="lbl">hours saved, about</div></div>
+    <div class="panel est"><div><b>Estimate.</b> <span class="mu" id="estnote">Replayed on the last 30 days of this repository. Not a measurement.</span></div><button class="cta sec" id="replayBtn">Replay</button></div>
+  </div>
+  <div class="panel strip"><h2 id="rtitle">Each dot is a repeat the note would have come before</h2><svg id="rsvg" viewBox="0 0 1800 190" role="img" aria-label="Caught repeats per day over 30 days"></svg></div>
+  <div class="panel fire" id="fire"></div>
+  <div class="panel"><h2>Caught, newest first</h2><ul class="evl" id="evl"></ul></div>
+</section>
+
+<section class="stage" id="s4" aria-label="Proof">
+  <div class="phead"><h1>This is not a demo of a promise. These are measured results.</h1><p>From our own runs on other data. Each one is tagged, and the limits are printed with it.</p></div>
+  <div class="panel pc" id="pc1">
+    <span class="mtag">[measured]</span>
+    <div class="big">0<small>wrong notes in 501 shown</small></div>
+    <h3>None of the 501 notes it showed were wrong.</h3>
+    <svg id="dots" viewBox="0 0 330 150" role="img" aria-label="501 notes shown, none wrong"></svg>
+    <div class="src">Agree rule, 251 repeats in 89 unseen repos. Each dot is one note shown.</div>
+  </div>
+  <div class="panel pc" id="pc2">
+    <span class="mtag">[measured]</span>
+    <div class="big">61%<small>vs 0%</small></div>
+    <h3>of repeats caught after nightly training, against none without it.</h3>
+    <svg id="bars2" viewBox="0 0 250 110" role="img" aria-label="61 percent caught with nightly training, 0 percent without"></svg>
+    <div class="src">Code-fix study, 924 items, 97.8% precision.</div>
+  </div>
+  <div class="panel pc" id="pc3">
+    <span class="mtag">[measured]</span>
+    <div class="big">+0.16<small>[0.11, 0.22]</small></div>
+    <h3>A rule Spark wrote from its own failures made it better, and held on new cases.</h3>
+    <svg id="ci" viewBox="0 0 250 110" role="img" aria-label="Gain of 0.16, interval 0.11 to 0.22"></svg>
+    <div class="src">Replicated on 240 fresh cases.</div>
+  </div>
+  <div class="panel lim"><b>Limits.</b> The 61% comes from one code-fix study; your repo will differ. The dashboard before this screen is synthetic, and its savings are estimates, not measurements.</div>
+</section>
+</main>
+<footer class="foot" id="foot">
+  <span><b>[measured]</b><span>0 wrong notes</span> in 501 shown</span>
+  <span><b>[measured]</b><span>61%</span> of repeats caught vs 0%</span>
+  <span><b>[measured]</b><span>+0.16</span> [0.11, 0.22], replicated on 240 fresh cases</span>
+</footer>
+<div id="caption" aria-live="polite"></div>
+<div id="tip"></div>
+
+<script type="application/json" id="symbiont-data">__SYMBIONT_DATA__</script>
+<script src="/dashboard/dashboard.js"></script>
+</body>
+</html>

@@ -1,12 +1,19 @@
-"""MCP stdio server: newline-delimited JSON-RPC 2.0 exposing the one `recall` tool."""
+"""MCP stdio server: newline-delimited JSON-RPC 2.0: `recall`, and the curation tools."""
 
 import json
 import logging
-from collections.abc import Callable
+import os
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from typing import IO, Any
 
-from symbiont.delivery.recall import ServiceOfflineError, ServiceRefusedError, recall_answer
+from symbiont.delivery.curation_tools import BY_NAME, as_text, listed_tools, route_and_body
+from symbiont.delivery.recall import (
+    ServiceOfflineError,
+    ServiceRefusedError,
+    call_service,
+    recall_answer,
+)
 
 # Newest first. recall uses only tools/list and tools/call, identical in all of these.
 SUPPORTED_VERSIONS = ("2025-11-25", "2025-06-18", "2025-03-26", "2024-11-05")
@@ -46,23 +53,40 @@ class _RpcError(Exception):
         self.code = code
 
 
-def serve_stdio(stdin: IO[str], stdout: IO[str], project: str, port: int) -> None:
+Curate = Callable[[str, dict[str, Any]], str]
+
+
+def serve_stdio(
+    stdin: IO[str],
+    stdout: IO[str],
+    project: str,
+    port: int,
+    environ: Mapping[str, str] | None = None,
+) -> None:
     """Answer requests line by line until stdin closes; only JSON-RPC goes to stdout."""
+    host = os.environ if environ is None else environ
 
     def ask(question: str) -> str:
         """Ask the local service one plain question."""
         return recall_answer(question, project, port)
 
+    def curate(name: str, arguments: dict[str, Any]) -> str:
+        """Call one curation route of the local service for this project."""
+        route, body = route_and_body(name, arguments, host)
+        return as_text(call_service("/" + route, {**body, "project": project}, port))
+
     for line in stdin:
         if not line.strip():
             continue
-        reply = _reply_to_line(line, ask)
+        reply = _reply_to_line(line, ask, curate)
         if reply is not None:
             stdout.write(json.dumps(reply) + "\n")
             stdout.flush()
 
 
-def _reply_to_line(line: str, ask: Callable[[str], str]) -> dict[str, Any] | None:
+def _reply_to_line(
+    line: str, ask: Callable[[str], str], curate: Curate | None = None
+) -> dict[str, Any] | None:
     """The JSON-RPC reply to one input line; None for notifications."""
     try:
         request = json.loads(line)
@@ -75,13 +99,15 @@ def _reply_to_line(line: str, ask: Callable[[str], str]) -> dict[str, Any] | Non
         log.info("notification %s", request["method"])
         return None
     try:
-        result = _dispatch(request["method"], request.get("params"), ask)
+        result = _dispatch(request["method"], request.get("params"), ask, curate)
     except _RpcError as failure:
         return _error(request["id"], failure.code, str(failure))
     return {"jsonrpc": "2.0", "id": request["id"], "result": result}
 
 
-def _dispatch(method: str, params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
+def _dispatch(
+    method: str, params: Any, ask: Callable[[str], str], curate: Curate | None
+) -> dict[str, Any]:
     """Result of one JSON-RPC method; unknown methods raise _RpcError."""
     if method == "initialize":
         return {
@@ -92,9 +118,9 @@ def _dispatch(method: str, params: Any, ask: Callable[[str], str]) -> dict[str, 
     if method == "ping":
         return {}
     if method == "tools/list":
-        return {"tools": [RECALL_TOOL]}
+        return {"tools": [RECALL_TOOL, *listed_tools()]}
     if method == "tools/call":
-        return _call_tool(params, ask)
+        return _call_tool(params, ask, curate)
     raise _RpcError(METHOD_NOT_FOUND, f"method not found: {method}")
 
 
@@ -104,10 +130,13 @@ def _negotiated(params: Any) -> str:
     return asked if asked in SUPPORTED_VERSIONS else SUPPORTED_VERSIONS[0]
 
 
-def _call_tool(params: Any, ask: Callable[[str], str]) -> dict[str, Any]:
-    """Run the recall tool; any other tool name raises _RpcError."""
-    if not isinstance(params, dict) or params.get("name") != "recall":
-        raise _RpcError(INVALID_PARAMS, "unknown tool; the only tool is recall")
+def _call_tool(params: Any, ask: Callable[[str], str], curate: Curate | None) -> dict[str, Any]:
+    """Run recall or a curation tool; any other tool name raises _RpcError."""
+    name = params.get("name") if isinstance(params, dict) else None
+    if name in BY_NAME and curate is not None:
+        return _tool_result(_curation_answer(curate, name, params.get("arguments") or {}))
+    if name != "recall":
+        raise _RpcError(INVALID_PARAMS, f"unknown tool {name!r}")
     arguments = params.get("arguments")
     if not isinstance(arguments, dict) or arguments.keys() != {"question"}:
         return _tool_result(_BAD_ARGUMENTS)
@@ -136,6 +165,18 @@ def _answer(ask: Callable[[str], str], question: str) -> _Answer:
         kind = type(failure).__name__
         log.error("recall failed: %s", kind)
         return _Answer(f"symbiont error: {kind}", refused=True)
+
+
+def _curation_answer(curate: Curate, name: str, arguments: Any) -> _Answer:
+    """A curation tool's answer; offline and refusals are visible, never an empty result."""
+    if not isinstance(arguments, dict):
+        return _Answer(f"{name} needs an object of arguments", refused=True)
+    try:
+        return _Answer(curate(name, arguments))
+    except ServiceOfflineError as offline:
+        return _Answer(f"symbiont offline: {offline}")
+    except (ServiceRefusedError, ValueError) as refused:
+        return _Answer(f"symbiont refused {name}: {refused}", refused=True)
 
 
 def _id_of(request: Any) -> Any:

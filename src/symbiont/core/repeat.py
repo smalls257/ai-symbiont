@@ -27,7 +27,7 @@ class RepeatNote:
     """A sentence for the agent and the stored lesson it rests on."""
 
     sentence: str
-    lesson: Lesson
+    lesson: Lesson | None
     # Why it spoke: the same failure signature, or which relevance match brought a rule.
     why: str = "same failure signature"
 
@@ -45,25 +45,33 @@ def repeat_note(
 ) -> RepeatNote | None:
     """The note for `failed` when a stored lesson has its exact failure signature, else None.
 
-    `earlier` is the session so far; it tells a planned failure from a mistake. A lesson the
-    developer marked intentional never speaks; one with no fix speaks only if they added words.
+    `earlier` is the session so far. The developer's words on any lesson of the same failure
+    apply; intentional silences it, and a lesson with no fix speaks only with words.
     """
     current = _failure_signature(failed, earlier)
     if current is None:
         return None
-    wanted = contexts or {}
-    matching = [
+    same = [
         lesson
         for lesson in lessons
-        if lesson.pain_point.signature == current
-        and same_failure(failed.raw, lesson.quote)
-        and not _intentional(wanted.get(lesson_id(lesson)))
-        and (lesson.resolution or wanted.get(lesson_id(lesson)))
+        if lesson.pain_point.signature == current and same_failure(failed.raw, lesson.quote)
     ]
-    if not matching:
+    return _note_for(same, _words_for(same, contexts or {}))
+
+
+def _note_for(same: Sequence[Lesson], words: LessonContext | None) -> RepeatNote | None:
+    """The note for lessons of the same failure, unless intentional or nothing to say."""
+    speaking = [lesson for lesson in same if lesson.resolution or words]
+    if _intentional(words) or not speaking:
         return None
-    lesson = sorted(matching, key=lambda item: bool(item.resolution))[-1]
-    return RepeatNote(_sentence(lesson, wanted.get(lesson_id(lesson))), lesson)
+    lesson = sorted(speaking, key=lambda item: bool(item.resolution))[-1]
+    return RepeatNote(_sentence(lesson, words), lesson)
+
+
+def _words_for(same: Sequence[Lesson], wanted: Mapping[str, LessonContext]) -> LessonContext | None:
+    """The newest developer words on any lesson of the same failure."""
+    spoken = [wanted[lesson_id(item)] for item in reversed(same) if lesson_id(item) in wanted]
+    return spoken[0] if spoken else None
 
 
 def _intentional(context: LessonContext | None) -> bool:

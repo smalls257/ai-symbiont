@@ -298,3 +298,15 @@ def test_a_failure_repeated_through_the_real_hook_gets_the_last_time_note(
     assert inline_text(out).startswith(
         "Last time, `pytest tests/test_parser.py` failed with ImportError"
     )
+
+
+def test_the_dashboard_link_in_an_announcement_points_at_the_local_service(monkeypatch):
+    reply = {"notes": [], "announce": ["symbiont's dashboard: {dashboard}"]}
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: reply)
+    settings = HookSettings("claude_code", NoteStyle.PLAIN, 7377, "p")
+    data = {"session_id": "s1", "cwd": "/work/my repo", "source": "startup"}
+
+    result = hooks.run_hook(HookEvent.SESSION_START, json.dumps(data), settings)
+
+    shown = json.loads(result.context)["systemMessage"]
+    assert shown == "symbiont's dashboard: http://127.0.0.1:7377/dashboard?project=my%20repo"
