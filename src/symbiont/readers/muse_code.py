@@ -226,11 +226,14 @@ def _arguments(args: Any) -> dict[str, Any]:
 def _result_text(result: dict[str, Any]) -> str:
     """The output a tool result carries; a shell result's JSON text holds it under `output`."""
     text = _shell_report(result)
-    if text is not None and isinstance(text.get("output"), str):
-        return text["output"]
+    if text is not None:
+        output = text.get("output")
+        if isinstance(output, str):
+            return output
     for key in ("text", "output", "result"):
-        if isinstance(result.get(key), str):
-            return result[key]
+        value = result.get(key)
+        if isinstance(value, str):
+            return value
     return ""
 
 

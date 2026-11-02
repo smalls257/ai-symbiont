@@ -114,6 +114,8 @@ def last_note_event(runs_dir: Path, project: str) -> dict[str, Any] | None:
                 event = json.loads(line)
             except ValueError as exc:
                 raise ValueError(f"{events} holds a line that is not JSON: {exc}") from exc
+            if not isinstance(event, dict):
+                raise ValueError(f"{events} holds a line that is not a JSON object")
             if event.get("project") == project and event.get("notes"):
                 return event
     return None

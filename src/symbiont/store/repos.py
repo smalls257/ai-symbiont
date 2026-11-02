@@ -72,7 +72,10 @@ class RepoRegistry:
 
     def _entry(self, project: str) -> dict[str, Any]:
         """The stored fields of one project; empty when it was never mentioned."""
-        return self._document()["projects"].get(project, {})
+        entry = self._document()["projects"].get(project, {})
+        if not isinstance(entry, dict):
+            raise RepoRegistryError(f"{self._path} holds a non-object entry for {project}")
+        return entry
 
     def _update(self, project: str, field: str, value: object) -> None:
         """Set one field of one project and write the file."""
@@ -86,6 +89,8 @@ class RepoRegistry:
             return {"projects": {}}
         try:
             document = json.loads(self._path.read_text(encoding="utf-8"))
+            if not isinstance(document, dict):
+                raise TypeError("the registry must be a JSON object")
             _check_stances(document["projects"])
         except (ValueError, KeyError, TypeError) as exc:
             raise RepoRegistryError(f"{self._path} is not a repository registry") from exc

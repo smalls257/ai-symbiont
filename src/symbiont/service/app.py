@@ -130,7 +130,7 @@ class Service:
         """Route one request; unknown routes are refused with 404."""
         name = route.strip("/")
         call = Call(name, hook_of(name, payload), project_of(payload))
-        routes = {
+        routes: dict[str, Callable[[dict[str, Any], Call], Response]] = {
             "observe": self._observe,
             "recall": self._recall,
             "learn": self._learn,
