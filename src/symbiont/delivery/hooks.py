@@ -68,8 +68,12 @@ AUTO = "auto"
 # Muse Code sets this for every plugin hook it runs (measured with `muse plugins hook test`);
 # Claude Code does not, so one plugin bundle can tell its two hosts apart without an argument.
 MUSE_MARKER = "MUSE_PLUGIN_ROOT"
-_EDIT_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
-_SHELL_TOOLS = frozenset({"Bash", "shell", "bash"})
+# Muse Code names its tools in snake_case (measured from live hook payloads: `bash`, `read_file`).
+_EDIT_TOOLS = frozenset(
+    {"Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "write_file", "apply_patch"}
+)
+_SHELL_TOOLS = frozenset({"Bash", "shell", "bash", "exec_command"})
+_READ_TOOLS = frozenset({"Read", "read_file"})
 
 
 def resolve_harness(chosen: str, environ: Mapping[str, str]) -> str:
@@ -187,23 +191,35 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
     tool = str(data.get("tool_name", ""))
     given = data.get("tool_input")
     arguments: dict[str, Any] = given if isinstance(given, dict) else {}
-    printed = data.get("tool_response")
-    raw = _output_text(data.get("error", "") if printed is None else printed)
+    given_response = data.get("tool_response")
+    printed = _decoded_object(data.get("error") if given_response is None else given_response)
+    raw = _output_text(printed if printed is not None else "")
     if tool in _SHELL_TOOLS:
         command = str(arguments.get("command", ""))
         return {
             "kind": "command",
             "raw": raw,
             "command": command,
-            "exit_code": _exit_code(data.get("tool_response"), event),
+            "exit_code": _exit_code(printed, event),
         }
     path = arguments.get("file_path") or arguments.get("path")
     files = [path] if isinstance(path, str) else []
     if tool in _EDIT_TOOLS:
         return {"kind": "edit", "raw": raw, "files": files}
-    if tool == "Read":
+    if tool in _READ_TOOLS:
         return {"kind": "read", "raw": raw, "files": files}
     return {"kind": "tool_result", "raw": raw, "files": files}
+
+
+def _decoded_object(response: Any) -> Any:
+    """Muse Code sends shell results as JSON text (exit_code, output); open it, else keep text."""
+    if not isinstance(response, str):
+        return response
+    try:
+        opened = json.loads(response)
+    except ValueError:
+        return response
+    return opened if isinstance(opened, dict) else response
 
 
 def _output_text(response: Any) -> str:
