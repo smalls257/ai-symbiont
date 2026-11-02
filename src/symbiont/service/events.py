@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from symbiont.core.repeat import RepeatNote
 from symbiont.core.slot import Decision, event_fields
 from symbiont.miner.painpoint import Signature
 
@@ -46,6 +47,16 @@ class EventLog:
         """Record the call, the trouble named, the records behind it and the notes sent."""
         trouble = None if signature is None else [signature.signal.value, *signature.key]
         self._write(call, {"trouble": trouble, "records": records, "notes": notes})
+
+    def append_repeat(self, call: Call, found: RepeatNote) -> None:
+        """Record a note a stored lesson caused, with the match that fired it."""
+        pain = found.lesson.pain_point
+        trouble = [pain.signature.signal.value, *pain.signature.key]
+        refs = list(pain.record_refs)
+        self._write(
+            call,
+            {"trouble": trouble, "records": refs, "notes": [found.sentence], "fired_by": found.why},
+        )
 
     def append_decision(self, call: Call, decision: Decision, notes: list[str]) -> None:
         """Record a decision through `event_fields`, which never carries its risk."""

@@ -28,6 +28,8 @@ class RepeatNote:
 
     sentence: str
     lesson: Lesson
+    # Why it spoke: the same failure signature, or which relevance match brought a rule.
+    why: str = "same failure signature"
 
 
 def failed_now(record: Record) -> bool:

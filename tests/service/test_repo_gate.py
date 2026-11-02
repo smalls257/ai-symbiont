@@ -238,3 +238,90 @@ def test_a_percent_encoded_lesson_id_in_the_path_is_decoded(rig):
     encoded = lesson_id_of_fixture().replace(":", "%3A")
 
     assert post_context(rig, encoded, {"text": "x"}).status == 200
+
+
+RULE = "Parser imports stay lazy so startup stays fast."
+
+
+def with_rule(rig, **extra):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+    post_context(rig, lesson_id_of_fixture(), {"text": RULE, **extra})
+
+
+def prompt(rig, text, session_id="live"):
+    return rig.send("UserPromptSubmit", "user_turn", session_id, raw=text)
+
+
+def test_a_rule_reaches_a_prompt_about_a_related_file_and_the_event_says_why(rig):
+    with_rule(rig)
+
+    body = prompt(rig, "please speed up app/parser.py")
+
+    assert body["notes"] == [f"[symbiont] In this repo: {RULE.rstrip('.')}."]
+    event = last_note_event(rig.runs, PROJECT)
+    assert event["fired_by"].startswith("rule: file: ")
+
+
+def test_a_rule_is_said_once_per_prompt_trigger_in_a_session_and_again_in_the_next(rig):
+    with_rule(rig)
+
+    assert prompt(rig, "speed up app/parser.py")["notes"]
+    assert prompt(rig, "and tidy app/parser.py again")["notes"] == []
+    assert prompt(rig, "speed up app/parser.py", session_id="next")["notes"]
+
+
+def test_unrelated_work_and_passing_results_get_no_rule_and_the_hold_is_logged(rig):
+    with_rule(rig)
+
+    assert prompt(rig, "update the readme badges") == {"notes": []}
+    passed = rig.send(
+        "PostToolUse",
+        "command",
+        "live",
+        raw="1 passed",
+        command="pytest tests/test_parser.py",
+        exit_code=0,
+    )
+
+    assert passed == {"notes": []}
+    held = [json.loads(line) for line in rig.events.path.read_text().splitlines()]
+    assert any("no stored rule is related" in str(event.get("note_held")) for event in held)
+
+
+def test_a_failure_with_a_different_signature_in_a_related_file_gets_the_rule(rig):
+    with_rule(rig)
+
+    body = rig.send(
+        "PostToolUseFailure",
+        "command",
+        "live",
+        raw="E   assert x is None",
+        command="pytest -q tests/test_parser.py",
+        exit_code=1,
+    )
+
+    (note,) = body["notes"]
+    assert note.startswith("[symbiont] In this repo:") and "Last time" not in note
+
+
+def test_an_exact_failure_still_gets_the_last_time_note_and_a_new_failure_repeats_the_rule(rig):
+    with_rule(rig)
+
+    exact = rig.fail()["notes"][0]
+    other = rig.send(
+        "PostToolUseFailure",
+        "command",
+        "live",
+        raw="E   assert y is None",
+        command="pytest tests/test_parser.py",
+        exit_code=1,
+    )
+
+    assert exact.startswith("[symbiont] In this repo:") and "Last time" in exact
+    assert other["notes"] and "Last time" not in other["notes"][0]
+
+
+def test_an_intentional_rule_is_never_delivered(rig):
+    with_rule(rig, intentional=True)
+
+    assert prompt(rig, "speed up app/parser.py") == {"notes": []}

@@ -179,9 +179,11 @@ class Service:
         prefix = self._prefixes.setdefault(key, [])
         prefix.append(record)
         self._follow_up.observed(call, project, record)
-        spoken = gate.repeat(request["session_id"], record, prefix[:-1], lessons)
-        if spoken is not None:
-            return _repeat_response(self._parts.events, call, spoken, door)
+        said = gate.speak(request["session_id"], record, prefix[:-1], lessons)
+        if said.note is not None:
+            return _repeat_response(self._parts.events, call, said.note, door)
+        if said.held:
+            self._parts.events.append_note_held(call, said.held, {})
         if _passing_result(request["event"], record) or gate.speaks_only_on_match():
             _hold_unmatched(self._parts.events, call, record)
             return _said(door, [])
@@ -313,8 +315,7 @@ def _hold_unmatched(events: EventLog, call: Call, record: Record) -> None:
 
 def _repeat_response(events: EventLog, call: Call, found: RepeatNote, door: Door) -> Response:
     """The exact-repeat note, logged with the kind of trouble it rests on."""
-    pain = found.lesson.pain_point
-    events.append(call, pain.signature, list(pain.record_refs), [found.sentence])
+    events.append_repeat(call, found)
     return _said(door, [found.sentence])
 
 

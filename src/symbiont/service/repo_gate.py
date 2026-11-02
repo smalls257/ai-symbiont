@@ -8,11 +8,14 @@ exact-repeat rule speak once per lesson per session, and makes the nightly annou
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
-from symbiont.core.repeat import RepeatNote, repeat_note
+from symbiont.core.failure_signature import failure_signature
+from symbiont.core.repeat import RepeatNote, failed_now, repeat_note
+from symbiont.core.rule_relevance import relevant_rules, rule_sentence
 from symbiont.miner.lesson_context import LessonContext
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signature
-from symbiont.records.schema import Record
+from symbiont.miner.trained import lesson_id
+from symbiont.records.schema import Kind, Record
 from symbiont.service.nightly import NightlyJudges
 from symbiont.store.repos import RepoRegistry, RepoStance
 
@@ -39,6 +42,14 @@ class Door:
     announce: tuple[str, ...] = ()
 
 
+@dataclass(frozen=True)
+class Spoken:
+    """What the gate decided to say for one step: a note, or why it held back."""
+
+    note: RepeatNote | None = None
+    held: str | None = None
+
+
 class RepoGate:
     """Decides, per repository, what the service may do; state lives in the registry file.
 
@@ -59,6 +70,7 @@ class RepoGate:
         self.registry = registry
         self._nightly = nightly
         self._said: set[tuple[str, Signature]] = set()
+        self._rules_said: set[tuple[str, str, str]] = set()
 
     def door(self, project: str, event: str) -> Door:
         """Open for a repository that said yes; otherwise closed, asking once at session start."""
@@ -100,9 +112,40 @@ class RepoGate:
             "nightly": self._nightly is not None and self._nightly.has_record(project),
         }
 
+    def speak(
+        self, session_id: str, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
+    ) -> Spoken:
+        """The exact-repeat note if the failure matches, else at most one relevant rule."""
+        exact = self.repeat(session_id, record, earlier, lessons)
+        if exact is not None:
+            return Spoken(exact)
+        return self._rule(session_id, record, lessons)
+
     def speaks_only_on_match(self) -> bool:
         """Whether a note needs a stored lesson with this failure's signature (plugin mode)."""
         return self.registry is not None
+
+    def _rule(self, session_id: str, record: Record, lessons: Sequence[Lesson]) -> Spoken:
+        """One rule relevant to this prompt or failure, never twice for the same trigger."""
+        if self.registry is None or not (record.kind is Kind.USER_TURN or failed_now(record)):
+            return Spoken()
+        contexts = self._contexts(record.project)
+        found = relevant_rules(_situation_text(record), record.files, lessons, contexts)
+        if not found:
+            return Spoken(held="no stored rule is related to this work") if contexts else Spoken()
+        trigger = _trigger(record)
+        for match in found:
+            ident = lesson_id(match.lesson)
+            signature = match.lesson.pain_point.signature
+            if (session_id, ident, trigger) in self._rules_said or self.silenced(
+                record.project, signature
+            ):
+                continue
+            self._rules_said.add((session_id, ident, trigger))
+            return Spoken(
+                RepeatNote(rule_sentence(match.words), match.lesson, "rule: " + match.why)
+            )
+        return Spoken(held="the related rule was already said for this prompt or failure")
 
     def _repeat(
         self, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
@@ -120,3 +163,16 @@ class RepoGate:
             return ()
         self.registry.announce_nightly(project)
         return (NIGHTLY_LIVE,)
+
+
+def _situation_text(record: Record) -> str:
+    """What the agent is working on: the prompt, or the failing command and its output."""
+    return f"{record.command or ''} {record.raw}"
+
+
+def _trigger(record: Record) -> str:
+    """A prompt is one trigger per session; a failure is a new trigger when its message is new."""
+    if record.kind is Kind.USER_TURN:
+        return "prompt"
+    found = failure_signature(record.raw)
+    return found.message if found is not None else record.raw[:80]
