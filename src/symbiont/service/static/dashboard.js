@@ -46,7 +46,7 @@ function saveContext(lessonId,payload){
   if("priority" in payload)st.prio=payload.priority;
   if("terms" in payload)st.terms=payload.terms;
   if("areas" in payload)st.areas=payload.areas;
-  const body={text:st.ctx,intentional:st.intent,priority:st.prio,applies_to:{terms:uncsv(st.terms),areas:uncsv(st.areas)}};
+  const body={...("override" in payload?{review_override:payload.override}:{}),text:st.ctx,intentional:st.intent,priority:st.prio,applies_to:{terms:uncsv(st.terms),areas:uncsv(st.areas)}};
   return fetch("/lessons/"+encodeURIComponent(lessonId)+"/context",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>{
     if(!r.ok)throw new Error("symbiont could not save (status "+r.status+")");
     return {lessonId,saved:true};
@@ -257,7 +257,7 @@ function selectPain(id){
   $("terms").oninput=e=>{st.terms=e.target.value;st.saved=false;};
   $("areas").oninput=e=>{st.areas=e.target.value;st.saved=false;};
   $("sw").onclick=()=>setIntent(!st.intent);
-  if($("keepit")){$("keepit").onclick=()=>{st.kept=true;save();selectPain(sel);};$("dismissit").onclick=()=>{setIntent(true);selectPain(sel);};}
+  if($("keepit")){$("keepit").onclick=()=>{st.kept=true;saveFor(byId(sel),{override:"keep"});selectPain(sel);};$("dismissit").onclick=()=>{st.intent=true;saveFor(byId(sel),{intentional:true,override:"dismiss"});selectPain(sel);};}
   $("edit").querySelectorAll(".seg button").forEach(b=>b.onclick=()=>setPrio(b.dataset.p));
   $("save").onclick=save;
   startReveal();

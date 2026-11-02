@@ -7,7 +7,12 @@ re-mining: a lesson id (session, step, signal) is stable.
 import json
 import sqlite3
 
-from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
+from symbiont.miner.lesson_context import (
+    AppliesTo,
+    LessonContext,
+    Priority,
+    ReviewOverride,
+)
 
 
 class LessonContexts:
@@ -31,6 +36,21 @@ class LessonContexts:
                     applies_json(context.applies),
                 ),
             )
+
+    def save_override(self, lesson_id: str, project: str, choice: ReviewOverride) -> None:
+        """Remember the developer's answer to a reviewer verdict on this lesson."""
+        with self._db:
+            self._db.execute(
+                "INSERT OR REPLACE INTO review_overrides VALUES (?, ?, ?)",
+                (lesson_id, project, choice.value),
+            )
+
+    def overrides(self, project: str) -> dict[str, ReviewOverride]:
+        """Lesson id -> the developer's answer, for every answered lesson in `project`."""
+        rows = self._db.execute(
+            "SELECT lesson_id, choice FROM review_overrides WHERE project=?", (project,)
+        )
+        return {row[0]: ReviewOverride(row[1]) for row in rows}
 
     def get(self, lesson_id: str) -> LessonContext | None:
         """The words for a lesson, or None when the developer added none."""

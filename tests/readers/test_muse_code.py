@@ -201,3 +201,21 @@ def test_the_shape_muse_code_really_writes_for_shell_and_edit_calls(tmp_path):
 
     assert (shell.command, shell.exit_code, shell.raw) == ("pytest -q t.py", 1, report["output"])
     assert (edit.files, edit.diff) == (("t.py",), "-1 == 2\n+1 == 1\n")
+
+
+def piped_record(tmp_path, output):
+    log = write(
+        tmp_path / "session.jsonl",
+        calls({"name": "bash", "call_id": "c1", "args": {"cmd": "pytest -q 2>&1 | head -n 200"}}),
+        results({"call_id": "c1", "text": output, "exit_code": 0}),
+    )
+    (record,) = read(log, "demo")
+    return record
+
+
+def test_a_failing_test_run_piped_through_head_is_a_failed_command_though_muse_said_0(tmp_path):
+    assert piped_record(tmp_path, "F\n1 failed, 2 passed in 0.3s").exit_code == 1
+
+
+def test_a_passing_test_run_piped_through_head_stays_a_success(tmp_path):
+    assert piped_record(tmp_path, "3 passed in 0.3s").exit_code == 0

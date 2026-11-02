@@ -64,7 +64,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str]) -> byt
         store.curation.reviews(project),
         store.curation.authored(project),
         focus,
-        frozenset(store.contexts.all(project)),
+        frozenset(store.contexts.all(project)) - frozenset(store.contexts.overrides(project)),
     )
     safe = json.dumps(dashboard_snapshot(view, today)).replace("</", "<\\/")
     page = (STATIC / "dashboard.html").read_text(encoding="utf-8")

@@ -30,6 +30,13 @@ class LessonContext:
     applies: AppliesTo = AppliesTo()
 
 
+class ReviewOverride(StrEnum):
+    """The developer's answer to a reviewer's silencing verdict; it outranks the verdict."""
+
+    KEEP = "keep"
+    DISMISS = "dismiss"
+
+
 class LessonKind(StrEnum):
     """What a lesson written by the session's model (or the developer) is."""
 
