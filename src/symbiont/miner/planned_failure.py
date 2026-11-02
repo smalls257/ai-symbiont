@@ -76,7 +76,9 @@ def _about_project_name(line: str, owned: set[str], earlier: Sequence[Record]) -
         if found:
             return found.group(1).split(".")[0] in owned
     undefined = _UNDEFINED.search(line)
-    return bool(undefined) and _only_tests_use(undefined.group(1), earlier)
+    if undefined is None:
+        return False
+    return _only_tests_use(undefined.group(1), earlier)
 
 
 def _project_packages(earlier: Sequence[Record]) -> set[str]:
