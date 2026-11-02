@@ -51,10 +51,10 @@ def same_failure(live: str, stored: str) -> bool:
 
 def _message_line(output: str) -> str:
     """The last assertion line (`E ...`), else the last exception line, else empty."""
-    asserted = [match.strip() for match in _ASSERT_LINE.findall(output)]
+    asserted: list[str] = [match.strip() for match in _ASSERT_LINE.findall(output)]
     if asserted:
         return asserted[-1]
-    raised = [match.strip() for match in _EXCEPTION_LINE.findall(output)]
+    raised: list[str] = [match.strip() for match in _EXCEPTION_LINE.findall(output)]
     return raised[-1] if raised else ""
 
 
