@@ -20,3 +20,12 @@ Claude Code: `/plugin marketplace add https://github.com/smalls257/ai-symbiont`,
 
 Muse Code: `muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont`, then
 `muse plugins install symbiont@ai-symbiont`.
+
+## Tracing the hooks
+
+To see what the host sent and what each hook did, run `touch ~/.symbiont/hook-trace.on` (or set
+`SYMBIONT_HOOK_TRACE=<file>` where the host passes its environment; Muse Code does not). Each hook
+then appends to `~/.symbiont/hook-trace.jsonl`: a `wrapper` line when it starts, a `received` line
+with the raw input before any parsing, and an `outcome` line (`forwarded` or `dropped` with the
+reason). A `received` with no `outcome` is a hook the host killed. Remove the marker to stop; it
+is off by default. The trace holds raw prompts and tool output, so it stays local.

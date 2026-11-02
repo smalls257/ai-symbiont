@@ -36,6 +36,13 @@ class NoteStyle(StrEnum):
     FINDING = "finding"
 
 
+class NoteVisibility(StrEnum):
+    """Who reads a note: the model alone, or the developer on screen as well."""
+
+    MODEL_ONLY = "model-only"
+    ALSO_DEVELOPER = "also-developer"
+
+
 @dataclass(frozen=True)
 class HookResult:
     """What the hook prints: `context` for the harness, `warning` for the developer's stderr."""
@@ -52,6 +59,7 @@ class HookSettings:
     style: NoteStyle
     port: int
     fallback_project: str
+    visibility: NoteVisibility = NoteVisibility.ALSO_DEVELOPER
 
 
 class HookInputError(ValueError):
@@ -59,9 +67,15 @@ class HookInputError(ValueError):
 
 
 # PreLLMCall additionalContext was not seen in messages on echo (G2); it only observes.
-# PostToolUseFailure additionalContext is documented for Claude Code, unmeasured on Muse Code.
+# PostToolUseFailure additionalContext reaches the model on Muse Code too (measured in a session
+# log: a developer-role context block).
 _SPEAKING_EVERYWHERE = frozenset(
-    {HookEvent.SESSION_START, HookEvent.USER_PROMPT_SUBMIT, HookEvent.POST_TOOL_USE}
+    {
+        HookEvent.SESSION_START,
+        HookEvent.USER_PROMPT_SUBMIT,
+        HookEvent.POST_TOOL_USE,
+        HookEvent.POST_TOOL_USE_FAILURE,
+    }
 )
 CLAUDE_CODE = "claude_code"
 MUSE_CODE = "muse_code"
@@ -85,9 +99,7 @@ def resolve_harness(chosen: str, environ: Mapping[str, str]) -> str:
 
 
 def speaking_events(harness: str) -> frozenset[HookEvent]:
-    """The events whose notes this harness is known to take as inline context."""
-    if harness == CLAUDE_CODE:
-        return _SPEAKING_EVERYWHERE | {HookEvent.POST_TOOL_USE_FAILURE}
+    """The events whose notes this harness takes as inline context (both do, as measured)."""
     return _SPEAKING_EVERYWHERE
 
 
@@ -120,10 +132,13 @@ def run_hook(
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
     told = _announcements(reply, dashboard_url(settings.port, body["payload"]["record"]["project"]))
-    text = "\n".join(filter(None, [_worded(event, notes, settings.style), *told]))
+    worded = _worded(event, notes, settings.style)
+    text = "\n".join(filter(None, [worded, *told]))
     if not text or event not in speaking_events(settings.harness):
         return HookResult()
-    return HookResult(context=_inline_context(event, text, shown_to="\n".join(told)))
+    shown_notes = [worded] if settings.visibility is NoteVisibility.ALSO_DEVELOPER else []
+    seen = [*filter(None, shown_notes), *told]
+    return HookResult(context=_inline_context(event, text, shown_to="\n".join(seen)))
 
 
 def observe_body(

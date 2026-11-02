@@ -7,7 +7,13 @@ import pytest
 
 from symbiont import cli
 from symbiont.delivery import hooks, launch
-from symbiont.delivery.hooks import HookEvent, HookInputError, HookSettings, NoteStyle
+from symbiont.delivery.hooks import (
+    HookEvent,
+    HookInputError,
+    HookSettings,
+    NoteStyle,
+    NoteVisibility,
+)
 from symbiont.service import server
 from symbiont.service.app import ServiceMode
 from symbiont.service.wiring import open_service
@@ -132,10 +138,20 @@ def test_edits_and_reads_name_their_file():
 
 def test_notes_come_back_as_inline_context(monkeypatch):
     monkeypatch.setattr(hooks, "call_service", lambda route, body, port: {"notes": ["Careful."]})
-    args = (json.dumps(PROMPT_INPUT), HookSettings("muse_code", NoteStyle.PLAIN, 1, "p"))
-    result = hooks.run_hook(HookEvent.USER_PROMPT_SUBMIT, *args)
+    settings = HookSettings("muse_code", NoteStyle.PLAIN, 1, "p", NoteVisibility.MODEL_ONLY)
+    result = hooks.run_hook(HookEvent.USER_PROMPT_SUBMIT, json.dumps(PROMPT_INPUT), settings)
     expected = {"hookEventName": "UserPromptSubmit", "additionalContext": "Careful."}
     assert json.loads(result.context) == {"hookSpecificOutput": expected}
+
+
+@pytest.mark.parametrize("harness", ["claude_code", "muse_code"])
+def test_a_note_is_also_shown_to_the_developer_unless_model_only(monkeypatch, harness):
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: {"notes": ["Careful."]})
+    event = HookEvent.POST_TOOL_USE_FAILURE
+    settings = HookSettings(harness, NoteStyle.PLAIN, 1, "p")
+    shown = json.loads(hooks.run_hook(event, json.dumps(INPUTS[event]), settings).context)
+    assert shown["systemMessage"] == "Careful."
+    assert shown["hookSpecificOutput"]["additionalContext"] == "Careful."
 
 
 def test_finding_style_words_a_post_tool_use_note_as_a_finding(monkeypatch):
@@ -187,7 +203,7 @@ def test_a_malformed_service_reply_is_one_line_not_a_traceback(monkeypatch, caps
     assert "not a list of sentences" in json.loads(out)["systemMessage"]
 
 
-@pytest.mark.parametrize(("harness", "speaks"), [("claude_code", True), ("muse_code", False)])
+@pytest.mark.parametrize(("harness", "speaks"), [("claude_code", True), ("muse_code", True)])
 def test_a_failure_note_is_inline_context_only_where_the_harness_takes_it(
     monkeypatch, harness, speaks
 ):
