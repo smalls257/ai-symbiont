@@ -1,6 +1,7 @@
 import os
 import socket
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -74,3 +75,29 @@ def airplane_mode(request, monkeypatch):
         return
     monkeypatch.setattr(socket, "socket", refuse_network)
     monkeypatch.setattr(socket, "create_connection", refuse_network)
+
+
+def _script_modules() -> dict[str, object]:
+    """The sys.modules entries whose source file lives under the repo's scripts/ directory."""
+    scripts = str(REAL_REPO / "scripts") + os.sep
+    return {
+        name: module
+        for name, module in list(sys.modules.items())
+        if str(getattr(module, "__file__", None) or "").startswith(scripts)
+    }
+
+
+@pytest.fixture(autouse=True)
+def _script_modules_do_not_leak():
+    """A script module a test loads is gone when it ends; one loaded earlier is put back.
+
+    scripts/aidev and scripts/routea each hold a `lessons.py`; tests load them by bare name, and
+    a leftover sys.modules entry made the next test's import resolve to the wrong directory
+    under a random test order. Module-scoped fixtures load before this snapshot, so they stay.
+    """
+    before = _script_modules()
+    yield
+    for name in set(_script_modules()) - set(before):
+        sys.modules.pop(name, None)
+    for name, module in before.items():
+        sys.modules[name] = module
