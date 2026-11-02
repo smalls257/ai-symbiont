@@ -53,10 +53,12 @@ def load_terms(path: Path) -> list[str]:
     return terms
 
 
-# The owner publishes under a public GitHub handle (repo, Pages, raw links), so a term inside
-# those URL forms is not a leak; the same term in a home path or host name still is.
+# The owner publishes under a public GitHub and Hugging Face handle (repo, Pages, raw links,
+# model repos), so a term inside those URL forms is not a leak; the same term in a home path or
+# host name still is.
 PUBLIC_GITHUB_URL = re.compile(
-    r"(?:https?://)?(?:www\.)?(?:github\.com|raw\.githubusercontent\.com)/[a-z0-9-]+"
+    r"(?:https?://)?(?:www\.)?(?:github\.com|raw\.githubusercontent\.com"
+    r"|huggingface\.co|hf\.co)/[a-z0-9-]+"
     r"|[a-z0-9-]+\.github\.io"
 )
 
