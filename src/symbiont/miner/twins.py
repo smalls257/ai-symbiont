@@ -6,6 +6,7 @@ show the first twin's single fix and hide the others.
 """
 
 from dataclasses import replace
+from typing import Any
 
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
@@ -43,6 +44,6 @@ def _pooled(kept: Lesson, twin: Lesson) -> Lesson:
     )
 
 
-def _union(first: tuple, second: tuple) -> tuple:
+def _union(first: tuple[Any, ...], second: tuple[Any, ...]) -> tuple[Any, ...]:
     """Both tuples' items, first-seen order, no repeats."""
     return tuple(dict.fromkeys((*first, *second)))
