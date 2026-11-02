@@ -7,7 +7,7 @@ has not allowed, and history is shown only to a session of the same harness (see
 
 import hashlib
 from collections.abc import Callable
-from typing import Any
+from typing import Any, cast
 
 from symbiont.core.correction_candidates import CAP, correction_candidates
 from symbiont.core.failure_signature import failure_detail
@@ -221,7 +221,7 @@ def _items(value: Any, name: str) -> list[dict[str, Any]]:
     ok = isinstance(value, list) and 0 < len(value) <= MAX_ITEMS
     if not ok or not all(isinstance(item, dict) for item in value):
         raise BadRequestError(f"{name} must be a list of 1 to {MAX_ITEMS} objects")
-    return value
+    return cast("list[dict[str, Any]]", value)  # every element was checked to be a dict above
 
 
 def _text(item: dict[str, Any], key: str) -> str:

@@ -89,9 +89,15 @@ class RepoGate:
     ) -> RepeatNote | None:
         """The exact-repeat note for `record`, unless muted or already said in this session."""
         found = self._repeat(record, earlier, lessons)
-        if found is None or self.silenced(record.project, found.lesson.pain_point.signature):
+        if found is None:
             return None
+        if found.lesson is None:
+            # An exact repeat always rests on a stored lesson; a note without one has no
+            # signature to mute or to say once, so it is spoken as it came.
+            return found
         signature = found.lesson.pain_point.signature
+        if self.silenced(record.project, signature):
+            return None
         if (session_id, signature) in self._said:
             return None
         self._said.add((session_id, signature))

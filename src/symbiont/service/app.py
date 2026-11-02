@@ -84,6 +84,9 @@ class Response:
     body: dict[str, Any]
 
 
+_Route = Callable[[dict[str, Any], Call], Response]
+
+
 @dataclass(frozen=True)
 class ServiceParts:
     """Everything a service is wired from; the filler is whatever `decider` is."""
@@ -142,7 +145,7 @@ class Service:
         """Route one request; unknown routes are refused with 404."""
         name = route.strip("/")
         call = Call(name, hook_of(name, payload), project_of(payload))
-        routes: dict[str, Callable[[dict[str, Any], Call], Response]] = {
+        routes: dict[str, _Route] = {
             "observe": self._observe,
             "recall": self._recall,
             "learn": self._learn,
@@ -150,7 +153,7 @@ class Service:
         }
         if self._parts.curation is not None:
             for path, handler in self._parts.curation.routes().items():
-                routes[path] = lambda request, _, handler=handler: Response(200, handler(request))
+                routes[path] = _ok_route(handler)
         lesson = context_target(name)
         if lesson is not None:
             routes[name] = lambda request, _: Response(
@@ -307,6 +310,11 @@ class Service:
             for outcome in _outcomes(record, troubles):
                 self._state = decider.learn(x, outcome, self._state)
         return len(mine)
+
+
+def _ok_route(handler: Callable[[dict[str, Any]], dict[str, Any]]) -> _Route:
+    """A route that answers 200 with what `handler` returns; binds the handler per route."""
+    return lambda request, _: Response(200, handler(request))
 
 
 def _status(

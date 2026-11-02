@@ -133,7 +133,7 @@ def _negotiated(params: Any) -> str:
 def _call_tool(params: Any, ask: Callable[[str], str], curate: Curate | None) -> dict[str, Any]:
     """Run recall or a curation tool; any other tool name raises _RpcError."""
     name = params.get("name") if isinstance(params, dict) else None
-    if name in BY_NAME and curate is not None:
+    if isinstance(name, str) and name in BY_NAME and curate is not None:
         return _tool_result(_curation_answer(curate, name, params.get("arguments") or {}))
     if name != "recall":
         raise _RpcError(INVALID_PARAMS, f"unknown tool {name!r}")
