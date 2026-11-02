@@ -59,8 +59,9 @@ def open_service(
     guards = guards or Guards()
     filler = decider or Counters()
     run_dir = data_dir / "runs" / time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
+    store = Store.open(data_dir / "store.db")
     parts = ServiceParts(
-        Store.open(data_dir / "store.db"),
+        store,
         filler,
         EventLog(run_dir, filler.name),
         mode,
@@ -68,7 +69,7 @@ def open_service(
         judge=guards.judges.first_night,
         nightly=guards.judges.nightly,
         consent=read_consent(data_dir),
-        gate=RepoGate(guards.repos, guards.nightly_news),
+        gate=RepoGate(guards.repos, guards.nightly_news, store.contexts.all),
     )
     return Service(parts)
 

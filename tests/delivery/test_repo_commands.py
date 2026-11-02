@@ -275,3 +275,57 @@ def test_mining_reads_muse_code_sessions_of_the_repository_too(tmp_path, monkeyp
         "learned 1 lessons from 0 claude-code sessions, 1 muse-code sessions"
         in capsys.readouterr().out
     )
+
+
+def test_context_add_stores_the_words_for_a_listed_lesson_and_lessons_marks_it(tmp_path, capsys):
+    store, lessons = mined_store(tmp_path)
+    command("lessons", data_dir=tmp_path)
+    lesson_id = capsys.readouterr().out.split()[0]
+
+    code = command(
+        "context",
+        "add",
+        lesson_id,
+        "Keep parser imports lazy.",
+        "--priority",
+        "high",
+        data_dir=tmp_path,
+    )
+
+    words = store.contexts.get(lesson_id)
+    assert code == 0 and words.text == "Keep parser imports lazy." and words.priority == "high"
+    command("lessons", data_dir=tmp_path)
+    assert "[your words added]" in capsys.readouterr().out
+
+
+def test_context_add_last_uses_the_lesson_behind_the_last_note(tmp_path):
+    store, lessons = mined_store(tmp_path)
+    log_a_note(tmp_path, lessons)
+
+    assert command("context", "add", "last", "On purpose.", "--intentional", data_dir=tmp_path) == 0
+
+    (words,) = store.contexts.all("demo").values()
+    assert words.intentional and words.text == "On purpose."
+
+
+def test_context_add_for_an_unknown_lesson_fails_loudly(tmp_path, capsys):
+    mined_store(tmp_path)
+
+    assert command("context", "add", "nope:1:failed_command", "x", data_dir=tmp_path) == 1
+    assert "no lesson nope:1:failed_command" in capsys.readouterr().err
+
+
+def test_context_add_last_with_no_note_picks_the_newest_lesson_and_says_which(tmp_path, capsys):
+    store, lessons = mined_store(tmp_path)
+
+    assert command("context", "add", "last", "Newest.", data_dir=tmp_path) == 0
+
+    out = capsys.readouterr().out
+    assert lessons[-1].pain_point.session_id in out and "failed with ImportError" in out
+    (words,) = store.contexts.all("demo").values()
+    assert words.text == "Newest."
+
+
+def test_context_add_last_in_a_repository_with_no_lessons_fails_loudly(tmp_path, capsys):
+    assert command("context", "add", "last", "x", data_dir=tmp_path) == 1
+    assert "has no stored lessons" in capsys.readouterr().err

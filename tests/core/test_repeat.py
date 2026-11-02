@@ -79,3 +79,61 @@ def test_the_same_failure_without_a_test_written_this_session_is_a_repeat():
     failed = live_failure("pytest tests/test_parser.py", IMPORT)
 
     assert repeat_note(failed, earlier, fixed_import_error()) is not None
+
+
+def test_a_different_assertion_in_the_same_command_is_not_a_repeat():
+    lessons = stored_lessons(
+        run("pytest tests/test_parser.py", 1, 'File "app/parser.py"\nE   assert 3 == 4'),
+        edit("app/parser.py", diff="-a\n+b\n"),
+        run("pytest tests/test_parser.py", 0, "1 passed"),
+    )
+    same = live_failure("pytest tests/test_parser.py", 'File "app/parser.py"\nE   assert 8 == 9')
+    other = live_failure("pytest tests/test_parser.py", 'File "app/parser.py"\nE   assert x is y')
+
+    assert repeat_note(same, [], lessons) is not None
+    assert repeat_note(other, [], lessons) is None
+
+
+def test_a_pass_is_never_a_failure_now():
+    from symbiont.core.repeat import failed_now
+
+    assert not failed_now(run("pytest", 0, "ok"))
+    assert not failed_now(run("pytest", None, "unknown"))
+    assert failed_now(run("pytest", 2, "boom"))
+
+
+def test_the_developers_words_lead_the_note():
+    from symbiont.miner.lesson_context import LessonContext
+    from symbiont.miner.trained import lesson_id
+
+    (lesson,) = fixed_import_error()
+    failed = live_failure("pytest tests/test_parser.py", IMPORT)
+    words = {lesson_id(lesson): LessonContext("Parser imports must stay lazy.")}
+
+    note = repeat_note(failed, [], [lesson], words)
+
+    assert note.sentence.startswith("[symbiont] In this repo: Parser imports must stay lazy. Last")
+    assert "failed with ImportError" in note.sentence
+
+
+def test_an_intentional_failure_stays_silent():
+    from symbiont.miner.lesson_context import LessonContext
+    from symbiont.miner.trained import lesson_id
+
+    (lesson,) = fixed_import_error()
+    failed = live_failure("pytest tests/test_parser.py", IMPORT)
+    words = {lesson_id(lesson): LessonContext("on purpose", intentional=True)}
+
+    assert repeat_note(failed, [], [lesson], words) is None
+
+
+def test_a_lesson_without_a_fix_speaks_only_if_the_developer_added_words():
+    from symbiont.miner.lesson_context import LessonContext
+    from symbiont.miner.trained import lesson_id
+
+    (lesson,) = stored_lessons(run("pytest tests/test_parser.py", 1, IMPORT))
+    failed = live_failure("pytest tests/test_parser.py", IMPORT)
+    words = {lesson_id(lesson): LessonContext("Known flake in CI.")}
+
+    assert repeat_note(failed, [], [lesson]) is None
+    assert "no fix was found" in repeat_note(failed, [], [lesson], words).sentence

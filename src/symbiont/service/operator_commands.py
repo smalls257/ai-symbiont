@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.core.notes import happened
+from symbiont.miner.lesson_context import LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
 from symbiont.readers import READERS
@@ -44,7 +45,7 @@ class ServiceAnswerError(RuntimeError):
     """An `AskService` reached the service but got no usable answer; the message says why."""
 
 
-COMMANDS = frozenset({"repo", "status", "why", "mute", "forget", "lessons"})
+COMMANDS = frozenset({"repo", "status", "why", "mute", "forget", "lessons", "context"})
 CLAUDE_CODE_READER = "claude-code"
 MUSE_CODE_READER = "muse-code"
 
@@ -68,6 +69,12 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
             command.add_argument("--lesson", help="an id from `symbiont lessons`")
         if name == "status":
             command.add_argument("--port", type=int, default=defaults.port)
+    words = commands.add_parser("context", help="add your own words to a lesson")
+    words.add_argument("action", choices=["add"])
+    words.add_argument("lesson", help='an id from `symbiont lessons`, or "last"')
+    words.add_argument("text", help="what symbiont should say about it, in your words")
+    words.add_argument("--intentional", action="store_true", help="the failure is on purpose")
+    words.add_argument("--priority", choices=[p.value for p in Priority], default="normal")
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
         parser.add_argument("--data-dir", type=Path, default=defaults.data_dir)
@@ -238,11 +245,40 @@ def _trouble_chosen(args: argparse.Namespace, store: Store) -> Signature:
     raise LookupError(f"no lesson {args.lesson} in {args.project}; see `symbiont lessons`")
 
 
+def _context(args: argparse.Namespace) -> int:
+    """Store the developer's words for a lesson (an id, or "last"); says which one it picked."""
+    store = Store.open(args.data_dir / "store.db")
+    wanted = _newest_lesson_id(args, store) if args.lesson == "last" else args.lesson
+    found = store.find_lesson(wanted)
+    if found is None:
+        raise LookupError(f"no lesson {wanted}; see `symbiont lessons`")
+    words = LessonContext(args.text.strip(), args.intentional, Priority(args.priority))
+    store.contexts.save(wanted, found[0], words)
+    _say(f"saved for {wanted} ({happened(found[1].pain_point.signature)}).")
+    return 0
+
+
+def _newest_lesson_id(args: argparse.Namespace, store: Store) -> str:
+    """The lesson behind the last note, else the newest stored lesson of this repository."""
+    event = last_note_event(args.data_dir / "runs", args.project)
+    refs = [] if event is None else event.get("records", [])
+    if event is not None and event.get("trouble") and refs:
+        behind = f"{refs[0][0]}:{refs[0][1]}:{event['trouble'][0]}"
+        if store.find_lesson(behind) is not None:
+            return behind
+    lessons = store.lessons(args.project)
+    if not lessons:
+        raise LookupError(f"{args.project} has no stored lessons; try `symbiont repo mine`")
+    return lesson_id(lessons[-1])
+
+
 def _lessons(args: argparse.Namespace) -> int:
     """One line per stored lesson: its id and what happened."""
-    lessons = Store.open(args.data_dir / "store.db").lessons(args.project)
+    store = Store.open(args.data_dir / "store.db")
+    lessons, words = store.lessons(args.project), store.contexts.all(args.project)
     for lesson in lessons:
-        _say(f"{lesson_id(lesson)}  {happened(lesson.pain_point.signature)}")
+        mark = "  [your words added]" if lesson_id(lesson) in words else ""
+        _say(f"{lesson_id(lesson)}  {happened(lesson.pain_point.signature)}{mark}")
     if not lessons:
         _say(f"no stored lessons for {args.project}; try `symbiont repo mine`")
     return 0
@@ -259,4 +295,5 @@ _COMMANDS = {
     "mute": _mute,
     "forget": _forget,
     "lessons": _lessons,
+    "context": _context,
 }

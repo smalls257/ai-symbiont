@@ -68,7 +68,7 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
     assert Store.open(tmp_path / "store.sqlite").lessons(PROJECT) == [lesson]
     db = sqlite3.connect(tmp_path / "store.sqlite")
     tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
-    assert tables == {"sources", "lessons", "trained"}
+    assert tables == {"sources", "lessons", "trained", "contexts"}
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
     assert "fix it" not in body, "only the cited record's bounded quote is kept"
 
