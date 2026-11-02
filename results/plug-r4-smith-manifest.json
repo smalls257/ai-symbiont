@@ -1,0 +1,16 @@
+{
+ "repos": [
+  "getmoto/moto",
+  "pydantic/pydantic"
+ ],
+ "items": 924,
+ "kinds": {
+  "pick": 462,
+  "silence": 462
+ },
+ "sha256": {
+  "primary-items.jsonl": "94f58213a7bb7610a14b9e7e2a7add1917b6ec91b25334c101b1efc04e579417",
+  "primary-queries.jsonl": "8b866b6560c0f4b160154e0ebfdca9202901fcbf0f9afb888acddd52d9bd1dc5",
+  "primary-negatives.txt": "bc31a5bdda1875498127ee56e3119c80b22d6df65aa55348b5009f3614922726"
+ }
+}

@@ -1,0 +1,18 @@
+{
+ "files": {
+  "primary-items.jsonl": "94f58213a7bb7610a14b9e7e2a7add1917b6ec91b25334c101b1efc04e579417",
+  "primary-queries.jsonl": "8b866b6560c0f4b160154e0ebfdca9202901fcbf0f9afb888acddd52d9bd1dc5",
+  "primary-negatives.txt": "bc31a5bdda1875498127ee56e3119c80b22d6df65aa55348b5009f3614922726"
+ },
+ "adapters": {
+  "judge-s0": "6375047268eb3e285d21b4632a5661ced347c1aa319ec47ed0ba57c77e0d7bdc",
+  "judge-s1": "a06ab6e0f5b74f8f60ff6d7605dc5be54b970b5a7811ddf95503501dc196bdc4",
+  "judge-s2": "797d169cedf9fde56cac3791cf88245d02e8fb23cd072c0e0bbcce67415837c9"
+ },
+ "selections": [
+  "1280411db064e91be018d6667780c9ee0d133a92e311948a2013d02f6b8d5b4d",
+  "cf03eda39da87d35a6db20be1eeeb3afd54f0595730ff0bd9e43c83693bd4e9d"
+ ],
+ "items": 924,
+ "judge_threshold": 0.99
+}

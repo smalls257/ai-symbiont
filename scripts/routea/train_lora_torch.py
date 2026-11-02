@@ -12,6 +12,7 @@ import json
 import math
 import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import torch
@@ -129,8 +130,16 @@ def adam_update(params: list[torch.Tensor], moments: list[tuple], lr: float) -> 
         param.grad = None
 
 
+@dataclass(frozen=True)
+class Schedule:
+    """The recipe's warmup and a factor on its learning rate (1.0: the recipe unchanged)."""
+
+    warmup: int = WARMUP
+    lr_scale: float = 1.0
+
+
 def train(
-    model, rows: list[tuple[list[int], int]], iters: int, warmup: int = WARMUP, seed: int = SEED
+    model, rows: list[tuple[list[int], int]], iters: int, schedule: Schedule, seed: int = SEED
 ) -> None:
     params = [p for p in model.parameters() if p.requires_grad]
     moments = [(torch.zeros_like(p), torch.zeros_like(p)) for p in params]
@@ -141,7 +150,7 @@ def train(
         if not math.isfinite(loss.item()):
             raise FloatingPointError(f"loss {loss.item()} at iter {update + 1}")
         loss.backward()
-        lr = learning_rate(update, iters, warmup)
+        lr = learning_rate(update, iters, schedule.warmup) * schedule.lr_scale
         adam_update(params, moments, lr)
         losses.append(loss.item())
         if (update + 1) % REPORT_EVERY == 0 or update + 1 == iters:
@@ -159,6 +168,8 @@ def main() -> None:
     parser.add_argument("--resume", type=Path, help="adapter dir to continue from")
     parser.add_argument("--seed", type=int, default=SEED, help="batch order and LoRA init")
     parser.add_argument("--recipe", choices=("lcap", "nightly"), default="lcap")
+    # Round 4's 3B retry: the recipe's schedule times this factor; 1.0 is the recipe unchanged.
+    parser.add_argument("--lr-scale", type=float, default=1.0)
     args = parser.parse_args()
     tokenizer = AutoTokenizer.from_pretrained(args.model)
     rows = encoded_rows(tokenizer, args.data / "train.jsonl")
@@ -167,7 +178,7 @@ def main() -> None:
         resume_from(model, args.resume)
     model.print_trainable_parameters()
     warmup = warmup_for(args.iters) if args.recipe == "nightly" else WARMUP
-    train(model, rows, args.iters, warmup, args.seed)
+    train(model, rows, args.iters, Schedule(warmup, args.lr_scale), args.seed)
     model.save_pretrained(args.adapter)
     # same words as macOS `time -l`, so score_answers.py reads GPU peak memory unchanged
     print(f"{peak_allocated_bytes()} peak allocated")
