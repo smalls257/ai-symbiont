@@ -4,6 +4,7 @@ import json
 import time
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from symbiont.core.slot import Decision, event_fields
 from symbiont.miner.painpoint import Signature
@@ -15,6 +16,8 @@ class Call:
 
     route: str
     hook: str
+    # Whose history the call is about; lets `symbiont why` find the last note of one repository.
+    project: str = ""
 
 
 @dataclass(frozen=True)
@@ -82,6 +85,24 @@ class EventLog:
         """Append one timestamped event line."""
         self.path.parent.mkdir(parents=True, exist_ok=True)
         stamped = {"ts": time.time(), "route": call.route, "hook": call.hook, **event}
+        if call.project:
+            stamped["project"] = call.project
         line = json.dumps({**stamped, "filler": self.filler})
         with self.path.open("a", encoding="utf-8") as log:
             log.write(line + "\n")
+
+
+def last_note_event(runs_dir: Path, project: str) -> dict[str, Any] | None:
+    """The newest logged event of `project` that carried a note, searching the newest run first.
+
+    Returns None when there is none. A line that is not JSON raises ValueError naming the file.
+    """
+    for events in sorted(runs_dir.glob("*/events.jsonl"), reverse=True):
+        for line in reversed(events.read_text(encoding="utf-8").splitlines()):
+            try:
+                event = json.loads(line)
+            except ValueError as exc:
+                raise ValueError(f"{events} holds a line that is not JSON: {exc}") from exc
+            if event.get("project") == project and event.get("notes"):
+                return event
+    return None

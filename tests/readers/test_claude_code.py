@@ -1,4 +1,6 @@
 import json
+import os
+import re
 from pathlib import Path
 
 import pytest
@@ -244,3 +246,26 @@ def test_non_string_field_raises_readerror_naming_file_and_line(tmp_path, events
     assert err.value.path == path
     assert str(path) in str(err.value)
     assert err.value.line_no >= 2
+
+
+def test_session_logs_are_found_by_the_repository_directory_oldest_first(tmp_path):
+    from symbiont.readers.claude_code import session_logs
+
+    repo = tmp_path / "work" / "my.repo"
+    repo.mkdir(parents=True)
+    encoded = re.sub(r"[^A-Za-z0-9]", "-", str(repo.resolve()))
+    folder = tmp_path / "home" / ".claude" / "projects" / encoded
+    folder.mkdir(parents=True)
+    newer, older = folder / "b.jsonl", folder / "a.jsonl"
+    newer.write_text("{}\n")
+    older.write_text("{}\n")
+    os.utime(older, (1, 1))
+    (folder / "notes.txt").write_text("not a log")
+
+    assert session_logs(repo, tmp_path / "home") == [older, newer]
+
+
+def test_a_repository_with_no_session_folder_has_no_logs(tmp_path):
+    from symbiont.readers.claude_code import session_logs
+
+    assert session_logs(tmp_path, tmp_path / "home") == []

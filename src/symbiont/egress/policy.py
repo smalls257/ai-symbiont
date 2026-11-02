@@ -22,6 +22,9 @@ LAN_SUFFIXES = (".local", ".lan", ".home", ".internal", ".localdomain", ".fritz.
 # model API is a new entry here and a policy test, so a typo or a swapped host cannot send
 # spark_safe data to an unlisted server. Local tiers are bounded by loopback/LAN instead.
 REMOTE_HOSTS = frozenset({"api.meta.ai"})
+# 7377 spells SYMB on a phone keypad. Where the service listens and where its clients look is one
+# fact, so it lives here, below both (a client must not import the service to learn it).
+LOCAL_SERVICE_PORT = 7377
 
 
 class Endpoint(StrEnum):

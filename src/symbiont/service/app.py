@@ -1,10 +1,8 @@
 """The service without a transport: routes in, (status, body) out."""
 
-import io
-import json
 import logging
 import threading
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
@@ -16,6 +14,7 @@ from symbiont.core.memory_note import note_request, recall_request
 from symbiont.core.note_rules import may_speak
 from symbiont.core.notes import NoteKind, render, render_lesson
 from symbiont.core.recall import relevant_lessons
+from symbiont.core.repeat import RepeatNote
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint
@@ -25,7 +24,7 @@ from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.privacy import OwnHistoryConsent
-from symbiont.records.schema import Record, RecordFormatError, load_jsonl
+from symbiont.records.schema import Record
 from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.follow_up import FollowUp, ShownNote
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
@@ -36,7 +35,19 @@ from symbiont.service.memory_model import (
     may_answer_spark,
 )
 from symbiont.service.nightly import NightlyJudges
-from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.service.repo_gate import Door, RepoGate
+from symbiont.service.request_shapes import (
+    BadRequestError,
+    as_object,
+    hook_of,
+    named_project,
+    observed,
+    project_of,
+    require_keys,
+    source_of,
+    spark_bound,
+)
+from symbiont.store.local import SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
 
 log = logging.getLogger("symbiont.service")
@@ -46,6 +57,7 @@ RECALL_KEYS = frozenset({"question", "project", "spark_bound"})
 OBSERVE_REQUIRED = frozenset({"harness", "session_id", "event", "payload"})
 OBSERVE_KEYS = OBSERVE_REQUIRED | {"spark_bound"}
 LEARN_KEYS = frozenset({"reader", "session_log_path", "project"})
+SILENCED = "the developer silenced this kind of note"
 HELD_BY_RULE = "the note budget is spent or the last note was too recent"
 
 
@@ -89,21 +101,19 @@ class ServiceParts:
     nightly: NightlyJudges | None = None
     # The user's own-history setting (store.consent); what a Spark-bound call may rest on.
     consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD
+    # The per-repository answers; when set, a repository that did not say yes is not observed.
+    gate: RepoGate = field(default_factory=RepoGate)
 
 
 class SparkWithheldError(PermissionError):
     """A Spark-bound answer could not be shown to rest only on Spark-safe records."""
 
 
-class BadRequestError(ValueError):
-    """A request that does not have the shape its route takes."""
-
-
 class Service:
     """Observe, recall and learn over one store and one decider."""
 
     def __init__(self, parts: ServiceParts) -> None:
-        """Start with the decider's initial state and no session prefixes."""
+        """Start with the decider's initial state."""
         self._parts = parts
         self._state = parts.decider.initial_state(0)
         self._prefixes: dict[tuple[str, str], list[Record]] = {}
@@ -119,12 +129,17 @@ class Service:
     def _respond_locked(self, route: str, payload: Any) -> Response:
         """Route one request; unknown routes are refused with 404."""
         name = route.strip("/")
-        call = Call(name, _hook_of(name, payload))
-        routes = {"observe": self._observe, "recall": self._recall, "learn": self._learn}
+        call = Call(name, hook_of(name, payload), project_of(payload))
+        routes = {
+            "observe": self._observe,
+            "recall": self._recall,
+            "learn": self._learn,
+            "status": lambda request, call: _status(self._parts, self._lessons, request),
+        }
         if name not in routes:
             return self._refuse(call, 404, f"no such route: {route}")
         try:
-            return routes[name](_object(payload), call)
+            return routes[name](as_object(payload), call)
         except BadRequestError as exc:
             return self._refuse(call, 400, str(exc))
         except (SparkPrivacyViolationError, SparkWithheldError):
@@ -146,33 +161,43 @@ class Service:
 
     def _observe(self, request: dict[str, Any], call: Call) -> Response:
         """Record one hook observation and answer with the decider's note."""
-        _require_keys(request, OBSERVE_KEYS, OBSERVE_REQUIRED)
-        project, record = _observed(request["payload"])
+        require_keys(request, OBSERVE_KEYS, OBSERVE_REQUIRED)
+        project, record = observed(request["payload"])
+        gate = self._parts.gate
+        door = gate.door(project, request["event"])
+        if not door.may_observe:
+            return _said(door, [])
         lessons = self._lessons(request, project)
         key = (request["harness"], request["session_id"])
         prefix = self._prefixes.setdefault(key, [])
         prefix.append(record)
         self._follow_up.observed(call, project, record)
+        spoken = gate.repeat(request["session_id"], record, prefix[:-1], lessons)
+        if spoken is not None:
+            return _repeat_response(self._parts.events, call, spoken, door)
         # No raw history is stored, so there are no earlier records to recall from here.
         history = tuple(lesson.pain_point for lesson in lessons)
         situation = Situation(project, tuple(prefix), history, ())
         decision = self._parts.decider.decide(featurise(situation), situation, self._state)
-        if _spark_bound(request):
+        if spark_bound(request):
             _refuse_untraceable(decision, lessons)
+        if gate.silenced(project, decision.trouble):
+            self._parts.events.append_quiet(call, decision, SILENCED)
+            return _said(door, [])
         warns = self._parts.mode is ServiceMode.WARN_AND_RECALL
         memory = self._memory_for(request, project) if decision.trouble and warns else None
         if memory is not None:
             return self._memory_observe(request, decision, memory, call)
         notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode], lessons=lessons)
         self._parts.events.append_decision(call, decision, notes)
-        return Response(200, {"notes": notes})
+        return _said(door, notes)
 
     def _memory_for(self, request: dict[str, Any], project: str) -> MemoryModel | None:
         """The memory model that may answer for `project`, or None; Spark needs its own adapter."""
         memory = self._parts.memory
         if memory is None or not memory.knows(project):
             return None
-        if _spark_bound(request) and not may_answer_spark(memory.provenance, self._parts.consent):
+        if spark_bound(request) and not may_answer_spark(memory.provenance, self._parts.consent):
             raise SparkWithheldError
         return memory
 
@@ -180,7 +205,7 @@ class Service:
         self, request: dict[str, Any], decision: Decision, memory: MemoryModel, call: Call
     ) -> Response:
         """Option A decides whether to speak; the memory model writes what is said."""
-        key, spark_bound = (request["harness"], request["session_id"]), _spark_bound(request)
+        key, to_spark = (request["harness"], request["session_id"]), spark_bound(request)
         position = len(self._prefixes[key]) - 1
         spoken = self._spoken.setdefault(key, [])
         trouble = decision.trouble
@@ -189,20 +214,20 @@ class Service:
             return Response(200, {"notes": []})
         reply = memory.write_line(note_request(self._prefixes[key][-1].project, trouble))
         spoken.append(position)
-        line = scrub(reply.line) if spark_bound else reply.line
+        line = scrub(reply.line) if to_spark else reply.line
         self._parts.events.append_memory_note(call, decision, line, _cost(reply))
         return Response(200, {"notes": [line]})
 
     def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
         """The project's lessons, through the Spark view when the request is Spark-bound."""
         store = self._parts.store
-        if _spark_bound(request):
+        if spark_bound(request):
             return store.spark_view(self._parts.consent).lessons(project)
         return store.lessons(project)
 
     def _recall(self, request: dict[str, Any], call: Call) -> Response:
         """Answer a plain question from the project's sessions."""
-        _require_keys(request, RECALL_KEYS, frozenset({"question", "project"}))
+        require_keys(request, RECALL_KEYS, frozenset({"question", "project"}))
         project, question = request["project"], request["question"]
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
@@ -212,7 +237,7 @@ class Service:
         memory = self._memory_for(request, project)
         if memory is not None:
             reply = memory.write_line(recall_request(project, question))
-            line = scrub(reply.line) if _spark_bound(request) else reply.line
+            line = scrub(reply.line) if spark_bound(request) else reply.line
             self._parts.events.append_memory_note(call, None, line, _cost(reply))
             return Response(200, {"answer": line, "records": []})
         if not lessons:
@@ -255,8 +280,8 @@ class Service:
 
     def _learn(self, request: dict[str, Any], call: Call) -> Response:
         """Load a finished session log into the store and learn from it."""
-        _require_keys(request, LEARN_KEYS, LEARN_KEYS)
-        source = _source_of(request)
+        require_keys(request, LEARN_KEYS, LEARN_KEYS)
+        source = source_of(request)
         parts = self._parts
         rules = MiningRules(parts.readers, parts.held_out_tasks)
         try:
@@ -280,6 +305,29 @@ class Service:
             for outcome in _outcomes(record, troubles):
                 self._state = decider.learn(x, outcome, self._state)
         return len(mine)
+
+
+def _status(
+    parts: ServiceParts, lessons_of: Callable[..., list[Lesson]], request: dict[str, Any]
+) -> Response:
+    """The repository's state for `symbiont status`; it changes nothing."""
+    name = named_project(request)
+    return Response(200, parts.gate.status(name, lessons_of(request, name)))
+
+
+def _repeat_response(events: EventLog, call: Call, found: RepeatNote, door: Door) -> Response:
+    """The exact-repeat note, logged with the kind of trouble it rests on."""
+    pain = found.lesson.pain_point
+    events.append(call, pain.signature, list(pain.record_refs), [found.sentence])
+    return _said(door, [found.sentence])
+
+
+def _said(door: Door, notes: list[str]) -> Response:
+    """The notes for the agent, plus what to tell the developer directly when there is any."""
+    body: dict[str, Any] = {"notes": notes}
+    if door.announce:
+        body["announce"] = list(door.announce)
+    return Response(200, body)
 
 
 def _cost(reply: MemoryReply) -> MemoryCost:
@@ -330,54 +378,3 @@ def _troubles_by_step(
         if pain.session_id in sessions:
             by_step.setdefault((pain.session_id, pain.step), []).append(pain)
     return by_step
-
-
-def _spark_bound(request: dict[str, Any]) -> bool:
-    """Absent means local; anything but a real bool is refused, never guessed."""
-    value = request.get("spark_bound", False)
-    if not isinstance(value, bool):
-        raise BadRequestError("spark_bound must be true or false")
-    return value
-
-
-def _hook_of(route: str, payload: Any) -> str:
-    """The hook name to log: the event for observe, otherwise the route."""
-    event = payload.get("event") if isinstance(payload, dict) else None
-    return event if route == "observe" and isinstance(event, str) else route
-
-
-def _object(payload: Any) -> dict[str, Any]:
-    """The payload as a dict, or BadRequestError."""
-    if not isinstance(payload, dict):
-        raise BadRequestError("the request body must be a JSON object")
-    return payload
-
-
-def _require_keys(
-    request: dict[str, Any], allowed: frozenset[str], required: frozenset[str]
-) -> None:
-    """Raise BadRequestError for unexpected or missing request fields."""
-    extra = sorted(set(request) - allowed)
-    if extra:
-        raise BadRequestError(f"unexpected fields: {', '.join(extra)}")
-    missing = sorted(required - set(request))
-    if missing:
-        raise BadRequestError(f"missing fields: {', '.join(missing)}")
-
-
-def _observed(payload: Any) -> tuple[str, Record]:
-    """The project and record carried by an observe payload."""
-    body = _object(payload)
-    try:
-        record = next(load_jsonl(io.StringIO(json.dumps(body.get("record")))))
-    except (RecordFormatError, StopIteration) as exc:
-        raise BadRequestError(f"payload.record is not a record: {exc}") from exc
-    return record.project, record
-
-
-def _source_of(request: dict[str, Any]) -> Source:
-    """The log source a learn request names; all three fields must be text."""
-    reader, path, project = request["reader"], request["session_log_path"], request["project"]
-    if not all(isinstance(value, str) for value in (reader, path, project)):
-        raise BadRequestError("reader, session_log_path and project must be text")
-    return Source(project, reader, path)

@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "symbiont": {
+      "command": "symbiont",
+      "args": [
+        "mcp"
+      ]
+    }
+  }
+}

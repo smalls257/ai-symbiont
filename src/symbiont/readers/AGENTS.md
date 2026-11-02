@@ -12,6 +12,8 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/readers/`.
 - Readers do not import each other's internals; shared types live in `records` and `readers/errors.py`.
 - Fixtures under `tests/fixtures/` are synthetic and hand-written, never dataset rows.
 
+- `muse_code.py` reads `session.jsonl` from Muse Code's store (shape from its `read-session` skill); `session_logs` finds a workspace's main logs, never the subagent ones. Tests build synthetic lines; no real session is ever read in development.
+
 ## Imports
 - May import: `records`. Must not import: core, miner, store, service. Registry by harness name in `__init__.py`.
 

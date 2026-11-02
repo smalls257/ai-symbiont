@@ -42,6 +42,10 @@ class NightlyJudges:
     # None sends through urllib; tests pass a fake that never opens a socket.
     transport: Transport | None = None
 
+    def has_record(self, project: str) -> bool:
+        """Whether the project's first night has finished (its nightly record exists)."""
+        return (self.root / project / RECORD).is_file()
+
     def judge_for(self, project: str, lessons: Sequence[Lesson]) -> JudgeModel | None:
         """The project's nightly judge, or None before its first night (logged).
 
