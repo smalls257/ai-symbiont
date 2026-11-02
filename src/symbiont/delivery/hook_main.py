@@ -11,6 +11,7 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from symbiont.delivery.hook_trace import record_outcome, record_received, trace_path
 from symbiont.delivery.hooks import (
     AUTO,
     CLAUDE_CODE,
@@ -41,15 +42,22 @@ def add_hook_arguments(parser: argparse.ArgumentParser) -> None:
 
 def forward_hook(args: argparse.Namespace, stdin_text: str) -> int:
     """Forward one hook event and print what the harness should show; always returns 0."""
+    trace = trace_path(os.environ, args.data_dir)
+    record_received(trace, args.event, stdin_text)
     harness = resolve_harness(args.harness, os.environ)
     settings = HookSettings(harness, args.notes, args.port, args.project)
     try:
         result = run_hook(args.event, stdin_text, settings, reviving_call(args.data_dir, args.port))
     except (HookInputError, ServiceRefusedError, ServiceReplyError) as unusable:
+        record_outcome(trace, args.event, "dropped", f"{type(unusable).__name__}: {unusable}")
         sys.stderr.write(f"symbiont hook {args.event}: {unusable}\n")
         said = {"systemMessage": f"symbiont could not use {args.event}: {unusable}"}
         sys.stdout.write(json.dumps(said) + "\n")
         return 0
+    if result.warning:
+        record_outcome(trace, args.event, "dropped", result.warning)
+    else:
+        record_outcome(trace, args.event, "forwarded")
     if result.warning:
         sys.stderr.write(result.warning + "\n")
     if result.context:

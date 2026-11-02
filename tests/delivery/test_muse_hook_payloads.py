@@ -88,3 +88,26 @@ def test_a_plain_text_error_from_claude_code_stays_text_with_failure_code_one():
     }
     record = record_of(failure | {"hook_event_name": "PostToolUseFailure"})
     assert (record["raw"], record["exit_code"]) == ("Exit code 1", 1)
+
+
+PYTEST_RED = "FAILED tests/test_a.py::test_a - assert 1 == 2\n1 failed in 0.02s\n"
+
+
+@pytest.mark.parametrize("command", ["pytest -q 2>&1 | tail -5", "pytest -q -x | head -20"])
+def test_a_piped_red_pytest_run_is_reported_as_failed(command):
+    done = muse_payload(
+        HookEvent.POST_TOOL_USE, "bash", {"command": command}, muse_shell_result(0, PYTEST_RED)
+    )
+    assert record_of(done)["exit_code"] == 1
+
+
+def test_a_piped_green_run_and_an_unpiped_zero_exit_stay_exit_zero():
+    green = muse_shell_result(0, "3 passed in 0.01s\n")
+    piped = muse_payload(HookEvent.POST_TOOL_USE, "bash", {"command": "pytest | tail"}, green)
+    quoted = muse_payload(
+        HookEvent.POST_TOOL_USE,
+        "bash",
+        {"command": "cat log.txt"},
+        muse_shell_result(0, PYTEST_RED),
+    )
+    assert (record_of(piped)["exit_code"], record_of(quoted)["exit_code"]) == (0, 0)

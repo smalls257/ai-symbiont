@@ -5,6 +5,7 @@ about", so offline prints a visible note and exits 0: the harness is never block
 """
 
 import json
+import re
 import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
@@ -200,7 +201,7 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
             "kind": "command",
             "raw": raw,
             "command": command,
-            "exit_code": _exit_code(printed, event),
+            "exit_code": _status_unmasked(command, raw, _exit_code(printed, event)),
         }
     path = arguments.get("file_path") or arguments.get("path")
     files = [path] if isinstance(path, str) else []
@@ -237,6 +238,19 @@ def _output_text(response: Any) -> str:
         if printed:
             return "\n".join(part for part in printed if part)
     return json.dumps(response)
+
+
+# Pytest's own verdict lines: a summary such as "2 failed, 1 passed in 0.03s", or a FAILED/ERROR id.
+PYTEST_FAILURE = re.compile(
+    r"^(?:=+ )?(?:\d+ (?:failed|errors?)\b.* in [\d.]+s|(?:FAILED|ERROR) \S+)", re.M
+)
+
+
+def _status_unmasked(command: str, output: str, reported: int | None) -> int | None:
+    """`pytest | tail` exits 0 on a red suite; the output holds the verdict, so report exit 1."""
+    if reported == 0 and "|" in command and PYTEST_FAILURE.search(output):
+        return 1
+    return reported
 
 
 def _exit_code(response: Any, event: HookEvent) -> int | None:
