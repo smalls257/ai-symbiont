@@ -1,0 +1,3 @@
+{"kind": "mistake", "text": "The retry helper returned None after the last attempt, so callers saw success.", "files": ["src/retry.py"], "severity": "high", "source": "example-reviewer", "date": "2026-03-02", "id": "f-1"}
+{"kind": "friction", "text": "The test command needed an undocumented environment variable."}
+{"kind": "lesson", "text": "Run the formatter before committing; the hook rejects unformatted files.", "date": "2026-03-02T10:15:00"}

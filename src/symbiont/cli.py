@@ -25,6 +25,7 @@ from symbiont.delivery.recall import (
     recall_answer,
 )
 from symbiont.readers import READERS
+from symbiont.readers.findings import FINDINGS_DIR, findings_files
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.service.app import ServiceMode
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
@@ -119,6 +120,22 @@ def _add_mine_command(commands: Any) -> None:
         help=f"register a log; readers: {', '.join(sorted(READERS))}",
     )
     mining.add_argument("--held-out", action="append", default=[], metavar="TASK_ID")
+    mining.add_argument(
+        "--repo", type=Path, default=Path.cwd(), help="repository whose .symbiont/findings to read"
+    )
+    mining.add_argument(
+        "--findings",
+        action="append",
+        default=[],
+        type=Path,
+        metavar="PATH",
+        help="also import lesson findings (JSON Lines file or folder written by another tool)",
+    )
+    mining.add_argument(
+        "--no-findings",
+        action="store_true",
+        help="do not auto-import the repository's .symbiont/findings folder",
+    )
 
 
 def _mine(args: argparse.Namespace) -> int:
@@ -130,6 +147,7 @@ def _mine(args: argparse.Namespace) -> int:
             print(f"symbiont mine: --source must be READER=PATH, got {spec!r}", file=sys.stderr)
             return 1
         sources.append(Source(args.project, reader, path))
+    sources += _findings_sources(args)
     args.data_dir.mkdir(parents=True, exist_ok=True)
     store = Store.open(args.data_dir / "store.db")
     rules = MiningRules(READERS, frozenset(args.held_out))
@@ -141,6 +159,14 @@ def _mine(args: argparse.Namespace) -> int:
     print(f"{len(lessons)} lessons from {len(store.sources(args.project))} logs")
     print("\n".join(coverage_lines(lessons)))
     return 0
+
+
+def _findings_sources(args: argparse.Namespace) -> list[Source]:
+    """Lesson-findings logs to mine: the given paths, plus the repository's own folder."""
+    paths = list(args.findings)
+    if not args.no_findings and findings_files(args.repo):
+        paths.append(args.repo / FINDINGS_DIR)
+    return [Source(args.project, "findings", str(path)) for path in paths]
 
 
 def _add_hook_commands(commands: Any) -> None:
