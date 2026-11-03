@@ -159,7 +159,7 @@ def test_log_is_written_one_line_per_decision_and_survives_a_crash(tmp_path):
     replies = scripted_replies(Reply("explore()", "stop", 0), ConnectionError("model down"))
     with pytest.raises(ConnectionError):
         run_episode(FakeGame(), replies, 5, RunLog(log), knowledge=MapKnowledge(FLOORED_MAP))
-    lines = log.read_text().splitlines()
+    lines = log.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 2  # run header, then the one finished decision
     assert "run_header" in json.loads(lines[0])
     assert json.loads(lines[1])["status"] == "invalid"
@@ -181,7 +181,7 @@ def test_rerun_appends_a_new_header_and_keeps_earlier_evidence(tmp_path):
         RunLog(log, {"model": "m2"}),
         knowledge=MapKnowledge(FLOORED_MAP),
     )
-    rows = [json.loads(line) for line in log.read_text().splitlines()]
+    rows = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
     headers = [r["run_header"] for r in rows if "run_header" in r]
     assert [h["model"] for h in headers] == ["m1", "m2"]
     assert all("started_at" in h and h["max_decisions"] == 1 for h in headers)
@@ -351,7 +351,7 @@ def test_run_episode_names_the_detected_convention_in_the_run_header(tmp_path):
         RunLog(log),
         knowledge=MapKnowledge(FLOORED_MAP),
     )
-    header = json.loads(log.read_text().splitlines()[0])["run_header"]
+    header = json.loads(log.read_text(encoding="utf-8").splitlines()[0])["run_header"]
     assert header["sector_convention"] == "authored"
 
 
@@ -364,7 +364,7 @@ def test_a_caller_header_cannot_overwrite_the_detected_sector_convention(tmp_pat
         RunLog(log, header={"sector_convention": "x"}),
         knowledge=MapKnowledge(FLOORED_MAP),
     )
-    header = json.loads(log.read_text().splitlines()[0])["run_header"]
+    header = json.loads(log.read_text(encoding="utf-8").splitlines()[0])["run_header"]
     assert header["sector_convention"] == "authored"
 
 

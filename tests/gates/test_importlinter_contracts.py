@@ -37,7 +37,7 @@ def test_contract_covers_every_module_the_boundary_test_forbids():
 
 
 def test_every_package_under_src_is_named_in_the_config():
-    config_text = CONFIG.read_text()
+    config_text = CONFIG.read_text(encoding="utf-8")
     src = REPO / "src" / "symbiont"
     packages = [p.name for p in src.iterdir() if p.is_dir() and (p / "__init__.py").exists()]
     modules = [p.stem for p in src.glob("*.py") if p.stem not in ("__init__", "__main__")]
@@ -70,7 +70,7 @@ def test_a_core_module_importing_sqlite3_breaks_the_contract(tmp_path):
 
 
 def _network_contract_section() -> str:
-    text = CONFIG.read_text()
+    text = CONFIG.read_text(encoding="utf-8")
     start = text.index("[importlinter:contract:network-only-through-egress]")
     return text[start : text.index("\n[importlinter:contract:", start + 1)]
 

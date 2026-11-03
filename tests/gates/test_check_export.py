@@ -109,7 +109,7 @@ def test_export_ignore_cannot_hide_a_tracked_file_and_is_itself_a_finding(projec
 def test_a_gate_file_that_differs_from_head_refuses_the_run(project, tmp_path):
     _commit(project, "src/symbiont/net.py", "HOST = '" + "192.168." + "1.9'\n")
     config = project / ".gitleaks.toml"
-    config.write_text(config.read_text() + "\n# loosened locally\n")
+    config.write_text(config.read_text(encoding="utf-8") + "\n# loosened locally\n")
     out = _check(project, tmp_path)
     assert (
         out.returncode == 1 and "differ from HEAD" in out.stderr and ".gitleaks.toml" in out.stderr

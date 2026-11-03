@@ -13,7 +13,7 @@ pytestmark = pytest.mark.periphery
 
 
 def lines(log):
-    return [json.loads(line) for line in log.path.read_text().splitlines()]
+    return [json.loads(line) for line in log.path.read_text(encoding="utf-8").splitlines()]
 
 
 def test_event_log_line_has_hook_signature_records(tmp_path):
@@ -41,5 +41,5 @@ def test_a_decision_event_never_carries_the_risk(tmp_path):
     log = EventLog(tmp_path, "mushroom")
     log.append_decision(CALL, Decision(SIGNATURE, (pain,), (), None, risk=0.7312), [])
     (event,) = lines(log)
-    assert "7312" not in log.path.read_text() and event["records"] == [["s0", 4]]
+    assert "7312" not in log.path.read_text(encoding="utf-8") and event["records"] == [["s0", 4]]
     assert event["evidence"] == 1

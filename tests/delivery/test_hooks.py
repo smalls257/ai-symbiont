@@ -86,7 +86,7 @@ def test_each_event_maps_to_observe(service, monkeypatch, capsys, event):
     code, _, err = run_cli(monkeypatch, capsys, event, INPUTS[event], port)
     assert (code, err) == (0, "")
     (log,) = (data_dir / "runs").glob("*/events.jsonl")
-    logged = [json.loads(line) for line in log.read_text().splitlines()]
+    logged = [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines()]
     assert [(e["route"], e["hook"], "status" in e) for e in logged] == [
         ("observe", event.value, False)
     ]

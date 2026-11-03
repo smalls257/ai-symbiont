@@ -220,4 +220,4 @@ def test_files_without_a_rows_list_are_not_scoreboards():
 def test_every_committed_result_file_passes():
     root = Path(__file__).resolve().parents[2]
     for path in sorted((root / "results").glob("*.json")):
-        assert results.problems_in(path.name, json.loads(path.read_text())) == []
+        assert results.problems_in(path.name, json.loads(path.read_text(encoding="utf-8"))) == []

@@ -120,16 +120,16 @@ def test_a_machine_with_no_accelerator_exits_nonzero_with_the_reason(tmp_path, m
 
 def test_the_scheduled_command_is_the_manual_one_with_every_option_pinned(tmp_path):
     args = parse(
-        "schedule", "install", "--project", "p", *store_option(tmp_path), "--kit", "/k",
+        "schedule", "install", "--project", "p", *store_option(tmp_path), "--kit", str(Path("/k")),
         "--trainer-python", "/py", "--judge-python", "/jpy",
     )  # fmt: skip
     argv = nightly_command.schedule_argv(args)
     assert argv[argv.index("nightly") :] == (
-        "nightly", "--project", "p", *store_option(tmp_path), "--kit", "/k",
+        "nightly", "--project", "p", *store_option(tmp_path), "--kit", str(Path("/k")),
         "--judge-url", nightly_command.default_judge_url("p"),
         "--trainer-python", "/py", "--judge-python", "/jpy",
     )  # fmt: skip
-    assert argv[0] == sys.executable or argv[0].endswith("symbiont")
+    assert argv[0] == sys.executable or Path(argv[0]).stem.lower() == "symbiont"
 
 
 def test_install_registers_the_daily_run_and_says_when_and_where_the_log_is(tmp_path, monkeypatch):

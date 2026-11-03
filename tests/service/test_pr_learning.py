@@ -142,7 +142,9 @@ def test_the_dashboard_shows_the_label_and_link_and_it_is_the_lesson_not_a_conte
     (lesson,) = data["lessons"]
     assert (lesson["sourceLabel"], lesson["sourceUrl"]) == ("from PR #412 review", PR_URL)
     assert lesson["exampleContext"] == ""
-    script = (Path(__file__).parents[2] / "src/symbiont/service/static/dashboard.js").read_text()
+    script = (Path(__file__).parents[2] / "src/symbiont/service/static/dashboard.js").read_text(
+        encoding="utf-8"
+    )
     assert "sourceChip" in script and "^https:" in script and "noopener" in script
     json.dumps(data)
 
@@ -188,11 +190,13 @@ def test_the_command_prints_the_steps_and_the_plugin_command_lists_it(capsys, tm
 
     assert code == 0 and "gh pr list --state merged" in capsys.readouterr().out
     plugin = Path(__file__).parents[2] / "plugin/symbiont/commands/symbiont.md"
-    assert "learn-from-prs" in plugin.read_text()
+    assert "learn-from-prs" in plugin.read_text(encoding="utf-8")
 
 
 def test_symbiont_itself_reaches_no_network_for_this(tmp_path):
-    source = (Path(__file__).parents[2] / "src/symbiont/service/pr_learning.py").read_text()
+    source = (Path(__file__).parents[2] / "src/symbiont/service/pr_learning.py").read_text(
+        encoding="utf-8"
+    )
     assert not re.search(
         r"^\s*(import|from)\s+(urllib\.request|http|socket|subprocess)", source, re.M
     )

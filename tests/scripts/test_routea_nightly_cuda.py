@@ -139,7 +139,7 @@ def test_scale_files_hold_the_rows_of_each_lesson_count(scale, tmp_path):
     write(tmp_path / "meta" / "train.jsonl", reading)
     counts = scale.write_scales(tmp_path, [5, 10])
     assert counts == {5: 30 * 4, 10: 60 * 4}
-    lines = (tmp_path / "scale" / "10" / "train.jsonl").read_text().splitlines()
+    lines = (tmp_path / "scale" / "10" / "train.jsonl").read_text(encoding="utf-8").splitlines()
     assert len(lines) == 240
 
 

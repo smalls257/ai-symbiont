@@ -47,7 +47,7 @@ def test_check_export_refuses_an_empty_file(export, tmp_path):
 
 def test_check_export_names_an_unreadable_line(export, tmp_path):
     bad = tmp_path / "bad.jsonl"
-    bad.write_text(FIXTURE.read_text().splitlines()[0] + "\n{\n")
+    bad.write_text(FIXTURE.read_text(encoding="utf-8").splitlines()[0] + "\n{\n")
     with pytest.raises(ReadError) as caught:
         export.check_export(bad)
     assert caught.value.line_no == 2

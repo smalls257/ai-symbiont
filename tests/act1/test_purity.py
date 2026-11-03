@@ -29,6 +29,6 @@ PURE_FILES = (
 
 def test_pure_act1_modules_import_no_network_clock_or_vizdoom():
     for name in PURE_FILES:
-        source = (ACT1 / name).read_text()
+        source = (ACT1 / name).read_text(encoding="utf-8")
         assert impure_imports(source) == [], name
         assert "import vizdoom" not in source and "from vizdoom" not in source, name

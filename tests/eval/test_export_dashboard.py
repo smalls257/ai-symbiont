@@ -242,13 +242,13 @@ def _sample_script():
 
 @pytest.mark.parametrize("act", ["freedoom", "coding"])
 def test_shipped_sample_equals_what_the_script_generates(act):
-    shipped = (DASHBOARD / "sample" / f"{act}.json").read_text()
+    shipped = (DASHBOARD / "sample" / f"{act}.json").read_text(encoding="utf-8")
     assert shipped == _sample_script().render(act)
 
 
 @pytest.mark.parametrize("act", ["freedoom", "coding"])
 def test_synthetic_sample_is_tagged_hypothesis_and_says_outcomes_are_arbitrary(act):
-    doc = json.loads((DASHBOARD / "sample" / f"{act}.json").read_text())
+    doc = json.loads((DASHBOARD / "sample" / f"{act}.json").read_text(encoding="utf-8"))
     assert doc["act"] == act
     assert "arbitrary" in doc["source"]
     statuses = {lane["status"] for lane in doc["lanes"]} | {r["status"] for r in doc["scoreboard"]}
@@ -257,7 +257,7 @@ def test_synthetic_sample_is_tagged_hypothesis_and_says_outcomes_are_arbitrary(a
 
 
 def test_coding_sample_uses_the_spec_arms_and_roles():
-    doc = json.loads((DASHBOARD / "sample" / "coding.json").read_text())
+    doc = json.loads((DASHBOARD / "sample" / "coding.json").read_text(encoding="utf-8"))
     roles = {r["key"]: r["role"] for r in doc["scoreboard"]}
     assert roles == {
         "plain": "floor",
@@ -273,5 +273,7 @@ def test_coding_sample_uses_the_spec_arms_and_roles():
 def test_dashboard_pages_load_nothing_from_the_network():
     for name in ("index.html", "app.js", "style.css"):
         # the SVG namespace is an identifier, not a request
-        text = (DASHBOARD / name).read_text().replace("http://www.w3.org/2000/svg", "")
+        text = (
+            (DASHBOARD / name).read_text(encoding="utf-8").replace("http://www.w3.org/2000/svg", "")
+        )
         assert "http://" not in text and "https://" not in text, name

@@ -133,7 +133,8 @@ def _coverage_xml(path: Path, filename: str, hits: int) -> None:
         '<?xml version="1.0" ?><coverage><sources><source>.</source></sources><packages>'
         f'<package name="p"><classes><class filename="{filename}" name="c"><lines>'
         + "".join(f'<line number="{n}" hits="{hits}"/>' for n in range(1, 4))
-        + "</lines></class></classes></package></packages></coverage>"
+        + "</lines></class></classes></package></packages></coverage>",
+        encoding="utf-8",
     )
 
 

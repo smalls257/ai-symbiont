@@ -15,7 +15,9 @@ progress = logging.getLogger(__name__)
 # Freedoom's COPYING text (BSD-3-Clause), fetched once from
 # https://raw.githubusercontent.com/freedoom/freedoom/master/COPYING.adoc (the vizdoom wheel ships
 # freedoom2.wad without it) and stored verbatim as a package asset.
-BSD3_NOTICE = (Path(__file__).parent / "assets" / "FREEDOOM-COPYING.txt").read_text()
+BSD3_NOTICE = (Path(__file__).parent / "assets" / "FREEDOOM-COPYING.txt").read_text(
+    encoding="utf-8"
+)
 
 WAD_NAME = "freedoom2.wad"
 NOTICE_NAME = "NOTICE-BSD-3.txt"
@@ -36,7 +38,7 @@ def install_freedoom(dest: Path, source_wad: Path | None = None) -> Path:
     dest.mkdir(parents=True, exist_ok=True)
     wad = dest / WAD_NAME
     shutil.copyfile(source, wad)
-    (dest / NOTICE_NAME).write_text(BSD3_NOTICE)
+    (dest / NOTICE_NAME).write_text(BSD3_NOTICE, encoding="utf-8")
     return wad
 
 

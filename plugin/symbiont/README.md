@@ -21,6 +21,18 @@ Claude Code: `/plugin marketplace add https://github.com/smalls257/ai-symbiont`,
 Muse Code: `muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont`, then
 `muse plugins install symbiont@ai-symbiont`.
 
+## Windows
+
+Claude Code on Windows runs the hooks through Git Bash (the default when Git for Windows is
+installed), so the `sh` wrapper works unchanged; Windows runs of the test suite in CI prove the
+wrapper, the service start and the readers. `uv tool install` puts `symbiont.exe` and
+`symbiont-hook.exe` in `%USERPROFILE%\.local\bin`; the wrapper looks there. Without Git for Windows
+Claude Code falls back to PowerShell, which has no `sh`: run `symbiont install claude-code` in the
+project instead (it writes `symbiont hook ...` commands that either shell runs). Session history is
+read from `%USERPROFILE%\.claude\projects`. Muse Code's launcher supports only macOS and Linux, so
+its history is read from `$XDG_DATA_HOME` or `~/.local/share/muse/sessions`; set `XDG_DATA_HOME` if
+yours is elsewhere. To trace in PowerShell: `New-Item $HOME\.symbiont\hook-trace.on -Force`.
+
 ## Tracing the hooks
 
 To see what the host sent and what each hook did, run `touch ~/.symbiont/hook-trace.on` (or set

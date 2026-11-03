@@ -42,8 +42,15 @@ def session_logs(repo_dir: Path, home: Path) -> list[Path]:
     Claude Code keeps them under `~/.claude/projects/<directory path with every character that
     is not a letter or digit written as "-">/`. Missing folder: no logs, an empty list.
     """
-    folder = home / ".claude" / "projects" / re.sub(r"[^A-Za-z0-9]", "-", str(repo_dir.resolve()))
+    # Windows: `home` is %USERPROFILE%, and Claude Code's own uninstall page names
+    # %USERPROFILE%/.claude as the folder; the same character rule names the repository folder.
+    folder = home / ".claude" / "projects" / project_folder_name(str(repo_dir.resolve()))
     return sorted(folder.glob("*.jsonl"), key=lambda log: log.stat().st_mtime)
+
+
+def project_folder_name(repo_path: str) -> str:
+    """Claude Code's folder name for a repository path: every non-alphanumeric becomes "-"."""
+    return re.sub(r"[^A-Za-z0-9]", "-", repo_path)
 
 
 def read(path: Path, project: str) -> Iterator[Record]:

@@ -164,11 +164,11 @@ def write_lines(tmp_path, lines):
 
 
 def fixture_rows():
-    return [json.loads(line) for line in RUNS.read_text().splitlines()]
+    return [json.loads(line) for line in RUNS.read_text(encoding="utf-8").splitlines()]
 
 
 def test_malformed_line_raises_readerror_with_line(tmp_path):
-    good = RUNS.read_text().splitlines()
+    good = RUNS.read_text(encoding="utf-8").splitlines()
     path = write_lines(tmp_path, [good[0], good[1][:120]])
     with pytest.raises(ReadError) as err:
         list(read(path, PROJECT))

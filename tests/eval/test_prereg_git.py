@@ -29,7 +29,7 @@ def git(repo: Path, *args: str) -> str:
     env = {
         k: v
         for k, v in os.environ.items()
-        if not k.startswith("GIT_") or k.startswith("GIT_CONFIG_GLOBAL")
+        if not k.startswith("GIT_") or k.startswith(("GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM"))
     }
     done = subprocess.run(
         ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com", *args],
@@ -50,7 +50,7 @@ def repo(tmp_path):
 
 
 def commit(repo: Path, name: str, text: str) -> str:
-    (repo / "prereg" / name).write_text(text)
+    (repo / "prereg" / name).write_bytes(text.encode())
     git(repo, "add", f"prereg/{name}")
     git(repo, "commit", "-q", "-m", f"add {name}")
     return git(repo, "rev-parse", "HEAD")

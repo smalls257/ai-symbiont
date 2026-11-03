@@ -40,7 +40,7 @@ def _scan(tmp_path: Path, text: str) -> set[str]:
         text=True,
         check=False,
     )
-    return {finding["RuleID"] for finding in json.loads(report.read_text() or "[]")}
+    return {finding["RuleID"] for finding in json.loads(report.read_text(encoding="utf-8") or "[]")}
 
 
 LEAKS = {

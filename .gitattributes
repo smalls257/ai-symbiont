@@ -1,0 +1,3 @@
+# One rule for every platform: Git for Windows would otherwise check files out with CRLF, which
+# breaks the shell scripts, byte-exact fixtures and the hashes in frozen prereg files.
+* text=auto eol=lf

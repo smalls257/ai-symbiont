@@ -38,7 +38,7 @@ def test_a_polluted_environment_is_scrubbed_before_the_first_test(tmp_path):
         cwd=REPO, env=env, capture_output=True, text=True, check=False,
     )  # fmt: skip
     assert out.returncode == 0, out.stdout + out.stderr
-    assert decoy.read_text() == "decoy"
+    assert decoy.read_text(encoding="utf-8") == "decoy"
 
 
 def _git(repo: Path, *args: str) -> None:

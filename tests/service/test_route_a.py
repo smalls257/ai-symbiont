@@ -65,7 +65,7 @@ def observe(service, command="pytest tests/test_cli.py", exit_code=1, session_id
 
 
 def events_of(events):
-    return [json.loads(line) for line in events.path.read_text().splitlines()]
+    return [json.loads(line) for line in events.path.read_text(encoding="utf-8").splitlines()]
 
 
 def test_a_risky_failed_command_gets_the_memory_models_line(tmp_path):
