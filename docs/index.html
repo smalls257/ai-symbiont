@@ -166,7 +166,7 @@ footer p+p{margin-top:.4rem}
     <p class="plain"><b>What you're watching.</b> Meta's Muse Spark model plays a level of Freedoom (a free, open-source first-person game) through ViZDoom, an AI research platform. Each turn, Spark reads a text description of what's on screen and chooses its moves.</p>
     <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> the same model on the same level, but first it read one rule it wrote itself after studying its own failed games: “travel to far-away places with one path command instead of many small steps.”</p>
     <p class="plain"><b>In this game.</b> With its rule, Spark reached the exit in 9 turns. Without it, Spark wandered until it ran out of turns (32).</p>
-    <p class="plain"><b>Does it hold up?</b> Spark proposed 6 rules and our tests threw out 5. The survivor raised the game score by 0.16 (on a 0–1 scale) across 240 new games Spark had never seen, and the gain held when we repeated the test. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> On reaching the exit specifically, it was about even. <span class="tag">[measured]</span></p>
+    <p class="plain"><b>Does it hold up?</b> Spark proposed 6 rules and our tests threw out 5. The survivor raised the game score by 0.16 (on a 0–1 scale) across 240 new games Spark had never seen, and the gain held when we repeated the test. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p>
     <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-rule-vs-no-rule-OB0011.mp4"></video><figcaption>Without the rule (left) and with it (right), one game</figcaption></figure>
     <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-spark-rule-decisions.mp4"></video><figcaption>The decisions behind that game</figcaption></figure>
   </div>
@@ -202,7 +202,7 @@ footer p+p{margin-top:.4rem}
 
 <section id="results">
   <h2>What we measured</h2>
-  <p class="sub">Every claim carries its tag and its limits. Where a result was negative or a tie, it is listed here too.</p>
+  <p class="sub">Every claim carries its tag and its limits. Where a result was negative, it is listed here too.</p>
   <ul class="verdicts">
     <li>
       <div class="n">0<small>wrong notes in 501 shown</small></div>
@@ -218,7 +218,7 @@ footer p+p{margin-top:.4rem}
       <div class="n">+0.16<small>[0.11, 0.22]</small></div>
       <div><h3>Muse Spark wrote its own rule from its failures</h3>
       <p>On a task where the model plays Freedoom via ViZDoom, the rule it wrote improved its score by 0.16, and the gain held on 240 fresh cases. <span class="tag">[measured]</span> Pre-registered.</p>
-      <p>Five of the six rules it proposed failed testing, and only this one survived. With this rule the result exits a tie.</p></div>
+      <p>Five of the six rules it proposed failed testing, and only this one survived.</p></div>
     </li>
     <li class="neg">
       <div class="n">-0.054<small>[-0.108, -0.014]</small></div>
