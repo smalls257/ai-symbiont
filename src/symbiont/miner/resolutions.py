@@ -15,6 +15,7 @@ from symbiont.miner.changes import applied_edit, changes_workspace
 from symbiont.miner.commands import normalise_command, program_words
 from symbiont.miner.diffs import added_lines, removed_lines
 from symbiont.miner.painpoint import PainPoint, Signal
+from symbiont.miner.same_check import reruns_same_check
 from symbiont.records.schema import Kind, Record
 
 NO_LATER_SUCCESS = (
@@ -100,7 +101,7 @@ def _failed_command(
     if success is None:
         return NO_LATER_SUCCESS
     fixes, others = _changes_between(failed, success, records)
-    if not fixes and success.command == failed.command:
+    if not fixes and (success.command == failed.command or not _same_attempt(failed, success)):
         return Unresolved(ONLY_UNRELATED_CHANGED, others) if others else NOTHING_CHANGED
     return Resolution((*fixes, success), others)
 
@@ -119,20 +120,25 @@ def _changes_between(
 
 
 def _later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
-    """The first later pass of the same command: same program, subcommand and target.
-
-    The subcommand (and the script of `npm run`) is compared before normalization drops it.
-    """
-    wanted = (normalise_command(failed.command or ""), _subcommand(failed.command or ""))
+    """The first later pass of the same command, or of the same check spelled differently."""
+    later_commands = [r for r in session_from(failed, records)[1:] if r.kind == Kind.COMMAND]
     return next(
         (
             later
-            for later in session_from(failed, records)[1:]
-            if later.kind == Kind.COMMAND
-            and later.exit_code == 0
-            and (normalise_command(later.command or ""), _subcommand(later.command or "")) == wanted
+            for later in later_commands
+            if _same_attempt(failed, later) or reruns_same_check(failed, later)
         ),
         None,
+    )
+
+
+def _same_attempt(failed: Record, later: Record) -> bool:
+    """A pass of the same program, subcommand and target."""
+    if later.exit_code != 0:
+        return False
+    return (normalise_command(later.command or ""), _subcommand(later.command or "")) == (
+        normalise_command(failed.command or ""),
+        _subcommand(failed.command or ""),
     )
 
 
