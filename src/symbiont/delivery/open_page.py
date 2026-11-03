@@ -9,7 +9,7 @@ import subprocess
 import sys
 from typing import Any
 
-from symbiont.delivery.detached import detached_spawn_options
+from symbiont.delivery.detached import spawn_detached
 
 
 def open_in_browser(url: str) -> bool:
@@ -22,16 +22,15 @@ def open_in_browser(url: str) -> bool:
         "stdin": subprocess.DEVNULL,
         "stdout": subprocess.DEVNULL,
         "stderr": subprocess.DEVNULL,
-        **detached_spawn_options(),
     }
     try:
         if sys.platform == "darwin":
-            subprocess.Popen(["open", url], **quiet)
+            spawn_detached(lambda **detach: subprocess.Popen(["open", url], **quiet, **detach))
         elif sys.platform == "linux":
-            subprocess.Popen(["xdg-open", url], **quiet)
+            spawn_detached(lambda **detach: subprocess.Popen(["xdg-open", url], **quiet, **detach))
         elif sys.platform == "win32":
             # explorer.exe hands a URL to the default browser; it needs no console and no quoting.
-            subprocess.Popen(["explorer", url], **quiet)
+            spawn_detached(lambda **detach: subprocess.Popen(["explorer", url], **quiet, **detach))
         else:
             return False
     except OSError:
