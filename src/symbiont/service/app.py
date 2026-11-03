@@ -216,8 +216,8 @@ class Service:
         prefix.append(record)
         self._follow_up.observed(call, project, record)
         said = gate.speak(request["session_id"], record, prefix[:-1], lessons)
-        if said.note is not None:
-            return _repeat_response(self._parts.events, call, said.note, door)
+        if said.notes:
+            return _repeat_response(self._parts.events, call, said.notes, door)
         if said.held:
             self._parts.events.append_note_held(call, said.held, {})
         if _passing_result(request["event"], record) or gate.speaks_only_on_match():
@@ -344,10 +344,13 @@ def _hold_unmatched(events: EventLog, call: Call, record: Record) -> None:
         events.append_note_held(call, NO_MATCHING_LESSON, {})
 
 
-def _repeat_response(events: EventLog, call: Call, found: RepeatNote, door: Door) -> Response:
-    """The exact-repeat note, logged with the kind of trouble it rests on."""
-    events.append_repeat(call, found)
-    return _said(door, [found.sentence])
+def _repeat_response(
+    events: EventLog, call: Call, found: Sequence[RepeatNote], door: Door
+) -> Response:
+    """The exact-repeat or rule notes, each logged with the trouble and match behind it."""
+    for note in found:
+        events.append_repeat(call, note)
+    return _said(door, [note.sentence for note in found])
 
 
 def _said(door: Door, notes: list[str]) -> Response:

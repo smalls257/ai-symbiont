@@ -65,6 +65,7 @@ def test_a_session_with_an_edit_and_a_later_passing_check_is_asked_the_question(
     reply = rig.reflect()
 
     assert reply.status == 200 and reply.body == {"ask": REFLECTION_QUESTION}
+    assert "applies_to" in REFLECTION_QUESTION and "areas (directories" in REFLECTION_QUESTION
     assert "non-obvious" in REFLECTION_QUESTION and "symbiont_add_lessons" in REFLECTION_QUESTION
     assert f'"{REFLECTION_LABEL}"' in REFLECTION_QUESTION
 

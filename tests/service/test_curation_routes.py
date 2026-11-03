@@ -215,3 +215,23 @@ def test_the_focus_answer_is_remembered(tmp_path):
     )
 
     assert RepoRegistry(tmp_path).focus(PROJECT)["keywords"] == ["money"]
+
+
+def test_a_lesson_without_areas_gets_its_files_module_directories_and_written_areas_are_kept(
+    tmp_path,
+):
+    routes, store, _ = rig(tmp_path)
+    base = {"kind": "rule", "files": ["pkg/arr/a.py", "src/b.py", "c.py"]}
+
+    routes.add_lessons(
+        {
+            "project": PROJECT,
+            "lessons": [
+                {**base, "text_in_plain_words": "No areas given."},
+                {**base, "text_in_plain_words": "Areas given.", "applies_to": {"areas": ["x/"]}},
+            ],
+        }
+    )
+
+    derived, kept = store.curation.authored(PROJECT)
+    assert derived.applies.areas == ("pkg/arr",) and kept.applies.areas == ("x/",)

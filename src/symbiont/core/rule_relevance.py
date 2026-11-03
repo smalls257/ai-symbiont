@@ -21,6 +21,14 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.trained import lesson_id
 
 STRONG_WEIGHT = 3
+# The lesson's own file outranks its module: a sibling file is related, not the same place.
+FILE_WEIGHT = STRONG_WEIGHT + 1
+AREA_WEIGHT = STRONG_WEIGHT
+# Two notes per event: one slot let the lesson about the file being edited starve a second,
+# equally relevant lesson (live sympy run). More than two turns notes into noise the agent skips.
+MAX_RULE_NOTES = 2
+# Two notes share the agent's context, so each stays a short sentence or two.
+MAX_NOTE_CHARS = 320
 IDENTIFIER_WEIGHT = 2
 WORD_WEIGHT = 1
 MIN_WEAK_SCORE = 3
@@ -127,8 +135,21 @@ def why_none(rules: Sequence[Rule]) -> str:
 
 
 def rule_sentence(words: LessonContext) -> str:
-    """The note: the developer's rule as prose."""
-    return f"[symbiont] In this repo: {words.text.strip().rstrip(' .')}."
+    """The note: the developer's rule as prose, cut at a word boundary past MAX_NOTE_CHARS."""
+    text = words.text.strip().rstrip(" .")
+    if len(text) > MAX_NOTE_CHARS:
+        text = text[:MAX_NOTE_CHARS].rsplit(" ", 1)[0].rstrip(" ,;:") + " ..."
+        return f"[symbiont] In this repo: {text}"
+    return f"[symbiont] In this repo: {text}."
+
+
+def areas_of_files(files: Sequence[str]) -> tuple[str, ...]:
+    """The module directories of the files, without repeats; generic directories are left out.
+
+    A lesson about one file is about its module, so work on a sibling file reaches it.
+    """
+    found = (_dir(path.lstrip("./")) for path in files)
+    return tuple(dict.fromkeys(area for area in found if area and area not in GENERIC_DIRS))
 
 
 def situation_terms(text: str) -> frozenset[str]:
@@ -182,7 +203,7 @@ def _strong_signals(rule: Rule, situation: _Situation) -> list[_Signal]:
     found = []
     related = _related_file(situation.named, rule.files)
     if related is not None:
-        found.append(_Signal(related, STRONG_WEIGHT))
+        found.append(related)
     area = _tagged_area(situation.named, tags.areas, situation.everything)
     if area is not None:
         found.append(_Signal(area, STRONG_WEIGHT))
@@ -244,14 +265,16 @@ def _all_mentioned(area: str, everything: frozenset[str]) -> bool:
     return bool(parts) and all(part in everything for part in parts)
 
 
-def _related_file(named: Sequence[str], own: Sequence[str]) -> str | None:
-    """`file`, `area` or None: how a named path relates to the lesson's files."""
+def _related_file(named: Sequence[str], own: Sequence[str]) -> _Signal | None:
+    """The lesson's own file (strongest), else a sibling in its module directory, else None."""
     for path in named:
         for mine in own:
             if path == mine or _stem_of(path) == _stem_of(mine):
-                return f"file: {mine}"
+                return _Signal(f"file: {mine}", FILE_WEIGHT)
+    for path in named:
+        for mine in own:
             if _same_area(_dir(path), _dir(mine)):
-                return f"area: {_dir(mine)}"
+                return _Signal(f"area: {_dir(mine)}", AREA_WEIGHT)
     return None
 
 

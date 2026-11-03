@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from symbiont.core.failure_signature import failure_signature
 from symbiont.core.repeat import RepeatNote, failed_now, repeat_note
 from symbiont.core.rule_relevance import (
+    MAX_RULE_NOTES,
     Rule,
     relevant_rules,
     rule_sentence,
@@ -45,8 +46,13 @@ class Door:
 class Spoken:
     """What the gate decided to say for one step: a note, or why it held back."""
 
-    note: RepeatNote | None = None
+    notes: tuple[RepeatNote, ...] = ()
     held: str | None = None
+
+    @property
+    def note(self) -> RepeatNote | None:
+        """The first note, or None when the gate stayed quiet."""
+        return self.notes[0] if self.notes else None
 
 
 class RepoGate:
@@ -120,11 +126,11 @@ class RepoGate:
     def speak(
         self, session_id: str, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
     ) -> Spoken:
-        """The exact-repeat note if the failure matches, else at most one relevant rule."""
+        """The exact-repeat note if the failure matches, else up to MAX_RULE_NOTES rules."""
         self._track_milestone(session_id, record)
         exact = self.repeat(session_id, record, earlier, lessons)
         if exact is not None:
-            return Spoken(exact)
+            return Spoken((exact,))
         return self._rule(session_id, record, lessons)
 
     def reached_milestone(self, session_id: str) -> bool:
@@ -144,7 +150,7 @@ class RepoGate:
         return self.registry is not None
 
     def _rule(self, session_id: str, record: Record, lessons: Sequence[Lesson]) -> Spoken:
-        """One rule relevant to this prompt or failure, never twice for the same trigger."""
+        """The best relevant rules for this prompt or failure, never twice for the same trigger."""
         if self.registry is None or not (record.kind is Kind.USER_TURN or failed_now(record)):
             return Spoken()
         project = record.project
@@ -155,15 +161,19 @@ class RepoGate:
         if not found:
             return Spoken(held=why_none(rules))
         trigger = _trigger(record)
+        notes = []
         for match in found:
             key = (session_id, match.rule.ident, trigger)
             if key in self._rules_said or self._muted_rule(project, match.rule):
                 continue
             self._rules_said.add(key)
-            note = RepeatNote(
-                rule_sentence(match.rule.words), match.rule.lesson, "rule: " + match.why
+            notes.append(
+                RepeatNote(rule_sentence(match.rule.words), match.rule.lesson, "rule: " + match.why)
             )
-            return Spoken(note)
+            if len(notes) == MAX_RULE_NOTES:
+                break
+        if notes:
+            return Spoken(tuple(notes))
         return Spoken(held="the related rule was already said for this prompt or failure")
 
     def _muted_rule(self, project: str, rule: Rule) -> bool:

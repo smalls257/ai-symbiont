@@ -8,6 +8,7 @@ from dataclasses import replace
 
 from record_builders import edit, run, session
 from symbiont.core.rule_relevance import (
+    areas_of_files,
     lesson_files,
     paths_in,
     relevant_rules,
@@ -262,3 +263,48 @@ def test_words_most_lessons_share_count_for_nothing():
     assert not ranked("billing invoices refund", [], rule_list)
     assert not ranked("billing invoices refund alpha", [], rule_list)
     assert len(ranked("billing invoices refund alpha", [], rule_list[:3])) == 3
+
+
+def written(ident, text, files, **extra):
+    return AuthoredLesson(ident, text, LessonKind.RULE, tuple(files), **extra)
+
+
+ARRAY = "pkg/tensor/array/expressions"
+
+
+def test_a_lesson_about_one_file_reaches_work_on_a_sibling_in_the_same_module_directory():
+    rule_list = rules_of(
+        [],
+        {},
+        [written("a", "Hadamard power goes through HadamardPower.", [f"{ARRAY}/to_matrix.py"])],
+    )
+
+    (match,) = ranked("", [f"{ARRAY}/from_indexed.py"], rule_list)
+
+    assert match.why == f"area: {ARRAY} (+3)"
+
+
+def test_the_lessons_own_file_outranks_a_sibling_lesson():
+    own = written("own", "Own file rule.", [f"{ARRAY}/to_matrix.py"])
+    sibling = written("sib", "Sibling file rule.", [f"{ARRAY}/other.py"])
+
+    found = ranked("", [f"{ARRAY}/to_matrix.py"], rules_of([], {}, [sibling, own]))
+
+    assert [m.rule.ident for m in found] == ["own", "sib"]
+    assert found[0].strength > found[1].strength
+
+
+def test_generic_directories_and_bare_names_are_never_a_module_area():
+    assert areas_of_files(["src/a.py", "tests/b.py", "c.py", "./d.py"]) == ()
+    assert areas_of_files([f"{ARRAY}/a.py", f"{ARRAY}/b.py", "src/x/c.py"]) == (ARRAY, "src/x")
+    rule_list = rules_of([], {}, [written("a", "Rule about a.", ["src/a.py"])])
+
+    assert not ranked("", ["src/b.py"], rule_list)
+
+
+def test_a_long_rule_is_cut_at_a_word_for_the_note():
+    words = LessonContext("word " * 200)
+
+    sentence = rule_sentence(words)
+
+    assert len(sentence) < 360 and sentence.endswith(" ...")
