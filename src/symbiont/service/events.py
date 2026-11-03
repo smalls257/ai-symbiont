@@ -2,10 +2,12 @@
 
 import json
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from symbiont.core.house_rules import Supersession
 from symbiont.core.repeat import RepeatNote
 from symbiont.core.slot import Decision, event_fields
 from symbiont.miner.painpoint import Signature
@@ -89,6 +91,21 @@ class EventLog:
     def append_reflection(self, call: Call, stage: str, fields: dict[str, object]) -> None:
         """Record a reflection `decision` (asked or why not) or `outcome` (lessons saved)."""
         self._write(call, {"reflection": {"stage": stage, **fields}})
+
+    def append_superseded(self, call: Call, retired: Sequence[Supersession]) -> None:
+        """Record rules that matched this work but were put aside for a later correction."""
+        if not retired:
+            return
+        entries = [
+            {
+                "lesson": one.older,
+                "by": one.newer,
+                "lesson_excerpt": one.older_excerpt,
+                "by_excerpt": one.newer_excerpt,
+            }
+            for one in retired
+        ]
+        self._write(call, {"superseded": entries, "notes": []})
 
     def append_failure(self, call: Call, status: int, reason: str) -> None:
         """Record a call that was refused, so a failure is never silent."""
