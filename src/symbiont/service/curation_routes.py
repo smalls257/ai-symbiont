@@ -11,6 +11,7 @@ from typing import Any, cast
 
 from symbiont.core.correction_candidates import CAP, correction_candidates
 from symbiont.core.rule_relevance import areas_of_files
+from symbiont.miner.credential_scrub import scrub
 from symbiont.miner.lesson_context import (
     AppliesTo,
     AuthoredLesson,
@@ -19,7 +20,6 @@ from symbiont.miner.lesson_context import (
     Severity,
     Verdict,
 )
-from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
 from symbiont.service.pr_learning import MAX_LESSONS, UnsafeSourceUrlError, checked_source_url
 from symbiont.service.request_shapes import BadRequestError, parse_applies, require_keys

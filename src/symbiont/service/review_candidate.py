@@ -8,9 +8,9 @@ from typing import Any
 
 from symbiont.core.failure_signature import failure_detail
 from symbiont.core.notes import happened, resolution_clause
+from symbiont.miner.credential_scrub import scrub
 from symbiont.miner.lesson_context import LessonContext
 from symbiont.miner.lessons import Lesson
-from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
 from symbiont.service.dashboard_view import command_of_signature
 

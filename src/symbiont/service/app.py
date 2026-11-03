@@ -15,8 +15,8 @@ from symbiont.core.notes import NoteKind, render, render_lesson
 from symbiont.core.recall import relevant_lessons
 from symbiont.core.repeat import RepeatNote, failed_now
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Situation
+from symbiont.miner.credential_scrub import scrub
 from symbiont.miner.lessons import Lesson
-from symbiont.miner.secrets import scrub
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
