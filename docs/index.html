@@ -22,21 +22,27 @@ body{color:var(--tx);font:400 1.0625rem/1.6 var(--ui);min-height:100vh;
 a{color:var(--or);text-underline-offset:.2em}
 a:hover{color:#ffb07c}
 :focus-visible{outline:2px solid var(--or);outline-offset:3px}
-.wrap{max-width:68rem;margin:0 auto;padding:0 1.5rem}
+.wrap{max-width:76rem;margin:0 auto;padding:0 1.5rem}
 code,.mono{font-family:var(--mono)}
 .tag{font:500 .8rem var(--mono);color:var(--gr);white-space:nowrap}
 .tag.neg{color:var(--rd)}
 .tag.exp{color:var(--vi)}
 
-.progress .track{margin-top:2rem}
-.progress h3{font-size:1.2rem;margin-bottom:.4rem}
-.progress .track>p{color:var(--mu);max-width:48rem;margin-bottom:1rem}
-.progress .clips{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
-.progress figure{margin:0}
+.progress .intro{max-width:46rem}
+.tabs{display:flex;gap:.4rem;border-bottom:1px solid var(--line);margin-top:1.5rem}
+.tabs [role=tab]{background:none;border:0;border-bottom:3px solid transparent;color:var(--mu);font:700 1.05rem var(--ui);padding:.7rem 1.1rem;cursor:pointer;margin-bottom:-1px}
+.tabs [role=tab][aria-selected=true]{color:var(--tx);border-bottom-color:var(--or)}
+.tabs [role=tab]:hover{color:var(--tx)}
+[role=tabpanel]{padding-top:1.5rem}
+[role=tabpanel][hidden]{display:none}
+[role=tabpanel]>p.plain{color:var(--mu);max-width:52rem;margin-bottom:1rem}
+[role=tabpanel]>p.plain b{color:var(--tx)}
+.tag.exp{color:var(--vi)}
+.tag{border:1px solid currentColor;border-radius:.3rem;padding:0 .35rem;font-size:.78rem}
+.progress figure{margin:0 0 1.75rem}
 .progress video{width:100%;aspect-ratio:16/9;background:#05060c;border:1px solid var(--line);border-radius:.6rem;display:block}
-.progress figcaption{margin-top:.4rem;font-size:.88rem;color:var(--mu)}
-.progress .fallback{font-size:.88rem;color:var(--mu);margin-top:.6rem}
-@media (max-width:52rem){.progress .clips{grid-template-columns:1fr}}
+.progress figcaption{margin-top:.5rem;font-size:.95rem;color:var(--mu)}
+.progress .fallback{font-size:.9rem;color:var(--mu)}
 /* top bar */
 .top{display:flex;align-items:center;gap:1.5rem;padding:1rem 0;border-bottom:1px solid var(--line)}
 .brand{font-weight:700;font-size:1.25rem;color:var(--or)}
@@ -151,16 +157,26 @@ footer p+p{margin-top:.4rem}
 
 <section id="progress" class="progress">
   <h2>Progress</h2>
-  <p class="sub">Two tracks, one idea: a note that arrives at the right moment. Clips are real runs.</p>
-  <div class="track">
-    <h3>Freedoom via ViZDoom: the model writes its own rule</h3>
-    <p>Same agent, same map. On the right, Muse Spark plays with a rule it wrote from its own failures: exit reached in 9 decisions vs none in 32 (one game shown). Across 240 fresh held-out cases: +0.16 on the held-out game score, replicated <span class="tag">[measured]</span> Pre-registered. Exits reached: a tie <span class="tag">[measured]</span> 5 of 6 rules Spark proposed failed testing; this one survived.</p>
-    <div class="clips"><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-rule-vs-no-rule-OB0011.mp4"></video><figcaption>Without the rule (left) and with it (right), one game</figcaption></figure><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-spark-rule-decisions.mp4"></video><figcaption>The decisions behind that game</figcaption></figure></div>
+  <p class="sub intro">Muse Spark and Glimmer 30B are Meta models; symbiont gives them a short reminder at the moment they are about to repeat a mistake. Each tab below explains one real run and shows the recording. Results are labeled as measured, pre-registered, or exploratory.</p>
+  <div class="tabs" role="tablist" aria-label="Progress tracks">
+    <button role="tab" id="tab-fd" aria-controls="panel-fd" aria-selected="true">Freedoom via ViZDoom</button>
+    <button role="tab" id="tab-co" aria-controls="panel-co" aria-selected="false" tabindex="-1">Coding</button>
   </div>
-  <div class="track">
-    <h3>Coding: a live ledger</h3>
-    <p>Live runs on a designed multi-currency ledger: with symbiont 6 of 6 passed vs 2 of 6 without <span class="tag exp">[measured]</span> Exploratory, 6 pairs, one model (Glimmer 30B). In the pre-registered test, symbiont showed 501 notes and none were wrong <span class="tag">[measured]</span> After nightly training on the repo's history, the judge approved 61% of repeats at 97.8% precision; untrained, it vetoed every note <span class="tag">[measured]</span></p>
-    <div class="clips"><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-split.mp4"></video><figcaption>With symbiont and without, side by side</figcaption></figure><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-note.mp4"></video><figcaption>The note arriving before the repeat</figcaption></figure></div>
+  <div role="tabpanel" id="panel-fd" aria-labelledby="tab-fd">
+    <p class="plain"><b>What you're watching.</b> Meta's Muse Spark model plays a level of Freedoom (a free, open-source first-person game) through ViZDoom, an AI research platform. Each turn, Spark reads a text description of what's on screen and chooses its moves.</p>
+    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> the same model on the same level, but first it read one rule it wrote itself after studying its own failed games: “travel to far-away places with one path command instead of many small steps.”</p>
+    <p class="plain"><b>In this game.</b> With its rule, Spark reached the exit in 9 turns. Without it, Spark wandered until it ran out of turns (32).</p>
+    <p class="plain"><b>Does it hold up?</b> Spark proposed 6 rules and our tests threw out 5. The survivor raised the game score by 0.16 (on a 0–1 scale) across 240 new games Spark had never seen, and the gain held when we repeated the test. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> On reaching the exit specifically, it was about even. <span class="tag">[measured]</span></p>
+    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-rule-vs-no-rule-OB0011.mp4"></video><figcaption>Without the rule (left) and with it (right), one game</figcaption></figure>
+    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-spark-rule-decisions.mp4"></video><figcaption>The decisions behind that game</figcaption></figure>
+  </div>
+  <div role="tabpanel" id="panel-co" aria-labelledby="tab-co" hidden>
+    <p class="plain"><b>What you're watching.</b> Two runs of the same AI coding agent (Glimmer 30B, Meta's open-weights model) fixing the same bug in a practice billing project. The project has a hidden rule: money is stored as whole numbers in each currency's smallest unit (yen has no decimals; dinar has three). The agent learned this the hard way on an earlier task.</p>
+    <p class="plain"><b>Left:</b> no symbiont. It reads files for 23 turns and fixes the bug on turn 24. <b>Right:</b> the moment the test fails, symbiont reminds it of the rule, and it's fixed by turn 10.</p>
+    <p class="plain"><b>Across 6 pairs of runs.</b> With symbiont, the bug was fixed in 6 of 6; without it, 2 of 6 (40-turn limit). It's a small, early test on a practice project we designed. <span class="tag exp">[exploratory]</span></p>
+    <p class="plain"><b>The bigger, pre-registered tests on real public projects.</b> Symbiont showed 501 reminders and none was wrong. After nightly training on a project's history, its reminder-checker approved 61% of repeated mistakes, and 97.8% of those approvals were correct. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p>
+    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-split.mp4"></video><figcaption>With symbiont and without, side by side</figcaption></figure>
+    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-note.mp4"></video><figcaption>The note arriving before the repeat</figcaption></figure>
   </div>
   <p class="fallback">If a clip does not play in your browser, the files are on the <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">release page</a>.</p>
 </section>
@@ -254,5 +270,28 @@ muse plugins install symbiont@ai-symbiont</pre></div>
   <p>Experimental software for the Meta Global AI Developer Hackathon.</p>
 </footer>
 </div>
+<script>
+(function(){
+  var tabs=[].slice.call(document.querySelectorAll('.tabs [role=tab]'));
+  function pick(t,focus){
+    tabs.forEach(function(x){
+      var on=x===t;
+      x.setAttribute('aria-selected',on);x.tabIndex=on?0:-1;
+      var p=document.getElementById(x.getAttribute('aria-controls'));p.hidden=!on;
+      if(!on)[].forEach.call(p.querySelectorAll('video'),function(v){v.pause();});
+    });
+    if(focus)t.focus();
+  }
+  tabs.forEach(function(t,i){
+    t.addEventListener('click',function(){pick(t,false);});
+    t.addEventListener('keydown',function(e){
+      var k=e.key,n=tabs.length,j=-1;
+      if(k==='ArrowRight')j=(i+1)%n;else if(k==='ArrowLeft')j=(i+n-1)%n;
+      else if(k==='Home')j=0;else if(k==='End')j=n-1;
+      if(j>=0){e.preventDefault();pick(tabs[j],true);}
+    });
+  });
+})();
+</script>
 </body>
 </html>
