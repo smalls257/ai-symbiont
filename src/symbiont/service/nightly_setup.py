@@ -11,6 +11,7 @@ import shutil
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from symbiont.service.nightly_kit import BASE, BASE_MARKER, GENERAL_ROWS, HABITS, read_rows
 from symbiont.service.nightly_run import Runner
@@ -99,7 +100,7 @@ def _has_chat_template(base: Path) -> bool:
     return bool(settings.get("chat_template"))
 
 
-def _read_json(path: Path, what: str, remedy: str) -> dict:
+def _read_json(path: Path, what: str, remedy: str) -> dict[str, Any]:
     """The JSON object in `path`; raises KitSetupError naming `what` and the `remedy`."""
     if not path.is_file():
         raise KitSetupError(f"{what} is missing {path.name}; {remedy}")

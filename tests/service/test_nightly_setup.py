@@ -139,3 +139,84 @@ def test_the_command_does_nothing_when_the_kit_is_already_complete(tmp_path):
     code = nightly_command.run_nightly_command(cli._parser().parse_args(argv), said.append)
     assert code == 0
     assert "already complete" in said[-1]
+
+
+def setup_argv(tmp_path, kit):
+    return [
+        "nightly", "setup", "--base", str(tmp_path / "base"),
+        "--kit-files", str(tmp_path / "files"), "--kit", str(kit),
+        "--data-dir", str(tmp_path / "data"),
+    ]  # fmt: skip
+
+
+def prepared(tmp_path, monkeypatch):
+    monkeypatch.setattr(setup, "KIT_PINS", make_files(tmp_path / "files", setup.KIT_PINS))
+    make_base(tmp_path / "base")
+    routea = tmp_path / "routea"
+    routea.mkdir()
+    (routea / "merge_adapter_torch.py").write_text("")
+    monkeypatch.setenv("SYMBIONT_ROUTEA_DIR", str(routea))
+    return tmp_path / "kit"
+
+
+def run_setup(tmp_path, kit, runner, monkeypatch):
+    monkeypatch.setattr(nightly_command, "run_logged", runner)
+    said = []
+    args = cli._parser().parse_args(setup_argv(tmp_path, kit))
+    return nightly_command.run_nightly_command(args, said.append), said
+
+
+def test_the_command_builds_a_complete_kit(tmp_path, monkeypatch):
+    kit = prepared(tmp_path, monkeypatch)
+
+    def runner(python, args, log, extra):
+        if args[0] == "-c":
+            return 0
+        out = tmp_path / args[args.index("--out") + 1]
+        out.mkdir(parents=True)
+        (out / "config.json").write_text("{}")
+        return 0
+
+    code, said = run_setup(tmp_path, kit, runner, monkeypatch)
+    assert code == 0, said
+    assert open_kit(kit).base == kit / "base"
+    assert "ready" in said[-1]
+
+
+def test_the_command_names_a_python_that_lacks_torch(tmp_path, monkeypatch):
+    kit = prepared(tmp_path, monkeypatch)
+    code, said = run_setup(tmp_path, kit, lambda *_: 1, monkeypatch)
+    assert code == 1
+    assert "--judge-python" in said[-1]
+
+
+def test_the_command_names_a_missing_merge_script(tmp_path, monkeypatch):
+    kit = prepared(tmp_path, monkeypatch)
+    (tmp_path / "routea" / "merge_adapter_torch.py").unlink()
+    code, said = run_setup(tmp_path, kit, lambda *_: 0, monkeypatch)
+    assert code == 1
+    assert "merge_adapter_torch.py is not here" in said[-1]
+
+
+@pytest.mark.parametrize("text", ["{not json", "[1]"])
+def test_an_unreadable_base_config_is_named(tmp_path, text):
+    base = make_base(tmp_path / "b")
+    (base / "config.json").write_text(text)
+    with pytest.raises(setup.KitSetupError, match="config.json"):
+        setup.check_base(base)
+
+
+def test_an_older_base_folder_is_replaced_by_the_merge(tmp_path, monkeypatch):
+    kit = prepared(tmp_path, monkeypatch)
+    (kit / "base").mkdir(parents=True)
+    (kit / "base" / "stale.txt").write_text("old")
+
+    def runner(python, args, log, extra):
+        out = tmp_path / args[args.index("--out") + 1]
+        out.mkdir(parents=True)
+        (out / "config.json").write_text("{}")
+        return 0
+
+    inputs = setup.SetupInputs(tmp_path / "base", tmp_path / "files", kit, "python3")
+    setup.merge_kit(inputs, runner, tmp_path / "merge.py", lambda line: None)
+    assert not (kit / "base" / "stale.txt").exists()
