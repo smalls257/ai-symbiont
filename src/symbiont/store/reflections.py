@@ -42,7 +42,7 @@ class ReflectionLedger:
         if not self._path.exists():
             return {}
         try:
-            document = json.loads(self._path.read_text(encoding="utf-8"))
+            document: dict[str, list[str]] = json.loads(self._path.read_text(encoding="utf-8"))
             if not all(isinstance(ids, list) for ids in document.values()):
                 raise TypeError("every project must map to a list of session ids")
         except (ValueError, TypeError, AttributeError) as exc:

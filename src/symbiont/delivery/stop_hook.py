@@ -33,7 +33,11 @@ def run_stop(
         raise HookInputError("hook input has no session_id")
     cwd = data.get("cwd")
     project = Path(cwd).name if isinstance(cwd, str) and cwd else settings.fallback_project
-    body = {"project": project, "session_id": session_id, "harness": settings.harness}
+    body: dict[str, object] = {
+        "project": project,
+        "session_id": session_id,
+        "harness": settings.harness,
+    }
     try:
         reply = (call or call_service)("/reflect", body, settings.port)
     except ServiceOfflineError as offline:
