@@ -96,6 +96,7 @@ def test_mining_reads_the_claude_code_sessions_of_the_repository(tmp_path, monke
     folder.mkdir(parents=True)
     (folder / "one.jsonl").write_text(claude_log())
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))  # Path.home() on Windows
     command("repo", "allow", data_dir=tmp_path / "data")
     capsys.readouterr()
 
@@ -110,6 +111,7 @@ def test_mining_reads_the_claude_code_sessions_of_the_repository(tmp_path, monke
 
 def test_a_repository_with_no_sessions_says_so(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))  # Path.home() on Windows
     command("repo", "allow", data_dir=tmp_path)
     capsys.readouterr()
 
@@ -239,6 +241,7 @@ def test_mining_reads_muse_code_sessions_of_the_repository_too(tmp_path, monkeyp
     log.parent.mkdir(parents=True)
     log.write_text(muse_log(repo))
     monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))  # Path.home() on Windows
     monkeypatch.setenv("XDG_DATA_HOME", str(data_home))
     command("repo", "allow", data_dir=tmp_path / "data")
     capsys.readouterr()

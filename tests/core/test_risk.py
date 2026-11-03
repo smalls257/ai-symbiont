@@ -73,6 +73,6 @@ def test_fly_risk_is_zero_for_an_untouched_pattern():
 def test_delivery_and_service_never_read_risk():
     for layer in ("delivery", "service"):
         for source in (SRC / layer).rglob("*.py"):
-            assert ".risk" not in source.read_text(), (
+            assert ".risk" not in source.read_text(encoding="utf-8"), (
                 f"{source} reads Decision.risk; notes are prose"
             )

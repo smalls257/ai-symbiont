@@ -27,6 +27,7 @@ class Desk:
         self.project = project
         self.repo.mkdir()
         monkeypatch.setenv("HOME", str(self.home))
+        monkeypatch.setenv("USERPROFILE", str(self.home))  # Path.home() on Windows
         monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
         install_claude_session(self.home, self.repo, claude_log())
         RepoRegistry(self.data).record_stance(project, RepoStance.GIVEN)

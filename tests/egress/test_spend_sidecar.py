@@ -23,7 +23,7 @@ def settled(cost, run="run"):
 
 
 def sidecar(path):
-    return json.loads((path.with_name(path.name + ".total.json")).read_text())
+    return json.loads((path.with_name(path.name + ".total.json")).read_text(encoding="utf-8"))
 
 
 def test_after_the_first_call_the_ledger_file_is_never_scanned_again(tmp_path, monkeypatch):
@@ -74,7 +74,7 @@ def test_a_start_up_where_sidecar_and_ledger_disagree_raises(tmp_path):
     ledger = Ledger(path)
     ledger.settle(ledger.reserve("run", CAPS, 0.5, "g"), settled(0.1))
     total = path.with_name(path.name + ".total.json")
-    state = json.loads(total.read_text())
+    state = json.loads(total.read_text(encoding="utf-8"))
     state["total"] = 0.0  # someone edited it, or a crash lost an update
     total.write_text(json.dumps(state))
     with pytest.raises(LedgerMismatchError, match="rebuild_total"):

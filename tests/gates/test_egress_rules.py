@@ -7,7 +7,7 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
-RULES = (REPO / ".semgrep" / "symbiont" / "egress.yaml").read_text()
+RULES = (REPO / ".semgrep" / "symbiont" / "egress.yaml").read_text(encoding="utf-8")
 
 # Network, process-plumbing and FFI modules that stay out of the allowed set.
 BANNED_STDLIB = {

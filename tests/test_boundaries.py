@@ -58,9 +58,9 @@ def test_scanner_catches_network_clock_and_periphery_imports():
 
 def test_core_imports_are_pure():
     offenders = {
-        str(path.relative_to(SRC)): found
+        path.relative_to(SRC).as_posix(): found
         for path in _python_files(*PURE_PACKAGES)
-        if (found := impure_imports(path.read_text()))
+        if (found := impure_imports(path.read_text(encoding="utf-8")))
     }
     assert offenders == {}
 
@@ -86,8 +86,8 @@ def test_no_cross_internals():
     for path in sorted(SRC.rglob("*.py")):
         rel = path.relative_to(SRC)
         own = rel.parts[0] if len(rel.parts) > 1 else ""
-        if found := private_cross_imports(path.read_text(), own_package=own):
-            offenders[str(rel)] = found
+        if found := private_cross_imports(path.read_text(encoding="utf-8"), own_package=own):
+            offenders[rel.as_posix()] = found
     assert offenders == {}
 
 
@@ -95,8 +95,8 @@ def _network_offenders(root: Path) -> dict[str, list[str]]:
     found = {}
     for package in ("service", "delivery"):
         for path in sorted((root / package).rglob("*.py")):
-            rel = str(path.relative_to(root))
-            if names := network_imports(path.read_text(), rel):
+            rel = path.relative_to(root).as_posix()
+            if names := network_imports(path.read_text(encoding="utf-8"), rel):
                 found[rel] = names
     return found
 

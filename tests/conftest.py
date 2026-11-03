@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from airplane import refuse_network
+from posix_tooling import ignored_here
 
 # A git hook (pre-commit runs the unit tests) exports GIT_DIR, GIT_INDEX_FILE and friends, and
 # gate scripts export GIT_CONFIG_*. Every `git -C <tmp repo>` in a test would then operate on the
@@ -27,6 +28,8 @@ LEAKY_GIT_VARIABLES = (
     "GIT_CONFIG_PARAMETERS",
 )
 
+
+collect_ignore = ignored_here()
 
 REAL_REPO = Path(__file__).resolve().parents[1]
 GIT_IDENTITY = "[user]\n\tname = test\n\temail = test@example.com\n"

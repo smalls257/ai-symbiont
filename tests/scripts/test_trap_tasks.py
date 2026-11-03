@@ -73,7 +73,9 @@ def test_trap_scaffolding_of_other_tasks_is_dropped(monkeypatch):
 @pytest.mark.periphery
 def test_a_task_without_its_lesson_check_is_refused(monkeypatch, tmp_path):
     trap_rows = load(monkeypatch, "trap_rows")
-    spec = TASKS_FILE.read_text().replace('check = "In ledgerline', 'not_check = "In ledgerline')
+    spec = TASKS_FILE.read_text(encoding="utf-8").replace(
+        'check = "In ledgerline', 'not_check = "In ledgerline'
+    )
     broken = tmp_path / "trap_tasks.toml"
     broken.write_text(spec)
     (tmp_path / "tasks").symlink_to(TASKS_FILE.parent / "tasks")

@@ -29,7 +29,7 @@ def git(repo: Path, *args: str) -> str:
     env = {
         k: v
         for k, v in os.environ.items()
-        if not k.startswith("GIT_") or k.startswith("GIT_CONFIG_GLOBAL")
+        if not k.startswith("GIT_") or k.startswith(("GIT_CONFIG_GLOBAL", "GIT_CONFIG_NOSYSTEM"))
     }
     done = subprocess.run(
         ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com", *args],

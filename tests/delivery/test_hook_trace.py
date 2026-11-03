@@ -28,7 +28,10 @@ def test_a_hook_writes_what_arrived_before_it_says_what_it_did(tmp_path, monkeyp
     (tmp_path / hook_trace.TRACE_MARKER).write_text("")
     monkeypatch.setattr("sys.stdin", io.StringIO("not json"))
     hook_main.main(["UserPromptSubmit", "--data-dir", str(tmp_path), "--port", "1"])
-    lines = [json.loads(x) for x in (tmp_path / hook_trace.TRACE_FILE).read_text().splitlines()]
+    lines = [
+        json.loads(x)
+        for x in (tmp_path / hook_trace.TRACE_FILE).read_text(encoding="utf-8").splitlines()
+    ]
     assert [(x["stage"], x["event"]) for x in lines] == [
         ("received", "UserPromptSubmit"),
         ("outcome", "UserPromptSubmit"),

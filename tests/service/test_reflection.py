@@ -218,7 +218,7 @@ def test_reflected_lessons_are_stored_labelled_and_speak_when_their_area_comes_u
 
 
 def reflection_events(rig):
-    texts = [path.read_text() for path in rig.dir.glob("runs/*/events.jsonl")]
+    texts = [path.read_text(encoding="utf-8") for path in rig.dir.glob("runs/*/events.jsonl")]
     lines = [json.loads(x) for text in texts for x in text.splitlines()]
     return [line["reflection"] for line in lines if "reflection" in line]
 

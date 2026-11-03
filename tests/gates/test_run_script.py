@@ -177,22 +177,27 @@ def test_the_pre_commit_hook_really_runs_every_privacy_gate(gate_repo):
     # the throwaway repo has no boundary tests, so QG-TST-02 may be red;
     # exit 2 would mean a gate could not run
     assert hook.returncode in (0, 1), hook.stdout + hook.stderr
-    lines = (gate_repo / ".gate-runs.jsonl").read_text().splitlines()
+    lines = (gate_repo / ".gate-runs.jsonl").read_text(encoding="utf-8").splitlines()
     ran = {json.loads(line)["gate"] for line in lines if json.loads(line)["stage"] == "pre-commit"}
     assert set(PRIVACY_GATES) <= ran, sorted(set(PRIVACY_GATES) - ran)
 
 
 def test_the_hooks_call_run_sh_in_the_right_mode_and_every_gate_is_wired():
     hooks = REPO / "scripts" / "hooks"
-    pre_commit, pre_push = (hooks / "pre-commit").read_text(), (hooks / "pre-push").read_text()
+    pre_commit, pre_push = (
+        (hooks / "pre-commit").read_text(encoding="utf-8"),
+        (hooks / "pre-push").read_text(encoding="utf-8"),
+    )
     assert (
         "SYMBIONT_GATE_STAGE=pre-commit" in pre_commit and "scripts/gates/run.sh fast" in pre_commit
     )
     assert "scripts/gates/run.sh full" in pre_push
-    assert "check_gate_integrity.py --message-file" in (hooks / "commit-msg").read_text()
+    assert "check_gate_integrity.py --message-file" in (hooks / "commit-msg").read_text(
+        encoding="utf-8"
+    )
     for hook in ("pre-commit", "commit-msg", "pre-push"):
         assert os.access(hooks / hook, os.X_OK), f"{hook} is not executable"
-    run_sh = (REPO / "scripts" / "gates" / "run.sh").read_text()
+    run_sh = (REPO / "scripts" / "gates" / "run.sh").read_text(encoding="utf-8")
     for gate in (
         *PRIVACY_GATES,
         "QG-SEC-02",
@@ -206,7 +211,7 @@ def test_the_hooks_call_run_sh_in_the_right_mode_and_every_gate_is_wired():
         "QG-TST-03",
     ):
         assert f"gate {gate} " in run_sh, f"run.sh never runs {gate}"
-    installer = (REPO / "scripts" / "install-hooks.sh").read_text()
+    installer = (REPO / "scripts" / "install-hooks.sh").read_text(encoding="utf-8")
     assert "git config core.hooksPath scripts/hooks" in installer
 
 

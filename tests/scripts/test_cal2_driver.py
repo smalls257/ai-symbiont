@@ -108,7 +108,7 @@ def run_driver(monkeypatch, tmp_path, solves):
     driver = cal2.CandidateDriver(args.workdir, args.runs_dir, args.logs)
     driver.low = cal2.settings_for("low", args)
     driver.run()
-    return json.loads(driver.summary_path.read_text()), calls
+    return json.loads(driver.summary_path.read_text(encoding="utf-8")), calls
 
 
 def test_band_needs_two_runs_then_splits_hard_band_easy(monkeypatch):
@@ -173,7 +173,7 @@ def test_the_driver_stops_starting_tasks_once_the_target_is_met(monkeypatch, tmp
     driver = cal2.CandidateDriver(args.workdir, args.runs_dir, args.logs)
     driver.low = cal2.settings_for("low", args)
     driver.run()
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert "in band" in summary["stop_reason"] and summary["not_started"] >= 1
 
 
@@ -268,7 +268,7 @@ def test_fixed_runs_give_every_listed_task_exactly_n_runs_in_file_order(monkeypa
     driver = cal2.CandidateDriver(args.workdir, args.runs_dir, args.logs, args.fixed_runs)
     driver.low = cal2.settings_for("low", args)
     driver.run()
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert sorted(calls) == [(r, f"task0{n}", 75, 1800) for r in (1, 2) for n in range(3)]
     assert summary["status"] == "done" and summary["skipped_above_band"] == []
     assert summary["band_counts"]["in_band"] == 3
@@ -313,12 +313,12 @@ def test_lesson_arm_prepends_the_lesson_and_stamps_arm_and_hash_on_every_record(
     driver.give_lessons(tmp_path / "lessons.json")
     driver.run()
     assert sorted(seen) == [(f"task0{n}", f"Edit file {n} first.\n\nbug {n}") for n in range(3)]
-    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    logged = [json.loads(line) for line in driver.log.read_text(encoding="utf-8").splitlines()]
     assert {rec["arm"] for rec in logged} == {"lesson"}
     assert {rec["lesson_sha"] for rec in logged} == {
         cal2.lesson_hash(f"Edit file {n} first.") for n in range(3)
     }
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert summary["arm"] == "lesson" and len(summary["lesson_sha"]) == 3
     assert driver.workers == 4
 
@@ -335,7 +335,7 @@ def test_without_lessons_every_record_is_the_plain_arm(monkeypatch, tmp_path):
     _, driver, seen = lesson_driver(monkeypatch, tmp_path, {})
     driver.run()
     assert [statement for _, statement in sorted(seen)] == ["bug 0", "bug 1", "bug 2"]
-    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    logged = [json.loads(line) for line in driver.log.read_text(encoding="utf-8").splitlines()]
     assert {(rec["arm"], rec["lesson_sha"]) for rec in logged} == {("plain", None)}
 
 
@@ -354,7 +354,7 @@ def test_adapter_arm_is_stamped_on_every_record_and_cannot_mix_with_lessons(monk
     )
     driver.use_adapter(args.adapter)
     driver.run()
-    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    logged = [json.loads(line) for line in driver.log.read_text(encoding="utf-8").splitlines()]
     assert {(rec["arm"], rec["adapter_id"]) for rec in logged} == {("personal_lora", 0)}
     assert [statement for _, statement in sorted(seen)] == ["bug 0", "bug 1", "bug 2"]
     (tmp_path / "m").mkdir()
@@ -372,7 +372,7 @@ def test_a_named_model_is_stamped_and_a_plain_record_is_not_its_run(monkeypatch,
     driver.use_model("Muse-Glimmer-30B-coding-sqlglot-r1")
     driver.run()
     assert sorted(iid for iid, _ in seen) == ["task00", "task01", "task02"]
-    logged = [json.loads(line) for line in driver.log.read_text().splitlines()]
+    logged = [json.loads(line) for line in driver.log.read_text(encoding="utf-8").splitlines()]
     assert {rec["model"] for rec in logged[3:]} == {"openai/Muse-Glimmer-30B-coding-sqlglot-r1"}
     (tmp_path / "m").mkdir()
     _, both, _ = lesson_driver(monkeypatch, tmp_path / "m", {})
@@ -438,14 +438,15 @@ def test_every_lesson_is_checked_against_its_gold_patch_and_the_check_is_on_ever
     driver.give_lessons(tmp_path / "lessons.json")
     driver.run()
     logged = {
-        rec["instance_id"]: rec for rec in map(json.loads, driver.log.read_text().splitlines())
+        rec["instance_id"]: rec
+        for rec in map(json.loads, driver.log.read_text(encoding="utf-8").splitlines())
     }
     assert {iid: rec["lesson_check"] for iid, rec in logged.items()} == {
         "task00": "clean",
         "task01": "contains fix lines",
         "task02": "clean",
     }
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert summary["lesson_check"]["task01"] == "contains fix lines"
 
 

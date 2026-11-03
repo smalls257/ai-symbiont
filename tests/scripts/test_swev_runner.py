@@ -152,7 +152,7 @@ def test_driver_resumes_and_summarizes_counts(mods, tmp_path):
     first.run()
     again = _driver(mods, tmp_path, [])  # nothing left to run: an extra run_once would IndexError
     again.run()
-    summary = json.loads((tmp_path / "runs/swev-summary.json").read_text())
+    summary = json.loads((tmp_path / "runs/swev-summary.json").read_text(encoding="utf-8"))
     assert summary["status"] == "done"
     assert summary["arms"]["plain"]["graded"] == 2
     assert summary["arms"]["plain"]["resolved"] == 1
@@ -162,7 +162,7 @@ def test_driver_resumes_and_summarizes_counts(mods, tmp_path):
 def test_driver_blocks_after_three_ungraded_in_a_row(mods, tmp_path):
     driver = _driver(mods, tmp_path, [None] * 6)  # the other worker may have one in flight
     driver.run()
-    summary = json.loads((tmp_path / "runs/swev-summary.json").read_text())
+    summary = json.loads((tmp_path / "runs/swev-summary.json").read_text(encoding="utf-8"))
     assert summary["status"] == "blocked"
     assert summary["arms"]["plain"]["graded"] == 0
 

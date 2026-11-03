@@ -106,7 +106,11 @@ def test_the_cli_exits_one_on_a_finding_and_two_on_an_unreadable_file(tmp_path):
 def test_the_files_in_this_repo_are_clean():
     files = content.default_files(REPO)
     assert files, "no results files found: the check would pass on nothing"
-    problems = [p for f in files for p in content.findings_in(f.name, json.loads(f.read_text()))]
+    problems = [
+        p
+        for f in files
+        for p in content.findings_in(f.name, json.loads(f.read_text(encoding="utf-8")))
+    ]
     assert problems == []
 
 

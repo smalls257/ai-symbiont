@@ -52,16 +52,19 @@ def test_only_the_allow_listed_files_read_a_decisions_risk():
     sources = sorted(SRC.rglob("*.py"))
     assert len(sources) > 20 and any(p.parts[-2] == "core" for p in sources), "scan found no source"
     readers = {
-        str(p.relative_to(SRC)) for p in sources if ".risk" in p.read_text() and p.name != "slot.py"
+        p.relative_to(SRC).as_posix()
+        for p in sources
+        if ".risk" in p.read_text(encoding="utf-8") and p.name != "slot.py"
     }
     assert readers == MAY_READ_RISK
 
 
 def test_no_source_serialises_a_core_decision_with_asdict():
     users = [
-        str(p.relative_to(SRC))
+        p.relative_to(SRC).as_posix()
         for p in SRC.rglob("*.py")
-        if "symbiont.core.slot" in p.read_text() and "asdict(" in p.read_text()
+        if "symbiont.core.slot" in p.read_text(encoding="utf-8")
+        and "asdict(" in p.read_text(encoding="utf-8")
     ]
     assert users == []
 

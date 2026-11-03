@@ -140,7 +140,7 @@ def test_forget_trained_leaves_a_manifest_of_ids_and_counts_only(tmp_path, store
     exported = lessons_for_memory_model(store, PROJECT)
     assert store.forget_trained(PROJECT, manifest, exported=exported) == 1
     assert store.lessons(PROJECT) == []
-    text = manifest.read_text()
+    text = manifest.read_text(encoding="utf-8")
     assert "AssertionError" not in text and "pytest" not in text
     written = json.loads(text)
     assert written["counts"] == {"lessons": 1, "source_sessions": 1}

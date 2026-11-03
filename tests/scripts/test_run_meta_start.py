@@ -64,7 +64,7 @@ def test_train_then_score_validation_writes_every_row(runner, tmp_path):
     )
     out = tmp_path / "result.json"
     runner.main(["score", *common, "--starts", starts, "--on", "validation", "--out", str(out)])
-    document = json.loads(out.read_text())
+    document = json.loads(out.read_text(encoding="utf-8"))
     assert document["run_label"] == "exploratory"
     assert document["evaluated_on"] == "validation"
     assert document["split"] == {"train": 10, "validation": 10, "scoring": 5}
@@ -162,7 +162,7 @@ def test_the_scored_runner_writes_both_sets_and_every_comparison(runner, tmp_pat
     finally:
         sys.modules.pop("run_meta_start_scored", None)
         sys.path.remove(str(SCRIPTS))
-    document = json.loads(out.read_text())
+    document = json.loads(out.read_text(encoding="utf-8"))
     primary = document["primary_held_out"]
     assert primary["windows"]["first 10 sessions"]["unit"] == "session"
     assert primary["windows"]["first 10 sessions"]["units"] == 30

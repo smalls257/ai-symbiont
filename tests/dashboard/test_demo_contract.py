@@ -29,7 +29,7 @@ TYPES = {
 
 
 def _load(name: str) -> dict:
-    return json.loads((SAMPLE / name).read_text())
+    return json.loads((SAMPLE / name).read_text(encoding="utf-8"))
 
 
 def _is_type(value: object, name: str) -> bool:

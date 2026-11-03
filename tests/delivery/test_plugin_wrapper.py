@@ -84,3 +84,12 @@ def test_every_hook_entry_runs_the_wrapper_with_its_own_event_name():
 
 def test_the_wrapper_is_checked_out_with_unix_line_endings():
     assert b"\r" not in WRAPPER.read_bytes()
+
+
+def test_the_mcp_server_is_a_bare_command_so_windows_can_start_it_without_a_shell():
+    server = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))["mcpServers"][
+        "symbiont"
+    ]
+
+    assert server["command"] == "symbiont" and server["args"] == ["mcp"]
+    assert set(server) == {"command", "args"}
