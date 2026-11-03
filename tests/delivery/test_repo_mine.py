@@ -154,7 +154,7 @@ def test_the_opener_picks_the_desktop_command_and_reports_a_missing_one(monkeypa
     assert open_page.open_in_browser("http://x") is True
     assert started == [["open", "http://x"], ["xdg-open", "http://x"]]
 
-    monkeypatch.setattr(open_page.sys, "platform", "win32")
+    monkeypatch.setattr(open_page.sys, "platform", "freebsd")
     assert open_page.open_in_browser("http://x") is False
 
     def missing(*args, **kwargs):
@@ -163,3 +163,15 @@ def test_the_opener_picks_the_desktop_command_and_reports_a_missing_one(monkeypa
     monkeypatch.setattr(open_page.sys, "platform", "linux")
     monkeypatch.setattr(open_page.subprocess, "Popen", missing)
     assert open_page.open_in_browser("http://x") is False
+
+
+def test_windows_opens_the_page_with_explorer_detached_by_creation_flags(monkeypatch):
+    seen = []
+    monkeypatch.setattr(open_page.subprocess, "Popen", lambda c, **o: seen.append((c, o)))
+    monkeypatch.setattr(open_page.sys, "platform", "win32")
+
+    assert open_page.open_in_browser("http://127.0.0.1:1/dashboard?project=a%20b") is True
+
+    command, options = seen[0]
+    assert command == ["explorer", "http://127.0.0.1:1/dashboard?project=a%20b"]
+    assert options["creationflags"] == 0x08 | 0x200 and "start_new_session" not in options

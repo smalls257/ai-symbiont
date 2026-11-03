@@ -114,7 +114,9 @@ def test_a_repository_with_no_sessions_says_so(tmp_path, monkeypatch, capsys):
     capsys.readouterr()
 
     assert command("repo", "mine", "--repo-dir", str(tmp_path), data_dir=tmp_path) == 0
-    assert "no Claude Code or Muse Code sessions found" in capsys.readouterr().out
+    said = capsys.readouterr().out
+    assert "no Claude Code or Muse Code sessions found" in said
+    assert "looked in" in said and ".claude" in said and "sessions" in said
 
 
 def test_why_explains_the_last_note_from_the_event_log(tmp_path, capsys):

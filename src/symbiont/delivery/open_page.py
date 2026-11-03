@@ -9,13 +9,7 @@ import subprocess
 import sys
 from typing import Any
 
-# Detached and silent: a slow browser start must never hold up mining, nor write on its terminal.
-_DETACHED: dict[str, Any] = {
-    "stdin": subprocess.DEVNULL,
-    "stdout": subprocess.DEVNULL,
-    "stderr": subprocess.DEVNULL,
-    "start_new_session": True,
-}
+from symbiont.delivery.detached import detached_spawn_options
 
 
 def open_in_browser(url: str) -> bool:
@@ -23,11 +17,21 @@ def open_in_browser(url: str) -> bool:
 
     Only a loopback dashboard address is ever passed here.
     """
+    # Detached and silent: a slow browser start must never hold up mining, nor write on its tty.
+    quiet: dict[str, Any] = {
+        "stdin": subprocess.DEVNULL,
+        "stdout": subprocess.DEVNULL,
+        "stderr": subprocess.DEVNULL,
+        **detached_spawn_options(),
+    }
     try:
         if sys.platform == "darwin":
-            subprocess.Popen(["open", url], **_DETACHED)
+            subprocess.Popen(["open", url], **quiet)
         elif sys.platform == "linux":
-            subprocess.Popen(["xdg-open", url], **_DETACHED)
+            subprocess.Popen(["xdg-open", url], **quiet)
+        elif sys.platform == "win32":
+            # explorer.exe hands a URL to the default browser; it needs no console and no quoting.
+            subprocess.Popen(["explorer", url], **quiet)
         else:
             return False
     except OSError:

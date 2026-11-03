@@ -10,6 +10,7 @@ import threading
 import pytest
 
 from symbiont.delivery import launch
+from symbiont.delivery.detached import detached_spawn_options
 from symbiont.delivery.recall import ServiceOfflineError
 from symbiont.service import server
 from symbiont.service.app import ServiceMode
@@ -134,3 +135,23 @@ def test_a_service_that_never_comes_up_is_offline_after_the_wait(tmp_path, monke
 
     with pytest.raises(ServiceOfflineError, match="still starting"):
         launch.patient_call(tmp_path / "home", 0.05)("/mine", {}, 1)
+
+
+def test_a_detached_child_is_made_per_platform_without_the_other_platforms_option():
+    windows = detached_spawn_options("win32")
+    assert windows == {"creationflags": 0x08 | 0x200}
+    for posix in ("linux", "darwin"):
+        assert detached_spawn_options(posix) == {"start_new_session": True}
+
+
+def test_the_real_service_start_detaches_with_this_platforms_options(tmp_path, monkeypatch):
+    seen = {}
+
+    def popen(command, **options):
+        seen["command"], seen["options"] = command, options
+
+    monkeypatch.setattr(launch.subprocess, "Popen", popen)
+    REAL_START_SERVICE(tmp_path / "svc", 9)
+
+    assert seen["command"][:2] == ["symbiont", "serve"]
+    assert {k: seen["options"][k] for k in detached_spawn_options()} == detached_spawn_options()

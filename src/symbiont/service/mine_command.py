@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.readers.claude_code import session_logs
+from symbiont.readers.muse_code import muse_store_root
 from symbiont.readers.muse_code import session_logs as muse_session_logs
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -55,10 +56,16 @@ def mine_past_sessions(args: argparse.Namespace, registry: RepoRegistry, client:
         return 1
     found = {
         CLAUDE_CODE_READER: session_logs(args.repo_dir, Path.home()),
-        MUSE_CODE_READER: muse_session_logs(args.repo_dir, _muse_store_root()),
+        MUSE_CODE_READER: muse_session_logs(
+            args.repo_dir, muse_store_root(os.environ, Path.home())
+        ),
     }
     if not any(found.values()):
-        _say(f"no Claude Code or Muse Code sessions found for {args.repo_dir.resolve()}")
+        _say(
+            f"no Claude Code or Muse Code sessions found for {args.repo_dir.resolve()}; "
+            f"looked in {Path.home() / '.claude' / 'projects'} and "
+            f"{muse_store_root(os.environ, Path.home()) / 'muse' / 'sessions'}"
+        )
         return 0
     sources = [[reader, str(log)] for reader, logs in found.items() for log in logs]
     try:
@@ -126,11 +133,6 @@ def _ended(progress: dict[str, Any], counts: str) -> int:
         return 1
     _say(f"learned {progress['lessons']} lessons from {counts}; they stay on this computer")
     return 0
-
-
-def _muse_store_root() -> Path:
-    """Where Muse Code keeps its data: the XDG data directory."""
-    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
 
 
 def _say(line: str) -> None:

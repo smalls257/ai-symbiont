@@ -5,7 +5,6 @@ so concurrent callers cannot overshoot; `settle` records the real or estimated c
 unreadable ledger line raises rather than under-counting. Counts, model and cost only, never text.
 """
 
-import fcntl
 import json
 import os
 import threading
@@ -17,6 +16,8 @@ from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
 from typing import Any
+
+from symbiont.egress.file_lock import exclusive_file_lock
 
 DEFAULT_LEDGER = Path.home() / "symbiont-runs" / "spend" / "ledger.jsonl"
 CAP_VARIABLE = "SYMBIONT_SPEND_CAP_USD"
@@ -190,14 +191,11 @@ class Ledger:
 
     @contextmanager
     def _exclusive(self) -> Iterator[State]:
-        """Thread lock plus an flock, so processes take turns; yields the validated state."""
+        """Thread lock plus a file lock, so processes take turns; yields the validated state."""
         self._path.parent.mkdir(parents=True, exist_ok=True)
-        with self._lock, self._path.with_name(self._path.name + ".lock").open("w") as guard:
-            fcntl.flock(guard, fcntl.LOCK_EX)
-            try:
-                yield self._load_state()
-            finally:
-                fcntl.flock(guard, fcntl.LOCK_UN)
+        lock_file = self._path.with_name(self._path.name + ".lock")
+        with self._lock, lock_file.open("w") as guard, exclusive_file_lock(guard):
+            yield self._load_state()
 
     def _load_state(self) -> State:
         """The running total; the first load in this process is checked against a full scan."""
