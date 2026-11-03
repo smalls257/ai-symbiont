@@ -47,6 +47,37 @@ button{font:inherit;color:inherit;cursor:pointer}
 .banner{display:flex;gap:1rem;align-items:center;justify-content:center;padding:.45rem 1.5rem;background:rgba(255,140,64,.12);border-bottom:1px solid rgba(255,140,64,.35);font-size:.95rem}
 .banner a{color:var(--or);font-weight:700;text-decoration:underline;text-underline-offset:.2em}
 .banner .mu a{color:var(--vi)}
+
+/* ===== act one: simulated Muse Code terminal (generic frame, no brand assets) ===== */
+#term{position:fixed;left:0;right:0;top:var(--bh,2.4rem);bottom:2.9rem;z-index:4;display:none;flex-direction:column;background:#0a0b14;font:400 1.2rem/1.5 var(--mono)}
+body.interm #term{display:flex}
+body.interm #caption{bottom:auto;top:calc(var(--bh,2.4rem) + 3.6rem)}
+.tbar{display:flex;align-items:center;gap:.6rem;padding:.55rem 1.2rem;border-bottom:1px solid var(--line);color:var(--mu);font-size:1rem}
+.tbar i{width:.8rem;height:.8rem;border-radius:50%;background:rgba(236,240,248,.18)}
+.tbar .ttl{margin-left:.6rem}
+.tbar .demotag{margin-left:auto}
+.tbar .skip{background:none;border:1px solid var(--line);border-radius:.4rem;padding:.2rem .7rem;color:var(--mu);font-size:.95rem}
+#tbody{flex:1;min-height:0;overflow:hidden;padding:1.2rem 2.4rem;display:flex;flex-direction:column;justify-content:flex-end;gap:.55rem}
+#tbody .box{border:1px solid rgba(255,140,64,.55);border-radius:.4rem;padding:.6rem 1.1rem;align-self:flex-start;color:var(--mu);margin-bottom:.6rem}
+#tbody .box b{color:var(--or)}
+.tl{max-width:62rem;white-space:pre-wrap}
+.tl.sh{color:var(--tx)}.tl.sh:before{content:"$ ";color:var(--gr)}
+.tl.u{color:var(--tx)}.tl.u:before{content:"> ";color:var(--or)}
+.tl.a{color:var(--tx)}.tl.a:before{content:"\25CF  ";color:var(--vi)}
+.tl.tool{color:var(--mu)}.tl.tool:before{content:"\25CF  ";color:var(--gr)}
+.tl.out{color:var(--mu);padding-left:1.6rem}
+.tl.hook{border-left:3px solid var(--vi);background:rgba(178,140,255,.09);padding:.5rem 1rem;color:#e6dcff;border-radius:.3rem}
+.tl.hook .src{display:block;color:var(--mu);font-size:.95rem;margin-bottom:.2rem}
+.tl .tag{color:var(--vi);font-weight:700}.tl .cmd{color:var(--go)}
+.tl a{color:var(--or)}
+.tl .pbar{display:inline-block;width:14rem;height:.7rem;border-radius:.4rem;background:rgba(255,255,255,.12);vertical-align:middle;margin:0 .8rem;overflow:hidden}
+.tl .pbar i{display:block;height:100%;background:var(--or);width:0}
+#tin{margin:.8rem 2.4rem 1.1rem;border:1px solid rgba(236,240,248,.3);border-radius:.5rem;padding:.6rem 1rem;min-height:2.9rem;color:var(--tx);display:flex;gap:.7rem}
+#tin:before{content:">";color:var(--or)}
+#tin .caret{display:inline-block;width:.6rem;height:1.2rem;background:var(--tx);vertical-align:text-bottom;animation:blink 1s steps(1) infinite}
+.tcta{display:flex;gap:.8rem;margin-top:.6rem}
+.tcta button{border-radius:.6rem;padding:.6rem 1.2rem;font:700 1.05rem var(--ui);border:1px solid var(--line);background:none}
+.tcta .go{background:var(--vi);color:#1a1020;border:0}
 /* header */
 .top{display:flex;align-items:center;gap:1.6rem;padding:.9rem 2rem;border-bottom:1px solid var(--line)}
 .brand{font-weight:700;font-size:1.5rem;color:var(--or);letter-spacing:.01em}
@@ -323,6 +354,11 @@ body.demo #caption{display:block}
   <span><b>[measured]</b><span>61%</span> of repeats caught vs 0%</span>
   <span><b>[measured]</b><span>+0.16</span> [0.11, 0.22], replicated on 240 fresh cases</span>
 </footer>
+<div id="term" role="region" aria-label="Simulated Muse Code terminal">
+  <div class="tbar"><i></i><i></i><i></i><span class="ttl">muse &middot; ~/src/billing-service</span><span class="demotag">demo data &middot; simulated terminal</span><button class="skip" id="tskip">Skip to the dashboard</button></div>
+  <div id="tbody"></div>
+  <div id="tin"><span id="tintext"></span><span class="caret"></span></div>
+</div>
 <div id="caption" aria-live="polite"></div>
 <div id="tip"></div>
 
@@ -1547,7 +1583,7 @@ function go(n){
   if(n===4)playProof();
 }
 const nav=$("nav");
-STAGES.forEach((s,i)=>{const b=document.createElement("button");b.innerHTML="<b>"+(i+1)+"</b>"+s;b.onclick=()=>{token++;setDemo(false);go(i);};nav.appendChild(b);});
+STAGES.forEach((s,i)=>{const b=document.createElement("button");b.innerHTML="<b>"+(i+1)+"</b>"+s;b.onclick=()=>{token++;setDemo(false);showTerm(false);go(i);};nav.appendChild(b);});
 function caption(txt){$("caption").textContent=txt;}
 function setDemo(on){document.body.classList.toggle("demo",on);if(!on)caption("");}
 
@@ -1796,6 +1832,67 @@ $("rsvg").addEventListener("click",()=>{});
 })();
 function playProof(){const s=$("s4");s.classList.remove("play");void s.offsetWidth;requestAnimationFrame(()=>s.classList.add("play"));}
 
+
+/* ===== act one: Muse Code onboarding (wording from service/onboarding.py and operator_commands.py, Muse-only) ===== */
+const FOCUS_WORDS="money stays in integer cents, round half-up";
+const TB=$("tbody"),TIN=$("tintext");
+function showTerm(on){document.body.classList.toggle("interm",on);if(on)document.documentElement.style.setProperty("--bh",document.querySelector(".banner").offsetHeight+"px");}
+function tadd(cls,html){const d=document.createElement("div");d.className="tl "+cls;d.innerHTML=html;TB.appendChild(d);while(TB.children.length>14)TB.firstChild.remove();return d;}
+function tclear(){TB.innerHTML="";TIN.textContent="";}
+function tbox(){const d=document.createElement("div");d.className="box";d.innerHTML="<b>muse</b> &middot; Muse Code<br>cwd: ~/src/billing-service (acme/billing-service)";TB.appendChild(d);}
+async function typeUser(t,text,ms){for(let i=1;i<=text.length;i++){TIN.textContent=text.slice(0,i);await pause(t,ms);}await pause(t,500);TIN.textContent="";tadd("u",esc(text));}
+const hook=(src,txt)=>tadd("hook",'<span class="src">'+esc(src)+"</span>"+txt);
+async function termIdle(done){
+  tclear();tbox();
+  tadd("a","This is a simulated Muse Code session on demo data. Press Play demo to watch symbiont switch on in a new repository, read its history, and speak up before a mistake repeats.");
+  const d=tadd("","");d.className="tcta";
+  d.innerHTML='<button class="go" id="tplay">'+(done?"Replay demo":"Play demo")+'</button><button id="tdash">Open the dashboard</button>';
+  $("tplay").onclick=demo;$("tdash").onclick=()=>{token++;setDemo(false);showTerm(false);go(1);};
+}
+async function termMining(t){
+  const line=tadd("tool","Bash(<span class=\"cmd\">symbiont repo mine</span>)");
+  const o=tadd("out",'reading sessions<span class="pbar"><i></i></span><span class="n"></span>');
+  for(let i=0;i<N;i++){
+    const found=i===N-1?P.length:P.filter(p=>detectAt(p)<=i&&isMistake(p)&&p.s.length>1).length;
+    o.querySelector("i").style.width=((i+1)/N*100)+"%";
+    o.querySelector(".n").textContent=(i+1)+" of "+N+" sessions, "+found+" pain points found";
+    await pause(t,5200/N);
+  }
+  tadd("out","learned "+totals.lessons+" lessons from "+N+" Muse Code sessions; they stay on this computer");
+}
+async function onboardingAct(t){
+  tclear();showTerm(true);
+  caption("A new repository. symbiont is installed but not switched on");
+  tadd("sh","cd billing-service &amp;&amp; muse");await pause(t,1100);tbox();await pause(t,900);
+  hook("SessionStart hook · symbiont","symbiont is installed but not switched on for this repository. It reads your coding-agent history to warn you about mistakes you have made before, and everything stays on this computer. Until you answer, nothing from this repository is stored. To switch it on, run <span class=\"cmd\">symbiont repo allow</span>; to also learn from this repository's past Muse Code sessions, run <span class=\"cmd\">symbiont repo mine</span> afterwards. To keep it off here, run <span class=\"cmd\">symbiont repo decline</span>.");
+  await pause(t,5500);
+  tadd("a","symbiont is not on for this repository yet. Nothing is stored until you say yes. Switch it on?");await pause(t,2200);
+  caption("The developer decides");await typeUser(t,"yes, allow it",70);
+  tadd("tool","Bash(<span class=\"cmd\">symbiont repo allow</span>)");await pause(t,700);
+  tadd("out","acme/billing-service: symbiont is on. Everything stays on this computer.");await pause(t,1800);
+  caption("It asks what to watch for");
+  tadd("a","Anything symbiont should pay attention to in this repository? Any notes, reports or lessons you already keep?");await pause(t,1800);
+  await typeUser(t,FOCUS_WORDS,45);
+  tadd("tool","symbiont_set_focus(<span class=\"cmd\">\""+esc(FOCUS_WORDS)+"\"</span>)");await pause(t,1200);
+  caption("Then it reads the past sessions, locally");
+  await termMining(t);await pause(t,900);
+  hook("symbiont",'symbiont\'s dashboard for this repository: <a href="#">http://localhost:7377/dashboard/</a><br>'+P.length+" pain points found. Review them, and add the context only you know.");
+  caption("Review them on the local dashboard");await pause(t,3800);
+}
+async function laterSessionAct(t){
+  tclear();showTerm(true);
+  caption("A week later, a new session");
+  tadd("sh","muse");await pause(t,900);tbox();await pause(t,900);
+  await typeUser(t,"add tax to the invoice total and run the invoice tests",45);
+  tadd("tool","Edit(<span class=\"cmd\">src/billing/invoice.py</span>)");await pause(t,1500);
+  tadd("a","Tests next. I am about to run <span class=\"cmd\">pytest tests/test_invoice.py</span>.");await pause(t,1800);
+  caption("Right before the repeat, one note arrives. Your words come first");
+  const p=P.find(x=>x.id===1);
+  hook("PreToolUse hook · symbiont",'<span class="tag">[symbiont]</span> In this repo: '+esc(FOCUS_WORDS)+". "+fmt(p.note));
+  await pause(t,6500);
+  tadd("a","Understood. I will sum the line amounts as integer cents and round once at the end before running the tests.");
+  await pause(t,3500);
+}
 /* ===== demo mode: hands-free, about 80 seconds ===== */
 async function typeInto(t,text,ms){const ta=$("ctx"),st=ST[sel];ta.focus();for(let i=1;i<=text.length;i++){ta.value=text.slice(0,i);st.ctx=ta.value;st.saved=false;renderNote();await pause(t,ms);}}
 async function spotlight(t,id,txt,ms){caption(txt);const el=$(id);el.classList.remove("spot");void el.offsetWidth;el.classList.add("spot");await pause(t,ms);}
@@ -1803,17 +1900,17 @@ async function demo(){
   const t=++token;setDemo(true);
   DATA.painPoints.forEach(d=>{const l=LESSON[d.lessonId];ST[d.id]={ctx:l.context,intent:l.intentional,prio:l.priority,saved:false};});mined=false;sel=1;
   try{
-    go(0);caption("symbiont reads every past session, locally");await pause(t,1200);
-    caption("It pairs each failure with the fix that worked");await mine(t,15000);
-    await pause(t,1800);
+    await onboardingAct(t);
+    showTerm(false);window.__symbiont.finishAll();
     go(1);resetBars();growBars();
+    caption("symbiont reads every past session, locally");await pause(t,1400);
     await spotlight(t,"kpis",totals.turns+" turns lost to trouble that kept coming back",3200);
     await spotlight(t,"pKinds","Repeated failures cost the most. Planned red tests are not mistakes.",3600);
     await spotlight(t,"pTree","Three files carry most of the pain",3200);
     await spotlight(t,"pTl","The same mistake, session after session",3600);
     caption("Open the costliest one and tell it what only you know");await pause(t,1500);
     go(2);selectPain(1);caption("This is what the agent will see before it repeats the mistake");await pause(t,3400);
-    caption("Add context in your own words");await typeInto(t,"Money must stay integer cents, round half-up.",55);
+    caption("Add context in your own words");await typeInto(t,FOCUS_WORDS[0].toUpperCase()+FOCUS_WORDS.slice(1)+".",55);
     await pause(t,1200);
     caption("Set the priority");setPrio("high");await pause(t,2000);
     save();caption("Saved. It is used from the next session");await pause(t,1800);
@@ -1821,7 +1918,8 @@ async function demo(){
     go(3);caption("Replay of the last 30 days, estimated from demo data");
     await playReplay(t,12000);await pause(t,2200);
     go(4);caption("Measured, not promised");await pause(t,9000);
-    caption("");setDemo(false);
+    await laterSessionAct(t);
+    caption("");setDemo(false);await termIdle(true);
   }catch(e){if(e!==CANCEL)throw e;}
 }
 $("playdemo").onclick=demo;
@@ -1832,7 +1930,8 @@ $("repoName").textContent=DATA.repo.name;$("ofN").textContent="of "+N;$("demotag
 $("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
 renderDashboard();renderList();selectPain(1);
 go(0);
-if(new URLSearchParams(location.search).get("demo")==="1")demo();
+$("tskip").onclick=()=>{token++;setDemo(false);showTerm(false);go(1);};
+if(new URLSearchParams(location.search).get("demo")==="1")demo();else{showTerm(true);termIdle(false);}
 window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};
 const obs=new MutationObserver(()=>{if($("s1").classList.contains("on"))growBars();});obs.observe($("s1"),{attributes:true,attributeFilter:["class"]});
 </script>
