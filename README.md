@@ -76,6 +76,26 @@ load the new adapter, or prints the exact command to start it. A symbiont servic
 `--nightly-dir ~/.symbiont/nightly` (and `--judge-url`) reads the record on every recall, so it
 needs no restart; one started without those options must be restarted with them.
 
+**Building the kit (once).** Meta's license does not let us ship Llama weights, so you fetch the base
+yourself and `symbiont nightly setup` merges the small public kit into it on your machine. It makes
+no network call.
+
+```bash
+# accept Meta's license on https://huggingface.co/meta-llama/Llama-3.2-1B-Instruct, then:
+huggingface-cli login
+huggingface-cli download meta-llama/Llama-3.2-1B-Instruct --local-dir ./llama-3.2-1b-instruct   # about 2.5 GB
+# the kit: the nightly-kit/ folder of https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters
+huggingface-cli download ADAPTERS_REPO --include 'nightly-kit/*' --local-dir ./kit   # about 100 MB; ADAPTERS_REPO is the path of that URL
+symbiont nightly setup --base ./llama-3.2-1b-instruct --kit-files ./kit/nightly-kit --judge-python PYTHON_WITH_TORCH_AND_PEFT
+```
+
+Setup checks that the folder is Llama 3.2 1B Instruct (config, tokenizer, weights, chat template)
+and that every kit file matches its pinned SHA-256, merges `judge-s0` and then `general` into the
+base, and writes `base/`, `general-rows.jsonl` and `habits.jsonl` into the kit folder. A wrong or
+missing file stops it with the exact download command. The kit's two row files are built from public
+trajectories and templates, with no text from any hosted model; the Hugging Face folder's README
+records how that was checked. Built with Llama; Llama 3.2 is under the Llama 3.2 Community License.
+
 **How long.** Time grows with the number of lessons. Each distinct lesson becomes about 22 training rows with the replay mixed in [measured].
 The trainer makes three passes over them.
 On an Apple M-series Mac (48 GB) with 20 synthetic lessons (439 rows, 329 updates), two nights took 225 s and 221 s [measured].
