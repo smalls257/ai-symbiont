@@ -1,0 +1,1840 @@
+<!doctype html>
+<!--
+SYMBIONT DASHBOARD: data contract (schema 1)
+This page reads ONE object: window.SYMBIONT_DATA, or else the JSON in <script id="symbiont-data">.
+In the product the local symbiont service serves this page and injects the same shape built from the user's store.
+{
+  schema: 1,
+  repo: { name, language, today:"YYYY-MM-DD", sessionsRead, demo:boolean },   demo:true shows the "demo data" label
+  sessions: [ { index, day, date:"YYYY-MM-DD" } ],      one per mined session; day = days since the first session
+  painPoints: [ {
+    id, kind:"repeat"|"rework"|"correction"|"loop"|"tdd",   tdd = planned red test, shown as "not a mistake"
+    title, file, command|null,
+    sessions:[session index, ...],                        when it happened, oldest first
+    turnsPerOccurrence, minutesPerOccurrence,             cost each time it recurred
+    failure, fix|null,                                    the related failure and the fix that was paired with it
+    lessonId } ],
+  lessons: [ { id, painPointId, confirmed:boolean, note, exampleContext,   note = plain domain prose, no scores
+               context, intentional, priority:"low"|"normal"|"high" } ],     the last three are the user's edits
+  replay: { windowStartDay, items:[ { painPointId, sessionIndex, day, turnsSaved, minutesSaved } ] },  estimates
+  proof: [ { id, tag:"measured", big, unit, claim, source, footer:[strong, rest], chart:{...} } ]
+}
+User edits go through saveContext(lessonId, payload) only; in the product that function POSTs to the local service.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>ai-symbiont: hosted demo (synthetic data)</title>
+<style>
+:root{
+  --bg1:#0e101e;--bg2:#22143a;--tx:#ecf0f8;--mu:#8c94ac;
+  --or:#ff8c40;--vi:#b28cff;--gr:#54de7c;--rd:#f45454;--go:#ffcc40;--cy:#5cc8ff;--pk:#e879c8;
+  --line:rgba(236,240,248,.10);--panel:rgba(255,255,255,.045);
+  --ui:"Avenir Next","Segoe UI",system-ui,sans-serif;
+  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box;margin:0}
+html{font-size:max(7px,min(calc(100vw/120),calc(100vh/67.5)))}
+body{height:100vh;overflow:hidden;color:var(--tx);font:400 1.05rem/1.4 var(--ui);
+  background:linear-gradient(160deg,var(--bg1) 0%,#1a1230 55%,var(--bg2) 100%) fixed;
+  display:grid;grid-template-rows:auto auto 1fr auto}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:2px solid var(--or);outline-offset:2px}
+.mono{font-family:var(--mono)}
+.mu{color:var(--mu)}
+.banner{display:flex;gap:1rem;align-items:center;justify-content:center;padding:.45rem 1.5rem;background:rgba(255,140,64,.12);border-bottom:1px solid rgba(255,140,64,.35);font-size:.95rem}
+.banner a{color:var(--or);font-weight:700;text-decoration:underline;text-underline-offset:.2em}
+.banner .mu a{color:var(--vi)}
+/* header */
+.top{display:flex;align-items:center;gap:1.6rem;padding:.9rem 2rem;border-bottom:1px solid var(--line)}
+.brand{font-weight:700;font-size:1.5rem;color:var(--or);letter-spacing:.01em}
+.repo{font:500 1rem var(--mono);padding:.25rem .7rem;border:1px solid var(--line);border-radius:2rem;color:var(--tx)}
+nav{display:flex;gap:.3rem;margin:0 auto}
+nav button{background:none;border:0;padding:.5rem 1rem;border-radius:.6rem;color:var(--mu);font-weight:600;font-size:1.05rem}
+nav button b{display:inline-grid;place-items:center;width:1.5rem;height:1.5rem;border-radius:50%;margin-right:.5rem;border:1px solid var(--mu);font-size:.85rem}
+nav button[aria-current=true]{color:var(--tx);background:rgba(255,140,64,.14)}
+nav button[aria-current=true] b{background:var(--or);border-color:var(--or);color:#1a1020}
+nav button.done b{border-color:var(--gr);color:var(--gr)}
+.demotag{font:500 .95rem var(--mono);color:var(--go);border:1px dashed rgba(255,204,64,.5);padding:.2rem .6rem;border-radius:.4rem}
+.playdemo{background:var(--vi);color:#1a1020;border:0;border-radius:.6rem;padding:.5rem 1.1rem;font-weight:700}
+/* stages */
+main{position:relative;min-height:0}
+body.demo main{padding-bottom:3.8rem}
+.stage{display:none;height:100%;padding:1.2rem 2rem;gap:1.2rem;min-height:0}
+.stage.on{display:grid;animation:in .35s ease-out}
+@keyframes in{from{opacity:0}to{opacity:1}}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:1rem;padding:1.1rem 1.3rem;min-height:0;position:relative}
+.panel h2{font-size:1.3rem;font-weight:650;line-height:1.2}
+.panel .sub{color:var(--mu);font-size:1rem;margin:.15rem 0 .8rem}
+.spot{animation:spot 1.6s ease-in-out 1}
+@keyframes spot{0%,100%{box-shadow:0 0 0 0 rgba(255,140,64,0)}40%{box-shadow:0 0 0 .35rem rgba(255,140,64,.35);border-color:var(--or)}}
+/* stage 0 */
+#s0{grid-template-columns:1.05fr 1fr}
+.mine-left{display:flex;flex-direction:column;gap:1.1rem;min-height:0}
+.hero h1{font-size:3.3rem;line-height:1.05;font-weight:700;letter-spacing:-.01em;max-width:22ch}
+.hero .lede{color:var(--mu);font-size:1.25rem;margin-top:.6rem}
+.cta{margin-top:1rem;background:var(--or);color:#1a1020;border:0;border-radius:.8rem;padding:.9rem 1.8rem;font-weight:700;font-size:1.4rem}
+.cta.sec{background:none;border:2px solid var(--or);color:var(--or)}
+.status{margin-top:.9rem;font:500 1.05rem var(--mono);color:var(--mu);min-height:1.6rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.counters{display:grid;grid-template-columns:1fr 1fr;gap:.8rem 1.4rem}
+.ctr .num{font-size:4.6rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.ctr .lbl{color:var(--mu);font-size:1.1rem;margin-top:.15rem}
+.ctr .of{margin-left:.5rem;opacity:.7}
+.ctr:nth-child(1) .num{color:var(--tx)}.ctr:nth-child(2) .num{color:var(--rd)}.ctr:nth-child(3) .num{color:var(--gr)}.ctr:nth-child(4) .num{color:var(--vi)}
+.sgrid{display:grid;grid-template-columns:repeat(10,1fr);gap:.4rem}
+.sgrid i{aspect-ratio:2.6/1;border-radius:.25rem;background:rgba(236,240,248,.07);transition:background .3s}
+.sgrid i.read{background:rgba(236,240,248,.25)}
+.sgrid i.cur{outline:2px solid var(--or);background:var(--or)}
+.bar{height:.5rem;border-radius:1rem;background:rgba(236,240,248,.08);overflow:hidden}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--or),var(--vi));transition:width .3s linear}
+.feed{display:flex;flex-direction:column}
+.feed ul{list-style:none;padding:0;display:flex;flex-direction:column;gap:.55rem;overflow:hidden;flex:1;min-height:0}
+.fi{display:grid;grid-template-columns:auto 1fr auto;gap:.2rem .9rem;align-items:center;padding:.65rem .9rem;border-radius:.7rem;background:rgba(255,255,255,.05);border-left:.35rem solid var(--k);animation:slide .45s ease-out}
+@keyframes slide{from{opacity:0;transform:translateY(-.8rem)}to{opacity:1;transform:none}}
+.fi .k{font-size:.95rem;font-weight:600;color:var(--k)}
+.fi .t{font-weight:600;font-size:1.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi .f{grid-column:2;font:.95rem var(--mono);color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fi .n{grid-row:1/3;grid-column:3;font-weight:700;font-size:1.3rem;text-align:right;font-variant-numeric:tabular-nums}
+.fi .n small{display:block;font-size:.85rem;color:var(--mu);font-weight:400}
+/* stage 1 */
+#s1{grid-template-rows:auto 1.25fr 1fr;grid-template-columns:1fr 1.25fr 1fr}
+.kpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(4,1fr);gap:1.2rem}
+.kpi{padding:.9rem 1.3rem}
+.kpi .num{font-size:3.6rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.kpi .lbl{font-size:1.1rem;margin-top:.2rem}
+.kpi .lbl span{color:var(--mu)}
+.kbars{display:flex;flex-direction:column;gap:.8rem}
+.kb{display:grid;grid-template-columns:1fr auto;gap:.15rem .6rem;align-items:end}
+.kb .nm{font-weight:600;font-size:1.1rem}
+.kb .nm small{color:var(--mu);font-weight:400;margin-left:.4rem}
+.kb .v{font-size:1.5rem;font-weight:700;font-variant-numeric:tabular-nums;grid-row:1/3;grid-column:2;align-self:center}
+.kb .v small{font-size:.9rem;color:var(--mu);font-weight:400;margin-left:.25rem}
+.kb .tr{height:.9rem;background:rgba(236,240,248,.06);border-radius:.3rem}
+.kb .tr i{display:block;height:100%;border-radius:.3rem;background:var(--k);width:0;transition:width 1s cubic-bezier(.2,.8,.2,1)}
+.kb.tdd .tr i{background:repeating-linear-gradient(45deg,var(--mu) 0 3px,transparent 3px 7px);opacity:.7}
+.kdiv{border-top:1px dashed var(--line);padding-top:.7rem;color:var(--mu);font-size:1rem}
+#tm{width:100%;height:calc(100% - 3.6rem)}
+#tm rect{stroke:#16112a;stroke-width:3;cursor:pointer;transition:filter .15s}
+#tm g:hover rect{filter:brightness(1.2)}
+#tm text{pointer-events:none}
+.les{list-style:none;padding:0;display:flex;flex-direction:column;gap:.5rem}
+.les li button{width:100%;display:grid;grid-template-columns:1fr auto;gap:.1rem .8rem;text-align:left;background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:.7rem;padding:.55rem .9rem}
+.les li button:hover{border-color:var(--vi);background:rgba(178,140,255,.1)}
+.les .t{font-weight:600;font-size:1.05rem;line-height:1.2}
+.les .m{color:var(--mu);font-size:.95rem}
+.les .big{grid-row:1/3;grid-column:2;font-size:2rem;font-weight:700;color:var(--rd);align-self:center;font-variant-numeric:tabular-nums}
+.les .big small{display:block;font-size:.8rem;font-weight:400;color:var(--mu);text-align:right}
+.tl{grid-column:1/-1}
+#tlsvg{width:100%;height:calc(100% - 3.4rem)}
+/* stage 2 */
+#s2{grid-template-columns:23% 1fr 36%;gap:1.2rem}
+.plist{overflow:auto;padding:0;scrollbar-width:thin;scrollbar-color:#3a2f5a transparent}
+.plist h3{position:sticky;top:0;background:#1a1330;padding:.6rem 1rem;font-size:.95rem;color:var(--mu);font-weight:600;border-bottom:1px solid var(--line);z-index:1}
+.plist button{display:grid;grid-template-columns:auto 1fr auto;gap:.2rem .7rem;width:100%;text-align:left;background:none;border:0;border-left:.3rem solid transparent;padding:.55rem 1rem;align-items:center}
+.plist button:hover{background:rgba(255,255,255,.05)}
+.plist button[aria-selected=true]{background:rgba(255,140,64,.13);border-left-color:var(--or)}
+.plist i{width:.7rem;height:.7rem;border-radius:50%;background:var(--k)}
+.plist .t{font-size:1rem;line-height:1.2}
+.plist .c{font:.9rem var(--mono);color:var(--mu)}
+.plist .q{text-decoration:line-through;opacity:.55}
+.edit{display:flex;flex-direction:column;gap:.85rem;overflow:hidden}
+.edit h2{font-size:1.9rem;line-height:1.15}
+.chips{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
+.chip{font:.95rem var(--mono);padding:.15rem .6rem;border-radius:.4rem;border:1px solid var(--line);color:var(--mu)}
+.chip.kind{border-color:var(--k);color:var(--k);font-family:var(--ui);font-weight:600}
+.occ{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
+.occ i{width:.8rem;height:.8rem;border-radius:50%;background:var(--rd)}
+.edit p{font-size:1.1rem;line-height:1.45;max-width:62ch}
+.edit p b{color:var(--gr);font-weight:600}
+.edit label.h{font-weight:650;font-size:1.15rem;display:block;margin-bottom:.35rem}
+textarea{width:100%;height:6.6rem;resize:none;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:.8rem;color:var(--tx);font:500 1.3rem/1.4 var(--ui);padding:.8rem 1rem}
+textarea:focus{border-color:var(--vi);outline:none}
+.ex{display:flex;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+.ex button{background:rgba(178,140,255,.1);border:1px dashed rgba(178,140,255,.5);color:var(--vi);border-radius:2rem;padding:.2rem .8rem;font-size:.95rem}
+.ctl{display:flex;gap:1.6rem;align-items:center;flex-wrap:wrap}
+.sw{display:flex;align-items:center;gap:.7rem;background:none;border:0;font-size:1.1rem;font-weight:600;padding:0}
+.sw i{width:3rem;height:1.6rem;border-radius:2rem;background:rgba(236,240,248,.2);position:relative;transition:background .2s}
+.sw i::after{content:"";position:absolute;left:.2rem;top:.2rem;width:1.2rem;height:1.2rem;border-radius:50%;background:#fff;transition:transform .2s}
+.sw[aria-pressed=true] i{background:var(--gr)}
+.sw[aria-pressed=true] i::after{transform:translateX(1.4rem)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:.6rem;overflow:hidden}
+.seg button{background:none;border:0;padding:.4rem 1rem;color:var(--mu);font-weight:600;font-size:1.05rem}
+.seg button[aria-pressed=true]{background:var(--vi);color:#1a1020}
+.save{margin-left:auto;background:var(--or);color:#1a1020;border:0;border-radius:.7rem;padding:.55rem 1.3rem;font-weight:700;font-size:1.1rem}
+.agent{display:flex;flex-direction:column;gap:.9rem;background:rgba(8,8,18,.55);border-color:rgba(178,140,255,.35)}
+.agent .bar2{display:flex;gap:.4rem;align-items:center;color:var(--mu);font-size:.95rem}
+.agent .bar2 i{width:.7rem;height:.7rem;border-radius:50%;background:rgba(236,240,248,.2)}
+.agent .bar2 span{margin-left:.5rem}
+.cmd{color:var(--go);font-family:var(--mono)}
+.agent .run{font:500 1.15rem var(--mono);color:var(--tx)}
+.agent .run .cmd::before{content:"$ ";color:var(--mu)}
+.notebox{border-left:.3rem solid var(--vi);background:rgba(178,140,255,.1);border-radius:.2rem .8rem .8rem .2rem;padding:1rem 1.2rem;font:500 1.2rem/1.55 var(--mono);min-height:12rem}
+.notebox .tag{color:var(--vi);font-weight:700}
+.notebox .user{background:rgba(84,222,124,.16);box-shadow:0 .15rem 0 var(--gr);border-radius:.2rem}
+.notebox.quiet{border-left-color:var(--mu);background:rgba(255,255,255,.04);color:var(--mu)}
+.caret{display:inline-block;width:.6rem;height:1.2rem;background:var(--vi);vertical-align:-.2rem;margin-left:.1rem;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.agent .cap{color:var(--mu);font-size:1rem}
+.agent .cap b{color:var(--tx);font-weight:600}
+.toast{position:absolute;right:1.3rem;bottom:1.1rem;background:var(--gr);color:#0c2014;font-weight:700;padding:.5rem 1rem;border-radius:.6rem;opacity:0;transform:translateY(.5rem);transition:.3s;pointer-events:none}
+.toast.on{opacity:1;transform:none}
+/* stage 3 */
+#s3{grid-template-rows:auto auto 1fr;grid-template-columns:1.1fr 1fr}
+.rkpis{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,1fr) auto;gap:1.2rem;align-items:stretch}
+.rkpis .num{font-size:4.2rem;font-weight:700;line-height:1;color:var(--gr);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.rkpis .lbl{font-size:1.1rem;margin-top:.2rem}
+.est{display:flex;flex-direction:column;justify-content:center;gap:.6rem;border-color:rgba(255,204,64,.4);max-width:19rem}
+.est b{color:var(--go)}
+.est .cta{margin:0;font-size:1.1rem;padding:.5rem 1rem}
+.strip{grid-column:1/-1;padding-bottom:.4rem}
+#rsvg{width:100%;height:11rem}
+.fire h2{margin-bottom:.4rem}
+.fire .notebox{min-height:8rem}
+.fire .when{font-size:1.05rem;color:var(--mu);margin-bottom:.7rem}
+.fire .sv{margin-top:.8rem;font-size:1.4rem;font-weight:700;color:var(--gr)}
+.fire .sv small{font-size:.95rem;color:var(--mu);font-weight:400;margin-left:.4rem}
+.evl{-webkit-mask-image:linear-gradient(#000 88%,transparent);mask-image:linear-gradient(#000 88%,transparent);list-style:none;padding:0;overflow:hidden;display:flex;flex-direction:column;gap:.35rem;height:calc(100% - 3rem)}
+.evl li{display:grid;grid-template-columns:4.6rem 1fr auto;gap:.8rem;padding:.4rem .7rem;border-radius:.5rem;background:rgba(255,255,255,.04);font-size:1.02rem;animation:slide .4s ease-out}
+.evl .d{font:.95rem var(--mono);color:var(--mu)}
+.evl .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.evl .s{color:var(--gr);font-weight:700}
+/* stage 4 */
+#s4{grid-template-rows:auto 1fr auto;grid-template-columns:repeat(3,1fr)}
+.phead{grid-column:1/-1}
+.phead h1{font-size:2.8rem;line-height:1.1;max-width:30ch}
+.phead p{color:var(--mu);font-size:1.2rem;margin-top:.4rem}
+.pc{display:flex;flex-direction:column;gap:.6rem;padding:1.4rem 1.6rem;opacity:.0;transform:translateY(1rem);transition:.6s}
+#s4.play .pc{opacity:1;transform:none}
+#s4.play .pc:nth-of-type(2){transition-delay:.5s}#s4.play .pc:nth-of-type(3){transition-delay:1s}
+.mtag{align-self:flex-start;font:700 1rem var(--mono);color:var(--gr);border:1px solid var(--gr);border-radius:.4rem;padding:.05rem .5rem}
+.pc .big{font-size:5.4rem;font-weight:700;line-height:1;letter-spacing:-.02em;color:var(--gr);font-variant-numeric:tabular-nums}
+.pc .big small{font-size:1.6rem;color:var(--mu);font-weight:500;margin-left:.4rem;letter-spacing:0}
+.pc h3{font-size:1.45rem;line-height:1.25;font-weight:600}
+.pc .src{color:var(--mu);font-size:1.02rem}
+.pc svg{width:100%;margin:auto 0}
+.lim{grid-column:1/-1;border-style:dashed;font-size:1.1rem;color:var(--mu);padding:.8rem 1.3rem}
+.lim b{color:var(--go);font-weight:600}
+/* footer + misc */
+.foot{display:flex;gap:2.2rem;justify-content:center;padding:.7rem 2rem;border-top:1px solid var(--line);font-size:1rem;color:var(--mu);background:rgba(8,8,18,.4)}
+.foot b{font:700 .85rem var(--mono);color:var(--gr);margin-right:.5rem}
+.foot span span{color:var(--tx);font-weight:600}
+#caption{position:fixed;left:50%;bottom:3.6rem;transform:translateX(-50%);background:rgba(8,8,18,.88);border:1px solid var(--or);color:var(--tx);padding:.55rem 1.6rem;border-radius:3rem;font-size:1.4rem;font-weight:600;display:none;white-space:nowrap;z-index:5}
+body.demo #caption{display:block}
+#tip{position:fixed;pointer-events:none;background:#0a0816;border:1px solid var(--vi);border-radius:.5rem;padding:.4rem .7rem;font-size:.95rem;max-width:22rem;display:none;z-index:9}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="banner" role="note"><span><b>Hosted demo.</b> Synthetic data for a fictional repo (acme/billing-service). Nothing here is read from your machine, and nothing leaves this page.</span><a href="https://github.com/smalls257/ai-symbiont#install">Install it for real</a><span class="mu"><a href="../">Project page</a></span></div>
+<header class="top">
+  <div class="brand">ai-symbiont</div>
+  <div class="repo" id="repoName"></div>
+  <nav id="nav" aria-label="Stages"></nav>
+  <span class="demotag" id="demotag" title="Every name, file and number on the first four screens is hand-written">demo data</span>
+  <button class="playdemo" id="playdemo">Play demo</button>
+</header>
+<main>
+<section class="stage" id="s0" aria-label="Live mining">
+  <div class="mine-left">
+    <div class="hero">
+      <h1 id="h1">Turn symbiont on and it reads your past sessions.</h1>
+      <p class="lede" id="lede">Everything stays on this machine. Nothing is uploaded.</p>
+      <button class="cta" id="startBtn">Turn on symbiont</button>
+      <div class="status" id="status"></div>
+    </div>
+    <div class="counters">
+      <div class="ctr"><div class="num" id="c0">0</div><div class="lbl">sessions read<span class="of" id="ofN"></span></div></div>
+      <div class="ctr"><div class="num" id="c1">0</div><div class="lbl">failures found</div></div>
+      <div class="ctr"><div class="num" id="c2">0</div><div class="lbl">fixes paired to failures</div></div>
+      <div class="ctr"><div class="num" id="c3">0</div><div class="lbl">lessons formed</div></div>
+    </div>
+    <div class="sgrid" id="sgrid" aria-label="Sessions scanned"></div>
+    <div class="bar"><i id="bar"></i></div>
+  </div>
+  <div class="panel feed">
+    <h2>Pain points, as they turn up</h2>
+    <p class="sub">A pain point appears once the same trouble has happened twice.</p>
+    <ul id="feed"></ul>
+  </div>
+</section>
+
+<section class="stage" id="s1" aria-label="Pain-point dashboard">
+  <div class="kpis" id="kpis"></div>
+  <div class="panel" id="pKinds"><h2>What kind of trouble</h2><p class="sub">Turns the agent lost, by kind</p><div class="kbars" id="kbars"></div></div>
+  <div class="panel" id="pTree"><h2>Where in the repo</h2><p class="sub">Tile size and warmth show turns lost per file. Click to add context.</p><svg id="tm" viewBox="0 0 700 360" role="img" aria-label="Treemap of turns lost per file"></svg></div>
+  <div class="panel" id="pLes"><h2>Most costly lessons</h2><p class="sub">Each time it recurred, this much was lost</p><ul class="les" id="les"></ul></div>
+  <div class="panel tl" id="pTl"><h2>The same mistake, session after session</h2><p class="sub">Every dot is one session where it happened again. The dashed line marks the last 30 days, replayed on the fourth screen.</p><svg id="tlsvg" viewBox="0 0 1800 280" role="img" aria-label="Timeline of recurring mistakes across 40 sessions"></svg></div>
+</section>
+
+<section class="stage" id="s2" aria-label="Add context">
+  <div class="panel plist" id="plist"></div>
+  <div class="panel edit" id="edit"></div>
+  <div class="panel agent" id="agent">
+    <div class="bar2"><i></i><i></i><i></i><span>What the agent sees</span></div>
+    <div class="run" id="run"></div>
+    <div class="notebox" id="note"></div>
+    <div class="cap" id="cap"></div>
+    <div class="toast" id="toast">Saved. Used from the next session.</div>
+  </div>
+</section>
+
+<section class="stage" id="s3" aria-label="30-day replay">
+  <div class="rkpis">
+    <div class="panel"><div class="num" id="r0">0</div><div class="lbl">repeats it would have caught</div></div>
+    <div class="panel"><div class="num" id="r1">0</div><div class="lbl">agent turns saved, about</div></div>
+    <div class="panel"><div class="num" id="r2">0</div><div class="lbl">hours saved, about</div></div>
+    <div class="panel est"><div><b>Estimate from demo data.</b> <span class="mu">Replayed on the last 30 days of the 40 demo sessions. Not a measurement.</span></div><button class="cta sec" id="replayBtn">Replay</button></div>
+  </div>
+  <div class="panel strip"><h2 id="rtitle">Each dot is a repeat the note would have come before</h2><svg id="rsvg" viewBox="0 0 1800 190" role="img" aria-label="Caught repeats per day over 30 days"></svg></div>
+  <div class="panel fire" id="fire"></div>
+  <div class="panel"><h2>Caught, newest first</h2><ul class="evl" id="evl"></ul></div>
+</section>
+
+<section class="stage" id="s4" aria-label="Proof">
+  <div class="phead"><h1>This is not a demo of a promise. These are measured results.</h1><p>From our own runs on other data. Each one is tagged, and the limits are printed with it.</p></div>
+  <div class="panel pc" id="pc1">
+    <span class="mtag">[measured]</span>
+    <div class="big">0<small>wrong notes in 501 shown</small></div>
+    <h3>Every note it showed was one the agent needed.</h3>
+    <svg id="dots" viewBox="0 0 330 150" role="img" aria-label="501 notes shown, none wrong"></svg>
+    <div class="src">Agree rule, 251 repeats in 89 unseen repos. Each dot is one note shown.</div>
+  </div>
+  <div class="panel pc" id="pc2">
+    <span class="mtag">[measured]</span>
+    <div class="big">61%<small>vs 0%</small></div>
+    <h3>of repeats caught after nightly training, against none without it.</h3>
+    <svg id="bars2" viewBox="0 0 250 110" role="img" aria-label="61 percent caught with nightly training, 0 percent without"></svg>
+    <div class="src">Code-fix study, 924 items, 97.8% precision.</div>
+  </div>
+  <div class="panel pc" id="pc3">
+    <span class="mtag">[measured]</span>
+    <div class="big">+0.16<small>[0.11, 0.22]</small></div>
+    <h3>A rule Spark wrote from its own failures made it better, and held on new cases.</h3>
+    <svg id="ci" viewBox="0 0 250 110" role="img" aria-label="Gain of 0.16, interval 0.11 to 0.22"></svg>
+    <div class="src">Replicated on 240 fresh cases.</div>
+  </div>
+  <div class="panel lim"><b>Limits.</b> The 61% comes from one code-fix study with synthetic bugs; your repo will differ. Not every result is a win: the personal-adapter run (Route B) came out negative, -0.054 [-0.108, -0.014], and is reported with its diagnosis. The dashboard before this screen is synthetic, and its savings are estimates, not measurements.</div>
+</section>
+</main>
+<footer class="foot" id="foot">
+  <span><b>[measured]</b><span>0 wrong notes</span> in 501 shown</span>
+  <span><b>[measured]</b><span>61%</span> of repeats caught vs 0%</span>
+  <span><b>[measured]</b><span>+0.16</span> [0.11, 0.22], replicated on 240 fresh cases</span>
+</footer>
+<div id="caption" aria-live="polite"></div>
+<div id="tip"></div>
+
+<script type="application/json" id="symbiont-data">
+{
+ "schema": 1,
+ "repo": {
+  "name": "acme/billing-service",
+  "language": "Python",
+  "today": "2026-11-02",
+  "sessionsRead": 40,
+  "demo": true
+ },
+ "sessions": [
+  {
+   "index": 0,
+   "day": 0,
+   "date": "2026-09-03"
+  },
+  {
+   "index": 1,
+   "day": 1,
+   "date": "2026-09-04"
+  },
+  {
+   "index": 2,
+   "day": 3,
+   "date": "2026-09-06"
+  },
+  {
+   "index": 3,
+   "day": 4,
+   "date": "2026-09-07"
+  },
+  {
+   "index": 4,
+   "day": 6,
+   "date": "2026-09-09"
+  },
+  {
+   "index": 5,
+   "day": 7,
+   "date": "2026-09-10"
+  },
+  {
+   "index": 6,
+   "day": 9,
+   "date": "2026-09-12"
+  },
+  {
+   "index": 7,
+   "day": 10,
+   "date": "2026-09-13"
+  },
+  {
+   "index": 8,
+   "day": 12,
+   "date": "2026-09-15"
+  },
+  {
+   "index": 9,
+   "day": 13,
+   "date": "2026-09-16"
+  },
+  {
+   "index": 10,
+   "day": 15,
+   "date": "2026-09-18"
+  },
+  {
+   "index": 11,
+   "day": 16,
+   "date": "2026-09-19"
+  },
+  {
+   "index": 12,
+   "day": 18,
+   "date": "2026-09-21"
+  },
+  {
+   "index": 13,
+   "day": 19,
+   "date": "2026-09-22"
+  },
+  {
+   "index": 14,
+   "day": 21,
+   "date": "2026-09-24"
+  },
+  {
+   "index": 15,
+   "day": 22,
+   "date": "2026-09-25"
+  },
+  {
+   "index": 16,
+   "day": 24,
+   "date": "2026-09-27"
+  },
+  {
+   "index": 17,
+   "day": 25,
+   "date": "2026-09-28"
+  },
+  {
+   "index": 18,
+   "day": 27,
+   "date": "2026-09-30"
+  },
+  {
+   "index": 19,
+   "day": 28,
+   "date": "2026-10-01"
+  },
+  {
+   "index": 20,
+   "day": 30,
+   "date": "2026-10-03"
+  },
+  {
+   "index": 21,
+   "day": 31,
+   "date": "2026-10-04"
+  },
+  {
+   "index": 22,
+   "day": 33,
+   "date": "2026-10-06"
+  },
+  {
+   "index": 23,
+   "day": 34,
+   "date": "2026-10-07"
+  },
+  {
+   "index": 24,
+   "day": 36,
+   "date": "2026-10-09"
+  },
+  {
+   "index": 25,
+   "day": 37,
+   "date": "2026-10-10"
+  },
+  {
+   "index": 26,
+   "day": 39,
+   "date": "2026-10-12"
+  },
+  {
+   "index": 27,
+   "day": 40,
+   "date": "2026-10-13"
+  },
+  {
+   "index": 28,
+   "day": 42,
+   "date": "2026-10-15"
+  },
+  {
+   "index": 29,
+   "day": 43,
+   "date": "2026-10-16"
+  },
+  {
+   "index": 30,
+   "day": 45,
+   "date": "2026-10-18"
+  },
+  {
+   "index": 31,
+   "day": 46,
+   "date": "2026-10-19"
+  },
+  {
+   "index": 32,
+   "day": 48,
+   "date": "2026-10-21"
+  },
+  {
+   "index": 33,
+   "day": 49,
+   "date": "2026-10-22"
+  },
+  {
+   "index": 34,
+   "day": 51,
+   "date": "2026-10-24"
+  },
+  {
+   "index": 35,
+   "day": 52,
+   "date": "2026-10-25"
+  },
+  {
+   "index": 36,
+   "day": 54,
+   "date": "2026-10-27"
+  },
+  {
+   "index": 37,
+   "day": 55,
+   "date": "2026-10-28"
+  },
+  {
+   "index": 38,
+   "day": 57,
+   "date": "2026-10-30"
+  },
+  {
+   "index": 39,
+   "day": 58,
+   "date": "2026-10-31"
+  }
+ ],
+ "painPoints": [
+  {
+   "id": 1,
+   "kind": "repeat",
+   "title": "Invoice total is off by a fraction of a cent",
+   "file": "src/billing/invoice.py",
+   "command": "pytest tests/test_invoice.py",
+   "sessions": [
+    3,
+    7,
+    12,
+    19,
+    26,
+    33
+   ],
+   "turnsPerOccurrence": 6,
+   "minutesPerOccurrence": 8,
+   "failure": "The invoice total test fails with 10.010000000000002 where 10.01 is expected, because line amounts are summed as floats.",
+   "fix": "Convert amounts to integer cents before summing, and round once at the end.",
+   "lessonId": "les-01"
+  },
+  {
+   "id": 2,
+   "kind": "repeat",
+   "title": "Billing period compares naive and aware datetimes",
+   "file": "src/billing/periods.py",
+   "command": "pytest tests/test_periods.py",
+   "sessions": [
+    5,
+    11,
+    18,
+    24,
+    31,
+    38
+   ],
+   "turnsPerOccurrence": 4,
+   "minutesPerOccurrence": 6,
+   "failure": "TypeError: can't compare offset-naive and offset-aware datetimes, where a period boundary meets a stored timestamp.",
+   "fix": "Build period boundaries with an explicit UTC timezone and read stored values as aware.",
+   "lessonId": "les-02"
+  },
+  {
+   "id": 3,
+   "kind": "repeat",
+   "title": "Stripe webhook test fails its signature check now and then",
+   "file": "tests/test_webhooks.py",
+   "command": "pytest tests/test_webhooks.py::test_invoice_paid",
+   "sessions": [
+    8,
+    15,
+    22,
+    29,
+    36
+   ],
+   "turnsPerOccurrence": 5,
+   "minutesPerOccurrence": 8,
+   "failure": "The signature timestamp drifts outside the tolerance window when the test runs slowly.",
+   "fix": "Freeze the clock used for the signature so it stays inside the tolerance window.",
+   "lessonId": "les-03"
+  },
+  {
+   "id": 4,
+   "kind": "repeat",
+   "title": "Migration rerun hits a table that already exists",
+   "file": "migrations/versions/0042_invoice_lines.py",
+   "command": "alembic upgrade head",
+   "sessions": [
+    10,
+    17,
+    27,
+    35
+   ],
+   "turnsPerOccurrence": 3,
+   "minutesPerOccurrence": 4,
+   "failure": "relation \"invoice_lines\" already exists, after the table was created by hand.",
+   "fix": "Check `alembic current` first and stamp the revision if the table is already there.",
+   "lessonId": "les-04"
+  },
+  {
+   "id": 5,
+   "kind": "repeat",
+   "title": "Helper import still points at the old module",
+   "file": "src/billing/money.py",
+   "command": "pytest -q",
+   "sessions": [
+    14,
+    21,
+    30
+   ],
+   "turnsPerOccurrence": 2,
+   "minutesPerOccurrence": 2,
+   "failure": "ImportError: cannot import name 'money_to_cents' from 'billing.utils'.",
+   "fix": "Import it from billing.money, where it moved.",
+   "lessonId": "les-05"
+  },
+  {
+   "id": 6,
+   "kind": "repeat",
+   "title": "Lint fails on long tax table lines",
+   "file": "src/billing/tax.py",
+   "command": "ruff check src",
+   "sessions": [
+    6,
+    23
+   ],
+   "turnsPerOccurrence": 1,
+   "minutesPerOccurrence": 1,
+   "failure": "E501 on the rate table.",
+   "fix": "Wrap the table in parentheses and let the formatter lay it out.",
+   "lessonId": "les-06"
+  },
+  {
+   "id": 7,
+   "kind": "repeat",
+   "title": "Database port is already in use",
+   "file": "docker-compose.yml",
+   "command": "docker compose up db",
+   "sessions": [
+    9,
+    25
+   ],
+   "turnsPerOccurrence": 2,
+   "minutesPerOccurrence": 3,
+   "failure": "Port 5432 is taken by a container from an earlier session.",
+   "fix": "Run `docker compose down` before starting it again.",
+   "lessonId": "les-07"
+  },
+  {
+   "id": 8,
+   "kind": "repeat",
+   "title": "Proration function misses a return path",
+   "file": "src/billing/proration.py",
+   "command": "mypy src/billing",
+   "sessions": [
+    16,
+    34
+   ],
+   "turnsPerOccurrence": 2,
+   "minutesPerOccurrence": 2,
+   "failure": "Missing return statement when the period has no days.",
+   "fix": "Return a Decimal zero for the no-days case.",
+   "lessonId": "les-08"
+  },
+  {
+   "id": 9,
+   "kind": "rework",
+   "title": "Proration rewritten three times in one sitting",
+   "file": "src/billing/proration.py",
+   "command": null,
+   "sessions": [
+    13,
+    28,
+    37
+   ],
+   "turnsPerOccurrence": 7,
+   "minutesPerOccurrence": 12,
+   "failure": "The day-count convention flipped between actual/365 and 30/360 across edits.",
+   "fix": "Settle on actual/365, as the billing spec says, before editing.",
+   "lessonId": "les-09"
+  },
+  {
+   "id": 10,
+   "kind": "rework",
+   "title": "Invoice rounding reworked again",
+   "file": "src/billing/invoice.py",
+   "command": null,
+   "sessions": [
+    4,
+    20,
+    32
+   ],
+   "turnsPerOccurrence": 4,
+   "minutesPerOccurrence": 6,
+   "failure": "Rounding moved between per-line and per-invoice.",
+   "fix": "Round once, at the invoice level.",
+   "lessonId": "les-10"
+  },
+  {
+   "id": 11,
+   "kind": "rework",
+   "title": "Tax rounding rule reworked",
+   "file": "src/billing/tax.py",
+   "command": null,
+   "sessions": [
+    12,
+    31
+   ],
+   "turnsPerOccurrence": 3,
+   "minutesPerOccurrence": 5,
+   "failure": "Tax was rounded per invoice, then per line.",
+   "fix": "Tax rounds per line, half-up.",
+   "lessonId": "les-11"
+  },
+  {
+   "id": 12,
+   "kind": "rework",
+   "title": "Refund validation moved out of the route",
+   "file": "src/api/routes/refunds.py",
+   "command": null,
+   "sessions": [
+    18,
+    36
+   ],
+   "turnsPerOccurrence": 3,
+   "minutesPerOccurrence": 4,
+   "failure": "Validation was added in the route, then moved to the service.",
+   "fix": "Validate the refund amount in the service layer.",
+   "lessonId": "les-12"
+  },
+  {
+   "id": 13,
+   "kind": "rework",
+   "title": "Currency table edited twice for zero-decimal currencies",
+   "file": "src/billing/currency.py",
+   "command": null,
+   "sessions": [
+    7,
+    26
+   ],
+   "turnsPerOccurrence": 2,
+   "minutesPerOccurrence": 3,
+   "failure": "JPY was added with two decimals, then fixed.",
+   "fix": "Zero-decimal currencies use exponent 0.",
+   "lessonId": "les-13"
+  },
+  {
+   "id": 14,
+   "kind": "correction",
+   "title": "“Use integer cents, not floats”",
+   "file": "src/billing/invoice.py",
+   "command": null,
+   "sessions": [
+    4,
+    13,
+    27
+   ],
+   "turnsPerOccurrence": 3,
+   "minutesPerOccurrence": 4,
+   "failure": "You told the agent three times that money is never a float.",
+   "fix": null,
+   "lessonId": "les-14"
+  },
+  {
+   "id": 15,
+   "kind": "correction",
+   "title": "“Don't mock the database in billing tests”",
+   "file": "tests/conftest.py",
+   "command": null,
+   "sessions": [
+    9,
+    19,
+    34
+   ],
+   "turnsPerOccurrence": 3,
+   "minutesPerOccurrence": 4,
+   "failure": "The agent reached for a mock session; you asked for the real test database.",
+   "fix": null,
+   "lessonId": "les-15"
+  },
+  {
+   "id": 16,
+   "kind": "correction",
+   "title": "“Use the existing get_session helper”",
+   "file": "src/billing/db.py",
+   "command": null,
+   "sessions": [
+    15,
+    29
+   ],
+   "turnsPerOccurrence": 2,
+   "minutesPerOccurrence": 2,
+   "failure": "The agent opened its own connection.",
+   "fix": null,
+   "lessonId": "les-16"
+  },
+  {
+   "id": 17,
+   "kind": "correction",
+   "title": "“Ask before adding a dependency”",
+   "file": "pyproject.toml",
+   "command": null,
+   "sessions": [
+    21
+   ],
+   "turnsPerOccurrence": 2,
+   "minutesPerOccurrence": 2,
+   "failure": "A new package was added without asking.",
+   "fix": null,
+   "lessonId": "les-17"
+  },
+  {
+   "id": 18,
+   "kind": "correction",
+   "title": "“Commit messages start with the ticket id”",
+   "file": "CONTRIBUTING.md",
+   "command": null,
+   "sessions": [
+    11,
+    33
+   ],
+   "turnsPerOccurrence": 1,
+   "minutesPerOccurrence": 1,
+   "failure": "Commit messages missed the BILL- prefix.",
+   "fix": null,
+   "lessonId": "les-18"
+  },
+  {
+   "id": 19,
+   "kind": "loop",
+   "title": "Same webhook test re-run six times, nothing changed",
+   "file": "tests/test_webhooks.py",
+   "command": "pytest tests/test_webhooks.py",
+   "sessions": [
+    15,
+    29
+   ],
+   "turnsPerOccurrence": 6,
+   "minutesPerOccurrence": 9,
+   "failure": "The agent kept re-running a failing test hoping it would pass.",
+   "fix": "Stop and freeze the clock instead of re-running.",
+   "lessonId": "les-19"
+  },
+  {
+   "id": 20,
+   "kind": "loop",
+   "title": "Hunting for the Stripe key across config files",
+   "file": "src/billing/settings.py",
+   "command": null,
+   "sessions": [
+    10,
+    24
+   ],
+   "turnsPerOccurrence": 4,
+   "minutesPerOccurrence": 5,
+   "failure": "The key is not in any file, so the search never ended.",
+   "fix": "It is read from STRIPE_API_KEY in the environment.",
+   "lessonId": "les-20"
+  },
+  {
+   "id": 21,
+   "kind": "loop",
+   "title": "Flip-flopping between two rounding fixes",
+   "file": "src/billing/proration.py",
+   "command": null,
+   "sessions": [
+    28,
+    37
+   ],
+   "turnsPerOccurrence": 5,
+   "minutesPerOccurrence": 7,
+   "failure": "Half-up and bankers rounding were swapped back and forth.",
+   "fix": "Pick half-up once and write the test first.",
+   "lessonId": "les-21"
+  },
+  {
+   "id": 22,
+   "kind": "tdd",
+   "title": "Credit notes test, written red first",
+   "file": "tests/test_credit_notes.py",
+   "command": "pytest tests/test_credit_notes.py",
+   "sessions": [
+    16
+   ],
+   "turnsPerOccurrence": 0,
+   "minutesPerOccurrence": 0,
+   "failure": "A planned failing test before the feature exists.",
+   "fix": null,
+   "lessonId": "les-22"
+  },
+  {
+   "id": 23,
+   "kind": "tdd",
+   "title": "Proration v2 test, written red first",
+   "file": "tests/test_proration_v2.py",
+   "command": "pytest tests/test_proration_v2.py",
+   "sessions": [
+    27
+   ],
+   "turnsPerOccurrence": 0,
+   "minutesPerOccurrence": 0,
+   "failure": "A planned failing test before the feature exists.",
+   "fix": null,
+   "lessonId": "les-23"
+  },
+  {
+   "id": 24,
+   "kind": "tdd",
+   "title": "Dunning schedule test, written red first",
+   "file": "tests/test_dunning.py",
+   "command": "pytest tests/test_dunning.py",
+   "sessions": [
+    33
+   ],
+   "turnsPerOccurrence": 0,
+   "minutesPerOccurrence": 0,
+   "failure": "A planned failing test before the feature exists.",
+   "fix": null,
+   "lessonId": "les-24"
+  },
+  {
+   "id": 25,
+   "kind": "tdd",
+   "title": "Refund limits test, written red first",
+   "file": "tests/test_refund_limits.py",
+   "command": "pytest tests/test_refund_limits.py",
+   "sessions": [
+    36
+   ],
+   "turnsPerOccurrence": 0,
+   "minutesPerOccurrence": 0,
+   "failure": "A planned failing test before the feature exists.",
+   "fix": null,
+   "lessonId": "les-25"
+  }
+ ],
+ "lessons": [
+  {
+   "id": "les-01",
+   "painPointId": 1,
+   "confirmed": true,
+   "note": "Last time `pytest tests/test_invoice.py` failed with a total of 10.010000000000002 instead of 10.01. It was fixed by summing integer cents and rounding once at the end.",
+   "exampleContext": "Money must stay integer cents, round half-up.",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-02",
+   "painPointId": 2,
+   "confirmed": true,
+   "note": "Last time `pytest tests/test_periods.py` failed comparing offset-naive and offset-aware datetimes. It was fixed by giving period boundaries an explicit UTC timezone.",
+   "exampleContext": "All billing timestamps are UTC and timezone-aware.",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-03",
+   "painPointId": 3,
+   "confirmed": true,
+   "note": "Last time `pytest tests/test_webhooks.py::test_invoice_paid` failed on a signature mismatch. Re-running did not help; it was fixed by freezing the clock used for the signature.",
+   "exampleContext": "A retry is not a fix here. Freeze time instead.",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-04",
+   "painPointId": 4,
+   "confirmed": true,
+   "note": "Last time `alembic upgrade head` stopped because invoice_lines already existed. It was fixed by checking `alembic current` and stamping the revision.",
+   "exampleContext": "Never drop tables in dev to rerun a migration.",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-05",
+   "painPointId": 5,
+   "confirmed": true,
+   "note": "Last time `pytest -q` failed because money_to_cents no longer lives in billing.utils. It moved to billing.money.",
+   "exampleContext": "Money helpers live in billing.money only.",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-06",
+   "painPointId": 6,
+   "confirmed": false,
+   "note": "Last time `ruff check src` flagged long lines in the tax table. Wrapping it in parentheses fixed it.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-07",
+   "painPointId": 7,
+   "confirmed": false,
+   "note": "Last time `docker compose up db` failed because port 5432 was taken. Running `docker compose down` first fixed it.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-08",
+   "painPointId": 8,
+   "confirmed": false,
+   "note": "Last time `mypy src/billing` flagged a missing return in proration for the no-days case. Returning a Decimal zero fixed it.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-09",
+   "painPointId": 9,
+   "confirmed": true,
+   "note": "Proration has been rewritten three times because the day-count convention kept flipping. The billing spec uses actual/365.",
+   "exampleContext": "Proration uses actual/365, per the billing spec.",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-10",
+   "painPointId": 10,
+   "confirmed": false,
+   "note": "Rounding in invoice.py has moved between per line and per invoice before. Round once, at the invoice level.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-11",
+   "painPointId": 11,
+   "confirmed": false,
+   "note": "Tax rounding in tax.py has been changed back and forth. Tax rounds per line, half-up.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-12",
+   "painPointId": 12,
+   "confirmed": false,
+   "note": "Refund validation was first added in the route and later moved. It belongs in the service layer.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-13",
+   "painPointId": 13,
+   "confirmed": false,
+   "note": "The currency table was edited twice for JPY. Zero-decimal currencies use exponent 0.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-14",
+   "painPointId": 14,
+   "confirmed": true,
+   "note": "You have corrected this before: money is stored as integer cents, never as floats.",
+   "exampleContext": "Money must stay integer cents, round half-up.",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-15",
+   "painPointId": 15,
+   "confirmed": false,
+   "note": "You have corrected this before: billing tests use the real test database, not a mock.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-16",
+   "painPointId": 16,
+   "confirmed": false,
+   "note": "You have corrected this before: use the existing get_session helper.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-17",
+   "painPointId": 17,
+   "confirmed": false,
+   "note": "You asked that new dependencies be agreed first.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-18",
+   "painPointId": 18,
+   "confirmed": false,
+   "note": "You have corrected this before: commit messages start with the ticket id, like BILL-123.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-19",
+   "painPointId": 19,
+   "confirmed": false,
+   "note": "Last time `pytest tests/test_webhooks.py` was re-run six times with no change. Freeze the clock instead of retrying.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-20",
+   "painPointId": 20,
+   "confirmed": false,
+   "note": "Last time a long search for the Stripe key found nothing. It comes from STRIPE_API_KEY in the environment.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-21",
+   "painPointId": 21,
+   "confirmed": false,
+   "note": "Last time the agent switched between half-up and bankers rounding in a loop. Pick half-up and write the test first.",
+   "exampleContext": "",
+   "context": "",
+   "intentional": false,
+   "priority": "normal"
+  },
+  {
+   "id": "les-22",
+   "painPointId": 22,
+   "confirmed": false,
+   "note": "",
+   "exampleContext": "",
+   "context": "",
+   "intentional": true,
+   "priority": "normal"
+  },
+  {
+   "id": "les-23",
+   "painPointId": 23,
+   "confirmed": false,
+   "note": "",
+   "exampleContext": "",
+   "context": "",
+   "intentional": true,
+   "priority": "normal"
+  },
+  {
+   "id": "les-24",
+   "painPointId": 24,
+   "confirmed": false,
+   "note": "",
+   "exampleContext": "",
+   "context": "",
+   "intentional": true,
+   "priority": "normal"
+  },
+  {
+   "id": "les-25",
+   "painPointId": 25,
+   "confirmed": false,
+   "note": "",
+   "exampleContext": "",
+   "context": "",
+   "intentional": true,
+   "priority": "normal"
+  }
+ ],
+ "replay": {
+  "windowStartDay": 30,
+  "items": [
+   {
+    "painPointId": 10,
+    "sessionIndex": 20,
+    "day": 30,
+    "turnsSaved": 3,
+    "minutesSaved": 5
+   },
+   {
+    "painPointId": 5,
+    "sessionIndex": 21,
+    "day": 31,
+    "turnsSaved": 1,
+    "minutesSaved": 2
+   },
+   {
+    "painPointId": 3,
+    "sessionIndex": 22,
+    "day": 33,
+    "turnsSaved": 4,
+    "minutesSaved": 6
+   },
+   {
+    "painPointId": 6,
+    "sessionIndex": 23,
+    "day": 34,
+    "turnsSaved": 1,
+    "minutesSaved": 1
+   },
+   {
+    "painPointId": 2,
+    "sessionIndex": 24,
+    "day": 36,
+    "turnsSaved": 3,
+    "minutesSaved": 5
+   },
+   {
+    "painPointId": 20,
+    "sessionIndex": 24,
+    "day": 36,
+    "turnsSaved": 3,
+    "minutesSaved": 4
+   },
+   {
+    "painPointId": 7,
+    "sessionIndex": 25,
+    "day": 37,
+    "turnsSaved": 1,
+    "minutesSaved": 2
+   },
+   {
+    "painPointId": 1,
+    "sessionIndex": 26,
+    "day": 39,
+    "turnsSaved": 5,
+    "minutesSaved": 6
+   },
+   {
+    "painPointId": 13,
+    "sessionIndex": 26,
+    "day": 39,
+    "turnsSaved": 1,
+    "minutesSaved": 2
+   },
+   {
+    "painPointId": 4,
+    "sessionIndex": 27,
+    "day": 40,
+    "turnsSaved": 2,
+    "minutesSaved": 3
+   },
+   {
+    "painPointId": 14,
+    "sessionIndex": 27,
+    "day": 40,
+    "turnsSaved": 2,
+    "minutesSaved": 3
+   },
+   {
+    "painPointId": 9,
+    "sessionIndex": 28,
+    "day": 42,
+    "turnsSaved": 6,
+    "minutesSaved": 10
+   },
+   {
+    "painPointId": 3,
+    "sessionIndex": 29,
+    "day": 43,
+    "turnsSaved": 4,
+    "minutesSaved": 6
+   },
+   {
+    "painPointId": 16,
+    "sessionIndex": 29,
+    "day": 43,
+    "turnsSaved": 1,
+    "minutesSaved": 2
+   },
+   {
+    "painPointId": 19,
+    "sessionIndex": 29,
+    "day": 43,
+    "turnsSaved": 5,
+    "minutesSaved": 7
+   },
+   {
+    "painPointId": 5,
+    "sessionIndex": 30,
+    "day": 45,
+    "turnsSaved": 1,
+    "minutesSaved": 2
+   },
+   {
+    "painPointId": 2,
+    "sessionIndex": 31,
+    "day": 46,
+    "turnsSaved": 3,
+    "minutesSaved": 5
+   },
+   {
+    "painPointId": 11,
+    "sessionIndex": 31,
+    "day": 46,
+    "turnsSaved": 2,
+    "minutesSaved": 4
+   },
+   {
+    "painPointId": 10,
+    "sessionIndex": 32,
+    "day": 48,
+    "turnsSaved": 3,
+    "minutesSaved": 5
+   },
+   {
+    "painPointId": 1,
+    "sessionIndex": 33,
+    "day": 49,
+    "turnsSaved": 5,
+    "minutesSaved": 6
+   },
+   {
+    "painPointId": 18,
+    "sessionIndex": 33,
+    "day": 49,
+    "turnsSaved": 1,
+    "minutesSaved": 1
+   },
+   {
+    "painPointId": 8,
+    "sessionIndex": 34,
+    "day": 51,
+    "turnsSaved": 1,
+    "minutesSaved": 2
+   },
+   {
+    "painPointId": 15,
+    "sessionIndex": 34,
+    "day": 51,
+    "turnsSaved": 2,
+    "minutesSaved": 3
+   },
+   {
+    "painPointId": 4,
+    "sessionIndex": 35,
+    "day": 52,
+    "turnsSaved": 2,
+    "minutesSaved": 3
+   },
+   {
+    "painPointId": 3,
+    "sessionIndex": 36,
+    "day": 54,
+    "turnsSaved": 4,
+    "minutesSaved": 6
+   },
+   {
+    "painPointId": 12,
+    "sessionIndex": 36,
+    "day": 54,
+    "turnsSaved": 2,
+    "minutesSaved": 3
+   },
+   {
+    "painPointId": 9,
+    "sessionIndex": 37,
+    "day": 55,
+    "turnsSaved": 6,
+    "minutesSaved": 10
+   },
+   {
+    "painPointId": 21,
+    "sessionIndex": 37,
+    "day": 55,
+    "turnsSaved": 4,
+    "minutesSaved": 6
+   },
+   {
+    "painPointId": 2,
+    "sessionIndex": 38,
+    "day": 57,
+    "turnsSaved": 3,
+    "minutesSaved": 5
+   }
+  ]
+ },
+ "proof": [
+  {
+   "id": "wrong-notes",
+   "tag": "measured",
+   "big": "0",
+   "unit": "wrong notes in 501 shown",
+   "claim": "Every note it showed was one the agent needed.",
+   "source": "Agree rule, 251 repeats in 89 unseen repos. Each dot is one note shown.",
+   "footer": [
+    "0 wrong notes",
+    " in 501 shown"
+   ],
+   "chart": {
+    "shown": 501,
+    "wrong": 0
+   }
+  },
+  {
+   "id": "nightly-training",
+   "tag": "measured",
+   "big": "61%",
+   "unit": "vs 0%",
+   "claim": "of repeats caught after nightly training, against none without it.",
+   "source": "Code-fix study, 924 items, 97.8% precision.",
+   "footer": [
+    "61%",
+    " of repeats caught vs 0%"
+   ],
+   "chart": {
+    "withTraining": 61,
+    "without": 0
+   }
+  },
+  {
+   "id": "spark-rule",
+   "tag": "measured",
+   "big": "+0.16",
+   "unit": "[0.11, 0.22]",
+   "claim": "A rule Spark wrote from its own failures made it better, and held on new cases.",
+   "source": "Replicated on 240 fresh cases.",
+   "footer": [
+    "+0.16",
+    " [0.11, 0.22], replicated on 240 fresh cases"
+   ],
+   "chart": {
+    "estimate": 0.16,
+    "low": 0.11,
+    "high": 0.22
+   }
+  }
+ ]
+}
+</script>
+<script>
+"use strict";
+/* ===== Synthetic demo data (fictional repo acme/billing-service). Hand-written. ===== */
+const KINDS={
+  repeat:{label:"Repeated failure",color:"#f45454"},
+  rework:{label:"File reworked",color:"#ff8c40"},
+  correction:{label:"You corrected the agent",color:"#5cc8ff"},
+  loop:{label:"Stuck in a loop",color:"#e879c8"},
+  tdd:{label:"Planned red test",color:"#8c94ac"}
+};
+const DATA=window.SYMBIONT_DATA||JSON.parse(document.getElementById("symbiont-data").textContent);
+
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const N=DATA.sessions.length;
+const dayOf=i=>DATA.sessions[i].day;
+const dateOf=d=>{const x=new Date(DATA.sessions[0].date+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+d);return MONTHS[x.getUTCMonth()]+" "+x.getUTCDate();};
+const WINDOW_START=DATA.replay.windowStartDay;
+const LAST_DAY=Math.round((new Date(DATA.repo.today)-new Date(DATA.sessions[0].date))/864e5);
+const isMistake=p=>p.kind!=="tdd";
+const cost=p=>isMistake(p)?p.turns*p.s.length:0;
+const minutes=p=>isMistake(p)?p.min*p.s.length:0;
+const detectAt=p=>p.s[Math.min(1,p.s.length-1)];
+const LESSON=Object.fromEntries(DATA.lessons.map(l=>[l.id,l]));
+/* internal view of a pain point: the schema joined with its lesson */
+const P=DATA.painPoints.map(d=>{const l=LESSON[d.lessonId];return {id:d.id,kind:d.kind,title:d.title,file:d.file,cmd:d.command||"",s:d.sessions,turns:d.turnsPerOccurrence,min:d.minutesPerOccurrence,what:d.failure,fix:d.fix||"",note:l.note,ex:l.exampleContext,lesson:l.confirmed,lessonId:l.id};});
+const byId=id=>P.find(p=>p.id===id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $=id=>document.getElementById(id);
+const totals={turns:P.reduce((a,p)=>a+cost(p),0),mins:P.reduce((a,p)=>a+minutes(p),0),mistakes:P.filter(isMistake).length,tdd:P.filter(p=>!isMistake(p)).length,lessons:P.filter(p=>p.lesson).length};
+
+/* ===== User edits. ST is the local copy; saveContext is the ONE place a user action leaves the UI. =====
+   Hosted demo: edits stay in this page's memory; the installed product posts them to its own localhost service instead.
+   payload keys (any subset): context:string, intentional:boolean, priority:"low"|"normal"|"high". */
+const ST={};DATA.painPoints.forEach(d=>{const l=LESSON[d.lessonId];ST[d.id]={ctx:l.context,intent:l.intentional,prio:l.priority,saved:false};});
+function saveContext(lessonId,payload){
+  const l=LESSON[lessonId];if(!l)throw new Error("Unknown lesson "+lessonId);
+  const st=ST[l.painPointId];
+  if("context" in payload){st.ctx=payload.context;st.saved=true;}
+  if("intentional" in payload)st.intent=payload.intentional;
+  if("priority" in payload)st.prio=payload.priority;
+  return Promise.resolve({lessonId,saved:true});
+}
+const saveFor=(p,payload)=>saveContext(p.lessonId,payload);
+
+/* note prose: sentences only, never scores or thresholds (project rule 2) */
+function fmt(s){return s.split("`").map((x,i)=>i%2?'<span class="cmd">'+esc(x)+"</span>":esc(x)).join("");}
+function noteHTML(p,reveal){
+  const st=ST[p.id];
+  if(st.intent||!p.note)return null;
+  const lead=st.prio==="high"?"Worth checking before you go on. ":"";
+  const base=(lead+p.note).slice(0,reveal==null?1e9:reveal);
+  const done=reveal==null||reveal>=(lead+p.note).length;
+  const user=done&&st.ctx.trim()?' <span class="user">Your rule for this repo: '+esc(st.ctx.trim())+"</span>":"";
+  return '<span class="tag">[symbiont]</span> '+fmt(base)+user;
+}
+
+/* ===== tooltip (delegated, any [data-tip]) ===== */
+const tip=$("tip");
+document.addEventListener("mousemove",e=>{
+  const t=e.target.closest&&e.target.closest("[data-tip]");
+  if(!t){tip.style.display="none";return;}
+  tip.innerHTML=t.dataset.tip;tip.style.display="block";
+  tip.style.left=Math.min(e.clientX+16,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=Math.min(e.clientY+16,innerHeight-tip.offsetHeight-8)+"px";
+});
+
+/* ===== flow control ===== */
+let token=0;const CANCEL=Symbol("cancel");
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+async function pause(t,ms){await wait(ms);if(t!==token)throw CANCEL;}
+const STAGES=["Mine","Pain points","Add context","30-day replay","Proof"];
+let cur=-1,mined=false;
+function go(n){
+  cur=n;
+  document.querySelectorAll(".stage").forEach((s,i)=>s.classList.toggle("on",i===n));
+  [...$("nav").children].forEach((b,i)=>{b.setAttribute("aria-current",i===n);b.classList.toggle("done",i<n);});
+  if(n===0&&!mined)resetMining();
+  if(n===0&&mined)finishMiningUI();
+  if(n===3&&!replayRunning)renderReplay(1e9);
+  if(n===4)playProof();
+}
+const nav=$("nav");
+STAGES.forEach((s,i)=>{const b=document.createElement("button");b.innerHTML="<b>"+(i+1)+"</b>"+s;b.onclick=()=>{token++;setDemo(false);go(i);};nav.appendChild(b);});
+function caption(txt){$("caption").textContent=txt;}
+function setDemo(on){document.body.classList.toggle("demo",on);if(!on)caption("");}
+
+/* ===== stage 0: live mining ===== */
+function tween(el,to,ms){const from=+el.dataset.v||0;el.dataset.v=to;const t0=performance.now();(function f(t){const k=Math.min(1,(t-t0)/(ms||350));el.textContent=Math.round(from+(to-from)*k);if(k<1)requestAnimationFrame(f);})(t0);}
+const sg=$("sgrid");for(let i=0;i<N;i++){const c=document.createElement("i");sg.appendChild(c);}
+const occAt=i=>P.flatMap(p=>p.s.includes(i)?[p]:[]);
+function countsAt(i){
+  let fail=0,fix=0;
+  P.forEach(p=>p.s.forEach(s=>{if(s<=i){if(p.kind==="repeat"||p.kind==="loop"||p.kind==="tdd")fail++;if((p.kind==="repeat"||p.kind==="loop")&&p.fix)fix++;}}));
+  const les=P.filter(p=>p.lesson&&p.s.filter(s=>s<=i).length>=2).length;
+  return {fail,fix,les};
+}
+function resetMining(){
+  ["c0","c1","c2","c3"].forEach(id=>{$(id).textContent="0";$(id).dataset.v=0;});
+  $("feed").innerHTML="";$("bar").style.width="0";$("status").textContent="";
+  [...sg.children].forEach(c=>c.className="");
+  $("h1").textContent="Turn symbiont on and it reads your past sessions.";
+  $("lede").textContent="Everything stays on this machine. Nothing is uploaded.";
+  $("startBtn").style.display="";$("startBtn").textContent="Turn on symbiont";$("startBtn").className="cta";
+}
+function feedItem(p){
+  const li=document.createElement("li");li.className="fi";li.id="fi"+p.id;li.style.setProperty("--k",KINDS[p.kind].color);
+  li.innerHTML='<span class="k">'+KINDS[p.kind].label+'</span><span class="t">'+esc(p.title)+'</span><span class="f">'+esc(p.file)+'</span><span class="n"><span class="cnt">1</span><small>sessions</small></span>';
+  $("feed").prepend(li);
+  while($("feed").children.length>9)$("feed").lastChild.remove();
+}
+function mineStep(i){
+  const cells=sg.children;
+  [...cells].forEach(c=>c.classList.remove("cur"));
+  cells[i].className="read cur";
+  const here=occAt(i).filter(isMistake);
+  if(here.length){cells[i].style.background="";cells[i].style.setProperty("background",KINDS[here[0].kind].color);}
+  const c=countsAt(i);
+  tween($("c0"),i+1);tween($("c1"),c.fail);tween($("c2"),c.fix);tween($("c3"),c.les);
+  $("bar").style.width=((i+1)/N*100)+"%";
+  const ev=occAt(i)[0];
+  $("status").textContent="session "+(i+1)+" of "+N+" · "+dateOf(dayOf(i))+(ev?" · "+(ev.cmd||ev.file)+(ev.kind==="tdd"?" (planned red)":""):" · nothing to learn");
+  P.forEach(p=>{
+    if(detectAt(p)===i&&isMistake(p)&&p.s.length>1)feedItem(p);
+    const el=$("fi"+p.id);if(el)el.querySelector(".cnt").textContent=p.s.filter(s=>s<=i).length;
+  });
+}
+function finishMiningUI(){
+  $("h1").textContent="Found "+P.length+" pain points in "+N+" sessions.";
+  $("lede").textContent=totals.mistakes+" are mistakes. "+totals.tdd+" are planned red tests, so symbiont leaves them alone.";
+  $("startBtn").style.display="";$("startBtn").textContent="See what went wrong";$("startBtn").className="cta";
+  $("status").textContent="done · "+totals.lessons+" lessons ready to use";
+}
+async function mine(t,ms){
+  resetMining();mined=false;$("startBtn").style.display="none";
+  $("h1").textContent="Reading "+N+" sessions of "+DATA.repo.name;
+  $("lede").textContent="Looking for the same failure twice, files reworked, corrections and loops.";
+  for(let i=0;i<N;i++){mineStep(i);await pause(t,ms/N);}
+  [...sg.children].forEach(c=>c.classList.remove("cur"));
+  mined=true;await pause(t,500);
+  tween($("c3"),totals.lessons);finishMiningUI();
+}
+$("startBtn").onclick=async()=>{
+  if(mined){go(1);return;}
+  const t=++token;try{await mine(t,13000);}catch(e){if(e!==CANCEL)throw e;}
+};
+
+/* ===== stage 1: pain-point dashboard ===== */
+function renderDashboard(){
+  const hrs=(totals.mins/60).toFixed(1);
+  $("kpis").innerHTML=[
+   [P.length,"pain points found",'<span>'+totals.mistakes+' mistakes, '+totals.tdd+' planned</span>',"var(--tx)"],
+   [totals.turns,"agent turns lost",'<span>to the same trouble recurring</span>',"var(--rd)"],
+   ["~"+hrs+" h","of working time lost",'<span>across '+N+' sessions, estimated</span>',"var(--or)"],
+   [totals.lessons,"lessons ready",'<span>a fix is known for each</span>',"var(--vi)"]
+  ].map(k=>'<div class="panel kpi"><div class="num" style="color:'+k[3]+'">'+k[0]+'</div><div class="lbl">'+k[1]+" "+k[2]+"</div></div>").join("");
+  // by kind
+  const kinds=["repeat","rework","correction","loop"];
+  const sum=k=>P.filter(p=>p.kind===k).reduce((a,p)=>a+cost(p),0);
+  const mx=Math.max(...kinds.map(sum));
+  let h=kinds.map(k=>{const n=P.filter(p=>p.kind===k).length;
+    return '<div class="kb" style="--k:'+KINDS[k].color+'" data-tip="'+KINDS[k].label+": "+n+" pain points, "+sum(k)+' turns lost"><div class="nm">'+KINDS[k].label+"<small>"+n+' points</small></div><div class="v">'+sum(k)+"<small>turns</small></div><div class=\"tr\"><i data-w=\""+(sum(k)/mx*100)+'"></i></div></div>';}).join("");
+  h+='<div class="kdiv">Not mistakes</div><div class="kb tdd" style="--k:#8c94ac" data-tip="Tests written red on purpose. symbiont never warns about these."><div class="nm">Planned red tests<small>'+totals.tdd+' points</small></div><div class="v">0<small>turns</small></div><div class="tr"><i data-w="100"></i></div></div>';
+  $("kbars").innerHTML=h;
+  // treemap
+  const files={};P.filter(isMistake).forEach(p=>{files[p.file]=(files[p.file]||0)+cost(p);});
+  const items=Object.entries(files).map(([f,v])=>({f,v})).sort((a,b)=>b.v-a.v);
+  const lay=squarify(items.map(x=>({...x})),0,0,700,360);const vmax=items[0].v;
+  $("tm").innerHTML=lay.map(r=>{
+    const k=r.v/vmax, col=mix("#4a3470","#ff8c40",Math.pow(k,.7)), dark=k>.45;
+    const base=r.f.split("/").pop(), dir=r.f.slice(0,r.f.length-base.length);
+    const fs=r.w>200?22:r.w>120?18:13, big=r.w>150&&r.h>80, cap=Math.floor((r.w-16)/(fs*0.62));
+    const lbl=base.length>cap?base.slice(0,Math.max(0,cap-1))+"…":base, ink=dark?"#1a1020":"#ecf0f8";
+    const top=P.filter(p=>p.file===r.f&&isMistake(p)).sort((a,b)=>cost(b)-cost(a))[0];
+    return '<g tabindex="0" data-pick="'+top.id+'" data-tip="'+esc(r.f)+": "+r.v+' turns lost"><rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.h+'" rx="6" fill="'+col+'"/>'
+      +(cap>=5&&r.h>fs+14?'<text x="'+(r.x+9)+'" y="'+(r.y+fs+5)+'" font-family="ui-monospace,Menlo,monospace" font-size="'+fs+'" font-weight="700" fill="'+ink+'">'+esc(lbl)+"</text>":"")
+      +(big?'<text x="'+(r.x+9)+'" y="'+(r.y+fs+5+26)+'" font-size="22" font-weight="700" fill="'+ink+'">'+r.v+' turns</text>':"")+"</g>";}).join("");
+  $("tm").querySelectorAll("g").forEach(g=>{g.onclick=()=>{token++;setDemo(false);openPain(+g.dataset.pick);};g.onkeydown=e=>{if(e.key==="Enter")g.onclick();};});
+  // lessons
+  const les=P.filter(p=>p.lesson).sort((a,b)=>cost(b)-cost(a)).slice(0,3);
+  $("les").innerHTML=les.map(p=>'<li><button data-pick="'+p.id+'"><span class="t">'+esc(short(p.title))+'</span><span class="big">'+cost(p)+"<small>turns</small></span><span class=\"m\">"+p.s.length+" sessions, about "+p.turns+" turns each time</span></button></li>").join("");
+  $("les").querySelectorAll("button").forEach(b=>b.onclick=()=>{token++;setDemo(false);openPain(+b.dataset.pick);});
+  renderTimeline(P.filter(isMistake).filter(p=>p.s.length>=3).sort((a,b)=>cost(b)-cost(a)).slice(0,5));
+}
+function mix(a,b,k){const h=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));const A=h(a),B=h(b);return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*k).toString(16).padStart(2,"0")).join("");}
+function squarify(items,x,y,w,h){
+  const total=items.reduce((a,b)=>a+b.v,0),sc=w*h/total;items.forEach(i=>i.a=i.v*sc);
+  const out=[];let rect={x,y,w,h},row=[];
+  const sumA=r=>r.reduce((a,b)=>a+b.a,0);
+  const worst=(r,s)=>{const t=sumA(r);return Math.max(s*s*Math.max(...r.map(q=>q.a))/(t*t),t*t/(s*s*Math.min(...r.map(q=>q.a))));};
+  const place=r=>{const t=sumA(r);
+    if(rect.w>=rect.h){const rw=t/rect.h;let yy=rect.y;r.forEach(q=>{const hh=q.a/rw;out.push({...q,x:rect.x,y:yy,w:rw,h:hh});yy+=hh;});rect={x:rect.x+rw,y:rect.y,w:rect.w-rw,h:rect.h};}
+    else{const rh=t/rect.w;let xx=rect.x;r.forEach(q=>{const ww=q.a/rh;out.push({...q,x:xx,y:rect.y,w:ww,h:rh});xx+=ww;});rect={x:rect.x,y:rect.y+rh,w:rect.w,h:rect.h-rh};}};
+  for(const it of items){const s=Math.min(rect.w,rect.h);if(row.length&&worst(row.concat(it),s)>worst(row,s)){place(row);row=[];}row.push(it);}
+  if(row.length)place(row);return out;
+}
+function renderTimeline(rows){
+  const X0=520,X1=1740,xs=i=>X0+i/(N-1)*(X1-X0),RH=40,Y0=34;
+  let s='';
+  s+='<line x1="'+xs(WIN_I-.5)+'" x2="'+xs(WIN_I-.5)+'" y1="8" y2="'+(Y0+RH*rows.length)+'" stroke="#b28cff" stroke-dasharray="6 6" stroke-width="2"/><text x="'+(xs(WIN_I-.5)+10)+'" y="18" font-size="17" fill="#b28cff">last 30 days</text>';
+  rows.forEach((p,r)=>{
+    const y=Y0+r*RH+RH/2,c=KINDS[p.kind].color;
+    s+='<text x="'+(X0-26)+'" y="'+(y+6)+'" text-anchor="end" font-size="19" fill="#ecf0f8" font-weight="600">'+esc(short(p.title))+'</text>';
+    s+='<line x1="'+X0+'" x2="'+X1+'" y1="'+y+'" y2="'+y+'" stroke="rgba(236,240,248,.1)" stroke-width="2"/>';
+    s+='<line x1="'+xs(p.s[0])+'" x2="'+xs(p.s[p.s.length-1])+'" y1="'+y+'" y2="'+y+'" stroke="'+c+'" stroke-opacity=".55" stroke-width="2"/>';
+    p.s.forEach((i,k)=>{s+='<circle cx="'+xs(i)+'" cy="'+y+'" r="10" fill="'+c+'" stroke="#16112a" stroke-width="2" tabindex="0" data-tip="'+esc(p.title)+"<br>"+dateOf(dayOf(i))+", time "+(k+1)+" of "+p.s.length+", "+p.turns+' turns lost"/>';});
+  });
+  const ay=Y0+RH*rows.length+22;
+  for(let i=0;i<N;i+=5)s+='<text x="'+xs(i)+'" y="'+ay+'" text-anchor="middle" font-size="16" fill="#8c94ac">'+dateOf(dayOf(i))+"</text>";
+  $("tlsvg").innerHTML=s;
+}
+const WIN_I=DATA.sessions.findIndex(s=>s.day>=WINDOW_START);
+const short=t=>t.length>46?t.slice(0,44)+"…":t;
+function growBars(){requestAnimationFrame(()=>document.querySelectorAll("#kbars i").forEach(i=>i.style.width=i.dataset.w+"%"));}
+function resetBars(){document.querySelectorAll("#kbars i").forEach(i=>i.style.width="0");}
+
+/* ===== stage 2: add context ===== */
+let sel=1,reveal=null,revealTimer=0;
+function renderList(){
+  let h="";
+  Object.keys(KINDS).forEach(k=>{
+    const ps=P.filter(p=>p.kind===k).sort((a,b)=>cost(b)-cost(a));
+    h+='<h3>'+KINDS[k].label+(k==="tdd"?" (not mistakes)":"")+"</h3>";
+    ps.forEach(p=>{const st=ST[p.id];
+      h+='<button role="option" aria-selected="'+(p.id===sel)+'" data-id="'+p.id+'" style="--k:'+KINDS[k].color+'"><i></i><span class="t'+(st.intent&&k!=="tdd"?" q":"")+'">'+esc(short(p.title))+'</span><span class="c">'+(st.saved?"✓ ":"")+"×"+p.s.length+"</span></button>";});
+  });
+  const L=$("plist"),keep=L.scrollTop;L.innerHTML=h;L.scrollTop=keep;
+  L.querySelectorAll("button").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
+}
+function openPain(id){go(2);selectPain(id);const b=$("plist").querySelector('[data-id="'+id+'"]');if(b)b.scrollIntoView({block:"center"});}
+function selectPain(id){
+  sel=id;const p=byId(id),st=ST[id];
+  renderList();
+  $("edit").style.setProperty("--k",KINDS[p.kind].color);
+  $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span><span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
+   +"<h2>"+esc(p.title)+"</h2>"
+   +'<div class="occ" aria-label="Sessions where it happened">'+p.s.map(i=>'<i style="background:'+KINDS[p.kind].color+'" data-tip="'+dateOf(dayOf(i))+'"></i>').join("")+'<span class="mu">'+p.s.map(i=>dateOf(dayOf(i))).slice(-3).join(", ")+(p.s.length>3?" and earlier":"")+"</span></div>"
+   +"<p><span class=\"mu\">What happened.</span> "+fmt(p.what)+"</p>"+(p.fix?"<p><b>How it was fixed.</b> "+fmt(p.fix)+"</p>":"")
+   +'<div><label class="h" for="ctx">Add context in your own words</label><textarea id="ctx" placeholder="Tell the agent what it cannot see in the code." aria-label="Context for the agent">'+esc(st.ctx)+'</textarea>'
+   +(p.ex?'<div class="ex"><button id="exb">Use: “'+esc(p.ex)+'”</button></div>':"")+"</div>"
+   +'<div class="ctl"><button class="sw" id="sw" aria-pressed="'+st.intent+'"><i></i>Intentional, not a mistake</button>'
+   +'<div class="seg" role="group" aria-label="Priority">'+["low","normal","high"].map(x=>'<button data-p="'+x+'" aria-pressed="'+(st.prio===x)+'">'+x[0].toUpperCase()+x.slice(1)+" priority</button>").join("")+'</div><button class="save" id="save">Save context</button></div>';
+  $("ctx").oninput=e=>{st.ctx=e.target.value;st.saved=false;renderNote();};
+  if($("exb"))$("exb").onclick=()=>{st.ctx=p.ex;$("ctx").value=p.ex;renderNote();};
+  $("sw").onclick=()=>setIntent(!st.intent);
+  $("edit").querySelectorAll(".seg button").forEach(b=>b.onclick=()=>setPrio(b.dataset.p));
+  $("save").onclick=save;
+  startReveal();
+}
+function setIntent(v){saveFor(byId(sel),{intentional:v});$("sw").setAttribute("aria-pressed",v);renderNote();renderList();}
+function setPrio(x){saveFor(byId(sel),{priority:x});$("edit").querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===x));renderNote();}
+function save(){saveFor(byId(sel),{context:ST[sel].ctx,intentional:ST[sel].intent,priority:ST[sel].prio});renderList();const t=$("toast");t.classList.add("on");setTimeout(()=>t.classList.remove("on"),2200);}
+function startReveal(){
+  clearInterval(revealTimer);const p=byId(sel);const total=(ST[sel].prio==="high"?39:0)+p.note.length;reveal=0;
+  revealTimer=setInterval(()=>{reveal+=4;if(reveal>=total){reveal=null;clearInterval(revealTimer);}renderNote();},22);
+  renderNote();
+}
+function renderNote(){
+  const p=byId(sel),st=ST[sel],box=$("note");
+  $("run").innerHTML=p.cmd?'<span class="cmd">'+esc(p.cmd)+"</span>":'<span class="mu">'+esc(trigger(p))+"</span>";
+  const h=noteHTML(p,reveal);
+  if(h===null){box.className="notebox quiet";box.innerHTML=st.intent?"Nothing will be shown. symbiont stays quiet about this one.":"No note for this one yet.";
+    $("cap").innerHTML="Marked <b>intentional</b>, so the agent is never interrupted for it.";return;}
+  box.className="notebox";
+  box.innerHTML=h+(reveal!=null||document.activeElement===$("ctx")?'<span class="caret"></span>':"")+(st.ctx.trim()?"":'<div class="mu" style="margin-top:.8rem;font-size:1rem">Your context appears here as you type.</div>');
+  $("cap").innerHTML=({high:"<b>Shown first</b>, right before the agent repeats this.",normal:"Shown <b>right before</b> the agent repeats this.",low:"Shown <b>only if</b> the agent has already tried once."})[st.prio]+" Plain sentences, nothing else.";
+}
+function trigger(p){return p.kind==="rework"?"before editing "+p.file.split("/").pop()+" again":p.kind==="correction"?"before the agent picks an approach":"before the next retry";}
+
+/* ===== stage 3: 30-day replay ===== */
+const EVENTS=DATA.replay.items.map(r=>{const p=byId(r.painPointId);return {p,k:p.s.indexOf(r.sessionIndex),day:r.day,saved:r.turnsSaved,mins:r.minutesSaved};});
+const RX=d=>40+(d-WINDOW_START)/(LAST_DAY-WINDOW_START)*1720;
+let replayRunning=false;
+function drawStrip(upto){
+  let s='<line x1="40" x2="1760" y1="130" y2="130" stroke="rgba(236,240,248,.2)" stroke-width="2"/>';
+  for(let d=WINDOW_START;d<=LAST_DAY;d+=5)s+='<text x="'+RX(d)+'" y="172" text-anchor="middle" font-size="17" fill="#8c94ac">'+dateOf(d)+"</text>";
+  const slot={};
+  EVENTS.forEach((e,i)=>{slot[e.day]=(slot[e.day]||0);const y=112-slot[e.day]*26;slot[e.day]++;
+    if(i<upto)s+='<circle cx="'+RX(e.day)+'" cy="'+y+'" r="11" fill="#b28cff" stroke="#16112a" stroke-width="2" data-tip="'+dateOf(e.day)+": "+esc(e.p.title)+'"/>';});
+  if(upto<EVENTS.length&&upto>0){const d=EVENTS[upto-1].day;s+='<line x1="'+RX(d)+'" x2="'+RX(d)+'" y1="10" y2="136" stroke="#ff8c40" stroke-width="3"/>';}
+  $("rsvg").innerHTML=s;
+}
+function showEvent(i){
+  const e=EVENTS[i];if(!e){$("fire").innerHTML='<h2>The note that would have fired</h2><p class="sub">Press Replay, or pick a dot.</p>';return;}
+  const p=e.p;
+  $("fire").innerHTML='<h2>'+esc(p.title)+'</h2><div class="when">'+dateOf(e.day)+" · it would have spoken "+esc(trigger(p))+"</div>"
+   +(p.cmd?'<div class="run" style="margin-bottom:.7rem"><span class="cmd">'+esc(p.cmd)+"</span></div>":"")
+   +'<div class="notebox">'+(noteHTML(p,null)||"")+'</div><div class="sv">~'+e.saved+" turns, ~"+e.mins+' min <small>estimate</small></div>';
+}
+function tallies(n){
+  const sv=EVENTS.slice(0,n).reduce((a,e)=>a+e.saved,0),mn=EVENTS.slice(0,n).reduce((a,e)=>a+e.mins,0);
+  tween($("r0"),n);tween($("r1"),sv);$("r2").textContent=(mn/60).toFixed(1);
+}
+function listTo(n){$("evl").innerHTML=EVENTS.slice(0,n).reverse().map(e=>'<li><span class="d">'+dateOf(e.day)+'</span><span class="t">'+esc(e.p.title)+'</span><span class="s">−'+e.saved+"</span></li>").join("");}
+function renderReplay(upto){const n=Math.min(upto,EVENTS.length);drawStrip(n);tallies(n);listTo(n);showEvent(n-1);}
+async function playReplay(t,ms){
+  replayRunning=true;
+  try{
+    renderReplay(0);let prev=WINDOW_START;
+    for(let i=0;i<EVENTS.length;i++){
+      const dt=(EVENTS[i].day-prev)/(LAST_DAY-WINDOW_START)*ms*0.9+ms*0.1/EVENTS.length;prev=EVENTS[i].day;
+      await pause(t,Math.max(60,dt));renderReplay(i+1);
+    }
+  }finally{replayRunning=false;}
+}
+$("replayBtn").onclick=async()=>{const t=++token;setDemo(false);try{await playReplay(t,10000);}catch(e){if(e!==CANCEL)throw e;}};
+$("rsvg").addEventListener("click",()=>{});
+
+/* ===== stage 4: proof ===== */
+(function buildProof(){
+  const [pw,pn,ps]=DATA.proof;
+  [["pc1",pw],["pc2",pn],["pc3",ps]].forEach(([id,d])=>{const el=$(id);
+    el.querySelector(".mtag").textContent="["+d.tag+"]";
+    el.querySelector(".big").innerHTML=esc(d.big)+"<small>"+esc(d.unit)+"</small>";
+    el.querySelector("h3").textContent=d.claim;el.querySelector(".src").textContent=d.source;});
+  $("foot").innerHTML=DATA.proof.map(d=>"<span><b>["+d.tag+"]</b><span>"+esc(d.footer[0])+"</span>"+esc(d.footer[1])+"</span>").join("");
+  let d="";const w=pw.chart;
+  for(let i=0;i<w.shown;i++){const x=7+(i%33)*10,y=7+Math.floor(i/33)*9.4;d+='<circle cx="'+x+'" cy="'+y+'" r="3.2" fill="'+(i<w.wrong?"#f45454":"#54de7c")+'" class="dt" style="animation-delay:'+(i*3)+'ms"/>';}
+  $("dots").innerHTML='<style>.dt{opacity:0}#s4.play .dt{animation:dtin .3s forwards}@keyframes dtin{to{opacity:1}}</style>'+d;
+  const n=pn.chart,BW=180;
+  $("bars2").innerHTML='<style>.b61{width:0;transition:width 1.4s .9s cubic-bezier(.2,.8,.2,1)}#s4.play .b61{width:'+(n.withTraining/100*BW)+'px}</style>'
+   +'<text x="0" y="16" font-size="13" fill="#ecf0f8">With nightly training</text><rect x="0" y="22" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect class="b61" x="0" y="22" height="22" rx="4" fill="#b28cff"/><text x="'+(BW+8)+'" y="39" font-size="16" font-weight="700" fill="#ecf0f8">'+n.withTraining+'%</text>'
+   +'<text x="0" y="74" font-size="13" fill="#ecf0f8">Without it</text><rect x="0" y="80" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect x="0" y="80" width="'+Math.max(2,n.without/100*BW)+'" height="22" fill="#8c94ac"/><text x="'+(BW+8)+'" y="97" font-size="16" font-weight="700" fill="#ecf0f8">'+n.without+'%</text>';
+  const c=ps.chart,X=v=>14+v/0.3*220;
+  $("ci").innerHTML='<line x1="14" x2="234" y1="60" y2="60" stroke="rgba(236,240,248,.25)"/>'
+   +[0,0.1,0.2,0.3].map(v=>'<line x1="'+X(v)+'" x2="'+X(v)+'" y1="56" y2="64" stroke="#8c94ac"/><text x="'+X(v)+'" y="84" text-anchor="middle" font-size="12" fill="#8c94ac">'+(v===0?"0":v.toFixed(1))+"</text>").join("")
+   +'<line x1="'+X(0)+'" x2="'+X(0)+'" y1="30" y2="64" stroke="#f45454" stroke-dasharray="3 3"/><text x="'+(X(0)+4)+'" y="26" font-size="12" fill="#8c94ac">no change</text>'
+   +'<line x1="'+X(c.low)+'" x2="'+X(c.high)+'" y1="48" y2="48" stroke="#54de7c" stroke-width="4" stroke-linecap="round"/><circle cx="'+X(c.estimate)+'" cy="48" r="8" fill="#54de7c" stroke="#16112a" stroke-width="2"/>'
+   +'<text x="'+X(c.estimate)+'" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#ecf0f8">+'+c.estimate.toFixed(2)+'</text>';
+})();
+function playProof(){const s=$("s4");s.classList.remove("play");void s.offsetWidth;requestAnimationFrame(()=>s.classList.add("play"));}
+
+/* ===== demo mode: hands-free, about 80 seconds ===== */
+async function typeInto(t,text,ms){const ta=$("ctx"),st=ST[sel];ta.focus();for(let i=1;i<=text.length;i++){ta.value=text.slice(0,i);st.ctx=ta.value;st.saved=false;renderNote();await pause(t,ms);}}
+async function spotlight(t,id,txt,ms){caption(txt);const el=$(id);el.classList.remove("spot");void el.offsetWidth;el.classList.add("spot");await pause(t,ms);}
+async function demo(){
+  const t=++token;setDemo(true);
+  DATA.painPoints.forEach(d=>{const l=LESSON[d.lessonId];ST[d.id]={ctx:l.context,intent:l.intentional,prio:l.priority,saved:false};});mined=false;sel=1;
+  try{
+    go(0);caption("symbiont reads every past session, locally");await pause(t,1200);
+    caption("It pairs each failure with the fix that worked");await mine(t,15000);
+    await pause(t,1800);
+    go(1);resetBars();growBars();
+    await spotlight(t,"kpis",totals.turns+" turns lost to trouble that kept coming back",3200);
+    await spotlight(t,"pKinds","Repeated failures cost the most. Planned red tests are not mistakes.",3600);
+    await spotlight(t,"pTree","Three files carry most of the pain",3200);
+    await spotlight(t,"pTl","The same mistake, session after session",3600);
+    caption("Open the costliest one and tell it what only you know");await pause(t,1500);
+    go(2);selectPain(1);caption("This is what the agent will see before it repeats the mistake");await pause(t,3400);
+    caption("Add context in your own words");await typeInto(t,"Money must stay integer cents, round half-up.",55);
+    await pause(t,1200);
+    caption("Set the priority");setPrio("high");await pause(t,2000);
+    save();caption("Saved. It is used from the next session");await pause(t,1800);
+    caption("Or mark a pain point intentional and it goes quiet");selectPain(7);await pause(t,2200);setIntent(true);await pause(t,2600);
+    go(3);caption("Replay of the last 30 days, estimated from demo data");
+    await playReplay(t,12000);await pause(t,2200);
+    go(4);caption("Measured, not promised");await pause(t,9000);
+    caption("");setDemo(false);
+  }catch(e){if(e!==CANCEL)throw e;}
+}
+$("playdemo").onclick=demo;
+document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e.target.tagName))demo();});
+
+/* ===== boot ===== */
+$("repoName").textContent=DATA.repo.name;$("ofN").textContent="of "+N;$("demotag").style.display=DATA.repo.demo?"":"none";
+$("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
+renderDashboard();renderList();selectPain(1);
+go(0);
+if(new URLSearchParams(location.search).get("demo")==="1")demo();
+window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};
+const obs=new MutationObserver(()=>{if($("s1").classList.contains("on"))growBars();});obs.observe($("s1"),{attributes:true,attributeFilter:["class"]});
+</script>
+</body>
+</html>
