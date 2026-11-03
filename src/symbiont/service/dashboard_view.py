@@ -44,6 +44,8 @@ class RepoView:
     focus: frozenset[str] = frozenset()
     # Lesson ids the developer annotated (words, priority or an explicit intentional choice).
     annotated: frozenset[str] = frozenset()
+    # The nightly state (`never`, `trained` or `stale` with its sentence), or None when unknown.
+    nightly: Mapping[str, object] | None = None
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
@@ -77,6 +79,7 @@ def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
         "lessons": [lesson for _, lesson in points],
         "replay": _replay([p for p, _ in points], days, (today - first).days),
         "proof": PROOF,
+        "nightly": dict(view.nightly) if view.nightly is not None else None,
     }
 
 

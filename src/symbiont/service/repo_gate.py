@@ -24,7 +24,7 @@ from symbiont.miner.lesson_context import AuthoredLesson
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signature
 from symbiont.records.schema import Kind, Record
-from symbiont.service.nightly import NightlyJudges
+from symbiont.service.nightly import NightlyJudges, NightlyReport, NightlyState
 from symbiont.service.onboarding import (
     ONBOARDING,
     SESSION_START,
@@ -120,8 +120,14 @@ class RepoGate:
             "repo": "unasked" if stance is None else stance.value,
             "lessons": len(lessons),
             "muted": len(self.registry.muted(project)) if self.registry else 0,
-            "nightly": self._nightly is not None and self._nightly.has_record(project),
+            "nightly": self.nightly_state(project, lessons),
         }
+
+    def nightly_state(self, project: str, lessons: Sequence[Lesson]) -> dict[str, object]:
+        """The nightly state as `status` and the dashboard show it (never, trained or stale)."""
+        if self._nightly is None:
+            return _report_json(NightlyReport(NightlyState.NEVER))
+        return _report_json(self._nightly.report(project, lessons))
 
     def speak(
         self, session_id: str, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
@@ -219,3 +225,13 @@ def _trigger(record: Record) -> str:
         return "prompt"
     found = failure_signature(record.raw)
     return found.message if found is not None else record.raw[:80]
+
+
+def _report_json(report: NightlyReport) -> dict[str, object]:
+    """A nightly report as the JSON object `/status` and the dashboard carry."""
+    return {
+        "state": report.state.value,
+        "lessons": report.lessons,
+        "trained_at": report.trained_at,
+        "sentence": report.sentence(),
+    }

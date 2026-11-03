@@ -174,11 +174,18 @@ def _status(args: argparse.Namespace, ask: AskService) -> int:
 def _status_lines(state: dict[str, Any]) -> str:
     """The service's answer as sentences."""
     repo = {"given": "on", "declined": "off (you declined)", "unasked": "not answered yet"}
-    night = "its nightly training is live" if state.get("nightly") else "no nightly training yet"
+    night = _nightly_phrase(state["nightly"])
     return (
         f"symbiont is running. {state['project']}: {repo[state['repo']]}; "
         f"{state['lessons']} stored lessons; {state['muted']} silenced kinds of note; {night}."
     )
+
+
+def _nightly_phrase(nightly: Any) -> str:
+    """The nightly state in words; a service from before the three states answered yes or no."""
+    if isinstance(nightly, dict):
+        return f"nightly training: {nightly['sentence']}"
+    return "its nightly training is live" if nightly else "no nightly training yet"
 
 
 def _why(args: argparse.Namespace) -> int:
