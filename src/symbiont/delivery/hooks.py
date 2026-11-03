@@ -12,6 +12,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from symbiont.delivery.headline import headline
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
 from symbiont.records.output_failure import exit_code_with_output
 
@@ -137,7 +138,8 @@ def run_hook(
     text = "\n".join(filter(None, [worded, *told]))
     if not text or event not in speaking_events(settings.harness):
         return HookResult()
-    shown_notes = [worded] if settings.visibility is NoteVisibility.ALSO_DEVELOPER else []
+    # The model gets the full note; the status line gets a headline (see headline.py).
+    shown_notes = [headline(notes)] if settings.visibility is NoteVisibility.ALSO_DEVELOPER else []
     seen = [*filter(None, shown_notes), *told]
     return HookResult(context=_inline_context(event, text, shown_to="\n".join(seen)))
 
