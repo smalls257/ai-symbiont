@@ -254,8 +254,9 @@ def _items(value: Any, name: str) -> list[dict[str, Any]]:
 def _lesson_text(item: dict[str, Any]) -> str:
     """The lesson's words under text_in_plain_words, or the aliases models reach for."""
     for key in LESSON_TEXT_KEYS:
-        if isinstance(item.get(key), str) and item[key].strip():
-            return item[key].strip()
+        value = item.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
     raise BadRequestError(
         "each lesson needs text_in_plain_words (non-empty text; `text` or `rule` also work)"
     )
