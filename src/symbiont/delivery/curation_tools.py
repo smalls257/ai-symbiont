@@ -38,8 +38,9 @@ _DESCRIPTIONS = {
     "add": (
         "Store lessons you wrote, in plain words, from notes, reports or docs the developer "
         "pointed you to. Each item: {text_in_plain_words, kind: "
-        "mistake|rule|friction|correction, files?, source_label?, severity?: low|medium|high, "
-        "applies_to?: {terms, areas}}."
+        "mistake|rule|friction|correction, files?, source_label?, "
+        "source_url? (https address of the pull request it came from), "
+        "severity?: low|medium|high, applies_to?: {terms, areas}}."
     ),
     "cand": (
         "A batch of short past user messages that may be corrections of the agent. Judge "

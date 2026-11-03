@@ -111,6 +111,8 @@ body.demo main{padding-bottom:3.8rem}
 .chips{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
 .chip{font:.95rem var(--mono);padding:.15rem .6rem;border-radius:.4rem;border:1px solid var(--line);color:var(--mu)}
 .chip.kind{border-color:var(--k);color:var(--k);font-family:var(--ui);font-weight:600}
+a.chip.src{color:var(--k);border-color:var(--k);text-decoration:none}
+a.chip.src:hover,a.chip.src:focus-visible{text-decoration:underline}
 .occ{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
 .occ i{width:.8rem;height:.8rem;border-radius:50%;background:var(--rd)}
 .edit p{font-size:1.1rem;line-height:1.45;max-width:62ch}

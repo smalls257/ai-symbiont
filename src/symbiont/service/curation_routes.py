@@ -21,6 +21,7 @@ from symbiont.miner.lesson_context import (
 )
 from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
+from symbiont.service.pr_learning import MAX_LESSONS, UnsafeSourceUrlError, checked_source_url
 from symbiont.service.request_shapes import BadRequestError, parse_applies, require_keys
 from symbiont.service.review_candidate import review_candidate
 from symbiont.store.local import Store
@@ -40,7 +41,8 @@ MAX_TEXT = 600
 LESSON_TEXT_KEYS = ("text_in_plain_words", "text", "rule")
 RESEND_ADVICE = (
     "Expected per lesson: text_in_plain_words, kind (mistake|rule|friction|correction), and "
-    "optionally files, source_label, severity (low|medium|high), applies_to {terms, areas}. "
+    "optionally files, source_label, source_url (https), severity (low|medium|high), "
+    "applies_to {terms, areas}. "
     "Fix the field and resend the SAME lesson content unchanged; do not shorten or reword it."
 )
 
@@ -81,6 +83,7 @@ class CurationRoutes:
         """Store lessons the model wrote from what the developer pointed it to."""
         project = self._allowed_project(request, {"project", "lessons"})
         items = _items(request.get("lessons"), "lessons")
+        _refuse_oversized_pr_batch(items)
         try:
             added = [self._authored(project, item) for item in items]
         except BadRequestError as error:
@@ -187,6 +190,8 @@ class CurationRoutes:
     def _authored(self, project: str, item: dict[str, Any]) -> str:
         """Validate and store one written lesson; returns its id."""
         text = _lesson_text(item)[:MAX_TEXT]
+        url = _source_url(item)
+        text = scrub(text) if url else text
         files = _strings(item.get("files", []), "files")
         lesson = AuthoredLesson(
             _ident(text),
@@ -196,6 +201,7 @@ class CurationRoutes:
             str(item.get("source_label", ""))[:80],
             _enum(Severity, item.get("severity", "medium"), "severity"),
             _with_module_areas(parse_applies(item.get("applies_to")), files),
+            url,
         )
         self._store.curation.add_authored(project, lesson)
         return lesson.ident
@@ -214,6 +220,24 @@ class CurationRoutes:
         return allowed, [
             f"{name} history is not shown to a {running_in} session" for name in blocked
         ]
+
+
+def _source_url(item: dict[str, Any]) -> str:
+    """The lesson's pull-request link, checked; a bad one is a 400 naming the field."""
+    try:
+        return checked_source_url(item.get("source_url"))
+    except UnsafeSourceUrlError as unsafe:
+        raise BadRequestError(str(unsafe)) from unsafe
+
+
+def _refuse_oversized_pr_batch(items: list[dict[str, Any]]) -> None:
+    """One call may carry at most MAX_LESSONS lessons that came from pull requests."""
+    from_prs = sum(1 for item in items if item.get("source_url"))
+    if from_prs > MAX_LESSONS:
+        raise BadRequestError(
+            f"at most {MAX_LESSONS} lessons from pull requests per call; keep only the "
+            "durable, repo-specific ones"
+        )
 
 
 def _records(sources: list[Any], readers: dict[str, Any]) -> list[Any]:

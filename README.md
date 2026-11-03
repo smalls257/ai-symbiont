@@ -32,6 +32,14 @@ Start a session in a repository. The first time, symbiont says what it does and 
 repository's past Claude Code and Muse Code sessions (it finds both on its own, and opens the dashboard so you can watch the progress; `--no-open` skips that). `/symbiont` shows status, explains the last note, mutes it
 or forgets its lessons.
 
+## Learn from your team's PR reviews
+
+symbiont asks once whether to learn from this repository's recent pull-request reviews and CI
+failures; `/symbiont learn-from-prs` does it any time. Your session's model reads GitHub with your own
+`gh` access and saves a few short lessons, each linked to its pull request on the dashboard.
+symbiont itself makes no network call and stores only those lessons and links, locally. Details in
+`docs/product/plugin.md`.
+
 ## Reproduce it
 
 `REPRODUCE.md` has three tiers: a one-command demo (about a second, no model), a check that recomputes our headline numbers from committed files (about 10 seconds), and the rebuild of the code-fix study's data from a pinned public dataset.

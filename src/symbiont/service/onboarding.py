@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 
 from symbiont.miner.lesson_context import AuthoredLesson, LessonContext
 from symbiont.service.nightly import NightlyJudges
+from symbiont.service.pr_learning import PR_QUESTION
 from symbiont.store.repos import Announced, RepoRegistry
 
 SESSION_START = "SessionStart"
@@ -75,7 +76,10 @@ class Announcements:
 
     def at_session_start(self, project: str) -> tuple[str, ...]:
         """The lines for this session start: nightly news once, the question, the link, reviews."""
-        lines = [*self._nightly(project), *self._question(project), *self._link(project)]
+        question = self._question(project)
+        # One question at a time: the PR question follows in a later session start.
+        pr_question = [] if question else self._pr_question(project)
+        lines = [*self._nightly(project), *question, *pr_question, *self._link(project)]
         waiting = self.lookups.pending_reviews(project)
         if waiting and self.registry.focus(project) is not None:
             lines.append(_review_request(waiting))
@@ -102,6 +106,13 @@ class Announcements:
             return []
         self.registry.announce(project, Announced.FOCUS_QUESTION)
         return [FOCUS_QUESTION]
+
+    def _pr_question(self, project: str) -> list[str]:
+        """The one more question, once per repository: learn from pull-request reviews and CI?"""
+        if self.registry.was_announced(project, Announced.PR_QUESTION):
+            return []
+        self.registry.announce(project, Announced.PR_QUESTION)
+        return [PR_QUESTION]
 
     def _link(self, project: str) -> list[str]:
         """The dashboard link, once the repository has lessons."""
