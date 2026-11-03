@@ -39,7 +39,7 @@ User edits go through saveContext(lessonId, payload) only; in the product that f
 html{font-size:max(7px,min(calc(100vw/120),calc(100vh/67.5)))}
 body{height:100vh;overflow:hidden;color:var(--tx);font:400 1.05rem/1.4 var(--ui);
   background:linear-gradient(160deg,var(--bg1) 0%,#1a1230 55%,var(--bg2) 100%) fixed;
-  display:grid;grid-template-rows:auto auto 1fr auto}
+  display:grid;grid-template-rows:auto 1fr}
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--or);outline-offset:2px}
 .mono{font-family:var(--mono)}
@@ -78,6 +78,15 @@ body.interm #caption{bottom:auto;top:calc(var(--bh,2.4rem) + 3.6rem)}
 .tcta{display:flex;gap:.8rem;margin-top:.6rem}
 .tcta button{border-radius:.6rem;padding:.6rem 1.2rem;font:700 1.05rem var(--ui);border:1px solid var(--line);background:none}
 .tcta .go{background:var(--vi);color:#1a1020;border:0}
+#app{display:grid;grid-template-rows:auto 1fr auto;min-height:0;height:100%;background:transparent}
+.bchrome{display:none;align-items:center;gap:.6rem;padding:.55rem 1rem;background:#1b1830;border-bottom:1px solid var(--line)}
+.bchrome i{width:.8rem;height:.8rem;border-radius:50%;background:rgba(236,240,248,.25)}
+.bchrome .burl{margin-left:.8rem;flex:1;max-width:46rem;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:2rem;padding:.25rem 1rem;font:.95rem var(--mono);color:var(--mu)}
+body.inbrowser #app{position:fixed;left:0;right:0;top:var(--bh,2.4rem);bottom:0;z-index:6;transform:scale(.9);transform-origin:50% 35%;border:1px solid rgba(236,240,248,.4);border-radius:.8rem;overflow:hidden;box-shadow:0 2rem 6rem rgba(0,0,0,.75);background:linear-gradient(160deg,#0e101e 0%,#1a1230 55%,#22143a 100%);grid-template-rows:auto auto 1fr auto;animation:pop .7s cubic-bezier(.2,.9,.2,1)}
+body.inbrowser .bchrome{display:flex}
+body.inbrowser #caption{top:auto;bottom:5.2rem}
+body.inbrowser #term{filter:brightness(.45)}
+@keyframes pop{from{transform:scale(.55);opacity:0}to{transform:scale(.9);opacity:1}}
 /* header */
 .top{display:flex;align-items:center;gap:1.6rem;padding:.9rem 2rem;border-bottom:1px solid var(--line)}
 .brand{font-weight:700;font-size:1.5rem;color:var(--or);letter-spacing:.01em}
@@ -251,7 +260,7 @@ textarea:focus{border-color:var(--vi);outline:none}
 .foot{display:flex;gap:2.2rem;justify-content:center;padding:.7rem 2rem;border-top:1px solid var(--line);font-size:1rem;color:var(--mu);background:rgba(8,8,18,.4)}
 .foot b{font:700 .85rem var(--mono);color:var(--gr);margin-right:.5rem}
 .foot span span{color:var(--tx);font-weight:600}
-#caption{position:fixed;left:50%;bottom:3.6rem;transform:translateX(-50%);background:rgba(8,8,18,.88);border:1px solid var(--or);color:var(--tx);padding:.55rem 1.6rem;border-radius:3rem;font-size:1.4rem;font-weight:600;display:none;white-space:nowrap;z-index:5}
+#caption{position:fixed;left:50%;bottom:3.6rem;transform:translateX(-50%);background:rgba(8,8,18,.88);border:1px solid var(--or);color:var(--tx);padding:.55rem 1.6rem;border-radius:3rem;font-size:1.4rem;font-weight:600;display:none;white-space:nowrap;z-index:8}
 body.demo #caption{display:block}
 #tip{position:fixed;pointer-events:none;background:#0a0816;border:1px solid var(--vi);border-radius:.5rem;padding:.4rem .7rem;font-size:.95rem;max-width:22rem;display:none;z-index:9}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -259,6 +268,8 @@ body.demo #caption{display:block}
 </head>
 <body>
 <div class="banner" role="note"><span><b>Hosted demo.</b> Synthetic data for a fictional repo (acme/billing-service). Nothing here is read from your machine, and nothing leaves this page.</span><a href="https://github.com/smalls257/ai-symbiont#install">Install it for real</a><span class="mu"><a href="../">Project page</a></span></div>
+<div id="app">
+<div class="bchrome" id="bchrome" aria-hidden="true"><i></i><i></i><i></i><span class="burl" id="burl">http://127.0.0.1:7377/dashboard?project=billing-service</span></div>
 <header class="top">
   <div class="brand">ai-symbiont</div>
   <div class="repo" id="repoName"></div>
@@ -354,6 +365,7 @@ body.demo #caption{display:block}
   <span><b>[measured]</b><span>61%</span> of repeats approved at 97.8% precision after nightly training</span>
   <span><b>[measured]</b><span>+0.16</span> [0.11, 0.22], replicated on 240 fresh cases</span>
 </footer>
+</div>
 <div id="term" role="region" aria-label="Simulated Muse Code terminal">
   <div class="tbar"><i></i><i></i><i></i><span class="ttl">muse &middot; ~/src/billing-service</span><span class="demotag">demo data &middot; simulated terminal</span><button class="skip" id="tskip">Skip to the dashboard</button></div>
   <div id="tbody"></div>
@@ -1836,7 +1848,8 @@ function playProof(){const s=$("s4");s.classList.remove("play");void s.offsetWid
 /* ===== act one: Muse Code onboarding (wording from service/onboarding.py and operator_commands.py, Muse-only) ===== */
 const FOCUS_WORDS="money stays in integer cents, round half-up";
 const TB=$("tbody"),TIN=$("tintext");
-function showTerm(on){document.body.classList.toggle("interm",on);if(on)document.documentElement.style.setProperty("--bh",document.querySelector(".banner").offsetHeight+"px");}
+function setBrowser(on){document.body.classList.toggle("inbrowser",on);if(on)document.documentElement.style.setProperty("--bh",document.querySelector(".banner").offsetHeight+"px");}
+function showTerm(on){if(!on)setBrowser(false);document.body.classList.toggle("interm",on);if(on)document.documentElement.style.setProperty("--bh",document.querySelector(".banner").offsetHeight+"px");}
 function tadd(cls,html){const d=document.createElement("div");d.className="tl "+cls;d.innerHTML=html;TB.appendChild(d);while(TB.children.length>14)TB.firstChild.remove();return d;}
 function tclear(){TB.innerHTML="";TIN.textContent="";}
 function tbox(){const d=document.createElement("div");d.className="box";d.innerHTML="<b>muse</b> &middot; Muse Code<br>cwd: ~/src/billing-service (acme/billing-service)";TB.appendChild(d);}
@@ -1848,17 +1861,6 @@ async function termIdle(done){
   const d=tadd("","");d.className="tcta";
   d.innerHTML='<button class="go" id="tplay">'+(done?"Replay demo":"Play demo")+'</button><button id="tdash">Open the dashboard</button>';
   $("tplay").onclick=demo;$("tdash").onclick=()=>{token++;setDemo(false);showTerm(false);go(1);};
-}
-async function termMining(t){
-  const line=tadd("tool","Bash(<span class=\"cmd\">symbiont repo mine</span>)");
-  const o=tadd("out",'reading sessions<span class="pbar"><i></i></span><span class="n"></span>');
-  for(let i=0;i<N;i++){
-    const found=i===N-1?P.length:P.filter(p=>detectAt(p)<=i&&isMistake(p)&&p.s.length>1).length;
-    o.querySelector("i").style.width=((i+1)/N*100)+"%";
-    o.querySelector(".n").textContent=(i+1)+" of "+N+" sessions, "+found+" pain points found";
-    await pause(t,5200/N);
-  }
-  tadd("out","learned "+totals.lessons+" lessons from "+N+" Muse Code sessions; they stay on this computer");
 }
 async function onboardingAct(t){
   tclear();showTerm(true);
@@ -1875,12 +1877,11 @@ async function onboardingAct(t){
   await typeUser(t,FOCUS_WORDS,45);
   tadd("tool","symbiont_set_focus(<span class=\"cmd\">\""+esc(FOCUS_WORDS)+"\"</span>)");await pause(t,1200);
   caption("Then it reads the past sessions, locally");
-  await termMining(t);await pause(t,900);
-  hook("symbiont",'symbiont\'s dashboard for this repository: <a href="#">http://localhost:7377/dashboard/</a><br>'+P.length+" pain points found. Review them, and add the context only you know.");
-  caption("Review them on the local dashboard");await pause(t,3800);
+  tadd("tool","Bash(<span class=\"cmd\">symbiont repo mine</span>)");await pause(t,900);
+  tadd("out","opening the dashboard: <a href=\"#\">http://127.0.0.1:7377/dashboard?project=billing-service</a>");await pause(t,1500);
 }
 async function laterSessionAct(t){
-  tclear();showTerm(true);
+  setBrowser(false);tclear();showTerm(true);
   caption("A week later, a new session");
   tadd("sh","muse");await pause(t,900);tbox();await pause(t,900);
   await typeUser(t,"add tax to the invoice total and run the invoice tests",45);
@@ -1903,9 +1904,10 @@ async function demo(){
   DATA.painPoints.forEach(d=>{const l=LESSON[d.lessonId];ST[d.id]={ctx:l.context,intent:l.intentional,prio:l.priority,saved:false};});mined=false;sel=1;
   try{
     await onboardingAct(t);
-    showTerm(false);window.__symbiont.finishAll();
+    setBrowser(true);go(0);
+    caption("The dashboard opens and shows the mining live");await pause(t,1200);
+    await mine(t,14000);await pause(t,1800);
     go(1);resetBars();growBars();
-    caption("symbiont reads every past session, locally");await pause(t,1400);
     await spotlight(t,"kpis",totals.turns+" turns lost to trouble that kept coming back",3200);
     await spotlight(t,"pKinds","Repeated failures cost the most. Planned red tests are not mistakes.",3600);
     await spotlight(t,"pTree","Three files carry most of the pain",3200);
