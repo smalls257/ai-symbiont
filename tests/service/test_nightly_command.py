@@ -129,7 +129,7 @@ def test_the_scheduled_command_is_the_manual_one_with_every_option_pinned(tmp_pa
         "--judge-url", nightly_command.default_judge_url("p"),
         "--trainer-python", "/py", "--judge-python", "/jpy",
     )  # fmt: skip
-    assert argv[0] == sys.executable or argv[0].endswith("symbiont")
+    assert argv[0] == sys.executable or Path(argv[0]).stem.lower() == "symbiont"
 
 
 def test_install_registers_the_daily_run_and_says_when_and_where_the_log_is(tmp_path, monkeypatch):
