@@ -21,8 +21,12 @@ MAX_STANDING = 3
 # fewer shared words would retire a reflection over a single common word.
 SAME_SUBJECT_SCORE = MIN_WEAK_SCORE
 EXCERPT_CHARS = 120
-LEAD = "[symbiont] House rules you gave in this repo: "
+LEAD = "[symbiont] House rules for this repo (from your corrections and PR reviews): "
 _PRIORITY_FIRST = {Priority.HIGH: 0, Priority.NORMAL: 1, Priority.LOW: 2}
+# Your own correction outranks a PR ruling: it is the developer's word for their work, while a
+# ruling is one reviewer's word on one pull request (and may be file-scoped, which the file
+# trigger delivers when the work reaches that file).
+_OWN_WORD, _PR_RULING = 0, 1
 
 
 @dataclass(frozen=True)
@@ -44,24 +48,45 @@ def retired_by_corrections(rules: Sequence[Rule]) -> dict[str, Supersession]:
     for index, older in enumerate(rules):
         if older.kind is None or older.kind is LessonKind.CORRECTION:
             continue
-        later = (rule for rule in rules[index + 1 :] if rule.kind is LessonKind.CORRECTION)
+        later = (rule for rule in rules[index + 1 :] if _may_retire(rule, older))
         newer = next((rule for rule in later if _same_subject(older, rule)), None)
         if newer is not None:
             retired[older.ident] = _supersession(older, newer)
     return retired
 
 
-def standing_corrections(rules: Sequence[Rule], leave_out: frozenset[str]) -> list[Rule]:
-    """The developer's corrections to say as house rules: high priority first, then newest.
+def _may_retire(newer: Rule, older: Rule) -> bool:
+    """Whether `newer` can put `older` aside: two PR rulings never retire each other.
 
-    `leave_out` holds ids that must not be said (retired, or already speaking for this work).
+    The D3 store lost a DuckDB copy ruling to an unrelated DuckDB null-guard ruling.
     """
-    corrections = [
-        rule for rule in rules if rule.kind is LessonKind.CORRECTION and rule.ident not in leave_out
-    ]
+    if newer.kind is not LessonKind.CORRECTION:
+        return False
+    return not (older.is_pr_ruling and newer.is_pr_ruling)
+
+
+def standing_corrections(rules: Sequence[Rule], leave_out: frozenset[str]) -> list[Rule]:
+    """House rules: own corrections, then PR rulings, by priority then newest; not `leave_out`."""
+    corrections = [rule for rule in rules if _is_correction(rule) and rule.ident not in leave_out]
     newest_first = corrections[::-1]
-    ranked = sorted(newest_first, key=lambda rule: _PRIORITY_FIRST[rule.words.priority])
+    ranked = sorted(newest_first, key=_standing_rank)
     return ranked[:MAX_STANDING]
+
+
+def _is_correction(rule: Rule) -> bool:
+    """A developer's correction, or a review ruling saved as a rule.
+
+    A PR-linked mistake or friction (often from CI) says what went wrong, not what the team decided.
+    """
+    return rule.kind is LessonKind.CORRECTION or (
+        rule.kind is LessonKind.RULE and rule.is_pr_ruling
+    )
+
+
+def _standing_rank(rule: Rule) -> tuple[int, int]:
+    """Own word before PR ruling, then priority; sorted is stable, so newest stays first."""
+    group = _PR_RULING if rule.is_pr_ruling else _OWN_WORD
+    return group, _PRIORITY_FIRST[rule.words.priority]
 
 
 def standing_sentence(corrections: Sequence[Rule]) -> str:

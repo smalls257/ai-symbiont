@@ -12,8 +12,6 @@ from symbiont.core.failure_signature import failure_signature
 from symbiont.core.house_rules import (
     Supersession,
     retired_by_corrections,
-    standing_corrections,
-    standing_sentence,
 )
 from symbiont.core.repeat import RepeatNote, failed_now, repeat_note
 from symbiont.core.rule_relevance import (
@@ -21,7 +19,6 @@ from symbiont.core.rule_relevance import (
     Rule,
     RuleMatch,
     relevant_rules,
-    rule_sentence,
     rules_of,
     situation_terms,
     why_none,
@@ -38,10 +35,8 @@ from symbiont.service.onboarding import (
     Announcements,
     Lookups,
 )
+from symbiont.service.rule_voice import Occasion, RuleVoice
 from symbiont.store.repos import RepoRegistry, RepoStance
-
-# Not a lesson id: the once-per-session key of the house-rules note.
-STANDING_KEY = "house-rules"
 
 
 @dataclass(frozen=True)
@@ -87,7 +82,7 @@ class RepoGate:
         self._said: set[tuple[str, Signature]] = set()
         self._unchecked_edits: set[str] = set()
         self._milestones: set[str] = set()
-        self._rules_said: set[tuple[str, str, str]] = set()
+        self._voice = RuleVoice(self.silenced)
 
     def door(self, project: str, event: str) -> Door:
         """Open for a repository that said yes; otherwise closed, asking once at session start."""
@@ -173,68 +168,43 @@ class RepoGate:
         A written lesson that a later correction supersedes is never said; the match it lost
         is returned so the event log can show why it stayed quiet.
         """
-        if self.registry is None or not (record.kind is Kind.USER_TURN or failed_now(record)):
+        touched = _touched_a_file(record)
+        if self.registry is None or not (touched or _asks_for_rules(record)):
             return Spoken()
         project = record.project
         rules = rules_of(lessons, self._lookups.contexts(project), self._authored(project))
         if not rules:
             return Spoken()
         retired = retired_by_corrections(rules)
-        found = relevant_rules(_situation_text(record), record.files, rules, self._focus(project))
-        live = [match for match in found if match.rule.ident not in retired]
-        gone = tuple(retired[m.rule.ident] for m in found if m.rule.ident in retired)
-        leave_out = frozenset({*retired, *(match.rule.ident for match in live)})
-        standing = self._standing(session_id, record, rules, leave_out)
-        notes = [*standing, *self._fresh(session_id, record, live, MAX_RULE_NOTES - len(standing))]
-        if notes:
+        if touched:
+            notes, gone = self._voice.on_file(session_id, record, rules, retired)
             return Spoken(tuple(notes), superseded=gone)
-        return Spoken(held=self._why_quiet(rules, live), superseded=gone)
+        return self._prompt_rule(session_id, record, rules, retired)
 
-    def _why_quiet(self, rules: Sequence[Rule], live: Sequence[RuleMatch]) -> str:
-        """Why no rule spoke: nothing relevant, or what was relevant was already said."""
-        if live:
-            return "the related rule was already said for this prompt or failure"
-        return why_none(rules)
-
-    def _standing(
+    def _prompt_rule(
         self,
         session_id: str,
         record: Record,
         rules: Sequence[Rule],
-        leave_out: frozenset[str],
-    ) -> list[RepeatNote]:
-        """The developer's corrections as one note, at the first prompt of a session only."""
-        key = (session_id, STANDING_KEY, "prompt")
-        if record.kind is not Kind.USER_TURN or key in self._rules_said:
-            return []
-        corrections = standing_corrections(rules, leave_out)
-        if not corrections:
-            return []
-        self._rules_said.add(key)
-        named = ", ".join(rule.ident for rule in corrections)
-        return [RepeatNote(standing_sentence(corrections), None, f"rule: house rules ({named})")]
-
-    def _fresh(
-        self, session_id: str, record: Record, live: Sequence[RuleMatch], room: int
-    ) -> list[RepeatNote]:
-        """Up to `room` relevant rules not yet said for this prompt or failure."""
-        trigger = _trigger(record)
-        notes: list[RepeatNote] = []
-        for match in live:
-            key = (session_id, match.rule.ident, trigger)
-            if len(notes) == room:
-                break
-            if key in self._rules_said or self._muted_rule(record.project, match.rule):
-                continue
-            self._rules_said.add(key)
-            notes.append(
-                RepeatNote(rule_sentence(match.rule.words), match.rule.lesson, "rule: " + match.why)
-            )
-        return notes
-
-    def _muted_rule(self, project: str, rule: Rule) -> bool:
-        """Whether the developer silenced the kind of trouble behind a mined rule."""
-        return rule.lesson is not None and self.silenced(project, rule.lesson.pain_point.signature)
+        retired: dict[str, Supersession],
+    ) -> Spoken:
+        """House rules, then the rules relevant to a prompt or failure, minus the retired."""
+        found = relevant_rules(
+            _situation_text(record), record.files, rules, self._focus(record.project)
+        )
+        live = [match for match in found if match.rule.ident not in retired]
+        gone = tuple(retired[m.rule.ident] for m in found if m.rule.ident in retired)
+        leave_out = frozenset({*retired, *(match.rule.ident for match in live)})
+        standing = self._voice.standing(session_id, record, rules, leave_out)
+        room = MAX_RULE_NOTES - len(standing)
+        when = Occasion(session_id, record.project, _trigger(record))
+        notes = [
+            *standing,
+            *self._voice.fresh(when, live, room),
+        ]
+        if notes:
+            return Spoken(tuple(notes), superseded=gone)
+        return Spoken(held=_why_quiet(rules, live), superseded=gone)
 
     def _focus(self, project: str) -> frozenset[str]:
         """The terms the developer asked symbiont to pay attention to."""
@@ -262,6 +232,23 @@ class RepoGate:
         if self._news is None or event != SESSION_START:
             return ()
         return self._news.at_session_start(project)
+
+
+def _asks_for_rules(record: Record) -> bool:
+    """Whether a prompt or a failed command opens the question of which rules apply."""
+    return record.kind is Kind.USER_TURN or failed_now(record)
+
+
+def _why_quiet(rules: Sequence[Rule], live: Sequence[RuleMatch]) -> str:
+    """Why no rule spoke: nothing relevant, or what was relevant was already said."""
+    if live:
+        return "the related rule was already said for this prompt or failure"
+    return why_none(rules)
+
+
+def _touched_a_file(record: Record) -> bool:
+    """Whether the record is a successful read or edit that names a file."""
+    return record.kind in (Kind.READ, Kind.EDIT) and record.exit_code != 1 and bool(record.files)
 
 
 def _situation_text(record: Record) -> str:
