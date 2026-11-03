@@ -5,7 +5,10 @@ on every tool call when the service cannot start.
 """
 
 import socket
+import subprocess
+import sys
 import threading
+import time
 
 import pytest
 
@@ -155,3 +158,21 @@ def test_the_real_service_start_detaches_with_this_platforms_options(tmp_path, m
 
     assert seen["command"][:2] == ["symbiont", "serve"]
     assert {k: seen["options"][k] for k in detached_spawn_options()} == detached_spawn_options()
+
+
+def test_a_child_started_with_this_platforms_detach_options_really_runs(tmp_path):
+    out = tmp_path / "child.txt"
+    code = f"open({str(out)!r}, 'w').write('ran')"
+    with (tmp_path / "log").open("wb") as log:
+        child = subprocess.Popen(
+            [sys.executable, "-c", code],
+            stdin=subprocess.DEVNULL,
+            stdout=log,
+            stderr=subprocess.STDOUT,
+            **detached_spawn_options(),
+        )
+    assert child.wait(timeout=30) == 0
+    deadline = time.monotonic() + 5
+    while not out.exists() and time.monotonic() < deadline:
+        time.sleep(0.05)
+    assert out.read_text(encoding="utf-8") == "ran"
