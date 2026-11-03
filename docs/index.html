@@ -35,6 +35,8 @@ code,.mono{font-family:var(--mono)}
 .tabs [role=tab]:hover{color:var(--tx)}
 [role=tabpanel]{padding-top:1.5rem}
 [role=tabpanel][hidden]{display:none}
+.sub3{font-size:1.2rem;margin:0 0 .8rem}
+[role=tabpanel] .sub3~.sub3,[role=tabpanel] figure+.sub3{margin-top:2.5rem}
 [role=tabpanel]>p.plain{color:var(--mu);max-width:52rem;margin-bottom:1rem}
 [role=tabpanel]>p.plain b{color:var(--tx)}
 .tag.exp{color:var(--vi)}
@@ -179,10 +181,15 @@ footer p+p{margin-top:.4rem}
     <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-note.mp4"></video><figcaption>The note arriving before the repeat</figcaption></figure>
   </div>
   <div role="tabpanel" id="panel-hr" aria-labelledby="tab-hr" hidden>
-    <p class="plain"><b>What you're watching.</b> A robot in Meta's Habitat simulator (Fetch robot, ReplicaCAD apartment) tidies up, with Muse Spark choosing every action. This home has its own rules that no model could guess: mugs go in the cupboard above the stand mixer, the cat's bowl lives by the front door, towels go in the middle-left drawer, the cast-iron pan goes in the drawer nearest the fridge.</p>
-    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> the same model after the owner corrected it once. symbiont saved those corrections as lessons and shows them as notes when it plans.</p>
-    <p class="plain"><b>Result</b> (pre-registered, 6 vs 6 episodes with different starting positions): house-rule violations 30 → 0. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> The owner's corrections were scripted for the demo, and the test episodes use the same four rules with items in new places.</p>
-    <p class="plain"><b>A harder task.</b> We also tried a harder planning task (set the table for four with items hidden in closed cupboards and a pet knocking things over). There, notes from Spark's own failures did not help: 1 of 5 succeeded either way. <span class="tag">[measured]</span></p>
+    <h3 class="sub3">It learned from its own mistakes</h3>
+    <p class="plain"><b>What you're watching.</b> A robot in Meta's Habitat simulator (Fetch robot, ReplicaCAD apartment), with Muse Spark choosing every action. The robot has to clear the dining table and set it for four. The plates, cups and forks are hidden in closed cupboards and drawers, a pet knocks things over partway through, and it has a limited number of actions.</p>
+    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> Spark with symbiont. Spark failed twice on its own. symbiont mined those two failed attempts, and Spark reflected on them: where things turned out to be, which containers were empty, check the floor after a fall. No person corrected anything.</p>
+    <p class="plain"><b>Result</b> (5 new episodes, different starting spots and pet events): without symbiont's notes 0 of 5 succeeded; with them 4 of 5. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> This works because a home stays the same: when we hid the items somewhere new every time, nothing specific could be learned, and the notes didn't help (1 of 5 either way). <span class="tag">[measured]</span></p>
+    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-set-table-duel.mp4"></video><figcaption>Habitat (Meta AI) &middot; ReplicaCAD (CC BY-NC 4.0) &middot; Fetch robot model from Habitat &middot; real simulation, episode cmpB3-621 (first seed)</figcaption></figure>
+    <h3 class="sub3">Corrected once, never repeated</h3>
+    <p class="plain"><b>What you're watching.</b> The same kind of robot tidies up a home with its own rules that no model could guess: mugs go in the cupboard above the stand mixer, the cat's bowl lives by the front door, towels go in the middle-left drawer, the cast-iron pan goes in the drawer nearest the fridge.</p>
+    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> the same model after the owner corrected it once. The owner's corrections stated the rules, and symbiont made sure Spark remembered them in new episodes, showing them as notes when it plans.</p>
+    <p class="plain"><b>Result</b> (pre-registered, 6 vs 6 episodes with different starting positions): house-rule violations 30 → 0. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> The corrections were scripted for the demo, and the test episodes use the same four rules with items in new places.</p>
     <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-house-rules-duel.mp4"></video><figcaption>Habitat (Meta AI) &middot; ReplicaCAD (CC BY-NC 4.0) &middot; Fetch robot model from Habitat &middot; real simulation, episode cmpA-301 (first seed, chosen before the runs)</figcaption></figure>
   </div>
   <p class="fallback">If a clip does not play in your browser, the files are on the <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">release page</a>.</p>
