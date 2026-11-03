@@ -179,3 +179,14 @@ def test_the_digest_in_the_record_is_the_one_the_service_computes(tmp_path):
     record = json.loads((plan.nightly_dir / PROJECT / "nightly.json").read_text())
     stored = merge_twins(Store.open(plan.data_dir / "store.db").lessons(PROJECT))
     assert record["lessons_digest"] == lessons_digest(stored)
+
+
+def test_a_missing_kit_is_reported_before_the_lessons_are_read(tmp_path):
+    setup(tmp_path)
+    # the data dir has no store: reading lessons first would say "no symbiont data" instead
+    bare = NightPlan(PROJECT, tmp_path / "elsewhere", tmp_path / "n", tmp_path / "nokit", URL, "py")
+    night = FakeNight(Backend.MLX)
+    assert run_night(bare, night.tools()) == EXIT_FAILED
+    assert any("judge kit" in line and "symbiont nightly setup" in line for line in night.said)
+    assert not any("no symbiont data" in line for line in night.said)
+    assert night.commands == []
