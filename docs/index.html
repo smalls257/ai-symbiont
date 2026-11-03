@@ -160,6 +160,7 @@ footer p+p{margin-top:.4rem}
   <div class="tabs" role="tablist" aria-label="Progress tracks">
     <button role="tab" id="tab-fd" aria-controls="panel-fd" aria-selected="true">Freedoom via ViZDoom</button>
     <button role="tab" id="tab-co" aria-controls="panel-co" aria-selected="false" tabindex="-1">Coding</button>
+    <button role="tab" id="tab-hr" aria-controls="panel-hr" aria-selected="false" tabindex="-1">Home robot</button>
   </div>
   <div role="tabpanel" id="panel-fd" aria-labelledby="tab-fd">
     <p class="plain"><b>What you're watching.</b> Meta's Muse Spark model plays a level of Freedoom (a free, open-source first-person game) through ViZDoom, an AI research platform. Each turn, Spark reads a text description of what's on screen and chooses its moves.</p>
@@ -176,6 +177,13 @@ footer p+p{margin-top:.4rem}
     <p class="plain"><b>The bigger, pre-registered tests on real public projects.</b> Symbiont showed 501 reminders and none was wrong. After nightly training on a project's history, its reminder-checker approved 61% of repeated mistakes, and 97.8% of those approvals were correct. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p>
     <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-split.mp4"></video><figcaption>With symbiont and without, side by side</figcaption></figure>
     <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-note.mp4"></video><figcaption>The note arriving before the repeat</figcaption></figure>
+  </div>
+  <div role="tabpanel" id="panel-hr" aria-labelledby="tab-hr" hidden>
+    <p class="plain"><b>What you're watching.</b> A robot in Meta's Habitat simulator (Fetch robot, ReplicaCAD apartment) tidies up, with Muse Spark choosing every action. This home has its own rules that no model could guess: mugs go in the cupboard above the stand mixer, the cat's bowl lives by the front door, towels go in the middle-left drawer, the cast-iron pan goes in the drawer nearest the fridge.</p>
+    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> the same model after the owner corrected it once. symbiont saved those corrections as lessons and shows them as notes when it plans.</p>
+    <p class="plain"><b>Result</b> (pre-registered, 6 vs 6 episodes with different starting positions): house-rule violations 30 → 0. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> The owner's corrections were scripted for the demo, and the test episodes use the same four rules with items in new places.</p>
+    <p class="plain"><b>A harder task.</b> We also tried a harder planning task (set the table for four with items hidden in closed cupboards and a pet knocking things over). There, notes from Spark's own failures did not help: 1 of 5 succeeded either way. <span class="tag">[measured]</span></p>
+    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-house-rules-duel.mp4"></video><figcaption>Habitat (Meta AI) &middot; ReplicaCAD (CC BY-NC 4.0) &middot; Fetch robot model from Habitat &middot; real simulation, episode cmpA-301 (first seed, chosen before the runs)</figcaption></figure>
   </div>
   <p class="fallback">If a clip does not play in your browser, the files are on the <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">release page</a>.</p>
 </section>
