@@ -175,4 +175,5 @@ def test_windows_opens_the_page_with_explorer_detached_by_creation_flags(monkeyp
 
     command, options = seen[0]
     assert command == ["explorer", "http://127.0.0.1:1/dashboard?project=a%20b"]
-    assert options["creationflags"] == 0x08 | 0x200 and "start_new_session" not in options
+    assert options["creationflags"] == 0x08 | 0x200 | 0x01000000
+    assert "start_new_session" not in options
