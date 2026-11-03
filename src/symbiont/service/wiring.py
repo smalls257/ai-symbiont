@@ -2,6 +2,7 @@
 
 import json
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -14,10 +15,11 @@ from symbiont.service.app import Service, ServiceMode, ServiceParts
 from symbiont.service.curation_routes import CurationRoutes
 from symbiont.service.effective_context import effective_contexts
 from symbiont.service.events import EventLog
+from symbiont.service.lesson_list import REFLECTION, source_of
 from symbiont.service.memory_model import AdapterProvenance, MemoryModel
 from symbiont.service.nightly import NightlyJudges, RecallJudges
 from symbiont.service.onboarding import Lookups
-from symbiont.service.reflection import ReflectionDesk
+from symbiont.service.reflection import ReflectionDesk, ReflectionSensors
 from symbiont.service.repo_gate import RepoGate
 from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
@@ -72,13 +74,14 @@ def open_service(
     curation = CurationRoutes(
         store, guards.repos, lambda: read_correction_settings(data_dir), dict(READERS)
     )
-    curation.also_serving(
-        "reflect", ReflectionDesk(guards.repos, ReflectionLedger(data_dir), gate).ask
-    )
+    events = EventLog(run_dir, filler.name)
+    desk = _reflection_desk(guards, data_dir, gate, store, events)
+    curation.also_serving("reflect", desk.ask)
+    curation.also_serving("reflect/finished", desk.finished)
     parts = ServiceParts(
         store,
         filler,
-        EventLog(run_dir, filler.name),
+        events,
         mode,
         memory=memory,
         judge=guards.judges.first_night,
@@ -88,6 +91,21 @@ def open_service(
         gate=gate,
     )
     return Service(parts)
+
+
+def _reflection_desk(
+    guards: Guards, data_dir: Path, gate: RepoGate, store: Store, events: EventLog
+) -> ReflectionDesk:
+    """The session-end reflection desk, logging to `events` and counting from `store`."""
+    sensors = ReflectionSensors(events, _reflection_lessons(store))
+    return ReflectionDesk(guards.repos, ReflectionLedger(data_dir), gate, sensors)
+
+
+def _reflection_lessons(store: Store) -> Callable[[str], int]:
+    """How many lessons a project holds that a session-end reflection wrote."""
+    return lambda project: sum(
+        1 for item in store.curation.authored(project) if source_of(item) == REFLECTION
+    )
 
 
 def _lookups(store: Store) -> Lookups:

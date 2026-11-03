@@ -86,6 +86,10 @@ class EventLog:
         """Record why Plug stayed silent (which bar blocked it, with the scores), never the text."""
         self._write(call, {"note_held": {"why": why, **numbers}})
 
+    def append_reflection(self, call: Call, stage: str, fields: dict[str, object]) -> None:
+        """Record a reflection `decision` (asked or why not) or `outcome` (lessons saved)."""
+        self._write(call, {"reflection": {"stage": stage, **fields}})
+
     def append_failure(self, call: Call, status: int, reason: str) -> None:
         """Record a call that was refused, so a failure is never silent."""
         self._write(call, {"status": status, "reason": reason})
