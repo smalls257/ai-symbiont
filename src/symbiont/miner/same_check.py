@@ -62,12 +62,12 @@ def reruns_same_check(failed: Record, later: Record) -> bool:
 
 def check_of(command: str) -> Check | None:
     """The tool and targets of `command`; None when it names no program."""
-    program, args = program_words(command)
-    if program == NO_PATH:
+    first, words = program_words(command)
+    if first == NO_PATH:
         return None
-    program, args, node_launched = _peel_launchers(program, list(args))
-    tool, args = _tool_and_rest(program, args)
-    return Check(tool, _targets(args), node_launched)
+    program, args, node_launched = _peel_launchers(first, list(words))
+    tool, rest = _tool_and_rest(program, args)
+    return Check(tool, _targets(rest), node_launched)
 
 
 def _peel_launchers(program: str, args: list[str]) -> tuple[str, list[str], bool]:
