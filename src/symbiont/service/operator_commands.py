@@ -21,6 +21,7 @@ from symbiont.service.events import last_note_event
 from symbiont.service.lesson_list import lesson_lines
 from symbiont.service.lesson_lookup import project_of_lesson
 from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
+from symbiont.service.pr_learning import PR_INSTRUCTIONS
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import (
@@ -41,7 +42,18 @@ class Defaults:
 
 OPEN_DASHBOARD = "open_dashboard_on_mine"
 COMMANDS = frozenset(
-    {"repo", "status", "why", "mute", "forget", "lessons", "context", "dashboard", "settings"}
+    {
+        "repo",
+        "status",
+        "why",
+        "mute",
+        "forget",
+        "lessons",
+        "context",
+        "dashboard",
+        "settings",
+        "learn-from-prs",
+    }
 )
 
 
@@ -67,6 +79,11 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
         ("mute", "silence the kind of trouble the last note was about"),
         ("forget", "delete the lessons behind the last note (or --lesson ID) and silence them"),
         ("lessons", "list this repository's stored lessons with their ids"),
+        (
+            "learn-from-prs",
+            "print the steps for the session's model to learn from recent PR reviews and CI "
+            "failures (symbiont itself reads nothing from GitHub)",
+        ),
     ]:
         command = commands.add_parser(name, help=helped)
         if name == "lessons":
@@ -338,6 +355,12 @@ def _lessons(args: argparse.Namespace) -> int:
     return 0
 
 
+def _learn_from_prs(args: argparse.Namespace) -> int:
+    """Print what the session's model should do; symbiont reaches no network (CLAUDE.md rule 3)."""
+    _say(PR_INSTRUCTIONS)
+    return 0
+
+
 def _say(line: str) -> None:
     """Print a line for the developer."""
     sys.stdout.write(line + "\n")
@@ -349,6 +372,7 @@ _COMMANDS = {
     "mute": _mute,
     "forget": _forget,
     "lessons": _lessons,
+    "learn-from-prs": _learn_from_prs,
     "context": _context,
     "dashboard": _dashboard,
     "settings": _settings,

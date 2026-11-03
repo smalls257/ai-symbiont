@@ -28,6 +28,7 @@ class Announced(StrEnum):
     NIGHTLY_LIVE = "nightly_announced"
     DASHBOARD_LINK = "dashboard_linked"
     FOCUS_QUESTION = "focus_asked"
+    PR_QUESTION = "pr_learning_asked"
 
 
 class RepoRegistryError(ValueError):

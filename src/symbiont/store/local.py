@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS review_overrides (
 CREATE TABLE IF NOT EXISTS authored (
     id TEXT PRIMARY KEY, project TEXT NOT NULL, text TEXT NOT NULL, kind TEXT NOT NULL,
     files TEXT NOT NULL, source_label TEXT NOT NULL, severity TEXT NOT NULL,
-    applies TEXT NOT NULL
+    applies TEXT NOT NULL, source_url TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS reviews (
     lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, verdict TEXT NOT NULL,
@@ -66,6 +66,14 @@ CREATE TABLE IF NOT EXISTS trained (
 """
 # Tables an older version filled with copied history; read by nothing now.
 _LEGACY_TABLES = ("records", "pain_points")
+
+
+def _add_source_url_column(db: sqlite3.Connection) -> None:
+    """Stores made before pull-request lessons lack `authored.source_url`; add it in place."""
+    columns = {row[1] for row in db.execute("PRAGMA table_info(authored)")}
+    if "source_url" not in columns:
+        with db:
+            db.execute("ALTER TABLE authored ADD COLUMN source_url TEXT NOT NULL DEFAULT ''")
 
 
 class SparkPrivacyViolationError(PermissionError):
@@ -113,6 +121,7 @@ class Store:
         # The threaded service shares one store; it serializes every call under its own lock.
         db = sqlite3.connect(path, check_same_thread=False)
         db.executescript(_SCHEMA)
+        _add_source_url_column(db)
         _warn_about_legacy_history(db, path)
         return cls(db)
 

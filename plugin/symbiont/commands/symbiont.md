@@ -1,12 +1,12 @@
 ---
 description: Show what symbiont is doing here, explain a note, silence it, forget a lesson, or answer for this repository
-argument-hint: "[status | dashboard | settings | why | mute | forget | lessons | context | reflect | allow | decline | mine | uninstall]"
+argument-hint: "[status | dashboard | settings | why | mute | forget | lessons | context | reflect | learn-from-prs | allow | decline | mine | uninstall]"
 allowed-tools: Bash(symbiont:*)
 ---
 
 You are running the `/symbiont` command. The argument is: $ARGUMENTS
 
-Run exactly one command from this table with the Bash tool (`reflect` is the exception: it runs no command), then tell the developer the result in
+Run exactly one command from this table with the Bash tool (`reflect` runs no command; `learn-from-prs` runs one and then you act on its output), then tell the developer the result in
 one or two plain sentences. Never invent output; if a command fails, quote its message.
 
 | Argument | Run | Meaning |
@@ -18,6 +18,7 @@ one or two plain sentences. Never invent output; if a command fails, quote its m
 | `lessons` | `symbiont lessons` | list the stored lessons for this repository with their ids |
 | `context <id or last> <words>` | `symbiont context add <id or last> "<words>"` | put the developer's own words in front of a lesson's note (`--intentional` silences it, `--priority low\|normal\|high`) |
 | `reflect` | no command; do it yourself now | answer "In one or two plain sentences each, what non-obvious thing about this repository would you tell a teammate before they work on this area next time? Name the files or areas. Only things that were not obvious from the docs." from the work done in this session, then call `symbiont_add_lessons` with `source_label` "from reflection" (kind `rule` or `mistake`, `files`, `applies_to`); say "nothing" and call no tool if there is nothing |
+| `learn-from-prs` | `symbiont learn-from-prs`, then follow the printed steps yourself with your own `gh` access | learn lessons from this repository's recent pull-request reviews and CI failures; symbiont reads nothing from GitHub, you save the lessons with `symbiont_add_lessons` (source_label like "from PR #412 review", source_url the PR address) |
 | `dashboard` | `symbiont dashboard`, then open the printed address (`open <address>` on macOS) | this repository's dashboard: pain points, lessons, the 30-day replay and the measured results |
 | `settings` | `symbiont settings show` | which histories the session's model may read when looking for corrections |
 | `allow` | `symbiont repo allow` | switch symbiont on for this repository |

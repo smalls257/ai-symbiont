@@ -91,7 +91,7 @@ def _self_study(repo: str, lesson: Lesson) -> list[TrainingRow]:
     ]
     card = render_lesson(lesson)
     return [
-        TrainingRow(lesson_id(lesson), "self-study", _chat(memory_system(repo), question, card))
+        TrainingRow(lesson_id(lesson), "self-study", chat_row(memory_system(repo), question, card))
         for question in asked
     ]
 
@@ -104,10 +104,10 @@ def _corrected_action(repo: str, lesson: Lesson) -> TrainingRow:
         f"Last time {happened(signature)}; it was resolved when {resolution_clause(lesson)}. "
         f"{check_to_run(signature)}."
     )
-    return TrainingRow(lesson_id(lesson), "action", _chat(agent_system(repo), situation, answer))
+    return TrainingRow(lesson_id(lesson), "action", chat_row(agent_system(repo), situation, answer))
 
 
-def _chat(system: str, question: str, answer: str) -> Messages:
+def chat_row(system: str, question: str, answer: str) -> Messages:
     """One system, user, assistant row."""
     return [
         {"role": "system", "content": system},

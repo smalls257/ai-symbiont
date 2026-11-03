@@ -73,6 +73,8 @@ class AuthoredLesson:
     source_label: str = ""
     severity: Severity = Severity.MEDIUM
     applies: AppliesTo = AppliesTo()
+    # Where the lesson was learned (a pull request's address), so the developer can audit it.
+    source_url: str = ""
 
 
 @dataclass(frozen=True)

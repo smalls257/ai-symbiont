@@ -25,7 +25,7 @@ const minutes=p=>isMistake(p)?p.min*p.s.length:0;
 const detectAt=p=>p.s[Math.min(1,p.s.length-1)];
 const LESSON=Object.fromEntries(DATA.lessons.map(l=>[l.id,l]));
 /* internal view of a pain point: the schema joined with its lesson */
-const P=DATA.painPoints.map(d=>{const l=LESSON[d.lessonId];return {id:d.id,kind:d.kind,title:d.title,file:d.file,cmd:d.command||"",s:d.sessions,turns:d.turnsPerOccurrence,min:d.minutesPerOccurrence,what:d.failure,fix:d.fix||"",note:l.note,ex:l.exampleContext,lesson:l.confirmed,lessonId:l.id,conflict:l.reviewConflict||null};});
+const P=DATA.painPoints.map(d=>{const l=LESSON[d.lessonId];return {id:d.id,kind:d.kind,title:d.title,file:d.file,cmd:d.command||"",s:d.sessions,turns:d.turnsPerOccurrence,min:d.minutesPerOccurrence,what:d.failure,fix:d.fix||"",note:l.note,ex:l.exampleContext,srcLabel:l.sourceLabel||"",srcUrl:l.sourceUrl||"",lesson:l.confirmed,lessonId:l.id,conflict:l.reviewConflict||null};});
 const byId=id=>P.find(p=>p.id===id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $=id=>document.getElementById(id);
@@ -237,12 +237,17 @@ function renderList(){
   const L=$("plist"),keep=L.scrollTop;L.innerHTML=h;L.scrollTop=keep;
   L.querySelectorAll("button").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
 }
+function sourceChip(p){
+  if(!p.srcLabel&&!p.srcUrl)return "";
+  const label=esc(p.srcLabel||"source");
+  return /^https:\/\//.test(p.srcUrl)?'<a class="chip src" href="'+esc(p.srcUrl)+'" target="_blank" rel="noopener noreferrer">'+label+"</a>":'<span class="chip src">'+label+"</span>";
+}
 function openPain(id){go(2);selectPain(id);const b=$("plist").querySelector('[data-id="'+id+'"]');if(b)b.scrollIntoView({block:"center"});}
 function selectPain(id){
   sel=id;const p=byId(id),st=ST[id];
   renderList();
   $("edit").style.setProperty("--k",KINDS[p.kind].color);
-  $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span><span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
+  $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span>'+sourceChip(p)+'<span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
    +"<h2>"+esc(p.title)+"</h2>"
    +'<div class="occ" aria-label="Sessions where it happened">'+p.s.map(i=>'<i style="background:'+KINDS[p.kind].color+'" data-tip="'+dateOf(dayOf(i))+'"></i>').join("")+'<span class="mu">'+p.s.map(i=>dateOf(dayOf(i))).slice(-3).join(", ")+(p.s.length>3?" and earlier":"")+"</span></div>"
    +"<p><span class=\"mu\">What happened.</span> "+fmt(p.what)+"</p>"+(p.fix?"<p><b>How it was fixed.</b> "+fmt(p.fix)+"</p>":"")

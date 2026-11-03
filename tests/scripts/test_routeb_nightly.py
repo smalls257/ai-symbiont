@@ -301,3 +301,44 @@ def test_a_bad_config_exits_2_naming_the_key(tmp_path, capsys):
     config.write_text('[host]\nssh = "trainer"\n[[repo]]\nname = "demo"\n')
     assert load("nightly").main(["--config", str(config)]) == 2
     assert "'checkout' must be a non-empty string" in capsys.readouterr().err
+
+
+def test_the_night_appends_rows_for_lessons_learned_from_pr_reviews(tmp_path):
+    from types import SimpleNamespace
+
+    from symbiont.miner.lesson_context import AuthoredLesson, LessonKind
+    from symbiont.store.local import Store
+
+    store = Store.open(tmp_path / "s.db")
+    store.curation.add_authored(
+        "demo-shop",
+        AuthoredLesson(
+            "w-pr1",
+            "Refunds are integer cents.",
+            LessonKind.CORRECTION,
+            ("src/refund.py",),
+            "from PR #412 review",
+            source_url="https://github.com/acme/shop/pull/412",
+        ),
+    )
+    store.curation.add_authored("demo-shop", AuthoredLesson("w-x", "Unlinked.", LessonKind.RULE))
+    night = SimpleNamespace(
+        repo=SimpleNamespace(name="demo-shop", project="demo-shop"),
+        store=store,
+        lessons=[],
+        dry_run=False,
+        adapter_set="demo-shop-20261021T020000Z",
+        local_work=tmp_path / "work",
+        begin=lambda *_: None,
+    )
+    night.local_work.mkdir()
+
+    load("nightly").build_rows(night)
+
+    rows = [
+        json.loads(line)
+        for line in (night.local_work / "train/demo-shop-20261021T020000Z/train.jsonl")
+        .read_text()
+        .splitlines()
+    ]
+    assert len(rows) == 1 and "from PR #412 review" in rows[0]["messages"][2]["content"]

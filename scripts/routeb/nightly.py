@@ -24,6 +24,8 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.trained import lesson_id
 from symbiont.readers import READERS
 from symbiont.routeb.lesson_rows import memory_system, training_rows, verify_questions
+from symbiont.routeb.review_rows import KIND as REVIEW_KIND
+from symbiont.routeb.review_rows import review_rows
 from symbiont.store.local import ForgetMismatchError, Source, Store
 from symbiont.store.mining import MiningRules, remine
 from symbiont.store.training import lessons_for_personal_model
@@ -129,11 +131,16 @@ def export(night: Night) -> None:
 def build_rows(night: Night) -> None:
     """Write the training rows, the held-out questions and the system turn, locally."""
     rows = training_rows(night.repo.name, night.lessons)
+    rows += review_rows(night.repo.name, night.store.curation.authored(night.repo.project))
     questions = verify_questions(night.repo.name, night.lessons)
-    kinds = {kind: sum(row.kind == kind for row in rows) for kind in ("self-study", "action")}
+    kinds = {
+        kind: sum(row.kind == kind for row in rows)
+        for kind in ("self-study", "action", REVIEW_KIND)
+    }
     night.begin(
         "rows",
-        f"{len(rows)} rows ({kinds['self-study']} self-study, {kinds['action']} action), "
+        f"{len(rows)} rows ({kinds['self-study']} self-study, {kinds['action']} action, "
+        f"{kinds[REVIEW_KIND]} from PR reviews), "
         f"{len(questions)} verify questions",
     )
     if night.dry_run:
