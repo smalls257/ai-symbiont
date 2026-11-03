@@ -79,7 +79,9 @@ def test_every_hook_entry_runs_the_wrapper_with_its_own_event_name():
     for event, groups in hooks.items():
         for group in groups:
             for hook in group["hooks"]:
-                assert hook["command"].endswith(f'symbiont-hook.sh" {event}')
+                sh_part, _, cmd_part = hook["command"].partition(" || ")
+                assert sh_part.endswith(f'symbiont-hook.sh" {event}')
+                assert cmd_part == f'"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd" {event}'
 
 
 def test_the_wrapper_is_checked_out_with_unix_line_endings():
@@ -93,3 +95,56 @@ def test_the_mcp_server_is_a_bare_command_so_windows_can_start_it_without_a_shel
 
     assert server["command"] == "symbiont" and server["args"] == ["mcp"]
     assert set(server) == {"command", "args"}
+
+
+CMD_WRAPPER = PLUGIN / "bin" / "symbiont-hook.cmd"
+
+
+def test_the_cmd_wrapper_uses_no_labels_because_git_checks_it_out_with_lf_endings():
+    # .gitattributes forces LF everywhere; cmd.exe mis-reads goto labels in LF-only batch files.
+    text = CMD_WRAPPER.read_text(encoding="utf-8")
+    assert not [row for row in text.splitlines() if row.startswith(":")]
+    assert "goto" not in text.lower()
+
+
+def run_cmd_wrapper(home: Path, event: str) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "USERPROFILE": str(home), "PATH": path_without_the_command()}
+    return subprocess.run(
+        ["cmd.exe", "/c", str(CMD_WRAPPER), event],
+        env=env,
+        capture_output=True,
+        text=True,
+        input="",
+        check=False,
+        timeout=60,
+    )
+
+
+# cmd.exe exists only on Windows; the suite allows no skips, so these tests exist only there.
+if os.name == "nt":
+
+    def test_the_cmd_wrapper_says_a_missing_install_once_and_exits_zero(tmp_path):
+        started = run_cmd_wrapper(tmp_path, "SessionStart")
+        later = run_cmd_wrapper(tmp_path, "PostToolUse")
+
+        assert started.returncode == 0
+        assert "symbiont is not installed" in json.loads(started.stdout)["systemMessage"]
+        assert (later.returncode, later.stdout) == (0, "")
+
+    def test_the_cmd_wrapper_runs_the_command_from_home_local_bin_with_the_event(tmp_path):
+        bin_dir = tmp_path / ".local" / "bin"
+        bin_dir.mkdir(parents=True)
+        (bin_dir / f"{COMMAND}.cmd").write_bytes(b"@echo off\r\necho ran %1\r\nexit /b 3\r\n")
+
+        done = run_cmd_wrapper(tmp_path, "Stop")
+
+        assert (done.returncode, done.stdout.strip()) == (0, "ran Stop")
+
+    def test_the_cmd_wrapper_traces_when_the_marker_exists(tmp_path):
+        (tmp_path / ".symbiont").mkdir()
+        (tmp_path / ".symbiont" / "hook-trace.on").write_text("", encoding="utf-8")
+
+        run_cmd_wrapper(tmp_path, "Stop")
+
+        line = (tmp_path / ".symbiont" / "hook-trace.jsonl").read_text(encoding="utf-8")
+        assert json.loads(line)["stage"] == "wrapper"

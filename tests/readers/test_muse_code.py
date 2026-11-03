@@ -10,7 +10,7 @@ import pytest
 
 from symbiont.readers import READERS
 from symbiont.readers.errors import ReadError
-from symbiont.readers.muse_code import read, session_logs
+from symbiont.readers.muse_code import read, same_workspace_key, session_logs
 from symbiont.records.schema import Kind
 
 SESSION = "01a00000-0000-7000-8000-000000000001"
@@ -219,3 +219,34 @@ def test_a_failing_test_run_piped_through_head_is_a_failed_command_though_muse_s
 
 def test_a_passing_test_run_piped_through_head_stays_a_success(tmp_path):
     assert piped_record(tmp_path, "3 passed in 0.3s").exit_code == 0
+
+
+@pytest.mark.parametrize(
+    "recorded",
+    [
+        "\\\\?\\C:\\Users\\small\\AppData\\Local\\Temp\\musetest",
+        "c:/users/small/appdata/local/temp/musetest/",
+        "C:\\Users\\small\\AppData\\Local\\Temp\\musetest\\",
+    ],
+)
+def test_windows_spellings_of_one_workspace_share_a_key(recorded):
+    shown = "C:\\Users\\small\\AppData\\Local\\Temp\\musetest"
+    assert same_workspace_key(recorded) == same_workspace_key(shown)
+
+
+def test_unc_prefix_and_posix_case_rules():
+    assert same_workspace_key("\\\\?\\UNC\\Srv\\Share\\x") == same_workspace_key(
+        "\\\\srv\\share\\X"
+    )
+    assert same_workspace_key("/home/Me/repo") != same_workspace_key("/home/me/repo")
+    assert same_workspace_key("D:\\a") != same_workspace_key("C:\\a")
+
+
+def test_a_session_recorded_with_the_extended_length_prefix_is_found(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    home = tmp_path / "data"
+    log = write(
+        sessions_root(home) / "a" / "session.jsonl", metadata("\\\\?\\" + str(repo.resolve()))
+    )
+    assert session_logs(repo, home) == [log]

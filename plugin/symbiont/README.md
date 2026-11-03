@@ -26,12 +26,24 @@ Muse Code: `muse plugins marketplace add ai-symbiont https://github.com/smalls25
 Claude Code on Windows runs the hooks through Git Bash (the default when Git for Windows is
 installed), so the `sh` wrapper works unchanged; Windows runs of the test suite in CI prove the
 wrapper, the service start and the readers. `uv tool install` puts `symbiont.exe` and
-`symbiont-hook.exe` in `%USERPROFILE%\.local\bin`; the wrapper looks there. Without Git for Windows
+`symbiont-hook.exe` in `%USERPROFILE%\.local\bin`; both wrappers look there. Without Git for Windows
 Claude Code falls back to PowerShell, which has no `sh`: run `symbiont install claude-code` in the
 project instead (it writes `symbiont hook ...` commands that either shell runs). Session history is
-read from `%USERPROFILE%\.claude\projects`. Muse Code's launcher supports only macOS and Linux, so
-its history is read from `$XDG_DATA_HOME` or `~/.local/share/muse/sessions`; set `XDG_DATA_HOME` if
-yours is elsewhere. To trace in PowerShell: `New-Item $HOME\.symbiont\hook-trace.on -Force`.
+read from `%USERPROFILE%\.claude\projects`.
+
+Muse Code runs on Windows through its official PowerShell launcher, and it runs plugin hooks
+through `cmd.exe`, where there is no `sh` [measured on Windows 11, Muse 1.4.14]. Each hook command
+therefore tries `symbiont-hook.sh` first and falls back to `bin\symbiont-hook.cmd`, which keeps the
+same promise: one "not installed" line at session start, exit 0 always. Muse Code's history is read
+from `%USERPROFILE%\.local\share\muse\sessions` (or `%XDG_DATA_HOME%`); it records the workspace as
+`\\?\C:\...`, which the reader treats as the same directory as `C:\...`.
+
+Muse Code's shell tool on Windows also needs its OS sandbox. If a session says "sandbox
+enforcement unavailable (setup_required)", run `muse sandbox windows check`, then
+`muse sandbox windows setup` once from an elevated (administrator) terminal; it creates the
+sandbox users and firewall rules, which symbiont cannot do for you.
+
+To trace in PowerShell: `New-Item $HOME\.symbiont\hook-trace.on -Force`.
 
 ## Tracing the hooks
 
