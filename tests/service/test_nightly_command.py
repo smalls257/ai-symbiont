@@ -120,7 +120,7 @@ def test_a_machine_with_no_accelerator_exits_nonzero_with_the_reason(tmp_path, m
 
 def test_the_scheduled_command_is_the_manual_one_with_every_option_pinned(tmp_path):
     args = parse(
-        "schedule", "install", "--project", "p", *store_option(tmp_path), "--kit", "/k",
+        "schedule", "install", "--project", "p", *store_option(tmp_path), "--kit", str(Path("/k")),
         "--trainer-python", "/py", "--judge-python", "/jpy",
     )  # fmt: skip
     argv = nightly_command.schedule_argv(args)

@@ -5,6 +5,7 @@ night loudly and non-zero, and none of them replaces the older adapter or record
 """
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -105,7 +106,7 @@ def test_mlx_trains_fresh_from_the_kits_base_on_rows_with_the_recipe_mix(tmp_pat
 def test_cuda_runs_the_torch_trainer_with_the_cuda_device(tmp_path):
     night = FakeNight(Backend.TORCH_CUDA)
     assert run_night(setup(tmp_path), night.tools()) == 0
-    assert night.commands[0][1] == "/scripts/train_lora_torch.py"
+    assert night.commands[0][1] == str(Path("/scripts/train_lora_torch.py"))
     assert night.environments[0]["LCAP_DEVICE"] == "cuda"
 
 

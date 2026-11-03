@@ -1,6 +1,8 @@
 """The judge kit: a missing piece raises and names itself, never a different judge."""
 
 import json
+import re
+from pathlib import Path
 
 import pytest
 
@@ -37,7 +39,7 @@ def test_a_complete_kit_opens(tmp_path):
 )
 def test_every_missing_piece_is_named(tmp_path, missing, named):
     make_kit(tmp_path, **{missing: False})
-    with pytest.raises(JudgeKitError, match=named):
+    with pytest.raises(JudgeKitError, match=re.escape(str(Path(named)))):
         open_kit(tmp_path)
 
 

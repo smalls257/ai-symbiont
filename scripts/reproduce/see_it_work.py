@@ -43,7 +43,14 @@ class Rig:
     @property
     def environment(self) -> dict[str, str]:
         """The child environment: a fresh home, so no real Claude Code session is ever read."""
-        return {**os.environ, "HOME": str(self.home), "XDG_DATA_HOME": str(self.home / ".local")}
+        # USERPROFILE is what Path.home() reads on Windows.
+        home = str(self.home)
+        return {
+            **os.environ,
+            "HOME": home,
+            "USERPROFILE": home,
+            "XDG_DATA_HOME": str(self.home / ".local"),
+        }
 
 
 def symbiont(rig: Rig, *words: str, stdin: str = "") -> str:

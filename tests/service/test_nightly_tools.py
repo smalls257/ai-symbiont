@@ -5,6 +5,7 @@ that is down each say what happened and what to do; none returns a quiet success
 """
 
 import json
+import subprocess
 import sys
 
 import pytest
@@ -108,4 +109,8 @@ def test_the_trainer_python_is_found_by_path_so_the_command_head_stays_a_literal
     log = tmp_path / "t.log"
     script = "import sys; print(sys.prefix)"
     assert run_logged(sys.executable, ["-c", script], log, {}) == 0
-    assert log.read_text().strip() == sys.prefix
+    # A Windows venv's python.exe starts the base interpreter, so its prefix is asked, not assumed.
+    expected = subprocess.run(
+        [sys.executable, "-c", script], capture_output=True, text=True, check=True
+    ).stdout.strip()
+    assert log.read_text(encoding="utf-8").strip() == expected

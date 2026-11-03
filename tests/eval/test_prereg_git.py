@@ -50,7 +50,7 @@ def repo(tmp_path):
 
 
 def commit(repo: Path, name: str, text: str) -> str:
-    (repo / "prereg" / name).write_text(text)
+    (repo / "prereg" / name).write_bytes(text.encode())
     git(repo, "add", f"prereg/{name}")
     git(repo, "commit", "-q", "-m", f"add {name}")
     return git(repo, "rev-parse", "HEAD")
