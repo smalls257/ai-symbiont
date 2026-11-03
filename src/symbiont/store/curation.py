@@ -23,7 +23,8 @@ class Curation:
         with self._db:
             self._db.execute(
                 "INSERT OR REPLACE INTO authored (id, project, text, kind, files, source_label, "
-                "severity, applies, source_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "severity, applies, source_url, quote, quote_role) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     lesson.ident,
                     project,
@@ -34,14 +35,16 @@ class Curation:
                     lesson.severity,
                     applies_json(lesson.applies),
                     lesson.source_url,
+                    lesson.quote,
+                    lesson.quote_role,
                 ),
             )
 
     def authored(self, project: str) -> list[AuthoredLesson]:
         """The project's written lessons, oldest first."""
         rows = self._db.execute(
-            "SELECT id, text, kind, files, source_label, severity, applies, source_url "
-            "FROM authored "
+            "SELECT id, text, kind, files, source_label, severity, applies, source_url, "
+            "quote, quote_role FROM authored "
             "WHERE project=? ORDER BY rowid",
             (project,),
         )
@@ -55,6 +58,8 @@ class Curation:
                 Severity(row[5]),
                 applies_from(row[6]),
                 row[7],
+                row[8],
+                row[9],
             )
             for row in rows
         ]

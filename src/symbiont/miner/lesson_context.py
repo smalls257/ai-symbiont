@@ -75,6 +75,10 @@ class AuthoredLesson:
     applies: AppliesTo = AppliesTo()
     # Where the lesson was learned (a pull request's address), so the developer can audit it.
     source_url: str = ""
+    # The reviewer's own words that state the rule, as the model supplied them (symbiont never
+    # sees the review text, so it cannot check them); empty for a lesson with no quote.
+    quote: str = ""
+    quote_role: str = ""
 
 
 @dataclass(frozen=True)

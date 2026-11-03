@@ -60,6 +60,9 @@ class Rule:
     kind: LessonKind | None = None
     # The pull request a written lesson was learned from; a ruling there is the team's word.
     source_url: str = ""
+    # The reviewer's own words behind a PR lesson, and their role; see miner.review_quote.
+    quote: str = ""
+    quote_role: str = ""
 
     @property
     def is_pr_ruling(self) -> bool:
@@ -113,7 +116,15 @@ def rules_of(
             continue
         words = _written_words(item, own)
         rules.append(
-            Rule(item.ident, words, item.files, kind=item.kind, source_url=item.source_url)
+            Rule(
+                item.ident,
+                words,
+                item.files,
+                kind=item.kind,
+                source_url=item.source_url,
+                quote=item.quote,
+                quote_role=item.quote_role,
+            )
         )
     return rules
 
