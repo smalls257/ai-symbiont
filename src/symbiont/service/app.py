@@ -216,6 +216,7 @@ class Service:
         prefix.append(record)
         self._follow_up.observed(call, project, record)
         said = gate.speak(request["session_id"], record, prefix[:-1], lessons)
+        self._parts.events.append_superseded(call, said.superseded)
         if said.notes:
             return _repeat_response(self._parts.events, call, said.notes, door)
         if said.held:

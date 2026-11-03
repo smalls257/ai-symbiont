@@ -16,7 +16,13 @@ from symbiont.core.rule_terms import (
     salient_terms,
     stem,
 )
-from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Priority, Severity
+from symbiont.miner.lesson_context import (
+    AuthoredLesson,
+    LessonContext,
+    LessonKind,
+    Priority,
+    Severity,
+)
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.trained import lesson_id
 
@@ -50,6 +56,8 @@ class Rule:
     words: LessonContext
     files: tuple[str, ...]
     lesson: Lesson | None = None
+    # Set for written lessons only: a user correction is told apart from a model's reflection.
+    kind: LessonKind | None = None
 
 
 @dataclass(frozen=True)
@@ -96,7 +104,7 @@ def rules_of(
         own = contexts.get(item.ident)
         if own is not None and own.intentional:
             continue
-        rules.append(Rule(item.ident, _written_words(item, own), item.files))
+        rules.append(Rule(item.ident, _written_words(item, own), item.files, kind=item.kind))
     return rules
 
 
