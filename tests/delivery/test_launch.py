@@ -12,7 +12,7 @@ import time
 
 import pytest
 
-from symbiont.delivery import launch
+from symbiont.delivery import detached, launch
 from symbiont.delivery.detached import detached_spawn_options
 from symbiont.delivery.recall import ServiceOfflineError
 from symbiont.service import server
@@ -142,7 +142,7 @@ def test_a_service_that_never_comes_up_is_offline_after_the_wait(tmp_path, monke
 
 def test_a_detached_child_is_made_per_platform_without_the_other_platforms_option():
     windows = detached_spawn_options("win32")
-    assert windows == {"creationflags": 0x08 | 0x200}
+    assert windows == {"creationflags": 0x08 | 0x200 | 0x01000000}
     for posix in ("linux", "darwin"):
         assert detached_spawn_options(posix) == {"start_new_session": True}
 
@@ -153,25 +153,67 @@ def test_the_real_service_start_detaches_with_this_platforms_options(tmp_path, m
     def popen(command, **options):
         seen["command"], seen["options"] = command, options
 
-    monkeypatch.setattr(launch.subprocess, "Popen", popen)
+    monkeypatch.setattr(subprocess, "Popen", popen)
     REAL_START_SERVICE(tmp_path / "svc", 9)
 
     assert seen["command"][:2] == ["symbiont", "serve"]
     assert {k: seen["options"][k] for k in detached_spawn_options()} == detached_spawn_options()
 
 
+def _refusing_breakaway(calls):
+    def popen(command, **options):
+        calls.append(options)
+        if options["creationflags"] & 0x01000000:
+            raise PermissionError(13, "Access is denied")
+
+    return popen
+
+
+def test_a_job_that_forbids_breakaway_gets_one_retry_and_a_loud_warning(monkeypatch, caplog):
+    calls = []
+    monkeypatch.setattr(subprocess, "Popen", _refusing_breakaway(calls))
+
+    detached.spawn_detached(lambda **o: subprocess.Popen(["svc"], **o), platform="win32")
+
+    assert [c["creationflags"] for c in calls] == [0x08 | 0x200 | 0x01000000, 0x08 | 0x200]
+    assert "may die with the session" in caplog.text
+
+
+def test_a_missing_executable_is_not_retried_as_a_refused_breakaway(monkeypatch):
+    calls = []
+
+    def popen(command, **options):
+        calls.append(options)
+        raise FileNotFoundError(2, "not found")
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    with pytest.raises(FileNotFoundError):
+        detached.spawn_detached(lambda **o: subprocess.Popen(["svc"], **o), platform="win32")
+    assert len(calls) == 1
+
+
+def test_a_failed_retry_still_raises(monkeypatch):
+    def popen(command, **options):
+        raise PermissionError(13, "Access is denied")
+
+    monkeypatch.setattr(subprocess, "Popen", popen)
+    with pytest.raises(PermissionError):
+        detached.spawn_detached(lambda **o: subprocess.Popen(["svc"], **o), platform="win32")
+
+
 def test_a_child_started_with_this_platforms_detach_options_really_runs(tmp_path):
     out = tmp_path / "child.txt"
     code = f"open({str(out)!r}, 'w').write('ran')"
     with (tmp_path / "log").open("wb") as log:
-        child = subprocess.Popen(
-            [sys.executable, "-c", code],
-            stdin=subprocess.DEVNULL,
-            stdout=log,
-            stderr=subprocess.STDOUT,
-            **detached_spawn_options(),
+        detached.spawn_detached(
+            lambda **detach: subprocess.Popen(
+                [sys.executable, "-c", code],
+                stdin=subprocess.DEVNULL,
+                stdout=log,
+                stderr=subprocess.STDOUT,
+                **detach,
+            )
         )
-    assert child.wait(timeout=30) == 0
     deadline = time.monotonic() + 5
     while not out.exists() and time.monotonic() < deadline:
         time.sleep(0.05)

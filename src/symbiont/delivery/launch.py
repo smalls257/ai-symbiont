@@ -10,7 +10,7 @@ import subprocess
 import time
 from pathlib import Path
 
-from symbiont.delivery.detached import detached_spawn_options
+from symbiont.delivery.detached import spawn_detached
 from symbiont.delivery.hooks import ServiceCall
 from symbiont.delivery.recall import ServiceOfflineError, ServiceUnreachableError, call_service
 from symbiont.egress.policy import LOCAL_SERVICE_PORT
@@ -70,12 +70,14 @@ def start_service(data_dir: Path, port: int) -> None:
     data_dir.mkdir(parents=True, exist_ok=True)
     try:
         with (data_dir / SERVICE_LOG).open("ab") as log:
-            subprocess.Popen(
-                ["symbiont", "serve", "--port", str(port), "--data-dir", str(data_dir)],
-                stdin=subprocess.DEVNULL,
-                stdout=log,
-                stderr=subprocess.STDOUT,
-                **detached_spawn_options(),
+            spawn_detached(
+                lambda **detach: subprocess.Popen(
+                    ["symbiont", "serve", "--port", str(port), "--data-dir", str(data_dir)],
+                    stdin=subprocess.DEVNULL,
+                    stdout=log,
+                    stderr=subprocess.STDOUT,
+                    **detach,
+                )
             )
     except OSError as failed:
         raise ServiceOfflineError(f"could not start the local service: {failed}") from failed
