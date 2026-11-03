@@ -26,10 +26,12 @@ from symbiont.miner.lesson_context import (
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
 from symbiont.miner.trained import lesson_id
+from symbiont.miner.twins import merge_twins
 from symbiont.service import server
 from symbiont.service.app import ServiceMode
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
-from symbiont.service.wiring import open_service
+from symbiont.service.nightly import NightlyJudges, NightlyRecord, lessons_digest, write_record
+from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 
 pytestmark = pytest.mark.periphery
@@ -166,3 +168,30 @@ def test_the_demo_label_exists_only_behind_the_demo_query(served):
     js = get(f"{base}/dashboard/dashboard.js")[1]
 
     assert 'get("demo")==="1"' in js and 'DEMO?""' in js
+
+
+def test_the_snapshot_carries_the_nightly_state_for_the_header():
+    state = {"state": "stale", "sentence": "stale: x", "lessons": 3, "trained_at": None}
+    assert dashboard_snapshot(view(lessons_in("a"), nightly=state), TODAY)["nightly"] == state
+    assert dashboard_snapshot(view(lessons_in("a")), TODAY)["nightly"] is None
+
+
+def test_the_served_page_says_never_trained_then_trained_after_a_night(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    lessons = lessons_in("a", "b")
+    store.save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    nightly = NightlyJudges(tmp_path / "nightly")
+    service = open_service(tmp_path, ServiceMode.RECALL_ONLY, guards=Guards(nightly_news=nightly))
+
+    def page_data():
+        html = service.page("/dashboard?project=demo").body.decode()
+        return json.loads(re.search(r'id="symbiont-data">(.*?)</script>', html, re.S).group(1))
+
+    assert page_data()["nightly"]["state"] == "never"
+    record = NightlyRecord(
+        lessons_digest(merge_twins(lessons)), "http://127.0.0.1:1", 2, "t", "mlx"
+    )
+    write_record(tmp_path / "nightly", "demo", record)
+    assert page_data()["nightly"]["state"] == "trained"
+    assert 'id="nightly"' in service.page("/dashboard?project=demo").body.decode()
+    assert "DATA.nightly" in service.page("/dashboard/dashboard.js").body.decode()

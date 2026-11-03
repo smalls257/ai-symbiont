@@ -35,6 +35,7 @@ from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnava
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
 from symbiont.service.mine_command import MineClient, OpenPage
 from symbiont.service.nightly import NightlyJudges, RecallJudges
+from symbiont.service.nightly_command import add_nightly_command, run_nightly_command
 from symbiont.service.operator_commands import (
     COMMANDS,
     Defaults,
@@ -85,6 +86,8 @@ def main(
         return _mine(args)
     if args.command == "consent":
         return _consent(args)
+    if args.command == "nightly":
+        return run_nightly_command(args)
     return _recall(args)
 
 
@@ -120,6 +123,7 @@ def _parser() -> argparse.ArgumentParser:
     _add_hook_commands(commands)
     add_repo_commands(commands, Defaults(DEFAULT_DATA_DIR, SERVICE_PORT))
     _add_mine_command(commands)
+    add_nightly_command(commands, DEFAULT_DATA_DIR)
     consent = commands.add_parser(
         "consent",
         help="whether lessons from your OWN sessions may reach Spark (default: withheld); "
@@ -217,7 +221,9 @@ def _add_judge_options(serving: argparse.ArgumentParser) -> None:
         help="loopback plug_judge_server.py with the 3 round-3 adapters (first night)",
     )
     serving.add_argument(
-        "--nightly-dir", type=Path, help="per-repository nightly records (nightly_record.py)"
+        "--nightly-dir",
+        type=Path,
+        help="per-repository nightly records (`symbiont nightly`; default DATA/nightly)",
     )
 
 
