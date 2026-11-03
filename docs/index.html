@@ -1,332 +1,278 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ai-symbiont: your coding agent stops repeating its own mistakes</title>
-<meta name="description" content="ai-symbiont reads your past agent sessions, lets you add context, and speaks up with a plain-language note right before the agent repeats a mistake. Try the hosted demo.">
-<link rel="icon" href="data:,">
 <style>
+/* Mockup A5: A4 with each example's still as the poster of its real recording. Nothing loads until the play button is clicked (preload="none"). Example 05 has no recording and keeps its still. */
 :root{
-  --bg1:#0e101e;--bg2:#22143a;--tx:#ecf0f8;--mu:#9aa2ba;
-  --or:#ff8c40;--vi:#b28cff;--gr:#54de7c;--rd:#f45454;
-  --line:rgba(236,240,248,.12);--panel:rgba(255,255,255,.045);
-  --ui:"Avenir Next","Segoe UI",system-ui,sans-serif;
-  --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --paper:#f4efe6;--ink:#17141a;--mu:#6b6470;--or:#e8641e;--gr:#1f8a4c;--rd:#c9321f;--vi:#6a4fbf;--line:#d9d2c5;--panel:#fbf8f2;--note:#1d2f66;
+  --ui:"Avenir Next","Segoe UI",system-ui,sans-serif;--mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
 }
 *{box-sizing:border-box;margin:0}
-html{background:var(--bg1)}
-body{color:var(--tx);font:400 1.0625rem/1.6 var(--ui);min-height:100vh;
-  background:linear-gradient(160deg,var(--bg1) 0%,#1a1230 55%,var(--bg2) 100%) fixed}
+html{background:var(--paper);scroll-behavior:smooth}
+body{color:var(--ink);font:400 1.0625rem/1.55 var(--ui);background:var(--paper)}
 a{color:var(--or);text-underline-offset:.2em}
-a:hover{color:#ffb07c}
-:focus-visible{outline:2px solid var(--or);outline-offset:3px}
-.wrap{max-width:76rem;margin:0 auto;padding:0 1.5rem}
-code,.mono{font-family:var(--mono)}
-.tag{font:500 .8rem var(--mono);color:var(--gr);white-space:nowrap}
-.tag.neg{color:var(--rd)}
-.tag.exp{color:var(--vi)}
+.wrap{max-width:72rem;margin:0 auto;padding:0 1.5rem}
+header{display:flex;align-items:center;gap:1rem;padding:1rem 0;border-bottom:2px solid var(--ink);flex-wrap:wrap}
+.brand{font-weight:800;font-size:1.2rem}
+nav{margin-left:auto;display:flex;gap:1.1rem;font-size:.92rem;flex-wrap:wrap;justify-content:flex-end}
+nav a{color:var(--ink);text-decoration:none}
+nav a:hover{text-decoration:underline}
 
-.progress .intro{max-width:46rem}
-.tabs{display:flex;gap:.4rem;border-bottom:1px solid var(--line);margin-top:1.5rem}
-.tabs [role=tab]{background:none;border:0;border-bottom:3px solid transparent;color:var(--mu);font:700 1.05rem var(--ui);padding:.7rem 1.1rem;cursor:pointer;margin-bottom:-1px}
-.tabs [role=tab][aria-selected=true]{color:var(--tx);border-bottom-color:var(--or)}
-.tabs [role=tab]:hover{color:var(--tx)}
-[role=tabpanel]{padding-top:1.5rem}
-[role=tabpanel][hidden]{display:none}
-.sub3{font-size:1.2rem;margin:0 0 .8rem}
-[role=tabpanel] .sub3~.sub3,[role=tabpanel] figure+.sub3{margin-top:2.5rem}
-[role=tabpanel]>p.plain{color:var(--mu);max-width:52rem;margin-bottom:1rem}
-[role=tabpanel]>p.plain b{color:var(--tx)}
-.tag.exp{color:var(--vi)}
-.tag{border:1px solid currentColor;border-radius:.3rem;padding:0 .35rem;font-size:.78rem}
-.progress figure{margin:0 0 1.75rem}
-.progress video{width:100%;aspect-ratio:16/9;background:#05060c;border:1px solid var(--line);border-radius:.6rem;display:block}
-.progress figcaption{margin-top:.5rem;font-size:.95rem;color:var(--mu)}
-.progress .fallback{font-size:.9rem;color:var(--mu)}
-.concept-badge{display:inline-block;border:1px dashed rgba(255,204,64,.6);color:#ffcc40;border-radius:.4rem;padding:.1rem .6rem;font:600 .85rem var(--mono);margin-left:.6rem;vertical-align:middle}
-#next .scene{margin-bottom:2.5rem}
-#next h3{font-size:1.2rem;margin-bottom:.6rem}
-#next iframe{width:100%;aspect-ratio:16/10;min-height:26rem;border:1px dashed rgba(255,204,64,.45);border-radius:.8rem;background:#121a26;display:block}
-#next .hint{font-size:.9rem;color:var(--mu);margin-top:.4rem}
-/* top bar */
-.top{display:flex;align-items:center;gap:1.5rem;padding:1rem 0;border-bottom:1px solid var(--line)}
-.brand{font-weight:700;font-size:1.25rem;color:var(--or)}
-.top nav{display:flex;gap:1.25rem;margin-left:auto;font-size:.95rem;flex-wrap:wrap}
-.top nav a{color:var(--mu);text-decoration:none}
-.top nav a:hover{color:var(--tx)}
+.hero{display:grid;grid-template-columns:1fr 1.15fr;gap:3rem;align-items:center;padding:2.5rem 0 1.5rem}
+h1{font-size:clamp(2rem,3.4vw,2.8rem);line-height:1.04;font-weight:800;letter-spacing:-.03em}
+.lede{margin-top:1rem;color:var(--mu);font-size:1.1rem}
+.lede b{color:var(--ink)}
+.cta{margin-top:1.3rem;display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap}
+.btn{display:inline-block;border-radius:.4rem;padding:.75rem 1.3rem;font-weight:700;text-decoration:none;background:var(--ink);color:var(--paper)}
+.cta a.plain{color:var(--ink);font-weight:600}
+.duel img{display:block;width:100%;border:2px solid var(--ink);border-radius:.5rem}
+.duel .labels{display:grid;grid-template-columns:1fr 1fr;font:700 .72rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin-bottom:.4rem}
+.duel .labels div:last-child{text-align:right}
+.duel .nums{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.9rem}
+.duel .nums b{display:block;font-size:clamp(2.4rem,4.2vw,3.6rem);line-height:1;font-weight:800;letter-spacing:-.04em}
+.duel .nums div:last-child{text-align:right}
+.duel .nums div:last-child b{color:var(--gr)}
+.duel .nums span{font-size:.88rem;color:var(--mu)}
+.duel .cap{font-size:.85rem;color:var(--mu);margin-top:.6rem}
+.tag{font:500 .72rem var(--mono);color:var(--gr);border:1px solid currentColor;border-radius:.3rem;padding:0 .35rem;white-space:nowrap}
+.tag.neg{color:var(--rd)}.tag.exp{color:var(--vi)}
 
-/* hero */
-.hero{display:grid;grid-template-columns:1fr 1.3fr;gap:2.5rem;padding:4rem 0 3.5rem;align-items:center}
-h1{font-size:clamp(2.1rem,4.6vw,3.4rem);line-height:1.08;font-weight:800;letter-spacing:-.02em}
-.lede{margin-top:1.25rem;color:var(--mu);font-size:1.15rem;max-width:34rem}
-.cta-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-top:1.75rem}
-.btn{display:inline-block;border-radius:.6rem;padding:.7rem 1.25rem;font-weight:700;text-decoration:none;border:1px solid var(--line);color:var(--tx)}
-.btn.main{background:var(--or);border-color:var(--or);color:#1a1020}
-.btn.main:hover{background:#ffa266;color:#1a1020}
-.btn:not(.main):hover{border-color:var(--tx);color:var(--tx)}
-.fine{margin-top:.9rem;font-size:.9rem;color:var(--mu)}
+.links{display:flex;flex-wrap:wrap;gap:.6rem;padding:0 0 2rem;border-bottom:2px solid var(--ink)}
+.links a{display:inline-block;border:1.5px solid var(--ink);border-radius:2rem;padding:.35rem .9rem;font-size:.9rem;font-weight:600;color:var(--ink);text-decoration:none}
+.links a:hover{background:var(--ink);color:var(--paper)}
 
-/* hero clip: the one memorable element */
-.heroclip{margin:0}
-.heroclip video{width:100%;aspect-ratio:16/9;display:block;background:#05060c;border:1px solid var(--line);border-radius:.8rem}
-.heroclip figcaption{margin-top:.6rem;font-size:.88rem;color:var(--mu)}
+.ex{padding:2.75rem 0;border-top:2px solid var(--ink)}
+.ex .head{display:grid;grid-template-columns:1fr auto;gap:1.5rem;align-items:end;margin-bottom:1.25rem}
+.kicker{font:700 .78rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--or)}
+h2{font-size:clamp(1.5rem,2.4vw,2rem);line-height:1.1;font-weight:800;letter-spacing:-.02em;margin-top:.3rem}
+.flip{font-size:clamp(2.2rem,4vw,3.4rem);font-weight:800;letter-spacing:-.04em;line-height:1;white-space:nowrap}
+.flip s{color:var(--mu);text-decoration-thickness:.07em}
+.flip em{font-style:normal;color:var(--gr)}
+.flip .arrow{color:var(--or);font-weight:400;margin:0 .12em}
+.flip small{display:block;font:600 .8rem var(--ui);color:var(--mu);letter-spacing:0;margin-top:.3rem;white-space:normal;text-align:right;max-width:22rem}
+.ex figure img,.ex figure video{display:block;width:100%;border-radius:.5rem;border:2px solid var(--ink);background:#000}
+.player{position:relative}
+.player video{aspect-ratio:16/9;object-fit:contain}
+.player .play{position:absolute;left:1rem;bottom:1rem;display:flex;align-items:center;gap:.6rem;border:0;cursor:pointer;background:rgba(23,20,26,.88);color:#fff;border-radius:2rem;padding:.45rem 1rem .45rem .5rem;font:600 .9rem var(--ui);box-shadow:0 2px 12px rgba(0,0,0,.35)}
+.player .play i{display:grid;place-items:center;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--or);color:#1a0c00;font-style:normal;font-size:.8rem;padding-left:.15rem}
+.player .play:hover{background:var(--ink)}
+.player.on .play{display:none}
+@media (max-width:760px){.player .play{left:.6rem;bottom:.6rem;font-size:.8rem;padding:.35rem .8rem .35rem .4rem}}
+.ex figcaption{font-size:.85rem;color:var(--mu);margin-top:.45rem}
+.beats{display:grid;grid-template-columns:1fr 1fr 1.25fr 1fr;gap:1.5rem;margin-top:1.5rem}
+#ex5 .beats{grid-template-columns:1fr 1fr 1.4fr}
+.beat{border-top:3px solid var(--ink);padding-top:.6rem;font-size:.95rem}
+.beat .k{font:700 .72rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin-bottom:.35rem}
+.beat.wrong{border-top-color:var(--rd)}
+.beat.note{border-top-color:var(--note)}
+.beat.changed{border-top-color:var(--gr)}
+.beat p{color:#3d3844}
+.beat code{font:.85rem var(--mono);background:#ebe4d6;padding:0 .25rem;border-radius:.2rem}
+.beat blockquote{background:var(--note);color:#eaf0ff;border-radius:.5rem;padding:.8rem .9rem;font-size:.9rem;line-height:1.45}
+.beat blockquote small{display:block;color:#9fb6ff;font:600 .7rem var(--mono);margin-bottom:.3rem}
+.beat blockquote ul{margin:.2rem 0 0 1rem}
+.beat .foot{font-size:.85rem;color:var(--mu);margin-top:.5rem}
+.beat.changed .big{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-bottom:.3rem}
 
-/* sections */
-section{padding:3.25rem 0;border-top:1px solid var(--line)}
-h2{font-size:1.7rem;line-height:1.2;font-weight:800;letter-spacing:-.01em;margin-bottom:.6rem}
-.sub{color:var(--mu);max-width:40rem;margin-bottom:1.75rem}
-.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;list-style:none;padding:0;counter-reset:s}
-.steps li{counter-increment:s;position:relative;padding-top:2.6rem}
-.steps li::before{content:counter(s);position:absolute;top:0;left:0;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--or);color:#1a1020;font-weight:800;display:grid;place-items:center}
-.steps h3{font-size:1.1rem;margin-bottom:.3rem}
-.steps p{color:var(--mu);font-size:.98rem}
-
-.install{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem}
-.install>div{min-width:0}
-.install h3{font-size:1rem;margin-bottom:.4rem}
-pre{white-space:pre-wrap;overflow-wrap:anywhere;background:rgba(10,10,22,.65);border:1px solid var(--line);border-radius:.6rem;padding:.9rem 1rem;overflow-x:auto;font:.85rem/1.6 var(--mono);color:var(--tx)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:2.5rem}
-
-/* verdicts */
-.verdicts{list-style:none;padding:0}
-.verdicts li{display:grid;grid-template-columns:11rem 1fr;gap:1.75rem;padding:1.4rem 0;border-top:1px solid var(--line)}
-.verdicts li:first-child{border-top:0}
-.verdicts .n{font-size:2.4rem;font-weight:800;line-height:1;letter-spacing:-.02em;color:var(--gr)}
-.verdicts .n small{display:block;margin-top:.45rem;font:500 .85rem/1.35 var(--ui);color:var(--mu);letter-spacing:0}
-.verdicts li.neg .n{color:var(--rd)}
-.verdicts li.exp .n{color:var(--vi)}
-.verdicts h3{font-size:1.1rem;margin-bottom:.25rem}
-.verdicts p{color:var(--mu);font-size:.98rem;max-width:42rem}
-.verdicts p+p{margin-top:.4rem}
-
-/* video slot */
-.video{aspect-ratio:16/9;max-width:48rem;border:1.5px dashed rgba(255,204,64,.5);border-radius:.9rem;display:grid;place-items:center;text-align:center;color:var(--mu);padding:1rem}
-.video b{display:block;color:#ffcc40;margin-bottom:.3rem}
-
-ul.plain{padding-left:1.1rem}
-ul.plain li{margin:.4rem 0;color:var(--mu)}
-ul.plain li b{color:var(--tx);font-weight:600}
-footer{padding:2.5rem 0 3.5rem;border-top:1px solid var(--line);color:var(--mu);font-size:.92rem}
+.ledger{padding:2.75rem 0;border-top:2px solid var(--ink)}
+table{width:100%;border-collapse:collapse;margin-top:1rem;font-size:.95rem}
+th,td{text-align:left;padding:.65rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
+th{font:700 .72rem var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--mu)}
+td.n{font-weight:800;font-size:1.3rem;white-space:nowrap;letter-spacing:-.02em}
+td.n.neg{color:var(--rd)}
+td.l{color:var(--mu)}
+.how{display:grid;grid-template-columns:repeat(3,1fr);gap:2rem;padding:2.5rem 0;border-top:1px solid var(--line)}
+.how h3{font-size:1.05rem}.how h3 b{color:var(--or);margin-right:.4rem}
+.how p{color:var(--mu);font-size:.95rem;margin-top:.3rem}
+.next{padding:2.5rem 0;border-top:1px solid var(--line)}
+.next p{color:var(--mu);margin-top:.4rem}
+.install{padding:2.5rem 0;border-top:1px solid var(--line)}
+pre{background:var(--ink);color:var(--paper);border-radius:.5rem;padding:.9rem 1rem;font:.9rem/1.5 var(--mono);overflow:auto;margin-top:.8rem}
+footer{padding:1.5rem 0 3rem;color:var(--mu);font-size:.88rem;border-top:2px solid var(--ink)}
 footer p+p{margin-top:.4rem}
-
-@media (max-width:52rem){
-  .hero,.install,.two,.steps{grid-template-columns:1fr}
-  .hero{padding-top:2.5rem}
-  .verdicts li{grid-template-columns:1fr;gap:.5rem}
-  .top nav{display:none}
+@media (max-width:980px){.beats{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){
+  .hero{grid-template-columns:1fr;gap:1.5rem;padding:2rem 0 1.5rem}
+  .ex .head{grid-template-columns:1fr}.flip{white-space:normal;font-size:2.2rem}.flip small{text-align:left}
+  .beats{grid-template-columns:1fr}
+  .how{grid-template-columns:1fr}
+  .duel .nums b{font-size:2.4rem}
+  .beat blockquote,.beat p{overflow-wrap:anywhere}
+  table th:last-child,table td.l{display:none}td.n{font-size:1.1rem;white-space:normal}
 }
 </style>
 </head>
 <body>
 <div class="wrap">
-<header class="top">
-  <div class="brand">ai-symbiont</div>
-  <nav aria-label="Page sections">
-    <a href="paper.html#abstract">Abstract</a><a href="demo/">Demo</a><a href="#results">Results</a><a href="#install">Install</a><a href="#meta">Meta tooling</a><a href="https://github.com/smalls257/ai-symbiont">GitHub</a>
+<header>
+  <span class="brand">ai-symbiont</span>
+  <nav>
+    <a href="https://smalls257.github.io/ai-symbiont/demo/">Demo</a>
+    <a href="https://smalls257.github.io/ai-symbiont/paper.html#abstract">Abstract</a>
+    <a href="#ex1">Coding</a>
+    <a href="#ex2">Home robot</a>
+    <a href="#ex4">Freedoom</a>
+    <a href="#ledger">Results</a>
+    <a href="#next">Where it goes next</a>
+    <a href="#install">Install</a>
+    <a href="#meta">Meta tooling</a>
+    <a href="https://github.com/smalls257/ai-symbiont">GitHub</a>
   </nav>
 </header>
 
-<div class="hero">
+<section class="hero">
   <div>
     <h1>Your coding agent keeps making the same mistake. This tells it before it happens again.</h1>
-    <p class="lede">ai-symbiont reads your past agent sessions, finds the failures that came back, lets you add what only you know, and speaks up in plain words at the moment the agent is about to repeat one.</p>
-    <div class="cta-row">
-      <a class="btn main" href="demo/">Open the demo, no install</a>
-      <a class="btn" href="#install">Install for Muse Code</a>
-    </div>
-    <p class="fine">The demo runs on synthetic data for a fictional repo and sends nothing anywhere.</p>
-  </div>
-  <figure class="heroclip">
-    <video id="heroVideo" autoplay muted loop playsinline preload="auto" aria-label="Freedoom via ViZDoom: left, the model wanders; right, with its own rule, it reaches the exit" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-hero-loop.mp4#t=0.1"></video>
-    <figcaption>Real run: Muse Spark plays Freedoom via ViZDoom; right side uses a rule it wrote from its own failures.</figcaption>
-  </figure>
-</div>
-</div>
-
-<div class="wrap">
-<section id="how">
-  <h2>What it does</h2>
-  <p class="sub">Three steps. You stay in charge of the second one.</p>
-  <ol class="steps">
-    <li><h3>Mine</h3><p>It reads your past Muse Code sessions on your machine and pairs each failure with the fix that worked. A pain point appears once the same trouble has happened twice.</p></li>
-    <li><h3>Review and add context</h3><p>You see where the turns went, open the costliest lessons, add what only you know, set a priority, or mark one intentional so it goes quiet.</p></li>
-    <li><h3>Note at the right moment</h3><p>When the agent is about to repeat a known mistake, it gets one short note in domain prose, written for the model reading it.</p></li>
-  </ol>
-</section>
-
-<section id="progress" class="progress">
-  <h2>Progress</h2>
-  <p class="sub intro">Muse Spark and Glimmer 30B are Meta models; symbiont gives them a short reminder at the moment they are about to repeat a mistake. Each tab below explains one real run and shows the recording. Results are labeled as measured, pre-registered, or exploratory.</p>
-  <div class="tabs" role="tablist" aria-label="Progress tracks">
-    <button role="tab" id="tab-fd" aria-controls="panel-fd" aria-selected="true">Freedoom via ViZDoom</button>
-    <button role="tab" id="tab-co" aria-controls="panel-co" aria-selected="false" tabindex="-1">Coding</button>
-    <button role="tab" id="tab-hr" aria-controls="panel-hr" aria-selected="false" tabindex="-1">Home robot</button>
-  </div>
-  <div role="tabpanel" id="panel-fd" aria-labelledby="tab-fd">
-    <p class="plain"><b>What you're watching.</b> Meta's Muse Spark model plays a level of Freedoom (a free, open-source first-person game) through ViZDoom, an AI research platform. Each turn, Spark reads a text description of what's on screen and chooses its moves.</p>
-    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> the same model on the same level, but first it read one rule it wrote itself after studying its own failed games: “travel to far-away places with one path command instead of many small steps.”</p>
-    <p class="plain"><b>In this game.</b> With its rule, Spark reached the exit in 9 turns. Without it, Spark wandered until it ran out of turns (32).</p>
-    <p class="plain"><b>Does it hold up?</b> Spark proposed 6 rules and our tests threw out 5. The survivor raised the game score by 0.16 (on a 0–1 scale) across 240 new games Spark had never seen, and the gain held when we repeated the test. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p>
-    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-rule-vs-no-rule-OB0011.mp4"></video><figcaption>Without the rule (left) and with it (right), one game</figcaption></figure>
-    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-spark-rule-decisions.mp4"></video><figcaption>The decisions behind that game</figcaption></figure>
-  </div>
-  <div role="tabpanel" id="panel-co" aria-labelledby="tab-co" hidden>
-    <p class="plain"><b>What you're watching.</b> Two runs of the same AI coding agent (Glimmer 30B, Meta's open-weights model) fixing the same bug in a practice billing project. The project has a hidden rule: money is stored as whole numbers in each currency's smallest unit (yen has no decimals; dinar has three). The agent learned this the hard way on an earlier task.</p>
-    <p class="plain"><b>Left:</b> no symbiont. It reads files for 23 turns and fixes the bug on turn 24. <b>Right:</b> the moment the test fails, symbiont reminds it of the rule, and it's fixed by turn 10.</p>
-    <p class="plain"><b>Across 6 pairs of runs.</b> With symbiont, the bug was fixed in 6 of 6; without it, 2 of 6 (40-turn limit). It's a small, early test on a practice project we designed. <span class="tag exp">[exploratory]</span></p>
-    <p class="plain"><b>The bigger, pre-registered tests on real public projects.</b> Symbiont showed 501 reminders and none was wrong. After nightly training on a project's history, its reminder-checker approved 61% of repeated mistakes, and 97.8% of those approvals were correct. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p>
-    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-split.mp4"></video><figcaption>With symbiont and without, side by side</figcaption></figure>
-    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-note.mp4"></video><figcaption>The note arriving before the repeat</figcaption></figure>
-  </div>
-  <div role="tabpanel" id="panel-hr" aria-labelledby="tab-hr" hidden>
-    <h3 class="sub3">It learned from its own mistakes</h3>
-    <p class="plain"><b>What you're watching.</b> A robot in Meta's Habitat simulator (Fetch robot, ReplicaCAD apartment), with Muse Spark choosing every action. The robot has to clear the dining table and set it for four. The plates, cups and forks are hidden in closed cupboards and drawers, a pet knocks things over partway through, and it has a limited number of actions.</p>
-    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> Spark with symbiont. Spark failed twice on its own. symbiont mined those two failed attempts, and Spark reflected on them: where things turned out to be, which containers were empty, check the floor after a fall. No person corrected anything.</p>
-    <p class="plain"><b>Result</b> (5 new episodes, different starting spots and pet events): without symbiont's notes 0 of 5 succeeded; with them 4 of 5. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> This works because a home stays the same: when we hid the items somewhere new every time, nothing specific could be learned, and the notes didn't help (1 of 5 either way). <span class="tag">[measured]</span></p>
-    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-set-table-duel.mp4"></video><figcaption>Habitat (Meta AI) &middot; ReplicaCAD (CC BY-NC 4.0) &middot; Fetch robot model from Habitat &middot; real simulation, episode cmpB3-621 (first seed)</figcaption></figure>
-    <h3 class="sub3">Corrected once, never repeated</h3>
-    <p class="plain"><b>What you're watching.</b> The same kind of robot tidies up a home with its own rules that no model could guess: mugs go in the cupboard above the stand mixer, the cat's bowl lives by the front door, towels go in the middle-left drawer, the cast-iron pan goes in the drawer nearest the fridge.</p>
-    <p class="plain"><b>Left:</b> Spark on its own. <b>Right:</b> the same model after the owner corrected it once. The owner's corrections stated the rules, and symbiont made sure Spark remembered them in new episodes, showing them as notes when it plans.</p>
-    <p class="plain"><b>Result</b> (pre-registered, 6 vs 6 episodes with different starting positions): house-rule violations 30 → 0. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> The corrections were scripted for the demo, and the test episodes use the same four rules with items in new places.</p>
-    <figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-house-rules-duel.mp4"></video><figcaption>Habitat (Meta AI) &middot; ReplicaCAD (CC BY-NC 4.0) &middot; Fetch robot model from Habitat &middot; real simulation, episode cmpA-301 (first seed, chosen before the runs)</figcaption></figure>
-  </div>
-  <p class="fallback">If a clip does not play in your browser, the files are on the <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">release page</a>.</p>
-</section>
-
-<section id="demo">
-  <h2>Try the demo</h2>
-  <p class="sub">No install, no account. Press Play demo and it walks through all four screens by itself in about 80 seconds.</p>
-  <div class="two">
-    <div>
-      <p><a class="btn main" href="demo/">Open the hosted dashboard demo</a></p>
-      <p class="fine">Every name, file and number on its first four screens is hand-written demo data for <span class="mono">acme/billing-service</span>. The savings on the replay screen are an estimate, not a measurement.</p>
-    </div>
-    <div>
-      <p>To reproduce the measured results yourself, start at tier 1 of <a href="https://github.com/smalls257/ai-symbiont/blob/main/REPRODUCE.md">REPRODUCE.md</a>. It needs no GPU and no remote model.</p>
+    <p class="lede"><b>ai-symbiont is a plugin for Muse Code, Meta's coding agent, for developers who use it.</b> It reads your past sessions on your own machine, finds the mistakes that came back, and shows the agent one short note in plain words at the moment it is about to repeat one. You can add what only you know. The same notes also steer a home robot and a game, shown below.</p>
+    <div class="cta">
+      <a class="btn" href="https://smalls257.github.io/ai-symbiont/demo/">Open the live demo, no install</a>
+      <a class="plain" href="#install">Install for Muse Code</a>
     </div>
   </div>
-</section>
-
-<section id="video">
-  <h2>Pitch video</h2>
-  <div class="video" data-slot="pitch-video"><div><b>Pitch video goes here</b>Placeholder: replace this block with the embed before the deadline.</div></div>
-</section>
-
-<section id="next">
-  <h2>Where it goes next</h2>
-  <p class="sub">The same idea beyond code: knowledge only your team has, delivered at the moment it matters. These are concept animations, not measured results.</p>
-  <div class="scene">
-    <h3>Air traffic control <span class="concept-badge">Concept &middot; illustrative</span></h3>
-    <iframe src="concepts/air-traffic-control.html" title="Concept animation: air traffic control, with and without symbiont" loading="lazy"></iframe>
-    <p class="hint">Tap the scene or the Replay button to play it again.</p>
-  </div>
-  <div class="scene">
-    <h3>Support desk <span class="concept-badge">Concept &middot; illustrative</span></h3>
-    <iframe src="concepts/support-desk.html" title="Concept animation: support desk, with and without symbiont" loading="lazy"></iframe>
-    <p class="hint">Tap the scene or the Replay button to play it again.</p>
+  <div class="duel">
+    <div class="labels"><div>Without symbiont's notes</div><div>With symbiont's notes</div></div>
+    <img src="media/st-end.jpg" alt="Left, without notes: out of actions, 6 of 12 items set, 142 actions. Right, with notes: success, 12 of 12 set, 123 actions.">
+    <div class="nums">
+      <div><b>0 of 5</b><span>episodes with the table set, without the notes</span></div>
+      <div><b>4 of 5</b><span>episodes with the table set, with the notes</span></div>
+    </div>
+    <p class="cap">A robot in Meta's Habitat home simulator, every move chosen by Muse Spark, Meta's model. Right: the same model with notes symbiont learned from the robot's own two earlier failed attempts. No person corrected anything. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> · <a href="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-set-table-duel.mp4">Full recording, 8 min</a></p>
   </div>
 </section>
 
-<section id="results">
-  <h2>What we measured</h2>
-  <p class="sub">Every claim carries its tag and its limits. Where a result was negative, it is listed here too.</p>
-  <ul class="verdicts">
-    <li>
-      <div class="n">0<small>wrong notes in 501 shown</small></div>
-      <div><h3>The agree rule stays quiet unless it is right</h3>
-      <p>251 repeats across 89 repositories it had not seen. Of the 501 notes shown, none was wrong. <span class="tag">[measured]</span> Pre-registered.</p></div>
-    </li>
-    <li>
-      <div class="n">61%<small>of repeats approved, vs 0% untrained <span class="tag">[measured]</span></small></div>
-      <div><h3>Nightly training teaches the judge to approve real repeats</h3>
-      <p>At 97.8% precision, with 5 of 924 notes wrong; the untrained judge vetoed every note. <span class="tag">[measured]</span> Pre-registered, on the public SWE-smith set. Its bugs are synthetic, which limits how far this carries to your repository.</p></div>
-    </li>
-    <li>
-      <div class="n">+0.16<small>[0.11, 0.22]</small></div>
-      <div><h3>Muse Spark wrote its own rule from its failures</h3>
-      <p>On a task where the model plays Freedoom via ViZDoom, the rule it wrote improved its score by 0.16, and the gain held on 240 fresh cases. <span class="tag">[measured]</span> Pre-registered.</p>
-      <p>Five of the six rules it proposed failed testing, and only this one survived.</p></div>
-    </li>
-    <li class="neg">
-      <div class="n">-0.054<small>[-0.108, -0.014]</small></div>
-      <div><h3>Route B, a personal adapter on Glimmer 30B, came out negative</h3>
-      <p>The adapter trained on one developer's history scored below the baseline. <span class="tag neg">[measured]</span> The diagnosis is written up in the repository.</p>
-      <p>Exploratory, not a verdict: the adapter recalled the right file for 62% of lessons against 0% without it, and invented details 10% of the time against 1%. <span class="tag exp">[measured]</span> Exploratory.</p></div>
-    </li>
-    <li class="exp">
-      <div class="n">6 of 6<small>vs 2 of 6 without</small></div>
-      <div><h3>Live ledger demo</h3>
-      <p>Six paired runs on Glimmer 30B passed with symbiont and 2 of 6 passed without it. <span class="tag exp">[measured]</span> Exploratory: six pairs show the direction, not a rate.</p></div>
-    </li>
-  </ul>
-</section>
-
-<section id="install">
-  <h2>Install for Muse Code</h2>
-  <p class="sub">Three commands, from <a href="https://github.com/smalls257/ai-symbiont">https://github.com/smalls257/ai-symbiont</a>. The README has the full steps and the uninstall.</p>
-  <div class="install">
-    <div><h3>1. The command</h3><pre>uv tool install git+https://github.com/smalls257/ai-symbiont</pre></div>
-    <div><h3>2. The plugin</h3><pre>muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
-muse plugins install symbiont@ai-symbiont</pre></div>
-  </div>
-</section>
-
-<section id="privacy">
-  <h2>Privacy</h2>
-  <ul class="plain">
-    <li><b>Local first.</b> Your sessions are read and stored on your machine. Nothing is uploaded.</li>
-    <li><b>Your own model curates.</b> Lessons are written by the model already running your session, not by a remote service.</li>
-    <li><b>One door out.</b> Any outbound call goes through a single audited path that refuses payloads without declared provenance.</li>
-  </ul>
-</section>
-
-<section id="meta">
-  <h2>Meta tooling used</h2>
-  <ul class="plain">
-    <li><b>Muse Spark</b> as a contributor: it wrote and tested its own rule on the Freedoom task.</li>
-    <li><b>Muse Code</b> plugin: the harness symbiont installs into and reads sessions from.</li>
-    <li><b>Glimmer 30B</b> (open weights): the model behind the live ledger demo and the Route B adapter.</li>
-    <li><b>Llama 3.2 1B</b> as the small judge. Adapters: <a href="https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters">https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters</a>.</li>
-  </ul>
-</section>
+<div class="links">
+  <a href="https://smalls257.github.io/ai-symbiont/demo/">Live onboarding demo (interactive)</a>
+  <a href="https://smalls257.github.io/ai-symbiont/paper.html#abstract">Abstract</a>
+  <a href="https://smalls257.github.io/ai-symbiont/paper.html">Long write-up</a>
+  <a href="https://github.com/smalls257/ai-symbiont">GitHub repository</a>
+  <a href="https://github.com/smalls257/ai-symbiont/blob/main/REPRODUCE.md">Reproduce the numbers (REPRODUCE.md)</a>
+  <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">All recordings</a>
+  <a href="https://smalls257.github.io/ai-symbiont/concepts/air-traffic-control.html">Concept: air traffic control</a>
+  <a href="https://smalls257.github.io/ai-symbiont/concepts/support-desk.html">Concept: support desk</a>
+  <a href="https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters">Checker model weights (Hugging Face)</a>
 </div>
 
-<div class="wrap">
-<footer>
-  <p><a href="https://github.com/smalls257/ai-symbiont">Repository</a> &middot; <a href="https://github.com/smalls257/ai-symbiont/blob/main/REPRODUCE.md">REPRODUCE.md</a> &middot; <a href="demo/">Hosted demo</a> &middot; <a href="paper.html">Earlier long write-up</a></p>
+<!-- 01 Coding -->
+<section class="ex" id="ex1">
+  <div class="head">
+    <div><div class="kicker">01 · Coding · the product</div><h2>The same billing bug, fixed by turn 10 with symbiont instead of turn 24 without.</h2></div>
+    <div class="flip"><s>24</s><span class="arrow">→</span><em>10</em><small>turns to the fix: same bug, same coding model (Glimmer 30B, Meta's open-weights model), without vs with symbiont</small></div>
+  </div>
+  <figure><div class="player"><video preload="none" muted playsinline poster="media/code-note.jpg" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-note.mp4" aria-label="The coding session: the test fails, and symbiont's note appears in the terminal"></video><button class="play" type="button"><i>&#9654;</i>Watch the note arrive · 0:16</button></div><figcaption>The coding session with symbiont: the test fails, and the note appears. Live note from the running software, verbatim.</figcaption></figure>
+  <div class="beats">
+    <div class="beat wrong"><div class="k">What the agent did wrong</div><p>A practice billing project with a hidden rule: money is stored as whole numbers in each currency's smallest unit (yen has no decimals; dinar has three). On an earlier task the coding agent assumed two decimals, and the test failed with <code>assert 500000 == 5000</code>.</p></div>
+    <div class="beat"><div class="k">What symbiont noticed</div><p>The same test command failing in the same way as a failure it had saved from that earlier session. It matched the two by their exact text, with no AI model involved, and paired the failure with the edit that fixed it last time and the one line of context you had added yourself.</p></div>
+    <div class="beat note"><div class="k">The note it delivered</div><blockquote><small>shown to the agent the moment the test failed</small>In this repo: Amounts are integers in each currency's minor units (JPY 0, BHD/KWD 3 decimals): use currency_exponent(), never assume 2 decimals. Convert monetary amounts to minor units using currency_exponent() per currency; never assume 2 decimal places for all currencies.</blockquote></div>
+    <div class="beat changed"><div class="k">What changed</div><div class="big">Fixed by turn 10</div><p>Without symbiont, the agent read files for 23 turns and fixed the bug on turn 24. Across 6 pairs of runs with the same model, the bug was fixed in 6 of 6 runs with symbiont and 2 of 6 without, within a 40-turn limit. <span class="tag exp">[exploratory]</span></p><p class="foot"><b>Where it stops working:</b> six pairs of runs on a practice project we designed show the direction, not a rate, and were not pre-registered; on real public projects (example 05) we measured whether the notes were wrong, not how much faster the fix came. symbiont already learns from a repository's pull-request reviews and failed CI runs when you say yes; a guard that holds the agent's "done" while its last test run is still failing, and mining of CI output pasted into a session, are in development.</p></div>
+  </div>
+</section>
+
+<!-- 02 Set the table -->
+<section class="ex" id="ex2">
+  <div class="head">
+    <div><div class="kicker">02 · Home robot · Meta's Habitat simulator</div><h2>A robot learned from its own two failures.</h2></div>
+    <div class="flip"><s>0 of 5</s><span class="arrow">→</span><em>4 of 5</em><small>new episodes with the table set: without the notes vs with them</small></div>
+  </div>
+  <figure><div class="player"><video preload="none" muted playsinline poster="media/st-success.jpg" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-set-table-duel.mp4" aria-label="Left, without notes, step 106: 6 of 12 items set. Right, with notes: success, 12 of 12 set in 123 actions."></video><button class="play" type="button"><i>&#9654;</i>Watch it set the table · 8:07</button></div><figcaption>The recorded episode. Right: the table set for four, 12 of 12 items. Left, at the same moment: the robot without notes is still at 6 of 12.</figcaption></figure>
+  <div class="beats">
+    <div class="beat wrong"><div class="k">What the robot did wrong</div><p>The task: clear the dining table and set it for four. The plates, cups and forks are hidden in closed cupboards and drawers, a pet knocks things over partway through, and the robot has a limited number of actions. Muse Spark, Meta's model, chose every action. Without help it failed twice, running out of actions with the table half set.</p></div>
+    <div class="beat"><div class="k">What symbiont noticed</div><p>It read those two failed attempts and had the model write down what it had learned from them: where things turned out to be, which containers were empty, check the floor after a fall. No person corrected anything.</p></div>
+    <div class="beat note"><div class="k">The note it delivered</div><blockquote><small>one of the notes, shown to the robot at step 31 <span class="tag">[measured]</span></small>Walk to a place before using it: open, pick and place only work where you stand. (seen 2x in an earlier episode.) Always navigate to a place before opening picking or placing, use only valid pick place open close syntax, and do not waste budget revisiting already checked places.</blockquote></div>
+    <div class="beat changed"><div class="k">What changed</div><div class="big">4 of 5 episodes succeeded</div><p>In 5 new episodes with different starting spots and pet events, the robot set the table in 4 of 5 with the notes and 0 of 5 without. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p><p class="foot"><b>Where it stops working:</b> lessons about <i>where</i> things are only help when the home stays the same. When we hid the items somewhere new in every episode, the notes didn't help (1 of 5 either way) [measured]. Lessons about <i>how</i> to search, which carry over when everything moves, are in development.</p></div>
+  </div>
+</section>
+
+<!-- 03 House rules -->
+<section class="ex" id="ex3">
+  <div class="head">
+    <div><div class="kicker">03 · Home robot · Meta's Habitat simulator</div><h2>Corrected once, never repeated.</h2></div>
+    <div class="flip"><s>30</s><span class="arrow">→</span><em>0</em><small>house-rule violations: 6 episodes without the notes vs 6 with them</small></div>
+  </div>
+  <figure><div class="player"><video preload="none" muted playsinline poster="media/hr-note.jpg" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-house-rules-duel.mp4" aria-label="Left: the robot with no notes. Right, step 5: the four house rules shown as notes while the robot plans."></video><button class="play" type="button"><i>&#9654;</i>Watch it keep the rules · 1:38</button></div><figcaption>Step 5 of the recorded episode. Left: no notes. Right: the four house rules shown to the robot as it plans.</figcaption></figure>
+  <div class="beats">
+    <div class="beat wrong"><div class="k">What the robot did wrong</div><p>Tidying a home with its own rules that no model could guess: mugs go above the stand mixer, the cat's bowl by the front door, towels in the middle-left drawer, the cast-iron pan in the drawer nearest the fridge. In the recorded episode, the robot on its own followed 0 of the 5 rules.</p></div>
+    <div class="beat"><div class="k">What symbiont noticed</div><p>The owner corrected the robot once, stating the rules. symbiont kept those corrections and showed them as notes each time the robot planned in a new episode.</p></div>
+    <div class="beat note"><div class="k">The note it delivered</div><blockquote><small>shown to the robot while planning</small><ul><li>Mugs go in the cupboard above the stand mixer (upper cupboard 3).</li><li>The cat's bowl lives on the floor by the front door.</li><li>Towels go in the middle left drawer of the chest of drawers by the front door.</li><li>The cast-iron pan lives in counter drawer 1, the one nearest the fridge.</li></ul></blockquote></div>
+    <div class="beat changed"><div class="k">What changed</div><div class="big">0 violations in 6 episodes</div><p>Across 6 new episodes with the notes, 0 house-rule violations; across 6 without, 30. Each episode started from a different position. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p><p class="foot"><b>Where it stops working:</b> the corrections were scripted by us for the demo and state each rule outright, so this shows the robot keeps a rule it was told, not that it can work out a rule nobody stated. The test episodes use the same four rules with the items in new places.</p></div>
+  </div>
+</section>
+
+<!-- 04 Freedoom -->
+<section class="ex" id="ex4">
+  <div class="head">
+    <div><div class="kicker">04 · A game · Muse Spark plays Freedoom via ViZDoom</div><h2>The model wrote its own rule, and the rule held up.</h2></div>
+    <div class="flip"><em>+0.16</em><small>game score (0 to 1) across 240 new games: with the rule vs without it</small></div>
+  </div>
+  <figure><div class="player"><video preload="none" muted playsinline poster="media/fd-exit.jpg" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-rule-vs-no-rule-OB0011.mp4" aria-label="Same level, same seed. Left, without the rule: still wandering at decision 18. Right, with its own rule: exit reached, level finished in 9 decisions."></video><button class="play" type="button"><i>&#9654;</i>Watch it reach the exit · 1:53</button></div><figcaption>Same level, same random seed. Left: without the rule, still wandering at decision 18. Right: with the rule it wrote, exit reached in 9.</figcaption></figure>
+  <div class="beats">
+    <div class="beat wrong"><div class="k">What the model did wrong</div><p>Muse Spark, Meta's model, plays a level of Freedoom (a free, open-source first-person game) through ViZDoom, a research platform. Each turn it reads a text description of the screen and chooses its moves. On its own it wandered until it ran out of turns (32): in the recorded game, 8 wall bumps, 14 rooms re-entered, 18 wasted moves.</p></div>
+    <div class="beat"><div class="k">What symbiont noticed</div><p>It showed the model its own failed games and asked it for rules. The model proposed 6. We tested each one on new games and threw out 5.</p></div>
+    <div class="beat note"><div class="k">The rule it wrote</div><blockquote><small>the one rule that survived testing, in the model's words</small>travel to far-away places with one path command instead of many small steps.</blockquote></div>
+    <div class="beat changed"><div class="k">What changed</div><div class="big">Exit in 9 turns</div><p>With the rule, the model reached the exit in 9 turns; without it, it ran out of turns at 32 on the same level. Across 240 new games it had never seen, the rule raised the game score by 0.16 on a 0-to-1 scale, and the gain held when we repeated the test. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p><p class="foot"><b>Where it stops working:</b> the model proposed 6 rules and 5 did no better on new games and were thrown out; this is the one survivor, so the testing, not the rule-writing, is what makes it safe. The gain is measured on this one game task only.</p></div>
+  </div>
+</section>
+
+<!-- 05 Precision -->
+<section class="ex" id="ex5">
+  <div class="head">
+    <div><div class="kicker">05 · Does it ever give bad advice? · 89 public repositories</div><h2>It stays quiet unless it is sure.</h2></div>
+    <div class="flip"><em>0</em><small>of 501 notes shown were wrong, across 89 repositories it had never seen</small></div>
+  </div>
+  <figure><img src="media/code-pass.jpg" alt="The same coding session, turn 10: the test passes"><figcaption>The coding session from example 01, turn 10: the test passes. A note is only worth showing when it is right.</figcaption></figure>
+  <div class="beats">
+    <div class="beat wrong"><div class="k">What could go wrong</div><p>A wrong note would send the agent down the wrong path. So symbiont speaks only when a new failure matches a saved one exactly, and otherwise says nothing.</p></div>
+    <div class="beat"><div class="k">What we tested</div><p>251 repeated failures across 89 public repositories symbiont had never seen, from the public SWE-smith benchmark. Its bugs are synthetic, which limits how far this carries to your own repository.</p></div>
+        <div class="beat changed"><div class="k">What we found</div><div class="big">0 of 501 notes wrong</div><p>Of the 501 notes shown, none was wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p><p class="foot"><b>Where it stops working:</b> the 89 repositories come from a public benchmark whose bugs are synthetic (generated, not from real history), which limits how far this carries to your own repository. A bolder check on the same benchmark: after overnight training on one project's history, symbiont's checker approved 61% of repeated mistakes (the untrained checker approved 0%), and 97.8% of those approvals were correct, 5 of 924 notes wrong [measured] [pre-registered]. That training ran on our machines; running it on your own machine, on your own project's history, is in development.</p></div>
+  </div>
+</section>
+
+<section class="ledger" id="ledger">
+  <div class="kicker">Results, including the ones that did not work</div>
+  <h2>Every number with its limit.</h2>
+  <table>
+    <tr><th>Result</th><th>What it means</th><th>Limit</th></tr>
+    <tr><td class="n">4 of 5 vs 0 of 5</td><td>Home robot, table set in 5 new episodes: with symbiont's notes vs without. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Works because a home stays the same; with items hidden somewhere new each time, 1 of 5 either way.</td></tr>
+    <tr><td class="n">30 → 0</td><td>House-rule violations across 6 episodes without the owner's corrections vs 6 with them. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Corrections scripted for the demo; same four rules, items in new places.</td></tr>
+    <tr><td class="n">+0.16</td><td>Game score, 0 to 1, across 240 new games with the model's own rule vs without, confidence interval [0.11, 0.22]. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">5 of the 6 rules the model proposed failed testing; this is the one that survived.</td></tr>
+    <tr><td class="n">0 of 501</td><td>Notes shown on repeated failures across 89 public repositories that were wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">The bugs are synthetic, from a public benchmark, not from real project history.</td></tr>
+    <tr><td class="n">61% at 97.8%</td><td>After overnight training on a project's history, the checker approved 61% of repeated mistakes (0% untrained) and 97.8% of its approvals were correct: 5 of 924 wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Same benchmark, same synthetic bugs; the training ran on our machines.</td></tr>
+    <tr><td class="n">6 of 6 vs 2 of 6</td><td>Coding example above: billing bug fixed within 40 turns, 6 paired runs with symbiont vs without, same model. <span class="tag exp">[exploratory]</span></td><td class="l">Six pairs show the direction, not a rate; a practice project we designed; not pre-registered.</td></tr>
+    <tr><td class="n neg">-0.054</td><td>We also trained a small personal add-on to Glimmer 30B on one developer's own history. It scored 0.054 below the plain model, interval [-0.108, -0.014]. The diagnosis is written up in the repository. <span class="tag neg">[measured]</span></td><td class="l"><b>Where it stops working:</b> putting the lessons into a model's weights, rather than showing them as notes, made this model worse on the test. Exploratory, not a verdict: it recalled the right file for 62% of lessons vs 0% without, and invented details 10% of the time vs 1%. Training lessons into a model's weights is still in development.</td></tr>
+  </table>
+</section>
+
+<section class="how">
+  <div><h3><b>1</b>Learn</h3><p>It reads your past Muse Code sessions on your machine and pairs each failure with the fix that worked. A lesson appears once the same trouble has happened twice.</p></div>
+  <div><h3><b>2</b>Review and add context</h3><p>You see where the turns went, open the costliest lessons, add what only you know, set a priority, or mark one as intentional so it goes quiet.</p></div>
+  <div><h3><b>3</b>Note at the right moment</h3><p>When the agent is about to repeat a known mistake, it gets one short note in plain words, written for the model reading it.</p></div>
+</section>
+
+<section class="next" id="next">
+  <div class="kicker">Where it goes next</div>
+  <h2>The same idea beyond code.</h2>
+  <p>Knowledge only your team has, delivered at the moment it matters. Two concept animations, not measured results: <a href="https://smalls257.github.io/ai-symbiont/concepts/air-traffic-control.html">air traffic control</a> and <a href="https://smalls257.github.io/ai-symbiont/concepts/support-desk.html">a support desk</a>, each with and without symbiont.</p>
+</section>
+
+<section class="install" id="install">
+  <div class="kicker">Install for Muse Code</div>
+  <p style="margin-top:.4rem;color:var(--mu)">Three commands. Local first: your sessions are read and stored on your machine, nothing is uploaded, and any outbound call goes through a single audited path that refuses data without declared provenance. The <a href="https://github.com/smalls257/ai-symbiont">README</a> has the full steps and the uninstall.</p>
+<pre>uv tool install git+https://github.com/smalls257/ai-symbiont
+muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
+muse plugins install symbiont@ai-symbiont</pre>
+</section>
+
+<footer id="meta">
+  <p><b>Meta tooling used.</b> Muse Spark, Meta's model: chose every move for the robot and in the game, and wrote its own rule. Muse Code: the coding agent symbiont plugs into and reads sessions from. Glimmer 30B, Meta's open-weights model: the coding agent in the billing example and the base of the personal add-on. Llama 3.2 1B: the small checker model; its trained weights are on <a href="https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters">Hugging Face</a>. Habitat (Meta AI), ReplicaCAD (CC BY-NC 4.0), Fetch robot model from Habitat.</p>
+  <p><a href="https://github.com/smalls257/ai-symbiont">Repository</a> · <a href="https://github.com/smalls257/ai-symbiont/blob/main/REPRODUCE.md">REPRODUCE.md</a> · <a href="https://smalls257.github.io/ai-symbiont/demo/">Hosted demo</a> · <a href="https://smalls257.github.io/ai-symbiont/paper.html">Earlier long write-up</a> · <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">All recordings</a></p>
   <p>Experimental software for the Meta Global AI Developer Hackathon.</p>
 </footer>
 </div>
 <script>
-(function(){
-  var tabs=[].slice.call(document.querySelectorAll('.tabs [role=tab]'));
-  function pick(t,focus){
-    tabs.forEach(function(x){
-      var on=x===t;
-      x.setAttribute('aria-selected',on);x.tabIndex=on?0:-1;
-      var p=document.getElementById(x.getAttribute('aria-controls'));p.hidden=!on;
-      if(!on)[].forEach.call(p.querySelectorAll('video'),function(v){v.pause();});
-    });
-    if(focus)t.focus();
-  }
-  tabs.forEach(function(t,i){
-    t.addEventListener('click',function(){pick(t,false);});
-    t.addEventListener('keydown',function(e){
-      var k=e.key,n=tabs.length,j=-1;
-      if(k==='ArrowRight')j=(i+1)%n;else if(k==='ArrowLeft')j=(i+n-1)%n;
-      else if(k==='Home')j=0;else if(k==='End')j=n-1;
-      if(j>=0){e.preventDefault();pick(tabs[j],true);}
-    });
-  });
-})();
-</script>
-<script>
-(function(){
-  var v=document.getElementById('heroVideo');
-  if(v&&window.matchMedia('(prefers-reduced-motion: reduce)').matches){v.removeAttribute('autoplay');v.pause();v.removeAttribute('loop');}
-})();
+// Nothing loads until a click: the still is the poster, preload is "none". One click shows the controls and plays inline.
+document.querySelectorAll('.player').forEach(p=>{const v=p.querySelector('video');p.querySelector('.play').addEventListener('click',()=>{p.classList.add('on');v.controls=true;v.play()})});
 </script>
 </body>
 </html>
