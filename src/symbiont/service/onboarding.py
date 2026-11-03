@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 
 from symbiont.miner.lesson_context import AuthoredLesson, LessonContext
 from symbiont.service.nightly import NightlyJudges
-from symbiont.store.repos import RepoRegistry
+from symbiont.store.repos import Announced, RepoRegistry
 
 SESSION_START = "SessionStart"
 DASHBOARD_TOKEN = "{dashboard}"
@@ -85,20 +85,31 @@ class Announcements:
         """The one-time news that nightly training is live."""
         if self.nightly is None or not self.nightly.has_record(project):
             return []
-        if self.registry.nightly_announced(project):
+        if self.registry.was_announced(project, Announced.NIGHTLY_LIVE):
             return []
-        self.registry.announce_nightly(project)
+        self.registry.announce(project, Announced.NIGHTLY_LIVE)
         return [NIGHTLY_LIVE]
 
     def _question(self, project: str) -> list[str]:
-        """The up-front question, until the developer has answered it."""
-        return [FOCUS_QUESTION] if self.registry.focus(project) is None else []
+        """The up-front question, once per repository.
+
+        Every headless session carried it otherwise and nudged the model into memory-shaped
+        lesson writes after the repository was already onboarded (live sympy preflight).
+        """
+        if self.registry.focus(project) is not None or self.registry.was_announced(
+            project, Announced.FOCUS_QUESTION
+        ):
+            return []
+        self.registry.announce(project, Announced.FOCUS_QUESTION)
+        return [FOCUS_QUESTION]
 
     def _link(self, project: str) -> list[str]:
         """The dashboard link, once the repository has lessons."""
-        if self.registry.dashboard_linked(project) or not self.lookups.lesson_count(project):
+        if self.registry.was_announced(
+            project, Announced.DASHBOARD_LINK
+        ) or not self.lookups.lesson_count(project):
             return []
-        self.registry.link_dashboard(project)
+        self.registry.announce(project, Announced.DASHBOARD_LINK)
         return [DASHBOARD_LINK]
 
 

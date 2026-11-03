@@ -27,8 +27,11 @@ AREA_WEIGHT = STRONG_WEIGHT
 # Two notes per event: one slot let the lesson about the file being edited starve a second,
 # equally relevant lesson (live sympy run). More than two turns notes into noise the agent skips.
 MAX_RULE_NOTES = 2
-# Two notes share the agent's context, so each stays a short sentence or two.
-MAX_NOTE_CHARS = 320
+# Two notes share the agent's context, so each stays a few sentences. 320 cut a real 348-char
+# lesson mid-clause (live sympy preflight) and dropped its last instruction; 600 fits typical
+# lessons, and anything longer is cut at a sentence or clause boundary, never mid-sentence.
+MAX_NOTE_CHARS = 600
+_BOUNDARY = re.compile(r"[.!?;:]\s|,\s")
 IDENTIFIER_WEIGHT = 2
 WORD_WEIGHT = 1
 MIN_WEAK_SCORE = 3
@@ -135,12 +138,25 @@ def why_none(rules: Sequence[Rule]) -> str:
 
 
 def rule_sentence(words: LessonContext) -> str:
-    """The note: the developer's rule as prose, cut at a word boundary past MAX_NOTE_CHARS."""
+    """The note: the rule as prose, cut at a sentence or clause boundary past MAX_NOTE_CHARS."""
     text = words.text.strip().rstrip(" .")
     if len(text) > MAX_NOTE_CHARS:
-        text = text[:MAX_NOTE_CHARS].rsplit(" ", 1)[0].rstrip(" ,;:") + " ..."
-        return f"[symbiont] In this repo: {text}"
+        return f"[symbiont] In this repo: {_cut_at_boundary(text)}"
     return f"[symbiont] In this repo: {text}."
+
+
+def _cut_at_boundary(text: str) -> str:
+    """The longest whole-sentence (else clause, else word) prefix within the cap, then '...'."""
+    head = text[: MAX_NOTE_CHARS + 1]
+    for strong in (True, False):
+        ends = [
+            m.start() + 1
+            for m in _BOUNDARY.finditer(head)
+            if (m.group()[0] != ",") == strong and m.start() + 1 <= MAX_NOTE_CHARS
+        ]
+        if ends and ends[-1] >= MAX_NOTE_CHARS // 3:
+            return head[: ends[-1]].rstrip(" ,;:") + " ..."
+    return head[:MAX_NOTE_CHARS].rsplit(" ", 1)[0].rstrip(" ,;:") + " ..."
 
 
 def areas_of_files(files: Sequence[str]) -> tuple[str, ...]:

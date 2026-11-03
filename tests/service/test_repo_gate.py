@@ -433,3 +433,13 @@ def test_the_service_answers_with_both_rule_notes_and_logs_each_with_its_match(r
     assert [n.split(": ")[1][:7] for n in body["notes"]] == ["Indexed", "Element"]
     events = [json.loads(line) for line in rig.events.path.read_text().splitlines()]
     assert sum("fired_by" in event for event in events) == 2
+
+
+def test_the_focus_question_is_asked_once_even_if_never_answered(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+
+    first = rig.start()["announce"]
+    second = rig.start("second").get("announce", [])
+
+    assert any("Anything symbiont should pay attention to" in line for line in first)
+    assert not any("pay attention" in line for line in second)

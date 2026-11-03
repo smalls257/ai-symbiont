@@ -35,6 +35,16 @@ READER_HARNESS = {"claude-code": "claude_code", "muse-code": "muse_code"}
 MAX_TEXT = 600
 
 
+# Models write `text` or `rule` for the lesson's words; the retry after a 400 lost substance
+# (live sympy preflight), so the first write is accepted and a bad one says what to resend.
+LESSON_TEXT_KEYS = ("text_in_plain_words", "text", "rule")
+RESEND_ADVICE = (
+    "Expected per lesson: text_in_plain_words, kind (mistake|rule|friction|correction), and "
+    "optionally files, source_label, severity (low|medium|high), applies_to {terms, areas}. "
+    "Fix the field and resend the SAME lesson content unchanged; do not shorten or reword it."
+)
+
+
 class CurationRoutes:
     """Candidate batches out, judgments in; each method is one route."""
 
@@ -71,7 +81,10 @@ class CurationRoutes:
         """Store lessons the model wrote from what the developer pointed it to."""
         project = self._allowed_project(request, {"project", "lessons"})
         items = _items(request.get("lessons"), "lessons")
-        added = [self._authored(project, item) for item in items]
+        try:
+            added = [self._authored(project, item) for item in items]
+        except BadRequestError as error:
+            raise BadRequestError(f"{error}. {RESEND_ADVICE}") from error
         return {"added": len(added), "ids": added}
 
     def correction_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -173,7 +186,7 @@ class CurationRoutes:
 
     def _authored(self, project: str, item: dict[str, Any]) -> str:
         """Validate and store one written lesson; returns its id."""
-        text = _text(item, "text_in_plain_words")[:MAX_TEXT]
+        text = _lesson_text(item)[:MAX_TEXT]
         files = _strings(item.get("files", []), "files")
         lesson = AuthoredLesson(
             _ident(text),
@@ -236,6 +249,17 @@ def _items(value: Any, name: str) -> list[dict[str, Any]]:
     if not ok or not all(isinstance(item, dict) for item in value):
         raise BadRequestError(f"{name} must be a list of 1 to {MAX_ITEMS} objects")
     return cast("list[dict[str, Any]]", value)  # every element was checked to be a dict above
+
+
+def _lesson_text(item: dict[str, Any]) -> str:
+    """The lesson's words under text_in_plain_words, or the aliases models reach for."""
+    for key in LESSON_TEXT_KEYS:
+        value = item.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    raise BadRequestError(
+        "each lesson needs text_in_plain_words (non-empty text; `text` or `rule` also work)"
+    )
 
 
 def _text(item: dict[str, Any], key: str) -> str:

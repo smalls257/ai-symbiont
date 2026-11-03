@@ -22,6 +22,14 @@ class RepoStance(StrEnum):
     DECLINED = "declined"
 
 
+class Announced(StrEnum):
+    """One-time news; the value is the key kept in the registry file (older files use them)."""
+
+    NIGHTLY_LIVE = "nightly_announced"
+    DASHBOARD_LINK = "dashboard_linked"
+    FOCUS_QUESTION = "focus_asked"
+
+
 class RepoRegistryError(ValueError):
     """The registry file exists but is not a registry; the message names the file."""
 
@@ -62,13 +70,13 @@ class RepoRegistry:
         silenced = sorted(self.muted(project) - {tuple(trouble)})
         self._update(project, "muted", [list(item) for item in silenced])
 
-    def nightly_announced(self, project: str) -> bool:
-        """Whether the developer was already told that nightly training is live here."""
-        return bool(self._entry(project).get("nightly_announced", False))
+    def was_announced(self, project: str, news: Announced) -> bool:
+        """Whether the developer was already told `news` here."""
+        return bool(self._entry(project).get(news.value, False))
 
-    def announce_nightly(self, project: str) -> None:
-        """Remember that the developer was told."""
-        self._update(project, "nightly_announced", value=True)
+    def announce(self, project: str, news: Announced) -> None:
+        """Remember that the developer was told `news`, so later sessions stay silent."""
+        self._update(project, news.value, value=True)
 
     def focus(self, project: str) -> dict[str, Any] | None:
         """What the developer said symbiont should pay attention to, or None when not asked."""
@@ -77,14 +85,6 @@ class RepoRegistry:
     def record_focus(self, project: str, focus: dict[str, Any]) -> None:
         """Remember the developer's answer: {text, keywords, sources}."""
         self._update(project, "focus", focus)
-
-    def dashboard_linked(self, project: str) -> bool:
-        """Whether the developer was already shown the dashboard link."""
-        return bool(self._entry(project).get("dashboard_linked", False))
-
-    def link_dashboard(self, project: str) -> None:
-        """Remember that the dashboard link was shown."""
-        self._update(project, "dashboard_linked", value=True)
 
     def _entry(self, project: str) -> dict[str, Any]:
         """The stored fields of one project; empty when it was never mentioned."""
