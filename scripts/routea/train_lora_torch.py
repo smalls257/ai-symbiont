@@ -16,6 +16,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import torch
+from device_choice import pick_device
 from mlx_lora_recipe import WARMUP, batch_order, learning_rate, loss_span, padded_width, warmup_for
 from peft import LoraConfig, get_peft_model, set_peft_model_state_dict
 from safetensors.torch import load_file
@@ -34,8 +35,19 @@ TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down
 # mlx-lm built training prompts without a date_string, so the Llama template stamped the day the
 # laptop trained (2026-10-28); pinning that day gives the same tokens and reproducible reruns.
 TRAIN_DATE = "28 Oct 2026"
-# "cuda" on the desktop; "mps" runs the same code on the laptop's Apple GPU (METALORA).
-DEVICE = os.environ.get("LCAP_DEVICE", "cuda")
+# "mps" on the laptop's Apple GPU (METALORA), "cuda" on the desktop; LCAP_DEVICE forces one. With
+# neither available this raises at import rather than running on the CPU.
+DEVICE = pick_device(
+    os.environ.get("LCAP_DEVICE"),
+    frozenset(
+        name
+        for name, usable in (
+            ("mps", torch.backends.mps.is_available()),
+            ("cuda", torch.cuda.is_available()),
+        )
+        if usable
+    ),
+)
 
 
 def peak_allocated_bytes() -> int:

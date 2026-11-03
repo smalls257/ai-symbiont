@@ -17,6 +17,7 @@ from symbiont.service.nightly_tools import (
     LocalMachine,
     checked_python,
     default_judge_url,
+    judge_device,
     restart_instructions,
     run_logged,
     told_judge,
@@ -71,7 +72,7 @@ def test_a_judge_that_confirms_the_adapter_is_reported_live(tmp_path):
         seen.append((request.full_url, json.loads(request.data)))
         return json.dumps({"loaded": str(tmp_path / "adapter")}).encode()
 
-    said = told_judge("py", URL, tmp_path / "adapter", tmp_path / "base", transport)
+    said = told_judge(URL, tmp_path / "adapter", "start-it", transport)
     assert "now serves the new adapter" in said
     assert seen == [(URL + "/reload", {"adapter": str(tmp_path / "adapter")})]
 
@@ -80,14 +81,14 @@ def test_a_judge_that_is_down_gets_the_exact_restart_command_not_silence(tmp_pat
     def down(request, timeout_s):
         raise ConnectionRefusedError
 
-    said = told_judge("py", URL, tmp_path / "adapter", tmp_path / "base", down)
+    said = told_judge(URL, tmp_path / "adapter", "start-it", down)
     assert "is not answering" in said
-    assert "--port 8861" in said
+    assert "  start-it\n" in said
 
 
 def test_a_non_loopback_judge_url_is_refused_not_called(tmp_path):
     with pytest.raises(NightFailedError, match="refused"):
-        told_judge("py", "http://example.com:80", tmp_path, tmp_path)
+        told_judge("http://example.com:80", tmp_path, "start-it")
 
 
 def test_the_local_machine_reads_writes_and_deletes_files(tmp_path):
@@ -116,3 +117,11 @@ def test_the_trainer_python_is_found_by_path_so_the_command_head_stays_a_literal
         assert Path(printed).is_dir()
         return
     assert printed == sys.prefix
+
+
+def test_a_mac_restart_command_carries_mps_and_a_cuda_box_carries_cuda(tmp_path):
+    mac = restart_instructions("py", URL, tmp_path / "a", tmp_path / "b", judge_device(Backend.MLX))
+    gpu = restart_instructions(
+        "py", URL, tmp_path / "a", tmp_path / "b", judge_device(Backend.TORCH_CUDA)
+    )
+    assert mac.startswith("LCAP_DEVICE=mps py ") and gpu.startswith("py ")

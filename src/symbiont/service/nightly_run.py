@@ -128,13 +128,13 @@ def _breakdown(timeline: Timeline) -> str:
 
 def _train_and_record(plan: NightPlan, tools: NightTools, timeline: Timeline) -> int:
     """The stages in order; returns how many lessons the adapter was trained on."""
+    kit = open_kit(plan.kit_dir)  # first: a missing kit must not cost a read of the lessons
     work = plan.nightly_dir / plan.project / "work"
     shutil.rmtree(work, ignore_errors=True)
     work.mkdir(parents=True)
     lessons = timeline.stage("read lessons", lambda: _stored_lessons(plan))
     backend = tools.backend()
     tools.check_python(plan.trainer_python, backend)
-    kit = open_kit(plan.kit_dir)
     tools.say(f"{len(lessons)} lessons; training on {backend.value}")
     rows = timeline.stage("build rows", lambda: _write_rows(plan, kit, lessons, work))
     job = _job(kit, work, rows)

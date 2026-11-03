@@ -36,7 +36,9 @@ def test_a_quiet_event_has_no_signature_and_lines_accumulate(tmp_path):
     assert [e["trouble"] for e in lines(log)] == [None, None]
 
 
-def test_a_decision_event_never_carries_the_risk(tmp_path):
+def test_a_decision_event_never_carries_the_risk(tmp_path, monkeypatch):
+    # a fixed clock: a real timestamp can contain the digits "7312" and fail the whole-line check
+    monkeypatch.setattr("symbiont.service.events.time.time", lambda: 1_700_000_000.0)
     pain = PainPoint(SIGNATURE, "s0", 4, (("s0", 4),))
     log = EventLog(tmp_path, "mushroom")
     log.append_decision(CALL, Decision(SIGNATURE, (pain,), (), None, risk=0.7312), [])

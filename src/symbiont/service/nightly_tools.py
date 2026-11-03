@@ -133,22 +133,35 @@ def default_judge_url(project: str) -> str:
     return f"http://127.0.0.1:{FIRST_PORT + zlib.crc32(project.encode()) % PORTS}"
 
 
-def restart_instructions(python: str, url: str, adapter: Path, base: Path) -> str:
-    """The exact command that starts the judge server on this adapter."""
+def judge_device(backend: Backend) -> str:
+    """The LCAP_DEVICE the judge server needs on this machine: mps with mlx, cuda with torch."""
+    return "mps" if backend is Backend.MLX else "cuda"
+
+
+def restart_instructions(
+    python: str, url: str, adapter: Path, base: Path, device: str | None = None
+) -> str:
+    """The exact command that starts the judge server on this adapter.
+
+    The server picks cuda by itself when it is the only accelerator; a Mac's command pins
+    `LCAP_DEVICE=mps` (macOS is POSIX, so the prefix is valid there; Windows never needs one).
+    """
     folder = routea_dir()
     script = (
         str(folder / JUDGE_SERVER) if folder else f"<ai-symbiont>/scripts/routea/{JUDGE_SERVER}"
     )
     port = url.rsplit(":", 1)[-1].rstrip("/")
-    return f"{python} {script} --model {base} --adapter {adapter} --port {port}"
+    prefix = "LCAP_DEVICE=mps " if device == "mps" else ""
+    return f"{prefix}{python} {script} --model {base} --adapter {adapter} --port {port}"
 
 
 def told_judge(
-    python: str, url: str, adapter: Path, base: Path, transport: Transport | None = None
+    url: str, adapter: Path, start_command: str, transport: Transport | None = None
 ) -> str:
     """Hot-swap the adapter in the running judge server, or say exactly what to start.
 
-    Returns the sentence to print; the caller adds what the symbiont service needs.
+    `start_command` is what `restart_instructions` built for this machine. Returns the sentence to
+    print; the caller adds what the symbiont service needs.
     """
     try:
         JudgeModel(url, transport).reload(adapter)
@@ -157,7 +170,7 @@ def told_judge(
     except JudgeOfflineError:
         return (
             f"judge server at {url} is not answering. Start it on the new adapter:\n"
-            f"  {restart_instructions(python, url, adapter, base)}\n"
+            f"  {start_command}\n"
         )
     return f"judge server at {url} now serves the new adapter"
 
@@ -172,7 +185,13 @@ def real_tools(say: Say, judge_python: str) -> NightTools:
         backend=detected_backend,
         torch_script=torch_trainer,
         check_python=checked_python,
-        tell_judge=lambda url, adapter, base: told_judge(judge_python, url, adapter, base),
+        tell_judge=lambda url, adapter, base: told_judge(
+            url,
+            adapter,
+            restart_instructions(
+                judge_python, url, adapter, base, judge_device(detected_backend())
+            ),
+        ),
     )
 
 
