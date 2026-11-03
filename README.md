@@ -15,7 +15,7 @@ ai-symbiont is a plugin for Muse Code, Meta's coding agent. It reads your past s
 - **House rules.** The robot broke 30 house rules across 6 episodes without the owner's corrections and 0 across 6 with them. The corrections were scripted for the demo. [measured] [pre-registered]
 - **Freedoom.** Muse Spark plays Freedoom via ViZDoom and wrote its own rule from its failed games. Across 240 new games the rule raised the game score (0 to 1) by 0.16 against no rule. [measured] [pre-registered]
 - **Precision.** 0 wrong notes in 501 shown, on 89 open-source projects it had never seen. A plain similarity search got 9 wrong. The test bugs were planted, not made by real developers. [measured] [pre-registered]
-- **Nightly training.** Trained overnight on a project's own history, the checker caught 61% of repeated mistakes against 0% untrained, and 97.8% of what it approved was right. [measured] [pre-registered]
+- **Nightly training.** Untrained, the checker blocked every note on code it had never seen. After one night of training on the project's own history it approved 61% of repeats, and 97.8% of what it approved was right: the same reach the ranker has alone, now with the checker's agreement. [measured] [pre-registered]
 
 Live landing page, with recordings and every limit: <https://smalls257.github.io/ai-symbiont/>
 Paper: <https://smalls257.github.io/ai-symbiont/paper.html>
