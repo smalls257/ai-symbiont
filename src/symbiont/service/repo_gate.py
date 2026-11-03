@@ -218,7 +218,8 @@ class RepoGate:
         self, session_id: str, record: Record, live: Sequence[RuleMatch], room: int
     ) -> list[RepeatNote]:
         """Up to `room` relevant rules not yet said for this prompt or failure."""
-        trigger, notes = _trigger(record), []
+        trigger = _trigger(record)
+        notes: list[RepeatNote] = []
         for match in live:
             key = (session_id, match.rule.ident, trigger)
             if len(notes) == room:
