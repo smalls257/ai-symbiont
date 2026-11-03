@@ -307,4 +307,30 @@ def test_a_long_rule_is_cut_at_a_word_for_the_note():
 
     sentence = rule_sentence(words)
 
-    assert len(sentence) < 360 and sentence.endswith(" ...")
+    assert len(sentence) < 640 and sentence.endswith(" ...")
+
+
+def test_a_typical_348_char_lesson_is_delivered_whole():
+    lesson = "Guard scalar bases to return plain Pow, " + "and route array bases " * 14
+    assert 340 < len(lesson) < 400
+
+    sentence = rule_sentence(LessonContext(lesson))
+
+    assert sentence == f"[symbiont] In this repo: {lesson.strip()}."
+
+
+def test_an_over_long_rule_is_cut_at_a_sentence_end_not_mid_sentence():
+    first = "Keep ledger writes append only and never edit a posted row."
+    words = LessonContext(" ".join([first] * 20))
+
+    sentence = rule_sentence(words)
+
+    assert sentence.endswith(first + " ...") and len(sentence) < 640
+
+
+def test_an_over_long_rule_without_sentence_ends_is_cut_at_a_clause():
+    words = LessonContext("keep the ledger append only, " * 40)
+
+    sentence = rule_sentence(words)
+
+    assert sentence.endswith("append only ...") and len(sentence) < 640

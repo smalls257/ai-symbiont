@@ -235,3 +235,30 @@ def test_a_lesson_without_areas_gets_its_files_module_directories_and_written_ar
 
     derived, kept = store.curation.authored(PROJECT)
     assert derived.applies.areas == ("pkg/arr",) and kept.applies.areas == ("x/",)
+
+
+def test_text_and_rule_are_accepted_as_the_lesson_words(tmp_path):
+    routes, store, _ = rig(tmp_path)
+
+    result = routes.add_lessons(
+        {
+            "project": PROJECT,
+            "lessons": [
+                {"text": "Totals round once.", "kind": "rule"},
+                {"rule": "Ledger is append-only.", "kind": "rule"},
+            ],
+        }
+    )
+
+    kept = {lesson.text for lesson in store.curation.authored(PROJECT)}
+    assert result["added"] == 2 and kept == {"Totals round once.", "Ledger is append-only."}
+
+
+def test_a_bad_lesson_error_names_the_fields_and_asks_for_the_same_content_again(tmp_path):
+    routes, _, _ = rig(tmp_path)
+
+    with pytest.raises(BadRequestError) as caught:
+        routes.add_lessons({"project": PROJECT, "lessons": [{"words": "x", "kind": "rule"}]})
+
+    message = str(caught.value)
+    assert "text_in_plain_words" in message and "kind" in message and "SAME" in message

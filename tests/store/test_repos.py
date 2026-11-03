@@ -2,7 +2,7 @@
 
 import pytest
 
-from symbiont.store.repos import RepoRegistry, RepoRegistryError, RepoStance
+from symbiont.store.repos import Announced, RepoRegistry, RepoRegistryError, RepoStance
 
 pytestmark = pytest.mark.periphery
 
@@ -44,11 +44,11 @@ def test_muting_is_idempotent_reversible_and_scoped_to_the_project(tmp_path):
 
 def test_the_nightly_announcement_is_made_once(tmp_path):
     registry = RepoRegistry(tmp_path)
-    assert not registry.nightly_announced("demo")
+    assert not registry.was_announced("demo", Announced.NIGHTLY_LIVE)
 
-    registry.announce_nightly("demo")
+    registry.announce("demo", Announced.NIGHTLY_LIVE)
 
-    assert RepoRegistry(tmp_path).nightly_announced("demo")
+    assert RepoRegistry(tmp_path).was_announced("demo", Announced.NIGHTLY_LIVE)
 
 
 def test_a_file_that_is_not_a_registry_raises_naming_it(tmp_path):
@@ -60,10 +60,14 @@ def test_a_file_that_is_not_a_registry_raises_naming_it(tmp_path):
 
 def test_the_focus_and_the_dashboard_link_are_remembered_once(tmp_path):
     registry = RepoRegistry(tmp_path)
-    assert registry.focus("demo") is None and not registry.dashboard_linked("demo")
+    assert registry.focus("demo") is None and not registry.was_announced(
+        "demo", Announced.DASHBOARD_LINK
+    )
 
     registry.record_focus("demo", {"text": "money rules", "keywords": ["money"], "sources": []})
-    registry.link_dashboard("demo")
+    registry.announce("demo", Announced.DASHBOARD_LINK)
 
     again = RepoRegistry(tmp_path)
-    assert again.focus("demo")["keywords"] == ["money"] and again.dashboard_linked("demo")
+    assert again.focus("demo")["keywords"] == ["money"] and again.was_announced(
+        "demo", Announced.DASHBOARD_LINK
+    )
