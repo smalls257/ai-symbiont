@@ -1,6 +1,7 @@
 """Setup checks the downloaded base and kit first, names the fix, never merges a wrong file."""
 
 import json
+from pathlib import Path
 
 import pytest
 
@@ -97,9 +98,9 @@ def test_the_merge_stacks_judge_s0_then_general_and_installs_a_complete_kit(tmp_
     inputs = setup.SetupInputs(base, tmp_path / "files", kit, "python3")
     kit.mkdir()
     setup.merge_kit(inputs, fake_merge, tmp_path / "merge.py", lambda line: None)
-    assert [c[1].rsplit("/", 1)[-1] for c in calls] == ["judge-s0", "general"]
+    assert [Path(c[1]).name for c in calls] == ["judge-s0", "general"]
     assert calls[0][0] == str(base)
-    assert calls[1][0] == calls[0][0].replace(str(base), str(kit / ".setup-work/merged-0"))
+    assert Path(calls[1][0]) == kit / ".setup-work" / "merged-0"
     assert open_kit(kit).base == kit / "base"
     assert not (kit / ".setup-work").exists()
 
