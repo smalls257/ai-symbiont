@@ -11,6 +11,8 @@ from dataclasses import replace
 
 import pytest
 
+from claude_logs import claude_log
+from live_service import serving
 from record_builders import edit, run, session
 from symbiont import cli
 from symbiont.miner.lessons import lessons_from
@@ -29,6 +31,16 @@ IMPORT = "File \"app/parser.py\", line 1\nImportError: cannot import name 'parse
 
 def command(*words, data_dir):
     return cli.main([*words, "--project", "demo", "--data-dir", str(data_dir)])
+
+
+def mine(repo, data_dir):
+    """`symbiont repo mine` against a real service of its own; the browser is never opened."""
+    with serving(data_dir) as (_, port):
+        return cli.main(
+            ["repo", "mine", "--project", "demo", "--data-dir", str(data_dir)]
+            + ["--repo-dir", str(repo), "--port", str(port)],
+            open_page=lambda url: True,
+        )
 
 
 def mined_store(data_dir):
@@ -87,7 +99,7 @@ def test_mining_reads_the_claude_code_sessions_of_the_repository(tmp_path, monke
     command("repo", "allow", data_dir=tmp_path / "data")
     capsys.readouterr()
 
-    assert command("repo", "mine", "--repo-dir", str(repo), data_dir=tmp_path / "data") == 0
+    assert mine(repo, tmp_path / "data") == 0
 
     assert (
         "learned 1 lessons from 1 claude-code sessions, 0 muse-code sessions"
@@ -177,46 +189,6 @@ def test_status_asks_the_service_and_reports_offline_when_it_is_down(tmp_path, c
     assert capsys.readouterr().out.startswith("symbiont offline:")
 
 
-def claude_log():
-    """Claude Code JSONL for the three steps: a failing Bash call, an edit, a passing call."""
-
-    def call(id_, name, arguments):
-        return {
-            "type": "assistant",
-            "sessionId": "s1",
-            "message": {
-                "role": "assistant",
-                "content": [{"type": "tool_use", "id": id_, "name": name, "input": arguments}],
-            },
-        }
-
-    def result(id_, text, error=False):
-        return {
-            "type": "user",
-            "sessionId": "s1",
-            "message": {
-                "role": "user",
-                "content": [
-                    {"type": "tool_result", "tool_use_id": id_, "content": text, "is_error": error}
-                ],
-            },
-        }
-
-    events = [
-        call("a", "Bash", {"command": "pytest tests/test_parser.py"}),
-        result("a", "Exit code 1\n" + IMPORT, error=True),
-        call(
-            "b",
-            "Edit",
-            {"file_path": "app/parser.py", "old_string": "a", "new_string": "def parse(text):"},
-        ),
-        result("b", "ok"),
-        call("c", "Bash", {"command": "pytest tests/test_parser.py"}),
-        result("c", "1 passed"),
-    ]
-    return "\n".join(json.dumps(event) for event in events) + "\n"
-
-
 def muse_line(payload_type, payload):
     stream = {"kind": "session", "id": "m1"}
     return json.dumps({"stream": stream, "payload_type": payload_type, "payload": payload})
@@ -269,7 +241,7 @@ def test_mining_reads_muse_code_sessions_of_the_repository_too(tmp_path, monkeyp
     command("repo", "allow", data_dir=tmp_path / "data")
     capsys.readouterr()
 
-    assert command("repo", "mine", "--repo-dir", str(repo), data_dir=tmp_path / "data") == 0
+    assert mine(repo, tmp_path / "data") == 0
 
     assert (
         "learned 1 lessons from 0 claude-code sessions, 1 muse-code sessions"

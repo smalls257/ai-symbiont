@@ -29,7 +29,7 @@ muse plugins approve symbiont
 
 Start a session in a repository. The first time, symbiont says what it does and asks. Answer with
 `symbiont repo allow` (or `symbiont repo decline`), then `symbiont repo mine` to learn from this
-repository's past Claude Code and Muse Code sessions (it finds both on its own). `/symbiont` shows status, explains the last note, mutes it
+repository's past Claude Code and Muse Code sessions (it finds both on its own, and opens the dashboard so you can watch the progress; `--no-open` skips that). `/symbiont` shows status, explains the last note, mutes it
 or forgets its lessons.
 
 ## Reproduce it

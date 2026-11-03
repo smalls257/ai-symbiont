@@ -5,7 +5,7 @@ hold-out check runs here, before a lesson is stored. A new log is registered onl
 it succeeds; a registered log that went missing or no longer parses raises naming the file.
 """
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -60,6 +60,23 @@ def remine_with_read(
     lessons = lessons_from(mine_history(sessions_of(records), rules.references), records)
     store.save_mining(project, list(new), lessons, held_out_tasks=rules.held_out_tasks)
     return lessons
+
+
+def mine_sources(
+    sources: Sequence[Source], rules: MiningRules, on_read: Callable[[list[Lesson]], None]
+) -> list[Lesson]:
+    """Mine `sources` with no store; `on_read` gets each log's lessons (alone) as a live preview.
+
+    The result mines all logs together, so it may differ from the previews. Raises
+    HoldOutViolationError, UnknownReaderError, ReadError or OSError.
+    """
+    records: list[Record] = []
+    for source in sources:
+        read = read_source(source, rules.readers)
+        records += read
+        on_read(lessons_from(mine_history(sessions_of(read), rules.references), read))
+    refuse_held_out(records, rules.held_out_tasks)
+    return lessons_from(mine_history(sessions_of(records), rules.references), records)
 
 
 def read_source(source: Source, readers: Mapping[str, Reader]) -> list[Record]:

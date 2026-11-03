@@ -6,10 +6,8 @@ service, so this package imports no client.
 """
 
 import argparse
-import os
 import sys
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -18,16 +16,17 @@ from symbiont.core.notes import happened
 from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
-from symbiont.readers import READERS
-from symbiont.readers.claude_code import session_logs
-from symbiont.readers.muse_code import session_logs as muse_session_logs
+from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
 from symbiont.service.events import last_note_event
-from symbiont.store.local import Source, Store
-from symbiont.store.mining import MiningRules, remine
+from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
+from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
-from symbiont.store.settings import read_correction_settings, write_correction_setting
-
-AskService = Callable[[str, dict[str, object], int], dict[str, Any]]
+from symbiont.store.settings import (
+    read_correction_settings,
+    read_dashboard_settings,
+    write_correction_setting,
+    write_dashboard_setting,
+)
 
 
 @dataclass(frozen=True)
@@ -38,28 +37,28 @@ class Defaults:
     port: int
 
 
-class ServiceUnavailableError(ConnectionError):
-    """An `AskService` could not reach the running service; the message says where."""
-
-
-class ServiceAnswerError(RuntimeError):
-    """An `AskService` reached the service but got no usable answer; the message says why."""
-
-
+OPEN_DASHBOARD = "open_dashboard_on_mine"
 COMMANDS = frozenset(
     {"repo", "status", "why", "mute", "forget", "lessons", "context", "dashboard", "settings"}
 )
-CLAUDE_CODE_READER = "claude-code"
-MUSE_CODE_READER = "muse-code"
 
 
-def add_repo_commands(commands: Any, defaults: Defaults) -> None:
-    """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
+def _add_repo_parser(commands: Any, defaults: Defaults) -> None:
+    """Register `repo`: the answer for a repository, and mining its past sessions."""
     repo = commands.add_parser(
         "repo", help="answer for this repository: allow, decline, show, mine"
     )
     repo.add_argument("action", choices=["allow", "decline", "show", "mine", "reset"])
     repo.add_argument("--repo-dir", type=Path, default=Path.cwd())
+    repo.add_argument("--port", type=int, default=defaults.port)
+    repo.add_argument(
+        "--no-open", action="store_true", help="mine: print the dashboard address, do not open it"
+    )
+
+
+def add_repo_commands(commands: Any, defaults: Defaults) -> None:
+    """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
+    _add_repo_parser(commands, defaults)
     for name, helped in [
         ("status", "what symbiont is doing for this repository"),
         ("why", "why the last note fired"),
@@ -84,18 +83,25 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     dashboard.add_argument("--port", type=int, default=defaults.port)
     setting = commands.add_parser("settings", help="show or switch correction-finding settings")
     setting.add_argument("action", choices=["show", "set"])
-    setting.add_argument("name", nargs="?", help="claude_code, muse_code or cross_harness")
+    setting.add_argument(
+        "name", nargs="?", help=f"claude_code, muse_code, cross_harness or {OPEN_DASHBOARD}"
+    )
     setting.add_argument("value", nargs="?", choices=["true", "false"])
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
         parser.add_argument("--data-dir", type=Path, default=defaults.data_dir)
 
 
-def run_repo_command(args: argparse.Namespace, ask: AskService) -> int:
-    """Run one of COMMANDS; returns the exit code. `ask` reaches the running service."""
+def run_repo_command(args: argparse.Namespace, ask: AskService, client: MineClient) -> int:
+    """Run one of COMMANDS; returns the exit code. `ask` reaches the running service.
+
+    `client` is how `repo mine` reaches the service, the browser and the clock.
+    """
     try:
         if args.command == "status":
             return _status(args, ask)
+        if args.command == "repo" and args.action == "mine":
+            return mine_past_sessions(args, RepoRegistry(args.data_dir), client)
         return _COMMANDS[args.command](args)
     except (OSError, ValueError, LookupError) as failed:
         sys.stderr.write(f"symbiont {args.command}: {failed}\n")
@@ -103,7 +109,7 @@ def run_repo_command(args: argparse.Namespace, ask: AskService) -> int:
 
 
 def _repo(args: argparse.Namespace) -> int:
-    """Record or show the answer for the repository; `mine` learns from its past sessions."""
+    """Record or show the answer for the repository."""
     registry = RepoRegistry(args.data_dir)
     if args.action == "show":
         stance = registry.stance(args.project)
@@ -111,8 +117,6 @@ def _repo(args: argparse.Namespace) -> int:
     elif args.action == "reset":
         registry.forget_project(args.project)
         _say(f"{args.project}: forgotten; symbiont will ask again at the next session start")
-    elif args.action == "mine":
-        return _mine_past_sessions(args, registry)
     else:
         stance = RepoStance.GIVEN if args.action == "allow" else RepoStance.DECLINED
         registry.record_stance(args.project, stance)
@@ -130,36 +134,6 @@ def _answer_message(project: str, stance: RepoStance) -> str:
         "and Muse Code sessions. To find your past corrections, the model running your session "
         "reads short excerpts of past messages from the same tool's history."
     )
-
-
-def _mine_past_sessions(args: argparse.Namespace, registry: RepoRegistry) -> int:
-    """Mine this repository's Claude Code and Muse Code sessions; refuses until it is allowed."""
-    if registry.stance(args.project) is not RepoStance.GIVEN:
-        sys.stderr.write(
-            f"symbiont repo mine: run `symbiont repo allow` for {args.project} first\n"
-        )
-        return 1
-    found = {
-        CLAUDE_CODE_READER: session_logs(args.repo_dir, Path.home()),
-        MUSE_CODE_READER: muse_session_logs(args.repo_dir, _muse_store_root()),
-    }
-    if not any(found.values()):
-        _say(f"no Claude Code or Muse Code sessions found for {args.repo_dir.resolve()}")
-        return 0
-    args.data_dir.mkdir(parents=True, exist_ok=True)
-    store = Store.open(args.data_dir / "store.db")
-    sources = [
-        Source(args.project, reader, str(log)) for reader, logs in found.items() for log in logs
-    ]
-    lessons = remine(store, args.project, MiningRules(READERS, frozenset()), adding=sources)
-    counts = ", ".join(f"{len(logs)} {reader} sessions" for reader, logs in found.items())
-    _say(f"learned {len(lessons)} lessons from {counts}; they stay on this computer")
-    return 0
-
-
-def _muse_store_root() -> Path:
-    """Where Muse Code keeps its data: the XDG data directory."""
-    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
 
 
 def _status(args: argparse.Namespace, ask: AskService) -> int:
@@ -273,21 +247,26 @@ def _context(args: argparse.Namespace) -> int:
 
 def _dashboard(args: argparse.Namespace) -> int:
     """Print the dashboard address for this repository."""
-    _say(f"http://127.0.0.1:{args.port}/dashboard?project={args.project}")
+    _say(dashboard_url(args.project, args.port))
     return 0
 
 
 def _settings(args: argparse.Namespace) -> int:
-    """Show, or switch, which histories the session's model may read for correction finding."""
+    """Show, or switch, the correction-finding histories and whether mining opens the dashboard."""
     if args.action == "set":
         if args.name is None or args.value is None:
             raise ValueError("settings set needs a name and true or false")
-        write_correction_setting(args.data_dir, args.name, value=args.value == "true")
+        switched = args.value == "true"
+        if args.name == OPEN_DASHBOARD:
+            write_dashboard_setting(args.data_dir, open_on_mine=switched)
+        else:
+            write_correction_setting(args.data_dir, args.name, value=switched)
     current = read_correction_settings(args.data_dir)
     _say(
         f"corrections: claude_code={current.claude_code} muse_code={current.muse_code} "
         f"cross_harness={current.cross_harness}"
     )
+    _say(f"dashboard: open_dashboard_on_mine={read_dashboard_settings(args.data_dir).open_on_mine}")
     return 0
 
 

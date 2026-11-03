@@ -10,6 +10,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/delivery/`
 - No learning, store or privacy logic here; the service owns it.
 - Installers show a diff and ask before writing, are idempotent and reversible byte for byte, and never touch the user's global harness config.
 - `recall` stays one plain question string.
+- `open_page.py` opens a dashboard address with the desktop's own command (`open`, `xdg-open`) and returns False when it cannot, so `symbiont repo mine` can say so; only the CLI calls it, the service never opens a window. `launch.patient_call` is the `repo mine` variant of the reviving call: a developer waits for a cold start, a hook does not.
 - The Stop hook (`stop_hook.py`) only forwards to the service's `/reflect` and prints `{"decision":"block","reason":<question>}` (Claude Code and Muse Code both honor it, measured); it prints nothing when `stop_hook_active` is set, so the reflection turn cannot loop.
 - The plain (floor) arm of a run appends nothing.
 - `hook_trace.py` is the hook's opt-in sensor (marker file or `SYMBIONT_HOOK_TRACE`); off by default; it holds raw payloads, so never commit a trace.
