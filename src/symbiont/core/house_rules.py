@@ -3,13 +3,13 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from symbiont.core.quoted_rule import has_quote, quoted_house_rule, rule_note
 from symbiont.core.rule_relevance import (
     IDENTIFIER_WEIGHT,
     MAX_NOTE_CHARS,
     MIN_WEAK_SCORE,
     WORD_WEIGHT,
     Rule,
-    rule_sentence,
 )
 from symbiont.core.rule_terms import identifiers_in, plain_terms
 from symbiont.miner.lesson_context import LessonKind, Priority
@@ -90,18 +90,30 @@ def _standing_rank(rule: Rule) -> tuple[int, int]:
 
 
 def standing_sentence(corrections: Sequence[Rule]) -> str:
-    """One note with as many whole rules as fit MAX_NOTE_CHARS; a lone long rule is cut as usual."""
+    """One note with as many whole rules as fit MAX_NOTE_CHARS; a lone long rule is cut as usual.
+
+    A rule with the reviewer's words says them first and whole (see core.quoted_rule).
+    """
     if not corrections:
         raise ValueError("no corrections to say")
     kept: list[str] = []
     for rule in corrections:
-        text = rule.words.text.strip().rstrip(" .") + "."
-        if len(LEAD) + len(" ".join([*kept, text])) > MAX_NOTE_CHARS:
+        used = len(LEAD) + len(" ".join(kept)) + (1 if kept else 0)
+        entry = _entry(rule, MAX_NOTE_CHARS - used)
+        if entry is None:
             break
-        kept.append(text)
+        kept.append(entry)
     if not kept:
-        return rule_sentence(corrections[0].words)
+        return rule_note(corrections[0])
     return LEAD + " ".join(kept)
+
+
+def _entry(rule: Rule, room: int) -> str | None:
+    """The rule as one house-rules entry within `room` characters, or None if it does not fit."""
+    if has_quote(rule):
+        return quoted_house_rule(rule, room)
+    text = rule.words.text.strip().rstrip(" .") + "."
+    return text if len(text) <= room else None
 
 
 def _same_subject(older: Rule, newer: Rule) -> bool:

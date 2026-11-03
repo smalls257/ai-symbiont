@@ -21,7 +21,13 @@ from symbiont.miner.lesson_context import (
 )
 from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
-from symbiont.service.pr_learning import MAX_LESSONS, UnsafeSourceUrlError, checked_source_url
+from symbiont.service.pr_learning import (
+    MAX_LESSONS,
+    UnsafeSourceUrlError,
+    UnusableQuoteError,
+    checked_quote,
+    checked_source_url,
+)
 from symbiont.service.request_shapes import BadRequestError, parse_applies, require_keys
 from symbiont.service.review_candidate import review_candidate
 from symbiont.store.local import Store
@@ -41,7 +47,8 @@ MAX_TEXT = 600
 LESSON_TEXT_KEYS = ("text_in_plain_words", "text", "rule")
 RESEND_ADVICE = (
     "Expected per lesson: text_in_plain_words, kind (mistake|rule|friction|correction), and "
-    "optionally files, source_label, source_url (https), severity (low|medium|high), "
+    "optionally files, source_label, source_url (https), quote and quote_role (the reviewer's "
+    "exact words and role), severity (low|medium|high), "
     "applies_to {terms, areas}. "
     "Fix the field and resend the SAME lesson content unchanged; do not shorten or reword it."
 )
@@ -193,6 +200,7 @@ class CurationRoutes:
         url = _source_url(item)
         text = scrub(text) if url else text
         files = _strings(item.get("files", []), "files")
+        quote, role = _quote(item, url)
         lesson = AuthoredLesson(
             _ident(text),
             text,
@@ -202,6 +210,8 @@ class CurationRoutes:
             _enum(Severity, item.get("severity", "medium"), "severity"),
             _with_module_areas(parse_applies(item.get("applies_to")), files),
             url,
+            quote,
+            role,
         )
         self._store.curation.add_authored(project, lesson)
         return lesson.ident
@@ -228,6 +238,14 @@ def _source_url(item: dict[str, Any]) -> str:
         return checked_source_url(item.get("source_url"))
     except UnsafeSourceUrlError as unsafe:
         raise BadRequestError(str(unsafe)) from unsafe
+
+
+def _quote(item: dict[str, Any], url: str) -> tuple[str, str]:
+    """The lesson's reviewer quote and role, checked; a bad one is a 400 naming the field."""
+    try:
+        return checked_quote(item.get("quote"), item.get("quote_role"), url)
+    except UnusableQuoteError as unusable:
+        raise BadRequestError(str(unusable)) from unusable
 
 
 def _refuse_oversized_pr_batch(items: list[dict[str, Any]]) -> None:

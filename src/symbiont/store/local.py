@@ -50,7 +50,8 @@ CREATE TABLE IF NOT EXISTS review_overrides (
 CREATE TABLE IF NOT EXISTS authored (
     id TEXT PRIMARY KEY, project TEXT NOT NULL, text TEXT NOT NULL, kind TEXT NOT NULL,
     files TEXT NOT NULL, source_label TEXT NOT NULL, severity TEXT NOT NULL,
-    applies TEXT NOT NULL, source_url TEXT NOT NULL DEFAULT ''
+    applies TEXT NOT NULL, source_url TEXT NOT NULL DEFAULT '',
+    quote TEXT NOT NULL DEFAULT '', quote_role TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS reviews (
     lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, verdict TEXT NOT NULL,
@@ -68,12 +69,19 @@ CREATE TABLE IF NOT EXISTS trained (
 _LEGACY_TABLES = ("records", "pain_points")
 
 
-def _add_source_url_column(db: sqlite3.Connection) -> None:
-    """Stores made before pull-request lessons lack `authored.source_url`; add it in place."""
+_LATER_AUTHORED_COLUMNS = ("source_url", "quote", "quote_role")
+
+
+def _add_missing_authored_columns(db: sqlite3.Connection) -> None:
+    """Add the columns older stores lack, in place, with an empty default.
+
+    `source_url` came with pull-request lessons; `quote` and `quote_role` with the reviewer's words.
+    """
     columns = {row[1] for row in db.execute("PRAGMA table_info(authored)")}
-    if "source_url" not in columns:
-        with db:
-            db.execute("ALTER TABLE authored ADD COLUMN source_url TEXT NOT NULL DEFAULT ''")
+    for name in _LATER_AUTHORED_COLUMNS:
+        if name not in columns:
+            with db:
+                db.execute(f"ALTER TABLE authored ADD COLUMN {name} TEXT NOT NULL DEFAULT ''")
 
 
 class SparkPrivacyViolationError(PermissionError):
@@ -121,7 +129,7 @@ class Store:
         # The threaded service shares one store; it serializes every call under its own lock.
         db = sqlite3.connect(path, check_same_thread=False)
         db.executescript(_SCHEMA)
-        _add_source_url_column(db)
+        _add_missing_authored_columns(db)
         _warn_about_legacy_history(db, path)
         return cls(db)
 
