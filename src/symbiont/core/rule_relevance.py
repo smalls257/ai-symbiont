@@ -83,9 +83,20 @@ def rules_of(
         if words is not None and not words.intentional and words.text.strip():
             rules.append(Rule(lesson_id(lesson), words, lesson_files(lesson), lesson))
     for item in authored:
-        words = LessonContext(item.text, priority=_PRIORITY_OF[item.severity], applies=item.applies)
-        rules.append(Rule(item.ident, words, item.files))
+        own = contexts.get(item.ident)
+        if own is not None and own.intentional:
+            continue
+        rules.append(Rule(item.ident, _written_words(item, own), item.files))
     return rules
+
+
+def _written_words(item: AuthoredLesson, own: LessonContext | None) -> LessonContext:
+    """A written lesson as a rule: its text, then the developer's words, priority and tags."""
+    if own is None:
+        return LessonContext(item.text, priority=_PRIORITY_OF[item.severity], applies=item.applies)
+    text = ". ".join(part for part in (item.text.strip(" ."), own.text.strip(" .")) if part)
+    applies = own.applies if own.applies.terms or own.applies.areas else item.applies
+    return LessonContext(text, priority=own.priority, applies=applies)
 
 
 def relevant_rules(

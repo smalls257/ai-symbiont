@@ -18,6 +18,8 @@ from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
 from symbiont.service.events import last_note_event
+from symbiont.service.lesson_list import lesson_lines
+from symbiont.service.lesson_lookup import project_of_lesson
 from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -67,6 +69,8 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
         ("lessons", "list this repository's stored lessons with their ids"),
     ]:
         command = commands.add_parser(name, help=helped)
+        if name == "lessons":
+            command.add_argument("--all", action="store_true", help="also list dismissed lessons")
         if name == "forget":
             command.add_argument("--lesson", help="an id from `symbiont lessons`")
         if name == "status":
@@ -214,11 +218,23 @@ def _mute(args: argparse.Namespace) -> int:
 def _forget(args: argparse.Namespace) -> int:
     """Delete the lessons behind the last note (or one chosen id) and keep them silenced."""
     store = Store.open(args.data_dir / "store.db")
+    if args.lesson is not None and _forgot_written(args, store):
+        return 0
     trouble = _trouble_chosen(args, store)
     deleted = store.catalog.forget(args.project, trouble)
     RepoRegistry(args.data_dir).mute(args.project, (trouble.signal.value, *trouble.key))
     _say(f"forgot {deleted} lesson(s) because {happened(trouble)}; they stay silenced if re-mined.")
     return 0
+
+
+def _forgot_written(args: argparse.Namespace, store: Store) -> bool:
+    """Delete the written lesson `--lesson` names, if it is one of this repository's."""
+    found = store.curation.find_authored(args.lesson)
+    if found is None or found[0] != args.project:
+        return False
+    store.curation.forget_authored(args.project, args.lesson)
+    _say(f"forgot the written lesson {args.lesson}: {found[1].text[:60]}")
+    return True
 
 
 def _trouble_chosen(args: argparse.Namespace, store: Store) -> Signature:
@@ -235,14 +251,23 @@ def _context(args: argparse.Namespace) -> int:
     """Store the developer's words for a lesson (an id, or "last"); says which one it picked."""
     store = Store.open(args.data_dir / "store.db")
     wanted = _newest_lesson_id(args, store) if args.lesson == "last" else args.lesson
-    found = store.catalog.find(wanted)
-    if found is None:
+    project = project_of_lesson(store, wanted)
+    if project is None:
         raise LookupError(f"no lesson {wanted}; see `symbiont lessons`")
     applies = AppliesTo(_listed(args.terms), _listed(args.areas))
     words = LessonContext(args.text.strip(), args.intentional, Priority(args.priority), applies)
-    store.contexts.save(wanted, found[0], words)
-    _say(f"saved for {wanted} ({happened(found[1].pain_point.signature)}).")
+    store.contexts.save(wanted, project, words)
+    _say(f"saved for {wanted} ({_described(store, wanted)}).")
     return 0
+
+
+def _described(store: Store, ident: str) -> str:
+    """What a lesson is about, in a clause: the trouble, or the written text."""
+    mined = store.catalog.find(ident)
+    if mined is not None:
+        return happened(mined[1].pain_point.signature)
+    written = store.curation.find_authored(ident)
+    return "written lesson: " + (written[1].text[:60] if written else ident)
 
 
 def _dashboard(args: argparse.Namespace) -> int:
@@ -284,19 +309,31 @@ def _newest_lesson_id(args: argparse.Namespace, store: Store) -> str:
         if store.catalog.find(behind) is not None:
             return behind
     lessons = store.lessons(args.project)
-    if not lessons:
+    if lessons:
+        return lesson_id(lessons[-1])
+    written = store.curation.authored(args.project)
+    if not written:
         raise LookupError(f"{args.project} has no stored lessons; try `symbiont repo mine`")
-    return lesson_id(lessons[-1])
+    return written[-1].ident
 
 
 def _lessons(args: argparse.Namespace) -> int:
-    """One line per stored lesson: its id and what happened."""
+    """One line per active lesson, mined or written: id, source and what it says.
+
+    Dismissed (silenced) lessons are hidden unless `--all`, which flags them.
+    """
     store = Store.open(args.data_dir / "store.db")
-    lessons, words = store.lessons(args.project), store.contexts.all(args.project)
-    for lesson in lessons:
-        mark = "  [your words added]" if lesson_id(lesson) in words else ""
-        _say(f"{lesson_id(lesson)}  {happened(lesson.pain_point.signature)}{mark}")
-    if not lessons:
+    lines = lesson_lines(store, args.project)
+    shown = [line for line in lines if args.all or not line.dismissed]
+    for line in shown:
+        flags = ("  [dismissed]" if line.dismissed else "") + (
+            "  [your words added]" if line.has_words else ""
+        )
+        _say(f"{line.ident}  {line.source:<10}  {line.text}{flags}")
+    hidden = len(lines) - len(shown)
+    if hidden:
+        _say(f"{hidden} dismissed lesson(s) hidden; `symbiont lessons --all` shows them")
+    if not lines:
         _say(f"no stored lessons for {args.project}; try `symbiont repo mine`")
     return 0
 

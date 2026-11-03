@@ -55,7 +55,8 @@ def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
     groups = _grouped(lessons, view.reviews, view.focus)
     points = [_pain_point(n, group, order, view) for n, group in enumerate(groups, 1)]
     points += [
-        _written_point(len(points) + n, item, order) for n, item in enumerate(view.written, 1)
+        _written_point(len(points) + n, item, order, view.contexts.get(item.ident))
+        for n, item in enumerate(view.written, 1)
     ]
     first = min((item[1] for item in order.values()), default=today)
     days = {index: (when - first).days for index, when in order.values()}
@@ -211,7 +212,10 @@ def _tags(words: LessonContext | None, review: Review | None) -> dict[str, list[
 
 
 def _written_point(
-    number: int, item: AuthoredLesson, order: Mapping[str, tuple[int, date]]
+    number: int,
+    item: AuthoredLesson,
+    order: Mapping[str, tuple[int, date]],
+    words: LessonContext | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """A written lesson as a pain point: it has no sessions of its own, so it sits on the newest."""
     newest = max((index for index, _ in order.values()), default=0)
@@ -239,11 +243,16 @@ def _written_point(
         "appliesTo": {"terms": list(item.applies.terms), "areas": list(item.applies.areas)},
         "note": item.text,
         "exampleContext": item.source_label,
-        "context": "",
-        "intentional": False,
-        "priority": {"high": "high", "low": "low"}.get(item.severity.value, "normal"),
+        "context": words.text if words else "",
+        "intentional": words.intentional if words else False,
+        "priority": words.priority.value if words else _priority_of(item),
     }
     return point, lesson
+
+
+def _priority_of(item: AuthoredLesson) -> str:
+    """The priority a written lesson shows before the developer sets one."""
+    return {"high": "high", "low": "low"}.get(item.severity.value, "normal")
 
 
 def _file_of(signature: Signature) -> str:
