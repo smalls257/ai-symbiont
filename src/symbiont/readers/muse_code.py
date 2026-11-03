@@ -21,7 +21,7 @@ from symbiont.records.schema import Kind, Provenance, Record
 HARNESS = "muse-code"
 PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", spark_safe=False)
 SESSIONS_PATTERN = "muse/sessions/*/*/*/*/session.jsonl"
-_SHELL_TOOLS = frozenset({"bash", "exec_command", "shell"})
+_SHELL_TOOLS = frozenset({"bash", "exec_command", "shell", "powershell"})  # Windows: powershell
 _EDIT_TOOLS = frozenset({"edit_file", "write_file", "apply_patch"})
 _PATH_KEYS = ("path", "file_path", "target_path", "target", "filename")
 logger = logging.getLogger(__name__)
@@ -49,9 +49,9 @@ def read(path: Path, project: str) -> Iterator[Record]:
 
 def muse_store_root(environ: Mapping[str, str], home: Path) -> Path:
     """The XDG data directory Muse Code writes `muse/sessions` under; missing is not an error."""
-    # `${XDG_DATA_HOME:-$HOME/.local/share}/muse/sessions` is what Muse Code's own skills read
-    # [measured in the 1.4.14 binary]. Its launcher supports only macOS and Linux (detect_platform),
-    # so no %APPDATA% or %LOCALAPPDATA% location is known; set XDG_DATA_HOME where it differs.
+    # `${XDG_DATA_HOME:-$HOME/.local/share}/muse/sessions` [measured in the 1.4.14 binary]; the
+    # PowerShell launcher keeps that layout under %USERPROFILE% [measured on Windows 11].
+    # Set XDG_DATA_HOME where it differs.
     named = environ.get("XDG_DATA_HOME")
     return Path(named) if named else home / ".local" / "share"
 
@@ -62,9 +62,29 @@ def session_logs(repo_dir: Path, data_home: Path) -> list[Path]:
     `data_home` is the XDG data directory (`~/.local/share`). Each log is opened only as far as
     its `workspace_root` record; subagent logs belong to their parent session and are left out.
     """
-    wanted = str(repo_dir.resolve())
-    logs = [log for log in data_home.glob(SESSIONS_PATTERN) if _workspace_of(log) == wanted]
+    wanted = same_workspace_key(str(repo_dir.resolve()))
+    logs = [log for log in data_home.glob(SESSIONS_PATTERN) if _in_workspace(log, wanted)]
     return sorted(logs, key=lambda log: log.stat().st_mtime)
+
+
+def same_workspace_key(root: str) -> str:
+    r"""Muse records `\\?\C:\x` where the user is in `C:\x` [measured]; both get one key.
+
+    Case folds only for drive and UNC paths, since a POSIX path is case-sensitive.
+    """
+    if root.startswith("\\\\?\\UNC\\"):
+        root = "\\\\" + root[len("\\\\?\\UNC\\") :]
+    elif root.startswith("\\\\?\\"):
+        root = root[len("\\\\?\\") :]
+    if root[1:2] == ":" or root.startswith("\\\\"):
+        return root.replace("/", "\\").rstrip("\\").casefold()
+    return root
+
+
+def _in_workspace(log: Path, wanted: str) -> bool:
+    """True when the log's recorded workspace is the directory whose key is `wanted`."""
+    root = _workspace_of(log)
+    return root is not None and same_workspace_key(root) == wanted
 
 
 def _workspace_of(log: Path) -> str | None:

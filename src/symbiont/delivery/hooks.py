@@ -89,7 +89,8 @@ MUSE_MARKER = "MUSE_PLUGIN_ROOT"
 _EDIT_TOOLS = frozenset(
     {"Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "write_file", "apply_patch"}
 )
-_SHELL_TOOLS = frozenset({"Bash", "shell", "bash", "exec_command"})
+# `powershell` is the shell tool Muse Code uses on Windows [measured on Windows 11, Muse 1.4.14].
+_SHELL_TOOLS = frozenset({"Bash", "shell", "bash", "exec_command", "powershell", "PowerShell"})
 _READ_TOOLS = frozenset({"Read", "read_file"})
 
 
