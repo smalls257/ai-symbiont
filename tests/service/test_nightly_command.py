@@ -125,7 +125,7 @@ def test_the_scheduled_command_is_the_manual_one_with_every_option_pinned(tmp_pa
     )  # fmt: skip
     argv = nightly_command.schedule_argv(args)
     assert argv[argv.index("nightly") :] == (
-        "nightly", "--project", "p", *store_option(tmp_path), "--kit", "/k",
+        "nightly", "--project", "p", *store_option(tmp_path), "--kit", str(Path("/k")),
         "--judge-url", nightly_command.default_judge_url("p"),
         "--trainer-python", "/py", "--judge-python", "/jpy",
     )  # fmt: skip
