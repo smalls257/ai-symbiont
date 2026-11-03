@@ -143,14 +143,15 @@ def restart_instructions(
 ) -> str:
     """The exact command that starts the judge server on this adapter.
 
-    The server's default device is cuda, so a Mac's printed command must carry `LCAP_DEVICE=mps`.
+    The server picks cuda by itself when it is the only accelerator; a Mac's command pins
+    `LCAP_DEVICE=mps` (macOS is POSIX, so the prefix is valid there; Windows never needs one).
     """
     folder = routea_dir()
     script = (
         str(folder / JUDGE_SERVER) if folder else f"<ai-symbiont>/scripts/routea/{JUDGE_SERVER}"
     )
     port = url.rsplit(":", 1)[-1].rstrip("/")
-    prefix = f"LCAP_DEVICE={device} " if device and os.name == "posix" else ""
+    prefix = "LCAP_DEVICE=mps " if device == "mps" else ""
     return f"{prefix}{python} {script} --model {base} --adapter {adapter} --port {port}"
 
 

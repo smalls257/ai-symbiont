@@ -124,4 +124,4 @@ def test_a_mac_restart_command_carries_mps_and_a_cuda_box_carries_cuda(tmp_path)
     gpu = restart_instructions(
         "py", URL, tmp_path / "a", tmp_path / "b", judge_device(Backend.TORCH_CUDA)
     )
-    assert mac.startswith("LCAP_DEVICE=mps py ") and gpu.startswith("LCAP_DEVICE=cuda py ")
+    assert mac.startswith("LCAP_DEVICE=mps py ") and gpu.startswith("py ")
