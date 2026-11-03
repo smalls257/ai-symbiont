@@ -65,7 +65,7 @@ def test_a_question_becomes_a_block_with_the_question_as_its_reason(harness):
 
 
 def test_the_reflection_turn_is_never_asked_again_even_if_the_service_would():
-    service = FakeService({"ask": "reflect now"})
+    service = FakeService({"ask": "reflect now"}, guard=LET_THROUGH | {"reflecting": True})
 
     result = run_stop(json.dumps(STOP_INPUT | {"stop_hook_active": True}), settings(), service)
 
@@ -103,9 +103,9 @@ def test_model_only_visibility_sends_no_system_message():
     assert "systemMessage" not in held
 
 
-def test_the_stop_after_the_guard_is_a_fresh_stop_for_the_reflection():
-    guard = {"block": "", "why_not": "after", "after_guard": True}
-    service = FakeService({"ask": "reflect now"}, guard=guard)
+def test_a_host_flag_alone_does_not_make_a_stop_the_reflection_turn():
+    """Muse Code sends stop_hook_active on every Stop after a block; the service decides."""
+    service = FakeService({"ask": "reflect now"})
 
     result = run_stop(json.dumps(STOP_INPUT | {"stop_hook_active": True}), settings(), service)
 

@@ -89,6 +89,7 @@ def open_service(
         consent=read_consent(data_dir),
         curation=curation,
         gate=gate,
+        reflecting=desk.awaiting_answer,
     )
     return Service(parts)
 

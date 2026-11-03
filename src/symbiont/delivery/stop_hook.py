@@ -1,8 +1,9 @@
 """The Stop hook: hold a finish while a check is red, else ask the model to reflect once.
 
-`/stop/guard` is asked first and may block the stop once; only a stop it lets through reaches the
-reflection ask, and the one Stop after the guard's own block counts as fresh for reflection.
-The service decides and marks each session, and `stop_hook_active` is honored, so nothing loops.
+`/stop/guard` is asked first and may hold the stop; only a stop it lets through reaches the
+reflection ask. The service says whether this Stop ends the reflection turn (Muse Code sends
+`stop_hook_active` on every Stop after a block, so the flag is forwarded, not trusted), and it
+bounds the holds, so nothing loops.
 """
 
 import json
@@ -44,7 +45,7 @@ def run_stop(
         held = _red_check_block(guard, settings)
         if held:
             return HookResult(context=held)
-        reflection_turn = active and guard.get("after_guard") is not True
+        reflection_turn = guard.get("reflecting") is True
         route = "/reflect/finished" if reflection_turn else "/reflect"
         reply = send(route, body, settings.port)
     except ServiceOfflineError as offline:

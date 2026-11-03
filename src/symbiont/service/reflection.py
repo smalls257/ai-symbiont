@@ -89,6 +89,10 @@ class ReflectionDesk:
         )
         return {"saved": saved}
 
+    def awaiting_answer(self, project: str, session_id: str) -> bool:
+        """Whether the session was asked to reflect and its answering turn has not ended."""
+        return (project, session_id) in self._count_at_ask
+
     def _decide(self, project: str, session_id: str) -> dict[str, Any]:
         """The reply for one Stop: the question, or the reason there is none."""
         registry = self._registry

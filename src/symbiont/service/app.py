@@ -112,6 +112,8 @@ class ServiceParts:
     consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD
     # The per-repository answers; when set, a repository that did not say yes is not observed.
     gate: RepoGate = field(default_factory=RepoGate)
+    # Whether a session is answering the reflection ask; the done-on-red guard leaves that Stop be.
+    reflecting: Callable[[str, str], bool] = lambda project, session_id: False
     # Routes the session's model calls to curate lessons (symbiont makes no model calls itself).
     curation: CurationRoutes | None = None
 
@@ -133,7 +135,7 @@ class Service:
         self._follow_up = FollowUp(parts.events)
         self._agreed = AgreedRecall(parts, self._follow_up)
         self._jobs = MiningJobs()
-        self._done_on_red = DoneOnRedGuard(parts.gate, parts.events, self._prefixes)
+        self._red = DoneOnRedGuard(parts.gate, parts.events, self._prefixes, parts.reflecting)
         self._mining = MineRoutes(parts, self._jobs, self._one_call_at_a_time)
 
     def page(self, target: str) -> Page:
@@ -169,7 +171,7 @@ class Service:
             "learn": self._learn,
             "mine": lambda request, call: Response(200, self._mining.start(request, call)),
             "mine/progress": lambda request, _: Response(200, self._mining.progress(request)),
-            "stop/guard": _ok_route(self._done_on_red.decide),
+            "stop/guard": _ok_route(self._red.decide),
             "status": lambda request, call: _status(self._parts, self._lessons, request),
         }
         if self._parts.curation is not None:

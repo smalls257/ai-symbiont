@@ -9,7 +9,7 @@ from dataclasses import asdict, replace
 
 import pytest
 
-from record_builders import run
+from record_builders import edit, run
 from symbiont.service.app import ServiceMode
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -41,9 +41,11 @@ class Rig:
         }
         assert self.service.respond("/observe", body).status == 200
 
+    def body(self):
+        return {"project": PROJECT, "session_id": "s1", "harness": "muse_code"}
+
     def stop(self, active=False):
-        body = {"project": PROJECT, "session_id": "s1", "harness": "muse_code"}
-        reply = self.service.respond("/stop/guard", body | {"stop_hook_active": active})
+        reply = self.service.respond("/stop/guard", self.body() | {"stop_hook_active": active})
         assert reply.status == 200
         return reply.body
 
@@ -53,7 +55,7 @@ class Rig:
         return [r["stop_guard"] for r in rows if "stop_guard" in r]
 
 
-def test_red_last_blocks_once_with_the_check_and_the_diff(tmp_path):
+def test_red_last_blocks_with_the_check_and_the_diff(tmp_path):
     rig = Rig(tmp_path)
     rig.observe(RED)
 
@@ -61,9 +63,7 @@ def test_red_last_blocks_once_with_the_check_and_the_diff(tmp_path):
 
     assert first["block"].startswith("The last run of `pytest tests/dialects/test_snowflake.py`")
     assert "- a / + b" in first["block"] and "the work is not done yet" in first["block"]
-    assert rig.stop()["block"] == ""
-    assert [e["asked"] for e in rig.events()] == [True, False]
-    assert "already held once" in rig.events()[1]["why_not"]
+    assert [e["asked"] for e in rig.events()] == [True]
 
 
 def test_red_then_green_does_not_block(tmp_path):
@@ -76,16 +76,6 @@ def test_red_then_green_does_not_block(tmp_path):
     assert reply["block"] == "" and "no failed check" in reply["why_not"]
 
 
-def test_stop_hook_active_never_blocks_and_is_logged(tmp_path):
-    rig = Rig(tmp_path)
-    rig.observe(RED)
-
-    reply = rig.stop(active=True)
-
-    assert reply["block"] == "" and "stop_hook_active" in reply["why_not"]
-    assert rig.events()[0]["asked"] is False
-
-
 def test_an_unrelated_failure_does_not_block(tmp_path):
     rig = Rig(tmp_path)
     rig.observe(run("ls missing", 2, "ls: missing: No such file"))
@@ -93,11 +83,33 @@ def test_an_unrelated_failure_does_not_block(tmp_path):
     assert rig.stop()["block"] == ""
 
 
-def test_the_stop_after_the_guard_hands_on_to_reflection_once(tmp_path):
+def test_muse_sequence_stop_hook_active_true_on_every_stop_after_the_first_block(tmp_path):
+    """sqB2-ci-2: Stop 1 active=false; every later Stop active=true. The guard fired once, then
+    the model re-ran the check, it stayed red, and the final Stop (active=true) was let through."""
     rig = Rig(tmp_path)
     rig.observe(RED)
-    assert rig.stop()["block"]
+    assert rig.stop(active=False)["block"]
+    assert rig.stop(active=True)["block"] == "", "same failure, nothing newer: no repeat hold"
 
-    handed = rig.stop(active=True)
-    assert handed["after_guard"] is True and handed["block"] == ""
-    assert rig.stop(active=True)["after_guard"] is False
+    rig.observe(RED)
+    again = rig.stop(active=True)
+
+    assert again["block"].startswith("The last run of"), "a newer red run is held despite the flag"
+    rig.observe(RED)
+    assert rig.stop(active=True)["block"] == "", "never a third hold"
+    assert [e["asked"] for e in rig.events()] == [True, False, True, False]
+    assert all(e["host_stop_hook_active"] in (True, False) for e in rig.events())
+
+
+def test_the_reflection_turns_stop_is_never_held(tmp_path):
+    rig = Rig(tmp_path)
+    rig.observe(edit("a.py"))
+    rig.observe(GREEN)
+    assert rig.service.respond("/reflect", rig.body()).body["ask"]
+    rig.observe(RED)
+
+    reply = rig.stop(active=True)
+
+    assert reply["block"] == "" and reply["reflecting"] is True
+    rig.service.respond("/reflect/finished", rig.body())
+    assert rig.stop(active=True)["block"], "after the reflection, a red check is held again"

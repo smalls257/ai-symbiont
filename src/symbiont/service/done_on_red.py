@@ -1,12 +1,13 @@
-"""The done-on-red guard: a Stop is blocked once when the session's last run of a check failed.
+"""The done-on-red guard: a Stop is held when the session's last run of a check is still failing.
 
 `miner/unfinished_check.py` reads the session's records; the Stop hook is a thin client. Every
-decision, asked or skipped, is an event with its reason. It never loops: a Stop the host already
-continued is not blocked, a session is blocked at most once, and the Stop after a block is handed
-on to the reflection ask (`after_guard`).
+decision is an event with its reason. Muse Code reports `stop_hook_active` true on every Stop after
+the first hook block of a turn, so the host flag is logged but not trusted: the guard keeps its own
+state. It holds a session at most MAX_HOLDS times, and again only after a newer failing run, so a
+model that cannot fix a check is never looped, and it never holds the reflection turn's Stop.
 """
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
 from symbiont.miner.credential_scrub import scrub
@@ -18,6 +19,10 @@ from symbiont.service.request_shapes import BadRequestError, require_keys
 
 GUARD_REQUIRED = frozenset({"project", "session_id", "harness"})
 GUARD_KEYS = GUARD_REQUIRED | {"stop_hook_active"}
+# Two: the model may be wrong once and right after seeing the failure; a third hold would only
+# repeat a message it has read, and a check it cannot fix (a failure present before its edits)
+# would loop the session.
+MAX_HOLDS = 2
 STOP_HOOK = "Stop"
 SessionKey = tuple[str, str]  # (harness, session id), as the service keys its records
 
@@ -30,48 +35,51 @@ class DoneOnRedGuard:
         gate: RepoGate,
         events: EventLog,
         session_records: Mapping[SessionKey, Sequence[Record]],
+        reflecting: Callable[[str, str], bool],
     ) -> None:
-        """Consent from `gate`, decisions to `events`, steps from `session_records`."""
+        """Consent from `gate`, decisions to `events`, steps from `session_records`.
+
+        `reflecting(project, session_id)` says the session is answering the reflection ask.
+        """
         self._gate = gate
         self._events = events
         self._records = session_records
-        self._blocked: set[SessionKey] = set()
-        self._handed_on: set[SessionKey] = set()
+        self._reflecting = reflecting
+        self._holds: dict[SessionKey, int] = {}
+        self._held_at: dict[SessionKey, int] = {}
 
     def decide(self, request: dict[str, Any]) -> dict[str, Any]:
         """`{"block": reason, "check": name}` to hold the stop, else `{"block": "", "why_not"}`.
 
-        `after_guard` is true on the one Stop that follows a block this guard asked for.
+        `reflecting` tells the hook whether this Stop ends the reflection turn.
         """
-        project, key, active = _identified(request)
-        reply = self._reply(project, key, active=active)
+        project, key, host_active = _identified(request)
+        reflecting = self._reflecting(project, key[1])
+        reply = {**self._reply(project, key, reflecting=reflecting), "reflecting": reflecting}
         fields = {
             "asked": bool(reply["block"]),
             "why_not": reply.get("why_not", ""),
             "check": reply.get("check", ""),
+            "host_stop_hook_active": host_active,
         }
         self._events.append_stop_guard(Call("stop/guard", STOP_HOOK, project), fields)
         return reply
 
-    def _reply(self, project: str, key: SessionKey, *, active: bool) -> dict[str, Any]:
+    def _reply(self, project: str, key: SessionKey, *, reflecting: bool) -> dict[str, Any]:
         if not self._gate.door(project, STOP_HOOK).may_observe:
             return _skipped(f"symbiont is not switched on for {project}")
-        if active:
-            return self._continued_stop(key)
-        if key in self._blocked:
-            return _skipped("this session was already held once for a failing check")
+        if reflecting:
+            return _skipped("this Stop ends the reflection turn")
         found = unfinished_check(self._records.get(key, ()))
         if found is None:
             return _skipped("no failed check is waiting for a passing re-run")
-        self._blocked.add(key)
+        if self._holds.get(key, 0) >= MAX_HOLDS:
+            return _skipped(f"this session was already held {MAX_HOLDS} times")
+        if found.step <= self._held_at.get(key, -1):
+            return _skipped("no newer run of the failing check since the last hold")
+        self._holds[key] = self._holds.get(key, 0) + 1
+        self._held_at[key] = found.step
         return {"block": _reason(found), "check": found.check}
-
-    def _continued_stop(self, key: SessionKey) -> dict[str, Any]:
-        """A Stop the host already continued: never blocked; ours hands on to the reflection."""
-        if key in self._blocked and key not in self._handed_on:
-            self._handed_on.add(key)
-            return _skipped("stop_hook_active after the guard's own block", after_guard=True)
-        return _skipped("stop_hook_active: this Stop already continues a hook's block")
 
 
 def _identified(request: dict[str, Any]) -> tuple[str, SessionKey, bool]:
@@ -86,9 +94,9 @@ def _identified(request: dict[str, Any]) -> tuple[str, SessionKey, bool]:
     return project, (harness, session_id), active
 
 
-def _skipped(why_not: str, *, after_guard: bool = False) -> dict[str, Any]:
+def _skipped(why_not: str) -> dict[str, Any]:
     """The reply for a Stop that is let through; the reason keeps silence from looking broken."""
-    return {"block": "", "why_not": why_not, "after_guard": after_guard}
+    return {"block": "", "why_not": why_not}
 
 
 def _reason(found: UnfinishedCheck) -> str:
