@@ -185,6 +185,7 @@ def test_status_asks_the_service_and_reports_offline_when_it_is_down(tmp_path, c
         httpd.server_close()
 
     assert "symbiont is running. demo: on; 0 stored lessons" in up
+    assert "nightly training: never trained (run `symbiont nightly`)" in up
     command("status", "--port", "1", data_dir=tmp_path)
     assert capsys.readouterr().out.startswith("symbiont offline:")
 
@@ -316,3 +317,11 @@ def test_settings_show_and_set_the_correction_switches(tmp_path, capsys):
     assert "muse_code=False" in capsys.readouterr().out
     assert command("settings", "set", "nope", "true", data_dir=tmp_path) == 1
     assert command("settings", "set", "muse_code", data_dir=tmp_path) == 1
+
+
+def test_status_still_reads_a_service_that_answers_nightly_with_yes_or_no():
+    from symbiont.service.operator_commands import _status_lines
+
+    state = {"project": "demo", "repo": "given", "lessons": 3, "muted": 0}
+    assert "its nightly training is live" in _status_lines({**state, "nightly": True})
+    assert "no nightly training yet" in _status_lines({**state, "nightly": False})

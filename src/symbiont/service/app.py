@@ -25,7 +25,7 @@ from symbiont.records.schema import Record
 from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall
 from symbiont.service.context_route import UnknownLessonError, context_target, save_context
 from symbiont.service.curation_routes import CurationRoutes
-from symbiont.service.dashboard_page import Page, dashboard_page
+from symbiont.service.dashboard_page import Live, Page, dashboard_page
 from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.follow_up import FollowUp
 from symbiont.service.judge_model import JudgeModel
@@ -145,7 +145,7 @@ class Service:
                 self._parts.gate.registry,
                 target,
                 date.today(),
-                self._jobs.progress,
+                Live(self._jobs.progress, self._parts.gate.nightly_state),
             )
 
     def wait_for_mining(self, project: str, timeout_s: float) -> None:

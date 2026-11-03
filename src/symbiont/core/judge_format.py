@@ -41,10 +41,14 @@ def judge_lesson_text(lesson: JudgeableLesson) -> str:
     )
 
 
+def judge_input_text(situation: str, lesson_text: str) -> str:
+    """The judge's user message for a situation and a lesson already written out as text."""
+    return f"Situation:\n{situation}\n\nLesson:\n{lesson_text}\n\nDoes this lesson apply?"
+
+
 def judge_input(situation: str, lesson: JudgeableLesson) -> str:
     """The judge's user message for one situation and one lesson."""
-    text = judge_lesson_text(lesson)
-    return f"Situation:\n{situation}\n\nLesson:\n{text}\n\nDoes this lesson apply?"
+    return judge_input_text(situation, judge_lesson_text(lesson))
 
 
 def judgeable(lesson: Lesson, project: str) -> JudgeableLesson | None:
