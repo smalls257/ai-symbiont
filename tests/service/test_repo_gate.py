@@ -13,6 +13,7 @@ from record_builders import edit, run, session
 from symbiont.core.counters import Counters
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
+from symbiont.records.schema import Kind
 from symbiont.service.app import Service, ServiceMode, ServiceParts
 from symbiont.service.events import EventLog, last_note_event
 from symbiont.service.nightly import NightlyJudges
@@ -382,3 +383,53 @@ def test_the_dashboard_link_is_shown_once_when_the_repository_has_lessons_and_re
         Announcements(registry, Lookups(lesson_count=lambda project: 0)).at_session_start(PROJECT)
         == ()
     )
+
+
+def gate_with(rules, tmp_path):
+    registry = RepoRegistry(tmp_path)
+    registry.record_stance(PROJECT, RepoStance.GIVEN)
+    return RepoGate(registry, None, Lookups(written=lambda project: rules))
+
+
+def test_two_relevant_rules_are_both_said_once_each_and_a_third_is_not(tmp_path):
+    from symbiont.miner.lesson_context import AuthoredLesson, LessonKind
+
+    rules = [
+        AuthoredLesson(i, f"Rule {i} for the array module.", LessonKind.RULE, (f"pkg/arr/{i}.py",))
+        for i in ("a", "b", "c")
+    ]
+    gate = gate_with(rules, tmp_path)
+    record = replace(run("x", 0), project=PROJECT, kind=Kind.USER_TURN, raw="edit pkg/arr/a.py")
+
+    first = gate.speak("s", record, [], [])
+    again = gate.speak("s", record, [], [])
+
+    assert len(first.notes) == 2 and first.notes[0].why.startswith("rule: file: ")
+    assert len(again.notes) == 1, "the third lesson waits; the two said are not repeated"
+    assert gate.speak("s", record, [], []).notes == ()
+
+
+def test_the_service_answers_with_both_rule_notes_and_logs_each_with_its_match(rig, tmp_path):
+    from symbiont.miner.lesson_context import AuthoredLesson, LessonKind
+
+    rules = [
+        AuthoredLesson("a", "Indexed conversion keeps order.", LessonKind.RULE, ("pkg/arr/a.py",)),
+        AuthoredLesson(
+            "b", "Elementwise power uses HadamardPower.", LessonKind.RULE, ("pkg/arr/b.py",)
+        ),
+    ]
+    rig.service = Service(
+        ServiceParts(
+            Store.open(tmp_path / "other.db"),
+            Counters(),
+            rig.events,
+            ServiceMode.WARN_AND_RECALL,
+            gate=gate_with(rules, tmp_path / "reg"),
+        )
+    )
+
+    body = prompt(rig, "work on pkg/arr/a.py")
+
+    assert [n.split(": ")[1][:7] for n in body["notes"]] == ["Indexed", "Element"]
+    events = [json.loads(line) for line in rig.events.path.read_text().splitlines()]
+    assert sum("fired_by" in event for event in events) == 2

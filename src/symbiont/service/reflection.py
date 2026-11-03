@@ -20,7 +20,9 @@ REFLECTION_QUESTION = (
     "just did, not a question for the developer: do not ask them anything. "
     "In one or two plain sentences each, what non-obvious thing about this "
     "repository would you tell a teammate before they work on this area next time? Name the "
-    "files or areas. Only things that were not obvious from the docs. If there is nothing, "
+    "files or areas, and list in applies_to the terms (identifiers, error words) and areas "
+    "(directories or modules) a later task would mention when this lesson matters. "
+    "Only things that were not obvious from the docs. If there is nothing, "
     "answer 'nothing' and call no tool. Otherwise call symbiont_add_lessons once, with one item "
     f'per thing: {{text_in_plain_words, kind: "rule" (what to do) or "mistake" (a trap), files, '
     f'source_label: "{REFLECTION_LABEL}", applies_to: {{terms, areas}}}}. Then end your reply '

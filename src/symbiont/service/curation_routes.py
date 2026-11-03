@@ -10,7 +10,9 @@ from collections.abc import Callable
 from typing import Any, cast
 
 from symbiont.core.correction_candidates import CAP, correction_candidates
+from symbiont.core.rule_relevance import areas_of_files
 from symbiont.miner.lesson_context import (
+    AppliesTo,
     AuthoredLesson,
     LessonKind,
     Review,
@@ -172,14 +174,15 @@ class CurationRoutes:
     def _authored(self, project: str, item: dict[str, Any]) -> str:
         """Validate and store one written lesson; returns its id."""
         text = _text(item, "text_in_plain_words")[:MAX_TEXT]
+        files = _strings(item.get("files", []), "files")
         lesson = AuthoredLesson(
             _ident(text),
             text,
             _enum(LessonKind, item.get("kind"), "kind"),
-            _strings(item.get("files", []), "files"),
+            files,
             str(item.get("source_label", ""))[:80],
             _enum(Severity, item.get("severity", "medium"), "severity"),
-            parse_applies(item.get("applies_to")),
+            _with_module_areas(parse_applies(item.get("applies_to")), files),
         )
         self._store.curation.add_authored(project, lesson)
         return lesson.ident
@@ -203,6 +206,17 @@ class CurationRoutes:
 def _records(sources: list[Any], readers: dict[str, Any]) -> list[Any]:
     """Every record of the given sources, read fresh."""
     return [record for source in sources for record in read_source(source, readers)]
+
+
+def _with_module_areas(applies: AppliesTo, files: tuple[str, ...]) -> AppliesTo:
+    """The writer's tags; if it gave no areas, the files' module directories stand in.
+
+    Models often name files and skip areas, which left a lesson about one file blind to its
+    siblings (live sympy run).
+    """
+    if applies.areas:
+        return applies
+    return AppliesTo(applies.terms, areas_of_files(files))
 
 
 def _review(item: dict[str, Any]) -> Review:
