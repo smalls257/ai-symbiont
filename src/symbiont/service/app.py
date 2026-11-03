@@ -26,6 +26,7 @@ from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall
 from symbiont.service.context_route import UnknownLessonError, context_target, save_context
 from symbiont.service.curation_routes import CurationRoutes
 from symbiont.service.dashboard_page import Page, dashboard_page
+from symbiont.service.done_on_red import DoneOnRedGuard
 from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.follow_up import FollowUp
 from symbiont.service.judge_model import JudgeModel
@@ -132,6 +133,7 @@ class Service:
         self._follow_up = FollowUp(parts.events)
         self._agreed = AgreedRecall(parts, self._follow_up)
         self._jobs = MiningJobs()
+        self._done_on_red = DoneOnRedGuard(parts.gate, parts.events, self._prefixes)
         self._mining = MineRoutes(parts, self._jobs, self._one_call_at_a_time)
 
     def page(self, target: str) -> Page:
@@ -167,13 +169,13 @@ class Service:
             "learn": self._learn,
             "mine": lambda request, call: Response(200, self._mining.start(request, call)),
             "mine/progress": lambda request, _: Response(200, self._mining.progress(request)),
+            "stop/guard": _ok_route(self._done_on_red.decide),
             "status": lambda request, call: _status(self._parts, self._lessons, request),
         }
         if self._parts.curation is not None:
             for path, handler in self._parts.curation.routes().items():
                 routes[path] = _ok_route(handler)
-        lesson = context_target(name)
-        if lesson is not None:
+        if (lesson := context_target(name)) is not None:
             routes[name] = lambda request, _: Response(
                 200, save_context(self._parts.store, lesson, request)
             )

@@ -18,6 +18,7 @@ from symbiont.delivery.hooks import (
     HookInputError,
     HookSettings,
     NoteStyle,
+    NoteVisibility,
 )
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError
 from symbiont.delivery.stop_hook import run_stop
@@ -34,13 +35,21 @@ def settings(harness=CLAUDE_CODE):
     return HookSettings(harness, NoteStyle.PLAIN, 1, "fallback")
 
 
+LET_THROUGH = {"block": "", "why_not": "no failed check is waiting for a passing re-run"}
+
+
 class FakeService:
-    def __init__(self, reply):
-        self.reply, self.calls = reply, []
+    """Answers /stop/guard with `guard` and every other route with `reply`."""
+
+    def __init__(self, reply, guard=None):
+        self.reply, self.guard, self.calls = reply, guard or LET_THROUGH, []
 
     def __call__(self, route, body, port):
         self.calls.append((route, body))
-        return self.reply
+        return self.guard if route == "/stop/guard" else self.reply
+
+    def reflect_calls(self):
+        return [call for call in self.calls if call[0] != "/stop/guard"]
 
 
 @pytest.mark.parametrize("harness", [CLAUDE_CODE, MUSE_CODE])
@@ -50,7 +59,7 @@ def test_a_question_becomes_a_block_with_the_question_as_its_reason(harness):
     result = run_stop(json.dumps(STOP_INPUT), settings(harness), service)
 
     assert json.loads(result.context) == {"decision": "block", "reason": "reflect now"}
-    assert service.calls == [
+    assert service.reflect_calls() == [
         ("/reflect", {"project": "demo", "session_id": "s1", "harness": harness})
     ]
 
@@ -61,9 +70,47 @@ def test_the_reflection_turn_is_never_asked_again_even_if_the_service_would():
     result = run_stop(json.dumps(STOP_INPUT | {"stop_hook_active": True}), settings(), service)
 
     assert result.context == ""
-    assert service.calls == [
+    assert service.reflect_calls() == [
         ("/reflect/finished", {"project": "demo", "session_id": "s1", "harness": CLAUDE_CODE})
     ]
+
+
+RED_BLOCK = {
+    "block": "The last run of `pytest x` in this session failed; the work is not done yet.",
+    "check": "pytest x",
+}
+
+
+@pytest.mark.parametrize("harness", [CLAUDE_CODE, MUSE_CODE])
+def test_a_red_check_blocks_the_stop_before_any_reflection(harness):
+    service = FakeService({"ask": "reflect now"}, guard=RED_BLOCK)
+
+    held = json.loads(run_stop(json.dumps(STOP_INPUT), settings(harness), service).context)
+
+    assert held["decision"] == "block" and "the work is not done yet" in held["reason"]
+    assert held["systemMessage"].startswith("symbiont · the last run of `pytest x`")
+    assert service.reflect_calls() == [], "the reflection ask waits for a later stop"
+    assert service.calls[0][1]["stop_hook_active"] is False
+
+
+def test_model_only_visibility_sends_no_system_message():
+    quiet = HookSettings(CLAUDE_CODE, NoteStyle.PLAIN, 1, "fallback", NoteVisibility.MODEL_ONLY)
+
+    held = json.loads(
+        run_stop(json.dumps(STOP_INPUT), quiet, FakeService({"ask": ""}, RED_BLOCK)).context
+    )
+
+    assert "systemMessage" not in held
+
+
+def test_the_stop_after_the_guard_is_a_fresh_stop_for_the_reflection():
+    guard = {"block": "", "why_not": "after", "after_guard": True}
+    service = FakeService({"ask": "reflect now"}, guard=guard)
+
+    result = run_stop(json.dumps(STOP_INPUT | {"stop_hook_active": True}), settings(), service)
+
+    assert json.loads(result.context)["reason"] == "reflect now"
+    assert service.reflect_calls()[0][0] == "/reflect"
 
 
 def test_no_question_prints_nothing_for_the_host_to_act_on():
@@ -77,7 +124,7 @@ def test_the_project_falls_back_when_the_host_sends_no_cwd():
 
     run_stop(json.dumps({"session_id": "s1"}), settings(), service)
 
-    assert service.calls[0][1]["project"] == "fallback"
+    assert service.calls[0][1]["project"] == "fallback"  # the guard is asked first
 
 
 def test_an_offline_service_is_said_aloud_not_read_as_nothing_to_reflect_on():

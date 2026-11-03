@@ -119,6 +119,13 @@ text. `/symbiont learn-from-prs` (or `symbiont learn-from-prs`) prints the same 
   developer's own access; symbiont stores only the short lessons and the pull-request links, locally
   in `~/.symbiont`. Lesson text from a PR is scrubbed for credentials before it is stored.
 
+## CI feedback and unfinished checks
+
+Two things a developer hands over used to be dropped on the floor (Silent Fallback), and are now kept.
+
+- **Pasted CI output is mined.** A prompt that pastes a failing pytest, jest, cargo or go test run, or says the CI or a check failed, is mined as a correction. symbiont keeps the failing check and a short expected-versus-actual excerpt (at most 300 characters, whole lines, credentials scrubbed). The same excerpt is kept for a failed command in a session, so a later note says what the assertion compared, not only "failed with AssertionError".
+- **A red check holds the finish once.** At Stop, if the last run of a check in this session failed and no later run of it passed, the stop is blocked one time with: "The last run of `<check>` in this session failed (<excerpt>); the work is not done yet." It never loops (a stop the host already continued is not blocked again), `--visibility model-only` sends no status line, and each decision is logged as a `stop_guard` event with the reason when it stayed quiet. The end-of-session reflection ask comes on a later stop, never on the stop the guard held.
+
 ## Where it lives
 
 | Concern | Module |

@@ -1,6 +1,6 @@
 import pytest
 
-from symbiont.miner.secrets import REDACTED, scrub
+from symbiont.miner.credential_scrub import REDACTED, scrub
 
 # Assembled at run time so no credential-shaped literal is committed.
 SAMPLES = [

@@ -90,6 +90,10 @@ class EventLog:
         """Record a reflection `decision` (asked or why not) or `outcome` (lessons saved)."""
         self._write(call, {"reflection": {"stage": stage, **fields}})
 
+    def append_stop_guard(self, call: Call, fields: dict[str, object]) -> None:
+        """Record the done-on-red decision at a Stop: asked (blocked) or skipped, and why."""
+        self._write(call, {"stop_guard": fields})
+
     def append_failure(self, call: Call, status: int, reason: str) -> None:
         """Record a call that was refused, so a failure is never silent."""
         self._write(call, {"status": status, "reason": reason})

@@ -14,6 +14,9 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/miner/`.
 - A lesson's `spark_safe` is computed from every record it quotes, never defaulted; a missing cited record raises `LookupError`.
 - No raw history leaves mining: a lesson keeps a quote of at most `QUOTE_CHARS` characters, never whole records.
 
+- **Failure evidence is kept, not summarized away (Silent Fallback).** `failure_excerpt.py` cuts the expected-versus-actual lines of a failed run (pytest `E   - / +`, jest `Expected/Received`, cargo `left/right`, go `got/want`) to at most `EXCERPT_CHARS` (300) on whole lines, scrubbed where cut (`credential_scrub.py`); a lesson carries them as `expected_vs_actual`. `pasted_failure.py` recognizes a failing run or a red-CI sentence pasted into a user turn; `correction.py` mines it as a correction keyed `(failing file, "the CI run failed at <check>")`, and the lesson quotes the CI output rather than the issue text before it. A runner it does not know yields nothing.
+- `unfinished_check.py` answers "is a check still red in this session": the latest failed run of a check (a runner's own failure output or a known test/lint/type/build tool) with no later pass of the same check (`same_check.py` identity). It is what the Stop hook's done-on-red guard reads.
+
 ## Imports
 - May import: `records`. Imported by: `core`, `store`, `eval`, `routeb`.
 - Must not import: core, store, readers, service, delivery (airplane test, import-linter).

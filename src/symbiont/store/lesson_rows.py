@@ -24,6 +24,7 @@ def lesson_from_json(body: str) -> Lesson:
         private_datasets=tuple(data.get("private_datasets", ())),
         # Rows written before these fields existed carry no error lines or files.
         error_lines=tuple(data.get("error_lines", ())),
+        expected_vs_actual=tuple(data.get("expected_vs_actual", ())),
         files=tuple(data.get("files", ())),
     )
 

@@ -1,10 +1,9 @@
 """Lessons: a pain point that carries its own evidence, so no raw history needs keeping.
 
 A lesson holds a short verbatim quote, the steps that resolved it in plain words, whether every
-record it came from may reach Spark, and the (session, step) ids it came from. The flag is
-computed here from the source records and never defaulted: an unknown flag must not read as
-shareable. A lesson is training data for the personal model, deleted once training has consumed
-it.
+record it came from may reach Spark, and their (session, step) ids. The flag is computed from the
+source records and never defaulted: an unknown flag must not read as shareable. A lesson is
+training data for the personal model, deleted once training has consumed it.
 """
 
 from collections import Counter
@@ -12,7 +11,9 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.error_lines import key_error_lines
+from symbiont.miner.failure_excerpt import assertion_excerpt
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
+from symbiont.miner.pasted_failure import pasted_failure, quote_of
 from symbiont.miner.resolutions import (
     NoResolution,
     Resolution,
@@ -56,6 +57,9 @@ class Lesson:
     # The failing tests and the assertion or exception line of the cited output, trimmed: the
     # quote keeps the end of the output, which is often just a pass/fail footer.
     error_lines: tuple[str, ...] = ()
+    # What the failing run (or the CI output a prompt pasted) expected versus got, whole lines
+    # within EXCERPT_CHARS and scrubbed; () when the runner is unknown or printed none.
+    expected_vs_actual: tuple[str, ...] = ()
     # Files the cited records and the fix touched, in order of appearance; () when none.
     files: tuple[str, ...] = ()
 
@@ -111,8 +115,15 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
         changed_alongside=tuple(_step_words(step) for step in alongside),
         private_datasets=_private_datasets(used),
         error_lines=key_error_lines(cited[0].raw),
+        expected_vs_actual=_evidence(cited[0]),
         files=tuple(dict.fromkeys(name for r in used for name in r.files)),
     )
+
+
+def _evidence(record: Record) -> tuple[str, ...]:
+    """The expected-versus-actual lines of the cited run, or of the failure a prompt pasted."""
+    pasted = pasted_failure(record.raw) if record.kind == Kind.USER_TURN else None
+    return pasted.excerpt if pasted is not None else assertion_excerpt(record.raw)
 
 
 def _fix_parts(
@@ -143,13 +154,16 @@ def spark_allowed(lesson: Lesson, consent: OwnHistoryConsent) -> bool:
 
 
 def excerpt(record: Record, limit: int) -> str:
-    """A verbatim excerpt of at most `limit` characters.
+    """A verbatim excerpt of at most `limit` characters: output keeps its end, the rest its start.
 
-    Command output keeps its end, where the error is; everything else keeps its start.
+    A prompt that pasted a failing run quotes that run's check and expected-versus-actual lines.
     """
     if record.kind in (Kind.COMMAND, Kind.TEST_RESULT):
         head = f"$ {record.command or ''}\n"
         return _clip_start(head, limit) + _clip_end(record.raw, limit - len(head))
+    pasted = pasted_failure(record.raw) if record.kind == Kind.USER_TURN else None
+    if pasted is not None:
+        return _clip_start(quote_of(pasted), limit)
     if record.kind == Kind.EDIT:
         return _clip_start(f"{', '.join(record.files)}\n{record.diff or record.raw}", limit)
     return _clip_start(record.raw, limit)

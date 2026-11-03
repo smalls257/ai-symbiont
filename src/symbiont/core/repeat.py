@@ -92,7 +92,9 @@ def _failure_signature(failed: Record, earlier: Sequence[Record]) -> Signature |
 def _sentence(lesson: Lesson, context: LessonContext | None) -> str:
     """Last time, what failed; how it was fixed; the check to run. Their words lead if given."""
     signature = lesson.pain_point.signature
-    detail = failure_detail(lesson.quote).removeprefix(f"{signature.key[-1]}: ")
+    detail = " / ".join(lesson.expected_vs_actual) or failure_detail(lesson.quote).removeprefix(
+        f"{signature.key[-1]}: "
+    )
     failed = happened(signature) + (f" ({detail})" if detail else "")
     if lesson.resolution:
         body = (

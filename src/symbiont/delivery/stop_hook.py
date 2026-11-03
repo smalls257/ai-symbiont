@@ -1,18 +1,20 @@
-"""The Stop hook: at the end of a session, ask the session's own model to reflect once.
+"""The Stop hook: hold a finish while a check is red, else ask the model to reflect once.
 
-The service marks a session as asked before it answers, and the host's `stop_hook_active` flag
-is honored too, so the reflection turn never asks again; that Stop still reports to the service,
-which logs whether a lesson was saved. The service decides; this is a thin client.
+`/stop/guard` is asked first and may block the stop once; only a stop it lets through reaches the
+reflection ask, and the one Stop after the guard's own block counts as fresh for reflection.
+The service decides and marks each session, and `stop_hook_active` is honored, so nothing loops.
 """
 
 import json
 from pathlib import Path
 from typing import Any
 
+from symbiont.delivery.headline import MAX_HEADLINE_CHARS
 from symbiont.delivery.hooks import (
     HookInputError,
     HookResult,
     HookSettings,
+    NoteVisibility,
     ServiceCall,
     offline_note,
     parsed_input,
@@ -23,7 +25,7 @@ from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, cal
 def run_stop(
     stdin_text: str, settings: HookSettings, call: ServiceCall | None = None
 ) -> HookResult:
-    """What to print at Stop: a block asking for one reflection turn, or nothing."""
+    """What to print at Stop: a block for a red check, a block asking to reflect, or nothing."""
     data = parsed_input(stdin_text)
     session_id = data.get("session_id")
     if not isinstance(session_id, str) or not session_id:
@@ -35,15 +37,43 @@ def run_stop(
         "session_id": session_id,
         "harness": settings.harness,
     }
-    reflection_turn = bool(data.get("stop_hook_active"))
-    route = "/reflect/finished" if reflection_turn else "/reflect"
+    active = bool(data.get("stop_hook_active"))
+    send = call or call_service
     try:
-        reply = (call or call_service)(route, body, settings.port)
+        guard = send("/stop/guard", {**body, "stop_hook_active": active}, settings.port)
+        held = _red_check_block(guard, settings)
+        if held:
+            return HookResult(context=held)
+        reflection_turn = active and guard.get("after_guard") is not True
+        route = "/reflect/finished" if reflection_turn else "/reflect"
+        reply = send(route, body, settings.port)
     except ServiceOfflineError as offline:
         return HookResult(context=json.dumps({"systemMessage": offline_note(offline)}))
     if reflection_turn:
         return HookResult()
     return HookResult(context=_reflection_request(reply))
+
+
+def _red_check_block(guard: dict[str, Any], settings: HookSettings) -> str:
+    """The host's stop-and-continue instruction for a red check; empty when the guard let go.
+
+    The developer reads a one-line status as well unless the install is model-only.
+    """
+    reason = guard.get("block")
+    if not isinstance(reason, str):
+        raise ServiceReplyError("the local service sent a stop-guard reason that is not text")
+    if not reason:
+        return ""
+    held: dict[str, Any] = {"decision": "block", "reason": reason}
+    if settings.visibility is NoteVisibility.ALSO_DEVELOPER:
+        held["systemMessage"] = _status_line(guard.get("check"))
+    return json.dumps(held)
+
+
+def _status_line(check: object) -> str:
+    """One short line for the status bar: what is red, so the developer sees why the stop held."""
+    name = check if isinstance(check, str) and check else "a check"
+    return f"symbiont · the last run of `{name}` failed; holding the finish"[:MAX_HEADLINE_CHARS]
 
 
 def _reflection_request(reply: dict[str, Any]) -> str:
