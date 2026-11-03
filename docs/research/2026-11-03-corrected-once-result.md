@@ -31,5 +31,5 @@ v1 ran on the earlier build and was stopped by the owner at 12 of 24 scored runs
 2. A reflection written at the end of the first teaching turn, before the corrections, said the opposite of the fee-rate correction. It fired on S1 and made that task worse (3 violations with symbiont, 2 without) [measured].
 Both were fixed in PR #69, which v2 includes (build `f7cd3353cdfbee9125dc98bf861bb6f8cd23950d`). Extra runs that finished past S4 before the stop arrived are not part of the 12 and carry no verdict.
 
-## TODO (coordinator): D3, the public sqlglot test
-TODO: D3 is still running. The coordinator adds its result and tags here; nothing is claimed about it until then.
+## The public-repository test (D3)
+The follow-up on a real public repository, with a rule stated only in maintainer reviews, is in `docs/research/2026-11-03-d3-public-review-rule.md`. Without symbiont 7 of 10 runs added a `.copy()` the maintainers' rule forbids; with it 0 of 10 did (Fisher exact two-sided p = 0.0031, pre-registered) [measured]. One repository, one rule, one task and one model; this synthetic result and that one are separate experiments and are not pooled.
