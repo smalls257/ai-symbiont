@@ -15,8 +15,8 @@ from typing import Any
 
 from symbiont.service.nightly import previous_judge_url
 from symbiont.service.nightly_backend import NoTrainingHardwareError
-from symbiont.service.nightly_kit import JudgeKitError
-from symbiont.service.nightly_run import EXIT_FAILED, NightPlan, run_night
+from symbiont.service.nightly_kit import JudgeKitError, open_kit
+from symbiont.service.nightly_run import EXIT_FAILED, NightFailedError, NightPlan, run_night
 from symbiont.service.nightly_schedule import (
     DEFAULT_AT,
     DailyTime,
@@ -27,12 +27,27 @@ from symbiont.service.nightly_schedule import (
     label_for,
     scheduler_for,
 )
-from symbiont.service.nightly_tools import LocalMachine, default_judge_url, real_tools
+from symbiont.service.nightly_setup import (
+    KitSetupError,
+    SetupInputs,
+    check_base,
+    check_kit_files,
+    check_merge_python,
+    merge_kit,
+)
+from symbiont.service.nightly_tools import (
+    LocalMachine,
+    default_judge_url,
+    real_tools,
+    routea_dir,
+    run_logged,
+)
 
 KIT_ENV = "SYMBIONT_JUDGE_KIT"
 TRAINER_ENV = "SYMBIONT_TRAINER_PYTHON"
 JUDGE_PYTHON_ENV = "SYMBIONT_JUDGE_PYTHON"
 ACTIONS = ("install", "remove", "status")
+MERGE_SCRIPT = "merge_adapter_torch.py"
 
 
 def add_nightly_command(commands: Any, data_dir: Path) -> None:
@@ -45,6 +60,15 @@ def add_nightly_command(commands: Any, data_dir: Path) -> None:
     )
     inner = nightly.add_subparsers(dest="nightly_action")
     schedule = inner.add_parser("schedule", help="run the training every day, by the OS scheduler")
+    setup = inner.add_parser(
+        "setup",
+        parents=[shared],
+        help="build the judge kit from a Llama 3.2 1B Instruct folder and the downloaded kit files",
+    )
+    setup.add_argument("--base", type=Path, required=True, help="folder of Llama-3.2-1B-Instruct")
+    setup.add_argument(
+        "--kit-files", type=Path, required=True, help="the downloaded nightly-kit/ folder"
+    )
     actions = schedule.add_subparsers(dest="schedule_action", required=True)
     for name in ACTIONS:
         action = actions.add_parser(name, parents=[shared])
@@ -71,8 +95,11 @@ def _shared_options(data_dir: Path) -> argparse.ArgumentParser:
 def run_nightly_command(args: argparse.Namespace, say: Callable[[str], None] | None = None) -> int:
     """Dispatch: train now, or manage the schedule. Lines are flushed as they are said."""
     say = say or _say_now
-    if getattr(args, "nightly_action", None) == "schedule":
+    action = getattr(args, "nightly_action", None)
+    if action == "schedule":
         return _schedule(args, say)
+    if action == "setup":
+        return _setup(args, say)
     return _train_now(args, say)
 
 
@@ -155,3 +182,49 @@ def _install(
     scheduler.install(spec)
     say(f"scheduled {args.project} daily at {spec.at} ({label}); output goes to {log}")
     return 0
+
+
+def _setup(args: argparse.Namespace, say: Callable[[str], None]) -> int:
+    """Check the downloaded base and kit files, merge locally, and say what to do next."""
+    kit_dir = args.kit or Path(os.environ.get(KIT_ENV, args.data_dir / "judge-kit"))
+    if _kit_problem(kit_dir) is None:
+        say(f"the judge kit at {kit_dir} is already complete; delete it to build it again")
+        return 0
+    inputs = SetupInputs(
+        args.base,
+        args.kit_files,
+        kit_dir,
+        args.judge_python or os.environ.get(JUDGE_PYTHON_ENV, "python3"),
+    )
+    try:
+        _build(inputs, say)
+    except (KitSetupError, NightFailedError) as failed:
+        say(f"symbiont nightly setup: FAILED: {failed}")
+        return EXIT_FAILED
+    say(f"the judge kit is ready at {kit_dir}; run `symbiont nightly` to train a night")
+    return 0
+
+
+def _kit_problem(kit_dir: Path) -> str | None:
+    """Why the kit at `kit_dir` is not usable, or None when it is complete."""
+    try:
+        open_kit(kit_dir)
+    except JudgeKitError as incomplete:
+        return str(incomplete)
+    return None
+
+
+def _build(inputs: SetupInputs, say: Callable[[str], None]) -> None:
+    """Every check before the first merge, so a wrong file costs seconds, not a merge."""
+    check_base(inputs.base)
+    check_kit_files(inputs.kit_files)
+    folder = routea_dir()
+    if folder is None or not (folder / MERGE_SCRIPT).is_file():
+        raise KitSetupError(
+            f"{MERGE_SCRIPT} is not here; run from a checkout of ai-symbiont or point "
+            "SYMBIONT_ROUTEA_DIR at its scripts/routea"
+        )
+    inputs.kit_dir.mkdir(parents=True, exist_ok=True)
+    check_merge_python(inputs.merge_python, run_logged, inputs.kit_dir / "setup-python.log")
+    say("base and kit files check out; merging locally (nothing is uploaded or downloaded)")
+    merge_kit(inputs, run_logged, folder / MERGE_SCRIPT, say)

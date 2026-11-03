@@ -40,7 +40,12 @@ def open_kit(root: Path) -> JudgeKit:
     missing = [f"{path} ({what})" for path, what in wanted.items() if not path.is_file()]
     if missing:
         raise JudgeKitError(
-            "the judge kit at " + str(root) + " is incomplete: missing " + "; ".join(missing)
+            "the judge kit at "
+            + str(root)
+            + " is incomplete: missing "
+            + "; ".join(missing)
+            + ". Build it with `symbiont nightly setup --base <Llama-3.2-1B-Instruct folder> "
+            "--kit-files <nightly-kit folder>` (README, Nightly training)"
         )
     return JudgeKit(root / BASE, root / GENERAL_ROWS, root / HABITS)
 
