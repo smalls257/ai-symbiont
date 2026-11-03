@@ -150,8 +150,19 @@ def test_a_note_is_also_shown_to_the_developer_unless_model_only(monkeypatch, ha
     event = HookEvent.POST_TOOL_USE_FAILURE
     settings = HookSettings(harness, NoteStyle.PLAIN, 1, "p")
     shown = json.loads(hooks.run_hook(event, json.dumps(INPUTS[event]), settings).context)
-    assert shown["systemMessage"] == "Careful."
+    assert shown["systemMessage"] == "symbiont · Careful (this repo's rule)"
     assert shown["hookSpecificOutput"]["additionalContext"] == "Careful."
+
+
+def test_the_model_gets_the_full_note_and_the_developer_a_short_headline(monkeypatch):
+    long = "Never use floats for money amounts in the ledger code, because rounding drifts. " * 3
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: {"notes": [long]})
+    settings = HookSettings("muse_code", NoteStyle.PLAIN, 1, "p")
+    shown = json.loads(
+        hooks.run_hook(HookEvent.USER_PROMPT_SUBMIT, json.dumps(PROMPT_INPUT), settings).context
+    )
+    assert shown["hookSpecificOutput"]["additionalContext"] == long
+    assert len(shown["systemMessage"]) <= 90
 
 
 def test_finding_style_words_a_post_tool_use_note_as_a_finding(monkeypatch):
