@@ -103,12 +103,19 @@ and saves only durable, repo-specific corrections through `symbiont_add_lessons`
 that asked for a change plus the commit that made it (kind `correction`), a standing convention
 (`rule`), or a CI failure with its cause (`mistake`). It skips bots, nits and style-only remarks,
 saves at most 20 lessons from 30 pull requests, and never stores reviewer names or long comment
-text. `/symbiont learn-from-prs` (or `symbiont learn-from-prs`) prints the same steps any time.
+text. It also saves a short verbatim `quote` of the reviewer's comment that states the rule. `/symbiont learn-from-prs` (or `symbiont learn-from-prs`) prints the same steps any time.
 
 - **Provenance.** Each lesson carries `source_label` ("from PR #412 review", "from CI on PR #415")
   and `source_url` (https only; the route refuses anything else and more than 20 PR lessons per
   call). The dashboard shows the label as a link on the lesson; it can be edited, given context,
   made intentional or dismissed like any other lesson.
+- **The reviewer's own words.** A lesson may carry `quote` (at most 300 characters, ending at a
+  sentence end; needs a pull request `source_url`) and `quote_role` (`maintainer` or `reviewer`;
+  never a name). It is delivered first and whole: `In this repo, a maintainer said on PR #7396:
+  "<quote>" (<lesson sentence>).`, in the house-rules note and the file-trigger note alike. The
+  quote is model-supplied: the service never sees the review text, so it cannot check it against
+  the comment. It refuses a quote with no PR link, a handle or address, a credential, an unknown
+  role or one over the cap.
 - **Nightly training.** PR-derived lessons are human-confirmed mistakes, so `routeb/review_rows.py`
   turns each into "this lesson was needed here" rows (situation: about to edit the lesson's file;
   answer: the lesson with its label) that `scripts/routeb/nightly.py` appends to the night's

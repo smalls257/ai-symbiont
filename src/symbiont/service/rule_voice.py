@@ -7,14 +7,9 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from symbiont.core.house_rules import Supersession, standing_corrections, standing_sentence
+from symbiont.core.quoted_rule import rule_note
 from symbiont.core.repeat import RepeatNote
-from symbiont.core.rule_relevance import (
-    MAX_RULE_NOTES,
-    Rule,
-    RuleMatch,
-    file_scoped_rules,
-    rule_sentence,
-)
+from symbiont.core.rule_relevance import MAX_RULE_NOTES, Rule, RuleMatch, file_scoped_rules
 from symbiont.miner.painpoint import Signature
 from symbiont.records.schema import Kind, Record
 
@@ -65,9 +60,7 @@ class RuleVoice:
             if key in self._said or self._muted(when.project, match.rule):
                 continue
             self._said.add(key)
-            notes.append(
-                RepeatNote(rule_sentence(match.rule.words), match.rule.lesson, "rule: " + match.why)
-            )
+            notes.append(RepeatNote(rule_note(match.rule), match.rule.lesson, "rule: " + match.why))
         return notes
 
     def on_file(

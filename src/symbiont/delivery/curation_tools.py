@@ -40,6 +40,8 @@ _DESCRIPTIONS = {
         "pointed you to. Each item: {text_in_plain_words, kind: "
         "mistake|rule|friction|correction, files?, source_label?, "
         "source_url? (https address of the pull request it came from), "
+        "quote? (the reviewer's exact words that state the rule, copied verbatim, at most 300 "
+        "characters, needs source_url), quote_role?: maintainer|reviewer, "
         "severity?: low|medium|high, applies_to?: {terms, areas}}."
     ),
     "cand": (
