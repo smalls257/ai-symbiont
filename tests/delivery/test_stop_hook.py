@@ -60,7 +60,10 @@ def test_the_reflection_turn_is_never_asked_again_even_if_the_service_would():
 
     result = run_stop(json.dumps(STOP_INPUT | {"stop_hook_active": True}), settings(), service)
 
-    assert result.context == "" and service.calls == []
+    assert result.context == ""
+    assert service.calls == [
+        ("/reflect/finished", {"project": "demo", "session_id": "s1", "harness": CLAUDE_CODE})
+    ]
 
 
 def test_no_question_prints_nothing_for_the_host_to_act_on():

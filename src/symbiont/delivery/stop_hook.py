@@ -1,9 +1,8 @@
 """The Stop hook: at the end of a session, ask the session's own model to reflect once.
 
-A Stop hook that blocks makes the host run one more turn, and that turn ends in another Stop.
-The service marks a session as asked before it answers, and the host's own `stop_hook_active`
-flag is honored here as well, so the reflection turn can never ask again.
-The service decides consent and whether there is anything to reflect on; this is a thin client.
+The service marks a session as asked before it answers, and the host's `stop_hook_active` flag
+is honored too, so the reflection turn never asks again; that Stop still reports to the service,
+which logs whether a lesson was saved. The service decides; this is a thin client.
 """
 
 import json
@@ -26,8 +25,6 @@ def run_stop(
 ) -> HookResult:
     """What to print at Stop: a block asking for one reflection turn, or nothing."""
     data = parsed_input(stdin_text)
-    if data.get("stop_hook_active"):
-        return HookResult()
     session_id = data.get("session_id")
     if not isinstance(session_id, str) or not session_id:
         raise HookInputError("hook input has no session_id")
@@ -38,10 +35,14 @@ def run_stop(
         "session_id": session_id,
         "harness": settings.harness,
     }
+    reflection_turn = bool(data.get("stop_hook_active"))
+    route = "/reflect/finished" if reflection_turn else "/reflect"
     try:
-        reply = (call or call_service)("/reflect", body, settings.port)
+        reply = (call or call_service)(route, body, settings.port)
     except ServiceOfflineError as offline:
         return HookResult(context=json.dumps({"systemMessage": offline_note(offline)}))
+    if reflection_turn:
+        return HookResult()
     return HookResult(context=_reflection_request(reply))
 
 

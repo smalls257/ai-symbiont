@@ -215,3 +215,67 @@ def test_reflected_lessons_are_stored_labelled_and_speak_when_their_area_comes_u
     told = rig.observe(prompt, event="UserPromptSubmit")
 
     assert any("rounded once, in ledger.py" in note for note in told["notes"])
+
+
+def reflection_events(rig):
+    texts = [path.read_text() for path in rig.dir.glob("runs/*/events.jsonl")]
+    lines = [json.loads(x) for text in texts for x in text.splitlines()]
+    return [line["reflection"] for line in lines if "reflection" in line]
+
+
+def test_every_reflect_call_leaves_an_event_with_the_reason_it_declined(tmp_path):
+    rig = Rig(tmp_path)
+    rig.observe(edit("a.py"))
+    rig.reflect()
+    rig.observe(PASS)
+    rig.reflect()
+    rig.reflect()
+
+    stages = [(e["asked"], e["why_not"]) for e in reflection_events(rig)]
+
+    assert [a for a, _ in stages] == [False, True, False]
+    assert "no milestone" in stages[0][1] and "already asked" in stages[2][1]
+
+
+def test_a_model_that_ends_the_reflection_turn_without_a_lesson_is_logged_as_saving_none(tmp_path):
+    rig = Rig(tmp_path)
+    rig.observe(edit("a.py"))
+    rig.observe(PASS)
+    rig.reflect()
+
+    body = {"project": PROJECT, "session_id": "s1", "harness": "claude_code"}
+    reply = rig.service.respond("/reflect/finished", body)
+
+    assert reply.body == {"saved": 0}
+    assert reflection_events(rig)[-1] == {"stage": "outcome", "saved": 0}
+
+
+def test_a_reflection_lesson_saved_between_ask_and_finish_is_counted(tmp_path):
+    rig = Rig(tmp_path)
+    rig.observe(edit("a.py"))
+    rig.observe(PASS)
+    rig.reflect()
+    lesson = {
+        "text_in_plain_words": "refund.py rounds before tax",
+        "kind": "rule",
+        "files": ["refund.py"],
+        "source_label": REFLECTION_LABEL,
+    }
+    assert (
+        rig.service.respond("/lessons/add", {"project": PROJECT, "lessons": [lesson]}).status == 200
+    )
+
+    body = {"project": PROJECT, "session_id": "s1", "harness": "claude_code"}
+
+    assert rig.service.respond("/reflect/finished", body).body == {"saved": 1}
+
+
+def test_an_outcome_after_a_service_restart_says_unknown_not_zero(tmp_path):
+    rig = Rig(tmp_path)
+    rig.observe(edit("a.py"))
+    rig.observe(PASS)
+    rig.reflect()
+    restarted = Rig(tmp_path)
+    body = {"project": PROJECT, "session_id": "s1", "harness": "claude_code"}
+
+    assert restarted.service.respond("/reflect/finished", body).body == {"saved": None}
