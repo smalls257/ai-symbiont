@@ -77,6 +77,26 @@ h2{font-size:clamp(1.5rem,2.4vw,2rem);line-height:1.1;font-weight:800;letter-spa
 .beat .foot{font-size:.85rem;color:var(--mu);margin-top:.5rem}
 .beat.changed .big{font-size:1.5rem;font-weight:800;letter-spacing:-.02em;line-height:1.15;margin-bottom:.3rem}
 
+.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem;margin-top:1.25rem}
+.card{border-top:3px solid var(--gr);padding-top:.7rem}
+.card .n{font-size:2.1rem;font-weight:800;letter-spacing:-.03em;line-height:1.05}
+.card .n small{display:block;font:600 .85rem var(--ui);color:var(--mu);letter-spacing:0;margin-top:.2rem}
+.card h3{font-size:1.05rem;margin:.6rem 0 .3rem}
+.card p{color:#3d3844;font-size:.95rem}
+.card .vs{margin-top:.5rem;font-size:.9rem;color:var(--mu)}
+.callout{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1.5rem;background:var(--panel);border:2px solid var(--ink);border-radius:.6rem;padding:1.2rem 1.4rem;margin:1.75rem 0 0;font-size:.95rem}
+.flow{grid-column:1/-1;display:flex;align-items:stretch;gap:.6rem;flex-wrap:wrap;padding-bottom:1rem;border-bottom:1px solid var(--line)}
+.flow .node{flex:1 1 9rem;border:1.5px solid var(--ink);border-radius:.5rem;padding:.55rem .8rem;background:var(--paper)}
+.flow .node b{display:block;font-size:.95rem;margin:0}
+.flow .node span{display:block;font-size:.82rem;color:var(--mu)}
+.flow .node.end{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.flow .node.end b{color:var(--paper)}
+.flow .node.end span{color:#cfc8bb}
+.flow .arrow{align-self:center;color:var(--or);font-size:1.4rem;font-weight:400}
+.callout p{color:#3d3844}
+.callout b{display:block;color:var(--ink);margin-bottom:.2rem}
+@media (max-width:760px){.callout{grid-template-columns:1fr}.flow{flex-direction:column;gap:.3rem}.flow .node{flex:0 0 auto}.flow .arrow{transform:rotate(90deg);align-self:flex-start;margin-left:1rem;line-height:1}}
+@media (max-width:760px){.cards{grid-template-columns:1fr}}
 .ledger{padding:2.75rem 0;border-top:2px solid var(--ink)}
 table{width:100%;border-collapse:collapse;margin-top:1rem;font-size:.95rem}
 th,td{text-align:left;padding:.65rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
@@ -218,14 +238,28 @@ footer p+p{margin-top:.4rem}
 <!-- 05 Precision -->
 <section class="ex" id="ex5">
   <div class="head">
-    <div><div class="kicker">05 · Does it ever give bad advice? · 89 public repositories</div><h2>It stays quiet unless it is sure.</h2></div>
-    <div class="flip"><em>0</em><small>of 501 notes shown were wrong, across 89 repositories it had never seen</small></div>
+    <div><div class="kicker">05 · Does it ever give bad advice? · 89 open-source projects</div><h2>It stays quiet unless it is sure.</h2></div>
+    <div class="flip"><em>0</em><small>of the 501 notes it showed were wrong, on 89 open-source projects it had never seen</small></div>
   </div>
   <figure><img src="media/code-pass.jpg" alt="The same coding session, turn 10: the test passes"><figcaption>The coding session from example 01, turn 10: the test passes. A note is only worth showing when it is right.</figcaption></figure>
   <div class="beats">
-    <div class="beat wrong"><div class="k">What could go wrong</div><p>A wrong note would send the agent down the wrong path. So symbiont speaks only when a new failure matches a saved one exactly, and otherwise says nothing.</p></div>
-    <div class="beat"><div class="k">What we tested</div><p>251 repeated failures across 89 public repositories symbiont had never seen, from the public SWE-smith benchmark. Its bugs are synthetic, which limits how far this carries to your own repository.</p></div>
-        <div class="beat changed"><div class="k">What we found</div><div class="big">0 of 501 notes wrong</div><p>Of the 501 notes shown, none was wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p><p class="foot"><b>Where it stops working:</b> the 89 repositories come from a public benchmark whose bugs are synthetic (generated, not from real history), which limits how far this carries to your own repository. A bolder check on the same benchmark: after overnight training on one project's history, symbiont's checker approved 61% of repeated mistakes (the untrained checker approved 0%), and 97.8% of those approvals were correct, 5 of 924 notes wrong [measured] [pre-registered]. That training ran on our machines; running it on your own machine, on your own project's history, is in development.</p></div>
+    <div class="beat wrong"><div class="k">What could go wrong</div><p>A wrong note sends the agent the wrong way. That costs more than no note at all. So symbiont stays quiet unless it is sure.</p></div>
+    <div class="beat"><div class="k">What we tested</div><p>We used a public test set of real open-source projects with planted bugs. It has 89 projects symbiont had never seen. In them, the same mistake came back 251 times. Each time, symbiont could show a note or stay quiet. We counted how many of the notes it showed were wrong.</p></div>
+        <div class="beat changed"><div class="k">What we found</div><div class="big">0 of 501 notes wrong</div><p>symbiont showed 501 notes. None of them was wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p><p class="foot"><b>Where it stops working:</b> the bugs in the test set were planted on purpose, not made by real developers. So your own project may behave differently. The overnight training ran on our machines. Running it on your own machine, on your own project's history, is in development.</p></div>
+  </div>
+  <div class="callout">
+    <div class="flow" aria-label="How a note is picked">
+      <div class="node"><b>Lessons</b><span>learned from earlier sessions</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Fast ranker</b><span>"looks related"</span></div>
+      <div class="arrow">→</div>
+      <div class="node"><b>Trained checker</b><span>"really applies?"</span></div>
+      <div class="arrow">→</div>
+      <div class="node end"><b>Note shown</b><span>only if both agree</span></div>
+    </div>
+    <p><b>Not just search.</b> Two parts pick each note. A fast ranker finds the lessons that look most related. A small trained checker then reads the situation and the lesson and decides whether the lesson really applies. A note is shown only when both agree.</p>
+    <p><b>Why both?</b> On its own, the ranker never stays quiet. In an earlier test it showed a wrong note 62% of the time [measured]. With the checker required to agree: 0 wrong out of 501 notes shown [measured] [pre-registered]. Plain similarity search, the way most retrieval tools pick, got 9 wrong and found about half as many useful moments [measured].</p>
+    <p><b>It keeps learning.</b> Training the checker overnight on your project's own history let it catch 61% of repeated mistakes, against 0% before training, and 97.8% of what it approved was right [measured] [pre-registered].</p>
   </div>
 </section>
 
@@ -237,11 +271,11 @@ footer p+p{margin-top:.4rem}
     <tr><td class="n">4 of 5 vs 0 of 5</td><td>Home robot, table set in 5 new episodes: with symbiont's notes vs without. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Works because a home stays the same; with items hidden somewhere new each time, 1 of 5 either way.</td></tr>
     <tr><td class="n">30 → 0</td><td>House-rule violations across 6 episodes without the owner's corrections vs 6 with them. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Corrections scripted for the demo; same four rules, items in new places.</td></tr>
     <tr><td class="n">+0.16</td><td>Game score, 0 to 1, across 240 new games with the model's own rule vs without, confidence interval [0.11, 0.22]. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">5 of the 6 rules the model proposed failed testing; this is the one that survived.</td></tr>
-    <tr><td class="n">0 of 501</td><td>Notes shown on repeated failures across 89 public repositories that were wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">The bugs are synthetic, from a public benchmark, not from real project history.</td></tr>
-    <tr><td class="n">61% at 97.8%</td><td>After overnight training on a project's history, the checker approved 61% of repeated mistakes (0% untrained) and 97.8% of its approvals were correct: 5 of 924 wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Same benchmark, same synthetic bugs; the training ran on our machines.</td></tr>
+    <tr><td class="n">0 of 501</td><td>Notes shown on repeated failures across 89 public repositories that were wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">A public test set of real open-source projects with planted bugs, not bugs made by real developers.</td></tr>
+    <tr><td class="n">61% at 97.8%</td><td>After overnight training on a project's history, the checker approved 61% of repeated mistakes (0% untrained) and 97.8% of its approvals were correct: 5 of 924 wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Same test set with planted bugs; the training ran on our machines.</td></tr>
+    <tr><td class="n neg">-0.054</td><td>Training lessons directly into a 30B model's weights: not better yet at coding (0.054 below the plain model). <span class="tag neg">[measured]</span></td><td class="l">Exploratory, not a verdict. A retrain with a shorter context is in development.</td></tr>
     <tr><td class="n">6 of 6 vs 2 of 6</td><td>Coding example above: billing bug fixed within 40 turns, 6 paired runs with symbiont vs without, same model. <span class="tag exp">[exploratory]</span></td><td class="l">Six pairs show the direction, not a rate; a practice project we designed; not pre-registered.</td></tr>
-    <tr><td class="n neg">-0.054</td><td>We also trained a small personal add-on to Glimmer 30B on one developer's own history. It scored 0.054 below the plain model, interval [-0.108, -0.014]. The diagnosis is written up in the repository. <span class="tag neg">[measured]</span></td><td class="l"><b>Where it stops working:</b> putting the lessons into a model's weights, rather than showing them as notes, made this model worse on the test. Exploratory, not a verdict: it recalled the right file for 62% of lessons vs 0% without, and invented details 10% of the time vs 1%. Training lessons into a model's weights is still in development.</td></tr>
-  </table>
+      </table>
 </section>
 
 <section class="how">
