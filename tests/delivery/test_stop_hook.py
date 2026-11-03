@@ -118,6 +118,11 @@ def test_through_the_cli_and_a_real_service_a_worked_session_is_blocked_once(
         edit["tool_input"] = {"path": "app.py"}
         edit["tool_response"] = "ok"
         assert hook("PostToolUse", edit) == ""
+        assert hook("Stop", STOP_INPUT) == "", "an edit alone is not a milestone"
+        check = {"session_id": "s1", "cwd": "/work/demo", "tool_name": "bash"}
+        check["tool_input"] = {"command": "make check"}
+        check["tool_response"] = json.dumps({"exit_code": 0, "output": "ok"})
+        assert hook("PostToolUse", check) == ""
         first = json.loads(hook("Stop", STOP_INPUT))
         second = hook("Stop", STOP_INPUT)
     finally:

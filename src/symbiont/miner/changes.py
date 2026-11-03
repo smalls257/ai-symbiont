@@ -56,3 +56,8 @@ def changes_workspace(record: Record) -> bool:
         return True
     verbs = _INSTALL_VERBS.get(program, set()) | _CONFIG_VERBS.get(program, set())
     return bool(args) and args[0] in verbs
+
+
+def passed_check(record: Record) -> bool:
+    """True for a command that exited 0 without installing, configuring or writing: a check."""
+    return record.kind == Kind.COMMAND and record.exit_code == 0 and not changes_workspace(record)

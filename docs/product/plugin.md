@@ -7,7 +7,7 @@ the design: what it is made of, the rules it keeps, and the decay each rule prev
 
 | Piece | File | Job |
 |---|---|---|
-| Hooks | `hooks/hooks.json` | session start, prompt submit, tool use, tool failure and stop run `symbiont-hook <event>`; at stop, in an allowed repository after a session that edited a file, the model is asked once to reflect and save what was non-obvious through `symbiont_add_lessons` (shown on the dashboard as "from reflection") [measured on Claude Code and Muse Code] |
+| Hooks | `hooks/hooks.json` | session start, prompt submit, tool use, tool failure and stop run `symbiont-hook <event>`; at stop, in an allowed repository once a session has edited code and a later check passed, the model is asked once to reflect and save what was non-obvious through `symbiont_add_lessons` (shown on the dashboard as "from reflection") [measured on Claude Code and Muse Code] |
 | Wrapper | `bin/symbiont-hook.sh` | says so, once per session, when the `symbiont` command is missing; always exits 0 |
 | MCP server | `.mcp.json` | the one `recall(question)` tool, served by `symbiont mcp` |
 | Command | `commands/symbiont.md` | `/symbiont`: status, why a note fired, mute, forget, uninstall help |

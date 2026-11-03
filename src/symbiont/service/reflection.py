@@ -52,8 +52,8 @@ class ReflectionDesk:
             return _declined(f"symbiont is not switched on for {project}")
         if self._ledger.asked(project, session_id):
             return _declined("this session was already asked to reflect")
-        if not self._gate.edited_in(session_id):
-            return _declined("this session changed no file, so there is nothing to reflect on")
+        if not self._gate.reached_milestone(session_id):
+            return _declined("no edit followed by a passing check yet, so no milestone")
         self._ledger.mark_asked(project, session_id)
         return {"ask": REFLECTION_QUESTION}
 
