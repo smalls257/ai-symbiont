@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" SessionStart || \"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd\" SessionStart",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" SessionStart || %CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd SessionStart",
             "timeout": 2
           }
         ]
@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" UserPromptSubmit || \"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd\" UserPromptSubmit",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" UserPromptSubmit || %CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd UserPromptSubmit",
             "timeout": 2
           }
         ]
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" PostToolUse || \"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd\" PostToolUse",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" PostToolUse || %CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd PostToolUse",
             "timeout": 2
           }
         ]
@@ -40,7 +40,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" PostToolUseFailure || \"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd\" PostToolUseFailure",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" PostToolUseFailure || %CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd PostToolUseFailure",
             "timeout": 2
           }
         ]
@@ -51,7 +51,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" Stop || \"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd\" Stop",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" Stop || %CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd Stop",
             "timeout": 5
           }
         ]

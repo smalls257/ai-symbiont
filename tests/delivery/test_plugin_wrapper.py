@@ -81,7 +81,7 @@ def test_every_hook_entry_runs_the_wrapper_with_its_own_event_name():
             for hook in group["hooks"]:
                 sh_part, _, cmd_part = hook["command"].partition(" || ")
                 assert sh_part.endswith(f'symbiont-hook.sh" {event}')
-                assert cmd_part == f'"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd" {event}'
+                assert cmd_part == f"%CLAUDE_PLUGIN_ROOT%\\bin\\symbiont-hook.cmd {event}"
 
 
 def test_the_wrapper_is_checked_out_with_unix_line_endings():
@@ -108,7 +108,9 @@ def test_the_cmd_wrapper_uses_no_labels_because_git_checks_it_out_with_lf_ending
 
 
 def run_cmd_wrapper(home: Path, event: str) -> subprocess.CompletedProcess[str]:
-    env = {**os.environ, "USERPROFILE": str(home), "PATH": path_without_the_command()}
+    # Muse Code gives hooks HOME and no USERPROFILE [measured]; the wrapper must cope.
+    env = {**os.environ, "HOME": str(home), "PATH": path_without_the_command()}
+    env.pop("USERPROFILE", None)
     return subprocess.run(
         ["cmd.exe", "/c", str(CMD_WRAPPER), event],
         env=env,
