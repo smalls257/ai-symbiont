@@ -120,6 +120,11 @@ def test_a_shell_success_with_no_reported_code_is_not_assumed_zero():
     assert observed(TOOL_INPUT | {"tool_response": {"stdout": "ok"}})["exit_code"] is None
 
 
+def test_muse_codes_windows_shell_tool_is_a_command_like_bash():
+    record = observed(TOOL_INPUT | {"tool_response": {"exit_code": 3}}, "powershell")
+    assert (record["kind"], record["command"], record["exit_code"]) == ("command", "pytest -q", 3)
+
+
 def test_a_piped_failing_test_run_is_recorded_as_failed_though_the_pager_exited_zero():
     piped = TOOL_INPUT | {
         "tool_input": {"command": "pytest -q 2>&1 | head -n 200"},

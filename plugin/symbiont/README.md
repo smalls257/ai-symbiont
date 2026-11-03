@@ -34,7 +34,9 @@ read from `%USERPROFILE%\.claude\projects`.
 Muse Code runs on Windows through its official PowerShell launcher, and it runs plugin hooks
 through `cmd.exe`, where there is no `sh` [measured on Windows 11, Muse 1.4.14]. Each hook command
 therefore tries `symbiont-hook.sh` first and falls back to `bin\symbiont-hook.cmd`, which keeps the
-same promise: one "not installed" line at session start, exit 0 always. Muse Code's history is read
+same promise: one "not installed" line at session start, exit 0 always. Muse Code escapes quotes
+in the command it hands to `cmd.exe`, so that fallback path is unquoted and a plugin cache path with
+a space in it would not run (the hook fails without blocking the agent). Muse Code's history is read
 from `%USERPROFILE%\.local\share\muse\sessions` (or `%XDG_DATA_HOME%`); it records the workspace as
 `\\?\C:\...`, which the reader treats as the same directory as `C:\...`.
 

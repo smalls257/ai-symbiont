@@ -87,6 +87,18 @@ def test_a_shell_call_carries_its_command_output_and_exit_status(tmp_path):
     assert record.raw == "ImportError: no module"
 
 
+def test_muses_windows_powershell_tool_is_a_command(tmp_path):
+    log = write(
+        tmp_path / "session.jsonl",
+        calls({"name": "powershell", "call_id": "c1", "args": '{"command": "dir"}'}),
+        results({"call_id": "c1", "text": "gone", "exit_code": 1}),
+    )
+
+    (record,) = read(log, "demo")
+
+    assert (record.kind, record.command, record.exit_code) == (Kind.COMMAND, "dir", 1)
+
+
 def test_a_shell_result_with_no_reported_status_is_unknown_not_success(tmp_path):
     log = write(
         tmp_path / "session.jsonl",
