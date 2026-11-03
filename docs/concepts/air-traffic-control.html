@@ -1,0 +1,484 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="icon" href="data:,">
+<title>Air traffic control, with and without symbiont (concept mockup)</title>
+<style>
+/* ai-symbiont concept mockups: shared visual system ("the slip").
+   Cold slate product UI; the symbiont note is the only warm, light object on screen. */
+:root{
+  --bg:#121A26;--surface:#1B2535;--surface-2:#243043;--line:#2E3B52;--line-soft:#26324500;
+  --ink:#EDF1F7;--ink-2:#A8B3C4;--ink-3:#6E7C92;
+  --spark:#4F8DFF;--spark-soft:#4F8DFF33;
+  --paper:#F6E9C6;--paper-ink:#2B2214;--paper-ink-2:#7A6540;--pin:#E8B457;
+  --bad:#FF6B6B;--bad-soft:#FF6B6B26;--good:#3DD68C;--good-soft:#3DD68C22;
+  --sans:"Avenir Next","Helvetica Neue",Inter,"Segoe UI",system-ui,sans-serif;
+  --serif:"Iowan Old Style",Charter,"Palatino",Georgia,serif;
+  --mono:"SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font:16px/1.4 var(--sans);overflow:hidden;-webkit-font-smoothing:antialiased}
+button{font:inherit}
+:focus-visible{outline:2px solid var(--pin);outline-offset:2px}
+
+/* stage: the product UI fills everything above the film track */
+#scene{position:fixed;inset:0 0 72px 0;transition:filter .45s ease}
+body.sym-focus #scene{filter:brightness(.62) saturate(.8)}
+body.sym-rewinding #scene{filter:saturate(.25) contrast(.92) brightness(.8)}
+#scene::after{content:"";position:absolute;inset:0;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,transparent 0,#ffffff14 48%,#ffffff2a 50%,#ffffff14 52%,transparent 100%);transform:translateX(100%)}
+body.sym-rewinding #scene::after{opacity:1;animation:sym-scan 1.1s linear 1}
+@keyframes sym-scan{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+
+/* honesty tag */
+.sym-tag{position:fixed;top:10px;right:14px;z-index:40;font:12px/1 var(--sans);letter-spacing:.01em;color:var(--ink-3);
+  border:1px solid var(--line);border-radius:999px;padding:5px 10px;background:#121A26cc}
+
+/* film track */
+.sym-bar{position:fixed;left:0;right:0;bottom:0;height:72px;z-index:30;display:grid;grid-template-columns:236px 1fr auto auto;align-items:center;gap:28px;
+  padding:0 24px;background:#0D131C;border-top:1px solid var(--line)}
+.sym-chapter{display:flex;flex-direction:column;gap:2px}
+.sym-chapter b{font:600 19px/1.1 var(--sans);color:var(--ink);transition:color .3s}
+.sym-chapter span{font:13px/1.2 var(--sans);color:var(--ink-3)}
+.sym-chapter.with b{color:var(--paper)}
+.sym-chapter.rewind b{color:var(--ink-2)}
+.sym-track{width:100%;height:56px;display:block;overflow:visible;cursor:pointer;touch-action:manipulation}
+.sym-track .lane{fill:none;stroke:#3A4860;stroke-width:2;stroke-linecap:round}
+.sym-track .lane.with{stroke:var(--paper);opacity:.0;transition:opacity .4s}
+.sym-track .lane.with.on{opacity:.9}
+.sym-track .lane-label{font:12px var(--sans);fill:var(--ink-3);paint-order:stroke;stroke:#0D131C;stroke-width:4px}
+.sym-track .lane-label.with{fill:var(--paper);opacity:0;transition:opacity .4s}
+.sym-track .lane-label.with.on{opacity:1}
+.sym-track .head{fill:var(--ink);stroke:#0D131C;stroke-width:2}
+.sym-track .mark-fail{fill:var(--bad)}
+.sym-track .mark-fail-x{stroke:#0D131C;stroke-width:2;stroke-linecap:round}
+.sym-track .mark-note{fill:var(--pin)}
+.sym-track .mark-ok{fill:var(--good)}
+.sym-track .mark-ok-tick{fill:none;stroke:#0D131C;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sym-counters{display:flex;gap:30px}
+.sym-stat{display:flex;flex-direction:column;gap:2px;min-width:120px}
+.sym-stat span{font:13px/1.2 var(--sans);color:var(--ink-3);white-space:nowrap}
+.sym-stat b{font:600 30px/1 var(--sans);color:var(--ink);font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px;transition:color .3s}
+.sym-stat b s{font-weight:500;font-size:20px;color:var(--ink-3);text-decoration:none}
+.sym-stat b i{font-style:normal;font-size:18px;color:var(--ink-3)}
+.sym-stat.bad b{color:var(--bad)}
+.sym-stat.good b{color:var(--good)}
+.sym-stat.good b s{color:var(--ink-3)}
+
+/* replay chrome (hidden in ?record=1) */
+.sym-chrome{display:flex;gap:10px;align-items:center}
+.sym-chrome button{background:#1B2535;color:var(--ink);border:1px solid var(--line);border-radius:10px;min-height:44px;min-width:92px;padding:0 18px;cursor:pointer;font:600 15px var(--sans);touch-action:manipulation}
+@media(hover:none){.sym-chrome kbd{display:none}}
+.sym-chrome button:hover{background:var(--surface-2)}
+.sym-chrome kbd{font:12px var(--sans);color:var(--ink-3);border:1px solid var(--line);border-radius:5px;padding:2px 6px}
+body.sym-record .sym-chrome{display:none}
+
+/* the slip: the symbiont note */
+.sym-layer{position:fixed;inset:0;z-index:35;pointer-events:none}
+.sym-layer svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.sym-layer .wire{fill:none;stroke:var(--pin);stroke-width:1.5;stroke-linecap:round;stroke-dasharray:1000;stroke-dashoffset:1000;transition:stroke-dashoffset .55s ease-out .05s}
+.sym-layer .anchor{fill:var(--pin);r:4}
+.sym-layer .ring{fill:none;stroke:var(--pin);stroke-width:1.5;opacity:0}
+.sym-layer.on .wire{stroke-dashoffset:0}
+.sym-layer.on .ring{animation:sym-ring 1.1s ease-out 1}
+@keyframes sym-ring{0%{opacity:.9;r:4}100%{opacity:0;r:44}}
+.sym-slip{position:absolute;width:460px;padding:22px 26px 18px 30px;background:var(--paper);color:var(--paper-ink);border-radius:3px;
+  box-shadow:0 24px 60px #00000070,0 2px 0 #ffffff55 inset;opacity:0;transform:translateY(10px) scale(.97);transform-origin:0 0;
+  transition:opacity .4s ease-out .25s,transform .5s cubic-bezier(.2,.9,.25,1) .25s}
+.sym-slip::before{content:"";position:absolute;left:12px;top:14px;width:9px;height:9px;border-radius:50%;background:var(--pin);box-shadow:0 0 0 3px #e8b45733}
+.sym-slip p{font:24px/1.3 var(--serif);letter-spacing:-.005em}
+.sym-slip small{display:block;margin-top:10px;font:14px/1.3 var(--sans);color:var(--paper-ink-2)}
+.sym-slip.big p{font-size:28px}
+.sym-layer.on .sym-slip{opacity:1;transform:none}
+.sym-layer.off .sym-slip{transition:opacity .3s,transform .3s;opacity:0;transform:translateY(-6px)}
+.sym-layer.off .wire,.sym-layer.off .anchor,.sym-layer.off .ring{transition:opacity .3s;opacity:0}
+
+/* the pause: a caret that holds its breath */
+.sym-caret{display:inline-block;width:2px;height:1.05em;background:var(--spark);vertical-align:-.15em;margin-left:1px;animation:sym-blink 1s steps(1) infinite}
+.sym-caret.held{animation:none;background:var(--pin);box-shadow:0 0 10px var(--pin)}
+@keyframes sym-blink{50%{opacity:0}}
+
+/* agent voice */
+.spark-name{display:inline-flex;align-items:center;gap:7px;font:600 13px var(--sans);color:var(--spark)}
+.spark-name::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--spark);box-shadow:0 0 0 3px var(--spark-soft)}
+
+/* status badge: never color alone */
+.sym-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:6px;font:600 13px/1.2 var(--sans)}
+.sym-badge.bad{background:var(--bad-soft);color:#FFB3B3}
+.sym-badge.good{background:var(--good-soft);color:#9DEFC4}
+.sym-badge.bad::before{content:"!";font-weight:800;color:var(--bad)}
+.sym-badge.good::before{content:"\2713";color:var(--good)}
+
+/* motion fallbacks */
+body.sym-instant *,body.sym-instant *::before,body.sym-instant *::after{transition:none!important;animation:none!important}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+@media(max-width:1300px){.sym-slip{width:400px}.sym-slip p{font-size:21px}.sym-slip.big p{font-size:24px}.sym-stat b{font-size:26px}}
+
+/* iPad and small laptops */
+@media(max-width:1180px){
+  .sym-bar{grid-template-columns:170px 1fr auto auto;gap:16px;padding:0 14px}
+  .sym-chapter b{font-size:16px}.sym-chapter span{display:none}
+  .sym-counters{gap:16px}.sym-stat{min-width:0}.sym-stat b{font-size:24px}.sym-stat span{font-size:12px}
+  .sym-chrome button{min-width:72px;padding:0 12px}
+  .sym-slip{padding:18px 20px 14px 26px}.sym-slip p{font-size:20px}.sym-slip.big p{font-size:22px}
+}
+@media(max-width:900px){
+  .sym-bar{grid-template-columns:1fr auto auto}.sym-track{display:none}
+  .sym-tag{font-size:11px;padding:4px 8px}
+}
+
+</style>
+<style>
+#scene{display:grid;grid-template-columns:1fr 520px;background:#0A1118}
+.scope{position:relative;overflow:hidden;background:#0A1118}
+canvas{position:absolute;inset:0;width:100%;height:100%}
+.alerts{position:absolute;left:28px;top:24px;display:flex;flex-direction:column;gap:10px;z-index:3}
+.alert{display:grid;grid-template-columns:auto 1fr;gap:4px 18px;align-items:center;padding:12px 18px;border-radius:8px;background:#3A1218;border:1px solid #B23A46;
+  opacity:0;transform:translateX(-10px);transition:opacity .3s,transform .3s}
+.alert.on{opacity:1;transform:none;animation:throb 1s ease-in-out infinite}
+@keyframes throb{50%{box-shadow:0 0 0 6px #ff6b6b22}}
+.alert b{font:700 18px/1.1 var(--sans);color:#FFD2D2;letter-spacing:.02em;grid-row:1/3}
+.alert span{font:15px/1.2 var(--mono);color:#FFB3B3}.alert span+span{color:#E8A9A9}
+.panel{border-left:1px solid #1C2A3A;background:#0F1821;display:flex;flex-direction:column;min-height:0}
+.ph{display:flex;justify-content:space-between;align-items:flex-start;padding:44px 24px 14px;border-bottom:1px solid #1C2A3A}
+.ph h1{font:600 20px var(--sans)}.ph p{font-size:14px;color:var(--ink-3);margin-top:2px}
+.clock{font:500 34px/1 var(--mono);color:#BFE1EE;font-variant-numeric:tabular-nums}.clock small{display:block;font:12px var(--sans);color:var(--ink-3);text-align:right;margin-top:4px}
+.agent{padding:12px 24px;border-bottom:1px solid #1C2A3A;font-size:14px;color:var(--ink-2);display:flex;gap:10px;align-items:center}
+.strips{padding:14px 24px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid #1C2A3A}
+.strips h3,.log h3{font:600 13px var(--sans);color:var(--ink-3);margin-bottom:4px}
+.strip{display:grid;grid-template-columns:96px 1fr 1fr 1fr;gap:10px;padding:9px 12px;border-radius:5px;background:#17222E;border-left:4px solid #3A4A5E;font:14px var(--mono);color:#C9D6E2}
+.strip b{color:#EAF4F9;font-weight:600}.strip.heavy{border-left-color:#8FB4D9}.strip.light{border-left-color:#C9A96E}
+.strip .rw{transition:color .3s}.strip .rw.bad{color:var(--bad)}.strip .rw.good{color:var(--good)}
+.log{padding:14px 24px 20px;flex:1;display:flex;flex-direction:column;gap:12px;min-height:0}
+.tx{font:17px/1.45 var(--sans);color:#E3EBF2;padding:10px 14px;border-radius:8px;background:#141E29;border:1px solid #1E2C3B;opacity:0;transition:opacity .3s,border-color .3s;min-height:46px}
+.tx.on{opacity:1}.tx.held{border-color:var(--pin)}
+.tx .t{font:13px var(--mono);color:var(--ink-3);display:block;margin-bottom:3px}
+@media(max-width:1180px){#scene{grid-template-columns:1fr 380px}.strip{grid-template-columns:84px 1fr 1fr 1fr;font-size:12px;padding:7px 10px}.tx{font-size:15px}.clock{font-size:26px}.alert b{font-size:15px}.alert span{font-size:13px}}
+@media(orientation:portrait){#scene{grid-template-columns:1fr;grid-template-rows:1fr 400px}.panel{border-left:0;border-top:1px solid #1C2A3A}.strips{display:none}.ph{padding-top:16px}.alerts{left:16px;top:16px}}
+</style></head><body>
+<div id="scene">
+  <div class="scope"><canvas id="cv"></canvas>
+    <div class="alerts"><div class="alert" id="ca"><b>CONFLICT ALERT</b><span>SKW4471 and AAL212</span><span id="caSep">2.8 NM, 5 NM required on final</span></div>
+      <div class="alert" id="nv"><b>NOISE VIOLATION</b><span>SKW4471 over Lakeview</span><span>3,000 ft before the 22:00 curfew, 4,000 required</span></div></div>
+  </div>
+  <aside class="panel">
+    <div class="ph"><div><h1>Approach control</h1><p>Spark Field, east sector, evening push</p></div><div class="clock"><span id="clock">21:58:00</span><small>local</small></div></div>
+    <div class="agent"><span class="spark-name">Muse Spark</span> controller agent, issuing clearances</div>
+    <div class="strips"><h3>Flight strips</h3>
+      <div class="strip heavy"><b>AAL212 H</b><span>B77W</span><span>ILS <span class="rw" id="rwA">28L</span></span><span>160 kt</span></div>
+      <div class="strip light"><b>SKW4471</b><span>CRJ7</span><span>ILS <span class="rw" id="rwS">28L</span></span><span id="spS">210 kt</span></div>
+      <div class="strip"><b>UAL1430</b><span>A321</span><span>downwind</span><span>240 kt</span></div>
+      <div class="strip"><b>DAL88</b><span>B738</span><span>departed 28R</span><span>250 kt</span></div>
+      <div class="strip light"><b>N52JP</b><span>C172</span><span>VFR south</span><span>110 kt</span></div>
+    </div>
+    <div class="log"><h3>Clearances issued</h3><div class="tx" id="tx1"></div><div class="tx" id="tx2"></div><div class="tx" id="tx3"></div></div>
+  </aside>
+</div>
+<script>
+/* ai-symbiont concept mockups: shared scene runtime.
+   One motion language for every scene: a timed script, a film track that forks at the
+   note moment (grey lane = without symbiont, vellum lane = with symbiont), the slip, and
+   a rewind between the two runs. ?record=1 hides chrome. R or Space replays. ?seek=ms
+   jumps the scene to a moment (used for deterministic screenshots). */
+window.Sym = (() => {
+  const q = new URLSearchParams(location.search);
+  const record = q.has('record');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let scene = null, timers = [], raf = 0, t0 = 0, running = false, instant = false;
+  let curT = 0; let marks = [];
+
+  const el = (tag, cls, html) => { const e = document.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; };
+  const svgEl = (tag, attrs) => { const e = document.createElementNS('http://www.w3.org/2000/svg', tag); for (const k in attrs) e.setAttribute(k, attrs[k]); return e; };
+
+  // ---- chrome -----------------------------------------------------------------
+  function mountChrome() {
+    if (record) document.body.classList.add('sym-record');
+    document.body.appendChild(el('span', 'sym-tag', scene.tag || 'Concept mockup, illustrative data'));
+    const bar = el('div', 'sym-bar');
+    bar.innerHTML = `<div class="sym-chapter" id="symChapter"><b>Without symbiont</b><span>${scene.subtitleWithout || ''}</span></div>
+      <svg class="sym-track" id="symTrack" viewBox="0 0 1000 56"></svg>
+      <div class="sym-counters" id="symCounters"></div>
+      <div class="sym-chrome"><kbd>R</kbd><button type="button" id="symReplay" aria-label="Replay the scene">Replay</button></div>`;
+    document.body.appendChild(bar);
+    const counters = bar.querySelector('#symCounters');
+    (scene.counters || []).forEach(c => {
+      const s = el('div', 'sym-stat'); s.id = 'symStat-' + c.id; s.innerHTML = `<span>${c.label}</span><b>${c.start ?? 0}</b>`; counters.appendChild(s);
+    });
+    bar.querySelector('#symReplay').addEventListener('click', () => play());
+    document.addEventListener('keydown', e => { if (e.key === 'r' || e.key === 'R' || e.key === ' ') { e.preventDefault(); play(); } });
+    const layer = el('div', 'sym-layer'); layer.id = 'symLayer';
+    layer.innerHTML = `<svg><circle class="ring" cx="0" cy="0" r="4"/><circle class="anchor" cx="0" cy="0" r="4"/><path class="wire" d=""/></svg><div class="sym-slip" id="symSlip"></div>`;
+    document.body.appendChild(layer);
+    drawTrack();
+  }
+
+  // ---- film track -------------------------------------------------------------
+  const X0 = 14, XF = 110, Y_WITHOUT = 18, Y_WITH = 42; let X1 = 986;
+  function drawTrack() {
+    const t = document.getElementById('symTrack'); t.innerHTML = '';
+    const w = Math.max(300, t.clientWidth || 1000); X1 = w - 14; t.setAttribute('viewBox', `0 0 ${w} 56`);
+    t.appendChild(svgEl('path', { class: 'lane without', d: `M${X0} ${Y_WITHOUT} H${X1}` }));
+    t.appendChild(svgEl('path', { class: 'lane with', id: 'symLaneWith', d: `M${XF} ${Y_WITHOUT} C ${XF + 40} ${Y_WITHOUT} ${XF + 40} ${Y_WITH} ${XF + 80} ${Y_WITH} H${X1}` }));
+    const l1 = svgEl('text', { class: "lane-label", x: X0 + 4, y: Y_WITHOUT - 8 }); l1.textContent = 'without symbiont'; t.appendChild(l1);
+    const l2 = svgEl('text', { class: 'lane-label with', id: 'symLaneWithLabel', x: XF + 90, y: Y_WITH + 14 }); l2.textContent = 'with symbiont'; t.appendChild(l2);
+    const g = svgEl('g', { id: 'symMarks' }); t.appendChild(g);
+    t.appendChild(svgEl('circle', { class: 'head', id: 'symHead', cx: X0, cy: Y_WITHOUT, r: 5 }));
+  }
+  function headAt(ms) {
+    const r = scene.rewindAt, d = scene.rewindDuration, end = scene.duration;
+    if (ms <= r) return { x: X0 + (X1 - X0) * (ms / r), y: Y_WITHOUT, phase: 'without' };
+    if (ms <= r + d) { const k = (ms - r) / d; return { x: X1 - (X1 - XF) * k, y: Y_WITHOUT, phase: 'rewind' }; }
+    const k = Math.min(1, (ms - r - d) / (end - r - d));
+    const x = XF + (X1 - XF) * k; const y = x < XF + 80 ? Y_WITHOUT + (Y_WITH - Y_WITHOUT) * ((x - XF) / 80) : Y_WITH;
+    return { x, y, phase: 'with' };
+  }
+  function mark(kind, ms) { marks.push({ kind, ms: ms ?? curT }); drawMark(kind, ms ?? curT); }
+  function drawMark(kind, ms) {
+    const p = headAt(ms); const g = document.getElementById('symMarks');
+    if (kind === 'fail') {
+      g.appendChild(svgEl('circle', { class: 'mark-fail', cx: p.x, cy: p.y, r: 7 }));
+      g.appendChild(svgEl('path', { class: 'mark-fail-x', d: `M${p.x - 3} ${p.y - 3} L${p.x + 3} ${p.y + 3} M${p.x + 3} ${p.y - 3} L${p.x - 3} ${p.y + 3}` }));
+    } else if (kind === 'ok') {
+      g.appendChild(svgEl('circle', { class: 'mark-ok', cx: p.x, cy: p.y, r: 7 }));
+      g.appendChild(svgEl('path', { class: 'mark-ok-tick', d: `M${p.x - 3.5} ${p.y} L${p.x - 1} ${p.y + 2.6} L${p.x + 3.5} ${p.y - 2.6}` }));
+    } else g.appendChild(svgEl('circle', { class: 'mark-note', cx: p.x, cy: p.y, r: 5 }));
+  }
+  function chapter(phase) {
+    const c = document.getElementById('symChapter'); c.className = 'sym-chapter ' + phase;
+    const label = { without: 'Without symbiont', rewind: 'Rewind', with: 'With symbiont' }[phase];
+    const sub = { without: scene.subtitleWithout, rewind: 'same moment, same model', with: scene.subtitleWith }[phase] || '';
+    c.innerHTML = `<b>${label}</b><span>${sub}</span>`;
+    if (phase === 'with') { document.getElementById('symLaneWith').classList.add('on'); document.getElementById('symLaneWithLabel').classList.add('on'); }
+  }
+
+  // ---- counters ---------------------------------------------------------------
+  function count(id, value, tone) {
+    const s = document.getElementById('symStat-' + id); if (!s) return;
+    const b = s.querySelector('b'); const prev = b.dataset.final;
+    s.className = 'sym-stat' + (tone ? ' ' + tone : '');
+    b.innerHTML = (prev != null && prev !== String(value)) ? `<s>${prev}</s><i>\u2192</i>${value}` : `${value}`;
+  }
+  function freezeCounters() { document.querySelectorAll('.sym-stat b').forEach(b => { b.dataset.final = b.textContent; }); }
+
+  // ---- the slip ---------------------------------------------------------------
+  function pointOf(target, side) {
+    if (target instanceof Element) {
+      const r = target.getBoundingClientRect();
+      return { x: side === 'left' ? r.left : side === 'right' ? r.right : r.left + r.width / 2, y: side === 'above' ? r.top : side === 'below' ? r.bottom : r.top + r.height / 2 };
+    }
+    return target;
+  }
+  function note(opts) {
+    const layer = document.getElementById('symLayer'); const slip = document.getElementById('symSlip');
+    layer.className = 'sym-layer';
+    slip.className = 'sym-slip' + (opts.big ? ' big' : ''); slip.style.width = (opts.width || 460) + 'px';
+    slip.innerHTML = `<p>${opts.text}</p>` + (opts.source ? `<small>${opts.source}</small>` : '');
+    const a = pointOf(opts.at, opts.side);
+    const w = Math.min(opts.width || 460, innerWidth - 32); slip.style.width = w + 'px'; slip.style.left = slip.style.top = '0'; const h = slip.offsetHeight;
+    let left, top;
+    const side = opts.side || 'right';
+    if (side === 'right') { left = a.x + 36; top = a.y - 28; }
+    else if (side === 'left') { left = a.x - 36 - w; top = a.y - 28; }
+    else if (side === 'below') { left = a.x - 40; top = a.y + 34; }
+    else { left = a.x - 40; top = a.y - 34 - h; }
+    if (opts.dx) left += opts.dx; if (opts.dy) top += opts.dy;
+    left = Math.max(16, Math.min(innerWidth - w - 16, left)); top = Math.max(16, Math.min(innerHeight - h - 90, top));
+    slip.style.left = left + 'px'; slip.style.top = top + 'px';
+    const pin = { x: left + 16.5, y: top + 18.5 };
+    const svg = layer.querySelector('svg');
+    svg.querySelector('.anchor').setAttribute('cx', a.x); svg.querySelector('.anchor').setAttribute('cy', a.y);
+    svg.querySelector('.ring').setAttribute('cx', a.x); svg.querySelector('.ring').setAttribute('cy', a.y);
+    const mx = (a.x + pin.x) / 2;
+    svg.querySelector('.wire').setAttribute('d', `M${a.x} ${a.y} C ${mx} ${a.y} ${mx} ${pin.y} ${pin.x} ${pin.y}`);
+    void layer.offsetWidth; layer.classList.add('on');
+    if (opts.focus !== false) document.body.classList.add('sym-focus');
+    mark('note');
+    return slip;
+  }
+  function noteOff() { const layer = document.getElementById('symLayer'); if (layer.classList.contains('on')) layer.classList.add('off'); document.body.classList.remove('sym-focus'); }
+  function unfocus() { document.body.classList.remove('sym-focus'); }
+
+  // ---- typing -----------------------------------------------------------------
+  function type(target, text, { cps = 38, caret = true, done, max } = {}) {
+    target.innerHTML = ''; const span = el('span'); target.appendChild(span);
+    const c = caret ? el('span', 'sym-caret') : null; if (c) target.appendChild(c);
+    const stopAt = max == null ? text.length : Math.min(max, text.length);
+    if (instant || reduce) { span.textContent = text.slice(0, stopAt); if (c && stopAt < text.length) c.classList.add('held'); else if (c) c.remove(); done && done(); return { caret: c, span, hold() { }, stop() { } }; }
+    let i = 0, iv = setInterval(() => { span.textContent = text.slice(0, ++i); if (i >= stopAt) { clearInterval(iv); if (stopAt < text.length && c) c.classList.add('held'); done && done(); } }, 1000 / cps);
+    timers.push(iv);
+    return { caret: c, hold() { clearInterval(iv); if (c) c.classList.add('held'); }, stop() { clearInterval(iv); } , span };
+  }
+  function untype(target, { done, cps = 90 } = {}) {
+    const span = target.querySelector('span'); if (!span) { done && done(); return; }
+    const c = target.querySelector('.sym-caret'); if (c) c.classList.remove('held');
+    if (instant || reduce) { span.textContent = ''; done && done(); return; }
+    const iv = setInterval(() => { span.textContent = span.textContent.slice(0, -2); if (!span.textContent.length) { clearInterval(iv); done && done(); } }, 1000 / cps);
+    timers.push(iv);
+  }
+
+  // ---- scheduler --------------------------------------------------------------
+  function elapsed() { return performance.now() - t0; }
+  function clear() { timers.forEach(t => { clearTimeout(t); clearInterval(t); }); timers = []; cancelAnimationFrame(raf); }
+  function tick() {
+    const ms = Math.min(elapsed(), scene.duration); const p = headAt(ms);
+    const h = document.getElementById('symHead'); h.setAttribute('cx', p.x); h.setAttribute('cy', p.y);
+    if (ms < scene.duration) raf = requestAnimationFrame(tick);
+  }
+  function baseReset() {
+    clear(); document.body.classList.remove('sym-focus', 'sym-rewinding');
+    document.getElementById('symLayer').className = 'sym-layer';
+    document.getElementById('symMarks').innerHTML = ''; marks = [];
+    document.getElementById('symLaneWith').classList.remove('on'); document.getElementById('symLaneWithLabel').classList.remove('on');
+    document.querySelectorAll('.sym-stat').forEach(s => { s.className = 'sym-stat'; const b = s.querySelector('b'); delete b.dataset.final; });
+    (scene.counters || []).forEach(c => count(c.id, c.start ?? 0));
+    chapter('without'); scene.reset();
+  }
+  function rewind() {
+    // the film runs back to the fork; the scene resets underneath the scan
+    document.body.classList.add('sym-rewinding'); noteOff(); chapter('rewind');
+    const after = () => { document.body.classList.remove('sym-rewinding'); freezeCounters(); scene.reset(); chapter('with'); };
+    if (instant || reduce) after(); else timers.push(setTimeout(after, scene.rewindDuration));
+  }
+  function steps() {
+    const out = [...scene.steps]; out.push([scene.rewindAt, rewind]); out.sort((a, b) => a[0] - b[0]); return out;
+  }
+  function play(seekTo = 0) {
+    baseReset(); running = true;
+    const all = steps();
+    if (reduce) { instant = true; document.body.classList.add('sym-instant'); all.forEach(([t, f]) => { curT = t; f(); }); instant = false; t0 = performance.now() - scene.duration; tick(); return; }
+    t0 = performance.now() - seekTo;
+    if (seekTo > 0) {
+      instant = true; document.body.classList.add('sym-instant');
+      all.filter(([t]) => t <= seekTo).forEach(([t, f]) => { curT = t; f(); });
+      void document.body.offsetWidth; document.body.classList.remove('sym-instant'); instant = false;
+    }
+    t0 = performance.now() - seekTo;
+    all.filter(([t]) => t > seekTo).forEach(([t, f]) => timers.push(setTimeout(() => { curT = t; f(); }, t - seekTo)));
+    raf = requestAnimationFrame(tick);
+  }
+  function tapToReplay() {
+    document.getElementById('symTrack').addEventListener('click', () => play());
+    document.getElementById('scene')?.addEventListener('dblclick', () => play());
+  }
+  addEventListener('resize', () => { if (!scene) return; const withOn = document.getElementById('symLaneWith').classList.contains('on'); drawTrack(); marks.forEach(m => drawMark(m.kind, m.ms)); if (withOn) { document.getElementById('symLaneWith').classList.add('on'); document.getElementById('symLaneWithLabel').classList.add('on'); } });
+  function define(def) {
+    scene = def; scene.rewindDuration = scene.rewindDuration || 1100;
+    const start = () => { mountChrome(); tapToReplay(); play(Number(q.get('seek') || 0)); };
+    document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', start) : start();
+  }
+  return { define, play, note, noteOff, unfocus, count, mark, type, untype, chapter, record, elapsed, get instant() { return instant || reduce; }, get stepTime() { return curT; }, el, svgEl, after: (ms, f) => timers.push(setTimeout(f, (instant || reduce) ? 0 : ms)) };
+})();
+
+</script>
+<script>
+const $ = s => document.querySelector(s);
+const cv = $('#cv'), ctx = cv.getContext('2d');
+let NM = 44; // px per nautical mile, scaled to the scope
+let phase = 'without', phaseStart = 0, raf = 0;
+const SIM = 25; // sim seconds per real second
+// aircraft keyframes: [sim s, x NM east, y NM north, altitude ft, ground speed kt]
+const lerp = (a, b, k) => a + (b - a) * k;
+function at(kf, t) { if (t <= kf[0][0]) return kf[0].slice(1); for (let i = 1; i < kf.length; i++) if (t <= kf[i][0]) { const a = kf[i - 1], b = kf[i], k = (t - a[0]) / (b[0] - a[0]); return [1, 2, 3, 4].map(j => lerp(a[j], b[j], k)); } return kf[kf.length - 1].slice(1); }
+const common = {
+  UAL1430: [[0, -6, 6.5, 6000, 240], [260, 11, 7.2, 6000, 240]],
+  DAL88: [[0, -1.5, 0.3, 1500, 220], [260, -17, -1.5, 9000, 250]],
+  N52JP: [[0, 3, -9, 2500, 110], [260, -4.5, -12, 2500, 110]],
+  FDX71: [[0, -19, -13, 11000, 300], [260, -6, -20, 11000, 300]],
+  JBU917: [[0, 20, -11, 8000, 260], [260, 9, -4, 5000, 220]],
+  SWA2201: [[0, -12, 14, 7000, 250], [260, 2, 13, 7000, 250]],
+  ASA66: [[0, 23, 7, 9000, 270], [260, 17, 5.4, 7000, 240]],
+};
+const FIXES = [['BRYTE', 16, 0], ['LAKEV', 10.5, 0], ['OSKAR', 4, 10], ['WENDI', -9, -8], ['TULLY', 14, -9]];
+const AAL = [[0, 11, 0, 3000, 160], [240, 0.4, 0, 100, 140]];
+const planes = {
+  without: { ...common, AAL212: AAL, SKW4471: [[0, 14, 4, 5000, 210], [20, 13, 3.6, 5000, 210], [120, 8.5, 0.1, 3000, 210], [240, 1.5, 0, 1200, 190]] },
+  with: { ...common, AAL212: AAL, SKW4471: [[0, 14, 4, 5000, 210], [20, 13, 3.6, 4800, 210], [100, 11.5, 1.2, 4000, 170], [140, 10, 0, 4000, 150], [200, 7.4, 0, 4000, 150], [222, 5.6, 0, 4000, 150], [240, 4.6, 0, 3400, 150]] },
+};
+const heavy = { AAL212: 1, FDX71: 1 };
+const LAKEVIEW = [[6.2, -1.6], [9.8, -1.9], [10.6, 0.4], [9.4, 2.4], [6.4, 2.2], [5.6, 0.3]];
+function simTime(ms) { return Math.max(0, (ms - phaseStart) / 1000 * SIM); }
+function clockText(t) { const s = 21 * 3600 + 58 * 60 + Math.floor(t); return [s / 3600 | 0, (s / 60 | 0) % 60, s % 60].map(v => String(v).padStart(2, '0')).join(':'); }
+function inLakeview(x, y) { let c = false; for (let i = 0, j = LAKEVIEW.length - 1; i < LAKEVIEW.length; j = i++) { const [xi, yi] = LAKEVIEW[i], [xj, yj] = LAKEVIEW[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) c = !c; } return c; }
+
+function render(ms) {
+  const W = cv.clientWidth, H = cv.clientHeight, dpr = devicePixelRatio || 1;
+  if (cv.width !== W * dpr) { cv.width = W * dpr; cv.height = H * dpr; }
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, W, H);
+  NM = Math.min(44, W / 30, H / 20); const cx = W / 2 + NM, cy = H / 2 + 10; const P = (x, y) => [cx + x * NM, cy - y * NM];
+  const t = simTime(ms), clock = 21 * 3600 + 58 * 60 + t, closed = clock >= 22 * 3600;
+  // range rings and bearings
+  ctx.lineWidth = 1; ctx.strokeStyle = '#17283A'; ctx.fillStyle = '#2E4A62'; ctx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--mono');
+  for (let r = 5; r <= 25; r += 5) { ctx.beginPath(); ctx.arc(cx, cy, r * NM, 0, Math.PI * 2); ctx.stroke(); ctx.fillText(r + ' NM', cx + r * NM * 0.7071 + 4, cy - r * NM * 0.7071 - 4); }
+  for (let a = 0; a < 360; a += 10) { const rad = a * Math.PI / 180, r0 = 25 * NM, r1 = r0 + (a % 30 ? 6 : 12); ctx.beginPath(); ctx.moveTo(cx + Math.sin(rad) * r0, cy - Math.cos(rad) * r0); ctx.lineTo(cx + Math.sin(rad) * r1, cy - Math.cos(rad) * r1); ctx.strokeStyle = '#243B52'; ctx.stroke(); if (a % 30 === 0) ctx.fillText(String(a).padStart(3, '0'), cx + Math.sin(rad) * (r0 + 22) - 10, cy - Math.cos(rad) * (r0 + 22) + 4); }
+  // Lakeview
+  const noise = phase === 'without' && t > 108 && t < 150;
+  ctx.beginPath(); LAKEVIEW.forEach(([x, y], i) => { const [px, py] = P(x, y); i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); }); ctx.closePath();
+  ctx.fillStyle = noise ? (Math.sin(ms / 120) > 0 ? '#ff6b6b33' : '#ff6b6b1a') : '#C9A96E12'; ctx.fill(); ctx.strokeStyle = noise ? '#FF6B6B' : '#5B4F33'; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]);
+  ctx.fillStyle = noise ? '#FFB3B3' : '#8C7B55'; ctx.font = '600 13px ' + getComputedStyle(document.body).getPropertyValue('--sans'); const [lx, ly] = P(8.1, -0.9); ctx.fillText('LAKEVIEW', lx - 34, ly + 4); ctx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--sans'); ctx.fillText('noise-sensitive', lx - 44, ly + 20);
+  // final approach course and runways (heading 280: landing from the east)
+  const rwy = (yoff, label, isClosed, used) => {
+    const [ax, ay] = P(-1.1, yoff), [bx, by] = P(1.1, yoff); ctx.lineWidth = 7; ctx.strokeStyle = isClosed ? '#5A2A32' : '#4C6378'; ctx.beginPath(); ctx.moveTo(ax, ay - yoff * 0); ctx.lineTo(bx, by); ctx.stroke();
+    ctx.lineWidth = 1; ctx.font = '600 12px ' + getComputedStyle(document.body).getPropertyValue('--mono'); ctx.fillStyle = isClosed ? '#FF6B6B' : '#9EB6CA'; ctx.fillText(label + (isClosed ? '  CLOSED' : ''), bx + 10, by + 4);
+    if (isClosed) { ctx.strokeStyle = '#FF6B6B'; ctx.lineWidth = 2; [[ax, ay], [bx, by]].forEach(([x, y]) => { ctx.beginPath(); ctx.moveTo(x - 6, y - 6); ctx.lineTo(x + 6, y + 6); ctx.moveTo(x + 6, y - 6); ctx.lineTo(x - 6, y + 6); ctx.stroke(); }); ctx.lineWidth = 1; }
+  };
+  ctx.strokeStyle = '#1F3344'; ctx.setLineDash([10, 8]); ctx.beginPath(); const [fx, fy] = P(1.2, 0), [gx, gy] = P(16, 0); ctx.moveTo(fx, fy); ctx.lineTo(gx, gy); ctx.stroke(); ctx.setLineDash([]);
+  rwy(0.35, '28R', false); rwy(-0.35, '28L', closed);
+  ctx.font = '12px ' + getComputedStyle(document.body).getPropertyValue('--mono'); FIXES.forEach(([n, x, y]) => { const [px, py] = P(x, y); ctx.strokeStyle = '#3C5A72'; ctx.beginPath(); ctx.moveTo(px, py - 6); ctx.lineTo(px + 6, py + 5); ctx.lineTo(px - 6, py + 5); ctx.closePath(); ctx.stroke(); ctx.fillStyle = '#4C6E88'; ctx.fillText(n, px + 10, py + 10); });
+  const [g1x, g1y] = P(10, -0.9), [g2x, g2y] = P(10, 0.9); ctx.strokeStyle = '#2A4458'; ctx.beginPath(); ctx.moveTo(g1x, g1y); ctx.lineTo(g2x, g2y); ctx.stroke();
+  // sweep
+  const ang = (ms / 4000) * Math.PI * 2; const g = ctx.createConicGradient ? null : null;
+  ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang - Math.PI / 2);
+  for (let i = 0; i < 24; i++) { ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, 25 * NM, -i * 0.035 - 0.035, -i * 0.035); ctx.closePath(); ctx.fillStyle = `rgba(120,200,230,${0.11 * (1 - i / 24)})`; ctx.fill(); }
+  ctx.strokeStyle = '#9FE3F5'; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(25 * NM, 0); ctx.stroke(); ctx.restore();
+  // aircraft
+  const set = planes[phase]; const pos = {}; for (const id in set) pos[id] = at(set[id], t);
+  const sep = Math.hypot(pos.SKW4471[0] - pos.AAL212[0], pos.SKW4471[1] - pos.AAL212[1]);
+  const conflict = phase === 'without' && t > 112 && sep < 5;
+  if (conflict) { const [ax, ay] = P(...pos.AAL212), [sx, sy] = P(...pos.SKW4471); ctx.strokeStyle = '#FF6B6B'; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(ax, ay, 5 * NM, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(sx, sy); ctx.stroke(); ctx.fillStyle = '#FFB3B3'; ctx.font = '600 14px ' + getComputedStyle(document.body).getPropertyValue('--mono'); ctx.fillText(sep.toFixed(1) + ' NM', (ax + sx) / 2 - 20, (ay + sy) / 2 - 10); }
+  if (phase === 'with' && t > 150 && t < 240) { const [ax, ay] = P(...pos.AAL212), [sx, sy] = P(...pos.SKW4471); ctx.strokeStyle = '#3DD68C66'; ctx.setLineDash([5, 5]); ctx.beginPath(); ctx.arc(ax, ay, 5 * NM, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); ctx.fillStyle = '#9DEFC4'; ctx.font = '600 14px ' + getComputedStyle(document.body).getPropertyValue('--mono'); ctx.fillText(sep.toFixed(1) + ' NM', (ax + sx) / 2 - 20, (ay + sy) / 2 - 10); }
+  for (const id in set) {
+    const [x, y, alt, gs] = pos[id]; const [px, py] = P(x, y); const bad = conflict && (id === 'SKW4471' || id === 'AAL212'); const flash = bad && Math.sin(ms / 110) > 0;
+    for (let k = 1; k <= 4; k++) { const [hx, hy, ] = at(set[id], Math.max(0, t - k * 6)); const [qx, qy] = P(hx, hy); ctx.fillStyle = `rgba(143,211,232,${0.5 - k * 0.1})`; ctx.fillRect(qx - 1.5, qy - 1.5, 3, 3); }
+    ctx.fillStyle = flash ? '#FF6B6B' : bad ? '#FFB3B3' : '#CFEFFA'; ctx.fillRect(px - 5, py - 5, 10, 10); ctx.strokeStyle = flash ? '#FF6B6B' : '#5C8EA6'; ctx.strokeRect(px - 8.5, py - 8.5, 17, 17);
+    const below = id === 'SKW4471' || id === 'JBU917'; const left = x < -4 || (Math.abs(y) < 1.5 && x < 2.5);
+    const lx2 = px + (left ? -140 : 26), ly2 = below ? py + 36 : py - 22; ctx.strokeStyle = '#4C7A90'; ctx.beginPath(); ctx.moveTo(px + (left ? -8 : 8), below ? py + 8 : py - 8); ctx.lineTo(lx2 + (left ? 112 : -4), below ? ly2 - 14 : ly2 + 12); ctx.stroke();
+    ctx.font = '600 15px ' + getComputedStyle(document.body).getPropertyValue('--mono'); ctx.fillStyle = bad ? '#FFB3B3' : '#DCEFF7'; ctx.fillText(id + (heavy[id] ? ' H' : '') + (bad ? '  CA' : ''), lx2, ly2);
+    ctx.font = '14px ' + getComputedStyle(document.body).getPropertyValue('--mono'); ctx.fillStyle = (id === 'SKW4471' && noise) ? '#FFB3B3' : '#9FBFD0'; ctx.fillText(Math.round(alt / 100) * 100 + '  ' + Math.round(gs), lx2, ly2 + 18);
+  }
+  $('#clock').textContent = clockText(t);
+}
+function loop() { render(Sym.elapsed()); raf = requestAnimationFrame(loop); }
+function startPhase(name, ms) { phase = name; phaseStart = ms; cancelAnimationFrame(raf); if (matchMedia('(prefers-reduced-motion: reduce)').matches) { render(ms + 7000); } else loop(); }
+let typing;
+const TX1_BAD = 'SKW4471, descend and maintain 3,000, turn left heading 250, join the localizer, cleared ILS runway 28L.';
+const TX1_GOOD = 'SKW4471, maintain 4,000 until past Lakeview, then descend 3,000. Reduce speed 150. Expect ILS runway 28R, 5 miles in trail of the heavy.';
+const TX2_BAD = 'AAL212 heavy, cleared ILS runway 28L, contact tower 118.3.';
+const TX2_GOOD = 'AAL212 heavy, change to runway 28R, cleared ILS runway 28R, contact tower 118.3.';
+const TX3_GOOD = 'SKW4471, cleared ILS runway 28R, 5 miles behind the heavy. Contact tower 118.3.';
+function tx(el, txt, opts) { el.classList.add('on'); const stamp = `<span class="t">${clockText(simTime(Sym.stepTime))}</span>`; el.innerHTML = stamp; const body = document.createElement('div'); el.appendChild(body); return Sym.type(body, txt, opts); }
+function rw(id, v, cls) { const e = $('#' + id); e.textContent = v; e.className = 'rw ' + (cls || ''); }
+Sym.define({
+  tag: 'Concept mockup, illustrative airspace',
+  subtitleWithout: 'local procedures it was never told', subtitleWith: 'procedures saved from your corrections',
+  duration: 19500, rewindAt: 7300,
+  counters: [{ id: 'sep', label: 'Separation losses' }, { id: 'noise', label: 'Noise violations' }],
+  reset() { ['tx1', 'tx2', 'tx3'].forEach(i => { const e = $('#' + i); e.className = 'tx'; e.innerHTML = ''; }); $('#ca').classList.remove('on'); $('#nv').classList.remove('on'); rw('rwA', '28L'); rw('rwS', '28L'); $('#spS').textContent = '210 kt'; startPhase('without', Sym.stepTime); },
+  steps: [
+    [0, () => startPhase('without', 0)],
+    [700, () => tx($('#tx1'), TX1_BAD, { cps: 48 })],
+    [3000, () => tx($('#tx2'), TX2_BAD, { cps: 48 })],
+    [4500, () => { $('#nv').classList.add('on'); Sym.count('noise', 1, 'bad'); }],
+    [5300, () => { $('#ca').classList.add('on'); Sym.count('sep', 1, 'bad'); Sym.mark('fail'); }],
+    [6000, () => rw('rwA', '28L', 'bad')],
+    // rewind at 7300
+    [8400, () => startPhase('with', 8400)],
+    [8700, () => { typing = tx($('#tx1'), TX1_BAD, { cps: 48, max: 30, done: () => $('#tx1').classList.add('held') }); }],
+    [9600, () => Sym.note({ at: typing.caret || $('#tx1'), side: 'left', dx: -16, dy: -30, width: 520, text: 'Arrivals stay at or above 4,000 ft over Lakeview until the 22:00 noise curfew.<br>Runway 28L closes at 22:00; use 28R.<br>Keep 5 NM between heavies and lights on final.', source: 'You corrected me on all three during last Thursday\'s evening push.' })],
+    [12600, () => { Sym.unfocus(); Sym.untype($('#tx1').lastChild, { done: () => { $('#tx1').classList.remove('held'); Sym.type($('#tx1').lastChild, TX1_GOOD, { cps: 60 }); rw('rwS', '28R', 'good'); $('#spS').textContent = '150 kt'; } }); }],
+    [14300, () => Sym.noteOff()],
+    [15200, () => { tx($('#tx2'), TX2_GOOD, { cps: 60 }); rw('rwA', '28R', 'good'); }],
+    [17000, () => tx($('#tx3'), TX3_GOOD, { cps: 60 })],
+    [18400, () => { Sym.count('sep', 0, 'good'); Sym.count('noise', 0, 'good'); Sym.mark('ok'); }],
+  ]
+});
+addEventListener('resize', () => render(Sym.elapsed()));
+</script></body></html>
