@@ -16,7 +16,12 @@ from symbiont.miner.mine import mine_history, sessions_of
 from symbiont.records.schema import Kind
 from symbiont.service.app import Service, ServiceMode, ServiceParts
 from symbiont.service.events import EventLog, last_note_event
-from symbiont.service.nightly import NightlyJudges
+from symbiont.service.nightly import (
+    NightlyJudges,
+    NightlyRecord,
+    lessons_digest,
+    write_record,
+)
 from symbiont.service.onboarding import NIGHTLY_LIVE, ONBOARDING, Lookups
 from symbiont.service.repo_gate import RepoGate
 from symbiont.store.local import Store
@@ -47,8 +52,12 @@ class Rig:
         gate = RepoGate(self.registry, nightly, Lookups(contexts=store.contexts.all))
         parts = ServiceParts(store, Counters(), self.events, ServiceMode.WARN_AND_RECALL, gate=gate)
         self.service = Service(parts)
+        self.store = store
         self.runs = tmp_path / "runs"
         self.step = 40
+
+    def lessons(self):
+        return self.store.lessons(PROJECT)
 
     def start(self, session_id="live"):
         return self.send("SessionStart", "user_turn", session_id, raw="session started")
@@ -160,8 +169,40 @@ def test_status_reports_the_answer_lessons_and_silenced_kinds(rig):
         "repo": "given",
         "lessons": 1,
         "muted": 0,
-        "nightly": False,
+        "nightly": {
+            "state": "never",
+            "lessons": None,
+            "trained_at": None,
+            "sentence": "never trained (run `symbiont nightly`)",
+        },
     }
+
+
+def trained_rig(tmp_path, digest_of_lessons=True):
+    """A rig whose nightly record was written for the store's lessons, or for other ones."""
+    nightly_dir = tmp_path / "nightly"
+    rig = Rig(tmp_path, NightlyJudges(nightly_dir))
+    digest = lessons_digest(rig.lessons()) if digest_of_lessons else "older-lessons"
+    write_record(
+        nightly_dir,
+        PROJECT,
+        NightlyRecord(digest, "http://127.0.0.1:8861", 1, "2026-11-03T03:00:00+00:00", "mlx"),
+    )
+    return rig
+
+
+def test_status_reads_trained_on_n_lessons_at_t_after_a_night(tmp_path):
+    rig = trained_rig(tmp_path)
+    nightly = rig.service.respond("/status", {"project": PROJECT}).body["nightly"]
+    assert nightly["state"] == "trained"
+    assert nightly["sentence"] == "trained on 1 lessons at 2026-11-03T03:00:00+00:00"
+
+
+def test_status_reads_stale_when_the_lessons_moved_since_the_night(tmp_path):
+    rig = trained_rig(tmp_path, digest_of_lessons=False)
+    nightly = rig.service.respond("/status", {"project": PROJECT}).body["nightly"]
+    assert nightly["state"] == "stale"
+    assert "stale" in nightly["sentence"] and "run `symbiont nightly`" in nightly["sentence"]
 
 
 def lesson_id_of_fixture():

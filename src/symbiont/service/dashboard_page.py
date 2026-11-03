@@ -1,7 +1,7 @@
 """GET /dashboard: the page, filled from the repository's store, and its two static files."""
 
 import json
-from collections.abc import Callable
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
@@ -23,8 +23,17 @@ FILES = {
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
 }
+NightlyOf = Callable[[str, Sequence[Lesson]], Mapping[str, object] | None]
 HTML = "text/html; charset=utf-8"
 TEXT = "text/plain; charset=utf-8"
+
+
+@dataclass(frozen=True)
+class Live:
+    """What the page reads that changes while the service runs: mining jobs and nightly state."""
+
+    mining: Callable[[str], MiningProgress | None] = lambda project: None
+    nightly: NightlyOf = lambda project, lessons: None
 
 
 @dataclass(frozen=True)
@@ -41,7 +50,7 @@ def dashboard_page(
     registry: RepoRegistry | None,
     target: str,
     today: date,
-    mining: Callable[[str], MiningProgress | None] = lambda project: None,
+    live: Live | None = None,
 ) -> Page:
     """The response for a GET of `target` (a path with an optional query).
 
@@ -54,16 +63,24 @@ def dashboard_page(
         return Page(200, content_type, (STATIC / name).read_bytes())
     if path.rstrip("/") != "/dashboard":
         return Page(404, TEXT, f"no such page: {path}".encode())
+    return _project_page(store, registry, query, today, live or Live())
+
+
+def _project_page(
+    store: Store, registry: RepoRegistry | None, query: str, today: date, live: Live
+) -> Page:
+    """The dashboard (or the Mine stage alone) for the project the query names or the only one."""
     chosen = _query(query).get("project")
     known = store.catalog.projects()
     project = chosen or (known[0] if len(known) == 1 else None)
-    progress = mining(project) if project else None
-    if project and progress is not None and _still_mining(progress, store.lessons(project)):
-        return Page(200, HTML, _mining_html(project, progress))
     if project is None:
         listing = ", ".join(known) or "none yet; run `symbiont repo mine`"
         return Page(400, TEXT, f"choose a repository with ?project=NAME. Known: {listing}".encode())
-    return Page(200, HTML, _html(store, project, today, _focus_terms(registry, project)))
+    progress = live.mining(project)
+    if progress is not None and _still_mining(progress, store.lessons(project)):
+        return Page(200, HTML, _mining_html(project, progress))
+    focus = _focus_terms(registry, project)
+    return Page(200, HTML, _html(store, project, today, focus, live.nightly))
 
 
 def _still_mining(progress: MiningProgress, lessons: list[Lesson]) -> bool:
@@ -89,17 +106,21 @@ def _query(query: str) -> dict[str, str]:
     return {percent_decoded(key): percent_decoded(value) for key, _, value in pairs}
 
 
-def _html(store: Store, project: str, today: date, focus: frozenset[str]) -> bytes:
+def _html(
+    store: Store, project: str, today: date, focus: frozenset[str], nightly: NightlyOf
+) -> bytes:
     """The page with the repository's data injected where the contract says."""
+    lessons = store.lessons(project)
     view = RepoView(
         project,
-        store.lessons(project),
+        lessons,
         effective_contexts(store, project),
         _session_dates(store, project),
         store.curation.reviews(project),
         store.curation.authored(project),
         focus,
         frozenset(store.contexts.all(project)) - frozenset(store.contexts.overrides(project)),
+        nightly(project, lessons),
     )
     return _page_filled_with(dashboard_snapshot(view, today))
 

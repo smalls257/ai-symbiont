@@ -17,6 +17,8 @@ button{font:inherit;color:inherit;cursor:pointer}
 /* header */
 .top{display:flex;align-items:center;gap:1.6rem;padding:.9rem 2rem;border-bottom:1px solid var(--line)}
 .brand{font-weight:700;font-size:1.5rem;color:var(--or);letter-spacing:.01em}
+.nightly{font:400 .8rem var(--mono);color:var(--tx);opacity:.75}
+.nightly[data-state=stale]{opacity:1;color:#e0a040}
 .repo{font:500 1rem var(--mono);padding:.25rem .7rem;border:1px solid var(--line);border-radius:2rem;color:var(--tx)}
 nav{display:flex;gap:.3rem;margin:0 auto}
 nav button{background:none;border:0;padding:.5rem 1rem;border-radius:.6rem;color:var(--mu);font-weight:600;font-size:1.05rem}

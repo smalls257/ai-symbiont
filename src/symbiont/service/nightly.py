@@ -1,21 +1,23 @@
 """Per-repository nightly judges: the continuous loop's read side (plug round 4 nightly arm).
 
-Layout under `--nightly-dir`: `<project>/nightly.json` written by `scripts/routea/nightly_record.py`
-only after a training run succeeded: {"lessons_digest", "judge_url"}. No record means the
-repository has not had its first night: the agree rule applies, and that is logged. A record whose
-digest differs from today's lessons is stale, one whose server is down is offline: both raise
-(503), because a silent fallback to another rule would change what the user is told.
+`<nightly-dir>/<project>/nightly.json` is written by `symbiont nightly` only after training exited
+0: {"lessons_digest", "judge_url", "lesson_count", "trained_at", "backend"}. No record means no
+first night yet and the agree rule applies (logged). A record for other lessons is stale and a
+down server is offline; both raise (503) rather than silently change the rule.
 """
 
 import hashlib
 import json
 import logging
+import os
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from enum import StrEnum
 from pathlib import Path
 
 from symbiont.egress.client import Transport
 from symbiont.miner.lessons import Lesson
+from symbiont.miner.twins import merge_twins
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
 
 log = logging.getLogger(__name__)
@@ -34,6 +36,70 @@ def lessons_digest(lessons: Sequence[Lesson]) -> str:
     return hashlib.sha256("\n".join(refs).encode()).hexdigest()
 
 
+class NightlyState(StrEnum):
+    """Where a repository's nightly training stands, as `status` and the dashboard say it."""
+
+    NEVER = "never"
+    TRAINED = "trained"
+    STALE = "stale"
+
+
+@dataclass(frozen=True)
+class NightlyReport:
+    """The nightly state with what it rests on: how many lessons, trained when (ISO, UTC)."""
+
+    state: NightlyState
+    lessons: int | None = None
+    trained_at: str | None = None
+    # Why a record reads as stale when the lessons moved is obvious; an unreadable one is not.
+    detail: str = ""
+
+    def sentence(self) -> str:
+        """The state in plain words for `symbiont status`."""
+        if self.state is NightlyState.NEVER:
+            return "never trained (run `symbiont nightly`)"
+        counted = "lessons" if self.lessons is None else f"{self.lessons} lessons"
+        when = f" at {self.trained_at}" if self.trained_at else ""
+        if self.state is NightlyState.TRAINED:
+            return f"trained on {counted}{when}"
+        reason = self.detail or "your lessons changed since"
+        return f"stale: {reason}; last trained on {counted}{when} (run `symbiont nightly`)"
+
+
+@dataclass(frozen=True)
+class NightlyRecord:
+    """What one successful night wrote: enough to tell later whether the lessons moved on."""
+
+    lessons_digest: str
+    judge_url: str
+    lesson_count: int
+    trained_at: str
+    backend: str
+
+
+def write_record(root: Path, project: str, record: NightlyRecord) -> Path:
+    """Write the project's record atomically, so a crash never leaves half a file.
+
+    Call it only after training exited 0: a failed night must leave the older record, which then
+    reads as stale. Returns the record's path.
+    """
+    target = root / project
+    target.mkdir(parents=True, exist_ok=True)
+    final = target / RECORD
+    partial = target / (RECORD + ".partial")
+    partial.write_text(json.dumps(asdict(record), indent=1) + "\n", encoding="utf-8")
+    os.replace(partial, final)
+    return final
+
+
+def previous_judge_url(root: Path, project: str) -> str | None:
+    """The judge URL of the project's last record, or None when it has none or it is unusable."""
+    try:
+        return str(json.loads((root / project / RECORD).read_text(encoding="utf-8"))["judge_url"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+
+
 @dataclass(frozen=True)
 class NightlyJudges:
     """Where each repository's nightly record lives."""
@@ -45,6 +111,24 @@ class NightlyJudges:
     def has_record(self, project: str) -> bool:
         """Whether the project's first night has finished (its nightly record exists)."""
         return (self.root / project / RECORD).is_file()
+
+    def report(self, project: str, lessons: Sequence[Lesson]) -> NightlyReport:
+        """Never trained, trained on N lessons at T, or stale; reading it never raises."""
+        path = self.root / project / RECORD
+        if not path.is_file():
+            return NightlyReport(NightlyState.NEVER)
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+            trained = record["lessons_digest"]
+        except (OSError, ValueError, KeyError, TypeError) as unusable:
+            return NightlyReport(NightlyState.STALE, detail=f"the record is unusable ({unusable})")
+        count, when = record.get("lesson_count"), record.get("trained_at")
+        state = (
+            NightlyState.TRAINED
+            if trained == lessons_digest(merge_twins(list(lessons)))
+            else NightlyState.STALE
+        )
+        return NightlyReport(state, count if isinstance(count, int) else None, when)
 
     def judge_for(self, project: str, lessons: Sequence[Lesson]) -> JudgeModel | None:
         """The project's nightly judge, or None before its first night (logged).
@@ -63,7 +147,7 @@ class NightlyJudges:
             raise JudgeOfflineError(f"nightly record {path} is unusable: {unusable}") from unusable
         if trained != lessons_digest(lessons):
             raise NightlyStaleError(
-                f"the nightly adapter for {project} is stale: run scripts/routea/nightly_record.py"
+                f"the nightly adapter for {project} is stale: run `symbiont nightly`"
             )
         return JudgeModel(url, self.transport)
 
