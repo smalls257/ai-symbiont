@@ -117,7 +117,7 @@ footer p+p{margin-top:.4rem}
     <p class="lede">ai-symbiont reads your past agent sessions, finds the failures that came back, lets you add what only you know, and speaks up in plain words at the moment the agent is about to repeat one.</p>
     <div class="cta-row">
       <a class="btn main" href="demo/">Open the demo, no install</a>
-      <a class="btn" href="#install">Install for Claude Code or Muse Code</a>
+      <a class="btn" href="#install">Install for Muse Code</a>
     </div>
     <p class="fine">The demo runs on synthetic data for a fictional repo and sends nothing anywhere.</p>
   </div>
@@ -134,7 +134,7 @@ footer p+p{margin-top:.4rem}
   <h2>What it does</h2>
   <p class="sub">Three steps. You stay in charge of the second one.</p>
   <ol class="steps">
-    <li><h3>Mine</h3><p>It reads your past Claude Code and Muse Code sessions on your machine and pairs each failure with the fix that worked. A pain point appears once the same trouble has happened twice.</p></li>
+    <li><h3>Mine</h3><p>It reads your past Muse Code sessions on your machine and pairs each failure with the fix that worked. A pain point appears once the same trouble has happened twice.</p></li>
     <li><h3>Review and add context</h3><p>You see where the turns went, open the costliest lessons, add what only you know, set a priority, or mark one intentional so it goes quiet.</p></li>
     <li><h3>Note at the right moment</h3><p>When the agent is about to repeat a known mistake, it gets one short note in domain prose, written for the model reading it.</p></li>
   </ol>
@@ -194,13 +194,13 @@ footer p+p{margin-top:.4rem}
 </section>
 
 <section id="install">
-  <h2>Install</h2>
-  <p class="sub">One line each, from <a href="https://github.com/smalls257/ai-symbiont">https://github.com/smalls257/ai-symbiont</a>. The README has the full steps and the uninstall.</p>
+  <h2>Install for Muse Code</h2>
+  <p class="sub">Three commands, from <a href="https://github.com/smalls257/ai-symbiont">https://github.com/smalls257/ai-symbiont</a>. The README has the full steps and the uninstall.</p>
   <div class="install">
-    <div><h3>Claude Code</h3><pre>/plugin marketplace add https://github.com/smalls257/ai-symbiont</pre></div>
-    <div><h3>Muse Code</h3><pre>muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont</pre></div>
+    <div><h3>1. The command</h3><pre>uv tool install git+https://github.com/smalls257/ai-symbiont</pre></div>
+    <div><h3>2. The plugin</h3><pre>muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
+muse plugins install symbiont@ai-symbiont</pre></div>
   </div>
-  <p class="fine">Install the command first with <span class="mono">uv tool install git+https://github.com/smalls257/ai-symbiont</span>, then add the plugin for your harness as the README shows.</p>
 </section>
 
 <section id="privacy">
@@ -216,7 +216,7 @@ footer p+p{margin-top:.4rem}
   <h2>Meta tooling used</h2>
   <ul class="plain">
     <li><b>Muse Spark</b> as a contributor: it wrote and tested its own rule on the Freedoom task.</li>
-    <li><b>Muse Code</b> plugin: the second harness symbiont installs into, beside Claude Code.</li>
+    <li><b>Muse Code</b> plugin: the harness symbiont installs into and reads sessions from.</li>
     <li><b>Glimmer 30B</b> (open weights): the model behind the live ledger demo and the Route B adapter.</li>
     <li><b>Llama 3.2 1B</b> as the small judge. Adapters: <a href="https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters">https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters</a>.</li>
   </ul>
