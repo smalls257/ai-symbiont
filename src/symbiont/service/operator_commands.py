@@ -22,6 +22,7 @@ from symbiont.service.lesson_list import lesson_lines
 from symbiont.service.lesson_lookup import project_of_lesson
 from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
 from symbiont.service.pr_learning import PR_INSTRUCTIONS
+from symbiont.service.supersessions import superseded_sentences
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import (
@@ -191,18 +192,27 @@ def _nightly_phrase(nightly: Any) -> str:
 def _why(args: argparse.Namespace) -> int:
     """Why the last note of this repository fired, from the event log."""
     event = last_note_event(args.data_dir / "runs", args.project)
+    set_aside = superseded_sentences(args.data_dir / "runs", args.project)
     if event is None:
         _say(f"no note has been shown for {args.project} yet")
+        _say_all(set_aside)
         return 0
     when = time.strftime("%Y-%m-%d %H:%M", time.localtime(event["ts"]))
     _say(f"Last note, {when}, after {event['hook']}:")
     for note in event["notes"]:
         _say(f"  {note}")
     _say(_cause_of(event))
+    _say_all(set_aside)
     _say(
         "Silence this kind of note with `symbiont mute`; delete its lessons with `symbiont forget`."
     )
     return 0
+
+
+def _say_all(sentences: list[str]) -> None:
+    """Each sentence on its own line."""
+    for sentence in sentences:
+        _say(sentence)
 
 
 def _cause_of(event: dict[str, Any]) -> str:
