@@ -66,6 +66,7 @@ class RepoGate:
         self._news = None if registry is None else Announcements(registry, self._lookups, nightly)
         self._nightly = nightly
         self._said: set[tuple[str, Signature]] = set()
+        self._edited: set[str] = set()
         self._rules_said: set[tuple[str, str, str]] = set()
 
     def door(self, project: str, event: str) -> Door:
@@ -118,10 +119,16 @@ class RepoGate:
         self, session_id: str, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
     ) -> Spoken:
         """The exact-repeat note if the failure matches, else at most one relevant rule."""
+        if record.kind is Kind.EDIT:
+            self._edited.add(session_id)
         exact = self.repeat(session_id, record, earlier, lessons)
         if exact is not None:
             return Spoken(exact)
         return self._rule(session_id, record, lessons)
+
+    def edited_in(self, session_id: str) -> bool:
+        """Whether this session changed a file; a session that did has something to reflect on."""
+        return session_id in self._edited
 
     def speaks_only_on_match(self) -> bool:
         """Whether a note needs a stored lesson with this failure's signature (plugin mode)."""

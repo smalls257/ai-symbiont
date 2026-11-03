@@ -53,7 +53,7 @@ def test_uninstall_removes_files_the_install_created(tmp_path):
     spec = muse_code_install(NoteStyle.FINDING)
     assert install(spec, tmp_path, yes) is InstallOutcome.INSTALLED
     written = json.loads((tmp_path / ".muse/settings.json").read_text())
-    assert set(written["hooks"]) == {e.value for e in HookEvent}
+    assert set(written["hooks"]) == {e.value for e in HookEvent if e is not HookEvent.STOP}
     command = written["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
     assert command == "symbiont hook PostToolUse --harness muse_code --notes finding"
     uninstall(spec, tmp_path)

@@ -80,7 +80,7 @@ def test_service_down_on_a_silent_event_warns_on_stderr_and_exits_zero(monkeypat
     assert err.startswith("symbiont offline:")
 
 
-@pytest.mark.parametrize("event", list(HookEvent))
+@pytest.mark.parametrize("event", [e for e in HookEvent if e is not HookEvent.STOP])
 def test_each_event_maps_to_observe(service, monkeypatch, capsys, event):
     port, data_dir = service
     code, _, err = run_cli(monkeypatch, capsys, event, INPUTS[event], port)

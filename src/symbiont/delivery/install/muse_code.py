@@ -9,7 +9,9 @@ from symbiont.delivery.install.hook_config import hooks_block, merge_json
 from symbiont.delivery.install.transaction import HarnessInstall
 
 HARNESS = "muse_code"
-EVENTS = tuple(HookEvent)
+# Reflection needs the plugin's per-repository consent; this installer has none, so a Stop hook
+# here would only ever answer "no consent" and cost a process at every session end.
+EVENTS = tuple(event for event in HookEvent if event is not HookEvent.STOP)
 SETTINGS = ".muse/settings.json"
 
 

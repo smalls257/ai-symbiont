@@ -45,6 +45,17 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh \"${CLAUDE_PLUGIN_ROOT}/bin/symbiont-hook.sh\" Stop",
+            "timeout": 5
+          }
+        ]
+      }
     ]
   }
 }

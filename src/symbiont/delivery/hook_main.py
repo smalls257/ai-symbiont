@@ -26,6 +26,7 @@ from symbiont.delivery.hooks import (
 )
 from symbiont.delivery.launch import DEFAULT_DATA_DIR, reviving_call
 from symbiont.delivery.recall import ServiceRefusedError, ServiceReplyError
+from symbiont.delivery.stop_hook import run_stop
 from symbiont.egress.policy import LOCAL_SERVICE_PORT
 
 HARNESS_CHOICES = (AUTO, CLAUDE_CODE, MUSE_CODE)
@@ -55,7 +56,11 @@ def forward_hook(args: argparse.Namespace, stdin_text: str) -> int:
     harness = resolve_harness(args.harness, os.environ)
     settings = HookSettings(harness, args.notes, args.port, args.project, args.visibility)
     try:
-        result = run_hook(args.event, stdin_text, settings, reviving_call(args.data_dir, args.port))
+        call = reviving_call(args.data_dir, args.port)
+        if args.event is HookEvent.STOP:
+            result = run_stop(stdin_text, settings, call)
+        else:
+            result = run_hook(args.event, stdin_text, settings, call)
     except (HookInputError, ServiceRefusedError, ServiceReplyError) as unusable:
         record_outcome(trace, args.event, "dropped", f"{type(unusable).__name__}: {unusable}")
         sys.stderr.write(f"symbiont hook {args.event}: {unusable}\n")

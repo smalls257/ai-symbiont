@@ -27,6 +27,7 @@ class HookEvent(StrEnum):
     PRE_LLM_CALL = "PreLLMCall"
     POST_TOOL_USE = "PostToolUse"
     POST_TOOL_USE_FAILURE = "PostToolUseFailure"
+    STOP = "Stop"
 
 
 class NoteStyle(StrEnum):
@@ -119,7 +120,7 @@ def run_hook(
     `call` is how the service is reached (default: as is); the plugin passes one that starts a
     down service.
     """
-    data = _parsed(stdin_text)
+    data = parsed_input(stdin_text)
     body = observe_body(event, data, settings.harness, settings.fallback_project)
     try:
         reply = (call or call_service)("/observe", body, settings.port)
@@ -159,7 +160,7 @@ def observe_body(
     }
 
 
-def _parsed(stdin_text: str) -> dict[str, Any]:
+def parsed_input(stdin_text: str) -> dict[str, Any]:
     """The hook's stdin as a JSON object; anything else raises HookInputError."""
     try:
         data = json.loads(stdin_text)

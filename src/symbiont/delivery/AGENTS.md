@@ -10,6 +10,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/delivery/`
 - No learning, store or privacy logic here; the service owns it.
 - Installers show a diff and ask before writing, are idempotent and reversible byte for byte, and never touch the user's global harness config.
 - `recall` stays one plain question string.
+- The Stop hook (`stop_hook.py`) only forwards to the service's `/reflect` and prints `{"decision":"block","reason":<question>}` (Claude Code and Muse Code both honor it, measured); it prints nothing when `stop_hook_active` is set, so the reflection turn cannot loop.
 - The plain (floor) arm of a run appends nothing.
 - `hook_trace.py` is the hook's opt-in sensor (marker file or `SYMBIONT_HOOK_TRACE`); off by default; it holds raw payloads, so never commit a trace.
 - The plugin hook (`hook_main.py`, script `symbiont-hook`) exits 0 on every path and prints a visible line for each failure; it imports no learner, store or numpy so it starts fast. `launch.py` starts a down service once (detached, `service.log` in the data directory) and does not retry for 30 s. `--harness auto` reads `MUSE_PLUGIN_ROOT` to tell Muse Code from Claude Code. The bundle is `plugin/symbiont/`; design in `docs/product/plugin.md`.

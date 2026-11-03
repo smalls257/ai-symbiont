@@ -1,12 +1,12 @@
 ---
 description: Show what symbiont is doing here, explain a note, silence it, forget a lesson, or answer for this repository
-argument-hint: "[status | dashboard | settings | why | mute | forget | lessons | context | allow | decline | mine | uninstall]"
+argument-hint: "[status | dashboard | settings | why | mute | forget | lessons | context | reflect | allow | decline | mine | uninstall]"
 allowed-tools: Bash(symbiont:*)
 ---
 
 You are running the `/symbiont` command. The argument is: $ARGUMENTS
 
-Run exactly one command from this table with the Bash tool, then tell the developer the result in
+Run exactly one command from this table with the Bash tool (`reflect` is the exception: it runs no command), then tell the developer the result in
 one or two plain sentences. Never invent output; if a command fails, quote its message.
 
 | Argument | Run | Meaning |
@@ -17,6 +17,7 @@ one or two plain sentences. Never invent output; if a command fails, quote its m
 | `forget` | `symbiont forget` | delete the lessons behind the last note and keep them silenced |
 | `lessons` | `symbiont lessons` | list the stored lessons for this repository with their ids |
 | `context <id or last> <words>` | `symbiont context add <id or last> "<words>"` | put the developer's own words in front of a lesson's note (`--intentional` silences it, `--priority low\|normal\|high`) |
+| `reflect` | no command; do it yourself now | answer "In one or two plain sentences each, what non-obvious thing about this repository would you tell a teammate before they work on this area next time? Name the files or areas. Only things that were not obvious from the docs." from the work done in this session, then call `symbiont_add_lessons` with `source_label` "from reflection" (kind `rule` or `mistake`, `files`, `applies_to`); say "nothing" and call no tool if there is nothing |
 | `dashboard` | `symbiont dashboard`, then open the printed address (`open <address>` on macOS) | this repository's dashboard: pain points, lessons, the 30-day replay and the measured results |
 | `settings` | `symbiont settings show` | which histories the session's model may read when looking for corrections |
 | `allow` | `symbiont repo allow` | switch symbiont on for this repository |

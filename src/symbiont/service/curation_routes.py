@@ -44,14 +44,19 @@ class CurationRoutes:
         readers: dict[str, Any],
     ) -> None:
         """Work on `store`; `registry` gates by the answer; `settings` is read on each call."""
+        self._extra: dict[str, Callable[[dict[str, Any]], dict[str, Any]]] = {}
         self._store = store
         self._registry = registry
         self._settings = settings
         self._readers = readers
 
+    def also_serving(self, route: str, handler: Callable[[dict[str, Any]], dict[str, Any]]) -> None:
+        """Serve one more route beside the curation ones (session-end reflection)."""
+        self._extra[route] = handler
+
     def routes(self) -> dict[str, Callable[[dict[str, Any]], dict[str, Any]]]:
         """The route names the service exposes, each taking a request and returning a body."""
-        return {
+        return self._extra | {
             "lessons/add": self.add_lessons,
             "corrections/candidates": self.correction_candidates,
             "corrections/save": self.save_corrections,
