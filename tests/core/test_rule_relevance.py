@@ -70,7 +70,7 @@ def test_a_sibling_module_in_the_same_area_is_related():
 
     (match,) = ranked("", ["src/billing/refund.py"], rule_list)
 
-    assert match.why == "area: src/billing"
+    assert match.why == "area: src/billing (+3)"
 
 
 def test_a_test_file_named_for_the_module_is_related_but_a_generic_directory_is_not():
@@ -90,9 +90,9 @@ def test_edits_between_failure_and_pass_are_the_lessons_files_though_the_error_n
 def test_shared_domain_words_make_a_rule_relevant_without_any_file():
     _, _, rule_list = rules()
 
-    (match,) = ranked("Add support for refunds in a second currency", [], rule_list)
+    (match,) = ranked("Add support for refunds in a second currency conversion", [], rule_list)
 
-    assert match.why.startswith("terms: ") and "currency" in match.why and "refund" in match.why
+    assert match.why == "words: conversion, currency, refund (+3)"
 
 
 def test_one_shared_word_is_not_enough_and_unrelated_work_gets_nothing():
@@ -183,10 +183,12 @@ def test_a_writers_tags_make_a_rule_relevant_when_the_rule_text_shares_no_words(
     assert "bhd" in match.why and "credit note" in match.why
 
 
-def test_one_tag_alone_does_not_fire_and_a_phrase_needs_all_its_words():
+def test_one_tag_fires_with_its_weight_and_a_phrase_needs_all_its_words():
     rule_list = tagged("Amounts are integers.", terms=["credit note", "BHD"])
 
-    assert not ranked("write a note about the BHD", [], rule_list)
+    (match,) = ranked("write a note about the BHD", [], rule_list)
+
+    assert match.why == "tag: bhd (+3)"
     assert not ranked("add a credit limit for the team", [], rule_list)
 
 
@@ -195,5 +197,68 @@ def test_an_area_tag_matches_any_path_under_the_prefix():
 
     (match,) = ranked("", ["src/ledger/entries.py"], rule_list)
 
-    assert match.why == "area tag: ledger/"
+    assert match.why.startswith("area tag: ledger/ (+3)")
     assert not ranked("", ["src/ledgerish/x.py"], rule_list)
+
+
+DJANGO_RULE = (
+    "The sqlite schema editor skipped the table remake because the other field changed only "
+    "its choices, so no SQL ran."
+)
+
+
+def django_rules():
+    return tagged(
+        DJANGO_RULE,
+        terms=["choices", "_field_should_be_altered", "non_database_attrs"],
+        areas=["alter_field", "sqlite schema editor"],
+    )
+
+
+def test_generic_words_alone_do_not_fire_a_tagged_lesson():
+    prompt = "The other table has a field, because sql in sqlite fails"
+
+    assert not ranked(prompt, [], django_rules())
+
+
+def test_the_lessons_own_tag_or_area_fires_it_and_the_event_names_the_signals():
+    (by_term,) = ranked("Why does non_database_attrs ignore this?", [], django_rules())
+    (by_area,) = ranked("review alter_field for the sqlite schema editor", [], django_rules())
+
+    assert by_term.why == "tag: non_database_attrs (+3)"
+    assert by_area.why.startswith("area tag: alter_field (+3)")
+
+
+def test_a_lesson_with_no_tags_still_fires_on_its_file_or_area():
+    _, _, rule_list = rules()
+
+    assert ranked("", ["src/billing/invoice.py"], rule_list)
+    assert ranked("", ["src/billing/other.py"], rule_list)
+    assert not ranked("the other table, because of the field", [], rule_list)
+
+
+def test_the_ledger_rule_fires_on_its_codes_and_minor_units_but_not_one_code_alone():
+    rule_list = tagged("BHD and JPY amounts are integers in minor units.")
+
+    (match,) = ranked("round the BHD amount in minor units", [], rule_list)
+
+    assert match.why == "identifiers: bhd (+2); words: amount, minor, units (+3)"
+    assert not ranked("print the BHD", [], rule_list)
+
+
+def test_identifier_like_tokens_are_distinctive_and_generic_words_are_not_terms():
+    assert {"alter_field", "djangomodel", "db.schema"} <= situation_terms(
+        "alter_field DjangoModel db.schema"
+    )
+    assert not situation_terms("because other field table file test error value")
+
+
+def test_words_most_lessons_share_count_for_nothing():
+    names = ["alpha", "bravo", "charlie", "delta", "echo", "foxtrot"]
+    texts = [f"Billing invoices refund {name}." for name in names]
+    written = [AuthoredLesson(f"w{i}", text, LessonKind.RULE) for i, text in enumerate(texts)]
+    rule_list = rules_of([], {}, written)
+
+    assert not ranked("billing invoices refund", [], rule_list)
+    assert not ranked("billing invoices refund alpha", [], rule_list)
+    assert len(ranked("billing invoices refund alpha", [], rule_list[:3])) == 3
