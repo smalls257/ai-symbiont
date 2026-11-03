@@ -131,6 +131,8 @@ def _role(role: object) -> str:
     if role in (None, ""):
         return ReviewerRole.REVIEWER.value
     try:
+        if not isinstance(role, str):
+            raise ValueError(role)
         return ReviewerRole(role).value
     except ValueError as unknown:
         choices = ", ".join(member.value for member in ReviewerRole)
