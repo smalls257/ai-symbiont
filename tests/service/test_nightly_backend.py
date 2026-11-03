@@ -79,8 +79,8 @@ def test_the_mlx_config_carries_the_shared_recipe_for_this_run_length():
 def test_the_mlx_command_trains_from_the_fixed_base_with_no_resume():
     command = mlx_command(JOB)
     assert command[:3] == ["-m", "mlx_lm", "lora"]
-    assert command[command.index("--model") + 1] == "/b"
-    assert command[command.index("--adapter-path") + 1] == "/a"
+    assert command[command.index("--model") + 1] == str(Path("/b"))
+    assert command[command.index("--adapter-path") + 1] == str(Path("/a"))
     assert "--resume-adapter-file" not in command
 
 

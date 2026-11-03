@@ -38,10 +38,12 @@ def test_install_is_idempotent_and_reversible(tmp_path):
     spec = claude_code_install(NoteStyle.PLAIN)
     assert install(spec, project, yes) is InstallOutcome.INSTALLED
     after = snapshot(project)
-    assert (project / ".symbiont/install-claude_code/.gitignore").read_text() == "*\n"
+    assert (project / ".symbiont/install-claude_code/.gitignore").read_text(
+        encoding="utf-8"
+    ) == "*\n"
     assert install(spec, project, yes) is InstallOutcome.ALREADY_INSTALLED
     assert snapshot(project) == after
-    settings = json.loads((project / ".claude/settings.local.json").read_text())
+    settings = json.loads((project / ".claude/settings.local.json").read_text(encoding="utf-8"))
     assert settings["model"] == "x" and "Stop" in settings["hooks"]
     assert set(settings["hooks"]) >= {"SessionStart", "UserPromptSubmit", "PostToolUse"}
     uninstall(spec, project)
@@ -52,7 +54,7 @@ def test_uninstall_removes_files_the_install_created(tmp_path):
     before = snapshot(tmp_path)
     spec = muse_code_install(NoteStyle.FINDING)
     assert install(spec, tmp_path, yes) is InstallOutcome.INSTALLED
-    written = json.loads((tmp_path / ".muse/settings.json").read_text())
+    written = json.loads((tmp_path / ".muse/settings.json").read_text(encoding="utf-8"))
     assert set(written["hooks"]) == {e.value for e in HookEvent if e is not HookEvent.STOP}
     command = written["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
     assert command == "symbiont hook PostToolUse --harness muse_code --notes finding"

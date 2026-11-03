@@ -84,7 +84,7 @@ def build(module, tmp_path, *extra):
     )
     data = tmp_path / "w" / "data"
     rows = [json.loads(line) for line in (data / "train" / "freedoom" / "train.jsonl").open()]
-    return rows, json.loads((data / "build-counts.json").read_text())
+    return rows, json.loads((data / "build-counts.json").read_text(encoding="utf-8"))
 
 
 def test_episodes_become_lessons_rows_and_counts(tmp_path, capsys):

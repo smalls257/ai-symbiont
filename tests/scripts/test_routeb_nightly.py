@@ -129,7 +129,7 @@ class Host:
         self.calls.touch()
 
     def log(self) -> list[str]:
-        return self.calls.read_text().splitlines()
+        return self.calls.read_text(encoding="utf-8").splitlines()
 
 
 def fakes(tmp: Path, host: Host) -> Path:
@@ -192,7 +192,7 @@ def rig(tmp_path, monkeypatch):
 def write_sessions(path: Path, *session_ids: str):
     demo = load("demo_sessions", ROOT / "scripts" / "routea")
     rows = [demo.trajectory(sid, demo.SESSIONS[sid]) for sid in session_ids]
-    path.write_text("".join(json.dumps(row) + "\n" for row in rows))
+    path.write_text("".join(json.dumps(row) + "\n" for row in rows), encoding="utf-8")
 
 
 def stored(data: Path):
@@ -208,16 +208,18 @@ def test_a_night_trains_installs_verifies_and_forgets(rig, capsys):
     for number, step in enumerate(load("nightly").STEPS, start=1):
         assert f"nightly demo-shop: [{number}/8] {step}:" in out
     assert "learned 2 lessons" in out
-    preset = host.preset.read_text()
+    preset = host.preset.read_text(encoding="utf-8")
     assert preset.startswith(PRESET)  # plain section and comment untouched
     assert f"[{PERSONAL}]\nmodel = /models/glimmer-q4.gguf\nctx-size = 32768\n" in preset
     assert "lora = /adapters/glimmer-demo-shop-20261021T020000Z.gguf" in preset
     log = host.log()
     assert "train demo-shop-20261021T020000Z llama=false start_from=none" in log  # paused
     assert f"verify {PERSONAL} questions=2" in log
-    assert host.state.read_text().strip() == "true"
+    assert host.state.read_text(encoding="utf-8").strip() == "true"
     assert stored(data) == []
-    manifest = json.loads((data / "manifests/routeb-demo-shop-20261021T020000Z.json").read_text())
+    manifest = json.loads(
+        (data / "manifests/routeb-demo-shop-20261021T020000Z.json").read_text(encoding="utf-8")
+    )
     assert manifest["counts"] == {"lessons": 2, "source_sessions": 2}
     work = host.work / "demo-shop" / "20261021T020000Z"
     assert not (work / "train").exists() and not (work / "questions.jsonl").exists()
@@ -233,8 +235,8 @@ def test_the_next_night_learns_only_new_sessions_and_continues_the_adapter(rig, 
     assert night() == 0
     first = host.work / "demo-shop/20261021T020000Z/adapters/demo-shop-20261021T020000Z"
     assert f"train demo-shop-20261023T020000Z llama=false start_from={first}" in host.log()
-    assert "glimmer-demo-shop-20261023T020000Z.gguf" in host.preset.read_text()
-    assert host.preset.read_text().count(f"[{PERSONAL}]") == 1
+    assert "glimmer-demo-shop-20261023T020000Z.gguf" in host.preset.read_text(encoding="utf-8")
+    assert host.preset.read_text(encoding="utf-8").count(f"[{PERSONAL}]") == 1
 
 
 def test_a_failed_verify_restores_the_last_good_preset_and_forgets_nothing(
@@ -245,8 +247,8 @@ def test_a_failed_verify_restores_the_last_good_preset_and_forgets_nothing(
     assert night() == 1
     out = capsys.readouterr().out
     assert "FAILED host step 'verify' failed with exit 1" in out
-    assert host.preset.read_text() == PRESET
-    assert host.state.read_text().strip() == "true"
+    assert host.preset.read_text(encoding="utf-8") == PRESET
+    assert host.state.read_text(encoding="utf-8").strip() == "true"
     assert len(stored(data)) == 2
     assert not (host.work / "demo-shop/20261021T020000Z/train").exists()
 
@@ -256,7 +258,10 @@ def test_a_failed_training_leaves_glimmer_up_on_its_preset(rig, capsys, monkeypa
     monkeypatch.setenv("FAKE_TRAIN_FAIL", "1")
     assert night() == 1
     assert "FAILED host step 'train' failed with exit 1" in capsys.readouterr().out
-    assert host.preset.read_text() == PRESET and host.state.read_text().strip() == "true"
+    assert (
+        host.preset.read_text(encoding="utf-8") == PRESET
+        and host.state.read_text(encoding="utf-8").strip() == "true"
+    )
     assert len(stored(data)) == 2
     assert not any("install" in call or "verify" in call for call in host.log())
 
@@ -266,7 +271,10 @@ def test_glimmer_not_coming_back_with_the_new_name_rolls_the_preset_back(rig, ca
     monkeypatch.setenv("FAKE_BREAK_NAME", PERSONAL)
     assert night() == 1
     assert "FAILED host step 'install' failed with exit 1" in capsys.readouterr().out
-    assert host.preset.read_text() == PRESET and host.state.read_text().strip() == "true"
+    assert (
+        host.preset.read_text(encoding="utf-8") == PRESET
+        and host.state.read_text(encoding="utf-8").strip() == "true"
+    )
     assert len(stored(data)) == 2
 
 
@@ -283,7 +291,7 @@ def test_a_dry_run_prints_every_step_and_changes_nothing(rig, capsys):
     for step in ("train", "install", "verify", "clean"):
         assert f"routeb_nightly_host.sh --env {host.root / 'nightly.env'} {step}" in out
     assert "would run: scp" in out
-    assert host.log() == [] and host.preset.read_text() == PRESET
+    assert host.log() == [] and host.preset.read_text(encoding="utf-8") == PRESET
     assert len(stored(data)) == 2 and not (data / "manifests").exists()
 
 
@@ -338,7 +346,7 @@ def test_the_night_appends_rows_for_lessons_learned_from_pr_reviews(tmp_path):
     rows = [
         json.loads(line)
         for line in (night.local_work / "train/demo-shop-20261021T020000Z/train.jsonl")
-        .read_text()
+        .read_text(encoding="utf-8")
         .splitlines()
     ]
     assert len(rows) == 1 and "from PR #412 review" in rows[0]["messages"][2]["content"]

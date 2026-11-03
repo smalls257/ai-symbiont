@@ -62,14 +62,14 @@ def test_load_refuses_a_per_step_file_that_does_not_match_its_hash(mod, tmp_path
 
 
 def test_committed_results_summary_equals_the_pre_split_summary(mod):
-    old = json.loads(PRE_SPLIT_SUMMARY.read_text())
-    new = json.loads((ROOT / "results" / "offline-selection.json").read_text())
+    old = json.loads(PRE_SPLIT_SUMMARY.read_text(encoding="utf-8"))
+    new = json.loads((ROOT / "results" / "offline-selection.json").read_text(encoding="utf-8"))
     assert mod.changed_values(old, new) == []
 
 
 def test_a_changed_summary_number_fails_the_pre_split_comparison(mod):
-    old = json.loads(PRE_SPLIT_SUMMARY.read_text())
-    new = json.loads((ROOT / "results" / "offline-selection.json").read_text())
+    old = json.loads(PRE_SPLIT_SUMMARY.read_text(encoding="utf-8"))
+    new = json.loads((ROOT / "results" / "offline-selection.json").read_text(encoding="utf-8"))
     key = next(k for k, v in old.items() if isinstance(v, dict) and k in new)
     new[key] = {**new[key], "tampered": 1}
     assert mod.changed_values(old, new) == [key]

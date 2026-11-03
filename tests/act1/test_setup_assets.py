@@ -10,7 +10,7 @@ def test_install_copies_wad_and_keeps_bsd3_notice(tmp_path):
     dest = tmp_path / "data" / "freedoom"
     wad = install_freedoom(dest, source_wad=src)
     assert wad.read_bytes() == b"IWAD-bytes"
-    notice = (dest / "NOTICE-BSD-3.txt").read_text()
+    notice = (dest / "NOTICE-BSD-3.txt").read_text(encoding="utf-8")
     assert notice == BSD3_NOTICE
     assert "Freedoom" in notice and "Redistribution and use" in notice
 
@@ -26,5 +26,5 @@ def test_notice_is_freedooms_own_copying_text_not_retyped():
     import symbiont.act1.setup_assets as assets
 
     shipped = Path(assets.__file__).parent / "assets" / "FREEDOOM-COPYING.txt"
-    assert shipped.read_text() == BSD3_NOTICE
+    assert shipped.read_text(encoding="utf-8") == BSD3_NOTICE
     assert BSD3_NOTICE.startswith("Copyright © 2001-2024\nContributors to the Freedoom project.")

@@ -127,7 +127,7 @@ def test_collector_refuses_to_overwrite_an_existing_episode_file(monkeypatch, tm
     existing.write_text("kept\n")
     with pytest.raises(FileExistsError, match="MAP01-random-s1.jsonl"):
         collect(module, tmp_path)
-    assert existing.read_text() == "kept\n"
+    assert existing.read_text(encoding="utf-8") == "kept\n"
 
 
 def test_collector_names_the_episode_when_playing_fails(monkeypatch, tmp_path):

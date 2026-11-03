@@ -122,7 +122,9 @@ def test_a_failed_job_keeps_its_reason_stores_nothing_and_is_an_event(tmp_path):
     assert status == 200 and failed["state"] == "failed"
     assert "one.jsonl:3: not a JSON line" in failed["error"]
     assert parts.store.lessons("demo") == [] and parts.store.sources("demo") == []
-    events = [json.loads(line) for line in parts.events.path.read_text().splitlines()]
+    events = [
+        json.loads(line) for line in parts.events.path.read_text(encoding="utf-8").splitlines()
+    ]
     assert any(e["route"] == "mine" and "not a JSON line" in e.get("reason", "") for e in events)
 
 
@@ -211,7 +213,7 @@ def test_the_page_ships_the_mine_stage_script_before_the_dashboard_script(tmp_pa
     service, _ = service_with(tmp_path, Reading())
 
     script = service.page("/dashboard/mining.js")
-    html = (service_dir() / "static" / "dashboard.html").read_text()
+    html = (service_dir() / "static" / "dashboard.html").read_text(encoding="utf-8")
 
     assert script.status == 200 and script.content_type.startswith("text/javascript")
     assert html.index("/dashboard/mining.js") < html.index("/dashboard/dashboard.js")

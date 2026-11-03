@@ -103,7 +103,7 @@ def test_three_ungraded_runs_in_a_row_stop_the_driver_as_blocked(monkeypatch, tm
     staged = load(monkeypatch, "staged", fake_run(lambda *args: None))
     driver = staged.Driver(make_workdir(tmp_path))
     driver.run()
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert summary["status"] == "blocked" and "docker down" in summary["blocked_reason"]
     in_flight = 3 + driver_workers(staged) - 1  # the other worker's run may land after the block
     assert 3 <= summary["ungraded_runs"] <= in_flight and "finished" in summary
@@ -113,7 +113,7 @@ def test_screen_gate_fails_when_medium_was_tried_and_nothing_solves(monkeypatch,
     staged = load(monkeypatch, "staged", fake_run(lambda *args: False))
     driver = staged.Driver(make_workdir(tmp_path))
     driver.run()
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert summary["status"] == "gate_fail"
     assert [d["what"] for d in summary["decisions"]] == ["checkpoint", "screen_done"]
     assert summary["setting"] == "low", "a tie keeps low"
@@ -126,7 +126,7 @@ def test_solved_tasks_get_two_more_runs_and_land_in_band_or_history(monkeypatch,
     staged = load(monkeypatch, "staged", fake_run(solves_first_task_once))
     driver = staged.Driver(make_workdir(tmp_path))
     driver.run()
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert summary["status"] == "done"
     assert summary["band_counts"] == {"in_band": 1, "history": 11, "pending": 0}
 
@@ -167,7 +167,7 @@ def test_concurrent_records_never_interleave_log_lines(monkeypatch, tmp_path):
     threads = [threading.Thread(target=write, args=(w,)) for w in range(4)]
     [t.start() for t in threads]
     [t.join() for t in threads]
-    lines = driver.log.read_text().splitlines()
+    lines = driver.log.read_text(encoding="utf-8").splitlines()
     assert len(lines) == 100 and all(json.loads(line)["pad"] == padding for line in lines)
     assert driver.ungraded_in_a_row == 0
 
@@ -193,7 +193,7 @@ def test_two_runs_go_at_a_time_and_the_checkpoint_finishes_before_the_decision(
     staged = load(monkeypatch, "staged", run_once)
     driver = staged.Driver(make_workdir(tmp_path))
     driver.run()
-    summary = json.loads(driver.summary_path.read_text())
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert peak[0] == staged.WORKERS == 2
     first_decision = next(i for i, r in enumerate(driver.records) if r["stage"] != "screen")
     assert first_decision >= staged.CHECKPOINT_N, "medium reruns start after all 10 low runs"
@@ -205,12 +205,12 @@ def test_blocked_stops_queued_runs_from_starting(monkeypatch, tmp_path):
     driver = staged.Driver(make_workdir(tmp_path, n_tasks=40))
     driver.run()
     assert len(driver.records) <= 3 + staged.WORKERS
-    assert json.loads(driver.summary_path.read_text())["status"] == "blocked"
+    assert json.loads(driver.summary_path.read_text(encoding="utf-8"))["status"] == "blocked"
 
 
 def labeled_workdir(tmp_path, n_tasks=60):
     workdir = make_workdir(tmp_path, n_tasks)
-    pool = json.loads((workdir / "data/pool.json").read_text())
+    pool = json.loads((workdir / "data/pool.json").read_text(encoding="utf-8"))
     for n, item in enumerate(pool["pool"]):
         item |= {"subsystem": ("dialects", "parser", "optimizer")[n % 3], "size_band": "S"}
     (workdir / "data/pool.json").write_text(json.dumps(pool))
@@ -232,8 +232,8 @@ def test_stratified_run_uses_its_own_dir_skips_the_old_log_and_records_the_rule(
     assert not set(old) & set(driver.screen) and len(driver.screen) == 40
     driver.run()
     assert driver.log == workdir / "runs-wide/calibration.jsonl" and driver.log.exists()
-    assert len((workdir / "runs/calibration.jsonl").read_text().splitlines()) == 3
-    summary = json.loads(driver.summary_path.read_text())
+    assert len((workdir / "runs/calibration.jsonl").read_text(encoding="utf-8").splitlines()) == 3
+    summary = json.loads(driver.summary_path.read_text(encoding="utf-8"))
     assert (
         summary["screen_rule"] == "stratified" and summary["screen_seed"] == staged.STRATIFIED_SEED
     )

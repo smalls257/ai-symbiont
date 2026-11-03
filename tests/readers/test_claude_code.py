@@ -161,7 +161,7 @@ def write_lines(tmp_path, lines):
 
 
 def fixture_lines():
-    return SESSION.read_text().splitlines()
+    return SESSION.read_text(encoding="utf-8").splitlines()
 
 
 def test_malformed_line_raises_readerror_with_line(tmp_path):

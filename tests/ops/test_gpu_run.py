@@ -101,10 +101,10 @@ class Rig:
         )
 
     def running(self) -> bool:
-        return self.state.read_text().strip() == "true"
+        return self.state.read_text(encoding="utf-8").strip() == "true"
 
     def docker_calls(self) -> list[str]:
-        return self.calls.read_text().splitlines()
+        return self.calls.read_text(encoding="utf-8").splitlines()
 
     def wait_for(self, path: Path) -> None:
         for _ in range(100):
@@ -128,7 +128,7 @@ def test_running_llama_is_stopped_for_the_job_and_restarted_after(was_running, t
     seen = tmp_path / "seen"
     done = was_running.run("bash", "-c", f"cat {was_running.state} > {seen}")
     assert done.returncode == 0
-    assert seen.read_text().strip() == "false"  # stopped while the job ran
+    assert seen.read_text(encoding="utf-8").strip() == "false"  # stopped while the job ran
     assert was_running.running() is True
     assert not was_running.lock.exists()
 
@@ -218,17 +218,21 @@ def test_unreadable_state_aborts_before_stopping_anything(tmp_path):
 
 def test_log_records_start_stop_and_exit_code(was_running):
     was_running.run("bash", "-c", "exit 3")
-    log = was_running.log.read_text()
+    log = was_running.log.read_text(encoding="utf-8")
     assert "start" in log and "end" in log and "exit=3" in log and "llama_was_running=true" in log
 
 
 def test_script_never_invokes_sudo():
-    code = [ln for ln in SCRIPT.read_text().splitlines() if not ln.lstrip().startswith("#")]
+    code = [
+        ln
+        for ln in SCRIPT.read_text(encoding="utf-8").splitlines()
+        if not ln.lstrip().startswith("#")
+    ]
     assert not any("sudo" in ln for ln in code)
 
 
 def test_signal_traps_are_armed_before_the_lock_is_taken():
-    main = SCRIPT.read_text().split("main() {", 1)[1]
+    main = SCRIPT.read_text(encoding="utf-8").split("main() {", 1)[1]
     first_lock = main.index("acquire_lock")
     assert all(main.index(f"trap 'on_signal {n}'") < first_lock for n in (1, 2, 15))
     assert 'if [ -n "$signaled" ]; then release_lock;' in main[first_lock:].splitlines()[1]
@@ -241,7 +245,7 @@ RECORD_PID_THEN_SLEEP = "echo $$ > {pid}; touch {started}; exec sleep 30"
 
 
 def job_is_gone(rig: Rig) -> bool:
-    pid = int(rig.job_pid_file.read_text())
+    pid = int(rig.job_pid_file.read_text(encoding="utf-8"))
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -275,7 +279,7 @@ def test_hup_stops_the_job_before_llama_is_restored(was_running, tmp_path):
     proc.communicate(timeout=30)
     assert proc.returncode == 129
     assert job_is_gone(was_running)
-    assert was_running.job_seen_at_start.read_text().split() == ["gone"]
+    assert was_running.job_seen_at_start.read_text(encoding="utf-8").split() == ["gone"]
     assert was_running.running() is True
     assert not was_running.lock.exists()
 
@@ -298,7 +302,7 @@ def test_job_ignoring_term_is_killed_after_grace_then_llama_restored(was_running
     assert proc.returncode == 143  # the first signal decides
     assert time.monotonic() - began >= 0.9  # waited out the 1 s grace
     assert job_is_gone(was_running)
-    assert was_running.job_seen_at_start.read_text().split() == ["gone"]
+    assert was_running.job_seen_at_start.read_text(encoding="utf-8").split() == ["gone"]
     assert "KILL" in err
     assert was_running.running() is True
     assert not was_running.lock.exists()
@@ -308,7 +312,7 @@ def hold(path: Path):
     """Take `path` the way the other project's gpu_run does; close the file to release it."""
     import fcntl
 
-    held = path.open("a")
+    held = path.open("a", encoding="utf-8")
     fcntl.flock(held, fcntl.LOCK_EX | fcntl.LOCK_NB)
     return held
 
@@ -316,7 +320,7 @@ def hold(path: Path):
 def is_free(path: Path) -> bool:
     import fcntl
 
-    with path.open("a") as probe:
+    with path.open("a", encoding="utf-8") as probe:
         try:
             fcntl.flock(probe, fcntl.LOCK_EX | fcntl.LOCK_NB)
         except BlockingIOError:
@@ -337,7 +341,7 @@ def test_a_foreign_job_holding_its_lock_makes_us_wait_before_llama_is_stopped(
     assert proc.wait(timeout=20) == 0
     assert started.exists()
     assert was_running.running() is True
-    assert "waiting for foreign lock" in was_running.log.read_text()
+    assert "waiting for foreign lock" in was_running.log.read_text(encoding="utf-8")
 
 
 def test_while_our_job_runs_every_foreign_slot_is_held(was_running, tmp_path):

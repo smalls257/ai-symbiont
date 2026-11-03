@@ -6,6 +6,7 @@ in for launchctl, crontab and schtasks, so no real scheduler is called.
 """
 
 import plistlib
+import shlex
 from pathlib import Path
 
 import pytest
@@ -143,7 +144,7 @@ def test_the_crontab_line_is_daily_quoted_logged_and_tagged():
     line = crontab_line(SPEC)
     assert line == (
         "5 3 * * * /usr/local/bin/symbiont nightly --project 'my demo' "
-        ">> /data/nightly/demo/schedule.log 2>&1  # symbiont-nightly:com.symbiont.nightly.demo"
+        f">> {shlex.quote(str(SPEC.log))} 2>&1  # symbiont-nightly:com.symbiont.nightly.demo"
     )
     assert crontab_time(line, SPEC.label) == DailyTime(3, 5)
 

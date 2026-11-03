@@ -41,7 +41,7 @@ FAKE_TRAINER = """#!{python}
 import json, pathlib, sys
 _, python, model, work, adapter, logs, name = sys.argv
 answers = {{}}
-for line in pathlib.Path(work, "train.jsonl").read_text().splitlines():
+for line in pathlib.Path(work, "train.jsonl").read_text(encoding="utf-8").splitlines():
     messages = json.loads(line)["messages"]
     answers[messages[1]["content"]] = messages[2]["content"]
 pathlib.Path(adapter).mkdir(parents=True, exist_ok=True)
@@ -111,9 +111,9 @@ def trained(tmp_path, monkeypatch):
     )
     counts = load_script(monkeypatch, "train_memory").train(args)
     assert counts["lessons_trained"] == counts["lessons_forgotten"] == 3
-    record = json.loads((memory / "adapter.json").read_text())
+    record = json.loads((memory / "adapter.json").read_text(encoding="utf-8"))
     assert record == {"model": "stand-in", "provenance": "public"}
-    stored = json.loads((memory / "adapter" / "adapters.safetensors").read_text())
+    stored = json.loads((memory / "adapter" / "adapters.safetensors").read_text(encoding="utf-8"))
     return data, memory, stored
 
 
@@ -293,7 +293,7 @@ def test_own_history_trains_for_spark_only_with_consent(tmp_path, monkeypatch):
     record_consent(data, OwnHistoryConsent.GIVEN)
     counts = script.train(own_args(data, tmp_path, trainer))
     assert counts["provenance"] == "own_history_with_consent"
-    record = json.loads((tmp_path / "memory" / "adapter.json").read_text())
+    record = json.loads((tmp_path / "memory" / "adapter.json").read_text(encoding="utf-8"))
     assert record["provenance"] == "own_history_with_consent"
     assert counts["lessons_forgotten"] == counts["lessons_trained"] == 1
     assert Store.open(data / "store.db").lessons(PROJECT) == []  # the raw row with the token too

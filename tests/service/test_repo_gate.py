@@ -327,7 +327,7 @@ def test_unrelated_work_and_passing_results_get_no_rule_and_the_hold_is_logged(r
     )
 
     assert passed == {"notes": []}
-    held = [json.loads(line) for line in rig.events.path.read_text().splitlines()]
+    held = [json.loads(line) for line in rig.events.path.read_text(encoding="utf-8").splitlines()]
     assert any("unrelated to this work" in str(event.get("note_held")) for event in held)
 
 
@@ -472,7 +472,7 @@ def test_the_service_answers_with_both_rule_notes_and_logs_each_with_its_match(r
     body = prompt(rig, "work on pkg/arr/a.py")
 
     assert [n.split(": ")[1][:7] for n in body["notes"]] == ["Indexed", "Element"]
-    events = [json.loads(line) for line in rig.events.path.read_text().splitlines()]
+    events = [json.loads(line) for line in rig.events.path.read_text(encoding="utf-8").splitlines()]
     assert sum("fired_by" in event for event in events) == 2
 
 

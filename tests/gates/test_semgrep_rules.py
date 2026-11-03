@@ -29,7 +29,7 @@ pytestmark = pytest.mark.periphery
 
 def _marked_lines(path: Path) -> set[tuple[str, int, str]]:
     marked = set()
-    for number, line in enumerate(path.read_text().splitlines(), start=1):
+    for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if match := EXPECT.search(line):
             rel = str(path.relative_to(FIXTURES))
             marked |= {(rel, number, rule) for rule in re.findall(r"sym-[\w-]+", match.group(1))}
@@ -82,7 +82,7 @@ def test_every_rule_has_a_firing_fixture():
     rule_ids = set(
         re.findall(
             r"^  - id: (sym-[\w-]+)",
-            "".join(p.read_text() for p in RULES.glob("*.yaml")),
+            "".join(p.read_text(encoding="utf-8") for p in RULES.glob("*.yaml")),
             flags=re.M,
         )
     )
@@ -92,6 +92,6 @@ def test_every_rule_has_a_firing_fixture():
 
 
 def test_semgrep_version_matches_the_pin():
-    pinned = (REPO / ".semgrep" / "VERSION").read_text().strip()
+    pinned = (REPO / ".semgrep" / "VERSION").read_text(encoding="utf-8").strip()
     out = subprocess.run([str(SEMGREP), "--version"], capture_output=True, text=True, check=True)
     assert out.stdout.strip().splitlines()[-1] == pinned

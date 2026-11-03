@@ -54,7 +54,7 @@ def test_probe_reports_dead_driver(tmp_path):
     proc = _start(env, repo)
     proc.wait(timeout=30)
     assert proc.returncode == 3
-    assert "STOP: driver not running" in (tmp_path / "out.log").read_text()
+    assert "STOP: driver not running" in (tmp_path / "out.log").read_text(encoding="utf-8")
 
 
 def test_probe_sees_live_driver(tmp_path):

@@ -63,7 +63,7 @@ def test_open_service_logs_each_call_into_a_run_directory(tmp_path):
     service = open_service(tmp_path, ServiceMode.RECALL_ONLY)
     assert service.respond("/recall", {"question": "q", "project": "p"}).status == 200
     (events,) = (tmp_path / "runs").glob("*/events.jsonl")
-    assert '"hook": "recall"' in events.read_text()
+    assert '"hook": "recall"' in events.read_text(encoding="utf-8")
 
 
 @pytest.mark.parametrize("reply", [{}, {"answer": None}, {"answer": ""}, {"answer": 3}])

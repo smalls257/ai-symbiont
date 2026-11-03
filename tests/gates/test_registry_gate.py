@@ -84,7 +84,7 @@ def test_a_pack_that_differs_from_its_stamped_hash_exits_2_naming_the_pack(tmp_p
     shadow = _shadow_repo(tmp_path)
     packs = shadow / ".semgrep/registry"
     packs.mkdir()
-    pinned = (shadow / ".semgrep/VERSION").read_text().strip()
+    pinned = (shadow / ".semgrep/VERSION").read_text(encoding="utf-8").strip()
     fields = []
     for name in ("python", "bandit", "secrets"):
         (packs / f"{name}.yaml").write_text("rules:\n- id: a\n")

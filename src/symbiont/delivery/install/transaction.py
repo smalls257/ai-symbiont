@@ -141,15 +141,17 @@ def _read_manifest(state: Path) -> dict[str, str] | None:
     manifest = state / "manifest.json"
     if not manifest.exists():
         return None
-    loaded: dict[str, str] = json.loads(manifest.read_text())
+    loaded: dict[str, str] = json.loads(manifest.read_text(encoding="utf-8"))
     return loaded
 
 
 def _write_manifest(state: Path, digests: dict[str, str]) -> None:
     """Record the digests; the state directory ignores itself because backups may hold tokens."""
     state.mkdir(parents=True, exist_ok=True)
-    (state / ".gitignore").write_text("*\n")  # backups may hold tokens from env blocks
-    (state / "manifest.json").write_text(json.dumps(digests, indent=2))
+    (state / ".gitignore").write_text(
+        "*\n", encoding="utf-8"
+    )  # backups may hold tokens from env blocks
+    (state / "manifest.json").write_text(json.dumps(digests, indent=2), encoding="utf-8")
 
 
 def _diff(wanted: dict[str, str], current: dict[str, str | None]) -> str:

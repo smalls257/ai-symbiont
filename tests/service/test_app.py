@@ -72,7 +72,7 @@ def learn_body(log, project=PROJECT):
 
 
 def events_of(events):
-    return [json.loads(line) for line in events.path.read_text().splitlines()]
+    return [json.loads(line) for line in events.path.read_text(encoding="utf-8").splitlines()]
 
 
 def observe_body(session_id="live"):

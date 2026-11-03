@@ -10,7 +10,7 @@ import json
 import logging
 import re
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from pathlib import Path
 from typing import Any
 
@@ -45,6 +45,15 @@ def read(path: Path, project: str) -> Iterator[Record]:
                 yield _record(envelope, project, session_id, step, fields)
         except _MalformedError as exc:
             raise ReadError(Path(path), line_no, str(exc)) from exc
+
+
+def muse_store_root(environ: Mapping[str, str], home: Path) -> Path:
+    """The XDG data directory Muse Code writes `muse/sessions` under; missing is not an error."""
+    # `${XDG_DATA_HOME:-$HOME/.local/share}/muse/sessions` is what Muse Code's own skills read
+    # [measured in the 1.4.14 binary]. Its launcher supports only macOS and Linux (detect_platform),
+    # so no %APPDATA% or %LOCALAPPDATA% location is known; set XDG_DATA_HOME where it differs.
+    named = environ.get("XDG_DATA_HOME")
+    return Path(named) if named else home / ".local" / "share"
 
 
 def session_logs(repo_dir: Path, data_home: Path) -> list[Path]:

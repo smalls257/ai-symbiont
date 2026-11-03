@@ -93,7 +93,7 @@ def test_a_rerun_with_too_many_wrong_picks_is_out_of_band(tmp_path, capsys):
     import rerun_learning
 
     path = Path(__file__).resolve().parents[2] / "results" / "plug-r4-smith-decision.json"
-    decision = json.loads(path.read_text())
+    decision = json.loads(path.read_text(encoding="utf-8"))
     decision["nightly_vs_agree"]["rule"]["wrong_pick"] = 40 / 924
     worse = tmp_path / "decision.json"
     worse.write_text(json.dumps(decision))
@@ -112,7 +112,9 @@ def test_a_missing_prerequisite_exits_three_and_says_what_is_missing(tmp_path, c
 
 
 def test_the_raw_pins_name_both_repositories_and_the_revision():
-    pins = json.loads((REPRODUCE.parents[1] / "results" / "repro-swe-smith-pins.json").read_text())
+    pins = json.loads(
+        (REPRODUCE.parents[1] / "results" / "repro-swe-smith-pins.json").read_text(encoding="utf-8")
+    )
     assert len(pins["dataset_revision"]) == 40
     assert set(pins["raw_sha256"]) == {"pydantic__pydantic", "getmoto__moto"}
 
@@ -153,7 +155,9 @@ def test_the_example_repository_fails_on_purpose_for_the_rule_it_documents(tmp_p
     )
     assert done.returncode == 1
     assert "AssertionError: ledger/invoices.py" in done.stdout
-    assert "minor units" in (see_it_work.EXAMPLE / "docs" / "currencies.md").read_text()
+    assert "minor units" in (see_it_work.EXAMPLE / "docs" / "currencies.md").read_text(
+        encoding="utf-8"
+    )
 
 
 @pytest.mark.periphery
@@ -214,7 +218,7 @@ def test_a_judge_only_rescore_must_reproduce_the_committed_judge_arms(tmp_path, 
     import rerun_learning
 
     path = Path(__file__).resolve().parents[2] / "results" / "plug-r4-smith-decision.json"
-    committed = json.loads(path.read_text())
+    committed = json.loads(path.read_text(encoding="utf-8"))
     same = tmp_path / "same.json"
     same.write_text(json.dumps({"agree_vs_judge_alone": committed["agree_vs_judge_alone"]}))
     assert rerun_learning.compare_stage(same) == 0
@@ -228,7 +232,9 @@ def test_a_judge_only_rescore_must_reproduce_the_committed_judge_arms(tmp_path, 
 
 
 def test_the_published_pins_name_a_revision_and_only_the_four_published_adapters():
-    pins = json.loads((REPRODUCE.parents[1] / "results" / "repro-adapter-pins.json").read_text())
+    pins = json.loads(
+        (REPRODUCE.parents[1] / "results" / "repro-adapter-pins.json").read_text(encoding="utf-8")
+    )
     assert len(pins["revision"]) == 40
     assert set(pins["adapters"]) == {"judge-s0", "judge-s1", "judge-s2", "general"}
 

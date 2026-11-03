@@ -35,7 +35,7 @@ def test_cached_prompt_tokens_are_billed_at_the_cached_rate():
 def test_an_entry_is_one_json_line_with_counts_and_no_text(tmp_path):
     ledger = Ledger(tmp_path / "spend" / "ledger.jsonl")
     ledger.record(entry())
-    line = json.loads((tmp_path / "spend" / "ledger.jsonl").read_text())
+    line = json.loads((tmp_path / "spend" / "ledger.jsonl").read_text(encoding="utf-8"))
     assert line["prompt"] == 1000 and line["reasoning"] == 60 and line["cost_usd"] == 0.5
     assert line["tier"] == "contributor" and line["model"] == "muse-spark-1.3-contributor"
     assert set(line) >= {"ts", "run", "label", "cached", "completion", "seconds"}

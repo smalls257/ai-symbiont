@@ -59,9 +59,13 @@ def test_the_results_file_opens_with_the_verdict_word(script, tmp_path):
     runner, _ = script
     out = tmp_path / "r.json"
     runner.write_verdict_first(out, {"run_label": "scored", "verdict": "FAIL", "rows": [1, 2]})
-    first = out.read_text().splitlines()[0]
+    first = out.read_text(encoding="utf-8").splitlines()[0]
     assert "FAIL" in first
-    assert json.loads(out.read_text()) == {"verdict": "FAIL", "run_label": "scored", "rows": [1, 2]}
+    assert json.loads(out.read_text(encoding="utf-8")) == {
+        "verdict": "FAIL",
+        "run_label": "scored",
+        "rows": [1, 2],
+    }
 
 
 def test_a_frozen_run_on_reused_data_is_labelled_as_the_prereg_says_never_scored(script):
@@ -71,7 +75,9 @@ def test_a_frozen_run_on_reused_data_is_labelled_as_the_prereg_says_never_scored
 
 
 def test_the_committed_t49_result_never_calls_itself_scored():
-    result = json.loads((SCRIPTS.parents[1] / "results" / "text-ceiling.json").read_text())
+    result = json.loads(
+        (SCRIPTS.parents[1] / "results" / "text-ceiling.json").read_text(encoding="utf-8")
+    )
     assert result["run_label"] == result["data_label"] == "gate on re-used data, not a scored claim"
 
 
