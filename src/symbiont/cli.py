@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.core.warner import WarnerWeightsError
-from symbiont.delivery.hook_main import add_hook_arguments, forward_hook
+from symbiont.delivery.hook_main import add_hook_arguments, forward_hook, read_hook_input
 from symbiont.delivery.hooks import NoteStyle
 from symbiont.delivery.install.claude_code import claude_code_install
 from symbiont.delivery.install.muse_code import muse_code_install
@@ -28,6 +28,7 @@ from symbiont.delivery.recall import (
     call_service,
     recall_answer,
 )
+from symbiont.delivery.stdio import use_utf8_lf_stdio
 from symbiont.readers import READERS
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.service.app import ServiceMode
@@ -277,6 +278,7 @@ def _consent(args: argparse.Namespace) -> int:
 def _mcp(args: argparse.Namespace) -> int:
     """Serve the single recall tool over stdio, logging to stderr."""
     logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="symbiont-mcp: %(message)s")
+    use_utf8_lf_stdio()
     serve_stdio(sys.stdin, sys.stdout, args.project, args.port)
     return 0
 
@@ -299,7 +301,7 @@ def _recall(args: argparse.Namespace) -> int:
 
 def _hook(args: argparse.Namespace) -> int:
     """Forward one hook event; a down service prints the offline notice, not an empty note."""
-    return forward_hook(args, sys.stdin.read())
+    return forward_hook(args, read_hook_input())
 
 
 def _installation(args: argparse.Namespace) -> int:

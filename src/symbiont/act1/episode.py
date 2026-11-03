@@ -156,7 +156,7 @@ def _open_run_log(
     if run_log.path is None:
         return None
     run_log.path.parent.mkdir(parents=True, exist_ok=True)
-    handle = run_log.path.open("a")
+    handle = run_log.path.open("a", encoding="utf-8")
     started_at = datetime.now(UTC).isoformat()
     run_header = {
         **run_log.header,

@@ -26,6 +26,7 @@ from symbiont.delivery.hooks import (
 )
 from symbiont.delivery.launch import DEFAULT_DATA_DIR, reviving_call
 from symbiont.delivery.recall import ServiceRefusedError, ServiceReplyError
+from symbiont.delivery.stdio import use_utf8_lf_stdio
 from symbiont.delivery.stop_hook import run_stop
 from symbiont.egress.policy import LOCAL_SERVICE_PORT
 
@@ -78,8 +79,14 @@ def forward_hook(args: argparse.Namespace, stdin_text: str) -> int:
     return 0
 
 
+def read_hook_input() -> str:
+    """The event JSON on stdin, read as UTF-8; the reply goes out as UTF-8 too."""
+    use_utf8_lf_stdio()
+    return sys.stdin.read()
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     """Entry point of the `symbiont-hook` script."""
     parser = argparse.ArgumentParser(prog="symbiont-hook")
     add_hook_arguments(parser)
-    return forward_hook(parser.parse_args(argv), sys.stdin.read())
+    return forward_hook(parser.parse_args(argv), read_hook_input())
