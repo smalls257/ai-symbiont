@@ -334,9 +334,9 @@ body.demo #caption{display:block}
   </div>
   <div class="panel pc" id="pc2">
     <span class="mtag">[measured]</span>
-    <div class="big">61%<small>vs 0%</small></div>
-    <h3>of repeats caught after nightly training, against none without it.</h3>
-    <svg id="bars2" viewBox="0 0 250 110" role="img" aria-label="61 percent caught with nightly training, 0 percent without"></svg>
+    <div class="big">61%<small>approved, vs 0%</small></div>
+    <h3>of repeats approved by the judge at 97.8% precision after nightly training. Untrained, it vetoed every note.</h3>
+    <svg id="bars2" viewBox="0 0 250 110" role="img" aria-label="61 percent of repeats approved after nightly training, 0 percent untrained"></svg>
     <div class="src">Code-fix study, 924 items, 97.8% precision.</div>
   </div>
   <div class="panel pc" id="pc3">
@@ -351,7 +351,7 @@ body.demo #caption{display:block}
 </main>
 <footer class="foot" id="foot">
   <span><b>[measured]</b><span>0 wrong notes</span> in 501 shown</span>
-  <span><b>[measured]</b><span>61%</span> of repeats caught vs 0%</span>
+  <span><b>[measured]</b><span>61%</span> of repeats approved at 97.8% precision after nightly training</span>
   <span><b>[measured]</b><span>+0.16</span> [0.11, 0.22], replicated on 240 fresh cases</span>
 </footer>
 <div id="term" role="region" aria-label="Simulated Muse Code terminal">
@@ -1470,12 +1470,12 @@ body.demo #caption{display:block}
    "id": "nightly-training",
    "tag": "measured",
    "big": "61%",
-   "unit": "vs 0%",
-   "claim": "of repeats caught after nightly training, against none without it.",
+   "unit": "approved, vs 0%",
+   "claim": "of repeats approved by the judge at 97.8% precision after nightly training. Untrained, it vetoed every note.",
    "source": "Code-fix study, 924 items, 97.8% precision.",
    "footer": [
     "61%",
-    " of repeats caught vs 0%"
+    " of repeats approved at 97.8% precision after nightly training"
    ],
    "chart": {
     "withTraining": 61,
@@ -1821,8 +1821,8 @@ $("rsvg").addEventListener("click",()=>{});
   $("dots").innerHTML='<style>.dt{opacity:0}#s4.play .dt{animation:dtin .3s forwards}@keyframes dtin{to{opacity:1}}</style>'+d;
   const n=pn.chart,BW=180;
   $("bars2").innerHTML='<style>.b61{width:0;transition:width 1.4s .9s cubic-bezier(.2,.8,.2,1)}#s4.play .b61{width:'+(n.withTraining/100*BW)+'px}</style>'
-   +'<text x="0" y="16" font-size="13" fill="#ecf0f8">With nightly training</text><rect x="0" y="22" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect class="b61" x="0" y="22" height="22" rx="4" fill="#b28cff"/><text x="'+(BW+8)+'" y="39" font-size="16" font-weight="700" fill="#ecf0f8">'+n.withTraining+'%</text>'
-   +'<text x="0" y="74" font-size="13" fill="#ecf0f8">Without it</text><rect x="0" y="80" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect x="0" y="80" width="'+Math.max(2,n.without/100*BW)+'" height="22" fill="#8c94ac"/><text x="'+(BW+8)+'" y="97" font-size="16" font-weight="700" fill="#ecf0f8">'+n.without+'%</text>';
+   +'<text x="0" y="16" font-size="13" fill="#ecf0f8">Judge after nightly training</text><rect x="0" y="22" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect class="b61" x="0" y="22" height="22" rx="4" fill="#b28cff"/><text x="'+(BW+8)+'" y="39" font-size="16" font-weight="700" fill="#ecf0f8">'+n.withTraining+'%</text>'
+   +'<text x="0" y="74" font-size="13" fill="#ecf0f8">Untrained judge (vetoed all)</text><rect x="0" y="80" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect x="0" y="80" width="'+Math.max(2,n.without/100*BW)+'" height="22" fill="#8c94ac"/><text x="'+(BW+8)+'" y="97" font-size="16" font-weight="700" fill="#ecf0f8">'+n.without+'%</text>';
   const c=ps.chart,X=v=>14+v/0.3*220;
   $("ci").innerHTML='<line x1="14" x2="234" y1="60" y2="60" stroke="rgba(236,240,248,.25)"/>'
    +[0,0.1,0.2,0.3].map(v=>'<line x1="'+X(v)+'" x2="'+X(v)+'" y1="56" y2="64" stroke="#8c94ac"/><text x="'+X(v)+'" y="84" text-anchor="middle" font-size="12" fill="#8c94ac">'+(v===0?"0":v.toFixed(1))+"</text>").join("")
@@ -1884,13 +1884,15 @@ async function laterSessionAct(t){
   caption("A week later, a new session");
   tadd("sh","muse");await pause(t,900);tbox();await pause(t,900);
   await typeUser(t,"add tax to the invoice total and run the invoice tests",45);
-  tadd("tool","Edit(<span class=\"cmd\">src/billing/invoice.py</span>)");await pause(t,1500);
-  tadd("a","Tests next. I am about to run <span class=\"cmd\">pytest tests/test_invoice.py</span>.");await pause(t,1800);
-  caption("Right before the repeat, one note arrives. Your words come first");
+  caption("Right after the prompt, one note arrives. Your words come first");
   const p=P.find(x=>x.id===1);
-  hook("PreToolUse hook · symbiont",'<span class="tag">[symbiont]</span> In this repo: '+esc(FOCUS_WORDS)+". "+fmt(p.note));
+  hook("UserPromptSubmit hook · symbiont",'<span class="tag">[symbiont]</span> In this repo: '+esc(FOCUS_WORDS)+". "+fmt(p.note));
   await pause(t,6500);
-  tadd("a","Understood. I will sum the line amounts as integer cents and round once at the end before running the tests.");
+  caption("The agent reads it before it edits anything");
+  tadd("a","Understood. Amounts are integer cents here, so I will sum the line amounts as cents and round once at the end.");await pause(t,2200);
+  tadd("tool","Edit(<span class=\"cmd\">src/billing/invoice.py</span>)");await pause(t,1600);
+  tadd("tool","Bash(<span class=\"cmd\">pytest tests/test_invoice.py</span>)");await pause(t,1400);
+  tadd("out","all invoice tests passed");
   await pause(t,3500);
 }
 /* ===== demo mode: hands-free, about 80 seconds ===== */
