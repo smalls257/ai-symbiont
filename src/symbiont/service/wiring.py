@@ -17,9 +17,11 @@ from symbiont.service.events import EventLog
 from symbiont.service.memory_model import AdapterProvenance, MemoryModel
 from symbiont.service.nightly import NightlyJudges, RecallJudges
 from symbiont.service.onboarding import Lookups
+from symbiont.service.reflection import ReflectionDesk
 from symbiont.service.repo_gate import RepoGate
 from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
+from symbiont.store.reflections import ReflectionLedger
 from symbiont.store.repos import RepoRegistry
 from symbiont.store.settings import read_correction_settings
 
@@ -66,6 +68,13 @@ def open_service(
     filler = decider or Counters()
     run_dir = data_dir / "runs" / time.strftime("%Y%m%dT%H%M%SZ", time.gmtime())
     store = Store.open(data_dir / "store.db")
+    gate = RepoGate(guards.repos, guards.nightly_news, _lookups(store))
+    curation = CurationRoutes(
+        store, guards.repos, lambda: read_correction_settings(data_dir), dict(READERS)
+    )
+    curation.also_serving(
+        "reflect", ReflectionDesk(guards.repos, ReflectionLedger(data_dir), gate).ask
+    )
     parts = ServiceParts(
         store,
         filler,
@@ -75,10 +84,8 @@ def open_service(
         judge=guards.judges.first_night,
         nightly=guards.judges.nightly,
         consent=read_consent(data_dir),
-        curation=CurationRoutes(
-            store, guards.repos, lambda: read_correction_settings(data_dir), dict(READERS)
-        ),
-        gate=RepoGate(guards.repos, guards.nightly_news, _lookups(store)),
+        curation=curation,
+        gate=gate,
     )
     return Service(parts)
 

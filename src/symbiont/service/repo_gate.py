@@ -18,6 +18,7 @@ from symbiont.core.rule_relevance import (
     situation_terms,
     why_none,
 )
+from symbiont.miner.changes import passed_check
 from symbiont.miner.lesson_context import AuthoredLesson
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signature
@@ -66,6 +67,8 @@ class RepoGate:
         self._news = None if registry is None else Announcements(registry, self._lookups, nightly)
         self._nightly = nightly
         self._said: set[tuple[str, Signature]] = set()
+        self._unchecked_edits: set[str] = set()
+        self._milestones: set[str] = set()
         self._rules_said: set[tuple[str, str, str]] = set()
 
     def door(self, project: str, event: str) -> Door:
@@ -118,10 +121,23 @@ class RepoGate:
         self, session_id: str, record: Record, earlier: Sequence[Record], lessons: Sequence[Lesson]
     ) -> Spoken:
         """The exact-repeat note if the failure matches, else at most one relevant rule."""
+        self._track_milestone(session_id, record)
         exact = self.repeat(session_id, record, earlier, lessons)
         if exact is not None:
             return Spoken(exact)
         return self._rule(session_id, record, lessons)
+
+    def reached_milestone(self, session_id: str) -> bool:
+        """Whether this session edited code and a later check passed: work worth reflecting on."""
+        return session_id in self._milestones
+
+    def _track_milestone(self, session_id: str, record: Record) -> None:
+        """An edit leaves the session unchecked; the next passing check completes the milestone."""
+        if record.kind is Kind.EDIT and record.exit_code != 1:
+            self._unchecked_edits.add(session_id)
+        elif passed_check(record) and session_id in self._unchecked_edits:
+            self._unchecked_edits.discard(session_id)
+            self._milestones.add(session_id)
 
     def speaks_only_on_match(self) -> bool:
         """Whether a note needs a stored lesson with this failure's signature (plugin mode)."""
