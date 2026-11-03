@@ -1,8 +1,25 @@
 # ai-symbiont
 
+**Your coding agent keeps making the same mistake. This tells it before it happens again.**
+
 ai-symbiont reads your coding-agent history for pain points (a file reworked three times, a command
 that failed the same way twice, a correction you had to make) and gives your agent a short warning
 in plain prose before it repeats one. It runs on your computer.
+
+## Results at a glance
+
+ai-symbiont is a plugin for Muse Code, Meta's coding agent. It reads your past sessions on your own machine, finds the mistakes that came back, and shows the agent one short note in plain words at the moment it is about to repeat one. Every model run below used Muse Spark, Meta's model.
+
+- **Corrected once, never repeated (coding).** The user states three rules for a repository once. Over 18 chances across 8 new tasks, the agent broke a rule 16 times without symbiont and 0 times with it; 8 of 8 tasks came out clean with it, 0 of 8 without. A synthetic, designed task, one model, one run per task, pre-registered. [measured] [pre-registered]
+- **Habitat set the table.** A home robot in Meta's Habitat simulator set the table in 4 of 5 new episodes with symbiont's notes and 0 of 5 without. The notes came from the robot's own two failed attempts. [measured] [pre-registered]
+- **House rules.** The robot broke 30 house rules across 6 episodes without the owner's corrections and 0 across 6 with them. The corrections were scripted for the demo. [measured] [pre-registered]
+- **Freedoom.** Muse Spark plays Freedoom via ViZDoom and wrote its own rule from its failed games. Across 240 new games the rule raised the game score (0 to 1) by 0.16 against no rule. [measured] [pre-registered]
+- **Precision.** 0 wrong notes in 501 shown, on 89 open-source projects it had never seen. A plain similarity search got 9 wrong. The test bugs were planted, not made by real developers. [measured] [pre-registered]
+- **Nightly training.** Trained overnight on a project's own history, the checker caught 61% of repeated mistakes against 0% untrained, and 97.8% of what it approved was right. [measured] [pre-registered]
+
+Live landing page, with recordings and every limit: <https://smalls257.github.io/ai-symbiont/>
+Paper: <https://smalls257.github.io/ai-symbiont/paper.html>
+Demo video: (link coming)
 
 ## Install
 
