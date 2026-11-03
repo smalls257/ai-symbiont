@@ -1,2 +1,3 @@
-# The hook wrapper runs under sh; a CRLF checkout (Git for Windows default) breaks it with "\r: command not found".
-*.sh text eol=lf
+# One rule for every platform: Git for Windows would otherwise check files out with CRLF, which
+# breaks the shell scripts, byte-exact fixtures and the hashes in frozen prereg files.
+* text=auto eol=lf
