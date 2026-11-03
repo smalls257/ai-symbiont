@@ -6,10 +6,8 @@ service, so this package imports no client.
 """
 
 import argparse
-import os
 import sys
 import time
-from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -18,16 +16,19 @@ from symbiont.core.notes import happened
 from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
-from symbiont.readers import READERS
-from symbiont.readers.claude_code import session_logs
-from symbiont.readers.muse_code import session_logs as muse_session_logs
+from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
 from symbiont.service.events import last_note_event
-from symbiont.store.local import Source, Store
-from symbiont.store.mining import MiningRules, remine
+from symbiont.service.lesson_list import lesson_lines
+from symbiont.service.lesson_lookup import project_of_lesson
+from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
+from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
-from symbiont.store.settings import read_correction_settings, write_correction_setting
-
-AskService = Callable[[str, dict[str, object], int], dict[str, Any]]
+from symbiont.store.settings import (
+    read_correction_settings,
+    read_dashboard_settings,
+    write_correction_setting,
+    write_dashboard_setting,
+)
 
 
 @dataclass(frozen=True)
@@ -38,28 +39,28 @@ class Defaults:
     port: int
 
 
-class ServiceUnavailableError(ConnectionError):
-    """An `AskService` could not reach the running service; the message says where."""
-
-
-class ServiceAnswerError(RuntimeError):
-    """An `AskService` reached the service but got no usable answer; the message says why."""
-
-
+OPEN_DASHBOARD = "open_dashboard_on_mine"
 COMMANDS = frozenset(
     {"repo", "status", "why", "mute", "forget", "lessons", "context", "dashboard", "settings"}
 )
-CLAUDE_CODE_READER = "claude-code"
-MUSE_CODE_READER = "muse-code"
 
 
-def add_repo_commands(commands: Any, defaults: Defaults) -> None:
-    """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
+def _add_repo_parser(commands: Any, defaults: Defaults) -> None:
+    """Register `repo`: the answer for a repository, and mining its past sessions."""
     repo = commands.add_parser(
         "repo", help="answer for this repository: allow, decline, show, mine"
     )
     repo.add_argument("action", choices=["allow", "decline", "show", "mine", "reset"])
     repo.add_argument("--repo-dir", type=Path, default=Path.cwd())
+    repo.add_argument("--port", type=int, default=defaults.port)
+    repo.add_argument(
+        "--no-open", action="store_true", help="mine: print the dashboard address, do not open it"
+    )
+
+
+def add_repo_commands(commands: Any, defaults: Defaults) -> None:
+    """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
+    _add_repo_parser(commands, defaults)
     for name, helped in [
         ("status", "what symbiont is doing for this repository"),
         ("why", "why the last note fired"),
@@ -68,6 +69,8 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
         ("lessons", "list this repository's stored lessons with their ids"),
     ]:
         command = commands.add_parser(name, help=helped)
+        if name == "lessons":
+            command.add_argument("--all", action="store_true", help="also list dismissed lessons")
         if name == "forget":
             command.add_argument("--lesson", help="an id from `symbiont lessons`")
         if name == "status":
@@ -84,18 +87,25 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     dashboard.add_argument("--port", type=int, default=defaults.port)
     setting = commands.add_parser("settings", help="show or switch correction-finding settings")
     setting.add_argument("action", choices=["show", "set"])
-    setting.add_argument("name", nargs="?", help="claude_code, muse_code or cross_harness")
+    setting.add_argument(
+        "name", nargs="?", help=f"claude_code, muse_code, cross_harness or {OPEN_DASHBOARD}"
+    )
     setting.add_argument("value", nargs="?", choices=["true", "false"])
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
         parser.add_argument("--data-dir", type=Path, default=defaults.data_dir)
 
 
-def run_repo_command(args: argparse.Namespace, ask: AskService) -> int:
-    """Run one of COMMANDS; returns the exit code. `ask` reaches the running service."""
+def run_repo_command(args: argparse.Namespace, ask: AskService, client: MineClient) -> int:
+    """Run one of COMMANDS; returns the exit code. `ask` reaches the running service.
+
+    `client` is how `repo mine` reaches the service, the browser and the clock.
+    """
     try:
         if args.command == "status":
             return _status(args, ask)
+        if args.command == "repo" and args.action == "mine":
+            return mine_past_sessions(args, RepoRegistry(args.data_dir), client)
         return _COMMANDS[args.command](args)
     except (OSError, ValueError, LookupError) as failed:
         sys.stderr.write(f"symbiont {args.command}: {failed}\n")
@@ -103,7 +113,7 @@ def run_repo_command(args: argparse.Namespace, ask: AskService) -> int:
 
 
 def _repo(args: argparse.Namespace) -> int:
-    """Record or show the answer for the repository; `mine` learns from its past sessions."""
+    """Record or show the answer for the repository."""
     registry = RepoRegistry(args.data_dir)
     if args.action == "show":
         stance = registry.stance(args.project)
@@ -111,8 +121,6 @@ def _repo(args: argparse.Namespace) -> int:
     elif args.action == "reset":
         registry.forget_project(args.project)
         _say(f"{args.project}: forgotten; symbiont will ask again at the next session start")
-    elif args.action == "mine":
-        return _mine_past_sessions(args, registry)
     else:
         stance = RepoStance.GIVEN if args.action == "allow" else RepoStance.DECLINED
         registry.record_stance(args.project, stance)
@@ -130,36 +138,6 @@ def _answer_message(project: str, stance: RepoStance) -> str:
         "and Muse Code sessions. To find your past corrections, the model running your session "
         "reads short excerpts of past messages from the same tool's history."
     )
-
-
-def _mine_past_sessions(args: argparse.Namespace, registry: RepoRegistry) -> int:
-    """Mine this repository's Claude Code and Muse Code sessions; refuses until it is allowed."""
-    if registry.stance(args.project) is not RepoStance.GIVEN:
-        sys.stderr.write(
-            f"symbiont repo mine: run `symbiont repo allow` for {args.project} first\n"
-        )
-        return 1
-    found = {
-        CLAUDE_CODE_READER: session_logs(args.repo_dir, Path.home()),
-        MUSE_CODE_READER: muse_session_logs(args.repo_dir, _muse_store_root()),
-    }
-    if not any(found.values()):
-        _say(f"no Claude Code or Muse Code sessions found for {args.repo_dir.resolve()}")
-        return 0
-    args.data_dir.mkdir(parents=True, exist_ok=True)
-    store = Store.open(args.data_dir / "store.db")
-    sources = [
-        Source(args.project, reader, str(log)) for reader, logs in found.items() for log in logs
-    ]
-    lessons = remine(store, args.project, MiningRules(READERS, frozenset()), adding=sources)
-    counts = ", ".join(f"{len(logs)} {reader} sessions" for reader, logs in found.items())
-    _say(f"learned {len(lessons)} lessons from {counts}; they stay on this computer")
-    return 0
-
-
-def _muse_store_root() -> Path:
-    """Where Muse Code keeps its data: the XDG data directory."""
-    return Path(os.environ.get("XDG_DATA_HOME") or Path.home() / ".local" / "share")
 
 
 def _status(args: argparse.Namespace, ask: AskService) -> int:
@@ -240,11 +218,23 @@ def _mute(args: argparse.Namespace) -> int:
 def _forget(args: argparse.Namespace) -> int:
     """Delete the lessons behind the last note (or one chosen id) and keep them silenced."""
     store = Store.open(args.data_dir / "store.db")
+    if args.lesson is not None and _forgot_written(args, store):
+        return 0
     trouble = _trouble_chosen(args, store)
     deleted = store.catalog.forget(args.project, trouble)
     RepoRegistry(args.data_dir).mute(args.project, (trouble.signal.value, *trouble.key))
     _say(f"forgot {deleted} lesson(s) because {happened(trouble)}; they stay silenced if re-mined.")
     return 0
+
+
+def _forgot_written(args: argparse.Namespace, store: Store) -> bool:
+    """Delete the written lesson `--lesson` names, if it is one of this repository's."""
+    found = store.curation.find_authored(args.lesson)
+    if found is None or found[0] != args.project:
+        return False
+    store.curation.forget_authored(args.project, args.lesson)
+    _say(f"forgot the written lesson {args.lesson}: {found[1].text[:60]}")
+    return True
 
 
 def _trouble_chosen(args: argparse.Namespace, store: Store) -> Signature:
@@ -261,33 +251,47 @@ def _context(args: argparse.Namespace) -> int:
     """Store the developer's words for a lesson (an id, or "last"); says which one it picked."""
     store = Store.open(args.data_dir / "store.db")
     wanted = _newest_lesson_id(args, store) if args.lesson == "last" else args.lesson
-    found = store.catalog.find(wanted)
-    if found is None:
+    project = project_of_lesson(store, wanted)
+    if project is None:
         raise LookupError(f"no lesson {wanted}; see `symbiont lessons`")
     applies = AppliesTo(_listed(args.terms), _listed(args.areas))
     words = LessonContext(args.text.strip(), args.intentional, Priority(args.priority), applies)
-    store.contexts.save(wanted, found[0], words)
-    _say(f"saved for {wanted} ({happened(found[1].pain_point.signature)}).")
+    store.contexts.save(wanted, project, words)
+    _say(f"saved for {wanted} ({_described(store, wanted)}).")
     return 0
+
+
+def _described(store: Store, ident: str) -> str:
+    """What a lesson is about, in a clause: the trouble, or the written text."""
+    mined = store.catalog.find(ident)
+    if mined is not None:
+        return happened(mined[1].pain_point.signature)
+    written = store.curation.find_authored(ident)
+    return "written lesson: " + (written[1].text[:60] if written else ident)
 
 
 def _dashboard(args: argparse.Namespace) -> int:
     """Print the dashboard address for this repository."""
-    _say(f"http://127.0.0.1:{args.port}/dashboard?project={args.project}")
+    _say(dashboard_url(args.project, args.port))
     return 0
 
 
 def _settings(args: argparse.Namespace) -> int:
-    """Show, or switch, which histories the session's model may read for correction finding."""
+    """Show, or switch, the correction-finding histories and whether mining opens the dashboard."""
     if args.action == "set":
         if args.name is None or args.value is None:
             raise ValueError("settings set needs a name and true or false")
-        write_correction_setting(args.data_dir, args.name, value=args.value == "true")
+        switched = args.value == "true"
+        if args.name == OPEN_DASHBOARD:
+            write_dashboard_setting(args.data_dir, open_on_mine=switched)
+        else:
+            write_correction_setting(args.data_dir, args.name, value=switched)
     current = read_correction_settings(args.data_dir)
     _say(
         f"corrections: claude_code={current.claude_code} muse_code={current.muse_code} "
         f"cross_harness={current.cross_harness}"
     )
+    _say(f"dashboard: open_dashboard_on_mine={read_dashboard_settings(args.data_dir).open_on_mine}")
     return 0
 
 
@@ -305,19 +309,31 @@ def _newest_lesson_id(args: argparse.Namespace, store: Store) -> str:
         if store.catalog.find(behind) is not None:
             return behind
     lessons = store.lessons(args.project)
-    if not lessons:
+    if lessons:
+        return lesson_id(lessons[-1])
+    written = store.curation.authored(args.project)
+    if not written:
         raise LookupError(f"{args.project} has no stored lessons; try `symbiont repo mine`")
-    return lesson_id(lessons[-1])
+    return written[-1].ident
 
 
 def _lessons(args: argparse.Namespace) -> int:
-    """One line per stored lesson: its id and what happened."""
+    """One line per active lesson, mined or written: id, source and what it says.
+
+    Dismissed (silenced) lessons are hidden unless `--all`, which flags them.
+    """
     store = Store.open(args.data_dir / "store.db")
-    lessons, words = store.lessons(args.project), store.contexts.all(args.project)
-    for lesson in lessons:
-        mark = "  [your words added]" if lesson_id(lesson) in words else ""
-        _say(f"{lesson_id(lesson)}  {happened(lesson.pain_point.signature)}{mark}")
-    if not lessons:
+    lines = lesson_lines(store, args.project)
+    shown = [line for line in lines if args.all or not line.dismissed]
+    for line in shown:
+        flags = ("  [dismissed]" if line.dismissed else "") + (
+            "  [your words added]" if line.has_words else ""
+        )
+        _say(f"{line.ident}  {line.source:<10}  {line.text}{flags}")
+    hidden = len(lines) - len(shown)
+    if hidden:
+        _say(f"{hidden} dismissed lesson(s) hidden; `symbiont lessons --all` shows them")
+    if not lines:
         _say(f"no stored lessons for {args.project}; try `symbiont repo mine`")
     return 0
 

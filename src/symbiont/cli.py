@@ -18,8 +18,9 @@ from symbiont.delivery.install.transaction import (
     install,
     uninstall,
 )
-from symbiont.delivery.launch import DEFAULT_DATA_DIR
+from symbiont.delivery.launch import DEFAULT_DATA_DIR, patient_call
 from symbiont.delivery.mcp_server import serve_stdio
+from symbiont.delivery.open_page import open_in_browser
 from symbiont.delivery.recall import (
     ServiceOfflineError,
     ServiceRefusedError,
@@ -30,13 +31,13 @@ from symbiont.delivery.recall import (
 from symbiont.readers import READERS
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.service.app import ServiceMode
+from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
+from symbiont.service.mine_command import MineClient, OpenPage
 from symbiont.service.nightly import NightlyJudges, RecallJudges
 from symbiont.service.operator_commands import (
     COMMANDS,
     Defaults,
-    ServiceAnswerError,
-    ServiceUnavailableError,
     add_repo_commands,
     run_repo_command,
 )
@@ -57,11 +58,21 @@ INSTALLERS = {"muse_code": muse_code_install, "claude_code": claude_code_install
 HARNESSES = sorted(INSTALLERS)
 
 
-def main(argv: Sequence[str] | None = None) -> int:
-    """Run one subcommand; returns the exit code."""
+def main(
+    argv: Sequence[str] | None = None,
+    *,
+    open_page: OpenPage = open_in_browser,
+    mine_ask: AskService | None = None,
+) -> int:
+    """Run one subcommand; returns the exit code.
+
+    `open_page` opens the dashboard when mining starts and `mine_ask` reaches the service for
+    `repo mine` (default: start it if it is down); tests inject both.
+    """
     args = _parser().parse_args(argv)
     if args.command in COMMANDS:
-        return run_repo_command(args, _ask_service)
+        ask = mine_ask or _ask_starting_service(args)
+        return run_repo_command(args, _ask_service, MineClient(ask, open_page))
     if args.command == "serve":
         return _serve(args)
     if args.command == "mcp":
@@ -170,6 +181,23 @@ def _add_hook_commands(commands: Any) -> None:
             "--notes", type=NoteStyle, choices=list(NoteStyle), default=NoteStyle.PLAIN
         )
     commands.choices["install"].add_argument("--yes", action="store_true", help="skip the prompt")
+
+
+def _ask_starting_service(args: argparse.Namespace) -> AskService:
+    """Ask the service for `repo mine`, starting it when it is down: mining needs it to be up."""
+    data_dir = getattr(args, "data_dir", DEFAULT_DATA_DIR)
+    patient = patient_call(data_dir)
+
+    def ask(route: str, body: dict[str, object], port: int) -> dict[str, Any]:
+        """Call the service; its two failures become the operator commands' errors."""
+        try:
+            return patient(route, body, port)
+        except ServiceOfflineError as offline:
+            raise ServiceUnavailableError(str(offline)) from offline
+        except (ServiceRefusedError, ServiceReplyError) as unusable:
+            raise ServiceAnswerError(str(unusable)) from unusable
+
+    return ask
 
 
 def _ask_service(route: str, body: dict[str, object], port: int) -> dict[str, Any]:

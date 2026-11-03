@@ -14,9 +14,8 @@ from symbiont.core.note_rules import may_speak
 from symbiont.core.notes import NoteKind, render, render_lesson
 from symbiont.core.recall import relevant_lessons
 from symbiont.core.repeat import RepeatNote, failed_now
-from symbiont.core.slot import NO_HISTORY, Decider, Decision, Outcome, Situation
+from symbiont.core.slot import NO_HISTORY, Decider, Decision, Situation
 from symbiont.miner.lessons import Lesson
-from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.secrets import scrub
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
@@ -30,12 +29,15 @@ from symbiont.service.dashboard_page import Page, dashboard_page
 from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.follow_up import FollowUp
 from symbiont.service.judge_model import JudgeModel
+from symbiont.service.learned_outcomes import replay_into_decider
 from symbiont.service.memory_model import (
     MemoryModel,
     MemoryModelOfflineError,
     MemoryReply,
     may_answer_spark,
 )
+from symbiont.service.mine_route import MineRoutes, progress_path
+from symbiont.service.mining_jobs import MiningJobs, NoMiningJobError
 from symbiont.service.nightly import NightlyJudges
 from symbiont.service.repo_gate import Door, RepoGate
 from symbiont.service.request_shapes import (
@@ -44,6 +46,7 @@ from symbiont.service.request_shapes import (
     hook_of,
     named_project,
     observed,
+    percent_decoded,
     project_of,
     require_keys,
     source_of,
@@ -128,13 +131,26 @@ class Service:
         self._one_call_at_a_time = threading.Lock()
         self._follow_up = FollowUp(parts.events)
         self._agreed = AgreedRecall(parts, self._follow_up)
+        self._jobs = MiningJobs()
+        self._mining = MineRoutes(parts, self._jobs, self._one_call_at_a_time)
 
     def page(self, target: str) -> Page:
-        """Answer a GET: the dashboard and its files."""
+        """Answer a GET: the dashboard and its files, and a mining job's progress."""
+        project = progress_path(target)
+        if project is not None:
+            return self._mining.progress_page(percent_decoded(project))
         with self._one_call_at_a_time:
             return dashboard_page(
-                self._parts.store, self._parts.gate.registry, target, date.today()
+                self._parts.store,
+                self._parts.gate.registry,
+                target,
+                date.today(),
+                self._jobs.progress,
             )
+
+    def wait_for_mining(self, project: str, timeout_s: float) -> None:
+        """Block until `project`'s mining job ends or the timeout passes; for tests and shutdown."""
+        self._jobs.wait(project, timeout_s)
 
     def respond(self, route: str, payload: Any) -> Response:
         """Answer one request; a refusal is a status plus a reason, and an event."""
@@ -149,6 +165,8 @@ class Service:
             "observe": self._observe,
             "recall": self._recall,
             "learn": self._learn,
+            "mine": lambda request, call: Response(200, self._mining.start(request, call)),
+            "mine/progress": lambda request, _: Response(200, self._mining.progress(request)),
             "status": lambda request, call: _status(self._parts, self._lessons, request),
         }
         if self._parts.curation is not None:
@@ -165,7 +183,7 @@ class Service:
             return routes[name](as_object(payload), call)
         except BadRequestError as exc:
             return self._refuse(call, 400, str(exc))
-        except UnknownLessonError as exc:
+        except (UnknownLessonError, NoMiningJobError) as exc:
             return self._refuse(call, 404, str(exc))
         except (SparkPrivacyViolationError, SparkWithheldError):
             return self._refuse(call, 409, SPARK_WITHHELD)
@@ -294,22 +312,12 @@ class Service:
             remine_with_read(parts.store, source.project, rules, {source: records})
         except (OSError, ReadError, UnknownReaderError) as exc:
             raise BadRequestError(f"cannot read the session log: {exc}") from exc
-        learned = self._learn_project(source.project, records)
+        history = tuple(parts.store.pain_points(source.project))
+        learned, self._state = replay_into_decider(
+            parts.decider, self._state, history, source.project, records
+        )
         parts.events.append(call, None, [], [f"learned from {learned} steps"])
         return Response(200, {"learned_steps": learned})
-
-    def _learn_project(self, project: str, records: list[Record]) -> int:
-        """Replay one project's records through the decider; returns the count learned."""
-        decider = self._parts.decider
-        history = tuple(self._parts.store.pain_points(project))
-        troubles = _troubles_by_step(list(history), records)
-        mine = [r for r in records if r.project == project]
-        for i, record in enumerate(mine):
-            situation = Situation(project, tuple(mine[: i + 1]), history, ())
-            x = featurise(situation)
-            for outcome in _outcomes(record, troubles):
-                self._state = decider.learn(x, outcome, self._state)
-        return len(mine)
 
 
 def _ok_route(handler: Callable[[dict[str, Any]], dict[str, Any]]) -> _Route:
@@ -366,35 +374,3 @@ def _refuse_untraceable(decision: Decision, lessons: Sequence[Lesson]) -> None:
         raise SparkWithheldError
     if decision.recall or any(pain not in backed for pain in decision.why):
         raise SparkWithheldError
-
-
-def _outcomes(record: Record, troubles: dict[tuple[str, int], list[PainPoint]]) -> list[Outcome]:
-    """What followed a record: the pain points it hit, or a plain no-trouble outcome."""
-    found = troubles.get((record.session_id, record.step), [])
-    if not found:
-        return [
-            Outcome(
-                pain_point_followed=False,
-                signature=None,
-                session_id=record.session_id,
-                step=record.step,
-            )
-        ]
-    return [
-        Outcome(
-            pain_point_followed=True, signature=p.signature, session_id=p.session_id, step=p.step
-        )
-        for p in found
-    ]
-
-
-def _troubles_by_step(
-    mined: list[PainPoint], records: list[Record]
-) -> dict[tuple[str, int], list[PainPoint]]:
-    """Pain points mined from the given sessions, keyed by (session, step)."""
-    sessions = {r.session_id for r in records}
-    by_step: dict[tuple[str, int], list[PainPoint]] = {}
-    for pain in mined:
-        if pain.session_id in sessions:
-            by_step.setdefault((pain.session_id, pain.step), []).append(pain)
-    return by_step

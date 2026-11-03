@@ -6,6 +6,7 @@ Payload: {text, intentional, priority, applies_to}; `project`, if given, must ma
 from typing import Any
 
 from symbiont.miner.lesson_context import LessonContext, Priority, ReviewOverride
+from symbiont.service.lesson_lookup import project_of_lesson
 from symbiont.service.request_shapes import (
     BadRequestError,
     parse_applies,
@@ -34,14 +35,14 @@ def save_context(store: Store, lesson_id: str, request: dict[str, Any]) -> dict[
     """Store the words for a lesson; raises UnknownLessonError or BadRequestError."""
     require_keys(request, FIELDS, frozenset({"text"}))
     context = _context_of(request)
-    found = store.catalog.find(lesson_id)
-    if found is None or request.get("project", found[0]) != found[0]:
+    project = project_of_lesson(store, lesson_id)
+    if project is None or request.get("project", project) != project:
         raise UnknownLessonError(f"no lesson {lesson_id}")
-    store.contexts.save(lesson_id, found[0], context)
+    store.contexts.save(lesson_id, project, context)
     answer = _override_of(request)
     if answer is not None:
-        store.contexts.save_override(lesson_id, found[0], answer)
-    return {"lesson": lesson_id, "project": found[0]}
+        store.contexts.save_override(lesson_id, project, answer)
+    return {"lesson": lesson_id, "project": project}
 
 
 def _override_of(request: dict[str, Any]) -> ReviewOverride | None:

@@ -99,3 +99,38 @@ def test_the_port_the_service_listens_on_is_the_port_the_clients_use():
     from symbiont.egress.policy import LOCAL_SERVICE_PORT
 
     assert server.SERVICE_PORT == LOCAL_SERVICE_PORT
+
+
+def test_a_command_the_developer_waits_on_starts_a_down_service_and_waits_for_it(
+    tmp_path, monkeypatch
+):
+    httpd = listening(tmp_path)
+    port = httpd.server_address[1]
+    real_call = launch.call_service
+    started = []
+
+    def down_until_started(route, body, at, timeout_s=10.0):
+        if not started:
+            raise launch.ServiceUnreachableError("nothing listening")
+        return real_call(route, body, at, timeout_s)
+
+    monkeypatch.setattr(launch, "call_service", down_until_started)
+    monkeypatch.setattr(launch, "start_service", lambda data_dir, at: started.append(at))
+    try:
+        reply = launch.patient_call(tmp_path / "home", 5.0)("/recall", recall_body(), port)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+    assert reply["answer"] == "no history for this project yet"
+
+
+def test_a_service_that_never_comes_up_is_offline_after_the_wait(tmp_path, monkeypatch):
+    def down(route, body, at, timeout_s=10.0):
+        raise launch.ServiceUnreachableError("nothing listening")
+
+    monkeypatch.setattr(launch, "call_service", down)
+    monkeypatch.setattr(launch, "POLL_S", 0.0)
+
+    with pytest.raises(ServiceOfflineError, match="still starting"):
+        launch.patient_call(tmp_path / "home", 0.05)("/mine", {}, 1)

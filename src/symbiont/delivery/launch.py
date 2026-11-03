@@ -18,6 +18,8 @@ DEFAULT_DATA_DIR = Path.home() / ".symbiont"
 # Hook latency budget: a reachable service answers well inside this; the harness timeout is 2 s.
 HOOK_TIMEOUT_S = 0.6
 START_WAIT_S = 0.9
+# A developer running a command can wait for a cold start (numpy and the readers import first).
+PATIENT_WAIT_S = 15.0
 POLL_S = 0.05
 # A service that was started and still is not answering is not started again for this long.
 RETRY_AFTER_S = 30.0
@@ -37,6 +39,24 @@ def reviving_call(data_dir: Path, port: int = LOCAL_SERVICE_PORT) -> ServiceCall
                 raise ServiceOfflineError(f"{down}; see {data_dir / SERVICE_LOG}") from down
             start_service(data_dir, at)
             return _after_start(route, body, at, data_dir)
+
+    return call
+
+
+def patient_call(data_dir: Path, wait_s: float = PATIENT_WAIT_S) -> ServiceCall:
+    """A `ServiceCall` for a command a developer is waiting on: it starts a down service and waits.
+
+    A hook may not wait for a cold start; `symbiont repo mine` can, because opening the dashboard
+    needs the service that owns the mining job. Raises ServiceOfflineError after `wait_s`.
+    """
+
+    def call(route: str, body: dict[str, object], at: int) -> dict[str, object]:
+        """Call the service; on a down one, start it once and wait for it."""
+        try:
+            return call_service(route, body, at)
+        except ServiceUnreachableError:
+            start_service(data_dir, at)
+            return _after_start(route, body, at, data_dir, wait_s)
 
     return call
 
@@ -61,10 +81,10 @@ def start_service(data_dir: Path, port: int) -> None:
 
 
 def _after_start(
-    route: str, body: dict[str, object], port: int, data_dir: Path
+    route: str, body: dict[str, object], port: int, data_dir: Path, wait_s: float = START_WAIT_S
 ) -> dict[str, object]:
     """Poll until the freshly started service answers, or raise ServiceOfflineError."""
-    deadline = time.monotonic() + START_WAIT_S
+    deadline = time.monotonic() + wait_s
     while time.monotonic() < deadline:
         try:
             return call_service(route, body, port, HOOK_TIMEOUT_S)

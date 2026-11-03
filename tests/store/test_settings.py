@@ -6,7 +6,9 @@ from symbiont.store.settings import (
     CorrectionSettings,
     SettingsFileError,
     read_correction_settings,
+    read_dashboard_settings,
     write_correction_setting,
+    write_dashboard_setting,
 )
 
 pytestmark = pytest.mark.periphery
@@ -38,3 +40,22 @@ def test_a_malformed_or_unknown_setting_raises(tmp_path):
         read_correction_settings(tmp_path)
     with pytest.raises(SettingsFileError, match="unknown"):
         write_correction_setting(tmp_path / "x", "nope", value=True)
+
+
+def test_opening_the_dashboard_on_mine_is_on_until_switched_off_and_sections_do_not_clobber(
+    tmp_path,
+):
+    assert read_dashboard_settings(tmp_path).open_on_mine is True
+
+    write_correction_setting(tmp_path, "cross_harness", value=True)
+    write_dashboard_setting(tmp_path, open_on_mine=False)
+    write_correction_setting(tmp_path, "muse_code", value=False)
+
+    assert read_dashboard_settings(tmp_path).open_on_mine is False
+    assert read_correction_settings(tmp_path).cross_harness is True
+
+
+def test_a_malformed_dashboard_setting_raises(tmp_path):
+    (tmp_path / "settings.json").write_text('{"dashboard": {"open_on_mine": "no"}}')
+    with pytest.raises(SettingsFileError, match="settings.json"):
+        read_dashboard_settings(tmp_path)

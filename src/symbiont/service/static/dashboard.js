@@ -11,6 +11,7 @@ const KINDS={
 };
 const DEMO=new URLSearchParams(location.search).get("demo")==="1";
 const DATA=window.SYMBIONT_DATA||JSON.parse(document.getElementById("symbiont-data").textContent);
+if(DATA.mining){window.SymbiontMining.run(DATA.mining);return;}
 
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const N=DATA.sessions.length;

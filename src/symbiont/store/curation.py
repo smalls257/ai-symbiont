@@ -55,6 +55,28 @@ class Curation:
             for row in rows
         ]
 
+    def find_authored(self, wanted: str) -> tuple[str, AuthoredLesson] | None:
+        """(project, lesson) for the written lesson with id `wanted`, or None."""
+        for project in self._db.execute("SELECT DISTINCT project FROM authored").fetchall():
+            for item in self.authored(project[0]):
+                if item.ident == wanted:
+                    return project[0], item
+        return None
+
+    def forget_authored(self, project: str, ident: str) -> bool:
+        """Delete a written lesson and the words and answers kept for it; False if none matched."""
+        with self._db:
+            gone = self._db.execute(
+                "DELETE FROM authored WHERE project=? AND id=?", (project, ident)
+            ).rowcount
+            self._db.execute(
+                "DELETE FROM contexts WHERE project=? AND lesson_id=?", (project, ident)
+            )
+            self._db.execute(
+                "DELETE FROM review_overrides WHERE project=? AND lesson_id=?", (project, ident)
+            )
+        return gone > 0
+
     def save_review(self, project: str, lesson_id: str, review: Review) -> None:
         """Store the verdict for a mined lesson."""
         with self._db:

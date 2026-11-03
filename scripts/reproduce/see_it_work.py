@@ -212,6 +212,9 @@ def teach_from_the_recorded_session(rig: Rig) -> None:
         str(rig.work),
         "--data-dir",
         str(rig.data),
+        "--port",
+        str(DEMO_PORT),
+        "--no-open",
     )
     say(f"     $ symbiont repo mine\n     {mined.strip()}")
     lessons = symbiont(rig, "lessons", "--project", PROJECT, "--data-dir", str(rig.data))

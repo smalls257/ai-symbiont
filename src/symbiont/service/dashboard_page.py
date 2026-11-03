@@ -1,13 +1,17 @@
 """GET /dashboard: the page, filled from the repository's store, and its two static files."""
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 from symbiont.core.rule_relevance import situation_terms
+from symbiont.miner.lessons import Lesson
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
 from symbiont.service.effective_context import effective_contexts
+from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry
@@ -15,6 +19,7 @@ from symbiont.store.repos import RepoRegistry
 STATIC = Path(__file__).parent / "static"
 PLACEHOLDER = "__SYMBIONT_DATA__"
 FILES = {
+    "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
 }
@@ -31,8 +36,18 @@ class Page:
     body: bytes
 
 
-def dashboard_page(store: Store, registry: RepoRegistry | None, target: str, today: date) -> Page:
-    """The response for a GET of `target` (a path with an optional query)."""
+def dashboard_page(
+    store: Store,
+    registry: RepoRegistry | None,
+    target: str,
+    today: date,
+    mining: Callable[[str], MiningProgress | None] = lambda project: None,
+) -> Page:
+    """The response for a GET of `target` (a path with an optional query).
+
+    While a project's mining runs, or when it failed or found nothing, the page is the Mine stage
+    alone, filled from the job's progress: never a dashboard of nothing.
+    """
     path, _, query = target.partition("?")
     if path in FILES:
         name, content_type = FILES[path]
@@ -42,10 +57,30 @@ def dashboard_page(store: Store, registry: RepoRegistry | None, target: str, tod
     chosen = _query(query).get("project")
     known = store.catalog.projects()
     project = chosen or (known[0] if len(known) == 1 else None)
+    progress = mining(project) if project else None
+    if project and progress is not None and _still_mining(progress, store.lessons(project)):
+        return Page(200, HTML, _mining_html(project, progress))
     if project is None:
         listing = ", ".join(known) or "none yet; run `symbiont repo mine`"
         return Page(400, TEXT, f"choose a repository with ?project=NAME. Known: {listing}".encode())
     return Page(200, HTML, _html(store, project, today, _focus_terms(registry, project)))
+
+
+def _still_mining(progress: MiningProgress, lessons: list[Lesson]) -> bool:
+    """Whether the Mine stage, not the pain-point view, is what the page must show."""
+    return progress.state is not MiningState.DONE or not lessons
+
+
+def _mining_html(project: str, progress: MiningProgress) -> bytes:
+    """The page with the mining job where the dashboard's data goes; mining.js takes over."""
+    return _page_filled_with({"mining": {"project": project, "progress": progress.as_json()}})
+
+
+def _page_filled_with(data: dict[str, Any]) -> bytes:
+    """The page with `data` injected where the contract says (one JSON object, script-safe)."""
+    safe = json.dumps(data).replace("</", "<\\/")
+    page = (STATIC / "dashboard.html").read_text(encoding="utf-8")
+    return page.replace(PLACEHOLDER, safe).encode()
 
 
 def _query(query: str) -> dict[str, str]:
@@ -66,9 +101,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str]) -> byt
         focus,
         frozenset(store.contexts.all(project)) - frozenset(store.contexts.overrides(project)),
     )
-    safe = json.dumps(dashboard_snapshot(view, today)).replace("</", "<\\/")
-    page = (STATIC / "dashboard.html").read_text(encoding="utf-8")
-    return page.replace(PLACEHOLDER, safe).encode()
+    return _page_filled_with(dashboard_snapshot(view, today))
 
 
 def _session_dates(store: Store, project: str) -> dict[str, date]:

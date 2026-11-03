@@ -9,6 +9,8 @@ from symbiont.miner.lesson_context import AppliesTo
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.store.local import Source
 
+MINE_KEYS = frozenset({"project", "sources"})
+
 
 class BadRequestError(ValueError):
     """A request that does not have the shape its route takes."""
@@ -72,6 +74,22 @@ def source_of(request: dict[str, Any]) -> Source:
     if not all(isinstance(value, str) for value in (reader, path, project)):
         raise BadRequestError("reader, session_log_path and project must be text")
     return Source(project, reader, path)
+
+
+def mine_request_of(request: dict[str, Any]) -> tuple[str, list[Source]]:
+    """The project and the logs a `/mine` request names (`sources`: [[reader, path], ...])."""
+    require_keys(request, MINE_KEYS, MINE_KEYS)
+    project, listed = request["project"], request["sources"]
+    if not (isinstance(project, str) and isinstance(listed, list) and listed):
+        raise BadRequestError("mine takes a project and a non-empty list of [reader, path] pairs")
+    if not all(_is_text_pair(pair) for pair in listed):
+        raise BadRequestError("every source must be a [reader, path] pair of text")
+    return project, [Source(project, reader, path) for reader, path in listed]
+
+
+def _is_text_pair(value: Any) -> bool:
+    """A list of exactly two strings."""
+    return isinstance(value, list) and len(value) == 2 and all(isinstance(x, str) for x in value)
 
 
 def named_project(request: dict[str, Any]) -> str:

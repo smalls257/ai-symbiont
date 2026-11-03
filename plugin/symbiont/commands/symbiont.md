@@ -22,7 +22,7 @@ one or two plain sentences. Never invent output; if a command fails, quote its m
 | `settings` | `symbiont settings show` | which histories the session's model may read when looking for corrections |
 | `allow` | `symbiont repo allow` | switch symbiont on for this repository |
 | `decline` | `symbiont repo decline` | keep symbiont off for this repository |
-| `mine` | `symbiont repo mine` | learn from this repository's past agent sessions (needs `allow` first) |
+| `mine` | `symbiont repo mine` | learn from this repository's past agent sessions (needs `allow` first); it opens the dashboard on the live progress and prints the address (`--no-open` skips the browser; `symbiont settings set open_dashboard_on_mine false` turns it off) |
 
 When the developer points you at notes, reports or lessons they keep, read what they point to, decide in your own words what is worth keeping, and call `symbiont_add_lessons`. When symbiont asks you to review pain points or look for corrections, call `symbiont_review_candidates` or `symbiont_correction_candidates`, judge each item yourself, and save with `symbiont_save_reviews` or `symbiont_save_corrections`. symbiont makes no model calls of its own.
 
