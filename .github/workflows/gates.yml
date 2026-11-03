@@ -104,3 +104,30 @@ jobs:
         env:
           SYMBIONT_GATE_BASE: ${{ steps.base.outputs.base }}
         run: scripts/gates/run.sh full
+
+  # Windows support is a claim only a Windows run can keep (owner-approved gate addition). The
+  # suite is the same one, with no skips: POSIX-only behavior has a Windows counterpart test.
+  # Prevents Paper Tiger (a "works on Windows" README with nothing running there). The Linux
+  # `gates` job stays the one definition of green for lint, secrets and architecture.
+  windows:
+    name: tests (windows)
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.9.28"
+
+      - name: Install dev dependencies
+        run: uv sync --group dev
+
+      - name: Run the test suite
+        run: uv run pytest -q

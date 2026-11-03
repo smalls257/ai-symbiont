@@ -1,0 +1,2 @@
+# The hook wrapper runs under sh; a CRLF checkout (Git for Windows default) breaks it with "\r: command not found".
+*.sh text eol=lf
