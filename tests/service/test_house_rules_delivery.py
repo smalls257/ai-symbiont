@@ -95,7 +95,9 @@ def test_a_correction_without_terms_reaches_an_unrelated_first_prompt_once_per_s
 
     first = rig.prompt(UNRELATED_PROMPT)
 
-    assert first == [f"[symbiont] House rules you gave in this repo: {SEALS}"]
+    assert first == [
+        f"[symbiont] House rules for this repo (from your corrections and PR reviews): {SEALS}"
+    ]
     assert rig.prompt("and the footer too", session_id="s1") == []
     assert rig.prompt(UNRELATED_PROMPT, session_id="s2") == first
 

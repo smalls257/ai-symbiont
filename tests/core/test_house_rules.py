@@ -132,7 +132,7 @@ def test_the_standing_sentence_is_plain_prose_without_scores():
     said = standing_sentence(standing_corrections(corrections(2), frozenset()))
 
     assert said == (
-        "[symbiont] House rules you gave in this repo: "
+        "[symbiont] House rules for this repo (from your corrections and PR reviews): "
         "House rule number 1 about parcel weight. House rule number 0 about parcel weight."
     )
 
@@ -172,3 +172,65 @@ def test_mined_rules_have_no_kind_and_are_never_retired_or_standing():
 
     assert retired_by_corrections([plain]) == {}
     assert standing_corrections([plain], frozenset()) == []
+
+
+PR = "https://github.com/acme/parcels/pull/412"
+DUCKDB_RULING = "Do not copy properties inside a generator sub-method; generate copies once."
+
+
+def test_a_review_ruling_saved_as_a_rule_stands_like_a_correction():
+    ruling = written("pr", DUCKDB_RULING, LessonKind.RULE, source_url=PR)
+    plain = written("plain", "Reprints reuse the old total.", LessonKind.RULE)
+
+    said = standing_corrections(rules(plain, ruling), frozenset())
+
+    assert [rule.ident for rule in said] == ["pr"]
+
+
+def test_a_pr_linked_mistake_from_ci_is_not_a_house_rule():
+    from_ci = written("ci", "The lint job failed.", LessonKind.MISTAKE, source_url=PR)
+
+    assert standing_corrections(rules(from_ci), frozenset()) == []
+
+
+def test_the_developers_own_corrections_come_before_pr_rulings_then_newest_first():
+    items = [
+        written("own-old", "Weigh every box twice.", LessonKind.CORRECTION),
+        written("pr-old", "Seal cartons before labeling.", LessonKind.RULE, source_url=PR),
+        written("own-new", "Tape seams are billed per roll.", LessonKind.CORRECTION),
+        written("pr-new", DUCKDB_RULING, LessonKind.CORRECTION, source_url=PR),
+        written("pr-newest", "Pallets ship on Mondays.", LessonKind.RULE, source_url=PR),
+    ]
+
+    said = standing_corrections(rules(*items), frozenset())
+
+    assert [rule.ident for rule in said] == ["own-new", "own-old", "pr-newest"]
+
+
+def test_a_later_user_correction_still_retires_an_older_review_ruling():
+    items = [
+        written("pr", REFLECTION, LessonKind.RULE, source_url=PR),
+        written("fix", CORRECTION, LessonKind.CORRECTION),
+    ]
+
+    assert set(retired_by_corrections(rules(*items))) == {"pr"}
+
+
+def test_a_pr_correction_does_not_retire_an_older_ruling_from_another_pull_request():
+    other = "https://github.com/acme/parcels/pull/413"
+    items = [
+        written(
+            "copy",
+            "Do not copy label rows in the carrier sub-method.",
+            LessonKind.RULE,
+            source_url=PR,
+        ),
+        written(
+            "guard",
+            "Do not add a carrier null guard around label rows.",
+            LessonKind.CORRECTION,
+            source_url=other,
+        ),
+    ]
+
+    assert retired_by_corrections(rules(*items)) == {}

@@ -58,6 +58,13 @@ class Rule:
     lesson: Lesson | None = None
     # Set for written lessons only: a user correction is told apart from a model's reflection.
     kind: LessonKind | None = None
+    # The pull request a written lesson was learned from; a ruling there is the team's word.
+    source_url: str = ""
+
+    @property
+    def is_pr_ruling(self) -> bool:
+        """Whether a PR review taught this lesson, whatever kind it was saved as."""
+        return bool(self.source_url)
 
 
 @dataclass(frozen=True)
@@ -104,7 +111,10 @@ def rules_of(
         own = contexts.get(item.ident)
         if own is not None and own.intentional:
             continue
-        rules.append(Rule(item.ident, _written_words(item, own), item.files, kind=item.kind))
+        words = _written_words(item, own)
+        rules.append(
+            Rule(item.ident, words, item.files, kind=item.kind, source_url=item.source_url)
+        )
     return rules
 
 
@@ -136,6 +146,33 @@ def relevant_rules(
     )
     matches = [match for rule in rules if (match := _match(rule, situation)) is not None]
     return sorted(matches, key=lambda item: (_RANK[item.rule.words.priority], -item.strength))
+
+
+def file_scoped_rules(files: Sequence[str], rules: Sequence[Rule]) -> list[RuleMatch]:
+    """Rules whose own file was just touched, relative or absolute, by whole trailing path parts."""
+    matches = []
+    for rule in rules:
+        mine = next((own for own in rule.files if _is_one_of(own, files)), None)
+        if mine is not None:
+            matches.append(RuleMatch(rule, f"file: {mine} (+{FILE_WEIGHT})", FILE_WEIGHT))
+    return sorted(matches, key=lambda item: _RANK[item.rule.words.priority])
+
+
+def _is_one_of(own: str, touched: Sequence[str]) -> bool:
+    """Whether `own` is the same file as one of `touched`, by whole trailing path parts."""
+    mine = _slashed(own)
+    return any(_ends_with_parts(_slashed(path), mine) for path in touched)
+
+
+def _slashed(path: str) -> str:
+    """The path with forward slashes and no leading `./`."""
+    return path.replace("\\", "/").removeprefix("./")
+
+
+def _ends_with_parts(path: str, mine: str) -> bool:
+    """Whether one path is the other or ends with it after a `/`: a short form of the same file."""
+    longer, shorter = (path, mine) if len(path) >= len(mine) else (mine, path)
+    return bool(shorter) and (longer == shorter or longer.endswith("/" + shorter))
 
 
 def why_none(rules: Sequence[Rule]) -> str:
