@@ -31,6 +31,15 @@ code,.mono{font-family:var(--mono)}
 .abstract{max-width:46rem;border-left:3px solid var(--vi);padding:.2rem 0 .2rem 1.4rem;margin:0 0 3rem;font-size:1.12rem;line-height:1.7}
 .abstract b{color:var(--vi)}
 .abstract .tags{display:block;margin-top:.6rem}
+.progress .track{margin-top:2rem}
+.progress h3{font-size:1.2rem;margin-bottom:.4rem}
+.progress .track>p{color:var(--mu);max-width:48rem;margin-bottom:1rem}
+.progress .clips{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.progress figure{margin:0}
+.progress video{width:100%;aspect-ratio:16/9;background:#05060c;border:1px solid var(--line);border-radius:.6rem;display:block}
+.progress figcaption{margin-top:.4rem;font-size:.88rem;color:var(--mu)}
+.progress .fallback{font-size:.88rem;color:var(--mu);margin-top:.6rem}
+@media (max-width:52rem){.progress .clips{grid-template-columns:1fr}}
 /* top bar */
 .top{display:flex;align-items:center;gap:1.5rem;padding:1rem 0;border-bottom:1px solid var(--line)}
 .brand{font-weight:700;font-size:1.25rem;color:var(--or)}
@@ -145,6 +154,22 @@ footer p+p{margin-top:.4rem}
     <li><h3>Review and add context</h3><p>You see where the turns went, open the costliest lessons, add what only you know, set a priority, or mark one intentional so it goes quiet.</p></li>
     <li><h3>Note at the right moment</h3><p>When the agent is about to repeat a known mistake, it gets one short note in domain prose, written for the model reading it.</p></li>
   </ol>
+</section>
+
+<section id="progress" class="progress">
+  <h2>Progress</h2>
+  <p class="sub">Two tracks, one idea: a note that arrives at the right moment. Clips are real runs.</p>
+  <div class="track">
+    <h3>Freedoom via ViZDoom: the model writes its own rule</h3>
+    <p>Same agent, same map. On the right, Muse Spark plays with a rule it wrote from its own failures: exit reached in 9 decisions vs none in 32 (one game shown). Across 240 fresh held-out cases: +0.16 on the held-out game score, replicated <span class="tag">[measured]</span> Pre-registered. Exits reached: a tie <span class="tag">[measured]</span> 5 of 6 rules Spark proposed failed testing; this one survived.</p>
+    <div class="clips"><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-rule-vs-no-rule-OB0011.mp4"></video><figcaption>Without the rule (left) and with it (right), one game</figcaption></figure><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/freedoom-spark-rule-decisions.mp4"></video><figcaption>The decisions behind that game</figcaption></figure></div>
+  </div>
+  <div class="track">
+    <h3>Coding: a live ledger</h3>
+    <p>Live runs on a designed multi-currency ledger: with symbiont 6 of 6 passed vs 2 of 6 without <span class="tag exp">[measured]</span> Exploratory, 6 pairs, one model (Glimmer 30B). In the pre-registered test, symbiont showed 501 notes and none were wrong <span class="tag">[measured]</span> After nightly training on the repo's history, the judge approved 61% of repeats at 97.8% precision; untrained, it vetoed every note <span class="tag">[measured]</span></p>
+    <div class="clips"><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-split.mp4"></video><figcaption>With symbiont and without, side by side</figcaption></figure><figure><video controls muted playsinline preload="metadata" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/coding-live-ledger-note.mp4"></video><figcaption>The note arriving before the repeat</figcaption></figure></div>
+  </div>
+  <p class="fallback">If a clip does not play in your browser, the files are on the <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">release page</a>.</p>
 </section>
 
 <section id="demo">
