@@ -13,8 +13,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
+from symbiont.egress import DownloadError, EgressRefusedError
 from symbiont.service.nightly_backend import NoTrainingHardwareError
 from symbiont.service.nightly_bundle import routea_dir
+from symbiont.service.nightly_fetch import fetch_for_job
 from symbiont.service.nightly_job import (
     JOB_LOG,
     STALE_AFTER_S,
@@ -24,7 +26,7 @@ from symbiont.service.nightly_job import (
     utc_now,
     write_job,
 )
-from symbiont.service.nightly_kit import JudgeKitError, open_kit
+from symbiont.service.nightly_kit import OWN_BASE, OWN_KIT, JudgeKitError, open_kit
 from symbiont.service.nightly_run import (
     EXIT_FAILED,
     EXIT_NO_LESSONS,
@@ -54,6 +56,7 @@ POLL_S = 2.0
 
 Launch = Callable[[str, Sequence[str], Path], None]
 Preflight = Callable[[NightPlan], None]
+EXPECTED_FAILURES = (KitSetupError, NightFailedError, JudgeKitError, NoTrainingHardwareError)
 
 
 @dataclass(frozen=True)
@@ -62,11 +65,17 @@ class KitFiles:
 
     base: Path | None
     kit_files: Path | None
+    # When set, nothing was found on this machine: the job downloads into this models folder first.
+    fetch_into: Path | None = None
 
     @staticmethod
     def of(args: argparse.Namespace) -> "KitFiles":
-        """The `--base` and `--kit-files` options (absent options read as None)."""
-        return KitFiles(getattr(args, "base", None), getattr(args, "kit_files", None))
+        """The `--base`, `--kit-files` and `--fetch-into` options (absent ones read as None)."""
+        return KitFiles(
+            getattr(args, "base", None),
+            getattr(args, "kit_files", None),
+            getattr(args, "fetch_into", None),
+        )
 
 
 @dataclass(frozen=True)
@@ -93,7 +102,7 @@ def checked_kit_request(kit_dir: Path, files: KitFiles) -> None:
     Checked before any merge or training, so a wrong folder costs seconds, not minutes.
     """
     problem = kit_problem(kit_dir)
-    if problem is None:
+    if problem is None or files.fetch_into is not None:
         return
     if files.base is None or files.kit_files is None:
         raise KitSetupError(f"no judge kit at {kit_dir} ({problem}); {SETUP_STEPS}")
@@ -136,13 +145,14 @@ def start_job(
     except NoLessonsError as nothing:
         say(f"symbiont nightly: {nothing}")
         return EXIT_NO_LESSONS
-    except (KitSetupError, NightFailedError, JudgeKitError, NoTrainingHardwareError) as unready:
+    except EXPECTED_FAILURES as unready:
         say(f"symbiont nightly: FAILED: {unready}")
         return EXIT_FAILED
-    write_job(plan.nightly_dir, plan.project, JobState(JobPhase.RUNNING, utc_now(), count))
+    first = JobPhase.RUNNING if files.fetch_into is None else JobPhase.DOWNLOADING
+    write_job(plan.nightly_dir, plan.project, JobState(first, utc_now(), count))
     log = plan.nightly_dir / plan.project / JOB_LOG
     tools.launch(sys.executable, work_args(plan, files), log)
-    return _report_after_watch(plan, count, tools, say, watch_s)
+    return _report_after_watch(plan, _started_sentence(count, files), tools, say, watch_s)
 
 
 def _running_job(plan: NightPlan, say: Say) -> JobState | None:
@@ -152,7 +162,7 @@ def _running_job(plan: NightPlan, say: Say) -> JobState | None:
     except ValueError as unusable:
         say(f"symbiont nightly: {unusable}; starting a new job over it")
         return None
-    if state is None or state.phase is not JobPhase.RUNNING:
+    if state is None or not state.active:
         return None
     age = (datetime.now(UTC) - datetime.fromisoformat(state.started)).total_seconds()
     return state if age <= STALE_AFTER_S else None
@@ -168,14 +178,25 @@ def work_args(plan: NightPlan, files: KitFiles) -> list[str]:
     ]  # fmt: skip
     if files.base is not None and files.kit_files is not None:
         argv += ["--base", str(files.base), "--kit-files", str(files.kit_files)]
+    if files.fetch_into is not None:
+        argv += ["--fetch-into", str(files.fetch_into)]
     return argv
 
 
+def _started_sentence(count: int, files: KitFiles) -> str:
+    """What the caller is told when the job is under way."""
+    if files.fetch_into is not None:
+        return (
+            "downloading the model (about 2.5 GB) and training kit, then training; "
+            f"{count} lessons; check with `/symbiont status`"
+        )
+    return f"training started; {count} lessons; check with `/symbiont status`"
+
+
 def _report_after_watch(
-    plan: NightPlan, count: int, tools: BackgroundTools, say: Say, watch_s: float
+    plan: NightPlan, started: str, tools: BackgroundTools, say: Say, watch_s: float
 ) -> int:
     """Follow the job file for `watch_s`; say it started, or how it ended."""
-    started = f"training started; {count} lessons; check with `/symbiont status`"
     try:
         for _ in range(int(watch_s / POLL_S)):
             tools.pause(POLL_S)
@@ -192,7 +213,7 @@ def _report_after_watch(
 def _ended_job(plan: NightPlan) -> JobState | None:
     """The job's final state, or None while it runs."""
     state = read_job(plan.nightly_dir, plan.project)
-    return None if state is None or state.phase is JobPhase.RUNNING else state
+    return None if state is None or state.active else state
 
 
 def _say_ended(state: JobState, say: Say) -> int:
@@ -221,9 +242,10 @@ def work_job(
 
         try:
             if kit_problem(plan.kit_dir) is not None:
+                files = _after_download(plan, files, started, count, say)
                 build_kit(plan.kit_dir, files, plan.judge_python, say)
             code = run_night(plan, make_tools(say, plan.judge_python))
-        except (KitSetupError, NightFailedError, JudgeKitError, NoTrainingHardwareError) as failed:
+        except (*EXPECTED_FAILURES, DownloadError, EgressRefusedError) as failed:
             say(f"symbiont nightly: FAILED: {failed}")
             code = EXIT_FAILED
         except Exception as crashed:
@@ -231,6 +253,16 @@ def work_job(
             raise
     _finish(plan, _final_state(code, lines, started, count))
     return code
+
+
+def _after_download(
+    plan: NightPlan, files: KitFiles, started: str, count: int | None, say: Say
+) -> KitFiles:
+    """Download first when asked to, then the folders it left; else `files` unchanged."""
+    if files.fetch_into is None:
+        return files
+    fetch_for_job(plan, files.fetch_into, started, count, say)
+    return KitFiles(files.fetch_into / OWN_BASE, files.fetch_into / OWN_KIT)
 
 
 def _final_state(code: int, lines: list[str], started: str, count: int | None) -> JobState:
