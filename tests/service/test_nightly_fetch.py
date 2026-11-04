@@ -41,7 +41,7 @@ def test_listing_urls_go_to_the_api_of_the_right_repo():
 
 def test_only_the_wanted_base_files_are_planned_and_subfolders_keep_their_path(tmp_path):
     plan = plan_downloads(tmp_path, lister)
-    names = {str(f.target.relative_to(tmp_path)) for f in plan}
+    names = {f.target.relative_to(tmp_path).as_posix() for f in plan}
     assert {f"llama-3.2-1b-instruct/{name}" for name in BASE_FILES} <= names
     assert "llama-3.2-1b-instruct/README.md" not in names
     assert (
