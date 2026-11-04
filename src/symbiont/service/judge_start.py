@@ -8,11 +8,19 @@ the record touch no process.
 
 import re
 from dataclasses import asdict, dataclass
-from typing import Any
+from typing import Any, Protocol
 
 from symbiont.service.nightly_backend import Backend
 
 _PORT = re.compile(r":(\d+)/?$")
+
+
+class Running(Protocol):
+    """A started judge server process: `poll()` is None while it is alive."""
+
+    def poll(self) -> int | None:
+        """None while running, else its exit code."""
+        ...
 
 
 class JudgeStartError(RuntimeError):

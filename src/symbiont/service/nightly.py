@@ -19,7 +19,7 @@ from symbiont.egress.client import Transport
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.twins import merge_twins
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
-from symbiont.service.judge_start import JudgeStart, judge_start_from_json
+from symbiont.service.judge_start import JudgeStart, Running, judge_start_from_json
 
 log = logging.getLogger(__name__)
 RECORD = "nightly.json"
@@ -112,7 +112,7 @@ class NightlyJudges:
     # None sends through urllib; tests pass a fake that never opens a socket.
     transport: Transport | None = None
     # Starts the judge server of a record again when a recall finds it down (None: only say so).
-    revive: Callable[[JudgeStart, Path], None] | None = None
+    revive: Callable[[JudgeStart, Path], Running] | None = None
 
     def has_record(self, project: str) -> bool:
         """Whether the project's first night has finished (its nightly record exists)."""

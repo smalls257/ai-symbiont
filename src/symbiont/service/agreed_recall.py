@@ -6,7 +6,6 @@ facts in the nightly record.
 """
 
 import logging
-import time
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
@@ -17,7 +16,7 @@ from symbiont.miner.twins import merge_twins
 from symbiont.service.events import Call
 from symbiont.service.follow_up import FollowUp, ShownNote
 from symbiont.service.judge_model import JudgeOfflineError
-from symbiont.service.judge_start import JudgeStartError
+from symbiont.service.judge_start import JudgeStartError, Running
 from symbiont.service.nightly import NightlyState
 
 if TYPE_CHECKING:
@@ -26,8 +25,6 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 NOTHING_MATCHES = "nothing in this project's history matches that question"
 CHECKER = "Llama 3.2 1B"
-# A 1B model loads in seconds to a minute; a second start inside this window would race the first.
-STARTING_WINDOW_S = 240.0
 JUDGE_LOG = "judge-server.log"
 
 
@@ -66,7 +63,7 @@ class AgreedRecall:
         """Keep the service parts (judges, events) and the follow-up that watches shown notes."""
         self._parts = parts
         self._follow_up = follow_up
-        self._started_at: dict[str, float] = {}
+        self._started: dict[str, Running] = {}
 
     def applies(self, project: str) -> bool:
         """Whether the agree rule must answer for `project`: a configured judge or a trained one."""
@@ -125,20 +122,16 @@ class AgreedRecall:
             return JudgeOfflineError(
                 f"symbiont checker offline: {down}. Start it with `symbiont nightly`."
             )
-        now = time.monotonic()
-        began = self._started_at.get(project)
-        if began is not None and now - began < STARTING_WINDOW_S:
-            return JudgeOfflineError(
-                f"symbiont checker offline: it is still starting ({now - began:.0f}s ago); "
-                "ask again in a moment."
-            )
+        earlier = self._started.get(project)
+        if earlier is not None and earlier.poll() is None:
+            # Alive but unreachable means the model is still loading; a second start would race it.
+            return JudgeOfflineError("symbiont checker offline: it is still starting; ask again.")
         logfile = nightly.root / project / JUDGE_LOG
         try:
-            nightly.revive(start, logfile)
+            self._started[project] = nightly.revive(start, logfile)
         except JudgeStartError as failed:
             hand = start.command_text("plug_judge_server.py")
             return JudgeOfflineError(f"symbiont checker offline: {failed}. By hand: {hand}")
-        self._started_at[project] = now
         log.warning("%s: the checker was not running; started it (log %s)", project, logfile)
         return JudgeOfflineError(
             "symbiont checker offline: it was not running, so symbiont started it now; "

@@ -19,7 +19,13 @@ from pathlib import Path
 from symbiont.egress import EgressRefusedError
 from symbiont.egress.client import Transport
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
-from symbiont.service.judge_start import JudgeStart, JudgeStartError, judge_device, port_of
+from symbiont.service.judge_start import (
+    JudgeStart,
+    JudgeStartError,
+    Running,
+    judge_device,
+    port_of,
+)
 from symbiont.service.nightly_backend import Backend, choose_backend
 from symbiont.service.nightly_run import NightFailedError, NightTools, Say
 from symbiont.service.nightly_schedule import Completed, ScheduleError, Tool
@@ -194,12 +200,13 @@ def spawn_judge(start: JudgeStart, log: Path) -> "subprocess.Popen[bytes]":
         raise JudgeStartError(f"could not start the judge server: {unstartable}") from unstartable
 
 
-def revive_judge_server(start: JudgeStart, log: Path) -> None:
+def revive_judge_server(start: JudgeStart, log: Path) -> Running:
     """Start the judge server again without waiting for it (the service must not block a recall).
 
-    Raises JudgeStartError when it cannot be started.
+    Returns the process, so the service can tell a loading server from one that has died. Raises
+    JudgeStartError when it cannot be started.
     """
-    spawn_judge(start, log)
+    return spawn_judge(start, log)
 
 
 def _detached() -> dict[str, int | bool]:

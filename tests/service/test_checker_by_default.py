@@ -117,14 +117,29 @@ def test_a_down_checker_without_a_start_recipe_says_so_and_names_the_fix(tmp_pat
     assert "symbiont nightly" in response.body["error"]
 
 
-def test_a_down_checker_is_started_once_loudly_and_the_answer_is_offline(tmp_path):
+class Process:
+    def __init__(self):
+        self.exit_code = None
+
+    def poll(self):
+        return self.exit_code
+
+
+def test_a_down_checker_is_started_once_while_loading_and_again_after_it_died(tmp_path):
     started = []
-    service = trained_service(tmp_path, refused, lambda start, log: started.append((start, log)))
+
+    def revive(start, log):
+        started.append((start, log))
+        return Process()
+
+    service = trained_service(tmp_path, refused, revive)
     first, second = recall(service), recall(service)
     assert started == [(START, tmp_path / "n" / PROJECT / "judge-server.log")]
     assert first.status == second.status == 503
     assert "started it" in first.body["error"] and "still starting" in second.body["error"]
     assert any(e.get("status") == 503 for e in events_of(tmp_path))
+    service._agreed._started[PROJECT].exit_code = -9
+    assert "started it" in recall(service).body["error"] and len(started) == 2
 
 
 def test_a_checker_that_cannot_be_started_gives_the_command_to_run_by_hand(tmp_path):
