@@ -22,4 +22,8 @@ RUN git init -q \
     && find . -type f -not -path './.git/*' -not -path './.venv/*' -print0 | xargs -0 git update-index --add -- \
     && git -c user.name=build -c user.email=build@localhost commit -q -m "container snapshot"
 
+# `docker run --rm ai-symbiont demo` replays the keyless walkthrough; the flag tells it the
+# dashboard is not reachable from the host.
+ENV SYMBIONT_DEMO_IN_DOCKER=1
+ENTRYPOINT ["sh", "scripts/demo/docker-entrypoint.sh"]
 CMD ["symbiont", "serve", "--port", "7377"]
