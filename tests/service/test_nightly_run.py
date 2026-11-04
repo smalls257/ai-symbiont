@@ -64,6 +64,13 @@ def test_a_night_trains_installs_the_adapter_records_it_and_tells_the_judge(tmp_
     record = json.loads((plan.nightly_dir / PROJECT / "nightly.json").read_text())
     assert (record["lesson_count"], record["backend"], record["judge_url"]) == (6, "mlx", URL)
     assert record["trained_at"] == "2026-11-03T03:00:00+00:00"
+    assert record["judge_start"] == {
+        "python": "python3",
+        "base": str(plan.kit_dir / "base"),
+        "adapter": str(adapter),
+        "device": "mps",
+        "port": 8861,
+    }
     assert night.judge_calls == [(URL, adapter, plan.kit_dir / "base")]
     assert any("trained on 6 lessons" in line for line in night.said)
 

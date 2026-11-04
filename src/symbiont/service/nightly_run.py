@@ -14,6 +14,7 @@ from pathlib import Path
 
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.twins import merge_twins
+from symbiont.service.judge_start import JudgeStart, judge_device, port_of
 from symbiont.service.nightly import (
     NightlyRecord,
     lessons_digest,
@@ -66,6 +67,8 @@ class NightPlan:
     kit_dir: Path
     judge_url: str
     trainer_python: str
+    # The Python the judge server runs on; the record keeps it so the server can be started again.
+    judge_python: str = "python3"
 
 
 @dataclass(frozen=True)
@@ -140,15 +143,24 @@ def _train_and_record(plan: NightPlan, tools: NightTools, timeline: Timeline) ->
     job = _job(kit, work, rows)
     timeline.stage("train", lambda: _train(plan, tools, backend, job, work))
     adapter = timeline.stage("install adapter", lambda: _installed(plan, backend, job, kit))
+    start = JudgeStart(
+        plan.judge_python,
+        str(kit.base),
+        str(adapter),
+        judge_device(backend),
+        port_of(plan.judge_url),
+    )
     record = NightlyRecord(
-        lessons_digest(lessons), plan.judge_url, len(lessons), tools.timestamp(), backend.value
+        lessons_digest(lessons),
+        plan.judge_url,
+        len(lessons),
+        tools.timestamp(),
+        backend.value,
+        start.as_json(),
     )
     timeline.stage("write record", lambda: write_record(plan.nightly_dir, plan.project, record))
     tools.say(tools.tell_judge(plan.judge_url, adapter, kit.base))
-    tools.say(
-        f"service: one started with `--nightly-dir {plan.nightly_dir}` and `--judge-url` reads the "
-        "new record on its next recall; restart any other with those options"
-    )
+    tools.say("service: the running symbiont service reads the new record on its next recall")
     return len(lessons)
 
 

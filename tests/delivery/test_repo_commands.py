@@ -189,7 +189,7 @@ def test_status_asks_the_service_and_reports_offline_when_it_is_down(tmp_path, c
         httpd.server_close()
 
     assert "symbiont is running. demo: on; 0 stored lessons" in up
-    assert "nightly training: never trained (run `symbiont nightly`)" in up
+    assert "nightly training: checker not trained yet; run `symbiont nightly`" in up
     command("status", "--port", "1", data_dir=tmp_path)
     assert capsys.readouterr().out.startswith("symbiont offline:")
 

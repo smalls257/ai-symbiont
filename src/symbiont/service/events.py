@@ -2,7 +2,7 @@
 
 import json
 import time
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -10,6 +10,7 @@ from typing import Any
 from symbiont.core.house_rules import Supersession
 from symbiont.core.repeat import RepeatNote
 from symbiont.core.slot import Decision, event_fields
+from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signature
 
 
@@ -49,6 +50,18 @@ class EventLog:
         """Record the call, the trouble named, the records behind it and the notes sent."""
         trouble = None if signature is None else [signature.signal.value, *signature.key]
         self._write(call, {"trouble": trouble, "records": records, "notes": notes})
+
+    def append_checked(
+        self,
+        call: Call,
+        records: list[tuple[str, int]],
+        notes: list[str],
+        checked_by: dict[str, object],
+    ) -> None:
+        """Record a recalled note the trained checker agreed to (its name and verdict, no score)."""
+        event: dict[str, object] = {"trouble": None, "records": records, "notes": notes}
+        event["checked_by"] = checked_by
+        self._write(call, event)
 
     def append_repeat(self, call: Call, found: RepeatNote) -> None:
         """Record a note a stored lesson or rule caused, with the match that fired it."""
@@ -127,6 +140,18 @@ def last_note_event(runs_dir: Path, project: str) -> dict[str, Any] | None:
 
     Returns None when there is none. A line that is not JSON raises ValueError naming the file.
     """
+    return _newest_event(runs_dir, project, lambda event: bool(event.get("notes")))
+
+
+def last_checked_event(runs_dir: Path, project: str) -> dict[str, Any] | None:
+    """The newest event of `project` whose note a trained checker agreed to, or None."""
+    return _newest_event(runs_dir, project, lambda event: bool(event.get("checked_by")))
+
+
+def _newest_event(
+    runs_dir: Path, project: str, wanted: Callable[[dict[str, Any]], bool]
+) -> dict[str, Any] | None:
+    """The newest event of `project` that `wanted` accepts; a line that is not JSON raises."""
     for events in sorted(runs_dir.glob("*/events.jsonl"), reverse=True):
         for line in reversed(events.read_text(encoding="utf-8").splitlines()):
             try:
@@ -135,6 +160,42 @@ def last_note_event(runs_dir: Path, project: str) -> dict[str, Any] | None:
                 raise ValueError(f"{events} holds a line that is not JSON: {exc}") from exc
             if not isinstance(event, dict):
                 raise ValueError(f"{events} holds a line that is not a JSON object")
-            if event.get("project") == project and event.get("notes"):
+            if event.get("project") == project and wanted(event):
                 return event
     return None
+
+
+def checker_sentences(event: dict[str, Any]) -> list[str]:
+    """What `symbiont why` and the dashboard say about the checker behind an event, if it had one.
+
+    Names the checker, what it was trained on and its verdict; never a probability (the event does
+    not carry one, and the human reads a verdict, not a score).
+    """
+    checked = event.get("checked_by")
+    if not isinstance(checked, dict):
+        return []
+    name = checked.get("checker", "the checker")
+    if checked.get("rule") != "nightly":
+        return [f"The first-night checker ({name}, general adapters) agreed this lesson applies."]
+    lessons, when = checked.get("lessons"), checked.get("trained_at")
+    trained = "trained" if lessons is None else f"trained on {lessons} lessons"
+    return [
+        f"The trained checker ({name}, {trained}{'' if when is None else f' at {when}'}) "
+        "agreed this lesson applies."
+    ]
+
+
+def checked_nightly(
+    state: Callable[[str, Sequence[Lesson]], dict[str, object]], runs_dir: Path
+) -> Callable[[str, Sequence[Lesson]], dict[str, object]]:
+    """The nightly state of `state` plus the newest note a trained checker agreed to (dashboard)."""
+
+    def with_last_checked(project: str, lessons: Sequence[Lesson]) -> dict[str, object]:
+        last = last_checked_event(runs_dir, project)
+        found = state(project, lessons)
+        if last is None:
+            return found
+        said = " ".join(checker_sentences(last))
+        return {**found, "last_checked": {"note": last["notes"][0], "sentence": said}}
+
+    return with_last_checked

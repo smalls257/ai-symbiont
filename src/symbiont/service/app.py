@@ -22,11 +22,11 @@ from symbiont.readers.errors import ReadError
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record
-from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall
+from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall, CheckerVerdict
 from symbiont.service.context_route import UnknownLessonError, context_target, save_context
 from symbiont.service.curation_routes import CurationRoutes
 from symbiont.service.dashboard_page import Live, Page, dashboard_page
-from symbiont.service.events import Call, EventLog, MemoryCost
+from symbiont.service.events import Call, EventLog, MemoryCost, checked_nightly
 from symbiont.service.follow_up import FollowUp
 from symbiont.service.judge_model import JudgeModel
 from symbiont.service.learned_outcomes import replay_into_decider
@@ -140,13 +140,10 @@ class Service:
         if project is not None:
             return self._mining.progress_page(percent_decoded(project))
         with self._one_call_at_a_time:
-            return dashboard_page(
-                self._parts.store,
-                self._parts.gate.registry,
-                target,
-                date.today(),
-                Live(self._jobs.progress, self._parts.gate.nightly_state),
-            )
+            parts = self._parts
+            nightly = checked_nightly(parts.gate.nightly_state, parts.events.path.parent.parent)
+            live = Live(self._jobs.progress, nightly)
+            return dashboard_page(parts.store, parts.gate.registry, target, date.today(), live)
 
     def wait_for_mining(self, project: str, timeout_s: float) -> None:
         """Block until `project`'s mining job ends or the timeout passes; for tests and shutdown."""
@@ -234,21 +231,12 @@ class Service:
             self._parts.events.append_quiet(call, decision, SILENCED)
             return _said(door, [])
         warns = self._parts.mode is ServiceMode.WARN_AND_RECALL
-        memory = self._memory_for(request, project) if decision.trouble and warns else None
+        memory = _memory_for(self._parts, request, project) if decision.trouble and warns else None
         if memory is not None:
             return self._memory_observe(request, decision, memory, call)
         notes = render(decision, kinds=_KINDS_BY_MODE[self._parts.mode], lessons=lessons)
         self._parts.events.append_decision(call, decision, notes)
         return _said(door, notes)
-
-    def _memory_for(self, request: dict[str, Any], project: str) -> MemoryModel | None:
-        """The memory model that may answer for `project`, or None; Spark needs its own adapter."""
-        memory = self._parts.memory
-        if memory is None or not memory.knows(project):
-            return None
-        if spark_bound(request) and not may_answer_spark(memory.provenance, self._parts.consent):
-            raise SparkWithheldError
-        return memory
 
     def _memory_observe(
         self, request: dict[str, Any], decision: Decision, memory: MemoryModel, call: Call
@@ -281,10 +269,10 @@ class Service:
         if not (isinstance(project, str) and isinstance(question, str)):
             raise BadRequestError("question and project must be text")
         lessons = self._lessons(request, project)
-        if lessons and (self._parts.judge or self._parts.nightly):
-            answer, found = self._agreed.answer(call, project, question, lessons)
-            return self._answered(call, answer, found)
-        memory = self._memory_for(request, project)
+        if lessons and self._agreed.applies(project):
+            agreed = self._agreed.answer(call, project, question, lessons)
+            return self._answered(call, agreed.text, agreed.lessons, agreed.checked_by)
+        memory = _memory_for(self._parts, request, project)
         if memory is not None:
             reply = memory.write_line(recall_request(project, question))
             line = scrub(reply.line) if spark_bound(request) else reply.line
@@ -296,10 +284,19 @@ class Service:
         notes = list(dict.fromkeys(render_lesson(lesson) for lesson in found))
         return self._answered(call, " ".join(notes) or NOTHING_MATCHES, found)
 
-    def _answered(self, call: Call, answer: str, found: Sequence[Lesson]) -> Response:
-        """Log the answer with the records it cites and return it."""
+    def _answered(
+        self,
+        call: Call,
+        answer: str,
+        found: Sequence[Lesson],
+        checked_by: CheckerVerdict | None = None,
+    ) -> Response:
+        """Log the answer with the records it cites (and the checker that agreed) and return it."""
         refs = list(dict.fromkeys(ref for lesson in found for ref in lesson.pain_point.record_refs))
-        self._parts.events.append(call, None, refs, [answer])
+        if checked_by is None:
+            self._parts.events.append(call, None, refs, [answer])
+        else:
+            self._parts.events.append_checked(call, refs, [answer], checked_by.as_event())
         return Response(200, {"answer": answer, "records": [list(ref) for ref in refs]})
 
     def _learn(self, request: dict[str, Any], call: Call) -> Response:
@@ -319,6 +316,16 @@ class Service:
         )
         parts.events.append(call, None, [], [f"learned from {learned} steps"])
         return Response(200, {"learned_steps": learned})
+
+
+def _memory_for(parts: ServiceParts, request: dict[str, Any], project: str) -> MemoryModel | None:
+    """The memory model that may answer for `project`, or None; Spark needs its own adapter."""
+    memory = parts.memory
+    if memory is None or not memory.knows(project):
+        return None
+    if spark_bound(request) and not may_answer_spark(memory.provenance, parts.consent):
+        raise SparkWithheldError
+    return memory
 
 
 def _ok_route(handler: Callable[[dict[str, Any]], dict[str, Any]]) -> _Route:

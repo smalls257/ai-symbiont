@@ -120,13 +120,14 @@ def _plan(args: argparse.Namespace) -> NightPlan:
         kit_dir=args.kit or Path(os.environ.get(KIT_ENV, args.data_dir / "judge-kit")),
         judge_url=url or default_judge_url(args.project),
         trainer_python=args.trainer_python or os.environ.get(TRAINER_ENV, sys.executable),
+        judge_python=args.judge_python or os.environ.get(JUDGE_PYTHON_ENV, "python3"),
     )
 
 
 def _train_now(args: argparse.Namespace, say: Callable[[str], None]) -> int:
     """Run one night and return its exit code; a missing machine piece is a named failure."""
     plan = _plan(args)
-    judge_python = args.judge_python or os.environ.get(JUDGE_PYTHON_ENV, "python3")
+    judge_python = plan.judge_python
     say(f"symbiont nightly: {plan.project} (runs on this machine; nothing is uploaded)")
     try:
         return run_night(plan, real_tools(say, judge_python))

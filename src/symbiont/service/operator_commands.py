@@ -17,7 +17,7 @@ from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
-from symbiont.service.events import last_note_event
+from symbiont.service.events import checker_sentences, last_note_event
 from symbiont.service.lesson_list import lesson_lines
 from symbiont.service.lesson_lookup import project_of_lesson
 from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
@@ -202,6 +202,7 @@ def _why(args: argparse.Namespace) -> int:
     for note in event["notes"]:
         _say(f"  {note}")
     _say(_cause_of(event))
+    _say_all(checker_sentences(event))
     _say_all(set_aside)
     _say(
         "Silence this kind of note with `symbiont mute`; delete its lessons with `symbiont forget`."
