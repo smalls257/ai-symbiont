@@ -1,0 +1,416 @@
+{
+ "schema": "habitat-set-table-b3",
+ "label": "under test: Task B v3 fixed layout, 5 new episodes per arm",
+ "status": "scored once, N=5 per arm, no significance test",
+ "source": "local runs 2026-11-02 and 2026-11-03, ai-symbiont build afd5b7876ca188addde0c14060f33e20ee2d1f2c",
+ "model": "muse-spark-1.3-contributor",
+ "reasoning_effort": "low",
+ "world": "habitat apt_0 ReplicaCAD, rules decided by world.py (pure Python text model)",
+ "seeds": [
+  621,
+  622,
+  623,
+  624,
+  625
+ ],
+ "prereg_files": [
+  "prereg/2026-11-02-habitat-frozen.md",
+  "prereg/2026-11-02-habitat-amendment-1-build.md",
+  "prereg/2026-11-02-habitat-amendment-2-v3.md",
+  "prereg/2026-11-03-habitat-amendment-3-all-lessons.md"
+ ],
+ "prereg_sha256": {
+  "habitat-frozen": "0b874f159031144a8c286b57aea5ba824c724c6e8731d43bf55c82e1b0ef2331",
+  "amendment-2-v3": "32f8083933f7ed34aeecb90639b32fffb72e2d88f458d795b5a96510416d5e92",
+  "amendment-3-all-lessons": "2cb8dfb7f945fdbd6990b25f75a9b25a0bed1b15c678b2227889402eba44024f"
+ },
+ "prereg_frozen_at": {
+  "amendment-2-v3": "2026-11-02T22:34:37-08:00",
+  "amendment-3-all-lessons": "2026-11-03T02:21:05-08:00"
+ },
+ "lessons_in_store": 16,
+ "gate_episodes_no_notes": [
+  {
+   "id": "gate4-host3-611",
+   "success": false,
+   "items_set": 5,
+   "of": 12
+  },
+  {
+   "id": "gate4-host3-612",
+   "success": false,
+   "items_set": 5,
+   "of": 12
+  }
+ ],
+ "infrastructure_errors": 0,
+ "rows": [
+  {
+   "arm": "without",
+   "role": "floor",
+   "label": "floor: no symbiont notes",
+   "episodes": 5,
+   "successes": 0,
+   "items_set_total": 38,
+   "invalid_actions_total": 39,
+   "prompt_tokens_total": 452509,
+   "per_episode": [
+    {
+     "id": "cmpB3-without-621",
+     "seed": 621,
+     "success": false,
+     "items_set": 6,
+     "of": 12,
+     "steps": 142,
+     "budget": 142,
+     "invalid_actions": 7,
+     "prompt_tokens": 90451,
+     "cost_usd": 0.0314
+    },
+    {
+     "id": "cmpB3-without-622",
+     "seed": 622,
+     "success": false,
+     "items_set": 6,
+     "of": 12,
+     "steps": 142,
+     "budget": 142,
+     "invalid_actions": 8,
+     "prompt_tokens": 89109,
+     "cost_usd": 0.0311
+    },
+    {
+     "id": "cmpB3-without-623",
+     "seed": 623,
+     "success": false,
+     "items_set": 10,
+     "of": 12,
+     "steps": 142,
+     "budget": 142,
+     "invalid_actions": 10,
+     "prompt_tokens": 91689,
+     "cost_usd": 0.0288
+    },
+    {
+     "id": "cmpB3-without-624",
+     "seed": 624,
+     "success": false,
+     "items_set": 6,
+     "of": 12,
+     "steps": 142,
+     "budget": 142,
+     "invalid_actions": 4,
+     "prompt_tokens": 89544,
+     "cost_usd": 0.0314
+    },
+    {
+     "id": "cmpB3-without-625",
+     "seed": 625,
+     "success": false,
+     "items_set": 10,
+     "of": 12,
+     "steps": 142,
+     "budget": 142,
+     "invalid_actions": 10,
+     "prompt_tokens": 91716,
+     "cost_usd": 0.0287
+    }
+   ]
+  },
+  {
+   "arm": "with",
+   "role": "reference",
+   "label": "reference: symbiont notes, selected and timed",
+   "episodes": 5,
+   "successes": 4,
+   "items_set_total": 58,
+   "invalid_actions_total": 16,
+   "prompt_tokens_total": 670045,
+   "per_episode": [
+    {
+     "id": "cmpB3-with-621",
+     "seed": 621,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 123,
+     "budget": 142,
+     "invalid_actions": 4,
+     "prompt_tokens": 156324,
+     "cost_usd": 0.0281
+    },
+    {
+     "id": "cmpB3-with-622",
+     "seed": 622,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 90,
+     "budget": 142,
+     "invalid_actions": 2,
+     "prompt_tokens": 106322,
+     "cost_usd": 0.0193
+    },
+    {
+     "id": "cmpB3-with-623",
+     "seed": 623,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 114,
+     "budget": 142,
+     "invalid_actions": 2,
+     "prompt_tokens": 131602,
+     "cost_usd": 0.0269
+    },
+    {
+     "id": "cmpB3-with-624",
+     "seed": 624,
+     "success": false,
+     "items_set": 10,
+     "of": 12,
+     "steps": 142,
+     "budget": 142,
+     "invalid_actions": 3,
+     "prompt_tokens": 163102,
+     "cost_usd": 0.0364
+    },
+    {
+     "id": "cmpB3-with-625",
+     "seed": 625,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 94,
+     "budget": 142,
+     "invalid_actions": 5,
+     "prompt_tokens": 112695,
+     "cost_usd": 0.0205
+    }
+   ]
+  },
+  {
+   "arm": "all_lessons",
+   "role": "under_test",
+   "label": "under test: all 16 lessons in every prompt, no selection",
+   "episodes": 5,
+   "successes": 4,
+   "items_set_total": 59,
+   "invalid_actions_total": 3,
+   "prompt_tokens_total": 719888,
+   "per_episode": [
+    {
+     "id": "cmpB3-all-621",
+     "seed": 621,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 96,
+     "budget": 142,
+     "invalid_actions": 0,
+     "prompt_tokens": 132868,
+     "cost_usd": 0.0206
+    },
+    {
+     "id": "cmpB3-all-622",
+     "seed": 622,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 89,
+     "budget": 142,
+     "invalid_actions": 1,
+     "prompt_tokens": 121718,
+     "cost_usd": 0.0198
+    },
+    {
+     "id": "cmpB3-all-623",
+     "seed": 623,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 90,
+     "budget": 142,
+     "invalid_actions": 0,
+     "prompt_tokens": 124397,
+     "cost_usd": 0.0198
+    },
+    {
+     "id": "cmpB3-all-624",
+     "seed": 624,
+     "success": false,
+     "items_set": 11,
+     "of": 12,
+     "steps": 142,
+     "budget": 142,
+     "invalid_actions": 2,
+     "prompt_tokens": 200662,
+     "cost_usd": 0.0357
+    },
+    {
+     "id": "cmpB3-all-625",
+     "seed": 625,
+     "success": true,
+     "items_set": 12,
+     "of": 12,
+     "steps": 102,
+     "budget": 142,
+     "invalid_actions": 0,
+     "prompt_tokens": 140243,
+     "cost_usd": 0.0234
+    }
+   ]
+  }
+ ],
+ "randomized_layout_v2": {
+  "label": "Task B v2: hiding places randomized per seed, seeds 541-545, build dc35e1f for the with arm",
+  "rows": [
+   {
+    "arm": "without",
+    "role": "floor",
+    "label": "floor: no symbiont notes",
+    "episodes": 5,
+    "successes": 1,
+    "items_set_total": 48,
+    "invalid_actions_total": 31,
+    "prompt_tokens_total": 436296,
+    "per_episode": [
+     {
+      "id": "cmpB-without-541",
+      "seed": 541,
+      "success": true,
+      "items_set": 12,
+      "of": 12,
+      "steps": 99,
+      "budget": 142,
+      "invalid_actions": 5,
+      "prompt_tokens": 62555,
+      "cost_usd": 0.0163
+     },
+     {
+      "id": "cmpB-without-542",
+      "seed": 542,
+      "success": false,
+      "items_set": 8,
+      "of": 12,
+      "steps": 142,
+      "budget": 142,
+      "invalid_actions": 6,
+      "prompt_tokens": 91600,
+      "cost_usd": 0.0291
+     },
+     {
+      "id": "cmpB-without-543",
+      "seed": 543,
+      "success": false,
+      "items_set": 9,
+      "of": 12,
+      "steps": 142,
+      "budget": 142,
+      "invalid_actions": 4,
+      "prompt_tokens": 91474,
+      "cost_usd": 0.0292
+     },
+     {
+      "id": "cmpB-without-544",
+      "seed": 544,
+      "success": false,
+      "items_set": 9,
+      "of": 12,
+      "steps": 148,
+      "budget": 148,
+      "invalid_actions": 7,
+      "prompt_tokens": 95132,
+      "cost_usd": 0.0312
+     },
+     {
+      "id": "cmpB-without-545",
+      "seed": 545,
+      "success": false,
+      "items_set": 10,
+      "of": 12,
+      "steps": 146,
+      "budget": 146,
+      "invalid_actions": 9,
+      "prompt_tokens": 95535,
+      "cost_usd": 0.0303
+     }
+    ]
+   },
+   {
+    "arm": "with",
+    "role": "under_test",
+    "label": "under test: symbiont notes",
+    "episodes": 5,
+    "successes": 1,
+    "items_set_total": 50,
+    "invalid_actions_total": 49,
+    "prompt_tokens_total": 689611,
+    "per_episode": [
+     {
+      "id": "cmpB-with-541",
+      "seed": 541,
+      "success": true,
+      "items_set": 12,
+      "of": 12,
+      "steps": 132,
+      "budget": 142,
+      "invalid_actions": 7,
+      "prompt_tokens": 128543,
+      "cost_usd": 0.0252
+     },
+     {
+      "id": "cmpB-with-542",
+      "seed": 542,
+      "success": false,
+      "items_set": 8,
+      "of": 12,
+      "steps": 142,
+      "budget": 142,
+      "invalid_actions": 13,
+      "prompt_tokens": 141179,
+      "cost_usd": 0.0296
+     },
+     {
+      "id": "cmpB-with-543",
+      "seed": 543,
+      "success": false,
+      "items_set": 11,
+      "of": 12,
+      "steps": 142,
+      "budget": 142,
+      "invalid_actions": 5,
+      "prompt_tokens": 137556,
+      "cost_usd": 0.0281
+     },
+     {
+      "id": "cmpB-with-544",
+      "seed": 544,
+      "success": false,
+      "items_set": 9,
+      "of": 12,
+      "steps": 148,
+      "budget": 148,
+      "invalid_actions": 8,
+      "prompt_tokens": 145091,
+      "cost_usd": 0.031
+     },
+     {
+      "id": "cmpB-with-545",
+      "seed": 545,
+      "success": false,
+      "items_set": 10,
+      "of": 12,
+      "steps": 146,
+      "budget": 146,
+      "invalid_actions": 16,
+      "prompt_tokens": 137242,
+      "cost_usd": 0.0298
+     }
+    ]
+   }
+  ]
+ },
+ "caveats": "one home, one model, 5 seeds per arm, fixed layout, lessons from the robot's own failed gate episodes, no significance test",
+ "execution_note": "all-lessons arm ran on the pure world model with no simulator; outcomes are decided by world.py in both paths"
+}

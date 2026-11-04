@@ -1,0 +1,225 @@
+{
+ "schema": "habitat-house-rules",
+ "label": "under test: Task A house rules, 6 new episodes per arm",
+ "status": "scored once, N=6 per arm, corrections scripted",
+ "source": "local runs 2026-11-02, ai-symbiont build dc35e1f",
+ "model": "muse-spark-1.3-contributor",
+ "reasoning_effort": "low",
+ "seeds": [
+  301,
+  302,
+  303,
+  304,
+  305,
+  306
+ ],
+ "prereg_files": [
+  "prereg/2026-11-02-habitat-frozen.md"
+ ],
+ "prereg_sha256": {
+  "habitat-frozen": "0b874f159031144a8c286b57aea5ba824c724c6e8731d43bf55c82e1b0ef2331"
+ },
+ "prereg_frozen_at": {
+  "habitat-frozen": "2026-11-02T21:11:36-08:00"
+ },
+ "rule_items_per_episode": 5,
+ "rules": 4,
+ "infrastructure_errors": 0,
+ "learning_episodes_no_notes": [
+  {
+   "id": "gate-tidy-101",
+   "violations": 5,
+   "rule_items": 5
+  },
+  {
+   "id": "gate-tidy-102",
+   "violations": 5,
+   "rule_items": 5
+  }
+ ],
+ "rows": [
+  {
+   "arm": "without",
+   "role": "floor",
+   "label": "floor: no house-rule notes",
+   "episodes": 6,
+   "violations_total": 30,
+   "rule_items_total": 30,
+   "per_episode": [
+    {
+     "id": "cmpA-without-301",
+     "seed": 301,
+     "violations": 5,
+     "rule_items": 5,
+     "placed_wrong": 5,
+     "steps": 42,
+     "invalid_actions": 4,
+     "control_ok": true,
+     "broken_rules": [
+      "catbowl",
+      "mugs",
+      "pan",
+      "towel"
+     ]
+    },
+    {
+     "id": "cmpA-without-302",
+     "seed": 302,
+     "violations": 5,
+     "rule_items": 5,
+     "placed_wrong": 5,
+     "steps": 38,
+     "invalid_actions": 4,
+     "control_ok": true,
+     "broken_rules": [
+      "catbowl",
+      "mugs",
+      "pan",
+      "towel"
+     ]
+    },
+    {
+     "id": "cmpA-without-303",
+     "seed": 303,
+     "violations": 5,
+     "rule_items": 5,
+     "placed_wrong": 5,
+     "steps": 37,
+     "invalid_actions": 3,
+     "control_ok": true,
+     "broken_rules": [
+      "catbowl",
+      "mugs",
+      "pan",
+      "towel"
+     ]
+    },
+    {
+     "id": "cmpA-without-304",
+     "seed": 304,
+     "violations": 5,
+     "rule_items": 5,
+     "placed_wrong": 5,
+     "steps": 40,
+     "invalid_actions": 3,
+     "control_ok": true,
+     "broken_rules": [
+      "catbowl",
+      "mugs",
+      "pan",
+      "towel"
+     ]
+    },
+    {
+     "id": "cmpA-without-305",
+     "seed": 305,
+     "violations": 5,
+     "rule_items": 5,
+     "placed_wrong": 5,
+     "steps": 53,
+     "invalid_actions": 4,
+     "control_ok": true,
+     "broken_rules": [
+      "catbowl",
+      "mugs",
+      "pan",
+      "towel"
+     ]
+    },
+    {
+     "id": "cmpA-without-306",
+     "seed": 306,
+     "violations": 5,
+     "rule_items": 5,
+     "placed_wrong": 5,
+     "steps": 33,
+     "invalid_actions": 1,
+     "control_ok": true,
+     "broken_rules": [
+      "catbowl",
+      "mugs",
+      "pan",
+      "towel"
+     ]
+    }
+   ]
+  },
+  {
+   "arm": "with",
+   "role": "under_test",
+   "label": "under test: notes from the owner's corrections",
+   "episodes": 6,
+   "violations_total": 0,
+   "rule_items_total": 30,
+   "per_episode": [
+    {
+     "id": "cmpA-with-301",
+     "seed": 301,
+     "violations": 0,
+     "rule_items": 5,
+     "placed_wrong": 0,
+     "steps": 31,
+     "invalid_actions": 1,
+     "control_ok": true,
+     "broken_rules": []
+    },
+    {
+     "id": "cmpA-with-302",
+     "seed": 302,
+     "violations": 0,
+     "rule_items": 5,
+     "placed_wrong": 0,
+     "steps": 30,
+     "invalid_actions": 2,
+     "control_ok": true,
+     "broken_rules": []
+    },
+    {
+     "id": "cmpA-with-303",
+     "seed": 303,
+     "violations": 0,
+     "rule_items": 5,
+     "placed_wrong": 0,
+     "steps": 32,
+     "invalid_actions": 2,
+     "control_ok": true,
+     "broken_rules": []
+    },
+    {
+     "id": "cmpA-with-304",
+     "seed": 304,
+     "violations": 0,
+     "rule_items": 5,
+     "placed_wrong": 0,
+     "steps": 30,
+     "invalid_actions": 2,
+     "control_ok": true,
+     "broken_rules": []
+    },
+    {
+     "id": "cmpA-with-305",
+     "seed": 305,
+     "violations": 0,
+     "rule_items": 5,
+     "placed_wrong": 0,
+     "steps": 31,
+     "invalid_actions": 3,
+     "control_ok": true,
+     "broken_rules": []
+    },
+    {
+     "id": "cmpA-with-306",
+     "seed": 306,
+     "violations": 0,
+     "rule_items": 5,
+     "placed_wrong": 0,
+     "steps": 30,
+     "invalid_actions": 2,
+     "control_ok": true,
+     "broken_rules": []
+    }
+   ]
+  }
+ ],
+ "caveats": "corrections were scripted, not a real owner; 4 rules cover 5 items; one home, one model; notes carry the rules nearly verbatim"
+}
