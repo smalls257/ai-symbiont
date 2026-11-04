@@ -46,9 +46,12 @@ muse plugins approve symbiont
 ```
 
 Start a session in a repository. The first time, symbiont says what it does and asks. Answer with
-`symbiont repo allow` (or `symbiont repo decline`), then `symbiont repo mine` to learn from this
+`/symbiont allow` (or `/symbiont decline`), then `/symbiont mine` to learn from this
 repository's past Claude Code and Muse Code sessions (it finds both on its own, and opens the dashboard so you can watch the progress; `--no-open` skips that). `/symbiont` shows status, explains the last note, mutes it
-or forgets its lessons.
+or forgets its lessons. Its actions are MCP tools of the symbiont server (`symbiont_allow`,
+`symbiont_mine`, `symbiont_status` and the rest), so they work where the harness shell is sandboxed
+(Muse Code); the shell forms (`symbiont repo allow`, `symbiont repo mine`)
+remain for a harness without MCP.
 
 ## Learn from your team's PR reviews
 

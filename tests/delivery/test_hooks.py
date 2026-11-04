@@ -272,6 +272,33 @@ def test_an_announcement_reaches_the_developer_and_the_model(monkeypatch):
     assert shown["hookSpecificOutput"]["additionalContext"] == reply["announce"][0]
 
 
+def test_a_model_instruction_reaches_the_model_and_not_the_status_line(monkeypatch):
+    reply = {"notes": [], "announce": ["off here."], "tell_model": ["Begin your reply with it."]}
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: reply)
+    settings = HookSettings("claude_code", NoteStyle.PLAIN, 1, "p")
+
+    result = hooks.run_hook(
+        HookEvent.SESSION_START, json.dumps(INPUTS[HookEvent.SESSION_START]), settings
+    )
+
+    shown = json.loads(result.context)
+    assert shown["systemMessage"] == "off here."
+    assert (
+        shown["hookSpecificOutput"]["additionalContext"] == "off here.\nBegin your reply with it."
+    )
+
+
+def test_a_model_instruction_that_is_not_sentences_is_refused(monkeypatch):
+    reply = {"notes": [], "tell_model": 5}
+    monkeypatch.setattr(hooks, "call_service", lambda route, body, port: reply)
+    settings = HookSettings("claude_code", NoteStyle.PLAIN, 1, "p")
+
+    with pytest.raises(hooks.ServiceReplyError, match="model instructions"):
+        hooks.run_hook(
+            HookEvent.SESSION_START, json.dumps(INPUTS[HookEvent.SESSION_START]), settings
+        )
+
+
 def test_an_announcement_that_is_not_sentences_is_refused_not_dropped(monkeypatch):
     monkeypatch.setattr(
         hooks, "call_service", lambda route, body, port: {"notes": [], "announce": 5}

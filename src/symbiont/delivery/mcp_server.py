@@ -8,6 +8,13 @@ from dataclasses import dataclass
 from typing import IO, Any
 
 from symbiont.delivery.curation_tools import BY_NAME, as_text, listed_tools, route_and_body
+from symbiont.delivery.operator_tools import (
+    OPERATOR_BY_NAME,
+    Operate,
+    Outcome,
+    listed_operator_tools,
+    operator_argv,
+)
 from symbiont.delivery.recall import (
     ServiceOfflineError,
     ServiceRefusedError,
@@ -54,6 +61,7 @@ class _RpcError(Exception):
 
 
 Curate = Callable[[str, dict[str, Any]], str]
+Operator = Callable[[str, dict[str, Any]], Outcome]
 
 
 def serve_stdio(
@@ -64,6 +72,25 @@ def serve_stdio(
     environ: Mapping[str, str] | None = None,
 ) -> None:
     """Answer requests line by line until stdin closes; only JSON-RPC goes to stdout."""
+    _serve(stdin, stdout, (project, port), environ, None)
+
+
+def serve_stdio_operating(
+    stdin: IO[str], stdout: IO[str], project: str, port: int, operate: Operate
+) -> None:
+    """`serve_stdio` that also offers the operator tools, which run through `operate`."""
+    _serve(stdin, stdout, (project, port), None, operate)
+
+
+def _serve(
+    stdin: IO[str],
+    stdout: IO[str],
+    where: tuple[str, int],
+    environ: Mapping[str, str] | None,
+    operate: Operate | None,
+) -> None:
+    """The request loop; `where` is the project and the service port."""
+    project, port = where
     host = os.environ if environ is None else environ
 
     def ask(question: str) -> str:
@@ -75,17 +102,31 @@ def serve_stdio(
         route, body = route_and_body(name, arguments, host)
         return as_text(call_service("/" + route, {**body, "project": project}, port))
 
+    operating = None if operate is None else _operator_for(operate, project, port)
     for line in stdin:
         if not line.strip():
             continue
-        reply = _reply_to_line(line, ask, curate)
+        reply = _reply_to_line(line, ask, curate, operating)
         if reply is not None:
             stdout.write(json.dumps(reply) + "\n")
             stdout.flush()
 
 
+def _operator_for(operate: Operate, project: str, port: int) -> Operator:
+    """The operator tools of one project: each call runs the `symbiont` subcommand it stands for."""
+
+    def operator(name: str, arguments: dict[str, Any]) -> Outcome:
+        """Run one operator action."""
+        return operate(operator_argv(name, arguments, project, port))
+
+    return operator
+
+
 def _reply_to_line(
-    line: str, ask: Callable[[str], str], curate: Curate | None = None
+    line: str,
+    ask: Callable[[str], str],
+    curate: Curate | None = None,
+    operator: Operator | None = None,
 ) -> dict[str, Any] | None:
     """The JSON-RPC reply to one input line; None for notifications."""
     try:
@@ -99,14 +140,18 @@ def _reply_to_line(
         log.info("notification %s", request["method"])
         return None
     try:
-        result = _dispatch(request["method"], request.get("params"), ask, curate)
+        result = _dispatch(request["method"], request.get("params"), ask, curate, operator)
     except _RpcError as failure:
         return _error(request["id"], failure.code, str(failure))
     return {"jsonrpc": "2.0", "id": request["id"], "result": result}
 
 
 def _dispatch(
-    method: str, params: Any, ask: Callable[[str], str], curate: Curate | None
+    method: str,
+    params: Any,
+    ask: Callable[[str], str],
+    curate: Curate | None,
+    operator: Operator | None,
 ) -> dict[str, Any]:
     """Result of one JSON-RPC method; unknown methods raise _RpcError."""
     if method == "initialize":
@@ -118,9 +163,10 @@ def _dispatch(
     if method == "ping":
         return {}
     if method == "tools/list":
-        return {"tools": [RECALL_TOOL, *listed_tools()]}
+        offered = listed_operator_tools() if operator is not None else []
+        return {"tools": [RECALL_TOOL, *listed_tools(), *offered]}
     if method == "tools/call":
-        return _call_tool(params, ask, curate)
+        return _call_tool(params, ask, curate, operator)
     raise _RpcError(METHOD_NOT_FOUND, f"method not found: {method}")
 
 
@@ -130,21 +176,30 @@ def _negotiated(params: Any) -> str:
     return asked if asked in SUPPORTED_VERSIONS else SUPPORTED_VERSIONS[0]
 
 
-def _call_tool(params: Any, ask: Callable[[str], str], curate: Curate | None) -> dict[str, Any]:
-    """Run recall or a curation tool; any other tool name raises _RpcError."""
+def _call_tool(
+    params: Any, ask: Callable[[str], str], curate: Curate | None, operator: Operator | None
+) -> dict[str, Any]:
+    """Run recall, a curation tool or an operator tool; any other tool name raises _RpcError."""
     name = params.get("name") if isinstance(params, dict) else None
+    arguments = params.get("arguments") if isinstance(params, dict) else None
+    if isinstance(name, str) and name in OPERATOR_BY_NAME and operator is not None:
+        return _tool_result(_operator_answer(operator, name, arguments or {}))
     if isinstance(name, str) and name in BY_NAME and curate is not None:
-        return _tool_result(_curation_answer(curate, name, params.get("arguments") or {}))
+        return _tool_result(_curation_answer(curate, name, arguments or {}))
     if name != "recall":
         raise _RpcError(INVALID_PARAMS, f"unknown tool {name!r}")
-    arguments = params.get("arguments")
+    return _tool_result(_recall_answer(ask, arguments))
+
+
+def _recall_answer(ask: Callable[[str], str], arguments: Any) -> _Answer:
+    """Answer one recall call; anything but exactly one string `question` is a visible refusal."""
     if not isinstance(arguments, dict) or arguments.keys() != {"question"}:
-        return _tool_result(_BAD_ARGUMENTS)
+        return _BAD_ARGUMENTS
     question = arguments["question"]
     if not isinstance(question, str):
-        return _tool_result(_BAD_ARGUMENTS)
+        return _BAD_ARGUMENTS
     log.info("recall question of %d chars", len(question))
-    return _tool_result(_answer(ask, question))
+    return _answer(ask, question)
 
 
 def _tool_result(answer: _Answer) -> dict[str, Any]:
@@ -177,6 +232,17 @@ def _curation_answer(curate: Curate, name: str, arguments: Any) -> _Answer:
         return _Answer(f"symbiont offline: {offline}")
     except (ServiceRefusedError, ValueError) as refused:
         return _Answer(f"symbiont refused {name}: {refused}", refused=True)
+
+
+def _operator_answer(operator: Operator, name: str, arguments: Any) -> _Answer:
+    """An operator tool's answer: what the subcommand printed; a failure is a visible error."""
+    if not isinstance(arguments, dict):
+        return _Answer(f"{name} needs an object of arguments", refused=True)
+    try:
+        outcome = operator(name, arguments)
+    except ValueError as refused:
+        return _Answer(f"symbiont refused {name}: {refused}", refused=True)
+    return _Answer(outcome.text, refused=outcome.failed)
 
 
 def _id_of(request: Any) -> Any:

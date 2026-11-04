@@ -31,12 +31,13 @@ from symbiont.records.schema import Kind, Record
 from symbiont.service.nightly import NightlyJudges, NightlyReport, NightlyState
 from symbiont.service.onboarding import (
     ONBOARDING,
+    RELAY_TO_DEVELOPER,
     SESSION_START,
     Announcements,
     Lookups,
 )
 from symbiont.service.rule_voice import Occasion, RuleVoice
-from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.repos import Announced, RepoRegistry, RepoStance
 
 
 @dataclass(frozen=True)
@@ -45,6 +46,8 @@ class Door:
 
     may_observe: bool
     announce: tuple[str, ...] = ()
+    # For the session's model only; the developer reads `announce`.
+    tell_model: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -60,6 +63,14 @@ class Spoken:
     def note(self) -> RepeatNote | None:
         """The first note, or None when the gate stayed quiet."""
         return self.notes[0] if self.notes else None
+
+
+def _relay_once(registry: RepoRegistry, project: str) -> tuple[str, ...]:
+    """Ask the model to relay the question in its first reply, the first time only."""
+    if registry.was_announced(project, Announced.ONBOARDING_RELAYED):
+        return ()
+    registry.announce(project, Announced.ONBOARDING_RELAYED)
+    return (RELAY_TO_DEVELOPER,)
 
 
 class RepoGate:
@@ -91,8 +102,13 @@ class RepoGate:
         stance = self.registry.stance(project)
         if stance is RepoStance.GIVEN:
             return Door(may_observe=True, announce=self._session_start_news(project, event))
-        asked_now = stance is None and event == SESSION_START
-        return Door(may_observe=False, announce=(ONBOARDING,) if asked_now else ())
+        if stance is not None or event != SESSION_START:
+            return Door(may_observe=False)
+        return Door(
+            may_observe=False,
+            announce=(ONBOARDING,),
+            tell_model=_relay_once(self.registry, project),
+        )
 
     def silenced(self, project: str, trouble: Signature | None) -> bool:
         """Whether the developer muted this kind of trouble in this repository."""
