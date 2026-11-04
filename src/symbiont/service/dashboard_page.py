@@ -22,6 +22,7 @@ WATCHING_MINE = "mining"
 FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
     "/dashboard/timeline.js": ("timeline.js", "text/javascript; charset=utf-8"),
+    "/dashboard/treemap.js": ("treemap.js", "text/javascript; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
 }
