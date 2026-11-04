@@ -28,16 +28,16 @@ from symbiont.service.judge_start import (
     port_of,
 )
 from symbiont.service.nightly_backend import Backend, choose_backend
-from symbiont.service.nightly_run import NightFailedError, NightTools, Say
+from symbiont.service.nightly_bundle import judge_script, torch_trainer
+from symbiont.service.nightly_run import NightFailedError, NightPlan, NightTools, Say
 from symbiont.service.nightly_schedule import Completed, ScheduleError, Tool
+from symbiont.service.nightly_setup import INSTALL_NIGHTLY
 
-ROUTEA_ENV = "SYMBIONT_ROUTEA_DIR"
-TORCH_TRAINER = "train_lora_torch.py"
-JUDGE_SERVER = "plug_judge_server.py"
 JUDGE_LOG = "judge-server.log"  # beside the adapter folder, in <nightly-dir>/<project>/
 FIRST_PORT = 8800  # the nightly judge servers live at 8800-8899; 8791 is the first-night server
 PORTS = 100
 MLX_IMPORT = "import mlx_lm"
+TORCH_IMPORT = "import torch, peft, transformers"
 CUDA_IMPORT = (
     "import sys, torch, peft, transformers; sys.exit(0 if torch.cuda.is_available() else 3)"
 )
@@ -99,39 +99,69 @@ def _has_nvidia() -> bool:
 def checked_python(python: str, backend: Backend) -> None:
     """Fail now, with the fix, if `python` cannot train on `backend`, not after the rows."""
     probe = MLX_IMPORT if backend is Backend.MLX else CUDA_IMPORT
+    reason = _import_failure(python, probe, "trainer")
+    if reason is not None:
+        raise NightFailedError(
+            f"{python} cannot train with {backend.value} ({reason}); "
+            f"{_fix_for(python, INSTALL_HINT[backend], '--trainer-python')}"
+        )
+
+
+def checked_judge_python(python: str) -> None:
+    """Fail now, with the fix, if `python` cannot run the judge server (torch, peft, ...)."""
+    reason = _import_failure(python, TORCH_IMPORT, "judge")
+    if reason is not None:
+        raise NightFailedError(
+            f"{python} cannot run the judge server ({reason}); "
+            f"{_fix_for(python, 'install torch, peft and transformers into it', '--judge-python')}"
+        )
+
+
+def _fix_for(python: str, own_fix: str, option: str) -> str:
+    """What to run: the extra for this install's own Python, else the fix for the chosen one."""
+    if python == sys.executable:
+        return f"this install lacks the nightly packages. Run: {INSTALL_NIGHTLY}"
+    return f"{own_fix}, or pass another interpreter with {option}"
+
+
+def _import_failure(python: str, probe: str, role: str) -> str | None:
+    """None when `python -c probe` exits 0, else the last line it said (or its exit code)."""
     try:
         with interpreter_first(python):
             done = subprocess.run(
                 ["python", "-c", probe], capture_output=True, text=True, check=False
             )
     except OSError as missing:
-        raise NightFailedError(f"trainer Python {python!r} cannot start: {missing}") from missing
-    if done.returncode != 0:
-        reason = (done.stderr.strip().splitlines() or [f"exit {done.returncode}"])[-1]
-        raise NightFailedError(
-            f"{python} cannot train with {backend.value} ({reason}); {INSTALL_HINT[backend]}, "
-            "or pass another interpreter with --trainer-python"
+        raise NightFailedError(f"{role} Python {python!r} cannot start: {missing}") from missing
+    if done.returncode == 0:
+        return None
+    return (done.stderr.strip().splitlines() or [f"exit {done.returncode}"])[-1]
+
+
+def preflight(plan: NightPlan) -> None:
+    """Fail now, in the foreground, if this machine cannot train or serve: hardware, packages.
+
+    Raises NoTrainingHardwareError or NightFailedError with the fix, so a missing extra is said
+    to the developer who asked, not found later in a log of a detached process.
+    """
+    checked_python(plan.trainer_python, detected_backend())
+    checked_judge_python(plan.judge_python)
+
+
+def launch_detached_job(python: str, args: Sequence[str], log: Path) -> None:
+    """Start `python ARGS` detached, its output appended to `log`; it outlives this process.
+
+    Raises NightFailedError when `python` is not an executable.
+    """
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with interpreter_first(python), log.open("ab") as sink:
+        subprocess.Popen(
+            ["python", *args],
+            stdin=subprocess.DEVNULL,
+            stdout=sink,
+            stderr=subprocess.STDOUT,
+            **detached_options(),
         )
-
-
-def routea_dir() -> Path | None:
-    """`scripts/routea` of the checkout this package runs from (or $SYMBIONT_ROUTEA_DIR), if any."""
-    chosen = os.environ.get(ROUTEA_ENV)
-    candidates = (
-        [Path(chosen)] if chosen else [Path(__file__).resolve().parents[3] / "scripts" / "routea"]
-    )
-    return next((path for path in candidates if path.is_dir()), None)
-
-
-def torch_trainer() -> Path:
-    """The torch trainer script. Raises NightFailedError when no checkout provides it."""
-    folder = routea_dir()
-    if folder is None or not (folder / TORCH_TRAINER).is_file():
-        raise NightFailedError(
-            f"the CUDA trainer {TORCH_TRAINER} is not here; run from a checkout of ai-symbiont "
-            f"or point {ROUTEA_ENV} at its scripts/routea"
-        )
-    return folder / TORCH_TRAINER
 
 
 def default_judge_url(project: str) -> str:
@@ -141,12 +171,6 @@ def default_judge_url(project: str) -> str:
     name's checksum within 8800-8899. A collision is fixed with --judge-url.
     """
     return f"http://127.0.0.1:{FIRST_PORT + zlib.crc32(project.encode()) % PORTS}"
-
-
-def judge_script() -> str:
-    """The judge server script of this checkout, or a placeholder naming where it lives."""
-    folder = routea_dir()
-    return str(folder / JUDGE_SERVER) if folder else f"<ai-symbiont>/scripts/routea/{JUDGE_SERVER}"
 
 
 def restart_instructions(
@@ -170,7 +194,9 @@ def spawn_judge(start: JudgeStart, log: Path) -> "subprocess.Popen[bytes]":
     """
     script = judge_script()
     if not Path(script).is_file():
-        raise JudgeStartError(f"the judge server script is not here ({script}); set {ROUTEA_ENV}")
+        raise JudgeStartError(
+            f"the judge server script is not here ({script}); reinstall ai-symbiont"
+        )
     port = str(start.port)
     log.parent.mkdir(parents=True, exist_ok=True)
     try:
@@ -195,7 +221,7 @@ def spawn_judge(start: JudgeStart, log: Path) -> "subprocess.Popen[bytes]":
                 stdout=sink,
                 stderr=subprocess.STDOUT,
                 env=environment,
-                **_detached(),
+                **detached_options(),
             )
     except (OSError, NightFailedError) as unstartable:
         raise JudgeStartError(f"could not start the judge server: {unstartable}") from unstartable
@@ -210,7 +236,7 @@ def revive_judge_server(start: JudgeStart, log: Path) -> Running:
     return spawn_judge(start, log)
 
 
-def _detached() -> dict[str, Any]:
+def detached_options() -> dict[str, Any]:
     """Popen keywords that let the child outlive this process (a Windows job may still end it)."""
     if sys.platform == "win32":
         return {"creationflags": 0x00000008 | 0x00000200}  # DETACHED_PROCESS | NEW_PROCESS_GROUP

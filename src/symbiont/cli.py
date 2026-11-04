@@ -88,7 +88,7 @@ def main(
     if args.command == "consent":
         return _consent(args)
     if args.command == "nightly":
-        return run_nightly_command(args)
+        return run_nightly_command(args, pause=mine_pause)
     return _recall(args)
 
 

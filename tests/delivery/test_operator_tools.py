@@ -26,6 +26,7 @@ EXPECTED = {
     "symbiont_allow",
     "symbiont_decline",
     "symbiont_mine",
+    "symbiont_nightly",
     "symbiont_status",
     "symbiont_why",
     "symbiont_lessons",
@@ -87,6 +88,12 @@ def test_the_server_without_an_operator_offers_no_operator_tools():
         ("symbiont_lessons", {}, ["lessons", "--project", "demo"]),
         ("symbiont_settings", {}, ["settings", "show", "--project", "demo"]),
         ("symbiont_learn_from_prs", {}, ["learn-from-prs", "--project", "demo"]),
+        ("symbiont_nightly", {}, ["nightly", "start", "--project", "demo"]),
+        (
+            "symbiont_nightly",
+            {"base": "/b", "kit": "/k"},
+            ["nightly", "start", "--project", "demo", "--base", "/b", "--kit-files", "/k"],
+        ),
         ("symbiont_forget", {}, ["forget", "--project", "demo"]),
         (
             "symbiont_forget",
@@ -128,6 +135,8 @@ def test_every_tool_argv_is_accepted_by_the_real_parser():
         ("symbiont_context", {"lesson": "last"}),
         ("symbiont_context", {"lesson": "last", "words": "x", "priority": "urgent"}),
         ("symbiont_forget", {"lesson_id": 5}),
+        ("symbiont_nightly", {"base": "/b"}),
+        ("symbiont_nightly", {"kit": "/k"}),
     ],
 )
 def test_bad_arguments_are_a_visible_refusal_and_run_nothing(name, arguments):

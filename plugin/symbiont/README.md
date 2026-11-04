@@ -14,6 +14,25 @@ It adds hooks for session start, prompt submit and tool use, a `recall` tool ove
 open a repository it tells you what symbiont does and asks before it stores anything. See
 `docs/product/plugin.md` in the repository for the design.
 
+## Nightly training from the plugin
+
+`/symbiont nightly` trains this repository's checker on its lessons, on your machine, and nothing is
+uploaded. It needs the training packages, which a plain install does not carry:
+
+```bash
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+```
+
+The first run also needs a judge kit, because Meta's license does not let us ship the weights. Download
+the base model and the small kit once (the commands are in the repository README, "Building the kit"),
+then run `/symbiont nightly` with their folders: `base` is the Llama 3.2 1B Instruct folder and `kit`
+is the downloaded `nightly-kit` folder. Later runs need no arguments. Without a kit the command stops
+and prints those steps; with the packages missing it prints the install command above and exits
+non-zero. Training takes 1-4 minutes, so the command returns within a minute with "training started";
+`/symbiont status` shows `training job: running`, `done on N lessons at <time>` or `failed: <reason>`,
+and when it is done the checker server starts (or reloads) by itself. Muse Code works too: the tool
+runs in symbiont's own process, outside Muse's sandbox.
+
 ## Install
 
 Claude Code: `/plugin marketplace add https://github.com/smalls257/ai-symbiont`, then `/plugin install symbiont@ai-symbiont`.

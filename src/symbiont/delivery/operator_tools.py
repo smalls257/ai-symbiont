@@ -73,6 +73,18 @@ OPERATOR_TOOLS = [
         takes_port=True,
     ),
     OperatorTool(
+        "symbiont_nightly",
+        "Train this repository's checker on its lessons, on this machine (nothing is uploaded). "
+        "Sets up first if needed, then trains in the background and returns within a minute; "
+        "training takes 1-4 minutes, and symbiont_status reports its progress. With no base and "
+        "kit it reuses a kit that is already built; if there is none it says the exact steps.",
+        ("nightly", "start"),
+        properties={
+            "base": {**_STRING, "description": "folder of the downloaded Llama-3.2-1B-Instruct"},
+            "kit": {**_STRING, "description": "the downloaded nightly-kit folder"},
+        },
+    ),
+    OperatorTool(
         "symbiont_dashboard",
         "The address of this repository's dashboard. Tell the developer the address.",
         ("dashboard",),
@@ -158,6 +170,8 @@ def _options(name: str, arguments: dict[str, Any]) -> list[str]:
     """The arguments the subcommand takes as options."""
     if name == "symbiont_forget" and "lesson_id" in arguments:
         return ["--lesson", _text(arguments, "lesson_id")]
+    if name == "symbiont_nightly":
+        return _nightly_options(arguments)
     if name != "symbiont_context":
         return []
     found = ["--intentional"] if arguments.get("intentional") is True else []
@@ -175,3 +189,12 @@ def _text(arguments: dict[str, Any], key: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{key} must be a non-empty string")
     return value
+
+
+def _nightly_options(arguments: dict[str, Any]) -> list[str]:
+    """`--base` and `--kit-files` when given; the subcommand needs both or neither."""
+    if ("base" in arguments) != ("kit" in arguments):
+        raise ValueError("symbiont_nightly needs base and kit together, or neither")
+    if "base" not in arguments:
+        return []
+    return ["--base", _text(arguments, "base"), "--kit-files", _text(arguments, "kit")]

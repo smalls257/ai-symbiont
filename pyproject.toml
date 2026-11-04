@@ -8,6 +8,17 @@ dependencies = [
     "numpy>=2.5.4",
 ]
 
+[project.optional-dependencies]
+# What `symbiont nightly` trains and serves with, on the user's own machine. mlx-lm trains on an
+# Apple Silicon Mac; torch, peft and transformers merge the kit, and serve the judge everywhere
+# (a Mac's torch uses mps). A CUDA machine needs a CUDA build of torch; PyPI's Windows torch is CPU-only.
+nightly = [
+    "mlx-lm>=0.32; sys_platform == 'darwin' and platform_machine == 'arm64'",
+    "torch>=2.15",
+    "peft>=0.21",
+    "transformers>=5.22",
+]
+
 [project.scripts]
 symbiont = "symbiont.cli:main"
 # The harness hook command: its own entry point so it imports no learner and starts fast.
