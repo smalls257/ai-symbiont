@@ -8,7 +8,7 @@
   - **Muse Spark 1.3** (`api.meta.ai`): the coding agent, and it curates lessons. It also plays Freedoom via ViZDoom and drives a robot in Meta's Habitat simulator.
   - **Llama 3.2 1B Instruct** (open weights): the checker that must agree before any note is shown. It is LoRA-trained nightly on the user's machine; the adapters are on Hugging Face.
   - **Muse Code**: the harness (ai-symbiont is a plugin, through hooks and MCP).
-  - **Muse Glimmer 30B** (open weights): a local model in calibration and lesson-in-prompt pilots only; no Glimmer LoRA result is published (see "Meta models used").
+  - **Muse Glimmer 30B** (open weights): we trained a personal LoRA on it to put lessons directly into its weights. On coding it is not better yet: 0.054 below plain Glimmer (stopped at 37 of 60 blocks; `results/core-v3-stopped-final.json`) [measured].
 - **Bonus prize categories targeted:** Best Build on Meta Open Weight Models (Llama 3.2 1B checker), Best Agentic Use-Case, Best Creative Build.
 - **Demo video:** (YouTube link coming). **Landing page:** <https://smalls257.github.io/ai-symbiont/>
 - **Keyless demo (no API key, no network):** the interactive demo on the landing page, or `docker run --rm ai-symbiont demo` (build steps in Quickstart).
@@ -36,7 +36,7 @@ Demo video: (link coming)
 ## Meta models used
 
 - **Muse Spark** (`muse-spark-1.3-contributor`), through the Meta Model API at `https://api.meta.ai/v1` (docs: dev.meta.ai). It is the coding agent in every measured run, and it curates lessons.
-- **Muse Glimmer 30B** (open weights). It served as a local model in the calibration and lesson-in-prompt pilots. Route B, a personal LoRA on Glimmer, has its training-row builders and scripts in `src/symbiont/routeb` and `scripts/routeb`; those are LoRA fine-tuning experiments, and no Glimmer LoRA result is published yet. The measured LoRA results in `results/` are on Llama 3.2 1B.
+- **Muse Glimmer 30B** (open weights). It served as a local model in the calibration and lesson-in-prompt pilots, and as the base for Route B, a personal LoRA that trains lessons into the model's weights (builders and scripts in `src/symbiont/routeb` and `scripts/routeb`). Route B on coding is not better yet: solve rate 0.054 with the LoRA vs 0.108 for plain Glimmer, interval [-0.108, -0.014], stopped early at 37 of 60 blocks (`results/core-v3-stopped-final.json`) [measured]. Exploratory; a retrain with a shorter context is in development.
 - **Llama 3.2 1B Instruct** (open weights), with a LoRA-trained judge, trained nightly per repository on your own machine. The adapters and the nightly kit are published on Hugging Face: <https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters>
 - **Muse Code**, the harness: ai-symbiont is a plugin (hooks and MCP) for it.
 
