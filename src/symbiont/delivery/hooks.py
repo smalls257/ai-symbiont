@@ -9,11 +9,11 @@ import time
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from enum import StrEnum
-from pathlib import Path
 from typing import Any
 
 from symbiont.delivery.claude_code_payload import shell_exit_code
 from symbiont.delivery.headline import headline
+from symbiont.delivery.project_identity import project_for
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
 from symbiont.records.output_failure import exit_code_with_output
 
@@ -63,6 +63,8 @@ class HookSettings:
     port: int
     fallback_project: str
     visibility: NoteVisibility = NoteVisibility.ALSO_DEVELOPER
+    # Projects the developer answered for; set for Claude Code only (see project_identity.py).
+    known_projects: frozenset[str] = frozenset()
 
 
 class HookInputError(ValueError):
@@ -129,7 +131,9 @@ def run_hook(
     down service.
     """
     data = parsed_input(stdin_text)
-    body = observe_body(event, data, settings.harness, settings.fallback_project)
+    body = observe_body(
+        event, data, settings.harness, settings.fallback_project, settings.known_projects
+    )
     try:
         reply = (call or call_service)("/observe", body, settings.port)
     except ServiceOfflineError as offline:
@@ -152,14 +156,18 @@ def run_hook(
 
 
 def observe_body(
-    event: HookEvent, data: dict[str, Any], harness: str, fallback_project: str
+    event: HookEvent,
+    data: dict[str, Any],
+    harness: str,
+    fallback_project: str,
+    known_projects: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """The /observe request for one hook event."""
     session_id = data.get("session_id")
     if not isinstance(session_id, str) or not session_id:
         raise HookInputError("hook input has no session_id")
     cwd = data.get("cwd")
-    project = Path(cwd).name if isinstance(cwd, str) and cwd else fallback_project
+    project = project_for(cwd if isinstance(cwd, str) else None, fallback_project, known_projects)
     record = _record(event, data, harness, project, session_id)
     return {
         "harness": harness,

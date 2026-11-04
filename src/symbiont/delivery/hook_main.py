@@ -25,6 +25,7 @@ from symbiont.delivery.hooks import (
     run_hook,
 )
 from symbiont.delivery.launch import DEFAULT_DATA_DIR, reviving_call
+from symbiont.delivery.project_identity import RegistryUnreadableError, known_projects
 from symbiont.delivery.recall import ServiceRefusedError, ServiceReplyError
 from symbiont.delivery.stdio import use_utf8_lf_stdio
 from symbiont.delivery.stop_hook import run_stop
@@ -55,14 +56,22 @@ def forward_hook(args: argparse.Namespace, stdin_text: str) -> int:
     trace = trace_path(os.environ, args.data_dir)
     record_received(trace, args.event, stdin_text)
     harness = resolve_harness(args.harness, os.environ)
-    settings = HookSettings(harness, args.notes, args.port, args.project, args.visibility)
     try:
+        known = known_projects(args.data_dir) if harness == CLAUDE_CODE else frozenset()
+        settings = HookSettings(
+            harness, args.notes, args.port, args.project, args.visibility, known
+        )
         call = reviving_call(args.data_dir, args.port)
         if args.event is HookEvent.STOP:
             result = run_stop(stdin_text, settings, call)
         else:
             result = run_hook(args.event, stdin_text, settings, call)
-    except (HookInputError, ServiceRefusedError, ServiceReplyError) as unusable:
+    except (
+        HookInputError,
+        RegistryUnreadableError,
+        ServiceRefusedError,
+        ServiceReplyError,
+    ) as unusable:
         record_outcome(trace, args.event, "dropped", f"{type(unusable).__name__}: {unusable}")
         sys.stderr.write(f"symbiont hook {args.event}: {unusable}\n")
         said = {"systemMessage": f"symbiont could not use {args.event}: {unusable}"}
