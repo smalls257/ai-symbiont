@@ -73,38 +73,7 @@
   <div class="panel fire" id="fire"></div>
   <div class="panel"><h2>Caught, newest first</h2><ul class="evl" id="evl"></ul></div>
 </section>
-
-<section class="stage" id="s4" aria-label="Proof">
-  <div class="phead"><h1>This is not a demo of a promise. These are measured results.</h1><p>From our own runs on other data. Each one is tagged, and the limits are printed with it.</p></div>
-  <div class="panel pc" id="pc1">
-    <span class="mtag">[measured]</span>
-    <div class="big">0<small>wrong notes in 501 shown</small></div>
-    <h3>None of the 501 notes it showed were wrong.</h3>
-    <svg id="dots" viewBox="0 0 330 150" role="img" aria-label="501 notes shown, none wrong"></svg>
-    <div class="src">Agree rule, 251 repeats in 89 unseen repos. Each dot is one note shown.</div>
-  </div>
-  <div class="panel pc" id="pc2">
-    <span class="mtag">[measured]</span>
-    <div class="big">61%<small>vs 0%</small></div>
-    <h3>of repeats caught after nightly training, against none without it.</h3>
-    <svg id="bars2" viewBox="0 0 250 110" role="img" aria-label="61 percent caught with nightly training, 0 percent without"></svg>
-    <div class="src">Code-fix study, 924 items, 97.8% precision.</div>
-  </div>
-  <div class="panel pc" id="pc3">
-    <span class="mtag">[measured]</span>
-    <div class="big">+0.16<small>[0.11, 0.22]</small></div>
-    <h3>A rule Spark wrote from its own failures made it better, and held on new cases.</h3>
-    <svg id="ci" viewBox="0 0 250 110" role="img" aria-label="Gain of 0.16, interval 0.11 to 0.22"></svg>
-    <div class="src">Replicated on 240 fresh cases.</div>
-  </div>
-  <div class="panel lim"><b>Limits.</b> The 61% comes from one code-fix study; your repo will differ. The dashboard before this screen is synthetic, and its savings are estimates, not measurements.</div>
-</section>
 </main>
-<footer class="foot" id="foot">
-  <span><b>[measured]</b><span>0 wrong notes</span> in 501 shown</span>
-  <span><b>[measured]</b><span>61%</span> of repeats caught vs 0%</span>
-  <span><b>[measured]</b><span>+0.16</span> [0.11, 0.22], replicated on 240 fresh cases</span>
-</footer>
 <div id="caption" aria-live="polite"></div>
 <div id="tip"></div>
 

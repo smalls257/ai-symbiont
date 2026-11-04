@@ -18,6 +18,7 @@ from symbiont.store.repos import RepoRegistry
 
 STATIC = Path(__file__).parent / "static"
 PLACEHOLDER = "__SYMBIONT_DATA__"
+WATCHING_MINE = "mining"
 FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
@@ -54,8 +55,8 @@ def dashboard_page(
 ) -> Page:
     """The response for a GET of `target` (a path with an optional query).
 
-    While a project's mining runs, or when it failed or found nothing, the page is the Mine stage
-    alone, filled from the job's progress: never a dashboard of nothing.
+    The Mine stage alone shows while a job runs, failed or found nothing, and, for `?mining=1`
+    (what `symbiont repo mine` opens), also after it finished, so a short job shows its result.
     """
     path, _, query = target.partition("?")
     if path in FILES:
@@ -70,14 +71,17 @@ def _project_page(
     store: Store, registry: RepoRegistry | None, query: str, today: date, live: Live
 ) -> Page:
     """The dashboard (or the Mine stage alone) for the project the query names or the only one."""
-    chosen = _query(query).get("project")
+    asked = _query(query)
+    chosen = asked.get("project")
     known = store.catalog.projects()
     project = chosen or (known[0] if len(known) == 1 else None)
     if project is None:
         listing = ", ".join(known) or "none yet; run `symbiont repo mine`"
         return Page(400, TEXT, f"choose a repository with ?project=NAME. Known: {listing}".encode())
     progress = live.mining(project)
-    if progress is not None and _still_mining(progress, store.lessons(project)):
+    if progress is not None and (
+        WATCHING_MINE in asked or _still_mining(progress, store.lessons(project))
+    ):
         return Page(200, HTML, _mining_html(project, progress))
     focus = _focus_terms(registry, project)
     return Page(200, HTML, _html(store, project, today, focus, live.nightly))

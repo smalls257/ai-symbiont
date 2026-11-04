@@ -17,7 +17,6 @@ from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review,
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
-from symbiont.service.dashboard_proof import PROOF
 
 REPLAY_DAYS = 30
 MINUTES_PER_TURN = 0.7
@@ -78,7 +77,6 @@ def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
         "painPoints": [point for point, _ in points],
         "lessons": [lesson for _, lesson in points],
         "replay": _replay([p for p, _ in points], days, (today - first).days),
-        "proof": PROOF,
         "nightly": dict(view.nightly) if view.nightly is not None else None,
     }
 

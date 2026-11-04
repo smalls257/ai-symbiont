@@ -92,7 +92,7 @@ answer to "Anything symbiont should pay attention to?").
 - Nothing is stored for a repository that has not said yes.
 - The dashboard is served by the local service at `/dashboard?project=NAME`, filled from the store;
   `symbiont dashboard` prints its address. Turns and minutes per occurrence are estimates from the
-  length of the recorded fix [hypothesis]; the proof band shows the measured results with their tags.
+  length of the recorded fix [hypothesis]; the product shows no fixed research results, only this repository's own data.
 
 ## Learn from your team's PR reviews
 

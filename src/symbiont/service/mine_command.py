@@ -47,6 +47,11 @@ def dashboard_url(project: str, port: int) -> str:
     return f"http://127.0.0.1:{port}/dashboard?project={safe}"
 
 
+def mining_url(project: str, port: int) -> str:
+    """The dashboard address that starts on the Mine stage, even if the job is already done."""
+    return dashboard_url(project, port) + "&mining=1"
+
+
 def mine_past_sessions(args: argparse.Namespace, registry: RepoRegistry, client: MineClient) -> int:
     """Mine this repository's Claude Code and Muse Code sessions; refuses until it is allowed."""
     if registry.stance(args.project) is not RepoStance.GIVEN:
@@ -85,7 +90,7 @@ def mine_past_sessions(args: argparse.Namespace, registry: RepoRegistry, client:
 
 def _show_dashboard(args: argparse.Namespace, client: MineClient) -> None:
     """Print the dashboard address and open it unless the developer said not to."""
-    url = dashboard_url(args.project, args.port)
+    url = mining_url(args.project, args.port)
     _say(f"dashboard: {url}")
     if args.no_open or not read_dashboard_settings(args.data_dir).open_on_mine:
         return

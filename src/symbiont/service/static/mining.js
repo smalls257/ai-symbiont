@@ -1,11 +1,15 @@
 /* The Mine stage on its own, for a repository whose mining is running, failed or found nothing.
    A dashboard opened before the lessons exist must show the job
    (or why it stopped), never an empty page. The server injects {mining:{project,progress}} as the
-   page's one data object; this file polls GET /mining/<project>/progress and, when the job is
-   done with lessons, reloads so the server renders the pain-point view from the stored lessons. */
+   page's one data object; this file polls GET /mining/<project>/progress. When the job is done with
+   lessons it keeps the finished summary on screen (a Continue button, and an automatic move after
+   SUMMARY_MS) and only then loads the address without ?mining, which the server renders as the
+   pain-point view from the stored lessons. A short job would otherwise finish before the page
+   painted and the developer would never see what was read. Every number shown is the service's:
+   a burst of progress is painted as polled, nothing is interpolated. */
 (function () {
 "use strict";
-const POLL_MS=700, RETRY_MS=2000, RELOAD_MS=1400, CLEAR="#ff8c40";
+const POLL_MS=700, RETRY_MS=2000, SUMMARY_MS=3500, CLEAR="#ff8c40";
 
 /* describe is pure: progress in, what the page says out. */
 function describe(p){
@@ -19,8 +23,9 @@ function describe(p){
       status:"failed after "+read+" of "+total+" sessions"};
   }
   if(p.state==="done"&&p.lessons>0){
-    return {...base,percent:100,next:"reload",headline:"Found "+p.pain_points+" pain points in "+total+" sessions.",
-      lede:"Opening what it found.",status:"done · "+p.lessons+" lessons ready to use"};
+    return {...base,percent:100,next:"summary",
+      headline:"Read "+total+" sessions · found "+p.pain_points+" pain points · learned "+p.lessons+" lessons",
+      lede:"Continue to see what it found, or wait a moment.",status:"done · "+p.lessons+" lessons ready to use"};
   }
   if(p.state==="done"){
     return {...base,percent:100,next:"stop",headline:"Read "+total+" sessions and found no pain points yet.",
@@ -29,6 +34,14 @@ function describe(p){
   return {...base,headline:"Reading "+total+" sessions",
     lede:"Looking for the same failure twice, files reworked, corrections and loops.",
     status:"session "+read+" of "+total+" · "+p.pain_points+" pain points so far"};
+}
+
+/* continueUrl is pure: the address the page moves to when the summary has been seen. */
+function continueUrl(href){
+  /* Edit the text, not URLSearchParams: it would re-encode a space as "+", which the server reads literally. */
+  const [path,query=""]=href.split("?");
+  const kept=query.split("&").filter(part=>part&&part.split("=")[0]!=="mining");
+  return kept.length?path+"?"+kept.join("&"):path;
 }
 
 const $=id=>document.getElementById(id);
@@ -56,20 +69,26 @@ async function fetchProgress(project){
   if(!r.ok)throw new Error("symbiont could not report progress (status "+r.status+")");
   return r.json();
 }
+function offerContinue(){
+  const go=()=>location.assign(continueUrl(location.href));
+  const button=$("startBtn");
+  button.textContent="Continue";button.style.display="";button.onclick=go;
+  setTimeout(go,SUMMARY_MS);
+}
 async function run(shell){
-  $("s0").classList.add("on");
+  $("s0").classList.add("on");$("demotag").style.display="none";
   $("nav").style.display="none";$("startBtn").style.display="none";$("playdemo").style.display="none";
   $("repoName").textContent=shell.project;
   let progress=shell.progress;
   for(;;){
     const view=describe(progress);
     paint(view,progress.sessions_total);
-    if(view.next==="reload"){setTimeout(()=>location.reload(),RELOAD_MS);return;}
+    if(view.next==="summary"){offerContinue();return;}
     if(view.next==="stop")return;
     await new Promise(r=>setTimeout(r,POLL_MS));
     try{progress=await fetchProgress(shell.project);}
     catch(e){notice(String(e.message||e)+"; retrying");await new Promise(r=>setTimeout(r,RETRY_MS));}
   }
 }
-window.SymbiontMining={describe,run};
+window.SymbiontMining={describe,continueUrl,run};
 })();

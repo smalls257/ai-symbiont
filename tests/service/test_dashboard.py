@@ -1,7 +1,7 @@
 """The dashboard page is built from the repository's store and served by the local service.
 
-Failures guarded against: a page that shows invented data, one that overclaims (the proof band
-must say none of the shown notes were wrong, measured), and a demo label on real data.
+Failures guarded against: a page that shows invented data (the product dashboard carries no fixed
+research results), and a demo label on real data.
 """
 
 import json
@@ -29,7 +29,9 @@ from symbiont.miner.trained import lesson_id
 from symbiont.miner.twins import merge_twins
 from symbiont.service import server
 from symbiont.service.app import ServiceMode
+from symbiont.service.dashboard_page import Live, dashboard_page
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
+from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.nightly import NightlyJudges, NightlyRecord, lessons_digest, write_record
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
@@ -66,7 +68,7 @@ def test_repeats_of_one_trouble_become_one_pain_point_with_its_sessions_and_repl
     assert point["kind"] == "repeat" and point["sessions"] == [0, 1, 2]
     assert [s["date"] for s in data["sessions"]] == ["2026-10-03", "2026-10-20", "2026-10-31"]
     assert [item["sessionIndex"] for item in data["replay"]["items"]] == [1, 2]
-    assert data["proof"][0]["claim"] == "None of the 501 notes it showed were wrong."
+    assert "proof" not in data
 
 
 def test_a_verdict_title_and_tags_reach_the_page_and_the_users_words_lead():
@@ -145,7 +147,7 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
 
     assert status == 200 and kind.startswith("text/html")
     assert data["repo"]["name"] == "demo" and len(data["painPoints"]) == 1
-    assert "None of the 501 notes it showed were wrong" in html
+    assert "501" not in html and "measured results" not in html
     assert "Every note it showed" not in html and "mockup" not in html.lower()
     assert get(f"{base}/dashboard/dashboard.js")[2].startswith("text/javascript")
     assert get(f"{base}/dashboard/dashboard.css")[0] == 200
@@ -195,3 +197,28 @@ def test_the_served_page_says_never_trained_then_trained_after_a_night(tmp_path)
     assert page_data()["nightly"]["state"] == "trained"
     assert 'id="nightly"' in service.page("/dashboard?project=demo").body.decode()
     assert "DATA.nightly" in service.page("/dashboard/dashboard.js").body.decode()
+
+
+def _mining_shell(page):
+    data = re.search(r'id="symbiont-data">(.*?)</script>', page.body.decode(), re.S).group(1)
+    return json.loads(data).get("mining")
+
+
+def test_the_mine_address_keeps_the_mine_stage_up_for_a_job_that_already_finished(served):
+    _, store = served
+    done = MiningProgress(MiningState.DONE, 6, 6, 14, 5, 9)
+    live = Live(mining=lambda project: done)
+
+    watching = dashboard_page(store, None, "/dashboard?project=demo&mining=1", TODAY, live)
+    plain = dashboard_page(store, None, "/dashboard?project=demo", TODAY, live)
+
+    assert _mining_shell(watching)["progress"]["lessons"] == 9
+    assert _mining_shell(plain) is None
+
+
+def test_the_mine_address_without_any_job_shows_the_dashboard_not_an_empty_stage(served):
+    _, store = served
+
+    page = dashboard_page(store, None, "/dashboard?project=demo&mining=1", TODAY, Live())
+
+    assert _mining_shell(page) is None

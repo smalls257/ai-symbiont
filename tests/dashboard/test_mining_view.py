@@ -42,12 +42,16 @@ def test_a_running_job_shows_the_services_counts_and_keeps_polling(views):
     assert running["feed"] == ["`pytest x` failed with ImportError"]
 
 
-def test_a_done_job_with_lessons_opens_the_pain_point_view(views):
+def test_a_done_job_with_lessons_shows_its_summary_before_the_pain_point_view(views):
     done = views["done"]
 
-    assert done["next"] == "reload" and done["percent"] == 100
-    assert done["headline"] == "Found 5 pain points in 40 sessions."
+    assert done["next"] == "summary" and done["percent"] == 100
+    assert done["headline"] == "Read 40 sessions · found 5 pain points · learned 9 lessons"
     assert done["status"] == "done · 9 lessons ready to use"
+
+
+def test_the_flag_that_keeps_the_mine_stage_up_is_dropped_when_moving_on(views):
+    assert views["continueUrl"] == "http://h:1/dashboard?project=a%20b"
 
 
 def test_a_done_job_with_no_lessons_says_so_and_does_not_reload_into_nothing(views):
@@ -69,11 +73,17 @@ def test_a_failure_without_a_reason_still_says_where_to_look(views):
     assert "service log" in views["failedNoReason"]["lede"]
 
 
-def test_the_stage_polls_the_services_route_survives_a_lost_connection_and_then_reloads(views):
+def test_the_stage_polls_survives_a_lost_connection_and_waits_for_the_developer_to_see_the_summary(
+    views,
+):
     driven = views["driven"]
+    lessons_view = "http://127.0.0.1:1/dashboard?project=my%20repo"
 
     assert driven["urls"] == ["/mining/my%20repo/progress"] * 3
-    assert driven["reloaded"] is True
-    assert driven["headline"] == "Found 5 pain points in 40 sessions."
+    assert driven["movedBefore"] is False
+    assert driven["buttonBefore"] == {"label": "Continue", "shown": ""}
+    assert driven["byClick"] == driven["byTimer"] == lessons_view
+    assert driven["autoMs"] >= 2000
+    assert driven["headline"] == "Read 40 sessions · found 5 pain points · learned 9 lessons"
     assert driven["cells"] == 40 and driven["readCells"] == 40
-    assert driven["startHidden"] == "none" and driven["repo"] == "my repo"
+    assert driven["startHidden"] == "" and driven["repo"] == "my repo"
