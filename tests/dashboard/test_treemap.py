@@ -76,8 +76,17 @@ def test_area_stays_proportional_to_turns_after_folding(layout):
 def test_the_file_with_no_path_is_named_not_blank(layout):
     biggest = max(layout["tiles"], key=lambda t: t["v"])
 
-    assert biggest["f"] == "" and biggest["name"] == "No single file"
-    assert layout["names"] == ["refunds.py", "No single file", "No single file", "dir"]
+    assert biggest["f"] == "" and biggest["name"] == "Not tied to a file"
+    assert layout["names"] == ["refunds.py", "Not tied to a file", "Not tied to a file", "dir"]
+
+
+def test_the_no_file_tile_says_failed_commands_only_when_that_is_all_it_holds(layout):
+    all_commands, mixed, none_loose = layout["loose"]
+
+    assert all_commands == "Failed commands"
+    assert mixed == "Not tied to a file"
+    assert none_loose == "Not tied to a file"
+    assert layout["labeled"][0] == "Failed commands"
 
 
 def test_nothing_folds_when_everything_fits(layout):

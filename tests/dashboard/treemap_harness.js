@@ -20,4 +20,10 @@ console.log(JSON.stringify({
   fit: [T.fitName("statements.py", 100, 13), T.fitName("a.py", 130, 13), T.fitName("x".repeat(60), 90, 13)],
   font: [T.fitFont("Other files (7)", 110, 13), T.fitFont("Other files (7)", 400, 13), T.fitFont("Other files (700)", 60, 13)],
   min: [T.MIN_W, T.MIN_H],
+  loose: [
+    T.noFileLabel([{ file: "", command: "pytest" }, { file: "a.py", command: null }]),
+    T.noFileLabel([{ file: "", command: "pytest" }, { file: "", command: null }]),
+    T.noFileLabel([{ file: "a.py", command: null }]),
+  ],
+  labeled: T.plan([{ f: "", v: 9, label: T.FAILED_COMMANDS }, { f: "a.py", v: 3 }], 478, 245).map(t => t.name),
 }));

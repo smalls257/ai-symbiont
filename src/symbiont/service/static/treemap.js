@@ -5,7 +5,7 @@
    layout, so the area stays proportional to turns. dashboard.js only draws what these functions decide. */
 (function () {
 "use strict";
-const MIN_W=90, MIN_H=44, NO_FILE="No single file", PAD=8, CHAR_EM=0.62, MAX_TITLE_FILES=8, MIN_FONT=10;
+const MIN_W=90, MIN_H=44, NO_FILE="Not tied to a file", FAILED_COMMANDS="Failed commands", PAD=8, CHAR_EM=0.62, MAX_TITLE_FILES=8, MIN_FONT=10;
 
 /* The name a tile shows. Trouble not tied to one file (a failing command) has an empty path; it gets a
    name instead of the blank label that hid the biggest tile. */
@@ -44,12 +44,19 @@ function squarify(items,x,y,w,h){
 const fits=t=>t.w>=MIN_W&&t.h>=MIN_H;
 
 function otherTile(rest){
-  const shown=rest.slice(0,MAX_TITLE_FILES).map(r=>r.f||NO_FILE).join(", ");
+  const shown=rest.slice(0,MAX_TITLE_FILES).map(r=>r.label||r.f||NO_FILE).join(", ");
   const more=rest.length>MAX_TITLE_FILES?" and "+(rest.length-MAX_TITLE_FILES)+" more":"";
   return {f:null,v:rest.reduce((a,r)=>a+r.v,0),name:"Other files ("+rest.length+")",title:shown+more,folded:rest.map(r=>r.f)};
 }
 
-/* items: [{f: path, v: turns}]. Returns tiles {f,v,x,y,w,h,name,title,folded} in a width x height box.
+/* The name of the tile for trouble with no file: "Failed commands" when every such pain point is a failed
+   command (the usual case), else the neutral "Not tied to a file", so the label never claims more than it holds. */
+function noFileLabel(points){
+  const loose=points.filter(p=>!p.file);
+  return loose.length&&loose.every(p=>p.command)?FAILED_COMMANDS:NO_FILE;
+}
+
+/* items: [{f: path, v: turns, label?: name for the no-file tile}]. Returns tiles {f,v,x,y,w,h,name,title,folded} in a width x height box.
    The smallest files fold one at a time into the Other tile and the layout is redone until every tile,
    Other included, is at least MIN_W x MIN_H; folding precedes layout so area stays proportional. */
 function plan(items,width,height){
@@ -57,7 +64,7 @@ function plan(items,width,height){
   if(!sorted.length)return [];
   for(let keep=sorted.length;keep>=0;keep--){
     const rest=sorted.slice(keep);
-    const parts=sorted.slice(0,keep).map(i=>({...i,name:fileName(i.f),title:i.f||NO_FILE,folded:null}));
+    const parts=sorted.slice(0,keep).map(i=>({...i,name:i.label||fileName(i.f),title:i.label||i.f||NO_FILE,folded:null}));
     const all=rest.length?parts.concat([otherTile(rest)]):parts;
     all.sort((a,b)=>b.v-a.v);
     const tiles=squarify(all,0,0,width,height);
@@ -66,5 +73,5 @@ function plan(items,width,height){
   return [];
 }
 
-window.SymbiontTreemap={plan,fileName,fitName,fitFont,MIN_W,MIN_H,NO_FILE};
+window.SymbiontTreemap={plan,fileName,fitName,fitFont,noFileLabel,MIN_W,MIN_H,NO_FILE,FAILED_COMMANDS};
 })();

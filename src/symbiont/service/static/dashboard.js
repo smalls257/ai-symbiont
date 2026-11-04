@@ -186,7 +186,8 @@ function renderTreemap(){
   const svg=$("tm"),box=svg.getBoundingClientRect(),W=Math.round(box.width)||478,H=Math.round(box.height)||245;
   tmSize=W+"x"+H;
   const files={};P.filter(isMistake).forEach(p=>{files[p.file]=(files[p.file]||0)+cost(p);});
-  const items=Object.entries(files).map(([f,v])=>({f,v}));
+  const loose=window.SymbiontTreemap.noFileLabel(P.filter(isMistake));
+  const items=Object.entries(files).map(([f,v])=>(f?{f,v}:{f,v,label:loose}));
   const lay=window.SymbiontTreemap.plan(items,W,H);if(!lay.length){svg.innerHTML="";return;}
   const vmax=Math.max(...lay.map(r=>r.v));
   svg.setAttribute("viewBox","0 0 "+W+" "+H);
