@@ -15,6 +15,7 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 from symbiont.egress import EgressRefusedError
 from symbiont.egress.client import Transport
@@ -209,7 +210,7 @@ def revive_judge_server(start: JudgeStart, log: Path) -> Running:
     return spawn_judge(start, log)
 
 
-def _detached() -> dict[str, int | bool]:
+def _detached() -> dict[str, Any]:
     """Popen keywords that let the child outlive this process (a Windows job may still end it)."""
     if sys.platform == "win32":
         return {"creationflags": 0x00000008 | 0x00000200}  # DETACHED_PROCESS | NEW_PROCESS_GROUP

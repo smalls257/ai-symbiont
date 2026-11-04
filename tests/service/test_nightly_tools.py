@@ -160,7 +160,7 @@ def judge_that_comes_up_after(refusals):
 
 def test_a_running_judge_is_reloaded_and_nothing_is_started():
     def transport(request, timeout_s):
-        return json.dumps({"loaded": "/adapter"}).encode()
+        return json.dumps({"loaded": str(Path("/adapter"))}).encode()
 
     said = ensured_judge(
         START, URL, Path("log"), transport, lambda *_: pytest.fail("started a second server")

@@ -52,10 +52,15 @@ class EventLog:
         self._write(call, {"trouble": trouble, "records": records, "notes": notes})
 
     def append_checked(
-        self, call: Call, records: list[tuple[str, int]], notes: list[str], checked_by: dict
+        self,
+        call: Call,
+        records: list[tuple[str, int]],
+        notes: list[str],
+        checked_by: dict[str, object],
     ) -> None:
         """Record a recalled note the trained checker agreed to (its name and verdict, no score)."""
-        event = {"trouble": None, "records": records, "notes": notes, "checked_by": checked_by}
+        event: dict[str, object] = {"trouble": None, "records": records, "notes": notes}
+        event["checked_by"] = checked_by
         self._write(call, event)
 
     def append_repeat(self, call: Call, found: RepeatNote) -> None:
