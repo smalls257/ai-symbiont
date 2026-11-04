@@ -9,7 +9,7 @@
 html{font-size:max(7px,min(calc(100vw/120),calc(100vh/67.5)))}
 body{height:100vh;overflow:hidden;color:var(--tx);font:400 1.05rem/1.4 var(--ui);
   background:linear-gradient(160deg,var(--bg1) 0%,#1a1230 55%,var(--bg2) 100%) fixed;
-  display:grid;grid-template-rows:auto 1fr auto}
+  display:grid;grid-template-rows:auto 1fr}
 button{font:inherit;color:inherit;cursor:pointer}
 :focus-visible{outline:2px solid var(--or);outline-offset:2px}
 .mono{font-family:var(--mono)}
@@ -171,26 +171,8 @@ textarea:focus{border-color:var(--vi);outline:none}
 .evl .d{font:.95rem var(--mono);color:var(--mu)}
 .evl .t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .evl .s{color:var(--gr);font-weight:700}
-/* stage 4 */
-#s4{grid-template-rows:auto 1fr auto;grid-template-columns:repeat(3,1fr)}
-.phead{grid-column:1/-1}
-.phead h1{font-size:2.8rem;line-height:1.1;max-width:30ch}
-.phead p{color:var(--mu);font-size:1.2rem;margin-top:.4rem}
-.pc{display:flex;flex-direction:column;gap:.6rem;padding:1.4rem 1.6rem;opacity:.0;transform:translateY(1rem);transition:.6s}
-#s4.play .pc{opacity:1;transform:none}
-#s4.play .pc:nth-of-type(2){transition-delay:.5s}#s4.play .pc:nth-of-type(3){transition-delay:1s}
-.mtag{align-self:flex-start;font:700 1rem var(--mono);color:var(--gr);border:1px solid var(--gr);border-radius:.4rem;padding:.05rem .5rem}
-.pc .big{font-size:5.4rem;font-weight:700;line-height:1;letter-spacing:-.02em;color:var(--gr);font-variant-numeric:tabular-nums}
-.pc .big small{font-size:1.6rem;color:var(--mu);font-weight:500;margin-left:.4rem;letter-spacing:0}
-.pc h3{font-size:1.45rem;line-height:1.25;font-weight:600}
-.pc .src{color:var(--mu);font-size:1.02rem}
-.pc svg{width:100%;margin:auto 0}
-.lim{grid-column:1/-1;border-style:dashed;font-size:1.1rem;color:var(--mu);padding:.8rem 1.3rem}
 .lim b{color:var(--go);font-weight:600}
-/* footer + misc */
-.foot{display:flex;gap:2.2rem;justify-content:center;padding:.7rem 2rem;border-top:1px solid var(--line);font-size:1rem;color:var(--mu);background:rgba(8,8,18,.4)}
-.foot b{font:700 .85rem var(--mono);color:var(--gr);margin-right:.5rem}
-.foot span span{color:var(--tx);font-weight:600}
+/* misc */
 #caption{position:fixed;left:50%;bottom:3.6rem;transform:translateX(-50%);background:rgba(8,8,18,.88);border:1px solid var(--or);color:var(--tx);padding:.55rem 1.6rem;border-radius:3rem;font-size:1.4rem;font-weight:600;display:none;white-space:nowrap;z-index:5}
 body.demo #caption{display:block}
 #tip{position:fixed;pointer-events:none;background:#0a0816;border:1px solid var(--vi);border-radius:.5rem;padding:.4rem .7rem;font-size:.95rem;max-width:22rem;display:none;z-index:9}

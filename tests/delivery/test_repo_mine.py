@@ -56,7 +56,7 @@ def test_mining_opens_the_dashboard_on_the_started_job_and_prints_the_address(de
         assert desk.mine(port=port) == 0
 
     out = capsys.readouterr().out
-    url = f"http://127.0.0.1:{port}/dashboard?project=demo"
+    url = f"http://127.0.0.1:{port}/dashboard?project=demo&mining=1"
     assert desk.opened == [url]
     assert f"dashboard: {url}" in out
     assert "reading sessions" in out or "learned 1 lessons" in out
@@ -82,7 +82,10 @@ def test_no_open_prints_the_address_and_opens_nothing(desk, capsys):
         assert desk.mine("--no-open", port=port) == 0
 
     assert desk.opened == []
-    assert f"dashboard: http://127.0.0.1:{port}/dashboard?project=demo" in capsys.readouterr().out
+    assert (
+        f"dashboard: http://127.0.0.1:{port}/dashboard?project=demo&mining=1"
+        in capsys.readouterr().out
+    )
 
 
 def test_the_setting_turns_opening_off_and_keeps_the_other_settings(desk, capsys):
@@ -133,7 +136,7 @@ def test_a_project_name_with_spaces_makes_a_valid_address(tmp_path, monkeypatch,
     with serving(desk.data) as (_, port):
         assert desk.mine(port=port) == 0
 
-    assert desk.opened == [f"http://127.0.0.1:{port}/dashboard?project=my%20repo"]
+    assert desk.opened == [f"http://127.0.0.1:{port}/dashboard?project=my%20repo&mining=1"]
 
 
 def test_a_repository_nobody_allowed_is_refused_before_anything_opens(desk, capsys):

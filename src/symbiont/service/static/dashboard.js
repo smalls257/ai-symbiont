@@ -80,7 +80,7 @@ document.addEventListener("mousemove",e=>{
 let token=0;const CANCEL=Symbol("cancel");
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function pause(t,ms){await wait(ms);if(t!==token)throw CANCEL;}
-const STAGES=["Mine","Pain points","Add context","30-day replay","Proof"];
+const STAGES=["Mine","Pain points","Add context","30-day replay"];
 let mined=false;
 function go(n){
   document.querySelectorAll(".stage").forEach((s,i)=>s.classList.toggle("on",i===n));
@@ -88,7 +88,6 @@ function go(n){
   if(n===0&&!mined)resetMining();
   if(n===0&&mined)finishMiningUI();
   if(n===3&&!replayRunning)renderReplay(1e9);
-  if(n===4)playProof();
 }
 const nav=$("nav");
 STAGES.forEach((s,i)=>{const b=document.createElement("button");b.innerHTML="<b>"+(i+1)+"</b>"+s;b.onclick=()=>{token++;setDemo(false);go(i);};nav.appendChild(b);});
@@ -327,30 +326,6 @@ async function playReplay(t,ms){
 $("replayBtn").onclick=async()=>{const t=++token;setDemo(false);try{await playReplay(t,10000);}catch(e){if(e!==CANCEL)throw e;}};
 $("rsvg").addEventListener("click",()=>{});
 
-/* ===== stage 4: proof ===== */
-(function buildProof(){
-  const [pw,pn,ps]=DATA.proof;
-  [["pc1",pw],["pc2",pn],["pc3",ps]].forEach(([id,d])=>{const el=$(id);
-    el.querySelector(".mtag").textContent="["+d.tag+"]";
-    el.querySelector(".big").innerHTML=esc(d.big)+"<small>"+esc(d.unit)+"</small>";
-    el.querySelector("h3").textContent=d.claim;el.querySelector(".src").textContent=d.source;});
-  $("foot").innerHTML=DATA.proof.map(d=>"<span><b>["+d.tag+"]</b><span>"+esc(d.footer[0])+"</span>"+esc(d.footer[1])+"</span>").join("");
-  let d="";const w=pw.chart;
-  for(let i=0;i<w.shown;i++){const x=7+(i%33)*10,y=7+Math.floor(i/33)*9.4;d+='<circle cx="'+x+'" cy="'+y+'" r="3.2" fill="'+(i<w.wrong?"#f45454":"#54de7c")+'" class="dt" style="animation-delay:'+(i*3)+'ms"/>';}
-  $("dots").innerHTML='<style>.dt{opacity:0}#s4.play .dt{animation:dtin .3s forwards}@keyframes dtin{to{opacity:1}}</style>'+d;
-  const n=pn.chart,BW=180;
-  $("bars2").innerHTML='<style>.b61{width:0;transition:width 1.4s .9s cubic-bezier(.2,.8,.2,1)}#s4.play .b61{width:'+(n.withTraining/100*BW)+'px}</style>'
-   +'<text x="0" y="16" font-size="13" fill="#ecf0f8">With nightly training</text><rect x="0" y="22" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect class="b61" x="0" y="22" height="22" rx="4" fill="#b28cff"/><text x="'+(BW+8)+'" y="39" font-size="16" font-weight="700" fill="#ecf0f8">'+n.withTraining+'%</text>'
-   +'<text x="0" y="74" font-size="13" fill="#ecf0f8">Without it</text><rect x="0" y="80" width="'+BW+'" height="22" rx="4" fill="rgba(236,240,248,.07)"/><rect x="0" y="80" width="'+Math.max(2,n.without/100*BW)+'" height="22" fill="#8c94ac"/><text x="'+(BW+8)+'" y="97" font-size="16" font-weight="700" fill="#ecf0f8">'+n.without+'%</text>';
-  const c=ps.chart,X=v=>14+v/0.3*220;
-  $("ci").innerHTML='<line x1="14" x2="234" y1="60" y2="60" stroke="rgba(236,240,248,.25)"/>'
-   +[0,0.1,0.2,0.3].map(v=>'<line x1="'+X(v)+'" x2="'+X(v)+'" y1="56" y2="64" stroke="#8c94ac"/><text x="'+X(v)+'" y="84" text-anchor="middle" font-size="12" fill="#8c94ac">'+(v===0?"0":v.toFixed(1))+"</text>").join("")
-   +'<line x1="'+X(0)+'" x2="'+X(0)+'" y1="30" y2="64" stroke="#f45454" stroke-dasharray="3 3"/><text x="'+(X(0)+4)+'" y="26" font-size="12" fill="#8c94ac">no change</text>'
-   +'<line x1="'+X(c.low)+'" x2="'+X(c.high)+'" y1="48" y2="48" stroke="#54de7c" stroke-width="4" stroke-linecap="round"/><circle cx="'+X(c.estimate)+'" cy="48" r="8" fill="#54de7c" stroke="#16112a" stroke-width="2"/>'
-   +'<text x="'+X(c.estimate)+'" y="28" text-anchor="middle" font-size="14" font-weight="700" fill="#ecf0f8">+'+c.estimate.toFixed(2)+'</text>';
-})();
-function playProof(){const s=$("s4");s.classList.remove("play");void s.offsetWidth;requestAnimationFrame(()=>s.classList.add("play"));}
-
 /* ===== demo mode: hands-free, about 80 seconds ===== */
 async function typeInto(t,text,ms){const ta=$("ctx"),st=ST[sel];ta.focus();for(let i=1;i<=text.length;i++){ta.value=text.slice(0,i);st.ctx=ta.value;st.saved=false;renderNote();await pause(t,ms);}}
 async function spotlight(t,id,txt,ms){caption(txt);const el=$(id);el.classList.remove("spot");void el.offsetWidth;el.classList.add("spot");await pause(t,ms);}
@@ -375,7 +350,7 @@ async function demo(){
     caption("Or mark a pain point intentional and it goes quiet");selectPain(7);await pause(t,2200);setIntent(true);await pause(t,2600);
     go(3);caption("Replay of the last 30 days, estimated");
     await playReplay(t,12000);await pause(t,2200);
-    go(4);caption("Measured, not promised");await pause(t,9000);
+    await pause(t,6000);
     caption("");setDemo(false);
   }catch(e){if(e!==CANCEL)throw e;}
 }
