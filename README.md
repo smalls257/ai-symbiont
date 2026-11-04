@@ -8,7 +8,7 @@
 **Your coding agent keeps making the same mistake. This tells it before it happens again.**
 
 - **Track:** Indie Developer · **Problem statement:** Push the Frontier.
-- **Provenance:** built from scratch during the hackathon (Oct 27 – Nov 4, 2026); no prior code.
+- **Provenance:** built from scratch during the hackathon (Oct 26 – Nov 4, 2026); no prior code.
 - **Meta models at runtime, with roles:**
   - **Muse Spark 1.3** (`api.meta.ai`): the coding agent, and it curates lessons. It also plays Freedoom via ViZDoom and drives a robot in Meta's Habitat simulator.
   - **Llama 3.2 1B Instruct** (open weights): the checker that must agree before any note is shown. It is LoRA-trained nightly on the user's machine; the adapters are on Hugging Face.
