@@ -131,7 +131,9 @@ def test_the_detached_command_pins_the_options_and_carries_the_folders(tmp_path)
     plan = setup(tmp_path)
     argv = work_args(plan, KitFiles(Path("/b"), Path("/k")))
     assert argv[argv.index("--project") + 1] == PROJECT
-    assert argv[argv.index("--base") + 1] == "/b" and argv[argv.index("--kit-files") + 1] == "/k"
+    assert argv[argv.index("--base") + 1] == str(Path("/b")) and argv[
+        argv.index("--kit-files") + 1
+    ] == str(Path("/k"))
     assert "--base" not in work_args(plan, NONE)
 
 
