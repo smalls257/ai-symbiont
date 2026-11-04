@@ -46,6 +46,16 @@ def snapshot(hub: Path, cache: str, name: str, age: int) -> Path:
     return folder
 
 
+def aged(folder: Path, age: int) -> Path:
+    """Set the snapshot's time after its files exist.
+
+    Writing a file into a folder resets its mtime; on Windows two snapshots made a moment apart
+    can then tie, so "newest" would fall to the name.
+    """
+    os.utime(folder, (age, age))
+    return folder
+
+
 def test_search_roots_use_hf_home_hub_when_set_else_the_default_cache(tmp_path):
     set_ = search_roots({"HF_HOME": str(tmp_path / "hf")}, tmp_path / ".symbiont", tmp_path)
     assert set_.hf_hub == tmp_path / "hf" / "hub"
@@ -61,8 +71,8 @@ def test_base_in_symbionts_own_folder_is_found(tmp_path):
 
 def test_base_in_the_hub_cache_is_found_and_the_newest_snapshot_wins(tmp_path):
     hub = roots(tmp_path).hf_hub
-    make_base(snapshot(hub, HF_BASE_CACHE, "old", 100))
-    new = make_base(snapshot(hub, HF_BASE_CACHE, "new", 200))
+    aged(make_base(snapshot(hub, HF_BASE_CACHE, "old", 100)), 100)
+    new = aged(make_base(snapshot(hub, HF_BASE_CACHE, "new", 200)), 200)
     assert locate_base(roots(tmp_path)) == new
 
 
@@ -74,8 +84,8 @@ def test_own_folder_beats_the_hub_cache(tmp_path):
 
 def test_a_newest_snapshot_without_weights_is_skipped_for_an_older_valid_one(tmp_path):
     hub = roots(tmp_path).hf_hub
-    good = make_base(snapshot(hub, HF_BASE_CACHE, "good", 100))
-    make_base(snapshot(hub, HF_BASE_CACHE, "partial", 200), weights=False)
+    good = aged(make_base(snapshot(hub, HF_BASE_CACHE, "good", 100)), 100)
+    aged(make_base(snapshot(hub, HF_BASE_CACHE, "partial", 200), weights=False), 200)
     assert locate_base(roots(tmp_path)) == good
 
 
