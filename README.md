@@ -2,6 +2,17 @@
 
 **Your coding agent keeps making the same mistake. This tells it before it happens again.**
 
+- **Track:** Indie Developer · **Problem statement:** Push the Frontier.
+- **Provenance:** built from scratch during the hackathon (Oct 27 – Nov 4, 2026); no prior code.
+- **Meta models at runtime, with roles:**
+  - **Muse Spark 1.3** (`api.meta.ai`): the coding agent, and it curates lessons. It also plays Freedoom via ViZDoom and drives a robot in Meta's Habitat simulator.
+  - **Llama 3.2 1B Instruct** (open weights): the checker that must agree before any note is shown. It is LoRA-trained nightly on the user's machine; the adapters are on Hugging Face.
+  - **Muse Code**: the harness (ai-symbiont is a plugin, through hooks and MCP).
+  - **Muse Glimmer 30B** (open weights): a local model in calibration and lesson-in-prompt pilots only; no Glimmer LoRA result is published (see "Meta models used").
+- **Bonus prize categories targeted:** Best Build on Meta Open Weight Models (Llama 3.2 1B checker), Best Agentic Use-Case, Best Creative Build.
+- **Demo video:** (YouTube link coming). **Landing page:** <https://smalls257.github.io/ai-symbiont/>
+- **Keyless demo (no API key, no network):** the interactive demo on the landing page, or `docker run --rm ai-symbiont demo` (build steps in Quickstart).
+
 ai-symbiont reads your coding-agent history for pain points (a file reworked three times, a command
 that failed the same way twice, a correction you had to make) and gives your agent a short warning
 in plain prose before it repeats one. It runs on your computer.
@@ -61,6 +72,8 @@ or forgets its lessons. Its actions are MCP tools of the symbiont server (`symbi
 `symbiont_mine`, `symbiont_status` and the rest), so they work where the harness shell is sandboxed
 (Muse Code); the shell forms (`symbiont repo allow`, `symbiont repo mine`)
 remain for a harness without MCP.
+
+Try it without a key: `docker build -t ai-symbiont . && docker run --rm ai-symbiont demo`. It replays a synthetic billing-ledger session offline (onboarding note, `symbiont repo allow` and `repo mine`, house rules, a recall note, `symbiont why`) and needs no API key and no network. Locally: `scripts/demo/run.sh`. The interactive demo on the landing page needs nothing installed: <https://smalls257.github.io/ai-symbiont/>. Only runs that call Muse Spark need `META_API_KEY` (see `env.example`).
 
 Optional: a container for running the test suite and the command-line tool (not the harness
 plugins). `symbiont serve` binds 127.0.0.1 inside the container, so the service is not reachable
