@@ -19,12 +19,20 @@ ONBOARDING = (
     "symbiont is installed but not switched on for this repository. It reads your coding-agent "
     "history to warn you about mistakes you have made before, and everything stays on this "
     "computer. Until you answer, nothing from this repository is stored. "
-    "To switch it on, run `symbiont repo allow`; to also learn from this repository's past "
-    "Claude Code and Muse Code sessions, run `symbiont repo mine` afterwards; it opens the "
+    "To switch it on, say `/symbiont allow`; to also learn from this repository's past "
+    "Claude Code and Muse Code sessions, say `/symbiont mine` afterwards; it opens the "
     "dashboard so you can watch it learn. "
     "If you also want it to find your past corrections, the model running this session will "
     "read short excerpts of past messages from this same tool's history, and nothing leaves "
-    "this computer. To keep it off here, run `symbiont repo decline`."
+    "this computer. To keep it off here, say `/symbiont decline`."
+)
+# Why: Muse Code's TUI shows the hook's message for a few seconds in one status line, and a model
+# asked for something else never mentions it, so the developer never saw the question (measured
+# in a recorded session). The model's own first reply is the one place the developer reads.
+RELAY_TO_DEVELOPER = (
+    "Begin your first reply with one short line for the developer: symbiont is off for this "
+    "repository; they can say `/symbiont allow` to switch it on, or `/symbiont decline` to keep "
+    "it off. Then carry on with what they asked."
 )
 NIGHTLY_LIVE = (
     "symbiont finished its first night of learning from this repository's history. From now on "

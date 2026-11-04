@@ -3,7 +3,8 @@
 import argparse
 import logging
 import sys
-from collections.abc import Sequence
+import time
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -19,7 +20,8 @@ from symbiont.delivery.install.transaction import (
     uninstall,
 )
 from symbiont.delivery.launch import DEFAULT_DATA_DIR, patient_call
-from symbiont.delivery.mcp_server import serve_stdio
+from symbiont.delivery.mcp_operator import operate_in_server
+from symbiont.delivery.mcp_server import serve_stdio_operating
 from symbiont.delivery.open_page import open_in_browser
 from symbiont.delivery.recall import (
     ServiceOfflineError,
@@ -65,16 +67,13 @@ def main(
     *,
     open_page: OpenPage = open_in_browser,
     mine_ask: AskService | None = None,
+    mine_pause: Callable[[float], None] = time.sleep,
 ) -> int:
-    """Run one subcommand; returns the exit code.
-
-    `open_page` opens the dashboard when mining starts and `mine_ask` reaches the service for
-    `repo mine` (default: start it if it is down); tests inject both.
-    """
+    """Run one subcommand and return its exit code; tests inject the browser, service and pause."""
     args = _parser().parse_args(argv)
     if args.command in COMMANDS:
         ask = mine_ask or _ask_starting_service(args)
-        return run_repo_command(args, _ask_service, MineClient(ask, open_page))
+        return run_repo_command(args, _ask_service, MineClient(ask, open_page, mine_pause))
     if args.command == "serve":
         return _serve(args)
     if args.command == "mcp":
@@ -282,10 +281,10 @@ def _consent(args: argparse.Namespace) -> int:
 
 
 def _mcp(args: argparse.Namespace) -> int:
-    """Serve the single recall tool over stdio, logging to stderr."""
+    """Serve recall, the curation tools and the operator tools over stdio, logging to stderr."""
     logging.basicConfig(stream=sys.stderr, level=logging.INFO, format="symbiont-mcp: %(message)s")
     use_utf8_lf_stdio()
-    serve_stdio(sys.stdin, sys.stdout, args.project, args.port)
+    serve_stdio_operating(sys.stdin, sys.stdout, args.project, args.port, operate_in_server(main))
     return 0
 
 

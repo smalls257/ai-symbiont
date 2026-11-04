@@ -22,7 +22,7 @@ from symbiont.service.nightly import (
     lessons_digest,
     write_record,
 )
-from symbiont.service.onboarding import NIGHTLY_LIVE, ONBOARDING, Lookups
+from symbiont.service.onboarding import NIGHTLY_LIVE, ONBOARDING, RELAY_TO_DEVELOPER, Lookups
 from symbiont.service.repo_gate import RepoGate
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -98,9 +98,32 @@ def test_a_repository_nobody_answered_for_is_asked_once_and_nothing_is_stored(ri
 
 
 def test_the_onboarding_says_what_it_does_that_data_stays_local_and_how_to_answer():
-    for words in ("warn you about mistakes", "stays on this computer", "symbiont repo allow"):
+    for words in ("warn you about mistakes", "stays on this computer", "/symbiont allow"):
         assert words in ONBOARDING
-    assert "repo mine" in ONBOARDING and "repo decline" in ONBOARDING
+    assert "/symbiont mine" in ONBOARDING and "/symbiont decline" in ONBOARDING
+
+
+def test_the_model_is_asked_once_to_relay_the_question_in_its_first_reply(rig):
+    first = rig.start("one")
+    second = rig.start("two")
+
+    assert first["tell_model"] == [RELAY_TO_DEVELOPER]
+    assert "/symbiont allow" in RELAY_TO_DEVELOPER and "first reply" in RELAY_TO_DEVELOPER
+    assert first["announce"] == [ONBOARDING] and "tell_model" not in second
+    assert second["announce"] == [ONBOARDING], "the developer-facing note is unchanged"
+
+
+def test_the_relay_is_asked_again_after_the_answer_is_forgotten(rig):
+    rig.start("one")
+    rig.registry.forget_project(PROJECT)
+
+    assert rig.start("two")["tell_model"] == [RELAY_TO_DEVELOPER]
+
+
+def test_an_answered_repository_is_never_asked_to_relay(rig):
+    rig.registry.record_stance(PROJECT, RepoStance.GIVEN)
+
+    assert "tell_model" not in rig.start()
 
 
 def test_a_declined_repository_is_never_asked_again_and_never_observed(rig):

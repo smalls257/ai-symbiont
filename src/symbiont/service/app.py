@@ -359,6 +359,8 @@ def _said(door: Door, notes: list[str]) -> Response:
     body: dict[str, Any] = {"notes": notes}
     if door.announce:
         body["announce"] = list(door.announce)
+    if door.tell_model:
+        body["tell_model"] = list(door.tell_model)
     return Response(200, body)
 
 

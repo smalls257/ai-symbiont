@@ -1,29 +1,36 @@
 ---
 description: Show what symbiont is doing here, explain a note, silence it, forget a lesson, or answer for this repository
 argument-hint: "[status | dashboard | settings | why | mute | forget | lessons | context | reflect | learn-from-prs | allow | decline | mine | uninstall]"
-allowed-tools: Bash(symbiont:*)
+allowed-tools: Bash(symbiont:*), mcp__symbiont, mcp__plugin_symbiont_symbiont
 ---
 
 You are running the `/symbiont` command. The argument is: $ARGUMENTS
 
-Run exactly one command from this table with the Bash tool (`reflect` runs no command; `learn-from-prs` runs one and then you act on its output), then tell the developer the result in
-one or two plain sentences. Never invent output; if a command fails, quote its message.
+Run exactly one action from this table, then tell the developer the result in one or two plain
+sentences. Never invent output; if an action fails, quote its message.
 
-| Argument | Run | Meaning |
-|---|---|---|
-| empty or `status` | `symbiont status` | whether symbiont is running, and what it knows about this repository |
-| `why` | `symbiont why` | why the last note fired, and what it rested on |
-| `mute` | `symbiont mute` | stop notes about the kind of trouble the last note was about |
-| `forget` | `symbiont forget` | delete the lessons behind the last note and keep them silenced |
-| `lessons` | `symbiont lessons` | list the stored lessons for this repository with their ids |
-| `context <id or last> <words>` | `symbiont context add <id or last> "<words>"` | put the developer's own words in front of a lesson's note (`--intentional` silences it, `--priority low\|normal\|high`) |
-| `reflect` | no command; do it yourself now | answer "In one or two plain sentences each, what non-obvious thing about this repository would you tell a teammate before they work on this area next time? Name the files or areas. Only things that were not obvious from the docs." from the work done in this session, then call `symbiont_add_lessons` with `source_label` "from reflection" (kind `rule` or `mistake`, `files`, `applies_to`); say "nothing" and call no tool if there is nothing |
-| `learn-from-prs` | `symbiont learn-from-prs`, then follow the printed steps yourself with your own `gh` access | learn lessons from this repository's recent pull-request reviews and CI failures; symbiont reads nothing from GitHub, you save the lessons with `symbiont_add_lessons` (source_label like "from PR #412 review", source_url the PR address, quote the reviewer's exact words that state the rule) |
-| `dashboard` | `symbiont dashboard`, then open the printed address (`open <address>` on macOS) | this repository's dashboard: pain points, lessons, the 30-day replay and the measured results |
-| `settings` | `symbiont settings show` | which histories the session's model may read when looking for corrections |
-| `allow` | `symbiont repo allow` | switch symbiont on for this repository |
-| `decline` | `symbiont repo decline` | keep symbiont off for this repository |
-| `mine` | `symbiont repo mine` | learn from this repository's past agent sessions (needs `allow` first); it opens the dashboard on the live progress and prints the address (`--no-open` skips the browser; `symbiont settings set open_dashboard_on_mine false` turns it off) |
+**Use the symbiont tool when you have it** (the MCP tool in the Tool column; its name may carry a
+server prefix). Some harnesses, Muse Code among them, run your shell in a sandbox that cannot
+write symbiont's data folder, so the shell command fails there with "sandbox blocked"; the tool
+runs in symbiont's own process and works. Only when you have no symbiont tool at all, run the
+shell command in the last column instead. If the tool is there and fails, quote its message; do
+not retry through the shell.
+
+| Argument | Tool | Shell fallback | Meaning |
+|---|---|---|---|
+| empty or `status` | `symbiont_status` | `symbiont status` | whether symbiont is running, and what it knows about this repository |
+| `why` | `symbiont_why` | `symbiont why` | why the last note fired, and what it rested on |
+| `mute` | `symbiont_mute` | `symbiont mute` | stop notes about the kind of trouble the last note was about |
+| `forget` | `symbiont_forget` | `symbiont forget` | delete the lessons behind the last note and keep them silenced (`lesson_id` / `--lesson` for one lesson) |
+| `lessons` | `symbiont_lessons` | `symbiont lessons` | list the stored lessons for this repository with their ids |
+| `context <id or last> <words>` | `symbiont_context` with `lesson`, `words` (`intentional`, `priority` low, normal or high) | `symbiont context add <id or last> "<words>"` (`--intentional`, `--priority low\|normal\|high`) | put the developer's own words in front of a lesson's note |
+| `settings` | `symbiont_settings` | `symbiont settings show` | which histories the session's model may read when looking for corrections |
+| `allow` | `symbiont_allow` | `symbiont repo allow` | switch symbiont on for this repository |
+| `decline` | `symbiont_decline` | `symbiont repo decline` | keep symbiont off for this repository |
+| `mine` | `symbiont_mine` | `symbiont repo mine` | learn from this repository's past agent sessions (needs `allow` first). It opens the dashboard unless the developer turned that off (`symbiont settings set open_dashboard_on_mine false`; shell: `--no-open` skips the browser) and returns the address with a progress summary; if the job is still running, say it carries on and give the address |
+| `dashboard` | `symbiont_dashboard` | `symbiont dashboard`, then `open <address>` on macOS | this repository's dashboard: pain points, lessons, the 30-day replay and the measured results. Tell the developer the address in your reply, so they can open it even if no browser opened |
+| `learn-from-prs` | `symbiont_learn_from_prs`, then follow the steps it returns yourself with your own `gh` access | `symbiont learn-from-prs`, then the same | learn lessons from this repository's recent pull-request reviews and CI failures; symbiont reads nothing from GitHub, you save the lessons with `symbiont_add_lessons` (source_label like "from PR #412 review", source_url the PR address) |
+| `reflect` | no tool or command; do it yourself now | | answer "In one or two plain sentences each, what non-obvious thing about this repository would you tell a teammate before they work on this area next time? Name the files or areas. Only things that were not obvious from the docs." from the work done in this session, then call `symbiont_add_lessons` with `source_label` "from reflection" (kind `rule` or `mistake`, `files`, `applies_to`); say "nothing" and call no tool if there is nothing |
 
 When the developer points you at notes, reports or lessons they keep, read what they point to, decide in your own words what is worth keeping, and call `symbiont_add_lessons`. When symbiont asks you to review pain points or look for corrections, call `symbiont_review_candidates` or `symbiont_correction_candidates`, judge each item yourself, and save with `symbiont_save_reviews` or `symbiont_save_corrections`. symbiont makes no model calls of its own.
 

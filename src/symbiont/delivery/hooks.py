@@ -136,7 +136,7 @@ def run_hook(
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
     told = _announcements(reply, dashboard_url(settings.port, body["payload"]["record"]["project"]))
     worded = _worded(event, notes, settings.style)
-    text = "\n".join(filter(None, [worded, *told]))
+    text = "\n".join(filter(None, [worded, *told, *_for_the_model(reply)]))
     if not text or event not in speaking_events(settings.harness):
         return HookResult()
     # The model gets the full note; the status line gets a headline (see headline.py).
@@ -285,6 +285,14 @@ def _announcements(reply: dict[str, Any], dashboard: str) -> list[str]:
     if not isinstance(told, list) or not all(isinstance(line, str) for line in told):
         raise ServiceReplyError("the local service sent an announcement that is not sentences")
     return [line.replace("{dashboard}", dashboard) for line in told]
+
+
+def _for_the_model(reply: dict[str, Any]) -> list[str]:
+    """Instructions only the session's model reads; the developer's message does not carry them."""
+    asked = reply.get("tell_model", [])
+    if not isinstance(asked, list) or not all(isinstance(line, str) for line in asked):
+        raise ServiceReplyError("the local service sent model instructions that are not sentences")
+    return asked
 
 
 def _worded(event: HookEvent, notes: list[str], style: NoteStyle) -> str:
