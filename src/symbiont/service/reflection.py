@@ -31,6 +31,10 @@ REFLECTION_QUESTION = (
     f'source_label: "{REFLECTION_LABEL}", applies_to: {{terms, areas}}}}. Then end your reply '
     "with one short line saying what you saved."
 )
+# Claude Code fires Stop after every turn, so the first milestone is mid-session, not the end.
+MID_SESSION_QUESTION = REFLECTION_QUESTION.replace(
+    "end-of-session reflection", "reflection on the work so far (the session is not over)"
+)
 
 
 @dataclass(frozen=True)
@@ -67,7 +71,7 @@ class ReflectionDesk:
     def ask(self, request: dict[str, Any]) -> dict[str, Any]:
         """`{"ask": question}`, or `{"ask": "", "why_not": reason}`; marks the session as asked."""
         project, session_id = _identified(request)
-        reply = self._decide(project, session_id)
+        reply = self._decide(project, session_id, str(request["harness"]))
         saved = self._saved_so_far(project)
         if reply["ask"]:
             self._count_at_ask[(project, session_id)] = saved
@@ -89,7 +93,7 @@ class ReflectionDesk:
         )
         return {"saved": saved}
 
-    def _decide(self, project: str, session_id: str) -> dict[str, Any]:
+    def _decide(self, project: str, session_id: str, harness: str) -> dict[str, Any]:
         """The reply for one Stop: the question, or the reason there is none."""
         registry = self._registry
         if registry is None:
@@ -101,7 +105,7 @@ class ReflectionDesk:
         if not self._gate.reached_milestone(session_id):
             return _declined("no edit followed by a passing check yet, so no milestone")
         self._ledger.mark_asked(project, session_id)
-        return {"ask": REFLECTION_QUESTION}
+        return {"ask": MID_SESSION_QUESTION if harness == "claude_code" else REFLECTION_QUESTION}
 
 
 def _identified(request: dict[str, Any]) -> tuple[str, str]:
