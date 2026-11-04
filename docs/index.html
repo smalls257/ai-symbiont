@@ -27,6 +27,28 @@ h1{font-size:clamp(2rem,3.4vw,2.8rem);line-height:1.04;font-weight:800;letter-sp
 .lede b{color:var(--ink)}
 .cta{margin-top:1.3rem;display:flex;gap:1.25rem;align-items:center;flex-wrap:wrap}
 .btn{display:inline-block;border-radius:.4rem;padding:.75rem 1.3rem;font-weight:700;text-decoration:none;background:var(--ink);color:var(--paper)}
+.btn.ghost{background:none;border:1.5px solid var(--ink);color:var(--ink)}
+/* The demo opens in a modal on screens 768px and up, so the visitor comes back to the real recordings. */
+.modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center}
+.modal.on{display:flex}
+.modal .back{position:absolute;inset:0;background:rgba(23,20,26,.72)}
+.modal .box{position:relative;width:90vw;height:90vh;background:#0e101e;border:2px solid var(--ink);border-radius:.6rem;overflow:hidden;display:grid;grid-template-rows:auto 1fr;box-shadow:0 2rem 6rem rgba(0,0,0,.5)}
+.modal .bar{display:flex;align-items:center;gap:1rem;padding:.45rem .5rem .45rem 1rem;background:var(--paper);border-bottom:2px solid var(--ink);font-size:.9rem}
+.modal .bar span{color:var(--mu)}
+.modal .bar a{margin-left:auto;color:var(--ink);font-weight:600;text-decoration:none;border:1.5px solid var(--ink);border-radius:2rem;padding:.2rem .8rem}
+.modal .bar button{border:0;background:var(--ink);color:var(--paper);width:2rem;height:2rem;border-radius:50%;font-size:1.1rem;cursor:pointer}
+.modal iframe{width:100%;height:100%;border:0;background:#0e101e}
+/* On phones the demo does not open; a small sheet points to the real recordings instead. */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:50;display:none;background:var(--paper);border-top:2px solid var(--ink);border-radius:.8rem .8rem 0 0;padding:1rem 1.25rem 1.25rem;box-shadow:0 -1rem 3rem rgba(0,0,0,.35)}
+.sheet.on{display:block}
+.sheet .x{position:absolute;top:.6rem;right:.7rem;border:0;background:var(--ink);color:var(--paper);width:1.8rem;height:1.8rem;border-radius:50%;cursor:pointer}
+.sheet p{font-size:.95rem;color:#3d3844;margin-right:2rem}
+.sheet .thumbs{display:grid;grid-template-columns:1fr 1fr;gap:.75rem;margin-top:.8rem}
+.sheet .thumbs a{display:block;text-decoration:none;color:var(--ink);font-weight:700;font-size:.85rem}
+.sheet .thumbs img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover;border:1.5px solid var(--ink);border-radius:.4rem;margin-bottom:.3rem}
+.sheet .anyway{display:block;margin-top:.8rem;font-size:.82rem;color:var(--mu)}
+.sheet-back{position:fixed;inset:0;z-index:49;background:rgba(23,20,26,.4);display:none}
+.sheet-back.on{display:block}
 .cta a.plain{color:var(--ink);font-weight:600}
 .duel img{display:block;width:100%;border:2px solid var(--ink);border-radius:.5rem}
 .duel .labels{display:grid;grid-template-columns:1fr 1fr;font:700 .72rem var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--mu);margin-bottom:.4rem}
@@ -132,7 +154,7 @@ footer p+p{margin-top:.4rem}
 <header>
   <span class="brand">ai-symbiont</span>
   <nav>
-    <a href="https://smalls257.github.io/ai-symbiont/demo/">Demo</a>
+    <a href="demo/" class="js-demo">Try the interactive demo</a>
     <a href="https://smalls257.github.io/ai-symbiont/paper.html#abstract">Abstract</a>
     <a href="#ex1">Coding</a>
     <a href="#ex2">Home robot</a>
@@ -150,7 +172,8 @@ footer p+p{margin-top:.4rem}
     <h1>Your coding agent keeps making the same mistake. This tells it before it happens again.</h1>
     <p class="lede"><b>ai-symbiont is a plugin for Muse Code, Meta's coding agent, for developers who use it.</b> It reads your past sessions on your own machine, finds the mistakes that came back, and shows the agent one short note in plain words at the moment it is about to repeat one. You can add what only you know. The same notes also steer a home robot and a game, shown below.</p>
     <div class="cta">
-      <a class="btn" href="https://smalls257.github.io/ai-symbiont/demo/">Open the live demo, no install</a>
+      <a class="btn js-demo" href="demo/">Try the interactive demo</a>
+      <a class="btn ghost" href="#ex1">Watch it on real projects ↓</a>
       <a class="plain" href="#install">Install for Muse Code</a>
     </div>
   </div>
@@ -166,7 +189,7 @@ footer p+p{margin-top:.4rem}
 </section>
 
 <div class="links">
-  <a href="https://smalls257.github.io/ai-symbiont/demo/">Live onboarding demo (interactive)</a>
+  <a href="demo/" class="js-demo">Try the interactive demo</a>
   <a href="https://smalls257.github.io/ai-symbiont/paper.html#abstract">Abstract</a>
   <a href="https://smalls257.github.io/ai-symbiont/paper.html">Long write-up</a>
   <a href="https://github.com/smalls257/ai-symbiont">GitHub repository</a>
@@ -309,9 +332,76 @@ muse plugins install symbiont@ai-symbiont</pre>
   <p>Experimental software for the Meta Global AI Developer Hackathon.</p>
 </footer>
 </div>
+
+<div class="modal" id="demoModal" role="dialog" aria-modal="true" aria-label="Interactive demo">
+  <div class="back" data-close></div>
+  <div class="box">
+    <div class="bar"><b>Interactive demo</b><span>hand-written demo data, nothing is uploaded</span><a href="demo/" target="_blank" rel="noopener" id="demoFull">open full screen ↗</a><button type="button" id="demoClose" aria-label="Close the demo" data-close>×</button></div>
+    <iframe id="demoFrame" title="Interactive demo" data-src="demo/index.html"></iframe>
+  </div>
+</div>
+
+<div class="sheet-back" id="sheetBack" data-sheet-close></div>
+<div class="sheet" id="demoSheet" role="dialog" aria-label="The demo needs a bigger screen">
+  <button type="button" class="x" aria-label="Close" data-sheet-close>×</button>
+  <p>The interactive demo is built for a bigger screen. Open this page on a laptop or desktop to try it. Meanwhile, here's the real thing:</p>
+  <div class="thumbs">
+    <a href="#ex1" data-sheet-close><img src="media/code-d3-pair.jpg" alt="">The coding highlights</a>
+    <a href="#ex2" data-sheet-close><img src="media/st-success.jpg" alt="">Set the table</a>
+  </div>
+  <a class="anyway" href="demo/" target="_blank" rel="noopener">Open it anyway ↗</a>
+</div>
+
 <script>
 // Nothing loads until a click: the still is the poster, preload is "none". One click shows the controls and plays inline.
 document.querySelectorAll('.player').forEach(p=>{const v=p.querySelector('video');p.querySelector('.play').addEventListener('click',()=>{p.classList.add('on');v.controls=true;v.play()})});
+
+// The demo. On the live site DEMO_URL is "demo/"; in this mockup it is the sibling copy.
+const DEMO_URL='demo/';
+const modal=document.getElementById('demoModal'),frame=document.getElementById('demoFrame'),sheet=document.getElementById('demoSheet'),sheetBack=document.getElementById('sheetBack');
+const bigScreen=()=>window.innerWidth>=768;
+let opener=null,scrollBefore=0,pushed=false;
+if('scrollRestoration' in history)history.scrollRestoration='manual'; // the modal's history entry must not move the page
+function lockScroll(on){
+  // keep the page where it was: compensate for the scrollbar instead of jumping
+  if(on){scrollBefore=window.scrollY;const sb=window.innerWidth-document.documentElement.clientWidth;document.body.style.overflow='hidden';document.body.style.paddingRight=sb+'px';}
+  else{document.body.style.overflow='';document.body.style.paddingRight='';window.scrollTo(0,scrollBefore);}
+}
+function openModal(from){
+  opener=from||document.activeElement;
+  if(!frame.src)frame.src=frame.dataset.src;
+  modal.classList.add('on');lockScroll(true);
+  history.pushState({symbiontDemo:true},'');pushed=true;
+  document.getElementById('demoClose').focus();
+}
+function closeModal(viaHistory){
+  if(!modal.classList.contains('on'))return;
+  modal.classList.remove('on');lockScroll(false);
+  if(pushed&&!viaHistory)history.back();
+  pushed=false;
+  if(opener&&opener.focus)opener.focus({preventScroll:true});
+}
+function openSheet(){sheet.classList.add('on');sheetBack.classList.add('on');sheet.querySelector('.x').focus();}
+function closeSheet(){sheet.classList.remove('on');sheetBack.classList.remove('on');}
+document.querySelectorAll('.js-demo').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();bigScreen()?openModal(a):openSheet();}));
+modal.querySelectorAll('[data-close]').forEach(el=>el.addEventListener('click',()=>closeModal(false)));
+document.querySelectorAll('[data-sheet-close]').forEach(el=>el.addEventListener('click',closeSheet));
+window.addEventListener('popstate',()=>closeModal(true));
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeModal(false);closeSheet();return;}
+  if(e.key!=='Tab'||!modal.classList.contains('on'))return;
+  // focus trap: the full-screen link, the close button and the demo itself
+  const ring=[document.getElementById('demoFull'),document.getElementById('demoClose'),frame];
+  const i=ring.indexOf(document.activeElement);
+  if(i===-1)return;
+  e.preventDefault();ring[(i+(e.shiftKey?ring.length-1:1))%ring.length].focus();
+});
+// The demo's last screen says "here's the real thing" and posts the section it points at.
+window.addEventListener('message',e=>{
+  const d=e.data||{};if(d.symbiont!=='goto'||!d.anchor)return;
+  closeModal(false);
+  const t=document.getElementById(d.anchor);if(t)setTimeout(()=>t.scrollIntoView({behavior:'smooth',block:'start'}),50);
+});
 </script>
 </body>
 </html>

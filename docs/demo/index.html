@@ -255,6 +255,14 @@ textarea:focus{border-color:var(--vi);outline:none}
 .pc .src{color:var(--mu);font-size:1.02rem}
 .pc svg{width:100%;margin:auto 0}
 .lim{grid-column:1/-1;border-style:dashed;font-size:1.1rem;color:var(--mu);padding:.8rem 1.3rem}
+.real{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:.8rem 1.2rem;align-items:center;padding:.8rem 1.3rem;font-size:1.05rem;border-color:var(--or)}
+.real b{margin-right:.4rem}
+.real a{color:var(--or);font-weight:700}
+/* On a phone opened directly, a dismissible banner points back to the real recordings. */
+.phone-banner{display:none;position:fixed;left:0;right:0;top:0;z-index:40;background:#f4efe6;color:#17141a;padding:.7rem 2.6rem .7rem 1rem;font-size:.9rem;line-height:1.4;border-bottom:2px solid #17141a}
+.phone-banner.on{display:block}
+.phone-banner a{color:#e8641e;font-weight:700}
+.phone-banner button{position:absolute;top:.5rem;right:.6rem;border:0;background:#17141a;color:#f4efe6;width:1.7rem;height:1.7rem;border-radius:50%}
 .lim b{color:var(--go);font-weight:600}
 /* footer + misc */
 .foot{display:flex;gap:2.2rem;justify-content:center;padding:.7rem 2rem;border-top:1px solid var(--line);font-size:1rem;color:var(--mu);background:rgba(8,8,18,.4)}
@@ -268,6 +276,7 @@ body.demo #caption{display:block}
 </head>
 <body>
 <div class="banner" role="note"><span><b>Hosted demo.</b> Synthetic data for a fictional repo (acme/billing-service). Nothing here is read from your machine, and nothing leaves this page.</span><a href="https://github.com/smalls257/ai-symbiont#install">Install it for real</a><span class="mu"><a href="../">Project page</a></span></div>
+<div class="phone-banner" id="phoneBanner"><button type="button" aria-label="Dismiss" id="phoneBannerX">×</button>The interactive demo is built for a bigger screen. Open this page on a laptop or desktop to try it. <a href="../#ex1">← Back to the real recordings</a></div>
 <div id="app">
 <div class="bchrome" id="bchrome" aria-hidden="true"><i></i><i></i><i></i><span class="burl" id="burl">http://127.0.0.1:7377/dashboard?project=billing-service</span></div>
 <header class="top">
@@ -358,6 +367,10 @@ body.demo #caption{display:block}
     <div class="src">Replicated on 240 fresh cases.</div>
   </div>
   <div class="panel lim"><b>Limits.</b> The 61% comes from one code-fix study with synthetic bugs; your repo will differ. Not every result is a win: the personal-adapter run (Route B) came out negative, -0.054 [-0.108, -0.014], and is reported with its diagnosis. The dashboard before this screen is synthetic, and its savings are estimates, not measurements.</div>
+  <div class="panel real" id="realLinks"><b>That was a simulation. Here's the real thing: ↓</b>
+    <a href="../#ex1" data-anchor="ex1">The coding example, on a real public project</a>
+    <a href="../#ex2" data-anchor="ex2">The home robot, set the table</a>
+  </div>
 </section>
 </main>
 <footer class="foot" id="foot">
@@ -1927,6 +1940,13 @@ async function demo(){
   }catch(e){if(e!==CANCEL)throw e;}
 }
 $("playdemo").onclick=demo;
+// "Here's the real thing": inside the landing page's modal, ask the parent to close and scroll; standalone, follow the link.
+document.querySelectorAll("#realLinks a").forEach(a=>a.addEventListener("click",e=>{
+  if(window.parent===window)return;
+  e.preventDefault();window.parent.postMessage({symbiont:"goto",anchor:a.dataset.anchor},"*");
+}));
+if(window.innerWidth<768&&window.parent===window&&!sessionStorage.getItem("symbiontPhoneBanner"))$("phoneBanner").classList.add("on");
+$("phoneBannerX").onclick=()=>{$("phoneBanner").classList.remove("on");sessionStorage.setItem("symbiontPhoneBanner","1");};
 document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e.target.tagName))demo();});
 
 /* ===== boot ===== */
