@@ -77,7 +77,8 @@ OPERATOR_TOOLS = [
         "Train this repository's checker on its lessons, on this machine (nothing is uploaded). "
         "Sets up first if needed, then trains in the background and returns within a minute; "
         "training takes 1-4 minutes, and symbiont_status reports its progress. With no base and "
-        "kit it reuses a kit that is already built; if there is none it says the exact steps.",
+        "kit it reuses a kit that is already built, else finds the model on this machine, else "
+        "downloads it (about 2.5 GB from Hugging Face) in the background first.",
         ("nightly", "start"),
         properties={
             "base": {**_STRING, "description": "folder of the downloaded Llama-3.2-1B-Instruct"},
