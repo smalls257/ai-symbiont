@@ -175,22 +175,24 @@ footer p+p{margin-top:.4rem}
 
 <section class="hero">
   <div>
-    <h1>Your coding agent keeps making the same mistake. This tells it before it happens again.</h1>
+    <h1>You corrected your coding agent last week. Today it makes the same mistake again.</h1>
     <p class="lede"><b>ai-symbiont is a plugin for Muse Code, Meta's coding agent, for developers who use it.</b> It reads your past sessions on your own machine, finds the mistakes that came back, and shows the agent one short note in plain words at the moment it is about to repeat one. You can add what only you know. The same notes also steer a home robot and a game, shown below.</p>
     <div class="cta">
-      <a class="btn js-demo" href="demo/">Try the interactive demo</a>
+      <a class="btn" href="https://youtu.be/mfzY2UlAqJo">Watch the 3-minute demo</a>
+      <a class="btn ghost js-demo" href="demo/">Try the interactive demo</a>
       <a class="btn ghost" href="#ex1">Watch it on real projects ↓</a>
       <a class="plain" href="#install">Install for Muse Code</a>
     </div>
   </div>
   <div class="duel">
-    <div class="labels"><div>Without symbiont's notes</div><div>With symbiont's notes</div></div>
-    <img src="media/st-end.jpg" alt="Left, without notes: out of actions, 6 of 12 items set, 142 actions. Right, with notes: success, 12 of 12 set, 123 actions.">
-    <div class="nums">
-      <div><b>0 of 5</b><span>episodes with the table set, without the notes</span></div>
-      <div><b>4 of 5</b><span>episodes with the table set, with the notes</span></div>
+    <div style="position:relative;padding-top:56.25%;border-radius:14px;overflow:hidden;background:#000">
+      <iframe src="https://www.youtube-nocookie.com/embed/mfzY2UlAqJo" title="ai-symbiont: the 3-minute demo" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
     </div>
-    <p class="cap">A robot in Meta's Habitat home simulator, every move chosen by Muse Spark, Meta's model. Right: the same model with notes symbiont learned from the robot's own two earlier failed attempts. No person corrected anything. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span> · <a href="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-set-table-duel-music.mp4">Full recording, 8 min</a></p>
+    <div class="nums">
+      <div><b>7 of 10</b><span>runs that broke the sqlglot maintainers' rule, without symbiont</span></div>
+      <div><b>0 of 10</b><span>with symbiont: the reviewer's own words, one sentence before it acts</span></div>
+    </div>
+    <p class="cap">The 3-minute demo: a real Muse Code session from install to a caught mistake, then how Meta's models fit together. Same task, Muse Spark, 10 runs each; pre-registered, p = 0.003.</p>
   </div>
 </section>
 
