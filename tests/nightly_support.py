@@ -99,3 +99,28 @@ def mlx_adapter_bytes():
         {"m.lora_a": {"dtype": "F32", "shape": [2, 2], "data_offsets": [0, 16]}}
     ).encode()
     return struct.pack("<Q", len(head)) + head + raw
+
+
+def write_kit(root):
+    """A judge kit folder with a base marker and both row files."""
+    (root / "base").mkdir(parents=True)
+    (root / "base" / "config.json").write_text("{}")
+    for name, rows in (("general-rows.jsonl", general_rows(60)), ("habits.jsonl", habit_rows(8))):
+        (root / name).write_text("".join(json.dumps(row) + "\n" for row in rows))
+
+
+def night_plan(tmp_path, lessons=6, url="http://127.0.0.1:8861"):
+    """A plan over a real store with `lessons` lessons and a complete kit."""
+    from symbiont.service.nightly_run import NightPlan
+    from symbiont.store.local import Source, Store
+
+    data = tmp_path / "data"
+    data.mkdir()
+    Store.open(data / "store.db").save_mining(
+        PROJECT,
+        [Source(PROJECT, "claude_code", "x")],
+        [failed_command_lesson(i) for i in range(lessons)],
+        held_out_tasks=frozenset(),
+    )
+    write_kit(tmp_path / "kit")
+    return NightPlan(PROJECT, data, data / "nightly", tmp_path / "kit", url, "py")

@@ -16,6 +16,7 @@ from symbiont.service.nightly_run import NightFailedError
 from symbiont.service.nightly_schedule import ScheduleError, Tool
 from symbiont.service.nightly_tools import (
     LocalMachine,
+    checked_judge_python,
     checked_python,
     default_judge_url,
     ensured_judge,
@@ -44,9 +45,21 @@ def test_a_trainer_that_cannot_start_raises_naming_it(tmp_path):
         run_logged("no-such-trainer", [], tmp_path / "t.log", {})
 
 
-def test_a_python_without_mlx_is_refused_with_the_install_hint():
-    with pytest.raises(NightFailedError, match="mlx-lm"):
+def test_this_installs_python_without_mlx_is_told_to_install_the_nightly_extra():
+    with pytest.raises(NightFailedError, match=r"ai-symbiont\[nightly\] @ git\+https"):
         checked_python(sys.executable, Backend.MLX)
+
+
+def test_another_python_without_mlx_is_told_to_install_mlx_lm_into_it(monkeypatch):
+    monkeypatch.setattr(sys, "executable", "/some/other/python")
+    with pytest.raises(NightFailedError, match="mlx-lm.*--trainer-python"):
+        checked_python("python3", Backend.MLX)
+
+
+def test_a_python_without_torch_cannot_serve_the_judge_and_is_told_the_extra(monkeypatch):
+    monkeypatch.setattr("symbiont.service.nightly_tools.TORCH_IMPORT", "import no_such_package_x")
+    with pytest.raises(NightFailedError, match=r"judge server.*ai-symbiont\[nightly\]"):
+        checked_judge_python(sys.executable)
 
 
 def test_a_python_that_does_not_exist_is_refused_before_any_work():

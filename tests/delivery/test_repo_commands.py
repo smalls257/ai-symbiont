@@ -325,8 +325,25 @@ def test_settings_show_and_set_the_correction_switches(tmp_path, capsys):
 
 
 def test_status_still_reads_a_service_that_answers_nightly_with_yes_or_no():
-    from symbiont.service.operator_commands import _status_lines
+    from symbiont.service.status_report import status_lines as _status_lines
 
     state = {"project": "demo", "repo": "given", "lessons": 3, "muted": 0}
     assert "its nightly training is live" in _status_lines({**state, "nightly": True})
     assert "no nightly training yet" in _status_lines({**state, "nightly": False})
+
+
+def test_status_reports_the_background_training_job_with_or_without_the_service(tmp_path, capsys):
+    from symbiont.service.nightly_job import JobPhase, JobState, write_job
+
+    write_job(
+        tmp_path / "nightly", "demo", JobState(JobPhase.RUNNING, "2099-01-01T00:00:00+00:00", 7)
+    )
+    command("status", "--port", "1", data_dir=tmp_path)
+    out = capsys.readouterr().out
+    assert out.startswith("symbiont offline:")
+    assert "training job: running on 7 lessons since 2099-01-01T00:00:00+00:00" in out
+    write_job(
+        tmp_path / "nightly", "demo", JobState(JobPhase.FAILED, "S", 7, "T", "the trainer exited 1")
+    )
+    command("status", "--port", "1", data_dir=tmp_path)
+    assert "training job: failed at T: the trainer exited 1." in capsys.readouterr().out

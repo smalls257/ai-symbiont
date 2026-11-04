@@ -7,7 +7,7 @@ import pytest
 
 from nightly_support import chat
 from symbiont import cli
-from symbiont.service import nightly_command
+from symbiont.service import nightly_background, nightly_command
 from symbiont.service import nightly_setup as setup
 from symbiont.service.nightly_kit import open_kit
 
@@ -161,7 +161,7 @@ def prepared(tmp_path, monkeypatch):
 
 
 def run_setup(tmp_path, kit, runner, monkeypatch):
-    monkeypatch.setattr(nightly_command, "run_logged", runner)
+    monkeypatch.setattr(nightly_background, "run_logged", runner)
     said = []
     args = cli._parser().parse_args(setup_argv(tmp_path, kit))
     return nightly_command.run_nightly_command(args, said.append), said
@@ -188,7 +188,19 @@ def test_the_command_names_a_python_that_lacks_torch(tmp_path, monkeypatch):
     kit = prepared(tmp_path, monkeypatch)
     code, said = run_setup(tmp_path, kit, lambda *_: 1, monkeypatch)
     assert code == 1
-    assert "--judge-python" in said[-1]
+    assert "ai-symbiont[nightly]" in said[-1]
+
+
+def test_another_judge_python_without_torch_is_told_to_install_into_it_or_pass_another(
+    tmp_path, monkeypatch
+):
+    kit = prepared(tmp_path, monkeypatch)
+    argv = [*setup_argv(tmp_path, kit), "--judge-python", "/elsewhere/python"]
+    monkeypatch.setattr(nightly_background, "run_logged", lambda *_: 1)
+    said = []
+    args = cli._parser().parse_args(argv)
+    assert nightly_command.run_nightly_command(args, said.append) == 1
+    assert "--judge-python" in said[-1] and "ai-symbiont[nightly]" not in said[-1]
 
 
 def test_the_command_names_a_missing_merge_script(tmp_path, monkeypatch):
@@ -196,7 +208,7 @@ def test_the_command_names_a_missing_merge_script(tmp_path, monkeypatch):
     (tmp_path / "routea" / "merge_adapter_torch.py").unlink()
     code, said = run_setup(tmp_path, kit, lambda *_: 0, monkeypatch)
     assert code == 1
-    assert "merge_adapter_torch.py is not here" in said[-1]
+    assert "merge_adapter_torch.py is not in" in said[-1]
 
 
 @pytest.mark.parametrize("text", ["{not json", "[1]"])

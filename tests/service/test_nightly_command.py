@@ -59,6 +59,7 @@ def test_the_project_defaults_to_this_directory_and_the_data_dir_to_the_users_sy
 def test_nightly_trains_with_the_options_it_was_given(tmp_path, monkeypatch):
     night = FakeNight(Backend.MLX)
     monkeypatch.setattr(nightly_command, "real_tools", lambda say, judge_python: night.tools())
+    monkeypatch.setattr(nightly_command, "checked_judge_python", lambda python: None)
     seen = {}
     monkeypatch.setattr(
         nightly_command, "run_night", lambda plan, tools: seen.setdefault("plan", plan) and 0
@@ -113,6 +114,7 @@ def test_a_machine_with_no_accelerator_exits_nonzero_with_the_reason(tmp_path, m
         raise NoTrainingHardwareError("no accelerator to train on (Linux x86_64)")
 
     monkeypatch.setattr(nightly_command, "real_tools", refuse)
+    monkeypatch.setattr(nightly_command, "checked_judge_python", lambda python: None)
     lines = []
     assert run(parse(*store_option(tmp_path)), lines) == 1
     assert "no accelerator" in lines[-1]
@@ -177,10 +179,46 @@ def test_remove_and_status_speak_for_the_project(tmp_path, monkeypatch):
 
 
 def test_the_cli_routes_nightly_to_this_command(monkeypatch, tmp_path):
-    monkeypatch.setattr(cli, "run_nightly_command", lambda args: 42)
+    monkeypatch.setattr(cli, "run_nightly_command", lambda args, **_: 42)
     assert cli.main(["nightly", *store_option(tmp_path)]) == 42
 
 
 def test_lines_reach_stdout_as_they_are_said(capsys):
     nightly_command._say_now("  train: 1.0s")
     assert capsys.readouterr().out == "  train: 1.0s\n"
+
+
+def test_the_judge_and_trainer_default_to_the_python_this_install_runs_on(tmp_path, monkeypatch):
+    monkeypatch.delenv("SYMBIONT_JUDGE_PYTHON", raising=False)
+    monkeypatch.delenv("SYMBIONT_TRAINER_PYTHON", raising=False)
+    plan = nightly_command._plan(parse("--project", "p", *store_option(tmp_path)))
+    assert plan.judge_python == plan.trainer_python == sys.executable
+
+
+def test_setup_with_no_folders_and_no_kit_fails_with_the_steps(tmp_path):
+    lines = []
+    args = parse("setup", "--kit", str(tmp_path / "none"), *store_option(tmp_path))
+    assert run(args, lines) == 1
+    assert "huggingface-cli download" in lines[0] and "symbiont nightly setup" in lines[0]
+
+
+def test_setup_with_no_folders_reuses_a_complete_kit(tmp_path):
+    from nightly_support import write_kit
+
+    write_kit(tmp_path / "kit")
+    lines = []
+    assert run(parse("setup", "--kit", str(tmp_path / "kit"), *store_option(tmp_path)), lines) == 0
+    assert "already complete" in lines[0]
+
+
+def test_start_with_no_lessons_says_so_and_exits_2_without_launching(tmp_path, monkeypatch):
+    from nightly_support import write_kit
+
+    write_kit(tmp_path / "kit")
+    monkeypatch.setattr(nightly_command, "preflight", lambda plan: None)
+    launched = []
+    monkeypatch.setattr(nightly_command, "launch_detached_job", lambda *a: launched.append(a))
+    args = parse("start", "--kit", str(tmp_path / "kit"), *store_option(tmp_path))
+    lines = []
+    assert nightly_command.run_nightly_command(args, lines.append, lambda seconds: None) == 2
+    assert launched == [] and "mine" in lines[-1]

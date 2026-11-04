@@ -132,10 +132,33 @@ three states: never trained, trained on N lessons at a time, or stale (the lesso
 The schedule uses launchd on macOS (a user LaunchAgent), a tagged line in your crontab on Linux
 and Task Scheduler on Windows; a Mac that is asleep at the set time runs the job when it wakes.
 
+**Install it with the nightly extra.** A plain `uv tool install` carries neither the trainer nor
+torch, and `symbiont nightly` then says so and exits non-zero. One command installs everything the
+nightly needs, with no repository checkout and no second Python:
+
+```bash
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+```
+
+The `nightly` extra is mlx-lm on an Apple Silicon Mac (an environment marker), plus torch, peft and
+transformers everywhere (the judge server and the kit merge run on torch; a Mac uses mps). The
+trainer, the kit merge and the judge server all default to the Python that `symbiont` itself runs
+on, so `--trainer-python` and `--judge-python` are only for a setup with separate environments. On
+Linux and Windows the trainer needs a CUDA build of torch (PyPI's Windows wheel is CPU-only, so install
+one from pytorch.org into the tool environment first). The scripts ship in the package and unpack to
+`~/.symbiont/routea`; `SYMBIONT_ROUTEA_DIR` overrides them for development.
+
+**From your coding agent.** `/symbiont nightly` (the `symbiont_nightly` tool, `symbiont nightly start`
+in a shell) sets up if needed, trains in a detached process and returns within a minute; training
+takes 1-4 minutes. `/symbiont status` then shows `training job: running`, `done on N lessons at T` or
+`failed: <reason>`, and the checker starts or reloads when the job is done. With no kit and no folders
+given it fails with the steps below; once a kit exists it needs no arguments.
+
 **What it needs.** A judge kit folder (`--kit`, `$SYMBIONT_JUDGE_KIT`, else `~/.symbiont/judge-kit`)
 holding `base/` (the general judge: Llama 3.2 1B with the round-4 general adapter merged in),
-`general-rows.jsonl` and `habits.jsonl`; a Python with `mlx-lm` (`--trainer-python`) or with CUDA
-torch, transformers and peft; and the judge server, `scripts/routea/plug_judge_server.py`, run on
+`general-rows.jsonl` and `habits.jsonl`; a Python with `mlx-lm` (`--trainer-python`, default: the install's own) or with CUDA
+torch, transformers and peft; and the judge server, which ships inside the package
+(`routea_bundle/`; a developer can point `SYMBIONT_ROUTEA_DIR` at a `scripts/routea` instead), run on
 a Python with torch (`--judge-python`). After a night the command makes the judge server serve the new adapter: it hot-swaps a running server
 or starts one (detached, log beside the adapter) and waits until it answers, and it records how to
 start it again in the nightly record. Nothing else is needed: the symbiont service that the hooks
@@ -168,7 +191,7 @@ huggingface-cli login
 huggingface-cli download meta-llama/Llama-3.2-1B-Instruct --local-dir ./llama-3.2-1b-instruct   # about 2.5 GB
 # the kit: the nightly-kit/ folder of https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters
 huggingface-cli download ADAPTERS_REPO --include 'nightly-kit/*' --local-dir ./kit   # about 100 MB; ADAPTERS_REPO is the path of that URL
-symbiont nightly setup --base ./llama-3.2-1b-instruct --kit-files ./kit/nightly-kit --judge-python PYTHON_WITH_TORCH_AND_PEFT
+symbiont nightly setup --base ./llama-3.2-1b-instruct --kit-files ./kit/nightly-kit   # or: /symbiont nightly, with base and kit set to those folders
 ```
 
 Setup checks that the folder is Llama 3.2 1B Instruct (config, tokenizer, weights, chat template)

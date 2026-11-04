@@ -146,4 +146,6 @@ text. It also saves a short verbatim `quote` of the reviewer's comment that stat
   they happen.
 - Muse Code field names (tool calls, JSON shell results with `exit_code`, `find`/`replace` edits) were checked on one throwaway session [measured]; other Muse tools are read as plain results.
 - The judge that checks a note against what it learned (nightly training) is switched on by running
-  the nightly job; the plugin does not run it.
+  the nightly job. `/symbiont nightly` starts it from the plugin (the MCP tool `symbiont_nightly`,
+  outside the harness sandbox): it sets up if needed, trains in a detached process and returns
+  within about a minute; `/symbiont status` then shows the job as running, done or failed.

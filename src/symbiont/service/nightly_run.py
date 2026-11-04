@@ -177,6 +177,11 @@ def _stored_lessons(plan: NightPlan) -> list[Lesson]:
     return list(lessons)
 
 
+def lesson_count(plan: NightPlan) -> int:
+    """How many lessons a night would train on; NoLessonsError when there are none."""
+    return len(_stored_lessons(plan))
+
+
 def _write_rows(plan: NightPlan, kit: JudgeKit, lessons: list[Lesson], work: Path) -> int:
     """Write train.jsonl and valid.jsonl under work/data; returns the row count."""
     items = trainable_lessons(lessons, plan.project)

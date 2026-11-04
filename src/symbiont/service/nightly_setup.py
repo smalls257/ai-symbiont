@@ -8,6 +8,7 @@ call, so the egress policy is untouched, and a wrong file is a named `KitSetupEr
 import hashlib
 import json
 import shutil
+import sys
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -52,6 +53,19 @@ DOWNLOAD_BASE = (
 DOWNLOAD_KIT = (
     f"run `huggingface-cli download {KIT_REPO} --include '{KIT_FOLDER}/*' "
     f"--local-dir <folder>` and pass <folder>/{KIT_FOLDER} as --kit-files"
+)
+INSTALL_NIGHTLY = (
+    "uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'"
+)
+SETUP_STEPS = (
+    "build it once (about 2.5 GB and 100 MB of downloads; nothing else is needed): "
+    f"1. accept Meta's license on https://huggingface.co/{BASE_MODEL} and run "
+    "`huggingface-cli login`; "
+    f"2. `huggingface-cli download {BASE_MODEL} --local-dir ./llama-3.2-1b-instruct`; "
+    f"3. `huggingface-cli download {KIT_REPO} --include '{KIT_FOLDER}/*' --local-dir ./kit`; "
+    "4. run `/symbiont nightly` with base ./llama-3.2-1b-instruct and kit ./kit/nightly-kit "
+    "(in a shell: `symbiont nightly setup --base ./llama-3.2-1b-instruct "
+    "--kit-files ./kit/nightly-kit`)"
 )
 
 
@@ -137,9 +151,14 @@ def check_kit_files(files: Path) -> None:
 def check_merge_python(python: str, run: Runner, log: Path) -> None:
     """Raise KitSetupError unless `python` can import torch, peft and transformers."""
     if run(python, ["-c", TORCH_PROBE], log, {}) != 0:
+        fix = (
+            f"this install lacks the nightly packages. Run: {INSTALL_NIGHTLY}"
+            if python == sys.executable
+            else "install them into that Python or pass another with --judge-python"
+        )
         raise KitSetupError(
             f"{python} cannot import torch, peft and transformers (see {log}); the merge needs "
-            "them. Install them into that Python or pass another with --judge-python"
+            f"them. {fix}"
         )
 
 

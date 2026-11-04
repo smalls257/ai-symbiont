@@ -16,12 +16,13 @@ from symbiont.core.notes import happened
 from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
-from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
+from symbiont.service.asking import AskService
 from symbiont.service.events import checker_sentences, last_note_event
 from symbiont.service.lesson_list import lesson_lines
 from symbiont.service.lesson_lookup import project_of_lesson
 from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
 from symbiont.service.pr_learning import PR_INSTRUCTIONS
+from symbiont.service.status_report import status_report
 from symbiont.service.supersessions import superseded_sentences
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -121,7 +122,7 @@ def run_repo_command(args: argparse.Namespace, ask: AskService, client: MineClie
     """
     try:
         if args.command == "status":
-            return _status(args, ask)
+            return status_report(args, ask)
         if args.command == "repo" and args.action == "mine":
             return mine_past_sessions(args, RepoRegistry(args.data_dir), client)
         return _COMMANDS[args.command](args)
@@ -156,37 +157,6 @@ def _answer_message(project: str, stance: RepoStance) -> str:
         "and Muse Code sessions. To find your past corrections, the model running your session "
         "reads short excerpts of past messages from the same tool's history."
     )
-
-
-def _status(args: argparse.Namespace, ask: AskService) -> int:
-    """What the service says about this repository, or that it is offline."""
-    try:
-        state = ask("/status", {"project": args.project}, args.port)
-    except ServiceUnavailableError as offline:
-        _say(f"symbiont offline: {offline}")
-        return 0
-    except ServiceAnswerError as unusable:
-        sys.stderr.write(f"symbiont status: {unusable}\n")
-        return 1
-    _say(_status_lines(state))
-    return 0
-
-
-def _status_lines(state: dict[str, Any]) -> str:
-    """The service's answer as sentences."""
-    repo = {"given": "on", "declined": "off (you declined)", "unasked": "not answered yet"}
-    night = _nightly_phrase(state["nightly"])
-    return (
-        f"symbiont is running. {state['project']}: {repo[state['repo']]}; "
-        f"{state['lessons']} stored lessons; {state['muted']} silenced kinds of note; {night}."
-    )
-
-
-def _nightly_phrase(nightly: Any) -> str:
-    """The nightly state in words; a service from before the three states answered yes or no."""
-    if isinstance(nightly, dict):
-        return f"nightly training: {nightly['sentence']}"
-    return "its nightly training is live" if nightly else "no nightly training yet"
 
 
 def _why(args: argparse.Namespace) -> int:
