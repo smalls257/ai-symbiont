@@ -16,6 +16,8 @@ JUDGE_SYSTEM = (
     "You decide whether one stored lesson applies to what a coding agent is doing now. "
     "Answer yes or no."
 )
+# How round 3 (and the nightly rows) wrote a situation whose file is unknown.
+NO_FILE = "-"
 _RAN_COMMAND = re.compile(r"ran `([^`]+)`")
 
 
@@ -43,7 +45,7 @@ def failure_situation(record: Record, project: str) -> str | None:
     lines = record.raw.strip().splitlines()
     if not record.command or not lines:
         return None
-    file = record.files[0] if record.files else "n/a"
+    file = record.files[0] if record.files else NO_FILE
     return judge_situation(record.command, project.replace("__", "/", 1), file, lines[-1])
 
 

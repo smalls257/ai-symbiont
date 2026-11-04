@@ -15,6 +15,7 @@ from dataclasses import dataclass
 
 from symbiont.core.judge_format import (
     JUDGE_SYSTEM,
+    NO_FILE,
     JudgeableLesson,
     judge_input,
     judge_input_text,
@@ -30,7 +31,6 @@ HABIT_SHARE = 0.15  # the nightly arm's habit replay (prereg amendment: 15%)
 SEED = 0
 YES, NO = "yes", "no"
 ChatRow = dict[str, list[dict[str, str]]]  # {"messages": [system, user, assistant]}
-NO_FILE = "-"  # how round 3 wrote a situation whose file is unknown
 # plug_r2_rows.PHRASINGS, fixed before round 2 ran: the situation reworded without new facts.
 PHRASINGS = (
     "Command `{failed}` just failed in {repo} while working on {file}: {error}",

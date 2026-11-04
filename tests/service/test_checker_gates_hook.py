@@ -60,7 +60,7 @@ def test_an_agreeing_checker_lets_the_recall_through_and_the_event_names_it(tmp_
     (note,) = rig.fail()["notes"]
     assert note.startswith("Last time, `pytest tests/test_parser.py` failed with ImportError")
     prompt = seen[0]["pairs"][0]["prompt"]
-    assert prompt.startswith("Situation:\nRan `pytest -q tests/test_parser.py` in demo (file n/a)")
+    assert prompt.startswith("Situation:\nRan `pytest -q tests/test_parser.py` in demo (file -)")
     assert "ImportError: cannot import name 'parse'" in prompt
     checked = last_checked_event(tmp_path / "runs", PROJECT)["checked_by"]
     assert (checked["rule"], checked["lessons"], checked["trained_at"]) == ("nightly", 1, TRAINED)
