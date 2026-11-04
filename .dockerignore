@@ -1,0 +1,12 @@
+.git
+.venv
+data/
+**/__pycache__
+.pytest_cache
+.mypy_cache
+.ruff_cache
+dashboard/node_modules
+.semgrep/registry
+*.wad
+*.safetensors
+*.log

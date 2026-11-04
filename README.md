@@ -22,7 +22,16 @@ Live landing page, with recordings and every limit: <https://smalls257.github.io
 Paper: <https://smalls257.github.io/ai-symbiont/paper.html>
 Demo video: (link coming)
 
-## Install
+## Meta models used
+
+- **Muse Spark** (`muse-spark-1.3-contributor`), through the Meta Model API at `https://api.meta.ai/v1` (docs: dev.meta.ai). It is the coding agent in every measured run, and it curates lessons.
+- **Muse Glimmer 30B** (open weights). It served as a local model in the calibration and lesson-in-prompt pilots. Route B, a personal LoRA on Glimmer, has its training-row builders and scripts in `src/symbiont/routeb` and `scripts/routeb`; those are LoRA fine-tuning experiments, and no Glimmer LoRA result is published yet. The measured LoRA results in `results/` are on Llama 3.2 1B.
+- **Llama 3.2 1B Instruct** (open weights), with a LoRA-trained judge, trained nightly per repository on your own machine. The adapters and the nightly kit are published on Hugging Face: <https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters>
+- **Muse Code**, the harness: ai-symbiont is a plugin (hooks and MCP) for it.
+
+Pre-registered evaluations, with the result file, prereg and research note behind each number: [Benchmarks and evaluation](benchmarks/README.md).
+
+## Quickstart
 
 Install the command, then the plugin for your harness.
 
@@ -49,6 +58,19 @@ Start a session in a repository. The first time, symbiont says what it does and 
 `symbiont repo allow` (or `symbiont repo decline`), then `symbiont repo mine` to learn from this
 repository's past Claude Code and Muse Code sessions (it finds both on its own, and opens the dashboard so you can watch the progress; `--no-open` skips that). `/symbiont` shows status, explains the last note, mutes it
 or forgets its lessons.
+
+Optional: a container for running the test suite and the command-line tool (not the harness
+plugins). `symbiont serve` binds 127.0.0.1 inside the container, so the service is not reachable
+from the host; there is no `--host` option and this image does not change that.
+
+```bash
+docker build -t ai-symbiont .
+docker run --rm ai-symbiont uv run pytest -q     # the test suite
+docker run --rm ai-symbiont symbiont --help      # the command line
+```
+
+In the container, 2867 tests passed and 54 failed or errored [measured]: the failures are the quality-gate and dashboard tests, which need tools the image does not carry (gitleaks, Node, a GPU host). Run those on your machine with `uv run pytest -q`.
+
 
 ## Learn from your team's PR reviews
 
