@@ -6,7 +6,7 @@ history. Everything stays on your computer: the plugin only talks to a service o
 This folder is the plugin for Claude Code and Muse Code. It needs the `symbiont` command:
 
 ```bash
-uv tool install git+https://github.com/smalls257/ai-symbiont
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
 ```
 
 It adds hooks for session start, prompt submit and tool use, a `recall` tool over MCP, and the

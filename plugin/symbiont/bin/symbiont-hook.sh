@@ -20,7 +20,7 @@ if [ -f "$HOME/.symbiont/hook-trace.on" ]; then
 fi
 if ! command -v symbiont-hook >/dev/null 2>&1; then
   if [ "$1" = "SessionStart" ]; then
-    printf '%s\n' '{"systemMessage":"symbiont is not installed, so it is off. Install it with: uv tool install git+https://github.com/smalls257/ai-symbiont"}'
+    printf '%s\n' '{"systemMessage":"symbiont is not installed, so it is off. Install it with: uv tool install \"ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont\""}'
   fi
   exit 0
 fi
