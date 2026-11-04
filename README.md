@@ -13,7 +13,9 @@ ai-symbiont is a plugin for Meta's Muse Code. It learns from your agent's past s
 
 **Headline result:** on a real open-source project (sqlglot), Muse Spark broke a rule that only the maintainers' code reviews state in **7 of 10** runs without symbiont and **0 of 10** with it. Same task, every run passed the tests; p = 0.003, pre-registered. [measured] [pre-registered]
 
-**▶ Watch the 3-minute demo: VIDEO_LINK** · Project page with recordings: <https://smalls257.github.io/ai-symbiont/> · Paper: <https://smalls257.github.io/ai-symbiont/paper.html>
+[![Watch the 3-minute demo on YouTube](https://img.youtube.com/vi/mfzY2UlAqJo/maxresdefault.jpg)](https://youtu.be/mfzY2UlAqJo)
+
+**▶ [Watch the 3-minute demo](https://youtu.be/mfzY2UlAqJo)** · Project page with recordings: <https://smalls257.github.io/ai-symbiont/> · Paper: <https://smalls257.github.io/ai-symbiont/paper.html>
 
 ### Try it
 
