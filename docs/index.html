@@ -160,6 +160,18 @@ footer p+p{margin-top:.4rem}
 .yt-dot{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#e8641e;color:#fff;font-size:13px}
 .yt-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000}
 .yt-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.proof{padding:0 0 2rem;border-bottom:2px solid var(--ink)}
+.proof-head{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 .8rem}
+.proof-kick{font-family:ui-monospace,Menlo,monospace;font-size:.8rem;letter-spacing:.12em;text-transform:uppercase;color:var(--or);font-weight:700}
+.proof-head a{color:var(--ink);font-weight:700}
+.proof-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:.8rem}
+.proof-card{display:flex;flex-direction:column;gap:.25rem;padding:1rem;border:1.5px solid var(--ink);border-radius:.6rem;background:var(--panel);color:var(--ink);text-decoration:none;transition:transform .15s,box-shadow .15s}
+.proof-card:hover{transform:translateY(-2px);box-shadow:0 4px 0 var(--ink)}
+.proof-card b{font-size:1.7rem;line-height:1.1;letter-spacing:-.02em}
+.proof-card .pk{font-size:.72rem;font-weight:700;color:var(--mu);text-transform:uppercase;letter-spacing:.06em}
+.proof-card span:last-child{font-size:.88rem;color:var(--mu)}
+.proof-foot{margin:.8rem 0 0;font-size:.85rem;color:var(--mu)}
+@media (max-width:900px){.proof-grid{grid-template-columns:repeat(2,1fr)}}
 </style>
 <script>
 document.addEventListener('click',function(e){var b=e.target.closest('.yt-poster');if(!b)return;var d=document.createElement('div');d.className='yt-frame';var f=document.createElement('iframe');f.src='https://www.youtube-nocookie.com/embed/'+b.dataset.yt+'?autoplay=1';f.title='ai-symbiont: the demo video';f.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';f.referrerPolicy='strict-origin-when-cross-origin';f.allowFullscreen=true;d.appendChild(f);b.replaceWith(d);});
@@ -200,7 +212,17 @@ document.addEventListener('click',function(e){var b=e.target.closest('.yt-poster
   </div>
 </section>
 
-<div class="links" aria-hidden="true"></div>
+<section class="proof" aria-label="Real results">
+  <div class="proof-head"><span class="proof-kick">Real results, real runs</span><a href="#ex1">See each one ↓</a></div>
+  <div class="proof-grid">
+    <a class="proof-card" href="#ex1"><span class="pk">Coding · real open-source repo</span><b>7/10 → 0/10</b><span>runs that broke the maintainers' rule</span></a>
+    <a class="proof-card" href="#ex2"><span class="pk">Home robot · Meta Habitat</span><b>0/5 → 4/5</b><span>episodes with the table set</span></a>
+    <a class="proof-card" href="#ex3"><span class="pk">House rules · told once</span><b>30 → 0</b><span>rule violations across 6 episodes</span></a>
+    <a class="proof-card" href="#ex4"><span class="pk">Muse Spark plays Freedoom</span><b>+0.16</b><span>game score across 240 new games</span></a>
+    <a class="proof-card" href="#ex5"><span class="pk">89 projects it never saw</span><b>0 of 501</b><span>notes shown that were wrong</span></a>
+  </div>
+  <p class="proof-foot">All measured and pre-registered; every limit is beside its result below. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p>
+</section>
 
 <!-- 01 Coding -->
 <section class="ex" id="ex1">
