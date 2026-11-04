@@ -9,7 +9,7 @@ import json
 from collections.abc import Mapping
 from typing import Any
 
-from symbiont.delivery.hooks import MUSE_CODE, MUSE_MARKER
+from symbiont.delivery.hooks import CLAUDE_CODE, MUSE_CODE, MUSE_MARKER
 
 AREAS_AND_TERMS = {
     "type": "object",
@@ -110,6 +110,10 @@ def listed_tools() -> list[dict[str, Any]]:
     return [{key: value for key, value in tool.items() if key != "route"} for tool in TOOLS]
 
 
+# Claude Code sets CLAUDECODE in the shells it starts and CLAUDE_PLUGIN_ROOT for plugin servers.
+_CLAUDE_CODE_MARKERS = ("CLAUDECODE", "CLAUDE_PLUGIN_ROOT")
+
+
 def route_and_body(
     name: str, arguments: dict[str, Any], environ: Mapping[str, str]
 ) -> tuple[str, dict[str, Any]]:
@@ -121,9 +125,11 @@ def route_and_body(
 
 
 def _running_in(arguments: dict[str, Any], environ: Mapping[str, str]) -> str:
-    """Muse Code says so in its environment; otherwise the model must say which harness it is."""
-    if MUSE_MARKER in environ:
+    """The host says so in its environment; otherwise the model must say which harness it is."""
+    if MUSE_MARKER in environ:  # first: Muse also sets CLAUDE_PLUGIN_ROOT
         return MUSE_CODE
+    if any(marker in environ for marker in _CLAUDE_CODE_MARKERS):
+        return CLAUDE_CODE
     chosen = arguments.get("running_in")
     if chosen not in ("claude_code", "muse_code"):
         raise ValueError("pass running_in: claude_code or muse_code")

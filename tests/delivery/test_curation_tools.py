@@ -93,3 +93,15 @@ def test_the_harness_comes_from_muse_s_environment_else_from_the_model():
     assert body["running_in"] == "claude_code"
     with pytest.raises(ValueError, match="running_in"):
         route_and_body("symbiont_correction_candidates", {}, {})
+
+
+@pytest.mark.parametrize("marker", ["CLAUDECODE", "CLAUDE_PLUGIN_ROOT"])
+def test_the_harness_is_claude_code_when_its_environment_says_so(marker):
+    _, body = route_and_body("symbiont_correction_candidates", {}, {marker: "1"})
+    assert body["running_in"] == "claude_code"
+
+
+def test_muse_wins_when_both_hosts_markers_are_present():
+    environ = {"MUSE_PLUGIN_ROOT": "/x", "CLAUDE_PLUGIN_ROOT": "/x"}
+    _, body = route_and_body("symbiont_correction_candidates", {}, environ)
+    assert body["running_in"] == "muse_code"
