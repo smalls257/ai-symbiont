@@ -154,21 +154,27 @@ footer p+p{margin-top:.4rem}
 .vbox .vcap{position:absolute;top:.9rem;left:1.2rem;right:4rem;color:#ddd;font:600 .95rem var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 @media (max-width:760px){.vbox{padding:2.6rem .3rem .3rem}.vbox video{max-width:100vw;max-height:80vh}}
 </style>
+<style>
+.yt-poster{all:unset;display:block;position:relative;cursor:pointer;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0e101e url(media/demo-poster.jpg) center/cover no-repeat}
+.yt-chip{position:absolute;left:16px;bottom:16px;display:flex;align-items:center;gap:10px;padding:10px 16px 10px 12px;border-radius:999px;background:rgba(14,16,30,.82);color:#f3ede4;font-weight:700;font-size:15px}
+.yt-dot{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#e8641e;color:#fff;font-size:13px}
+.yt-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#000}
+.yt-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+</style>
+<script>
+document.addEventListener('click',function(e){var b=e.target.closest('.yt-poster');if(!b)return;var d=document.createElement('div');d.className='yt-frame';var f=document.createElement('iframe');f.src='https://www.youtube-nocookie.com/embed/'+b.dataset.yt+'?autoplay=1';f.title='ai-symbiont: the demo video';f.allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share';f.referrerPolicy='strict-origin-when-cross-origin';f.allowFullscreen=true;d.appendChild(f);b.replaceWith(d);});
+</script>
 </head>
 <body>
 <div class="wrap">
 <header>
   <span class="brand">ai-symbiont</span>
   <nav>
-    <a href="demo/" class="js-demo">Try the interactive demo</a>
-    <a href="https://smalls257.github.io/ai-symbiont/paper.html#abstract">Abstract</a>
-    <a href="#ex1">Coding</a>
-    <a href="#ex2">Home robot</a>
-    <a href="#ex4">Freedoom</a>
+    <a href="https://youtu.be/mfzY2UlAqJo">Watch the demo</a>
+    <a href="demo/" class="js-demo">Try it</a>
     <a href="#ledger">Results</a>
-    <a href="#next">Where it goes next</a>
     <a href="#install">Install</a>
-    <a href="#meta">Meta tooling</a>
+    <a href="https://smalls257.github.io/ai-symbiont/paper.html">Paper</a>
     <a href="https://github.com/smalls257/ai-symbiont">GitHub</a>
   </nav>
 </header>
@@ -185,23 +191,18 @@ footer p+p{margin-top:.4rem}
     </div>
   </div>
   <div class="duel">
-    <div style="position:relative;padding-top:56.25%;border-radius:14px;overflow:hidden;background:#000">
-      <iframe src="https://www.youtube-nocookie.com/embed/mfzY2UlAqJo" title="ai-symbiont: the 3-minute demo" style="position:absolute;inset:0;width:100%;height:100%;border:0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
-    </div>
+    <button type="button" class="yt-poster" aria-label="Play the demo video" data-yt="mfzY2UlAqJo">
+      <span class="yt-chip"><span class="yt-dot">&#9654;</span>Watch the demo</span>
+    </button>
     <div class="nums">
       <div><b>7 of 10</b><span>runs that broke the sqlglot maintainers' rule, without symbiont</span></div>
       <div><b>0 of 10</b><span>with symbiont: the reviewer's own words, one sentence before it acts</span></div>
     </div>
-    <p class="cap">The 3-minute demo: a real Muse Code session from install to a caught mistake, then how Meta's models fit together. Same task, Muse Spark, 10 runs each; pre-registered, p = 0.003.</p>
+    <p class="cap">The 3-minute demo: a real Muse Code session from install to a caught mistake, then how Meta's models fit together. Same task, Muse Spark, 10 runs each; p = 0.003. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></p>
   </div>
 </section>
 
 <div class="links">
-  <a href="demo/" class="js-demo">Try the interactive demo</a>
-  <a href="https://smalls257.github.io/ai-symbiont/paper.html#abstract">Abstract</a>
-  <a href="https://smalls257.github.io/ai-symbiont/paper.html">Long write-up</a>
-  <a href="https://github.com/smalls257/ai-symbiont">GitHub repository</a>
-  <a href="https://github.com/smalls257/ai-symbiont/blob/main/REPRODUCE.md">Reproduce the numbers (REPRODUCE.md)</a>
   <a href="https://github.com/smalls257/ai-symbiont/releases/tag/demo-media-2026-11-02">All recordings</a>
   <a href="https://smalls257.github.io/ai-symbiont/concepts/air-traffic-control.html">Concept: air traffic control</a>
   <a href="https://smalls257.github.io/ai-symbiont/concepts/support-desk.html">Concept: support desk</a>
