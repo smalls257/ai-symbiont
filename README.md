@@ -78,6 +78,14 @@ or forgets its lessons. Its actions are MCP tools of the symbiont server (`symbi
 (Muse Code); the shell forms (`symbiont repo allow`, `symbiont repo mine`)
 remain for a harness without MCP.
 
+### Claude Code
+
+Install: the two `/plugin` lines above, plus `uv tool install` for the `symbiont` command. The plugin needs a Claude Code version with `PostToolUseFailure` hooks.
+
+Use: `/symbiont` shows status; `/symbiont allow` switches symbiont on for the repository; `/symbiont mine` learns from its past sessions.
+
+What works on this branch: the session hooks (start, prompt, tool use, tool failure) feed notes to the model, the miner reads Claude Code transcripts and skips content it does not know (it counts and logs each skip), the recall tool is recognized under its plugin name so symbiont's own answers are never mined, a user interrupt is not recorded as a failed command, and a hook fired from a subdirectory uses the repository root's name when that is the project you answered for. The end-of-work reflection is asked once per session and worded as mid-session. Not covered yet: a PreToolUse hook, and the shared `.mcp.json` PATH fix.
+
 Try it without a key: `docker build -t ai-symbiont . && docker run --rm ai-symbiont demo`. It replays a synthetic billing-ledger session offline (onboarding note, `symbiont repo allow` and `repo mine`, house rules, a recall note, `symbiont why`) and needs no API key and no network. Locally: `scripts/demo/run.sh`. The interactive demo on the landing page needs nothing installed: <https://smalls257.github.io/ai-symbiont/>. Only runs that call Muse Spark need `META_API_KEY` (see `env.example`).
 
 Optional: a container for running the test suite and the command-line tool (not the harness
