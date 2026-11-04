@@ -1,9 +1,9 @@
 """Reader for Claude Code session logs (JSONL, one event per line).
 
-A tool result travels in the `raw` of the action it answers; SWE-chat's
-`prompt_pushback` becomes the "correction" tag. Metadata events are counted per
-type and logged; a non-conversation event that carries a `message` raises ReadError.
-`read` is for the owner's private sessions: unknown privacy is never shareable.
+A tool result travels in the `raw` of the action it answers; SWE-chat's `prompt_pushback`
+becomes the "correction" tag. Unmineable content (metadata events, unknown block types,
+harness-written user turns) is skipped, counted and logged; malformed shapes raise ReadError.
+`read` is for private sessions: unknown privacy is never shareable.
 """
 
 import difflib
@@ -16,8 +16,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from symbiont.readers.claude_code_fields import (
+    MalformedError,
+    optional_text,
+    require,
+    require_text,
+)
 from symbiont.readers.errors import ReadError
-from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAME, split_our_output
+from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAMES, split_our_output
 from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
 
@@ -30,10 +36,13 @@ CORRECTION = "correction"
 _CONVERSATION_TYPES = ("user", "assistant")
 logger = logging.getLogger(__name__)
 _EXIT_CODE = re.compile(r"^Exit code (-?\d+)")
-
-
-class _MalformedError(Exception):
-    """Internal: an event is not in the shape this reader knows. Becomes a ReadError."""
+# Fields Claude Code sets on user events that are not the developer's own typing.
+_NOT_TYPED_FLAGS = {
+    "isCompactSummary": "compaction summary",
+    "isMeta": "caveat or meta line",
+    "isSidechain": "sidechain prompt",
+}
+Skips = Counter[str]
 
 
 def session_logs(repo_dir: Path, home: Path) -> list[Path]:
@@ -74,15 +83,18 @@ def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
     results = _results_by_call(path, events)
     source = _Source(project, provenance)
     steps: dict[str, int] = {}
+    skips: Skips = Counter()
     for line_no, event in events:
         try:
-            for fields in _event_records(event, results):
-                session_id = _require_text(event, "sessionId")
+            for fields in _event_records(event, results, skips):
+                session_id = require_text(event, "sessionId")
                 step = steps.get(session_id, 0)
                 steps[session_id] = step + 1
                 yield _record(event, source, session_id, step, fields)
-        except _MalformedError as exc:
+        except MalformedError as exc:
             raise ReadError(path, line_no, str(exc)) from exc
+    if skips:
+        logger.warning("skipped content in %s: %s", path, dict(skips))
 
 
 def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
@@ -130,7 +142,7 @@ def _results_by_call(
     for line_no, event in events:
         try:
             results.update(_event_results(event))
-        except _MalformedError as exc:
+        except MalformedError as exc:
             raise ReadError(path, line_no, str(exc)) from exc
     return results
 
@@ -138,44 +150,19 @@ def _results_by_call(
 def _event_results(event: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """The tool_result blocks of one event, by tool_use id."""
     return {
-        _require_text(block, "tool_use_id"): block
+        require_text(block, "tool_use_id"): block
         for block in _blocks(event)
         if block.get("type") == "tool_result"
     }
 
 
-def _require(mapping: Any, key: str) -> Any:
-    """The mapping's value for `key`; a missing or null one raises _MalformedError."""
-    if not isinstance(mapping, dict) or mapping.get(key) is None:
-        raise _MalformedError(f"missing {key!r}")
-    return mapping[key]
-
-
-def _require_str(value: Any, field: str) -> str:
-    """The value if it is a string, else _MalformedError naming the field."""
-    if not isinstance(value, str):
-        raise _MalformedError(f"{field!r} must be a string, got {type(value).__name__}")
-    return value
-
-
-def _require_text(mapping: Any, key: str) -> str:
-    """The string under `key` in the mapping; missing or non-string raises _MalformedError."""
-    return _require_str(_require(mapping, key), key)
-
-
-def _optional_text(mapping: dict[str, Any], key: str) -> str:
-    """A field the harness may omit; empty then, but never a non-string."""
-    value = mapping.get(key)
-    return "" if value is None else _require_str(value, key)
-
-
 def _blocks(event: dict[str, Any]) -> list[dict[str, Any]]:
     """The event's content as blocks; bare text becomes one text block."""
-    content = _require(_require(event, "message"), "content")
+    content = require(require(event, "message"), "content")
     if isinstance(content, str):
         return [{"type": "text", "text": content}]
     if not isinstance(content, list) or not all(isinstance(b, dict) for b in content):
-        raise _MalformedError("message 'content' must be text or a list of blocks")
+        raise MalformedError("message 'content' must be text or a list of blocks")
     return content
 
 
@@ -196,7 +183,7 @@ def _record(
         project=source.project,
         session_id=session_id,
         step=step,
-        ts=_optional_text(event, "timestamp") or None,
+        ts=optional_text(event, "timestamp") or None,
         provenance=source.provenance,
         **fields,
     )
@@ -206,19 +193,23 @@ def _record(
 
 
 def _event_records(
-    event: dict[str, Any], results: dict[str, dict[str, Any]]
+    event: dict[str, Any], results: dict[str, dict[str, Any]], skips: Skips
 ) -> Iterator[dict[str, Any]]:
     """The shaped fields of each record one event yields."""
-    _optional_text(event, "cwd")
+    optional_text(event, "cwd")
     if event["type"] == "user":
-        yield from _user_turns(event)
+        yield from _user_turns(event, skips)
     else:
-        yield from _assistant_records(event, results)
+        yield from _assistant_records(event, results, skips)
 
 
-def _user_turns(event: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def _user_turns(event: dict[str, Any], skips: Skips) -> Iterator[dict[str, Any]]:
     """The user's text as one turn; events holding only tool results yield nothing."""
-    texts = [_require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
+    for flag, label in _NOT_TYPED_FLAGS.items():
+        if event.get(flag) is True:
+            skips[label] += 1  # the harness wrote it, the developer did not: no correction signal
+            return
+    texts = [require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
     if not texts:
         return  # tool results only: they are folded into the action they answer
     yield {"kind": Kind.USER_TURN, "raw": "\n".join(texts), "tags": _pushback_tags(event)}
@@ -231,35 +222,38 @@ def _pushback_tags(event: dict[str, Any]) -> tuple[str, ...]:
         return ()
     if flag is True or isinstance(flag, str):
         return (CORRECTION,)
-    raise _MalformedError(f"prompt_pushback must be true/false or a label, got {flag!r}")
+    raise MalformedError(f"prompt_pushback must be true/false or a label, got {flag!r}")
 
 
 def _assistant_records(
-    event: dict[str, Any], results: dict[str, dict[str, Any]]
+    event: dict[str, Any], results: dict[str, dict[str, Any]], skips: Skips
 ) -> Iterator[dict[str, Any]]:
     """Text, thinking and tool_use blocks as records, each action carrying its result."""
-    cwd = _optional_text(event, "cwd") or None
+    cwd = optional_text(event, "cwd") or None
     for block in _blocks(event):
         kind = block.get("type")
         if kind == "text":
-            yield {"kind": Kind.AGENT_TURN, "raw": _require_text(block, "text")}
+            yield {"kind": Kind.AGENT_TURN, "raw": require_text(block, "text")}
         elif kind == "tool_use":
-            yield from _tool_use(block, results.get(_require_text(block, "id")), cwd)
+            yield from _tool_use(block, results.get(require_text(block, "id")), cwd, skips)
         elif kind != "thinking":
-            raise _MalformedError(f"unknown assistant block type {kind!r}")
+            skips[f"unknown block type {kind}"] += 1
 
 
 def _tool_use(
-    block: dict[str, Any], result: dict[str, Any] | None, cwd: str | None
+    block: dict[str, Any], result: dict[str, Any] | None, cwd: str | None, skips: Skips
 ) -> Iterator[dict[str, Any]]:
     """The harness's action, then our own text from its result as a separate record."""
-    name = _require_text(block, "name")
-    args = _require(block, "input")
+    name = require_text(block, "name")
+    args = require(block, "input")
     if not isinstance(args, dict):
-        raise _MalformedError(f"tool input of {name!r} must be an object")
+        raise MalformedError(f"tool input of {name!r} must be an object")
+    if name == "Edit" and "old_string" not in args:
+        skips["Edit without old_string"] += 1  # no snippet to diff; not a known edit shape
+        return
     text = _result_content(result)
     # Our recall answer is ours from the first character.
-    own, ours = ("", text) if name == RECALL_TOOL_NAME else split_our_output(text)
+    own, ours = ("", text) if name in RECALL_TOOL_NAMES else split_our_output(text)
     fields = _TOOLS.get(name, _other_tool)(name, args, _make_relative(cwd))
     fields["raw"] = own
     code = _exit_code(fields["kind"], result, own)
@@ -276,13 +270,13 @@ def _result_content(result: dict[str, Any] | None) -> str:
     if result is None:
         return ""
     if not isinstance(result.get("is_error", False), bool):
-        raise _MalformedError("'is_error' must be true or false")
+        raise MalformedError("'is_error' must be true or false")
     content = result.get("content")
     if content is None or isinstance(content, str):
         return content or ""
     if isinstance(content, list) and all(isinstance(b, dict) for b in content):
-        return "\n".join(_optional_text(b, "text") for b in content)
-    raise _MalformedError("tool_result 'content' must be text or a list of blocks")
+        return "\n".join(optional_text(b, "text") for b in content)
+    raise MalformedError("tool_result 'content' must be text or a list of blocks")
 
 
 def _exit_code(kind: Kind, result: dict[str, Any] | None, raw: str) -> int | None:
@@ -314,14 +308,14 @@ def _make_relative(cwd: str | None) -> Callable[[str], str]:
 
 def _bash(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
     """A shell command action."""
-    return {"kind": Kind.COMMAND, "command": _require_text(args, "command")}
+    return {"kind": Kind.COMMAND, "command": require_text(args, "command")}
 
 
 def _read_file(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
     """A file-view action with the lines shown."""
     return {
         "kind": Kind.READ,
-        "files": (relative(_require_text(args, "file_path")),),
+        "files": (relative(require_text(args, "file_path")),),
         "line_range": _read_range(args),
     }
 
@@ -332,35 +326,35 @@ def _read_range(args: dict[str, Any]) -> tuple[int, int] | None:
     if offset is None and limit is None:
         return None
     if not all(isinstance(v, int) for v in (offset or 1, limit or 1)):
-        raise _MalformedError(f"Read offset and limit must be integers, got {offset!r}, {limit!r}")
+        raise MalformedError(f"Read offset and limit must be integers, got {offset!r}, {limit!r}")
     first = offset or 1
     return (first, first + limit - 1) if limit else (first, -1)
 
 
 def _edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
     """An edit action with a snippet-level diff."""
-    path = relative(_require_text(args, "file_path"))
-    pairs = [(_require_text(args, "old_string"), _optional_text(args, "new_string"))]
+    path = relative(require_text(args, "file_path"))
+    pairs = [(require_text(args, "old_string"), optional_text(args, "new_string"))]
     return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
 
 
 def _multi_edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
     """One edit action for a MultiEdit call, its diffs joined in order."""
-    path = relative(_require_text(args, "file_path"))
-    edits = _require(args, "edits")
+    path = relative(require_text(args, "file_path"))
+    edits = require(args, "edits")
     if not isinstance(edits, list):
-        raise _MalformedError("MultiEdit 'edits' must be a list")
-    pairs = [(_require_text(e, "old_string"), _optional_text(e, "new_string")) for e in edits]
+        raise MalformedError("MultiEdit 'edits' must be a list")
+    pairs = [(require_text(e, "old_string"), optional_text(e, "new_string")) for e in edits]
     return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
 
 
 def _write(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
     """A whole-file write as an edit against /dev/null."""
-    path = relative(_require_text(args, "file_path"))
+    path = relative(require_text(args, "file_path"))
     return {
         "kind": Kind.EDIT,
         "files": (path,),
-        "diff": _diff(path, [("", _require_text(args, "content"))], "/dev/null"),
+        "diff": _diff(path, [("", require_text(args, "content"))], "/dev/null"),
     }
 
 
@@ -368,7 +362,7 @@ def _notebook_edit(
     name: str, args: dict[str, Any], relative: Callable[[str], str]
 ) -> dict[str, Any]:
     """A notebook edit action; the previous cell text is not logged, so there is no diff."""
-    return {"kind": Kind.EDIT, "files": (relative(_require_text(args, "notebook_path")),)}
+    return {"kind": Kind.EDIT, "files": (relative(require_text(args, "notebook_path")),)}
 
 
 def _other_tool(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:

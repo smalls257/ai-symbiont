@@ -293,3 +293,59 @@ def test_a_failing_test_run_piped_through_head_is_a_failed_command(tmp_path):
 def test_a_passing_test_run_piped_through_head_is_not_a_failure(tmp_path):
     record = piped_run(tmp_path, "pytest -q 2>&1 | head -n 200", "3 passed in 0.3s")
     assert record.exit_code == 0
+
+
+# --- content the reader does not know is skipped, counted and logged ---------
+
+
+def _read_events(tmp_path, *events):
+    path = write_lines(tmp_path, [json.dumps(e) for e in events])
+    return list(read(path, PROJECT))
+
+
+def test_unknown_assistant_blocks_are_skipped_counted_and_logged(tmp_path, caplog):
+    blocks = [
+        {"type": "redacted_thinking", "data": "x"},
+        {"type": "server_tool_use", "id": "s1", "name": "web_search", "input": {}},
+        {"type": "web_search_tool_result", "tool_use_id": "s1", "content": []},
+        {"type": "text", "text": "done"},
+    ]
+    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, _event("assistant", blocks))
+    assert [r.raw for r in records] == ["done"]
+    assert "unknown block type redacted_thinking" in caplog.text
+    assert "unknown block type web_search_tool_result" in caplog.text
+
+
+def test_edit_without_old_string_is_skipped_and_counted(tmp_path, caplog):
+    edit = _tool("Edit", {"file_path": "a.py", "new_string": "x"})
+    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, edit, _tool("Bash", {"command": "ls"}, id="t2"))
+    assert [r.kind for r in records] == [Kind.COMMAND]
+    assert "'Edit without old_string': 1" in caplog.text
+
+
+@pytest.mark.parametrize("flag", ["isCompactSummary", "isMeta", "isSidechain"])
+def test_harness_written_user_events_are_not_user_turns(tmp_path, caplog, flag):
+    typed = _event("user", "no, use pytest")
+    machine = _event("user", "Caveat: the messages below were generated", **{flag: True})
+    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, machine, typed)
+    assert [r.raw for r in records] == ["no, use pytest"]
+    assert "skipped content" in caplog.text
+
+
+def test_malformed_known_block_still_raises_after_tolerance(tmp_path):
+    bad = _event("assistant", [{"type": "text", "text": 5}])
+    with pytest.raises(ReadError, match="text"):
+        _read_events(tmp_path, bad)
+
+
+def test_the_plugin_named_recall_tool_result_is_ours_entirely(tmp_path):
+    name = "mcp__plugin_symbiont_symbiont__recall"
+    call = _tool(name, {"question": "why?"})
+    answer = _result(content="This command failed twice in an earlier session.")
+    call_rec, answer_rec = _read_events(tmp_path, call, answer)
+    assert call_rec.raw == ""
+    assert answer_rec.tags == ("symbiont-output",)
+    assert answer_rec.raw.startswith("This command failed twice")
