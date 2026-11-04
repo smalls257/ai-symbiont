@@ -6,18 +6,26 @@ facts in the nightly record.
 """
 
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import TYPE_CHECKING
 
 from symbiont.core.agree import AGREE, NIGHTLY, Verdict, agree
-from symbiont.core.judge_format import fix_commands
+from symbiont.core.judge_format import (
+    failure_situation,
+    fix_commands,
+    judge_input,
+    judgeable,
+)
+from symbiont.core.repeat import REPEAT_WHY
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.twins import merge_twins
+from symbiont.records.schema import Record
 from symbiont.service.events import Call
 from symbiont.service.follow_up import FollowUp, ShownNote
-from symbiont.service.judge_model import JudgeOfflineError
+from symbiont.service.judge_model import JudgeModel, JudgeOfflineError, JudgeSlowError
 from symbiont.service.judge_start import JudgeStartError, Running
 from symbiont.service.nightly import NightlyState
+from symbiont.service.repo_gate import Spoken
 
 if TYPE_CHECKING:
     from symbiont.service.app import ServiceParts
@@ -25,6 +33,9 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 NOTHING_MATCHES = "nothing in this project's history matches that question"
 CHECKER = "Llama 3.2 1B"
+# A hook has 0.6 s end to end (delivery/launch.HOOK_TIMEOUT_S) and a warm score takes ~0.1-0.2 s;
+# the rest is the service round trip. Slower than this, the note is dropped with a visible line.
+HOOK_BUDGET_S = 0.35
 JUDGE_LOG = "judge-server.log"
 
 
@@ -87,7 +98,7 @@ class AgreedRecall:
         except JudgeOfflineError as down:
             if nightly is None:
                 raise
-            raise self._offline(project, down) from down
+            raise self._down(project, down) from down
         if outcome.verdict is Verdict.AGREED and outcome.lesson and outcome.note:
             refs = outcome.lesson.pain_point.record_refs
             note_id = ":".join(map(str, refs[0])) if refs else outcome.lesson.pain_point.session_id
@@ -113,6 +124,58 @@ class AgreedRecall:
         report = nightly.report(project, lessons)
         trained = report.state in (NightlyState.TRAINED, NightlyState.STALE)
         return CheckerVerdict(rule, report.lessons if trained else None, report.trained_at)
+
+    def vet(
+        self, call: Call, record: Record, said: Spoken, lessons: list[Lesson]
+    ) -> tuple[Spoken, CheckerVerdict | None]:
+        """Let the trained checker gate a hook-time failure recall; rule notes pass as is.
+
+        A no silences the note and logs why. A down or slow checker raises (503) and the
+        once-per-session mark is withdrawn, so the next repeat is checked again.
+        """
+        found, nightly, project = said.note, self._parts.nightly, record.project
+        if found is None or found.lesson is None or found.why != REPEAT_WHY:
+            return said, None
+        if nightly is None or not nightly.has_record(project):
+            return said, None
+        try:
+            judge = nightly.judge_for(project, merge_twins(lessons))
+            if judge is None:
+                return said, None
+            agreed = self._judged(call, judge, record, found.lesson)
+        except JudgeOfflineError as down:
+            self._parts.gate.forget_said(said.once)
+            raise self._down(project, down) from down
+        if not agreed:
+            return replace(said, notes=()), None
+        return said, self._verdict(project, "nightly", lessons)
+
+    def _judged(self, call: Call, judge: JudgeModel, record: Record, lesson: Lesson) -> bool:
+        """Whether the judge agrees the stored lesson applies to this failure.
+
+        A no is logged as a held note with the reason (never the text).
+        """
+        situation = failure_situation(record, record.project)
+        pair = judgeable(lesson, record.project)
+        if situation is None or pair is None:
+            self._parts.events.append_note_held(call, "nightly:not_judgeable", {})
+            return False
+        slim = replace(judge, timeout_s=HOOK_BUDGET_S)
+        p_yes = slim.p_yes(judge_input(situation, pair))
+        if p_yes >= NIGHTLY.judge_min_p_yes:
+            return True
+        self._parts.events.append_note_held(
+            call, f"nightly:{Verdict.JUDGE_TOO_LOW.value}", {"judge_p_yes": p_yes}
+        )
+        return False
+
+    def _down(self, project: str, down: JudgeOfflineError) -> JudgeOfflineError:
+        """The loud message for a judge that failed: slow ones are not restarted, dead ones are."""
+        if isinstance(down, JudgeSlowError):
+            return JudgeOfflineError(
+                f"symbiont checker slow: {down}, so no note was shown. It is still running."
+            )
+        return self._offline(project, down)
 
     def _offline(self, project: str, down: JudgeOfflineError) -> JudgeOfflineError:
         """The loud 503 for a trained checker that is down; starts it once from its record."""

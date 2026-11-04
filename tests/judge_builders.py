@@ -44,3 +44,14 @@ def service_with(tmp_path, judge):
 
 def recall(service):
     return service.respond("/recall", {"question": QUESTION, "project": PROJECT})
+
+
+def saying_transport(p_yes, seen=None):
+    """A judge transport that answers every score with `p_yes` and records each request body."""
+
+    def transport(request, timeout_s):
+        if seen is not None:
+            seen.append(json.loads(request.data))
+        return json.dumps({"p_yes": [p_yes]}).encode()
+
+    return transport

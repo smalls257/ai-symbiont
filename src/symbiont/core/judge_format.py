@@ -10,11 +10,14 @@ from dataclasses import dataclass
 
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
+from symbiont.records.schema import Record
 
 JUDGE_SYSTEM = (
     "You decide whether one stored lesson applies to what a coding agent is doing now. "
     "Answer yes or no."
 )
+# How round 3 (and the nightly rows) wrote a situation whose file is unknown.
+NO_FILE = "-"
 _RAN_COMMAND = re.compile(r"ran `([^`]+)`")
 
 
@@ -31,6 +34,19 @@ class JudgeableLesson:
 def judge_situation(command: str, repo: str, file: str, error: str) -> str:
     """What the agent is doing now: the failed command, its repository, file and error line."""
     return f"Ran `{command}` in {repo} (file {file}). It failed: {error}"
+
+
+def failure_situation(record: Record, project: str) -> str | None:
+    """The judge's situation for a command that just failed, or None when it has no text to judge.
+
+    Built as the lessons were: the command, the repository, the file the step touched and the last
+    line of the output, which is where the error is.
+    """
+    lines = record.raw.strip().splitlines()
+    if not record.command or not lines:
+        return None
+    file = record.files[0] if record.files else NO_FILE
+    return judge_situation(record.command, project.replace("__", "/", 1), file, lines[-1])
 
 
 def judge_lesson_text(lesson: JudgeableLesson) -> str:

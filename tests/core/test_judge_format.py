@@ -49,3 +49,17 @@ def test_a_lesson_the_judge_never_saw_the_shape_of_is_not_judgeable():
     lesson = product_lesson()
     assert judgeable(Lesson(**{**lesson.__dict__, "resolution": ("edited `a.py`",)}), "p") is None
     assert judgeable(Lesson(**{**lesson.__dict__, "quote": "no dollar line"}), "p") is None
+
+
+def test_a_failed_command_is_described_the_way_lessons_were_when_the_judge_trained():
+    from dataclasses import replace
+
+    from record_builders import run
+    from symbiont.core.judge_format import failure_situation
+
+    failed = replace(run("pytest -q x", 1, "trace\nImportError: no parse\n"), files=("app/p.py",))
+    assert failure_situation(failed, "me__repo") == (
+        "Ran `pytest -q x` in me/repo (file app/p.py). It failed: ImportError: no parse"
+    )
+    assert failure_situation(replace(failed, raw="  \n"), "r") is None
+    assert failure_situation(replace(failed, command=None), "r") is None
