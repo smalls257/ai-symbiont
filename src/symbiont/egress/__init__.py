@@ -1,6 +1,21 @@
-"""The one door out: every outbound HTTP call from src/ goes through `post_json`."""
+"""The one door out: every outbound HTTP call from src/ goes through `post_json`.
+
+Model files come in through `download_file`, the GET-only second door (Hugging Face only).
+"""
 
 from symbiont.egress.client import post_json
+from symbiont.egress.download import DownloadError, download_file, file_url, get_json, listing_url
 from symbiont.egress.policy import Destination, EgressRefusedError, Endpoint, check_outbound
 
-__all__ = ["Destination", "EgressRefusedError", "Endpoint", "check_outbound", "post_json"]
+__all__ = [
+    "Destination",
+    "DownloadError",
+    "EgressRefusedError",
+    "Endpoint",
+    "check_outbound",
+    "download_file",
+    "file_url",
+    "get_json",
+    "listing_url",
+    "post_json",
+]

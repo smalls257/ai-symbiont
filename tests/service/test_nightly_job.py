@@ -62,3 +62,22 @@ def test_an_unreadable_file_is_said_not_ignored(tmp_path):
     job_path(tmp_path, "p").write_text("{nope", encoding="utf-8")
     said = job_sentence(tmp_path, "p", NOW)
     assert said is not None and "unusable" in said
+
+
+def test_a_downloading_job_says_how_many_gigabytes_of_how_many(tmp_path):
+    state = JobState(JobPhase.DOWNLOADING, STARTED, 12, None, "", 1_100_000_000, 2_500_000_000)
+    write_job(tmp_path, "p", state)
+    said = job_sentence(tmp_path, "p", NOW)
+    assert said is not None and "training job: downloading model 1.1 of 2.5 GB" in said
+
+
+def test_a_downloading_job_before_the_size_is_known_says_just_downloading(tmp_path):
+    write_job(tmp_path, "p", JobState(JobPhase.DOWNLOADING, STARTED, 12))
+    said = job_sentence(tmp_path, "p", NOW)
+    assert said is not None and "training job: downloading model since" in said
+
+
+def test_a_downloading_job_that_began_over_three_hours_ago_reads_as_interrupted(tmp_path):
+    write_job(tmp_path, "p", JobState(JobPhase.DOWNLOADING, STARTED, 12))
+    said = job_sentence(tmp_path, "p", NOW + timedelta(seconds=STALE_AFTER_S + 1))
+    assert said is not None and "interrupted" in said

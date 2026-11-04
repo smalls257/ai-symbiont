@@ -23,6 +23,7 @@ STALE_AFTER_S = 3 * 3600
 class JobPhase(StrEnum):
     """Where the background job stands."""
 
+    DOWNLOADING = "downloading"
     RUNNING = "running"
     DONE = "done"
     FAILED = "failed"
@@ -37,6 +38,14 @@ class JobState:
     lessons: int | None = None
     finished: str | None = None
     reason: str = ""
+    # Download progress in bytes while the phase is DOWNLOADING (total None until it is known).
+    done_bytes: int | None = None
+    total_bytes: int | None = None
+
+    @property
+    def active(self) -> bool:
+        """True while a process owns the job: downloading the model or training."""
+        return self.phase in (JobPhase.DOWNLOADING, JobPhase.RUNNING)
 
 
 def utc_now() -> str:
@@ -66,7 +75,8 @@ def read_job(nightly_dir: Path, project: str) -> JobState | None:
     try:
         raw = json.loads(path.read_text(encoding="utf-8"))
         return JobState(JobPhase(raw["phase"]), raw["started"], raw.get("lessons"),
-                        raw.get("finished"), raw.get("reason", ""))  # fmt: skip
+                        raw.get("finished"), raw.get("reason", ""),
+                        raw.get("done_bytes"), raw.get("total_bytes"))  # fmt: skip
     except (OSError, ValueError, KeyError, TypeError) as unusable:
         raise ValueError(f"the training job file {path} is unusable ({unusable})") from unusable
 
@@ -90,7 +100,17 @@ def job_sentence(nightly_dir: Path, project: str, now: datetime | None = None) -
             f"interrupted (log {nightly_dir / project / JOB_LOG}); run `/symbiont nightly` again"
         )
     log = nightly_dir / project / JOB_LOG
+    if state.phase is JobPhase.DOWNLOADING:
+        return f"training job: {_download_progress(state)} since {state.started} (log {log})"
     return f"training job: running{counted} since {state.started} (log {log})"
+
+
+def _download_progress(state: JobState) -> str:
+    """Like `downloading model 1.1 of 2.5 GB`; no numbers before the size is known."""
+    if not state.total_bytes:
+        return "downloading model"
+    done = (state.done_bytes or 0) / 1e9
+    return f"downloading model {done:.1f} of {state.total_bytes / 1e9:.1f} GB"
 
 
 def _age_s(started: str, now: datetime) -> float:

@@ -153,6 +153,8 @@ Linux and Windows the trainer needs a CUDA build of torch (PyPI's Windows wheel 
 one from pytorch.org into the tool environment first). The scripts ship in the package and unpack to
 `~/.symbiont/routea`; `SYMBIONT_ROUTEA_DIR` overrides them for development.
 
+**One command.** `/symbiont onboard` allows the repository, mines it, saves your corrections and starts the first training; it needs nothing else: on the first run it downloads the model and kit itself (see Finding the downloads).
+
 **From your coding agent.** `/symbiont nightly` (the `symbiont_nightly` tool, `symbiont nightly start`
 in a shell) sets up if needed, trains in a detached process and returns within a minute; training
 takes 1-4 minutes. `/symbiont status` then shows `training job: running`, `done on N lessons at T` or
@@ -185,6 +187,8 @@ checker offline` (and it is started again); if it is running but slower you see 
 slow` and no note for that failure. Either way the failure is checked again next time it repeats. With the judge warm, a hook that reaches it takes about 0.14 s end to end on an Apple M-series Mac [measured]. The checker is strict by design: on 20 synthetic repeats it approved 1 [measured], and the rest got no note.
 House rules, file rules and PR rulings are never gated: they are rules you or your team wrote, not
 recalls. With no nightly record nothing is gated.
+
+**Finding the downloads.** With no `base` or `kit` given, `symbiont nightly` uses a kit it already built, else looks for the Llama folder in `~/.symbiont/models/llama-3.2-1b-instruct`, then the Hugging Face cache (`$HF_HOME/hub` or `~/.cache/huggingface/hub`, newest snapshot); the kit in `~/.symbiont/models/nightly-kit`, then the cache's `nightly-kit/`. If nothing is found, the background job downloads them itself first (about 2.5 GB from Hugging Face, public files and no login: the base is the ungated `unsloth/Llama-3.2-1B-Instruct` copy of Meta's weights, and setup still checks its shape and chat template), into `~/.symbiont/models`; `/symbiont status` shows `downloading model 1.1 of 2.5 GB`. Doing it by hand also works: `hf auth login`, `hf download meta-llama/Llama-3.2-1B-Instruct`, `hf download ADAPTERS_REPO --include "nightly-kit/*"` (ADAPTERS_REPO as above).
 
 **Building the kit (once).** Meta's license does not let us ship Llama weights, so you fetch the base
 yourself and `symbiont nightly setup` merges the small public kit into it on your machine. It makes
