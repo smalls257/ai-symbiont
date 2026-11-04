@@ -147,6 +147,17 @@ record yet nothing changes (the ranker answers) and `symbiont status` and the da
 `checker not trained yet; run symbiont nightly`. `symbiont why` names the checker that agreed to the
 last note (its model, how many lessons it was trained on and when), never a score.
 
+**What the checker gates.** Two kinds of note are recalls of a stored lesson, and with a trained
+checker both go through the agree rule: the answer to a `recall` question, and the hook-time note
+after a failed command ("Last time, `X` failed with E; it was fixed when you..."). For the hook
+note the service describes the failure to the judge the way the lessons were described in training
+(the command, the repository, the file, the last line of output), and if the judge disagrees there
+is no note. The judge gets 0.35 s of the hook's 0.6 s budget [hypothesis]: if it is down you see `symbiont
+checker offline` (and it is started again); if it is running but slower you see `symbiont checker
+slow` and no note for that failure. Either way the failure is checked again next time it repeats.
+House rules, file rules and PR rulings are never gated: they are rules you or your team wrote, not
+recalls. With no nightly record nothing is gated.
+
 **Building the kit (once).** Meta's license does not let us ship Llama weights, so you fetch the base
 yourself and `symbiont nightly setup` merges the small public kit into it on your machine. It makes
 no network call.

@@ -58,6 +58,8 @@ class Spoken:
     held: str | None = None
     # Rules that matched this work but were put aside for a later correction of the developer's.
     superseded: tuple[Supersession, ...] = ()
+    # The once-per-session mark an exact-repeat note spent; withdrawn if the note was not shown.
+    once: tuple[str, Signature] | None = None
 
     @property
     def note(self) -> RepeatNote | None:
@@ -135,6 +137,10 @@ class RepoGate:
         self._said.add((session_id, signature))
         return found
 
+    def forget_said(self, once: tuple[str, Signature] | None) -> None:
+        """Withdraw the once-per-session mark of a recall that was not shown (checker down)."""
+        self._said.discard(once)
+
     def status(self, project: str, lessons: Sequence[Lesson]) -> dict[str, object]:
         """What `/symbiont status` shows: the answer, the lesson count, silenced kinds, nightly."""
         stance = self.registry.stance(project) if self.registry else RepoStance.GIVEN
@@ -158,6 +164,8 @@ class RepoGate:
         """The exact-repeat note if the failure matches, else up to MAX_RULE_NOTES rules."""
         self._track_milestone(session_id, record)
         exact = self.repeat(session_id, record, earlier, lessons)
+        if exact is not None and exact.lesson is not None:
+            return Spoken((exact,), once=(session_id, exact.lesson.pain_point.signature))
         if exact is not None:
             return Spoken((exact,))
         return self._rule(session_id, record, lessons)

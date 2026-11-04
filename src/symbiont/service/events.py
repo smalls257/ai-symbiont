@@ -63,13 +63,19 @@ class EventLog:
         event["checked_by"] = checked_by
         self._write(call, event)
 
-    def append_repeat(self, call: Call, found: RepeatNote) -> None:
-        """Record a note a stored lesson or rule caused, with the match that fired it."""
+    def append_repeat(
+        self, call: Call, found: RepeatNote, checked_by: dict[str, object] | None = None
+    ) -> None:
+        """Record a note a stored lesson or rule caused, with the match that fired it.
+
+        `checked_by` names the trained checker that agreed to a recalled lesson (no score).
+        """
         pain = found.lesson.pain_point if found.lesson is not None else None
         trouble = None if pain is None else [pain.signature.signal.value, *pain.signature.key]
         refs = [] if pain is None else list(pain.record_refs)
         event = {"trouble": trouble, "records": refs, "notes": [found.sentence]}
-        self._write(call, {**event, "fired_by": found.why})
+        checked = {} if checked_by is None else {"checked_by": checked_by}
+        self._write(call, {**event, "fired_by": found.why, **checked})
 
     def append_decision(self, call: Call, decision: Decision, notes: list[str]) -> None:
         """Record a decision through `event_fields`, which never carries its risk."""

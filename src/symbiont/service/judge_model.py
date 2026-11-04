@@ -25,6 +25,10 @@ class JudgeOfflineError(MemoryModelOfflineError):
     """The judge cannot give a P(yes): unreachable server or an unusable reply."""
 
 
+class JudgeSlowError(JudgeOfflineError):
+    """The judge is running but did not answer within the caller's time budget."""
+
+
 @dataclass(frozen=True)
 class JudgeModel:
     """A loopback judge server."""
@@ -32,6 +36,8 @@ class JudgeModel:
     url: str
     # None sends through urllib; tests pass a fake that never opens a socket.
     transport: Transport | None = None
+    # How long one score may take; a hook passes a budget far below the default.
+    timeout_s: float = TIMEOUT_S
 
     def __post_init__(self) -> None:
         """Refuse a non-loopback URL at launch (EgressRefusedError)."""
@@ -68,15 +74,16 @@ class JudgeModel:
         """The server's mean P(yes) for one judge user message."""
         body = {"pairs": [{"system": JUDGE_SYSTEM, "prompt": prompt}]}
         try:
-            if self.transport is None:
-                reply = post_json(self._destination(), body, timeout_s=TIMEOUT_S)
-            else:
-                reply = post_json(
-                    self._destination(), body, timeout_s=TIMEOUT_S, transport=self.transport
-                )
+            reply = self._post(self._destination(), body, self.timeout_s)
         except EgressRefusedError:
             raise
         except (OSError, ValueError) as failed:
+            if isinstance(failed, TimeoutError) or isinstance(
+                getattr(failed, "reason", None), TimeoutError
+            ):
+                raise JudgeSlowError(
+                    f"judge at {self.url} did not answer within {self.timeout_s:.2f}s"
+                ) from failed
             raise JudgeOfflineError(
                 f"judge at {self.url} failed: {type(failed).__name__}"
             ) from failed

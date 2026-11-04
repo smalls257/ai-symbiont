@@ -20,6 +20,8 @@ from symbiont.records.schema import Kind, Record
 
 LEAD = "[symbiont] In this repo: "
 CONTEXT_CHARS = 300
+# `RepeatNote.why` of a recall of a stored lesson, as opposed to a house or file rule.
+REPEAT_WHY = "same failure signature"
 
 
 @dataclass(frozen=True)
@@ -29,7 +31,7 @@ class RepeatNote:
     sentence: str
     lesson: Lesson | None
     # Why it spoke: the same failure signature, or which relevance match brought a rule.
-    why: str = "same failure signature"
+    why: str = REPEAT_WHY
 
 
 def failed_now(record: Record) -> bool:
