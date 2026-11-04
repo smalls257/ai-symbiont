@@ -34,7 +34,7 @@ def record_for(lessons, count=None):
 def test_no_record_reads_as_never_trained(tmp_path):
     report = NightlyJudges(tmp_path).report(PROJECT, LESSONS)
     assert report.state is NightlyState.NEVER
-    assert report.sentence() == "never trained (run `symbiont nightly`)"
+    assert report.sentence() == "checker not trained yet; run `symbiont nightly`"
 
 
 def test_a_record_for_todays_lessons_reads_as_trained_with_count_and_time(tmp_path):

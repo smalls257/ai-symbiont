@@ -107,8 +107,13 @@ def speaking_events(harness: str) -> frozenset[HookEvent]:
 
 
 def offline_note(reason: object) -> str:
-    """The visible line that stands in for notes when the service cannot be reached."""
-    return f"symbiont offline: {reason}"
+    """The visible line that stands in for notes when the service cannot be reached.
+
+    A reason that already names what is down ("symbiont checker offline: ...") is shown as is,
+    so the line never reads "symbiont offline: symbiont checker offline".
+    """
+    text = str(reason)
+    return text if text.startswith("symbiont ") else f"symbiont offline: {text}"
 
 
 ServiceCall = Callable[[str, dict[str, object], int], dict[str, Any]]

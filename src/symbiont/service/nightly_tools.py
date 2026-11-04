@@ -8,9 +8,10 @@ import os
 import platform
 import shutil
 import subprocess
+import sys
 import time
 import zlib
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -18,6 +19,7 @@ from pathlib import Path
 from symbiont.egress import EgressRefusedError
 from symbiont.egress.client import Transport
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
+from symbiont.service.judge_start import JudgeStart, JudgeStartError, judge_device, port_of
 from symbiont.service.nightly_backend import Backend, choose_backend
 from symbiont.service.nightly_run import NightFailedError, NightTools, Say
 from symbiont.service.nightly_schedule import Completed, ScheduleError, Tool
@@ -25,6 +27,7 @@ from symbiont.service.nightly_schedule import Completed, ScheduleError, Tool
 ROUTEA_ENV = "SYMBIONT_ROUTEA_DIR"
 TORCH_TRAINER = "train_lora_torch.py"
 JUDGE_SERVER = "plug_judge_server.py"
+JUDGE_LOG = "judge-server.log"  # beside the adapter folder, in <nightly-dir>/<project>/
 FIRST_PORT = 8800  # the nightly judge servers live at 8800-8899; 8791 is the first-night server
 PORTS = 100
 MLX_IMPORT = "import mlx_lm"
@@ -133,9 +136,10 @@ def default_judge_url(project: str) -> str:
     return f"http://127.0.0.1:{FIRST_PORT + zlib.crc32(project.encode()) % PORTS}"
 
 
-def judge_device(backend: Backend) -> str:
-    """The LCAP_DEVICE the judge server needs on this machine: mps with mlx, cuda with torch."""
-    return "mps" if backend is Backend.MLX else "cuda"
+def judge_script() -> str:
+    """The judge server script of this checkout, or a placeholder naming where it lives."""
+    folder = routea_dir()
+    return str(folder / JUDGE_SERVER) if folder else f"<ai-symbiont>/scripts/routea/{JUDGE_SERVER}"
 
 
 def restart_instructions(
@@ -146,13 +150,107 @@ def restart_instructions(
     The server picks cuda by itself when it is the only accelerator; a Mac's command pins
     `LCAP_DEVICE=mps` (macOS is POSIX, so the prefix is valid there; Windows never needs one).
     """
-    folder = routea_dir()
-    script = (
-        str(folder / JUDGE_SERVER) if folder else f"<ai-symbiont>/scripts/routea/{JUDGE_SERVER}"
+    return JudgeStart(python, str(base), str(adapter), device, port_of(url)).command_text(
+        judge_script()
     )
-    port = url.rsplit(":", 1)[-1].rstrip("/")
-    prefix = "LCAP_DEVICE=mps " if device == "mps" else ""
-    return f"{prefix}{python} {script} --model {base} --adapter {adapter} --port {port}"
+
+
+def spawn_judge(start: JudgeStart, log: Path) -> "subprocess.Popen[bytes]":
+    """Start `plug_judge_server.py` detached, appending its output to `log`; returns the process.
+
+    Raises JudgeStartError when the Python or the script cannot be run. The server outlives this
+    process, so a service or a night that ended does not take it down.
+    """
+    script = judge_script()
+    if not Path(script).is_file():
+        raise JudgeStartError(f"the judge server script is not here ({script}); set {ROUTEA_ENV}")
+    port = str(start.port)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        with interpreter_first(start.python), log.open("ab") as sink:
+            # Inside the PATH change: Popen finds the literal "python" through the env it is given.
+            environment = {
+                **os.environ,
+                **({"LCAP_DEVICE": "mps"} if start.device == "mps" else {}),
+            }
+            return subprocess.Popen(
+                [
+                    "python",
+                    script,
+                    "--model",
+                    start.base,
+                    "--adapter",
+                    start.adapter,
+                    "--port",
+                    port,
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=sink,
+                stderr=subprocess.STDOUT,
+                env=environment,
+                **_detached(),
+            )
+    except (OSError, NightFailedError) as unstartable:
+        raise JudgeStartError(f"could not start the judge server: {unstartable}") from unstartable
+
+
+def revive_judge_server(start: JudgeStart, log: Path) -> None:
+    """Start the judge server again without waiting for it (the service must not block a recall).
+
+    Raises JudgeStartError when it cannot be started.
+    """
+    spawn_judge(start, log)
+
+
+def _detached() -> dict[str, int | bool]:
+    """Popen keywords that let the child outlive this process (a Windows job may still end it)."""
+    if sys.platform == "win32":
+        return {"creationflags": 0x00000008 | 0x00000200}  # DETACHED_PROCESS | NEW_PROCESS_GROUP
+    return {"start_new_session": True}
+
+
+WARM_UP_QUESTION = "Does this note apply?"
+START_TIMEOUT_S = 240.0
+POLL_S = 2.0
+
+
+def waited_for_judge(
+    url: str,
+    child: "subprocess.Popen[bytes]",
+    log: Path,
+    transport: Transport | None = None,
+    timeout_s: float = START_TIMEOUT_S,
+) -> float:
+    """Seconds until the judge server at `url` answers a score; JudgeStartError if it never does.
+
+    Loading a 1B model onto the GPU takes seconds to a minute, so the wait is polled; a server that
+    exited is reported at once with its log, never waited out.
+    """
+    began = time.monotonic()
+    while time.monotonic() - began < timeout_s:
+        if child.poll() is not None:
+            raise JudgeStartError(f"the judge server exited with {child.returncode}; see {log}")
+        try:
+            JudgeModel(url, transport).p_yes(WARM_UP_QUESTION)
+        except JudgeOfflineError:
+            time.sleep(POLL_S)
+            continue
+        return time.monotonic() - began
+    raise JudgeStartError(f"the judge server did not answer within {timeout_s:.0f}s; see {log}")
+
+
+def reloaded(url: str, adapter: Path, transport: Transport | None = None) -> bool:
+    """Hot-swap the adapter in a running judge server: True when it is live, False when down.
+
+    Raises NightFailedError when the URL is refused (not loopback).
+    """
+    try:
+        JudgeModel(url, transport).reload(adapter)
+    except EgressRefusedError as refused:
+        raise NightFailedError(f"judge URL {url} refused: {refused}") from refused
+    except JudgeOfflineError:
+        return False
+    return True
 
 
 def told_judge(
@@ -163,20 +261,45 @@ def told_judge(
     `start_command` is what `restart_instructions` built for this machine. Returns the sentence to
     print; the caller adds what the symbiont service needs.
     """
+    if reloaded(url, adapter, transport):
+        return f"judge server at {url} now serves the new adapter"
+    return (
+        f"judge server at {url} is not answering. Start it on the new adapter:\n  {start_command}\n"
+    )
+
+
+def ensured_judge(
+    start: JudgeStart,
+    url: str,
+    log: Path,
+    transport: Transport | None = None,
+    spawn: Callable[[JudgeStart, Path], "subprocess.Popen[bytes]"] = spawn_judge,
+) -> str:
+    """Make the judge serve `start.adapter`: reload a running server, else start one and wait.
+
+    Returns the sentence to print. A server that cannot be started is said loudly with the exact
+    command to run by hand, because the checker would otherwise sit offline unnoticed.
+    """
+    if reloaded(url, Path(start.adapter), transport):
+        return f"judge server at {url} now serves the new adapter"
+    by_hand = start.command_text(judge_script())
     try:
-        JudgeModel(url, transport).reload(adapter)
-    except EgressRefusedError as refused:
-        raise NightFailedError(f"judge URL {url} refused: {refused}") from refused
-    except JudgeOfflineError:
-        return (
-            f"judge server at {url} is not answering. Start it on the new adapter:\n"
-            f"  {start_command}\n"
-        )
-    return f"judge server at {url} now serves the new adapter"
+        child = spawn(start, log)
+        seconds = waited_for_judge(url, child, log, transport)
+    except JudgeStartError as failed:
+        return f"symbiont checker offline: {failed}. Start it by hand:\n  {by_hand}\n"
+    return f"started the judge server at {url} on the new adapter in {seconds:.0f}s (log {log})"
 
 
 def real_tools(say: Say, judge_python: str) -> NightTools:
     """The night's tools here; `judge_python` is the interpreter the judge server runs on."""
+
+    def tell_judge(url: str, adapter: Path, base: Path) -> str:
+        """Start or reload the judge server on the night's new adapter."""
+        device = judge_device(detected_backend())
+        start = JudgeStart(judge_python, str(base), str(adapter), device, port_of(url))
+        return ensured_judge(start, url, adapter.parent / JUDGE_LOG)
+
     return NightTools(
         run=run_logged,
         clock=_monotonic,
@@ -185,13 +308,7 @@ def real_tools(say: Say, judge_python: str) -> NightTools:
         backend=detected_backend,
         torch_script=torch_trainer,
         check_python=checked_python,
-        tell_judge=lambda url, adapter, base: told_judge(
-            url,
-            adapter,
-            restart_instructions(
-                judge_python, url, adapter, base, judge_device(detected_backend())
-            ),
-        ),
+        tell_judge=tell_judge,
     )
 
 

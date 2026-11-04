@@ -10,7 +10,7 @@ from typing import Any
 
 from symbiont.core.warner import WarnerWeightsError
 from symbiont.delivery.hook_main import add_hook_arguments, forward_hook, read_hook_input
-from symbiont.delivery.hooks import NoteStyle
+from symbiont.delivery.hooks import NoteStyle, offline_note
 from symbiont.delivery.install.claude_code import claude_code_install
 from symbiont.delivery.install.muse_code import muse_code_install
 from symbiont.delivery.install.transaction import (
@@ -39,6 +39,7 @@ from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
 from symbiont.service.mine_command import MineClient, OpenPage
 from symbiont.service.nightly import NightlyJudges, RecallJudges
 from symbiont.service.nightly_command import add_nightly_command, run_nightly_command
+from symbiont.service.nightly_tools import revive_judge_server
 from symbiont.service.operator_commands import (
     COMMANDS,
     Defaults,
@@ -223,7 +224,7 @@ def _add_judge_options(serving: argparse.ArgumentParser) -> None:
     serving.add_argument(
         "--nightly-dir",
         type=Path,
-        help="per-repository nightly records (`symbiont nightly`; default DATA/nightly)",
+        help="per-repository nightly records (default DATA/nightly, always read: no flag needed)",
     )
 
 
@@ -241,7 +242,9 @@ def _serve(args: argparse.Namespace) -> int:
         if args.memory_url:
             memory = open_memory(args.memory_url, args.memory_dir)
         judge = JudgeModel(args.judge_url) if args.judge_url else None
-        nightly = NightlyJudges(args.nightly_dir) if args.nightly_dir else None
+        nightly = NightlyJudges(
+            args.nightly_dir or args.data_dir / "nightly", revive=revive_judge_server
+        )
         service = open_service(
             args.data_dir,
             args.mode,
@@ -250,7 +253,7 @@ def _serve(args: argparse.Namespace) -> int:
             Guards(
                 RecallJudges(judge, nightly),
                 RepoRegistry(args.data_dir),
-                NightlyJudges(args.nightly_dir or args.data_dir / "nightly"),
+                nightly,
             ),
         )
     except (
@@ -293,7 +296,7 @@ def _recall(args: argparse.Namespace) -> int:
     try:
         print(recall_answer(args.question, args.project, args.port))
     except ServiceOfflineError as offline:
-        print(f"symbiont offline: {offline}")
+        print(offline_note(offline))
         return 0
     except ServiceRefusedError as refused:
         print(f"symbiont refused the question: {refused}", file=sys.stderr)

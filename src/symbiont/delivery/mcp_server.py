@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import IO, Any
 
 from symbiont.delivery.curation_tools import BY_NAME, as_text, listed_tools, route_and_body
+from symbiont.delivery.hooks import offline_note
 from symbiont.delivery.operator_tools import (
     OPERATOR_BY_NAME,
     Operate,
@@ -213,7 +214,7 @@ def _answer(ask: Callable[[str], str], question: str) -> _Answer:
         return _Answer(ask(question))
     except ServiceOfflineError as offline:
         log.warning("service offline: %s", offline)
-        return _Answer(f"symbiont offline: {offline}")
+        return _Answer(offline_note(offline))
     except ServiceRefusedError as refused:
         return _Answer(f"symbiont refused the question: {refused}", refused=True)
     except Exception as failure:  # noqa: BLE001 - logged and shown as an error; the loop must live
@@ -229,7 +230,7 @@ def _curation_answer(curate: Curate, name: str, arguments: Any) -> _Answer:
     try:
         return _Answer(curate(name, arguments))
     except ServiceOfflineError as offline:
-        return _Answer(f"symbiont offline: {offline}")
+        return _Answer(offline_note(offline))
     except (ServiceRefusedError, ValueError) as refused:
         return _Answer(f"symbiont refused {name}: {refused}", refused=True)
 

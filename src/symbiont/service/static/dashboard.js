@@ -383,7 +383,7 @@ $("playdemo").onclick=demo;
 document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e.target.tagName))demo();});
 
 /* ===== boot ===== */
-$("repoName").textContent=DATA.repo.name;if(DATA.nightly){$("nightly").textContent="Nightly training: "+DATA.nightly.sentence;$("nightly").dataset.state=DATA.nightly.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
+$("repoName").textContent=DATA.repo.name;if(DATA.nightly){var nl=DATA.nightly,lc=nl.last_checked;$("nightly").textContent="Nightly training: "+nl.sentence+(lc?" \u00b7 last checked note: \u201c"+lc.note+"\u201d. "+lc.sentence:"");$("nightly").dataset.state=nl.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
 $("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
 renderDashboard();renderList();selectPain(1);
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();

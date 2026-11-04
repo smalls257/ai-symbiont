@@ -10,7 +10,7 @@ import hashlib
 import json
 import logging
 import os
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from pathlib import Path
@@ -19,6 +19,7 @@ from symbiont.egress.client import Transport
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.twins import merge_twins
 from symbiont.service.judge_model import JudgeModel, JudgeOfflineError
+from symbiont.service.judge_start import JudgeStart, judge_start_from_json
 
 log = logging.getLogger(__name__)
 RECORD = "nightly.json"
@@ -57,7 +58,7 @@ class NightlyReport:
     def sentence(self) -> str:
         """The state in plain words for `symbiont status`."""
         if self.state is NightlyState.NEVER:
-            return "never trained (run `symbiont nightly`)"
+            return "checker not trained yet; run `symbiont nightly`"
         counted = "lessons" if self.lessons is None else f"{self.lessons} lessons"
         when = f" at {self.trained_at}" if self.trained_at else ""
         if self.state is NightlyState.TRAINED:
@@ -75,6 +76,9 @@ class NightlyRecord:
     lesson_count: int
     trained_at: str
     backend: str
+    # How to start this repository's judge server again (`JudgeStart.as_json`); None on records
+    # written before the service could revive it.
+    judge_start: dict[str, object] | None = None
 
 
 def write_record(root: Path, project: str, record: NightlyRecord) -> Path:
@@ -107,6 +111,8 @@ class NightlyJudges:
     root: Path
     # None sends through urllib; tests pass a fake that never opens a socket.
     transport: Transport | None = None
+    # Starts the judge server of a record again when a recall finds it down (None: only say so).
+    revive: Callable[[JudgeStart, Path], None] | None = None
 
     def has_record(self, project: str) -> bool:
         """Whether the project's first night has finished (its nightly record exists)."""
@@ -129,6 +135,14 @@ class NightlyJudges:
             else NightlyState.STALE
         )
         return NightlyReport(state, count if isinstance(count, int) else None, when)
+
+    def start_for(self, project: str) -> JudgeStart | None:
+        """How to start the project's judge server again, or None when its record does not say."""
+        try:
+            raw = json.loads((self.root / project / RECORD).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return None
+        return judge_start_from_json(raw.get("judge_start")) if isinstance(raw, dict) else None
 
     def judge_for(self, project: str, lessons: Sequence[Lesson]) -> JudgeModel | None:
         """The project's nightly judge, or None before its first night (logged).

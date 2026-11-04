@@ -196,7 +196,7 @@ def test_status_reports_the_answer_lessons_and_silenced_kinds(rig):
             "state": "never",
             "lessons": None,
             "trained_at": None,
-            "sentence": "never trained (run `symbiont nightly`)",
+            "sentence": "checker not trained yet; run `symbiont nightly`",
         },
     }
 

@@ -123,10 +123,16 @@ and Task Scheduler on Windows; a Mac that is asleep at the set time runs the job
 holding `base/` (the general judge: Llama 3.2 1B with the round-4 general adapter merged in),
 `general-rows.jsonl` and `habits.jsonl`; a Python with `mlx-lm` (`--trainer-python`) or with CUDA
 torch, transformers and peft; and the judge server, `scripts/routea/plug_judge_server.py`, run on
-a Python with torch (`--judge-python`). After a night the command asks the running judge server to
-load the new adapter, or prints the exact command to start it. A symbiont service started with
-`--nightly-dir ~/.symbiont/nightly` (and `--judge-url`) reads the record on every recall, so it
-needs no restart; one started without those options must be restarted with them.
+a Python with torch (`--judge-python`). After a night the command makes the judge server serve the new adapter: it hot-swaps a running server
+or starts one (detached, log beside the adapter) and waits until it answers, and it records how to
+start it again in the nightly record. Nothing else is needed: the symbiont service that the hooks
+start on their own reads `<data-dir>/nightly` on every recall, so once a repository has a record, its
+recalls are checked (the agree rule with that repository's judge) with no flags. If the checker is
+down, for example after a reboot, the recall says `symbiont checker offline`, starts the server again
+from the record and asks you to retry in a minute; it never falls back to the ranker alone. With no
+record yet nothing changes (the ranker answers) and `symbiont status` and the dashboard say
+`checker not trained yet; run symbiont nightly`. `symbiont why` names the checker that agreed to the
+last note (its model, how many lessons it was trained on and when), never a score.
 
 **Building the kit (once).** Meta's license does not let us ship Llama weights, so you fetch the base
 yourself and `symbiont nightly setup` merges the small public kit into it on your machine. It makes
