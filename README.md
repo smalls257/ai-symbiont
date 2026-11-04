@@ -5,6 +5,8 @@
   </picture>
 </h1>
 
+[![Llama 3.2 1B checker adapters on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20model-Llama--3.2--1B--symbiont--judge--adapters-yellow)](https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters)
+
 **Your coding agent keeps making the same mistake. This tells it before it happens again.**
 
 - **Track:** Indie Developer · **Problem statement:** Push the Frontier.
@@ -30,7 +32,7 @@ ai-symbiont is a plugin for Muse Code, Meta's coding agent. It reads your past s
 - **Corrected once, never repeated (coding).** The user states three rules for a repository once. Over 18 chances across 8 new tasks, the agent broke a rule 16 times without symbiont and 0 times with it; 8 of 8 tasks came out clean with it, 0 of 8 without. A synthetic, designed task, one model, one run per task, pre-registered. [measured] [pre-registered]
 - **Habitat set the table.** A home robot in Meta's Habitat simulator set the table in 4 of 5 new episodes with symbiont's notes and 0 of 5 without. The notes came from the robot's own two failed attempts. Pasting every lesson into every prompt also solved 4 of 5, and with randomized hiding places it was 1 of 5 either way, so the lift is for one fixed home. One model, 5 seeds per arm; details in `docs/research/2026-11-03-habitat-results.md`. [measured] [pre-registered]
 - **House rules.** The robot broke 30 house rules across 6 episodes without the owner's corrections and 0 across 6 with them. The corrections were scripted for the demo (`results/habitat-house-rules.json`). [measured] [pre-registered]
-- **Freedoom.** Muse Spark plays Freedoom via ViZDoom and wrote its own rule from its failed games. Across 240 new games the rule raised the game score (0 to 1) by 0.16 against no rule. [measured] [pre-registered]
+- **Freedoom.** Muse Spark plays Freedoom via ViZDoom and proposed six rules for itself from its failed games. symbiont's automatic test, fixed before any test game, kept only one (the others were dropped by code, not by us). Across 240 new games that rule raised the game score (0 to 1) by 0.16 against no rule. [measured] [pre-registered]
 - **Precision.** 0 wrong notes in 501 shown, on 89 open-source projects it had never seen. A plain similarity search got 9 wrong. The test bugs were planted, not made by real developers. [measured] [pre-registered]
 - **Nightly training.** Untrained, the checker blocked every note on code it had never seen. After one night of training on the project's own history it approved 61% of repeats, and 97.8% of what it approved was right: the same reach the ranker has alone, now with the checker's agreement. [measured] [pre-registered]
 
