@@ -147,6 +147,12 @@ footer p+p{margin-top:.4rem}
   .beat blockquote,.beat p{overflow-wrap:anywhere}
   table th:last-child,table td.l{display:none}td.n{font-size:1.1rem;white-space:normal}
 }
+.vbox{position:fixed;inset:0;z-index:1000;background:rgba(10,8,12,.92);display:flex;align-items:center;justify-content:center;padding:2.5rem 1.5rem 1.5rem}
+.vbox video{width:auto;height:auto;max-width:96vw;max-height:88vh;border-radius:.4rem;background:#000;box-shadow:0 10px 40px rgba(0,0,0,.6)}
+.vbox .vx{position:absolute;top:.6rem;right:1rem;border:0;background:none;color:#fff;font:600 2rem/1 var(--ui);cursor:pointer;padding:.2rem .5rem}
+.vbox .vx:focus-visible{outline:2px solid var(--or)}
+.vbox .vcap{position:absolute;top:.9rem;left:1.2rem;right:4rem;color:#ddd;font:600 .95rem var(--ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:760px){.vbox{padding:2.6rem .3rem .3rem}.vbox video{max-width:100vw;max-height:80vh}}
 </style>
 </head>
 <body>
@@ -354,7 +360,17 @@ muse plugins install symbiont@ai-symbiont</pre>
 
 <script>
 // Nothing loads until a click: the still is the poster, preload is "none". One click shows the controls and plays inline.
-document.querySelectorAll('.player').forEach(p=>{const v=p.querySelector('video');p.querySelector('.play').addEventListener('click',()=>{p.classList.add('on');v.controls=true;v.muted=false;v.volume=1;v.play()})});
+(function(){
+let box=null,last=null;
+function close(){if(!box)return;const v=box.querySelector('video');v.pause();box.remove();box=null;document.body.style.overflow='';document.removeEventListener('keydown',onKey);if(last)last.focus();}
+function onKey(e){if(e.key==='Escape')close();if(e.key==='Tab'){e.preventDefault();box.querySelector('.vx').focus();}}
+function open(src,label,btn){last=btn;box=document.createElement('div');box.className='vbox';box.setAttribute('role','dialog');box.setAttribute('aria-modal','true');box.setAttribute('aria-label',label||'Video');
+const cap=document.createElement('div');cap.className='vcap';cap.textContent=label||'';
+const x=document.createElement('button');x.className='vx';x.setAttribute('aria-label','Close video');x.textContent='\u00d7';x.addEventListener('click',close);
+const v=document.createElement('video');v.src=src;v.controls=true;v.playsInline=true;v.muted=false;v.volume=1;v.autoplay=true;
+box.append(cap,x,v);box.addEventListener('click',e=>{if(e.target===box)close();});document.body.appendChild(box);document.body.style.overflow='hidden';document.addEventListener('keydown',onKey);x.focus();v.play().catch(()=>{});}
+document.querySelectorAll('.player').forEach(p=>{const v=p.querySelector('video');const b=p.querySelector('.play');b.addEventListener('click',()=>open(v.currentSrc||v.getAttribute('src'),(b.textContent||'').replace(/^[^A-Za-z0-9]+/,'').trim(),b));});
+})();
 
 // The demo. On the live site DEMO_URL is "demo/"; in this mockup it is the sibling copy.
 const DEMO_URL='demo/';
