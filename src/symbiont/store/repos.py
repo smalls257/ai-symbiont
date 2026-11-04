@@ -29,6 +29,7 @@ class Announced(StrEnum):
     DASHBOARD_LINK = "dashboard_linked"
     FOCUS_QUESTION = "focus_asked"
     PR_QUESTION = "pr_learning_asked"
+    ONBOARDING_RELAYED = "onboarding_relayed"
 
 
 class RepoRegistryError(ValueError):

@@ -8,6 +8,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/delivery/`
 
 ## Invariants
 - No learning, store or privacy logic here; the service owns it.
+- `operator_tools.py` makes each `/symbiont` action an MCP tool that is only an argv for the same `symbiont` subcommand (`mcp_operator.py` runs `cli.main` in the MCP process and captures its output). Why: Muse Code sandboxes the model's shell away from `~/.symbiont`, the MCP server is outside the sandbox. Do not reimplement an action in the tool; add the subcommand, then list it. A service `tell_model` line goes only into `additionalContext`.
 - Installers show a diff and ask before writing, are idempotent and reversible byte for byte, and never touch the user's global harness config.
 - `recall` stays one plain question string.
 - `open_page.py` opens a dashboard address with the desktop's own command (`open`, `xdg-open`) and returns False when it cannot, so `symbiont repo mine` can say so; only the CLI calls it, the service never opens a window. `launch.patient_call` is the `repo mine` variant of the reviving call: a developer waits for a cold start, a hook does not.

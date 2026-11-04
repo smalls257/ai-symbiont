@@ -52,8 +52,10 @@ flowchart LR
 - **Nothing is stored without a yes, per repository.** The service keeps three states per
   repository: allowed, declined, never asked. Never asked and declined observe nothing and write no
   event. The first session of a never-asked repository shows one note saying what symbiont does,
-  that everything stays on this computer, and the three answers (`symbiont repo allow`,
-  `symbiont repo mine`, `symbiont repo decline`). Prevents Silent Fallback at the privacy boundary.
+  that everything stays on this computer, and the three answers (`/symbiont allow`,
+  `/symbiont mine`, `/symbiont decline`; the shell forms `symbiont repo allow|mine|decline` stay
+  as the fallback). The model also gets, once per repository, an instruction to relay the question
+  in its first reply (Muse Code's TUI shows the hook's message only briefly). Prevents Silent Fallback at the privacy boundary.
   Known limit: a repository is its directory name, as in the record schema, so two checkouts with
   one name share an answer.
 - **Day-one value from one lesson.** `core/repeat.py` is the exact-repeat rule: the same command
