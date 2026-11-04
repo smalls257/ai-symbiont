@@ -1,4 +1,9 @@
-# ai-symbiont
+<h1>
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.svg">
+    <img alt="ai-symbiont" src="docs/brand/logo-light.svg" width="360">
+  </picture>
+</h1>
 
 **Your coding agent keeps making the same mistake. This tells it before it happens again.**
 
