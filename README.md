@@ -80,6 +80,14 @@ remain for a harness without MCP.
 
 Try it without a key: `docker build -t ai-symbiont . && docker run --rm ai-symbiont demo`. It replays a synthetic billing-ledger session offline (onboarding note, `symbiont repo allow` and `repo mine`, house rules, a recall note, `symbiont why`) and needs no API key and no network. Locally: `scripts/demo/run.sh`. The interactive demo on the landing page needs nothing installed: <https://smalls257.github.io/ai-symbiont/>. Only runs that call Muse Spark need `META_API_KEY` (see `env.example`).
 
+Try it live in a real Muse Code session (needs a Meta API key; Muse is downloaded when the container starts, about a minute):
+
+```bash
+docker build -t ai-symbiont . && docker run -it --rm -e META_API_KEY=... ai-symbiont live
+```
+
+It opens Muse on the synthetic ledger with the plugin installed and its hand-written history mined, and prints a short "try this" card. symbiont's notes show up as `symbiont:` lines. The nightly learner and Llama training are skipped (too slow on a CPU).
+
 Optional: a container for running the test suite and the command-line tool (not the harness
 plugins). `symbiont serve` binds 127.0.0.1 inside the container, so the service is not reachable
 from the host; there is no `--host` option and this image does not change that.
