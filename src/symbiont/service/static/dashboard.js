@@ -189,7 +189,7 @@ function renderDashboard(){
   const les=P.filter(p=>p.lesson).sort((a,b)=>cost(b)-cost(a)).slice(0,3);
   $("les").innerHTML=les.map(p=>'<li><button data-pick="'+p.id+'"><span class="t">'+esc(short(p.title))+'</span><span class="big">'+cost(p)+"<small>turns</small></span><span class=\"m\">"+p.s.length+" sessions, about "+p.turns+" turns each time</span></button></li>").join("");
   $("les").querySelectorAll("button").forEach(b=>b.onclick=()=>{token++;setDemo(false);openPain(+b.dataset.pick);});
-  renderTimeline(P.filter(isMistake).filter(p=>p.s.length>=3).sort((a,b)=>cost(b)-cost(a)).slice(0,5));
+  renderTimeline(P.filter(isMistake));
 }
 function mix(a,b,k){const h=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));const A=h(a),B=h(b);return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*k).toString(16).padStart(2,"0")).join("");}
 function squarify(items,x,y,w,h){
@@ -203,19 +203,23 @@ function squarify(items,x,y,w,h){
   for(const it of items){const s=Math.min(rect.w,rect.h);if(row.length&&worst(row.concat(it),s)>worst(row,s)){place(row);row=[];}row.push(it);}
   if(row.length)place(row);return out;
 }
-function renderTimeline(rows){
-  const X0=520,X1=1740,xs=i=>X0+i/(N-1)*(X1-X0),RH=40,Y0=34;
+function renderTimeline(points){
+  const TL=window.SymbiontTimeline, rows=TL.foldRows(points);
+  const X0=480,X1=1760,LBL_X=X0-30,LBL_CHARS=40,RH=54,Y0=34,xs=i=>X0+i/Math.max(1,N-1)*(X1-X0);
+  const rad=TL.dotRadius(N,X1-X0), step=TL.tickStep(N,X1-X0), ay=Y0+RH*rows.length+22, H=ay+16;
   let s='';
   s+='<line x1="'+xs(WIN_I-.5)+'" x2="'+xs(WIN_I-.5)+'" y1="8" y2="'+(Y0+RH*rows.length)+'" stroke="#b28cff" stroke-dasharray="6 6" stroke-width="2"/><text x="'+(xs(WIN_I-.5)+10)+'" y="18" font-size="17" fill="#b28cff">last 30 days</text>';
   rows.forEach((p,r)=>{
-    const y=Y0+r*RH+RH/2,c=KINDS[p.kind].color;
-    s+='<text x="'+(X0-26)+'" y="'+(y+6)+'" text-anchor="end" font-size="19" fill="#ecf0f8" font-weight="600">'+esc(short(p.title))+'</text>';
+    const y=Y0+r*RH+RH/2,c=p.folded?"#8c94ac":KINDS[p.kind].color,lines=TL.labelLines(p.title,LBL_CHARS);
+    const y0=y+6-(lines.length-1)*11;
+    s+='<text text-anchor="end" font-size="18" fill="#ecf0f8" font-weight="600">'+lines.map((l,k)=>'<tspan x="'+LBL_X+'" y="'+(y0+k*22)+'">'+esc(l)+"</tspan>").join("")+"<title>"+esc(p.title)+"</title></text>";
     s+='<line x1="'+X0+'" x2="'+X1+'" y1="'+y+'" y2="'+y+'" stroke="rgba(236,240,248,.1)" stroke-width="2"/>';
     s+='<line x1="'+xs(p.s[0])+'" x2="'+xs(p.s[p.s.length-1])+'" y1="'+y+'" y2="'+y+'" stroke="'+c+'" stroke-opacity=".55" stroke-width="2"/>';
-    p.s.forEach((i,k)=>{s+='<circle cx="'+xs(i)+'" cy="'+y+'" r="10" fill="'+c+'" stroke="#16112a" stroke-width="2" tabindex="0" data-tip="'+esc(p.title)+"<br>"+dateOf(dayOf(i))+", time "+(k+1)+" of "+p.s.length+", "+p.turns+' turns lost"/>';});
+    p.s.forEach((i,k)=>{const tip=p.folded?esc(p.title)+"<br>"+dateOf(dayOf(i))+", session with a repeated mistake":esc(p.title)+"<br>"+dateOf(dayOf(i))+", time "+(k+1)+" of "+p.s.length+", "+p.turns+" turns lost";
+      s+='<circle cx="'+xs(i)+'" cy="'+y+'" r="'+rad+'" fill="'+c+'" stroke="#16112a" stroke-width="2" tabindex="0" data-tip="'+tip+'"/>';});
   });
-  const ay=Y0+RH*rows.length+22;
-  for(let i=0;i<N;i+=5)s+='<text x="'+xs(i)+'" y="'+ay+'" text-anchor="middle" font-size="16" fill="#8c94ac">'+dateOf(dayOf(i))+"</text>";
+  for(let i=0;i<N;i+=step)s+='<text x="'+xs(i)+'" y="'+ay+'" text-anchor="middle" font-size="16" fill="#8c94ac">'+dateOf(dayOf(i))+"</text>";
+  $("tlsvg").setAttribute("viewBox","0 0 1800 "+H);
   $("tlsvg").innerHTML=s;
 }
 const WIN_I=DATA.sessions.findIndex(s=>s.day>=WINDOW_START);
