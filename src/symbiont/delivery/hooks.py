@@ -12,6 +12,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
+from symbiont.delivery.claude_code_payload import shell_exit_code
 from symbiont.delivery.headline import headline
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
 from symbiont.records.output_failure import exit_code_with_output
@@ -196,10 +197,10 @@ def _record(
         },
         "files": [],
     }
-    return base | _shaped(event, data)
+    return base | _shaped(event, data, harness)
 
 
-def _shaped(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
+def _shaped(event: HookEvent, data: dict[str, Any], harness: str) -> dict[str, Any]:
     """The kind and raw text of a record, by event."""
     if event is HookEvent.USER_PROMPT_SUBMIT:
         return {"kind": "user_turn", "raw": str(data.get("prompt", ""))}
@@ -208,10 +209,10 @@ def _shaped(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
     if event is HookEvent.PRE_LLM_CALL:
         count = len(data["messages"]) if isinstance(data.get("messages"), list) else 0
         return {"kind": "agent_turn", "raw": f"model call over {count} messages"}
-    return _tool_record(event, data)
+    return _tool_record(event, data, harness)
 
 
-def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
+def _tool_record(event: HookEvent, data: dict[str, Any], harness: str) -> dict[str, Any]:
     """A tool-call record; shell tools carry the command and its exit status."""
     tool = str(data.get("tool_name", ""))
     given = data.get("tool_input")
@@ -225,7 +226,9 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
             "kind": "command",
             "raw": raw,
             "command": command,
-            "exit_code": exit_code_with_output(command, raw, _exit_code(printed, event)),
+            "exit_code": exit_code_with_output(
+                command, raw, _shell_exit_code(event, data, printed, raw, harness)
+            ),
         }
     path = arguments.get("file_path") or arguments.get("path")
     files = [path] if isinstance(path, str) else []
@@ -234,6 +237,15 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
     if tool in _READ_TOOLS:
         return {"kind": "read", "raw": raw, "files": files}
     return {"kind": "tool_result", "raw": raw, "files": files}
+
+
+def _shell_exit_code(
+    event: HookEvent, data: dict[str, Any], printed: Any, raw: str, harness: str
+) -> int | None:
+    """The shell call's status; Claude Code's payloads are read by their own rules."""
+    if harness == CLAUDE_CODE and "transcript_path" in data:  # sent on every real Claude Code hook
+        return shell_exit_code(data, raw, failed=event is HookEvent.POST_TOOL_USE_FAILURE)
+    return _exit_code(printed, event)
 
 
 def _decoded_object(response: Any) -> Any:
