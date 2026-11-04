@@ -85,6 +85,7 @@ body.demo main{padding-bottom:3.8rem}
 .kb.tdd .tr i{background:repeating-linear-gradient(45deg,var(--mu) 0 3px,transparent 3px 7px);opacity:.7}
 .kdiv{border-top:1px dashed var(--line);padding-top:.7rem;color:var(--mu);font-size:1rem}
 #tm{width:100%;height:calc(100% - 3.6rem)}
+#tm g.folded{cursor:default}
 #tm rect{stroke:#16112a;stroke-width:3;cursor:pointer;transition:filter .15s}
 #tm g:hover rect{filter:brightness(1.2)}
 #tm text{pointer-events:none}
