@@ -7,9 +7,9 @@
 
 [![Llama 3.2 1B checker adapters on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20model-Llama--3.2--1B--symbiont--judge--adapters-yellow)](https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters)
 
-**You corrected your coding agent last week. Today it makes the same mistake again.**
+**Frontier models are built for everyone. ai-symbiont makes yours fit you.**
 
-ai-symbiont is a plugin for Meta's Muse Code. It learns from your agent's past sessions, your corrections and your team's code reviews, on your own machine, and gives the agent one plain sentence right before it repeats a mistake.
+You corrected your coding agent last week. Today it makes the same mistake again. ai-symbiont is a plugin for Meta's Muse Code. It learns from your agent's past sessions, your corrections and your team's code reviews, on your own machine, and gives the agent one plain sentence right before it repeats a mistake.
 
 **Headline result:** on a real open-source project (sqlglot), Muse Spark broke a rule that only the maintainers' code reviews state in **7 of 10** runs without symbiont and **0 of 10** with it. Same task, every run passed the tests; p = 0.003, pre-registered. [measured] [pre-registered]
 
