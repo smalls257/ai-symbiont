@@ -1,8 +1,6 @@
 <h1>
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/brand/logo-dark.svg">
-    <img alt="ai-symbiont" src="docs/brand/logo-light.svg" width="360">
-  </picture>
+  <img alt="ai-symbiont" src="docs/brand/logo-light.svg#gh-light-mode-only" width="360">
+  <img alt="ai-symbiont" src="docs/brand/logo-dark.svg#gh-dark-mode-only" width="360">
 </h1>
 
 [![Llama 3.2 1B checker adapters on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20model-Llama--3.2--1B--symbiont--judge--adapters-yellow)](https://huggingface.co/smalls257/Llama-3.2-1B-symbiont-judge-adapters)
