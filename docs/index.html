@@ -259,7 +259,7 @@ document.addEventListener('click',function(e){var b=e.target.closest('.yt-poster
 <!-- 03 House rules -->
 <section class="ex" id="ex3">
   <div class="head">
-    <div><div class="kicker">03 · Home robot · Meta's Habitat simulator</div><h2>Corrected once, never repeated.</h2></div>
+    <div><div class="kicker">03 · Home robot · Meta's Habitat simulator</div><h2>House rules, told once, never broken again.</h2></div>
     <div class="flip"><s>30</s><span class="arrow">→</span><em>0</em><small>house-rule violations: 6 episodes without the notes vs 6 with them</small></div>
   </div>
   <figure><div class="player"><video preload="none" playsinline poster="media/hr-note.jpg" src="https://github.com/smalls257/ai-symbiont/releases/download/demo-media-2026-11-02/habitat-house-rules-duel-music2.mp4" aria-label="Left: the robot with no notes. Right, step 5: the four house rules shown as notes while the robot plans."></video><button class="play" type="button"><i>&#9654;</i>Watch it keep the rules · 1:38</button></div><figcaption>Step 5 of the recorded episode. Left: no notes. Right: the four house rules shown to the robot as it plans.</figcaption></figure>
@@ -327,7 +327,7 @@ document.addEventListener('click',function(e){var b=e.target.closest('.yt-poster
     <tr><td class="n">61% at 97.8%</td><td>After overnight training on a project's history, the checker approved 61% of repeated mistakes (0% untrained) and 97.8% of its approvals were correct: 5 of 924 wrong. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Same test set with planted bugs; the training ran on my machines. The ranker alone also reaches 61% at this precision; training removed the untrained checker's blanket veto; it did not catch more than the ranker could.</td></tr>
     <tr><td class="n">6 vs 2</td><td><b>Muse Glimmer 30B</b> (Meta's open-weight model) with symbiont's lessons in its prompt: coding tasks solved with the lessons vs without. <span class="tag">[measured]</span></td><td class="l">Early test: one run per task with lessons, so counts, not rates; not pre-registered.</td></tr>
     <tr><td class="n">88% vs 25%</td><td>Lessons trained into a model's weights are remembered: one Llama 3.2 1B adapter holding 100 lessons recalled 88% of them (65% on reworded questions), vs 25% with all 100 lessons pasted into the prompt. <span class="tag">[measured]</span></td><td class="l">Exploratory; mostly test-selection lessons.</td></tr>
-    <tr><td class="n neg">-0.054</td><td>Training lessons directly into <b>Muse Glimmer 30B</b>'s weights (Meta's open-weight model, with LoRA): not better yet at coding (0.054 below plain Glimmer). Trained-in lessons are remembered (row above, on Llama); getting the model to use them while it codes is the next step. <span class="tag neg">[measured]</span></td><td class="l">Exploratory, not a verdict. A retrain with a shorter context is in development.</td></tr>
+    <tr><td class="n neg">-0.054</td><td>Training lessons directly into <b>Muse Glimmer 30B's</b> weights (Meta's open-weight model, with LoRA): not better yet at coding (0.054 below plain Glimmer). Trained-in lessons are remembered (row above, on Llama); getting the model to use them while it codes is the next step. <span class="tag neg">[measured]</span></td><td class="l">Exploratory, not a verdict. A retrain with a shorter context is in development.</td></tr>
     <tr><td class="n">7 of 10 vs 0 of 10</td><td>Real public project (sqlglot), a rule stated only in maintainer reviews: runs that added a forbidden <code>.copy()</code>, without symbiont vs with it; p = 0.003. All 20 runs passed the task's tests. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">One project, one rule, one task, one model; I wrote the tests because the pull request had none; the check counts any added <code>.copy()</code>.</td></tr>
     <tr><td class="n">16 → 0</td><td>Corrected once, never repeated: 16 rule violations without symbiont vs 0 with, over 18 chances across 8 new tasks. A synthetic, designed task, pre-registered. <span class="tag">[measured]</span> <span class="tag">[pre-registered]</span></td><td class="l">Synthetic repo; one model; corrections scripted.</td></tr>
       </table>
@@ -347,10 +347,12 @@ document.addEventListener('click',function(e){var b=e.target.closest('.yt-poster
 
 <section class="install" id="install">
   <div class="kicker">Install for Muse Code</div>
-  <p style="margin-top:.4rem;color:var(--mu)">Three commands. Local first: your sessions are read and stored on your machine, nothing is uploaded, and any outbound call goes through a single audited path that refuses data without declared provenance. The <a href="https://github.com/smalls257/ai-symbiont">README</a> has the full steps and the uninstall.</p>
-<pre>uv tool install git+https://github.com/smalls257/ai-symbiont
+  <p style="margin-top:.4rem;color:var(--mu)">Four commands, then one inside Muse. Local first: your sessions are read and stored on your machine, nothing is uploaded, and any outbound call goes through a single audited path that refuses data without declared provenance. The <a href="https://github.com/smalls257/ai-symbiont">README</a> has the full steps and the uninstall.</p>
+<pre>uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
 muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
-muse plugins install symbiont@ai-symbiont</pre>
+muse plugins install symbiont@ai-symbiont
+muse plugins approve symbiont
+muse            # then type: /symbiont onboard</pre>
 </section>
 
 <footer id="meta">
