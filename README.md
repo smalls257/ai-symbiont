@@ -70,7 +70,7 @@ Pre-registered evaluations, with the result file, prereg and research note behin
 Install the command, then the plugin for your harness.
 
 ```bash
-uv tool install git+https://github.com/smalls257/ai-symbiont
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
 ```
 
 Claude Code:
