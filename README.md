@@ -65,7 +65,19 @@ Pre-registered evaluations, with the result file, prereg and research note behin
 
 ## Quickstart
 
-Install the command, then the plugin for your harness.
+One command installs the `symbiont` command and registers the plugin in every harness it finds on PATH (`--nightly` adds the trainer, `--harness <id>|all|none` picks, `--ref <git ref>` pins a version). It needs [uv](https://docs.astral.sh/uv/); when `uv` is missing it prints the install command and stops. Re-running upgrades.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/smalls257/ai-symbiont/main/install.sh | sh -s -- --nightly
+```
+
+Windows (PowerShell; `install.ps1` takes `-Nightly`, `-Ref` and `-Harness`; not yet tested on Windows):
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/smalls257/ai-symbiont/main/install.ps1))) -Nightly
+```
+
+Or by hand: install the command, then the plugin for your harness.
 
 ```bash
 uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
