@@ -3,6 +3,7 @@
 import json
 
 from symbiont.core.counters import Counters
+from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.service.app import Service, ServiceMode, ServiceParts
@@ -19,7 +20,13 @@ def lesson(index, fix):
     signature = Signature(Signal.FAILED_COMMAND, (f"tool{index}", f"module{index}", f"Oops{index}"))
     pain = PainPoint(signature, f"s{index}", 1, ((f"s{index}", 1),))
     return Lesson(
-        pain, f"$ tool{index} module{index}\nOops{index}", (fix,), None, True, pain.record_refs
+        pain,
+        f"$ tool{index} module{index}\nOops{index}",
+        (fix,),
+        None,
+        True,
+        pain.record_refs,
+        fix=FixKind.CODE_FIX,
     )
 
 

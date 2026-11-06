@@ -78,6 +78,24 @@ def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
     return Screened(kept, held, struggle)
 
 
+def taught_since_the_fix_rule(lessons: Sequence[Lesson]) -> list[Lesson]:
+    """`lessons` without what only an older mining kept: rework, and failures no lesson fixed.
+
+    Screening judges a failed command's whole group, so one lesson without a fix stays when a
+    sibling shows one. Delivery skips the rest until the store is mined again.
+    """
+    fixed = {lesson.pain_point.signature for lesson in lessons if lesson.fix is not None}
+    return [
+        lesson
+        for lesson in lessons
+        if lesson.pain_point.signature.signal is not Signal.REWORKED_EDIT
+        and (
+            lesson.pain_point.signature.signal is not Signal.FAILED_COMMAND
+            or lesson.pain_point.signature in fixed
+        )
+    ]
+
+
 def hold_reason(
     signature: Signature, group: Sequence[Lesson], rules: ScreenRules
 ) -> HoldReason | None:
