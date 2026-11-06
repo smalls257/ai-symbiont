@@ -55,8 +55,9 @@ from symbiont.service.wiring import (
     open_service,
 )
 from symbiont.store.consent import SETTING, ConsentFileError, read_consent, record_consent
+from symbiont.store.held_back import held_back_sentence
 from symbiont.store.local import Source, Store
-from symbiont.store.mining import MiningRules, coverage_lines, remine
+from symbiont.store.mining import MiningRules, coverage_lines, remine, screen_rules_from
 from symbiont.store.repos import RepoRegistry
 
 INSTALLERS = {harness_id: entry.install for harness_id, entry in PROFILES.items()}
@@ -173,13 +174,15 @@ def _mine(args: argparse.Namespace) -> int:
         sources.append(Source(args.project, reader, path))
     args.data_dir.mkdir(parents=True, exist_ok=True)
     store = Store.open(args.data_dir / "store.db")
-    rules = MiningRules(READERS, frozenset(args.held_out))
+    rules = MiningRules(READERS, frozenset(args.held_out), screen=screen_rules_from(args.data_dir))
     try:
         lessons = remine(store, args.project, rules, adding=sources)
     except (OSError, ValueError) as failed:  # unreadable log, unknown reader, held-out task
         print(f"symbiont mine: {failed}", file=sys.stderr)
         return 1
-    print(f"{len(lessons)} lessons from {len(store.sources(args.project))} logs")
+    held = held_back_sentence(store.mined.counts(args.project))
+    logs = len(store.sources(args.project))
+    print(f"{len(lessons)} lessons from {logs} logs" + (f"; {held}" if held else ""))
     print("\n".join(coverage_lines(lessons)))
     return 0
 

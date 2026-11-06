@@ -16,6 +16,7 @@ from typing import Any
 
 from symbiont.readers.harnesses import HARNESSES, Harness, in_reading_order, labels_or
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
+from symbiont.store.held_back import held_back_sentence, held_by_reason
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import read_dashboard_settings
 
@@ -133,12 +134,20 @@ def _progress_line(progress: dict[str, Any]) -> str:
     )
 
 
+def _held_clause(progress: dict[str, Any]) -> str:
+    """`; held back 3: ...; they stay on this computer`, or a plain note that none was reported."""
+    if "held_back" not in progress:
+        return "; the service did not report what it held back; they stay on this computer"
+    held = held_back_sentence(held_by_reason(progress["held_back"]))
+    return f"; {held}; they stay on this computer" if held else "; they stay on this computer"
+
+
 def _ended(progress: dict[str, Any], counts: str) -> int:
     """Report a finished or failed job."""
     if progress["state"] == "failed":
         sys.stderr.write(f"symbiont repo mine: mining failed: {progress['error']}\n")
         return 1
-    _say(f"learned {progress['lessons']} lessons from {counts}; they stay on this computer")
+    _say(f"learned {progress['lessons']} lessons from {counts}{_held_clause(progress)}")
     return 0
 
 

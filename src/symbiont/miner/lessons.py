@@ -12,6 +12,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.error_lines import key_error_lines
+from symbiont.miner.fixes import FixKind, fix_kind
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
 from symbiont.miner.resolutions import (
     NoResolution,
@@ -58,6 +59,9 @@ class Lesson:
     error_lines: tuple[str, ...] = ()
     # Files the cited records and the fix touched, in order of appearance; () when none.
     files: tuple[str, ...] = ()
+    # The known fix the resolution shows: an edit to the codebase or a corrected command; None
+    # when it shows neither (the lesson is then struggle, counted but never taught).
+    fix: FixKind | None = None
 
 
 @dataclass(frozen=True)
@@ -68,14 +72,26 @@ class Coverage:
     total: int
 
 
-def lessons_from(pain_points: Iterable[PainPoint], records: Sequence[Record]) -> list[Lesson]:
-    """Build one lesson per pain point; `records` is the chain the pain points were mined from.
+def lessons_from(
+    pain_points: Iterable[PainPoint],
+    records: Sequence[Record],
+    repo_names: frozenset[str] = frozenset(),
+) -> list[Lesson]:
+    """Build one lesson per pain point; each fix is searched in its own session's records only.
 
     Raises LookupError naming the reference when a cited record is missing:
     a lesson without its evidence would be a quote of nothing.
     """
     by_ref = {(r.session_id, r.step): r for r in records}
-    return [_lesson(pain, _cited(pain, by_ref), records) for pain in pain_points]
+    sessions: dict[tuple[str, str], list[Record]] = {}
+    for record in records:
+        sessions.setdefault((record.harness, record.session_id), []).append(record)
+    lessons = []
+    for pain in pain_points:
+        cited = _cited(pain, by_ref)
+        own = sessions[(cited[-1].harness, pain.session_id)]
+        lessons.append(_lesson(pain, cited, own, repo_names))
+    return lessons
 
 
 def resolution_coverage(lessons: Iterable[Lesson]) -> dict[Signal, Coverage]:
@@ -95,7 +111,9 @@ def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
     return [by_ref[ref] for ref in pain.record_refs]
 
 
-def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> Lesson:
+def _lesson(
+    pain: PainPoint, cited: list[Record], records: Sequence[Record], repo_names: frozenset[str]
+) -> Lesson:
     """One lesson: the pain point, its resolution and the quote it carries."""
     found = resolution_of(pain, cited, records)
     steps, alongside = _fix_parts(found)
@@ -112,6 +130,7 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
         private_datasets=_private_datasets(used),
         error_lines=key_error_lines(cited[0].raw),
         files=tuple(dict.fromkeys(name for r in used for name in r.files)),
+        fix=fix_kind(pain, steps, repo_names),
     )
 
 

@@ -23,6 +23,7 @@ from symbiont.service.events import Call, EventLog
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.settings import write_mining_setting
 
 pytestmark = pytest.mark.periphery
 
@@ -34,7 +35,11 @@ def command(*words, data_dir):
 
 
 def mine(repo, data_dir):
-    """`symbiont repo mine` against a real service of its own; the browser is never opened."""
+    """`symbiont repo mine` against a real service of its own; the browser is never opened.
+
+    The fixture is one session, so a trap is taught after one sighting (min_sessions 1).
+    """
+    write_mining_setting(data_dir, "min_sessions", 1)
     with serving(data_dir) as (_, port):
         return cli.main(
             ["repo", "mine", "--project", "demo", "--data-dir", str(data_dir)]
@@ -322,6 +327,16 @@ def test_settings_show_and_set_the_correction_switches(tmp_path, capsys):
     assert "muse_code=False" in capsys.readouterr().out
     assert command("settings", "set", "nope", "true", data_dir=tmp_path) == 1
     assert command("settings", "set", "muse_code", data_dir=tmp_path) == 1
+
+
+def test_settings_mining_sets_min_sessions_and_refuses_anything_below_one(tmp_path, capsys):
+    assert command("settings", "mining", "min_sessions", "3", data_dir=tmp_path) == 0
+    assert "min_sessions=3" in capsys.readouterr().out
+    for bad in ("0", "many"):
+        assert command("settings", "mining", "min_sessions", bad, data_dir=tmp_path) == 1
+        assert "min_sessions" in capsys.readouterr().err
+    assert command("settings", "show", data_dir=tmp_path) == 0
+    assert "min_sessions=3" in capsys.readouterr().out
 
 
 def test_status_still_reads_a_service_that_answers_nightly_with_yes_or_no():

@@ -30,8 +30,10 @@ from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import (
     read_correction_settings,
     read_dashboard_settings,
+    read_mining_settings,
     write_correction_setting,
     write_dashboard_setting,
+    write_mining_setting,
 )
 
 
@@ -76,13 +78,14 @@ def _add_repo_parser(commands: Any, defaults: Defaults) -> None:
 def _add_settings_command(commands: Any) -> None:
     """Register `settings show|set`, naming the harness switches from the registry."""
     setting = commands.add_parser("settings", help="show or switch correction-finding settings")
-    setting.add_argument("action", choices=["show", "set"])
+    setting.add_argument("action", choices=["show", "set", "mining"])
     setting.add_argument(
         "name",
         nargs="?",
-        help=f"{', '.join(entry.id for entry in HARNESSES)}, cross_harness or {OPEN_DASHBOARD}",
+        help=f"{', '.join(entry.id for entry in HARNESSES)}, cross_harness, {OPEN_DASHBOARD}, "
+        "or min_sessions after `mining`",
     )
-    setting.add_argument("value", nargs="?", choices=["true", "false"])
+    setting.add_argument("value", nargs="?", help="true or false; a whole number for min_sessions")
 
 
 def add_repo_commands(commands: Any, defaults: Defaults) -> None:
@@ -291,8 +294,10 @@ def _dashboard(args: argparse.Namespace) -> int:
 
 def _settings(args: argparse.Namespace) -> int:
     """Show, or switch, the correction-finding histories and whether mining opens the dashboard."""
+    if args.action == "mining":
+        _switch_mining(args)
     if args.action == "set":
-        if args.name is None or args.value is None:
+        if args.name is None or args.value not in ("true", "false"):
             raise ValueError("settings set needs a name and true or false")
         switched = args.value == "true"
         if args.name == OPEN_DASHBOARD:
@@ -303,7 +308,16 @@ def _settings(args: argparse.Namespace) -> int:
     shown = " ".join(f"{name}={on}" for name, on in current.as_saved().items())
     _say(f"corrections: {shown}")
     _say(f"dashboard: open_dashboard_on_mine={read_dashboard_settings(args.data_dir).open_on_mine}")
+    _say(f"mining: min_sessions={read_mining_settings(args.data_dir).min_sessions}")
     return 0
+
+
+def _switch_mining(args: argparse.Namespace) -> None:
+    """`settings mining min_sessions N`: how many sessions a trap must appear in to be taught."""
+    if args.name is None or args.value is None:
+        raise ValueError("settings mining needs a name and a value, as in: mining min_sessions 2")
+    write_mining_setting(args.data_dir, args.name, args.value)
+    _say("mining settings take effect the next time you run `symbiont repo mine`")
 
 
 def _listed(commas: str) -> tuple[str, ...]:

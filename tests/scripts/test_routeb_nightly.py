@@ -13,6 +13,8 @@ from pathlib import Path
 
 import pytest
 
+from symbiont.store.settings import write_mining_setting
+
 pytestmark = pytest.mark.periphery  # runs shell scripts, touches the disk
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -173,6 +175,7 @@ def rig(tmp_path, monkeypatch):
     history.mkdir()
     write_sessions(history / "day1.jsonl", "demo-shop-1", "demo-shop-2")
     data = tmp_path / "data"
+    write_mining_setting(data, "min_sessions", 1)  # a night's synthetic history is one sighting
     config = tmp_path / "nightly.toml"
     config.write_text(
         f'data_dir = "{data}"\n[host]\nssh = "trainer"\ncheckout = "{ROOT}"\n'

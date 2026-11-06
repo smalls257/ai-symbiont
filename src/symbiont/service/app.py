@@ -16,6 +16,7 @@ from symbiont.core.recall import relevant_lessons
 from symbiont.core.repeat import RepeatNote, failed_now
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Situation
 from symbiont.miner.lessons import Lesson
+from symbiont.miner.screen import ScreenRules
 from symbiont.miner.secrets import scrub
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
@@ -113,6 +114,8 @@ class ServiceParts:
     gate: RepoGate = field(default_factory=RepoGate)
     # Routes the session's model calls to curate lessons (symbiont makes no model calls itself).
     curation: CurationRoutes | None = None
+    # The screening rules, read afresh for each mining so a changed setting applies at once.
+    screen_rules: Callable[[], ScreenRules] = ScreenRules
 
 
 class SparkWithheldError(PermissionError):
@@ -305,13 +308,13 @@ class Service:
         require_keys(request, LEARN_KEYS, LEARN_KEYS)
         source = source_of(request)
         parts = self._parts
-        rules = MiningRules(parts.readers, parts.held_out_tasks)
+        rules = MiningRules(parts.readers, parts.held_out_tasks, screen=parts.screen_rules())
         try:
             records = read_source(source, parts.readers)
             remine_with_read(parts.store, source.project, rules, {source: records})
         except (OSError, ReadError, UnknownReaderError) as exc:
             raise BadRequestError(f"cannot read the session log: {exc}") from exc
-        history = tuple(parts.store.pain_points(source.project))
+        history = tuple(lesson.pain_point for lesson in parts.store.lessons(source.project))
         learned, self._state = replay_into_decider(
             parts.decider, self._state, history, source.project, records
         )

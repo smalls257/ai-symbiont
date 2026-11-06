@@ -21,6 +21,7 @@ from symbiont.service.mining_jobs import (
     NoMiningJobError,
 )
 from symbiont.service.request_shapes import BadRequestError, mine_request_of, named_project
+from symbiont.store.held_back import MiningOutcome, held_back_sentence, held_by_reason
 from symbiont.store.local import Source
 from symbiont.store.mining import MiningRules, mine_sources
 from symbiont.store.repos import RepoStance
@@ -83,14 +84,14 @@ class MineRoutes:
     def _work(self, project: str, new: list[Source], every: list[Source]) -> MiningWork:
         """The job body: mine every log, then save under the service lock."""
         setup = self._parts
-        rules = MiningRules(setup.readers, setup.held_out_tasks)
+        rules = MiningRules(setup.readers, setup.held_out_tasks, screen=setup.screen_rules())
 
-        def work(report: Callable[[list[Lesson]], None]) -> list[Lesson]:
+        def work(report: Callable[[list[Lesson]], None]) -> MiningOutcome:
             """Read and mine without the lock; store only when the whole run succeeded."""
-            lessons = mine_sources(every, rules, report)
+            outcome = mine_sources(every, rules, report)
             with self._lock:
-                setup.store.save_mining(project, new, lessons, held_out_tasks=setup.held_out_tasks)
-            return lessons
+                setup.store.mined.save(project, new, outcome, held_out_tasks=setup.held_out_tasks)
+            return outcome
 
         return work
 
@@ -104,6 +105,8 @@ class MineRoutes:
                     self._parts.events.append_failure(call, 500, end.error or "mining failed")
                     return
                 done = f"mined {end.sessions_total} logs into {end.lessons} lessons"
+                if end.held_back:
+                    done += "; " + held_back_sentence(held_by_reason(end.held_back))
                 self._parts.events.append(call, None, [], [done])
 
         return record

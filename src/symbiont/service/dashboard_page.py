@@ -128,6 +128,9 @@ def _html(
         focus,
         frozenset(store.contexts.all(project)) - frozenset(store.contexts.overrides(project)),
         nightly(project, lessons),
+        store.mined.counts(project),
+        store.mined.struggle(project),
+        store.mined.churn(project),
     )
     return _page_filled_with(dashboard_snapshot(view, today))
 

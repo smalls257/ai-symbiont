@@ -42,9 +42,10 @@ SESSIONS: dict[str, list[Step]] = {
         (
             "bash",
             "python manage.py migrate",
-            "django.db.utils.OperationalError: no such table: shop_order",
+            "shop/models.py: django.db.utils.OperationalError: no such table: shop_order",
             "1",
         ),
+        ("edit", "shop/models.py", "class Order:\n", "class Order(models.Model):\n"),
         (
             "bash",
             "python manage.py makemigrations shop",

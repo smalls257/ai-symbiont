@@ -14,6 +14,7 @@ import pytest
 from record_builders import PUBLIC, edit, replace_text, run, session, user
 from symbiont.eval.training_manifest import check_manifest_against_hold_out
 from symbiont.miner.painpoint import Signal, Signature
+from symbiont.miner.screen import ScreenRules
 from symbiont.miner.trained import export_id_of
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
@@ -35,14 +36,17 @@ def read_records_jsonl(path, project):
 
 
 def rules(held_out=()):
-    return MiningRules({READER: read_records_jsonl}, frozenset(held_out))
+    return MiningRules(
+        {READER: read_records_jsonl}, frozenset(held_out), screen=ScreenRules(min_sessions=1)
+    )
 
 
 def failing_session(session_id="s1", task_id="tobymao__sqlglot-1000", provenance=PUBLIC):
     records = session(
         user("fix it"),
-        run("pytest tests/test_parser.py", 1, SECRET_OUTPUT),
+        run("pytest tests/test_parser.py", 1, f"sqlglot/parser.py:1\n{SECRET_OUTPUT}"),
         edit("sqlglot/parser.py"),
+        run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     return [
         replace(r, session_id=session_id, task_id=task_id, provenance=provenance) for r in records
@@ -77,6 +81,9 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
         "reviews",
         "decided",
         "review_overrides",
+        "held_back",
+        "struggle",
+        "churn",
     }
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
     assert "fix it" not in body, "only the cited record's bounded quote is kept"
@@ -176,23 +183,31 @@ def _edit_session(session_id, old, new, ts):
 
 
 def _rework(store):
-    return [p for p in store.pain_points(PROJECT) if p.signature.signal == Signal.REWORKED_EDIT]
+    return [
+        p.pain_point
+        for p in store.lessons(PROJECT)
+        if p.pain_point.signature.signal == Signal.REWORKED_EDIT
+    ]
 
 
-def test_rework_is_found_across_logs_of_timed_sessions_in_time_order(tmp_path, store):
+def test_rework_is_counted_as_churn_per_session_never_stored_as_a_lesson(tmp_path, store):
     earlier = _edit_session("b-monday", "x = 1", "x = compute_offset(node)", "2026-10-26T09:00:00Z")
     later = _edit_session("a-tuesday", "x = compute_offset(node)", "x = 2", "2026-10-27T09:00:00Z")
     logs = [log_of(tmp_path, "tue", later), log_of(tmp_path, "mon", earlier)]
     remine(store, PROJECT, rules(), adding=logs)
-    (pain,) = _rework(store)
-    assert (pain.session_id, pain.record_refs) == ("a-tuesday", (("b-monday", 0), ("a-tuesday", 0)))
+    assert _rework(store) == []
+    churned = {(c.file, c.session_id, c.edits) for c in store.mined.churn(PROJECT)}
+    assert churned == {("sqlglot/parser.py", "b-monday", 1), ("sqlglot/parser.py", "a-tuesday", 1)}
 
 
 def test_untimed_sessions_are_mined_alone(tmp_path, store):
     first = _edit_session("t1", "x = 1", "x = compute_offset(node)", None)
     second = _edit_session("t2", "x = compute_offset(node)", "x = 2", None)
     remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "both", first + second)])
-    assert _rework(store) == []
+    assert {(c.session_id, c.edits) for c in store.mined.churn(PROJECT)} == {
+        ("t1", 1),
+        ("t2", 1),
+    }
 
 
 def test_forget_trained_deletes_only_the_exported_lessons(tmp_path, store):
@@ -200,7 +215,7 @@ def test_forget_trained_deletes_only_the_exported_lessons(tmp_path, store):
     (exported,) = store.lessons(PROJECT)
     remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "b", failing_session("s2"))])
     assert store.forget_trained(PROJECT, tmp_path / "m.json", exported=[exported]) == 1
-    assert [p.session_id for p in store.pain_points(PROJECT)] == ["s2"]
+    assert [x.pain_point.session_id for x in store.lessons(PROJECT)] == ["s2"]
 
 
 def test_the_memory_model_is_not_offered_lessons_it_was_trained_on(tmp_path, store):

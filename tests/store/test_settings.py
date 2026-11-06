@@ -74,3 +74,33 @@ def test_a_malformed_dashboard_setting_raises(tmp_path):
     (tmp_path / "settings.json").write_text('{"dashboard": {"open_on_mine": "no"}}')
     with pytest.raises(SettingsFileError, match="settings.json"):
         read_dashboard_settings(tmp_path)
+
+
+# --- mining -------------------------------------------------------------------------------
+
+
+def test_min_sessions_defaults_to_two_and_a_change_is_saved(tmp_path):
+    from symbiont.store.settings import MiningSettings, read_mining_settings, write_mining_setting
+
+    assert read_mining_settings(tmp_path) == MiningSettings(min_sessions=2)
+    write_mining_setting(tmp_path, "min_sessions", "1")
+    assert read_mining_settings(tmp_path).min_sessions == 1
+
+
+@pytest.mark.parametrize("bad", ["0", "-3", "two", "1.5", True])
+def test_min_sessions_below_one_or_not_a_whole_number_is_refused_by_name(tmp_path, bad):
+    from symbiont.store.settings import read_mining_settings, write_mining_setting
+
+    with pytest.raises(SettingsFileError, match="min_sessions"):
+        write_mining_setting(tmp_path, "min_sessions", bad)
+    assert read_mining_settings(tmp_path).min_sessions == 2
+
+
+def test_an_unknown_mining_setting_is_refused_and_other_sections_survive(tmp_path):
+    from symbiont.store.settings import write_mining_setting
+
+    write_correction_setting(tmp_path, "cross_harness", value=True)
+    with pytest.raises(SettingsFileError, match="knob"):
+        write_mining_setting(tmp_path, "knob", 3)
+    write_mining_setting(tmp_path, "min_sessions", 4)
+    assert read_correction_settings(tmp_path).cross_harness is True

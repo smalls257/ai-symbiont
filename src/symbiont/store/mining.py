@@ -9,12 +9,16 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from symbiont.miner.churn import churn
 from symbiont.miner.lessons import Lesson, lessons_from, resolution_coverage
 from symbiont.miner.mine import mine_history, sessions_of
+from symbiont.miner.screen import ScreenRules, screen
 from symbiont.readers import Reader
 from symbiont.records.holdout import refuse_held_out
 from symbiont.records.schema import Record
+from symbiont.store.held_back import MiningOutcome
 from symbiont.store.local import Source, Store
+from symbiont.store.settings import read_mining_settings
 
 
 class UnknownReaderError(ValueError):
@@ -34,6 +38,25 @@ class MiningRules:
     held_out_tasks: frozenset[str]
     # references[path] = files that import or name `path`; {} when there is no checkout.
     references: Mapping[str, frozenset[str]] = field(default_factory=dict)
+    # Which groups become lessons; `screen_rules_from` builds it from the developer's settings.
+    screen: ScreenRules = field(default_factory=ScreenRules)
+    # Directory names the repository goes by, for churn's repo-relative paths (the project's own
+    # name is always added).
+    repo_names: frozenset[str] = frozenset()
+
+
+def screen_rules_from(data_dir: Path) -> ScreenRules:
+    """The screening rules the developer's mining settings ask for."""
+    return ScreenRules(min_sessions=read_mining_settings(data_dir).min_sessions)
+
+
+def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -> MiningOutcome:
+    """Mine `records`, keep the lessons with a shown fix, count the rest, measure file churn."""
+    sessions = sessions_of(records)
+    names = rules.repo_names | {project}
+    lessons = lessons_from(mine_history(sessions, rules.references), records, names)
+    screened = screen(lessons, rules.screen)
+    return MiningOutcome(screened.kept, screened.held, screened.struggle, churn(sessions, names))
 
 
 def remine(
@@ -57,18 +80,18 @@ def remine_with_read(
     records = [r for source in known for r in read_source(source, rules.readers)]
     records += [r for read in new.values() for r in read]
     refuse_held_out(records, rules.held_out_tasks)
-    lessons = lessons_from(mine_history(sessions_of(records), rules.references), records)
-    store.save_mining(project, list(new), lessons, held_out_tasks=rules.held_out_tasks)
-    return lessons
+    outcome = mined_outcome(records, rules, project)
+    store.mined.save(project, list(new), outcome, held_out_tasks=rules.held_out_tasks)
+    return outcome.kept
 
 
 def mine_sources(
     sources: Sequence[Source], rules: MiningRules, on_read: Callable[[list[Lesson]], None]
-) -> list[Lesson]:
+) -> MiningOutcome:
     """Mine `sources` with no store; `on_read` gets each log's lessons (alone) as a live preview.
 
-    The result mines all logs together, so it may differ from the previews. Raises
-    HoldOutViolationError, UnknownReaderError, ReadError or OSError.
+    The previews are unscreened (the progress count); the result mines all logs together and
+    screens them. Raises HoldOutViolationError, UnknownReaderError, ReadError or OSError.
     """
     records: list[Record] = []
     for source in sources:
@@ -76,7 +99,7 @@ def mine_sources(
         records += read
         on_read(lessons_from(mine_history(sessions_of(read), rules.references), read))
     refuse_held_out(records, rules.held_out_tasks)
-    return lessons_from(mine_history(sessions_of(records), rules.references), records)
+    return mined_outcome(records, rules, sources[0].project if sources else "")
 
 
 def read_source(source: Source, readers: Mapping[str, Reader]) -> list[Record]:

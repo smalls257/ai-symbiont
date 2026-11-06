@@ -23,6 +23,7 @@ from symbiont.service.reflection import ReflectionDesk, ReflectionSensors
 from symbiont.service.repo_gate import RepoGate
 from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
+from symbiont.store.mining import screen_rules_from
 from symbiont.store.reflections import ReflectionLedger
 from symbiont.store.repos import RepoRegistry
 from symbiont.store.settings import read_correction_settings
@@ -89,6 +90,7 @@ def open_service(
         consent=read_consent(data_dir),
         curation=curation,
         gate=gate,
+        screen_rules=lambda: screen_rules_from(data_dir),
     )
     return Service(parts)
 

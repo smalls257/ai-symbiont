@@ -19,11 +19,12 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from record_builders import run, session
+from record_builders import edit, run, session
 from symbiont import cli
 from symbiont.core.features import N_FEATURES
 from symbiont.core.warner import LogisticWarner, WarnerWeights
 from symbiont.delivery.mcp_server import serve_stdio
+from symbiont.miner.screen import ScreenRules
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.service import server
@@ -32,6 +33,7 @@ from symbiont.service.wiring import open_memory, open_service
 from symbiont.store.consent import record_consent
 from symbiont.store.local import Source, SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, remine
+from symbiont.store.settings import write_mining_setting
 
 pytestmark = pytest.mark.periphery
 
@@ -93,6 +95,7 @@ def trained(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["demo_sessions.py", str(history)])
     load_script(monkeypatch, "demo_sessions").main()
     data = tmp_path / "data"
+    write_mining_setting(data, "min_sessions", 1)  # the demo's three sessions are one sighting each
     log = history / f"{PROJECT}.jsonl"
     argv = ["mine", "--project", PROJECT, "--data-dir", str(data), "--source", f"openhands={log}"]
     assert cli.main(argv) == 0
@@ -219,6 +222,7 @@ def test_a_failed_training_run_forgets_no_lesson(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["demo_sessions.py", str(history)])
     load_script(monkeypatch, "demo_sessions").main()
     data = tmp_path / "data"
+    write_mining_setting(data, "min_sessions", 1)
     log = history / f"{PROJECT}.jsonl"
     cli.main(
         ["mine", "--project", PROJECT, "--data-dir", str(data), "--source", f"openhands={log}"]
@@ -250,8 +254,8 @@ TOKEN = "gh" + "p_" + "T0k3n" * 8  # assembled so no credential-shaped literal i
 def own_history_store(tmp_path):
     """The user's own failing session, mined into the store through a records reader."""
     records = session(
-        run("pytest tests/test_cart.py", 1, "ImportError: x " + TOKEN),
-        run("pip install -e ."),
+        run("pytest tests/test_cart.py", 1, "cart/app.py:1\nImportError: x " + TOKEN),
+        edit("cart/app.py"),
         run("pytest tests/test_cart.py", 0),
     )
     records = [replace(r, project=PROJECT, provenance=OWN) for r in records]
@@ -264,7 +268,7 @@ def own_history_store(tmp_path):
     remine(
         store,
         PROJECT,
-        MiningRules(reader, frozenset()),
+        MiningRules(reader, frozenset(), screen=ScreenRules(min_sessions=1)),
         adding=[Source(PROJECT, "records", str(log))],
     )
     return tmp_path / "data"
