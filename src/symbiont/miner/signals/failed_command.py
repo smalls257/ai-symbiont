@@ -13,6 +13,7 @@ from symbiont.miner.failure_keys import is_interrupt, what_broke
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.planned_failure import FailureKind, failure_kind
 from symbiont.records.schema import Kind, Record
+from symbiont.records.session_tags import REFUSED_TAG
 
 EXIT_1_IS_AN_ANSWER = frozenset(
     {"grep", "egrep", "fgrep", "zgrep", "rg", "ag", "ack", "git grep", "diff", "cmp", "test", "["}
@@ -34,6 +35,8 @@ def find_failed_commands(session: Sequence[Record]) -> list[PainPoint]:
 def _failed(record: Record) -> bool:
     # exit_code None means the harness never reported one: unknown, so not counted.
     if record.kind != Kind.COMMAND or record.exit_code in (None, 0) or is_interrupt(record):
+        return False
+    if REFUSED_TAG in record.tags:  # the tool rejected the input; the command never ran
         return False
     return not (record.exit_code == 1 and _answered_no(record.command or ""))
 

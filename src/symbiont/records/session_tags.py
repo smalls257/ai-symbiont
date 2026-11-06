@@ -10,6 +10,9 @@ BRANCH_PREFIX = "branch:"
 # On an EDIT record whose tool call created the file. The miner must not read a creation as
 # rework of an existing file: there was nothing there to rework.
 CREATED_TAG = "created"
+# On an action record the tool itself rejected (agent input slip). It failed, but it is not a
+# mistake worth a pain point: pooled across sessions it would be one meaningless signal.
+REFUSED_TAG = "refused"
 
 
 def title_tag(title: str) -> str:

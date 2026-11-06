@@ -513,3 +513,51 @@ def test_a_malformed_origin_raises_naming_the_line(tmp_path, origin):
     )
     with pytest.raises(ReadError, match=r":2\b|line 2"):
         list(read(path, PROJECT))
+
+
+@pytest.mark.parametrize(
+    "markup",
+    [
+        "<command-message>clear</command-message><command-name>/clear</command-name>",
+        "<command-message>init</command-message>\n<command-name>/init</command-name>",
+        "<local-command-stdout>Set model to X</local-command-stdout>",
+        "/compact now",
+    ],
+)
+def test_command_markup_and_command_output_never_title_a_session(tmp_path, markup):
+    first, _ = _read_events(tmp_path, _event("user", markup), _event("user", "fix the lexer"))
+    assert first.tags == ("ai-title:fix the lexer",)
+
+
+def test_a_typed_path_is_a_title_not_a_slash_command(tmp_path):
+    (record,) = _read_events(tmp_path, _event("user", "/tmp/build/out.log has the crash"))
+    assert record.tags == ("ai-title:/tmp/build/out.log has the crash",)
+
+
+def test_the_title_pass_does_not_raise_pushback_errors_twice(tmp_path):
+    bad = {**_event("user", "go"), "prompt_pushback": "surprise"}
+    with pytest.raises(ReadError, match="surprise") as err:
+        _read_events(tmp_path, bad)
+    assert err.value.line_no == 1
+
+
+UNPARSED = {"_swe_chat_unparsed": "raw text the exporter could not parse"}
+
+
+def test_swe_chat_skips_and_counts_a_line_the_dataset_could_not_parse(tmp_path, caplog):
+    path = write_lines(tmp_path, [json.dumps(_event("user", "go")), json.dumps(UNPARSED)])
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        records = list(read_swe_chat(path, PROJECT))
+    assert [r.raw for r in records] == ["go"]
+    infos = [r.getMessage() for r in caplog.records if r.levelname == "INFO"]
+    assert any(
+        "line the dataset could not parse" in m and "1" in m and "session.jsonl" in m for m in infos
+    )
+
+
+def test_claude_code_own_logs_still_raise_for_a_line_without_type(tmp_path):
+    path = write_lines(tmp_path, [json.dumps(UNPARSED)])
+    with pytest.raises(ReadError, match="type"):
+        list(read(path, PROJECT))
+    with pytest.raises(ReadError, match="type"):
+        list(read_open_swe_traces(path, PROJECT))

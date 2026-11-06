@@ -101,3 +101,14 @@ def test_search_piped_into_a_real_program_is_judged_by_that_program():
         session(run("grep -l Dialect sqlglot/*.py | xargs python lint.py", 1, ""))
     )
     assert pain.signature.key == ("grep", "-", "exit 1")
+
+
+def test_a_refused_command_is_not_a_failed_command_pain_point():
+    from dataclasses import replace
+
+    refused = replace(
+        run("", 1, "InputValidationError: bad input"), command=None, tags=("refused",)
+    )
+    real = run("python reproduce.py", 1, "ValueError: boom")
+    (pain,) = find_failed_commands(session(refused, real))
+    assert pain.signature.key[0] == "python"

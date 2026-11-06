@@ -10,7 +10,7 @@ from symbiont.miner.changes import applied_edit
 from symbiont.readers.errors import ReadError
 from symbiont.readers.openhands import read
 from symbiont.records.schema import Kind
-from symbiont.records.session_tags import CREATED_TAG
+from symbiont.records.session_tags import CREATED_TAG, REFUSED_TAG
 
 FIXTURE = Path(__file__).resolve().parents[1] / "fixtures" / "openhands" / "two_sessions.jsonl"
 PROJECT = "tobymao/sqlglot"
@@ -124,3 +124,9 @@ def test_openhands_create_is_tagged_created_and_an_update_is_not(tmp_path):
     old = edited_file(tmp_path, replace, "r")
     assert CREATED_TAG in new.tags
     assert CREATED_TAG not in old.tags
+
+
+def test_a_refused_edit_carries_the_refused_tag(tmp_path):
+    path = file_with(tmp_path, {"command": "delete", "path": f"{WORKSPACE}/a.py"})
+    (refused,) = refused_edits(list(read(path, PROJECT)))
+    assert REFUSED_TAG in refused.tags

@@ -106,3 +106,10 @@ def test_structural_problems_still_raise_readerror(tmp_path, line):
 def test_a_tool_input_that_is_not_an_object_still_raises_readerror(tmp_path):
     with pytest.raises(ReadError, match="object"):
         read_events(tmp_path, tool("Read", "a.py"))
+
+
+def test_every_refused_action_carries_the_refused_tag(tmp_path):
+    records = read_events(
+        tmp_path, tool("Bash", {}), tool("Read", {"file_path": "a", "offset": "1"}, "t2")
+    )
+    assert [r.tags for r in records] == [("refused",), ("refused",)]

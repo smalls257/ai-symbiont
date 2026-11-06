@@ -17,7 +17,7 @@ from typing import Any
 
 from symbiont.readers.errors import ReadError
 from symbiont.records.schema import Kind, Provenance, Record
-from symbiont.records.session_tags import CREATED_TAG
+from symbiont.records.session_tags import CREATED_TAG, REFUSED_TAG
 
 logger = logging.getLogger(__name__)
 
@@ -275,7 +275,14 @@ def _add_refused_edit(
     Anchor: exit 1 and no diff are how the miner (`applied_edit`) knows nothing changed.
     """
     session.refused_edits += 1
-    session.add(Kind.EDIT, observation or description, files=(path,), diff=None, exit_code=1)
+    session.add(
+        Kind.EDIT,
+        observation or description,
+        files=(path,),
+        diff=None,
+        exit_code=1,
+        tags=(REFUSED_TAG,),
+    )
 
 
 def _needed(args: dict[str, Any], key: str) -> Any:

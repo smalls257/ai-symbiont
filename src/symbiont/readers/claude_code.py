@@ -10,7 +10,7 @@ import logging
 import re
 from collections import Counter
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -25,17 +25,18 @@ from symbiont.readers.claude_code_fields import (
 from symbiont.readers.claude_code_skips import REFUSED_CALLS, report_skips
 from symbiont.readers.claude_code_tags import (
     TITLE_EVENT,
-    EventTags,
+    branch_tags,
     fallback_title,
     pushback_tags,
     remember_title,
+    session_title,
 )
 from symbiont.readers.claude_code_tools import TOOLS, make_relative, other_tool, refused_call
 from symbiont.readers.errors import ReadError
 from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAMES, split_our_output
 from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
-from symbiont.records.session_tags import CREATED_TAG
+from symbiont.records.session_tags import CREATED_TAG, title_tag
 
 HARNESS = "claude-code"
 PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", remote_safe=False)
@@ -67,6 +68,8 @@ _INJECTED_ORIGINS = {
 }
 # Claude Code's Write answers "File created successfully at: ..." for a new file and
 # "The file ... has been updated successfully" for an existing one (counted on real logs).
+UNPARSED_MARKER = "_swe_chat_unparsed"
+UNPARSED_SKIP = "line the dataset could not parse"
 _CREATED = re.compile(r"^File created successfully at:")
 Skips = Counter[str]
 
@@ -94,8 +97,12 @@ def read(path: Path, project: str) -> Iterator[Record]:
 
 
 def read_swe_chat(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of SWE-chat sessions (never remote safe)."""
-    return _read(path, project, SWE_CHAT)
+    """Yield records of SWE-chat sessions (never remote safe).
+
+    A line holding only `_swe_chat_unparsed` is the dataset exporter's own parse failure: skipped
+    and counted, because the source never had an event there to read.
+    """
+    return _read(path, project, SWE_CHAT, unparsed_marker=UNPARSED_MARKER)
 
 
 def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
@@ -103,61 +110,54 @@ def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
     return _read(path, project, OPEN_SWE_TRACES)
 
 
-def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
+def _read(
+    path: Path, project: str, provenance: Provenance, unparsed_marker: str | None = None
+) -> Iterator[Record]:
     """Yield one session's records; each tool result is folded into the action it answers."""
     titles: dict[str, str] = {}
-    events = _conversation_events(Path(path), titles)
-    tagger = EventTags(titles, _first_typed_titles(path, events))
+    events = _conversation_events(Path(path), titles, unparsed_marker)
     results = _results_by_call(path, events)
     source = _Source(project, provenance)
     steps: dict[str, int] = {}
     skips: Skips = Counter()
+    records: list[Record] = []
     for line_no, event in events:
         try:
             for fields in _event_records(event, results, skips):
                 session_id = require_text(event, "sessionId")
                 step = steps.get(session_id, 0)
                 steps[session_id] = step + 1
-                first_turn = fields["kind"] == Kind.USER_TURN
-                fields["tags"] = (
-                    *fields.get("tags", ()),
-                    *tagger.of(event, session_id, first_user_turn=first_turn),
-                )
-                yield _record(event, source, session_id, step, fields)
+                fields["tags"] = (*fields.get("tags", ()), *branch_tags(event))
+                records.append(_record(event, source, session_id, step, fields))
         except MalformedError as exc:
             raise ReadError(path, line_no, str(exc)) from exc
     report_skips(path, skips)
+    yield from _titled(records, titles)
 
 
-def _first_typed_titles(path: Path, events: list[tuple[int, dict[str, Any]]]) -> dict[str, str]:
-    """Per session, a title from the first typed turn that is not a slash command.
+def _titled(records: list[Record], titles: dict[str, str]) -> list[Record]:
+    """Each session's first user turn gains its title tag (see `session_title`).
 
-    Sessions without an `ai-title` still need to say what they were about; `/clear` does not.
+    Done after the pass because the first typed non-command turn may come after a slash command.
     """
-    titles: dict[str, str] = {}
-    for line_no, event in events:
-        if event["type"] != "user":
+    first_turns: dict[str, int] = {}
+    typed: dict[str, str] = {}
+    for index, record in enumerate(records):
+        if record.kind != Kind.USER_TURN:
             continue
-        try:
-            session_id = require_text(event, "sessionId")
-            title = _typed_title(event)
-        except MalformedError as exc:
-            raise ReadError(path, line_no, str(exc)) from exc
-        if title and session_id not in titles:
-            titles[session_id] = title
-    return titles
-
-
-def _typed_title(event: dict[str, Any]) -> str | None:
-    """The first title-worthy typed turn of one user event; None when it has none."""
-    for fields in _user_turns(event, Counter()):
-        title = fallback_title(fields["raw"])
+        first_turns.setdefault(record.session_id, index)
+        title = fallback_title(record.raw)
         if title:
-            return title
-    return None
+            typed.setdefault(record.session_id, title)
+    for session_id, index in first_turns.items():
+        tag = title_tag(session_title(session_id, titles, typed))
+        records[index] = replace(records[index], tags=(*records[index].tags, tag))
+    return records
 
 
-def _conversation_events(path: Path, titles: dict[str, str]) -> list[tuple[int, dict[str, Any]]]:
+def _conversation_events(
+    path: Path, titles: dict[str, str], unparsed_marker: str | None
+) -> list[tuple[int, dict[str, Any]]]:
     """User and assistant events; metadata events are counted and logged, not dropped silently.
 
     The session titles `ai-title` events carry are put into `titles`.
@@ -172,6 +172,9 @@ def _conversation_events(path: Path, titles: dict[str, str]) -> list[tuple[int, 
                 raise ReadError(path, line_no, f"not valid JSON ({exc.msg})") from exc
             if not isinstance(event, dict):
                 raise ReadError(path, line_no, "a line must hold one event object")
+            if unparsed_marker and set(event) == {unparsed_marker}:
+                skipped[UNPARSED_SKIP] += 1
+                continue
             if _is_metadata(path, line_no, event):
                 skipped[event["type"]] += 1
                 _keep_title(path, line_no, event, titles)

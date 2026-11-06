@@ -9,6 +9,7 @@ from typing import Any
 
 from symbiont.readers.claude_code_fields import RefusedCallError
 from symbiont.records.schema import Kind
+from symbiont.records.session_tags import REFUSED_TAG
 
 
 def make_relative(cwd: str | None) -> Callable[[str], str]:
@@ -119,7 +120,7 @@ def refused_call(name: str, args: dict[str, Any], relative: Callable[[str], str]
     kind = _REFUSED_KINDS.get(name, Kind.EDIT)
     path = args.get("notebook_path") if name == "NotebookEdit" else args.get("file_path")
     files = (relative(path),) if isinstance(path, str) else ()
-    return {"kind": kind, "files": files, "diff": None, "exit_code": 1}
+    return {"kind": kind, "files": files, "diff": None, "exit_code": 1, "tags": (REFUSED_TAG,)}
 
 
 def _diff(path: str, pairs: list[tuple[str, str]], old_name: str) -> str:
