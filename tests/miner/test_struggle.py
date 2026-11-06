@@ -1,5 +1,7 @@
 """Turns lost, the outcome of each failure, and the facts kept per session."""
 
+from dataclasses import replace
+
 from record_builders import edit, run, say, session, user
 from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import lessons_from
@@ -85,3 +87,27 @@ def test_one_rule_decides_bursts_for_the_flag_the_density_and_the_shading():
     assert burst_starts(failing) == [1, 2]
     assert burst_spans(failing) == [(1, 4)]
     assert burst_spans([1, 30, 60]) == []
+
+
+def test_started_is_the_first_timestamped_record_day():
+    steps = session(
+        say("no clock on this one"),
+        replace(say("first stamped"), ts="2026-03-02T23:59:00Z"),
+        replace(say("later"), ts="2026-03-05T01:00:00Z"),
+    )
+
+    assert facts_for(*steps)[0].started == "2026-03-02"
+
+
+def test_started_is_none_without_timestamps():
+    assert facts_for(say("a"), say("b"))[0].started is None
+
+
+def test_started_skips_a_timestamp_that_is_not_a_calendar_day():
+    steps = session(
+        replace(say("garbled"), ts="2026-13-45T00:00:00Z"),
+        replace(say("not a date"), ts="yesterday"),
+        replace(say("real"), ts="2026-02-28T08:00:00Z"),
+    )
+
+    assert facts_for(*steps)[0].started == "2026-02-28"

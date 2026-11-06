@@ -88,3 +88,32 @@ def test_a_strip_keeps_where_its_window_starts_and_one_stored_before_windows_sti
     store._db.execute("UPDATE session_strips SET steps=?", (old,))
     (before,) = store.mined.session_strips(PROJECT)
     assert before.offset == 0 and before.steps[0].step == 3
+
+
+def test_the_start_day_of_a_session_is_kept_and_an_undated_one_stays_unknown(tmp_path, store):
+    dated = [replace(r, ts="2026-03-02T10:00:00Z") for r in fixed_in("dated")]
+    mine(tmp_path, store, [*dated, *fixed_in("undated")])
+
+    started = {f.session_id: f.started for f in store.mined.session_facts(PROJECT)}
+
+    assert started == {"dated": "2026-03-02", "undated": None}
+
+
+def test_a_store_written_before_start_days_opens_and_reads_every_session_as_undated(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    old.execute(
+        "CREATE TABLE session_facts (project TEXT NOT NULL, session_id TEXT NOT NULL, "
+        "task_label TEXT NOT NULL, themes TEXT NOT NULL, patterns TEXT NOT NULL, "
+        "turns_lost INTEGER NOT NULL, outcomes TEXT NOT NULL, struggled INTEGER NOT NULL)"
+    )
+    old.execute("INSERT INTO session_facts VALUES ('demo','s1','t','[]','[]',2,'{}',0)")
+    old.commit()
+    old.close()
+
+    reopened = Store.open(path)
+
+    (fact,) = reopened.mined.session_facts(PROJECT)
+    assert fact.session_id == "s1" and fact.started is None

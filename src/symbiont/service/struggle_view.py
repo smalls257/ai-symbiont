@@ -93,14 +93,14 @@ class StageInput:
     min_sessions: int
 
 
-def struggle_stage(view: StageInput, today: date) -> dict[str, Any] | None:
+def struggle_stage(view: StageInput) -> dict[str, Any] | None:
     """The stage's data, or None for a store mined before session facts existed."""
     facts = view.facts
     if not facts:
         return None
     index = {fact.session_id: i for i, fact in enumerate(facts)}
     lessons = _lessons_ready(view.groups, index)
-    months = _months(facts, view.session_dates, today)
+    months = _months(facts, view.session_dates)
     return {
         "minutesPerTurn": MINUTES_PER_TURN,
         "minSessions": view.min_sessions,
@@ -224,13 +224,15 @@ def _files(churn: Sequence[FileChurn], index: Mapping[str, int]) -> list[dict[st
     return [{"file": f, "edits": edits[f], "sessions": sorted(sessions[f])} for f in ranked]
 
 
-def _months(
-    facts: Sequence[SessionFacts], dates: Mapping[str, date], today: date
-) -> dict[str, Any]:
-    """The months the sessions fall in (oldest first) and each session's month index."""
-    labels = [_month(dates.get(fact.session_id, today)) for fact in facts]
-    months = sorted(set(labels))
-    return {"months": months, "monthOf": [months.index(label) for label in labels]}
+def _months(facts: Sequence[SessionFacts], dates: Mapping[str, date]) -> dict[str, Any]:
+    """The months the dated sessions fall in (oldest first) and each session's month index.
+
+    A session without a date has no month: its index is None and the charts leave it out.
+    """
+    labels = [_month(dates[f.session_id]) if f.session_id in dates else None for f in facts]
+    months = sorted({label for label in labels if label})
+    month_of = [months.index(label) if label else None for label in labels]
+    return {"months": months, "monthOf": month_of}
 
 
 def _month(when: date) -> str:

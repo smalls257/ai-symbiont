@@ -164,14 +164,12 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
 
 
 def _session_dates(store: Store, project: str) -> dict[str, date]:
-    """Session id -> the day its log was last written, for the logs whose name is the id."""
-    dates: dict[str, date] = {}
-    for source in store.sources(project):
-        log = Path(source.path)
-        if log.is_file():
-            when = date.fromtimestamp(log.stat().st_mtime)
-            dates[log.stem] = dates[log.parent.name] = when
-    return dates
+    """Session id -> the day of its first timestamped record; undated sessions are absent."""
+    return {
+        fact.session_id: date.fromisoformat(fact.started)
+        for fact in store.mined.session_facts(project)
+        if fact.started
+    }
 
 
 def _focus_terms(registry: RepoRegistry | None, project: str) -> frozenset[str]:

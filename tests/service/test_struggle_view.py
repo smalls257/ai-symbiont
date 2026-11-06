@@ -226,3 +226,12 @@ def test_a_windowed_strip_tells_the_page_where_its_window_starts_and_how_long_th
     shown = dashboard_snapshot(view, TODAY)["stage"]["strips"]["0"]
 
     assert (shown["offset"], shown["total"]) == (250, 900)
+
+
+def test_a_session_without_a_date_has_no_month_instead_of_the_current_one():
+    dates = {"a": DATES["a"], "b": DATES["b"]}
+    view = RepoView("demo", lessons_in("a", "b"), {}, dates, facts=FACTS)
+
+    stage = dashboard_snapshot(view, TODAY)["stage"]
+
+    assert stage["months"] == ["2026-09", "2026-10"] and stage["monthOf"] == [0, 1, None]
