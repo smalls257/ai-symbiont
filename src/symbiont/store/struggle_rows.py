@@ -8,6 +8,7 @@ one mining beside lessons of another.
 import json
 import sqlite3
 from collections.abc import Sequence
+from typing import Any
 
 from symbiont.miner.patterns import StrugglePattern
 from symbiont.miner.strips import Lane, SessionStrip, StripStep
@@ -103,10 +104,11 @@ def read_strips(db: sqlite3.Connection, project: str) -> list[SessionStrip]:
     ]
 
 
-def _listed(body: str) -> list[list[object]]:
+def _listed(body: str) -> list[list[Any]]:
     """The steps in a stored strip; a strip stored before windows is the bare list."""
     stored = json.loads(body)
-    return stored["steps"] if isinstance(stored, dict) else stored
+    steps: list[list[Any]] = stored["steps"] if isinstance(stored, dict) else stored
+    return steps
 
 
 def _offset_of(body: str) -> int:
