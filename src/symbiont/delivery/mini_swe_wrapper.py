@@ -13,7 +13,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
-from symbiont.delivery.hooks import HookEvent, observe_body, offline_note
+from symbiont.delivery.hook_vocab import HookEvent
+from symbiont.delivery.hooks import observe_body, offline_note
 from symbiont.delivery.recall import (
     ServiceOfflineError,
     ServiceRefusedError,

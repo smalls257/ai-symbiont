@@ -19,9 +19,10 @@ def _remote_safe_of(data: dict[str, Any]) -> bool:
     named = f"lesson of session {pain['session_id']!r} step {pain['step']}"
     for key in ("remote_safe", "spark_safe"):
         if key in data:
-            if not isinstance(data[key], bool):
-                raise ValueError(f"{named} stores {key}={data[key]!r}, not true or false")
-            return data[key]
+            flag = data[key]
+            if not isinstance(flag, bool):
+                raise ValueError(f"{named} stores {key}={flag!r}, not true or false")
+            return flag
     raise ValueError(f"{named} stores no remote_safe flag")
 
 

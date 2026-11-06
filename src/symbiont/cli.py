@@ -11,7 +11,8 @@ from typing import Any
 from symbiont.core.warner import WarnerWeightsError
 from symbiont.delivery.hook_main import add_hook_arguments, forward_hook, read_hook_input
 from symbiont.delivery.hook_profiles import PROFILES
-from symbiont.delivery.hooks import NoteStyle, offline_note
+from symbiont.delivery.hook_vocab import NoteStyle
+from symbiont.delivery.hooks import offline_note
 from symbiont.delivery.install.transaction import (
     HarnessInstall,
     InstallError,

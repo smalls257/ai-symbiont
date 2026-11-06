@@ -149,7 +149,7 @@ def _fact(fact: SessionFacts) -> dict[str, Any]:
     }
 
 
-def _patterns() -> list[dict[str, str]]:
+def _patterns() -> list[dict[str, str | bool]]:
     return [
         {
             "id": p.value,
