@@ -121,6 +121,18 @@ def test_the_page_lists_ignored_patterns_with_their_labels(tmp_path):
     assert script.status == 200
 
 
+def test_a_store_whose_every_lesson_is_ignored_serves_the_list_and_the_restore_hint(tmp_path):
+    """Failure guarded against: the empty page loses the only way back to the ignored lessons."""
+    service, ident = rig(tmp_path, allow=True)
+    service.respond(f"/lessons/{ident}/ignore", {"project": PROJECT})
+
+    page = service.page(f"/dashboard?project={PROJECT}")
+
+    data = json.loads(re.search(r'id="symbiont-data">(.*?)</script>', page.body.decode(), re.S)[1])
+    assert data["painPoints"] == [] and len(data["ignored"]) == 1
+    assert "Restore one from the Ignored list on the left" in data["noLessons"]
+
+
 def other_trouble(session_id):
     (found,) = [
         replace(

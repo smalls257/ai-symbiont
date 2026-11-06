@@ -16,14 +16,26 @@ THE_RULE = (
 )
 
 
-def no_lessons_sentence(held: Mapping[HoldReason, int], min_sessions: int) -> str:
-    """Why no lesson was formed, from the main reason groups were held back."""
+RESTORE_HINT = "Restore one from the Ignored list on the left to use it again."
+
+
+def no_lessons_sentence(held: Mapping[HoldReason, int], min_sessions: int, ignored: int = 0) -> str:
+    """Why no lesson was formed, from the main reason groups were held back.
+
+    `ignored` is how many patterns the developer set aside: the Restore hint is said only then,
+    because only then does the page draw the Ignored list that holds the Restore buttons.
+    """
+    why = _why_no_lesson(held, min_sessions, ignored)
+    return f"{why} {RESTORE_HINT}" if ignored else why
+
+
+def _why_no_lesson(held: Mapping[HoldReason, int], min_sessions: int, ignored: int) -> str:
     counts: dict[HoldReason, int] = {
         reason: n for reason, n in held.items() if n and reason is not HoldReason.IGNORED
     }
     if not counts:
-        if held.get(HoldReason.IGNORED):
-            return "No lesson is active: every lesson was set aside by you. Restore one to use it."
+        if ignored or held.get(HoldReason.IGNORED):
+            return "No lesson is active: every lesson was set aside by you."
         return f"No lesson yet: {THE_RULE}, and no failure in this history showed one."
     main = max(HoldReason, key=lambda reason: counts.get(reason, 0))
     total = sum(counts.values())
@@ -39,5 +51,7 @@ def no_lessons_sentence(held: Mapping[HoldReason, int], min_sessions: int) -> st
             f"{counted(min_sessions, 'session')}. Run `symbiont settings mining min_sessions 1` "
             "and mine again to teach single-session traps."
         )
-    why = REASON_WORDS[main]
-    return f"No lesson yet: {counts[main]} of {counted(total, 'group')} held back as {why}."
+    reason_words = REASON_WORDS[main]
+    return (
+        f"No lesson yet: {counts[main]} of {counted(total, 'group')} held back as {reason_words}."
+    )

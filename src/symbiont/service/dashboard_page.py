@@ -139,6 +139,7 @@ def _query(query: str) -> dict[str, str]:
 def _html(store: Store, project: str, today: date, focus: frozenset[str], live: Live) -> bytes:
     """The page with the repository's data injected where the contract says."""
     lessons = store.lessons(project)
+    ignored = ignored_listing(store, project)
     view = RepoView(
         project,
         lessons,
@@ -155,9 +156,10 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
         store.mined.session_facts(project),
         store.mined.session_strips(project),
         min_sessions=store.mined.min_sessions_used(project) or live.min_sessions,
+        ignored=len(ignored),
     )
     snapshot = dashboard_snapshot(view, today)
-    snapshot["ignored"] = ignored_listing(store, project)
+    snapshot["ignored"] = ignored
     return _page_filled_with(snapshot)
 
 
