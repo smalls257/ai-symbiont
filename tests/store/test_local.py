@@ -76,6 +76,7 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
     assert tables == {
         "sources",
         "lessons",
+        "mining_settings",
         "trained",
         "contexts",
         "authored",

@@ -24,6 +24,7 @@ WATCHING_MINE = "mining"
 FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
     "/dashboard/struggle.js": ("struggle.js", "text/javascript; charset=utf-8"),
+    "/dashboard/heldback.js": ("heldback.js", "text/javascript; charset=utf-8"),
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
     "/dashboard/summary.js": ("summary.js", "text/javascript; charset=utf-8"),
     "/dashboard/ignored.js": ("ignored.js", "text/javascript; charset=utf-8"),
@@ -42,7 +43,7 @@ class Live:
 
     mining: Callable[[str], MiningProgress | None] = lambda project: None
     nightly: NightlyOf = lambda project, lessons: None
-    # How many sessions a trouble must come back in to become a lesson (the developer's setting).
+    # The developer's setting now; the page prefers the value the lessons were screened with.
     min_sessions: int = DEFAULT_MIN_SESSIONS
 
 
@@ -153,7 +154,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
         store.mined.churn(project),
         store.mined.session_facts(project),
         store.mined.session_strips(project),
-        min_sessions=live.min_sessions,
+        min_sessions=store.mined.min_sessions_used(project) or live.min_sessions,
     )
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored_listing(store, project)

@@ -10,6 +10,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const fmt = n => Math.round(n).toLocaleString("en-US");
 const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
+const HB = window.SymbiontHeldBack, PL = window.SymbiontPainList;
 const CODE_FIX = "code_fix", CORRECTED = "corrected_command";
 
 if (!S) {
@@ -66,8 +67,8 @@ function renderScope(scoped) {
   if (sel.theme) chips.push(["theme", sel.theme]);
   if (sel.pattern) chips.push(["pattern", PAT[sel.pattern].short]);
   $("scope").innerHTML = chips.length
-    ? "Scope " + chips.map(c => '<span class="chip">' + esc(c[1]) + '<button data-clear="' + c[0] + '" aria-label="Clear ' + esc(c[1]) + '">✕</button></span>').join("") + "<span>" + fmt(scoped.n) + " sessions</span>"
-    : "<span>All " + fmt(ALLS.n) + " sessions · click a theme, pattern or cell to scope</span>";
+    ? "Scope " + chips.map(c => '<span class="chip">' + esc(c[1]) + '<button data-clear="' + c[0] + '" aria-label="Clear ' + esc(c[1]) + '">✕</button></span>').join("") + "<span>" + HB.counted(scoped.n, "session") + "</span>"
+    : "<span>All " + HB.counted(ALLS.n, "session") + " · click a theme, pattern or cell to scope</span>";
   $("scope").querySelectorAll("[data-clear]").forEach(b => b.onclick = () => b.dataset.clear === "theme" ? setSel(null, sel.pattern) : setSel(sel.theme, null));
 }
 
@@ -78,7 +79,7 @@ function renderKpis(s, lessons) {
   $("kpis").innerHTML = [
     [fmt(s.turns), "agent turns lost", scoped ? against(fmt(ALLS.turns), "") : '<span class="of">from a failure to the next pass of the same program</span>', "var(--rd)"],
     ["~" + fmt(hrs) + " h", "of working time lost, estimated", scoped ? against("~" + fmt(allHrs), " h") : '<span class="of">a hypothesis: ' + MINUTES_PER_TURN + " min per turn, not measured</span>", "var(--or)"],
-    [fmt(lessons.length), "lessons ready", scoped ? against(fmt(S.lessons.length), "") : '<span class="of">a known fix, seen in ' + S.minSessions + '+ sessions</span>', "var(--vi)"],
+    [fmt(lessons.length), "lessons ready", scoped ? against(fmt(S.lessons.length), "") : '<span class="of">a known fix, seen in at least ' + HB.counted(S.minSessions, "session") + "</span>", "var(--vi)"],
     [pct(s.fixed + s.corrected, s.failures) + "%", "of failures ended in a known fix", '<span class="of">' + fmt(s.fixed) + " code edits, " + fmt(s.corrected) + " corrected commands" + (scoped ? " (all: " + pct(ALLS.fixed + ALLS.corrected, ALLS.failures) + "%)" : "") + "</span>", "var(--gr)"],
   ].map(k => '<div class="panel kpi"><div class="num" style="color:' + k[3] + '">' + k[0] + '</div><div class="lbl">' + k[1] + k[2] + "</div></div>").join("");
 }
@@ -115,7 +116,7 @@ function renderThemes() {
   let h = '<div class="ch"></div><div class="ch">struggle<br>vs average</div>' + PIDS.map(p => '<div class="ch p' + (sel.pattern === p ? " sel" : "") + '" data-p="' + p + '">' + esc(PAT[p].short).replace(" ", "<br>") + "</div>").join("");
   THEMES.forEach(r => {
     const d = r.rate - base, w = Math.min(100, Math.abs(d) / 0.2 * 100), on = sel.theme === r.w, eg = (S.titles[r.w] || [""])[0];
-    h += '<div class="rl' + (on ? " sel" : "") + '" data-t="' + esc(r.w) + '"' + tipAttrs([r.w, fmt(r.s.n) + " sessions", "e.g. " + eg]) + ">" + esc(r.w) + "<small>" + fmt(r.s.n) + "</small></div>";
+    h += '<div class="rl' + (on ? " sel" : "") + '" data-t="' + esc(r.w) + '"' + tipAttrs([r.w, HB.counted(r.s.n, "session"), "e.g. " + eg]) + ">" + esc(r.w) + "<small>" + fmt(r.s.n) + "</small></div>";
     h += '<div class="rate" data-t="' + esc(r.w) + '"' + tipAttrs([Math.round(r.rate * 100) + "% of " + r.w + " sessions struggled (average " + Math.round(base * 100) + "%)"]) + '><i class="' + (d >= 0 ? "up" : "dn") + '" style="width:' + w + '%"></i></div>';
     h += PIDS.map(p => themeCell(r, p)).join("");
   });
@@ -167,11 +168,21 @@ function scopedLessons(scope) {
 }
 function renderLessons(list) {
   const scoped = sel.theme || sel.pattern;
-  $("lesSub").textContent = scoped ? "Lessons whose trouble shows up in this scope, most sessions first" : "A known fix (a code edit or a corrected command) that came back in " + S.minSessions + "+ sessions";
-  $("les").innerHTML = list.length ? list.slice(0, 8).map(({l, n}) => '<li><button data-id="' + esc(l.id) + '"' + tipAttrs([l.title, l.occurrences + " times in " + l.sessions.length + " sessions overall", "click to add your own context"]) + '><span class="t">' + esc(l.title) + '</span><span class="big">' + n + "<small>" + (scoped ? "of " + l.sessions.length + " sessions" : "sessions") + "</small></span>" + (l.fix ? '<span class="why">' + esc(l.fix) + "</span>" : "") + "</button></li>").join("")
+  $("lesSub").textContent = scoped ? "Lessons whose trouble shows up in this scope, most sessions first" : "A known fix (a code edit or a corrected command) that came back in at least " + HB.counted(S.minSessions, "session");
+  $("les").innerHTML = list.length ? list.slice(0, 8).map(({l, n}) => '<li><button data-id="' + esc(l.id) + '"' + tipAttrs([l.title, HB.counted(l.occurrences, "time") + " in " + HB.counted(l.sessions.length, "session") + " overall", "click to add your own context"]) + '><span class="t">' + esc(l.title) + '</span><span class="big">' + n + "<small>" + (scoped ? "of " + HB.counted(l.sessions.length, "session") : (n === 1 ? "session" : "sessions")) + "</small></span>" + (l.fix ? '<span class="why">' + esc(l.fix) + "</span>" : "") + "</button></li>").join("")
     : '<li class="empty">No lesson-grade trouble in this scope: the struggle here never ended in a known fix.</li>';
   $("les").querySelectorAll("button").forEach(b => b.onclick = () => document.dispatchEvent(new CustomEvent("symbiont:open-lesson", {detail: {lessonId: b.dataset.id}})));
+  renderHeld();
+}
+/* The failures mining counted but would not teach (no fix shown). They are counted over all sessions, so a selection does not narrow them. */
+let heldOpen = false;
+function renderHeld() {
+  const groups = DATA.struggle || [];
   $("held").textContent = S.heldBack ? "Overall, " + S.heldBack + "." : "";
+  $("heldSub").textContent = groups.length ? "These failures are listed across all sessions: your selection does not narrow them." : "";
+  $("heldList").innerHTML = groups.length ? PL.groupsHtml([HB.group(groups, esc)], heldOpen ? new Set() : new Set([HB.KIND]), esc) : "";
+  const toggleHeld = $("heldList").querySelector("button.grp");
+  if (toggleHeld) toggleHeld.onclick = () => { heldOpen = !heldOpen; renderHeld(); $("heldList").querySelector("button.grp").focus(); };
 }
 
 /* One session, step by step: the densest struggle in scope, with a cursor for the arrow keys. */

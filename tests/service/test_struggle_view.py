@@ -172,3 +172,48 @@ def test_a_strip_carries_its_shaded_bursts_and_the_full_step_count():
 
     strip = stage["strips"]["1"]
     assert strip["bursts"] == [[1, 3]] and strip["total"] == 900
+
+
+def test_the_empty_state_names_the_main_hold_reason_and_the_rule():
+    """Failure guarded against: telling a developer "nothing repeated" when no fix was shown."""
+    from symbiont.miner.screen import HoldReason
+
+    held = {HoldReason.NO_FIX_SHOWN: 75, HoldReason.TOO_FEW_SESSIONS: 6}
+    view = RepoView("demo", [], {}, DATES, facts=FACTS, held_back=held, min_sessions=2)
+
+    said = dashboard_snapshot(view, TODAY)["noLessons"]
+
+    assert "a lesson needs a fix shown in the same session" in said
+    assert "75 of 81" in said
+    assert "min_sessions" in said and "only" in said and "too few sessions" in said
+    assert "Nothing has repeated" not in said
+
+
+def test_the_empty_state_for_too_few_sessions_points_at_the_setting():
+    from symbiont.miner.screen import HoldReason
+
+    view = RepoView(
+        "demo",
+        [],
+        {},
+        DATES,
+        facts=FACTS,
+        held_back={HoldReason.TOO_FEW_SESSIONS: 4},
+        min_sessions=3,
+    )
+    said = dashboard_snapshot(view, TODAY)["noLessons"]
+    assert "fewer than 3 sessions" in said and "symbiont settings mining min_sessions" in said
+
+
+def test_the_failures_never_shown_a_fix_are_listed_by_cost_with_the_hold_reason():
+    from symbiont.miner.painpoint import Signal, Signature
+    from symbiont.store.held_back import StruggleGroup
+
+    small = StruggleGroup(Signature(Signal.FAILED_COMMAND, ("make", "lint", "exit 2")), 2, 3)
+    big = StruggleGroup(Signature(Signal.FAILED_COMMAND, ("pytest", "-", "exit 1")), 5, 9)
+    view = RepoView("demo", [], {}, DATES, facts=FACTS, struggle=[small, big])
+
+    groups = dashboard_snapshot(view, TODAY)["struggle"]
+
+    assert [g["occurrences"] for g in groups] == [9, 3]
+    assert groups[0]["reason"] == "no fix shown" and groups[0]["what"] and groups[0]["minutes"] > 0

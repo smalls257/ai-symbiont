@@ -69,7 +69,13 @@ def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -
     facts = facts_of(sessions, lessons, codebase, codebase_vocabulary(sessions, codebase))
     strips = representative_strips(sessions, facts, codebase)
     return MiningOutcome(
-        screened.kept, screened.held, screened.struggle, churn(sessions, names), facts, strips
+        screened.kept,
+        screened.held,
+        screened.struggle,
+        churn(sessions, names),
+        facts,
+        strips,
+        rules.screen.min_sessions,
     )
 
 

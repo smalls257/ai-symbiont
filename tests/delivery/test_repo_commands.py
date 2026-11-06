@@ -108,7 +108,7 @@ def test_mining_reads_the_claude_code_sessions_of_the_repository(tmp_path, monke
     assert mine(repo, tmp_path / "data") == 0
 
     assert (
-        "learned 1 lessons from 1 claude-code sessions, 0 muse-code sessions"
+        "learned 1 lesson from 1 Claude Code session, 0 Muse Code sessions"
         in capsys.readouterr().out
     )
     assert len(Store.open(tmp_path / "data" / "store.db").lessons("demo")) == 1
@@ -255,7 +255,7 @@ def test_mining_reads_muse_code_sessions_of_the_repository_too(tmp_path, monkeyp
     assert mine(repo, tmp_path / "data") == 0
 
     assert (
-        "learned 1 lessons from 0 claude-code sessions, 1 muse-code sessions"
+        "learned 1 lesson from 0 Claude Code sessions, 1 Muse Code session"
         in capsys.readouterr().out
     )
 
