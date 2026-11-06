@@ -17,6 +17,7 @@ from typing import Any
 
 from symbiont.readers.errors import ReadError
 from symbiont.records.schema import Kind, Provenance, Record
+from symbiont.records.session_tags import CREATED_TAG
 
 logger = logging.getLogger(__name__)
 
@@ -251,7 +252,11 @@ def _add_file_editor_action(
     except _RefusedEditError as exc:
         _add_refused_edit(session, path, observation, str(exc))
         return
-    session.add(Kind.EDIT, observation or "", files=(path,), diff=diff, exit_code=exit_code)
+    made_file = command == "create" and exit_code != 1
+    tags = (CREATED_TAG,) if made_file else ()
+    session.add(
+        Kind.EDIT, observation or "", files=(path,), diff=diff, exit_code=exit_code, tags=tags
+    )
 
 
 def _edit_diff(command: str, path: str, args: dict[str, Any]) -> str | None:

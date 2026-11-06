@@ -7,6 +7,9 @@ value, so `tags` stays a flat tuple of strings and old records without them read
 
 TITLE_PREFIX = "ai-title:"
 BRANCH_PREFIX = "branch:"
+# On an EDIT record whose tool call created the file. The miner must not read a creation as
+# rework of an existing file: there was nothing there to rework.
+CREATED_TAG = "created"
 
 
 def title_tag(title: str) -> str:

@@ -9,6 +9,7 @@ from symbiont.readers import READERS
 from symbiont.readers.claude_code import read, read_open_swe_traces, read_swe_chat
 from symbiont.readers.errors import ReadError
 from symbiont.records.schema import Kind
+from symbiont.records.session_tags import CREATED_TAG
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "claude_code"
 SESSION = FIXTURES / "session.jsonl"
@@ -67,7 +68,7 @@ def test_turns_in_order_with_dense_steps_and_timestamps(records):
 
 def test_user_pushback_label_kept(records):
     first, last = of_kind(records, Kind.USER_TURN)
-    assert first.tags == ()
+    assert first.tags == ("ai-title:Fix the failing parser test.",)
     assert last.kind == Kind.USER_TURN
     assert last.tags == ("correction",)
     assert last.raw.startswith("No, that is wrong")
@@ -225,14 +226,6 @@ NOT_STRING_CASES = {
     "tool_use id": ([_tool("Bash", {"command": "ls"}, id=5)], "id"),
     "tool_use_id": ([_result(tool_use_id=5)], "tool_use_id"),
     "tool name": ([_tool("Bash", {"command": "ls"}, name=5)], "name"),
-    "bash command": ([_tool("Bash", {"command": 5})], "command"),
-    "read file_path": ([_tool("Read", {"file_path": 5})], "file_path"),
-    "write file_path": ([_tool("Write", {"file_path": 5, "content": "x"})], "file_path"),
-    "edit old_string": ([_tool("Edit", {"file_path": "a", "old_string": 5})], "old_string"),
-    "edit new_string": (
-        [_tool("Edit", {"file_path": "a", "old_string": "x", "new_string": 5})],
-        "new_string",
-    ),
 }
 
 
@@ -310,7 +303,7 @@ def test_unknown_assistant_blocks_are_skipped_counted_and_logged(tmp_path, caplo
         {"type": "web_search_tool_result", "tool_use_id": "s1", "content": []},
         {"type": "text", "text": "done"},
     ]
-    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
         records = _read_events(tmp_path, _event("assistant", blocks))
     assert [r.raw for r in records] == ["done"]
     assert "unknown block type redacted_thinking" in caplog.text
@@ -319,7 +312,7 @@ def test_unknown_assistant_blocks_are_skipped_counted_and_logged(tmp_path, caplo
 
 def test_edit_without_old_string_is_skipped_and_counted(tmp_path, caplog):
     edit = _tool("Edit", {"file_path": "a.py", "new_string": "x"})
-    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
         records = _read_events(tmp_path, edit, _tool("Bash", {"command": "ls"}, id="t2"))
     assert [r.kind for r in records] == [Kind.COMMAND]
     assert "'Edit without old_string': 1" in caplog.text
@@ -329,10 +322,10 @@ def test_edit_without_old_string_is_skipped_and_counted(tmp_path, caplog):
 def test_harness_written_user_events_are_not_user_turns(tmp_path, caplog, flag):
     typed = _event("user", "no, use pytest")
     machine = _event("user", "Caveat: the messages below were generated", **{flag: True})
-    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
         records = _read_events(tmp_path, machine, typed)
     assert [r.raw for r in records] == ["no, use pytest"]
-    assert "skipped content" in caplog.text
+    assert "skipped" in caplog.text
 
 
 def test_malformed_known_block_still_raises_after_tolerance(tmp_path):
@@ -392,12 +385,89 @@ def test_the_git_branch_of_each_event_is_a_tag_on_its_records(tmp_path):
         _event("user", "first", gitBranch="fix-window"),
         _event("assistant", [{"type": "text", "text": "ok"}], gitBranch="main"),
     )
-    assert [r.tags for r in records] == [("branch:fix-window",), ("branch:main",)]
+    assert [r.tags for r in records] == [
+        ("branch:fix-window", "ai-title:first"),
+        ("branch:main",),
+    ]
 
 
-def test_an_event_without_a_branch_or_a_title_has_no_tags(tmp_path):
+def test_an_event_without_a_branch_or_an_ai_title_is_titled_by_its_first_turn(tmp_path):
     (record,) = _read_events(tmp_path, _event("user", "first"))
-    assert record.tags == ()
+    assert record.tags == ("ai-title:first",)
+
+
+def slash_command(name="/clear"):
+    return _event("user", f"<command-name>{name}</command-name>")
+
+
+def test_a_slash_command_title_is_not_the_session_title(tmp_path):
+    work = _event("user", "port the parser to rust\nthen the tests")
+    first, _ = _read_events(tmp_path, slash_command(), work)
+    assert first.tags == ("ai-title:port the parser to rust",)
+
+
+def test_the_ai_title_beats_the_first_typed_turn(tmp_path):
+    title = {"type": "ai-title", "aiTitle": "Port parser", "sessionId": "s"}
+    first, _ = _read_events(tmp_path, slash_command(), title, _event("user", "go"))
+    assert first.tags == ("ai-title:Port parser",)
+
+
+def test_a_session_of_only_slash_commands_is_untitled(tmp_path):
+    (record,) = _read_events(tmp_path, slash_command())
+    assert record.tags == ("ai-title:untitled session",)
+
+
+def test_routine_skips_are_logged_at_debug(tmp_path, caplog):
+    meta = _event("user", "Caveat: generated", isMeta=True)
+    note = _injected("task-notification")
+    compact = _event("user", "summary", isCompactSummary=True)
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
+        _read_events(tmp_path, meta, note, compact, _event("user", "go"))
+    skipped = [r for r in caplog.records if "skipped" in r.getMessage()]
+    assert {r.levelname for r in skipped} == {"DEBUG"}
+
+
+def test_an_unusual_skip_is_logged_at_info_with_file_and_count(tmp_path, caplog):
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
+        _read_events(tmp_path, _injected("scheduled"), _event("user", "go"))
+    (skipped,) = [r for r in caplog.records if "skipped content" in r.getMessage()]
+    assert skipped.levelname == "INFO"
+    assert "session.jsonl" in skipped.getMessage() and "'scheduled': 1" in skipped.getMessage()
+
+
+@pytest.mark.parametrize(
+    "label, tags",
+    [
+        ("correction", ("correction",)),
+        ("rejection", ("correction",)),
+        (True, ("correction",)),
+        ("failure_report", ("failure_report",)),
+        ("non_pushback", ()),
+        (False, ()),
+        ("", ()),
+        (None, ()),
+    ],
+)
+def test_pushback_labels_map_to_tags(tmp_path, label, tags):
+    turn = {**_event("user", "go"), "prompt_pushback": label}
+    (record,) = _read_events(tmp_path, turn)
+    assert tuple(t for t in record.tags if not t.startswith("ai-title:")) == tags
+
+
+def test_an_unknown_pushback_label_raises_naming_it(tmp_path):
+    turn = {**_event("user", "go"), "prompt_pushback": "surprise"}
+    with pytest.raises(ReadError, match="surprise"):
+        _read_events(tmp_path, turn)
+
+
+def test_write_of_a_new_file_is_tagged_created_and_an_update_is_not(tmp_path):
+    new = _tool("Write", {"file_path": "a.py", "content": "x\n"}, id="n")
+    old = _tool("Write", {"file_path": "b.py", "content": "y\n"}, id="o")
+    made = _result(tool_use_id="n", content="File created successfully at: /w/a.py")
+    changed = _result(tool_use_id="o", content="The file /w/b.py has been updated successfully.")
+    created, updated = _read_events(tmp_path, new, old, made, changed)
+    assert CREATED_TAG in created.tags
+    assert CREATED_TAG not in updated.tags
 
 
 def test_a_title_that_is_not_text_raises_readerror(tmp_path):
@@ -412,14 +482,14 @@ def _injected(kind):
 
 def test_a_task_notification_is_not_a_user_turn_and_is_counted(tmp_path, caplog):
     typed = _event("user", "no, use pytest")
-    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
         records = _read_events(tmp_path, _injected("task-notification"), typed)
     assert [r.raw for r in records] == ["no, use pytest"]
     assert "'task notification': 1" in caplog.text
 
 
 def test_a_message_from_another_session_is_not_a_user_turn(tmp_path, caplog):
-    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
         records = _read_events(tmp_path, _injected("peer"), _injected("scheduled"))
     assert records == []
     assert "'message from another session': 1" in caplog.text

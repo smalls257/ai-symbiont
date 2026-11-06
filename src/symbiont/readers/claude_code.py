@@ -1,33 +1,41 @@
 """Reader for Claude Code session logs (JSONL, one event per line).
 
-A tool result travels in the `raw` of the action it answers; SWE-chat's `prompt_pushback`
-becomes the "correction" tag. Unmineable content (metadata events, unknown block types,
-harness-written user turns) is skipped, counted and logged; malformed shapes raise ReadError.
-`read` is for private sessions: unknown privacy is never shareable.
+A tool result travels in the `raw` of the action it answers. A tool call the tool itself would
+reject is kept as a refused action; unmineable content is skipped, counted and logged; any
+other malformed shape raises ReadError. `read` is for private sessions: never shareable.
 """
 
 import json
 import logging
 import re
 from collections import Counter
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from symbiont.readers.claude_code_fields import (
     MalformedError,
+    RefusedCallError,
     optional_text,
     origin_kind,
     require,
     require_text,
 )
-from symbiont.readers.claude_code_tags import TITLE_EVENT, EventTags, remember_title
-from symbiont.readers.claude_code_tools import TOOLS, make_relative, other_tool
+from symbiont.readers.claude_code_skips import REFUSED_CALLS, report_skips
+from symbiont.readers.claude_code_tags import (
+    TITLE_EVENT,
+    EventTags,
+    fallback_title,
+    pushback_tags,
+    remember_title,
+)
+from symbiont.readers.claude_code_tools import TOOLS, make_relative, other_tool, refused_call
 from symbiont.readers.errors import ReadError
 from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAMES, split_our_output
 from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
+from symbiont.records.session_tags import CREATED_TAG
 
 HARNESS = "claude-code"
 PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", remote_safe=False)
@@ -36,7 +44,6 @@ OPEN_SWE_TRACES = Provenance(
     dataset="open-swe-traces", license="see-dataset-card", remote_safe=True
 )
 
-CORRECTION = "correction"
 _CONVERSATION_TYPES = ("user", "assistant")
 logger = logging.getLogger(__name__)
 _EXIT_CODE = re.compile(r"^Exit code (-?\d+)")
@@ -58,6 +65,9 @@ _INJECTED_ORIGINS = {
     "task-notification": "task notification",
     "peer": "message from another session",
 }
+# Claude Code's Write answers "File created successfully at: ..." for a new file and
+# "The file ... has been updated successfully" for an existing one (counted on real logs).
+_CREATED = re.compile(r"^File created successfully at:")
 Skips = Counter[str]
 
 
@@ -97,7 +107,7 @@ def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
     """Yield one session's records; each tool result is folded into the action it answers."""
     titles: dict[str, str] = {}
     events = _conversation_events(Path(path), titles)
-    tagger = EventTags(titles)
+    tagger = EventTags(titles, _first_typed_titles(path, events))
     results = _results_by_call(path, events)
     source = _Source(project, provenance)
     steps: dict[str, int] = {}
@@ -116,8 +126,35 @@ def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
                 yield _record(event, source, session_id, step, fields)
         except MalformedError as exc:
             raise ReadError(path, line_no, str(exc)) from exc
-    if skips:
-        logger.warning("skipped content in %s: %s", path, dict(skips))
+    report_skips(path, skips)
+
+
+def _first_typed_titles(path: Path, events: list[tuple[int, dict[str, Any]]]) -> dict[str, str]:
+    """Per session, a title from the first typed turn that is not a slash command.
+
+    Sessions without an `ai-title` still need to say what they were about; `/clear` does not.
+    """
+    titles: dict[str, str] = {}
+    for line_no, event in events:
+        if event["type"] != "user":
+            continue
+        try:
+            session_id = require_text(event, "sessionId")
+            title = _typed_title(event)
+        except MalformedError as exc:
+            raise ReadError(path, line_no, str(exc)) from exc
+        if title and session_id not in titles:
+            titles[session_id] = title
+    return titles
+
+
+def _typed_title(event: dict[str, Any]) -> str | None:
+    """The first title-worthy typed turn of one user event; None when it has none."""
+    for fields in _user_turns(event, Counter()):
+        title = fallback_title(fields["raw"])
+        if title:
+            return title
+    return None
 
 
 def _conversation_events(path: Path, titles: dict[str, str]) -> list[tuple[int, dict[str, Any]]]:
@@ -252,7 +289,7 @@ def _user_turns(event: dict[str, Any], skips: Skips) -> Iterator[dict[str, Any]]
     texts = [require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
     if not texts:
         return  # tool results only: they are folded into the action they answer
-    yield {"kind": Kind.USER_TURN, "raw": "\n".join(texts), "tags": _pushback_tags(event)}
+    yield {"kind": Kind.USER_TURN, "raw": "\n".join(texts), "tags": pushback_tags(event)}
 
 
 def _injected_label(event: dict[str, Any]) -> str | None:
@@ -261,16 +298,6 @@ def _injected_label(event: dict[str, Any]) -> str | None:
     if kind is None or kind == _HUMAN_ORIGIN:
         return None
     return _INJECTED_ORIGINS.get(kind, kind)
-
-
-def _pushback_tags(event: dict[str, Any]) -> tuple[str, ...]:
-    """`correction` when SWE-chat marked the turn as pushback; any other flag value raises."""
-    flag = event.get("prompt_pushback")
-    if flag is None or flag is False or flag == "":
-        return ()
-    if flag is True or isinstance(flag, str):
-        return (CORRECTION,)
-    raise MalformedError(f"prompt_pushback must be true/false or a label, got {flag!r}")
 
 
 def _assistant_records(
@@ -302,15 +329,34 @@ def _tool_use(
     text = _result_content(result)
     # Our recall answer is ours from the first character.
     own, ours = ("", text) if name in RECALL_TOOL_NAMES else split_our_output(text)
-    fields = TOOLS.get(name, other_tool)(name, args, make_relative(cwd))
+    relative = make_relative(cwd)
+    try:
+        fields = _action_fields(name, args, relative, own, result)
+    except RefusedCallError as exc:
+        skips[REFUSED_CALLS] += 1
+        fields = {**refused_call(name, args, relative), "raw": own or str(exc)}
+    yield fields
+    if ours:
+        yield {"kind": Kind.TOOL_RESULT, "raw": ours, "tags": (OUR_OUTPUT_RECORD_TAG,)}
+
+
+def _action_fields(
+    name: str,
+    args: dict[str, Any],
+    relative: Callable[[str], str],
+    own: str,
+    result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """The record fields of one tool call; raises RefusedCallError when the tool would reject it."""
+    fields = TOOLS.get(name, other_tool)(name, args, relative)
     fields["raw"] = own
     code = _exit_code(fields["kind"], result, own)
     if fields["kind"] == Kind.COMMAND:
         code = exit_code_with_output(str(fields.get("command") or ""), own, code)
     fields["exit_code"] = code
-    yield fields
-    if ours:
-        yield {"kind": Kind.TOOL_RESULT, "raw": ours, "tags": (OUR_OUTPUT_RECORD_TAG,)}
+    if name == "Write" and _CREATED.match(own):
+        fields["tags"] = (CREATED_TAG,)
+    return fields
 
 
 def _result_content(result: dict[str, Any] | None) -> str:
