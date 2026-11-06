@@ -7,7 +7,7 @@ from dataclasses import replace
 
 import pytest
 
-from record_builders import edit, run, session, user
+from record_builders import edit, run, say, session, user
 from symbiont.miner.lessons import (
     QUOTE_CHARS,
     Coverage,
@@ -17,6 +17,7 @@ from symbiont.miner.lessons import (
 )
 from symbiont.miner.mine import mine_chain, mine_history, sessions_of
 from symbiont.miner.painpoint import Signal
+from symbiont.miner.turns_before import CONTEXT_CHARS
 from symbiont.records.schema import Provenance, Record
 
 PRIVATE = Provenance(dataset="SWE-chat", license="ODC-BY", spark_safe=False)
@@ -46,7 +47,7 @@ def test_a_lesson_quotes_what_happened_and_names_what_fixed_it():
     assert lesson.quote.startswith(f"$ {TEST}\n") and "No module named 'yaml'" in lesson.quote
     assert lesson.resolution == ("ran `pip install pyyaml`", f"ran `{TEST}`")
     assert lesson.unresolved_because is None
-    assert lesson.sources == (("s1", 1), ("s1", 2), ("s1", 3))
+    assert lesson.sources == (("s1", 1), ("s1", 2), ("s1", 3), ("s1", 0))  # then the asked turn
     assert lesson.spark_safe
 
 
@@ -127,3 +128,46 @@ def test_a_lesson_with_unrelated_changes_pickles_without_any_record():
     revived = pickle.loads(pickle.dumps(lesson))
     assert not any(isinstance(v, Record) for v in vars(revived).values())
     assert b"Record" not in pickle.dumps(lesson).replace(b"PainPoint", b"")
+
+
+def asked_then_failed(user_text="make the parser tests pass", agent_text="I will install pyyaml"):
+    return session(
+        user(user_text),
+        say(agent_text),
+        run(TEST, 1, BROKE),
+        run("pip install pyyaml"),
+        run(TEST, 0, "3 passed"),
+    )
+
+
+def test_a_lesson_keeps_what_the_user_asked_and_what_the_agent_meant_before_the_failure():
+    records = asked_then_failed("x" * 400)
+
+    (lesson,) = lessons_of(records)
+
+    assert lesson.asked.startswith("xxx") and len(lesson.asked) == CONTEXT_CHARS
+    assert lesson.agent_intent == "I will install pyyaml"
+    assert (lesson.pain_point.session_id, 0) in lesson.sources
+
+
+def test_a_lesson_with_no_turn_before_the_failure_has_empty_context():
+    (lesson,) = lessons_of(
+        session(run(TEST, 1, BROKE), run("pip install pyyaml"), run(TEST, 0, "ok"))
+    )
+
+    assert (lesson.asked, lesson.agent_intent) == ("", "")
+
+
+def test_a_private_turn_quoted_as_context_makes_the_lesson_private():
+    records = asked_then_failed()
+    records[0] = replace(records[0], provenance=PRIVATE)  # only the user's request is private
+
+    (lesson,) = lessons_of(records)
+
+    assert lesson.spark_safe is False and lesson.private_datasets == ("SWE-chat",)
+
+
+def test_the_context_cap_matches_a_correction_candidates_turn_cap():
+    from symbiont.core.correction_candidates import MAX_TURN_CHARS
+
+    assert CONTEXT_CHARS == MAX_TURN_CHARS

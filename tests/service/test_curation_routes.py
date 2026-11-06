@@ -264,3 +264,36 @@ def test_a_bad_lesson_error_names_the_fields_and_asks_for_the_same_content_again
 
     message = str(caught.value)
     assert "text_in_plain_words" in message and "kind" in message and "SAME" in message
+
+
+def test_a_review_summary_is_saved_and_one_longer_than_the_cap_is_cut_not_refused(tmp_path):
+    from symbiont.service.curation_routes import MAX_TEXT
+
+    routes, store, lessons = rig(tmp_path)
+    ident = lesson_id(lessons[0])
+
+    routes.save_reviews(
+        {
+            "project": PROJECT,
+            "reviews": [{"id": ident, "verdict": "mistake", "summary": "  " + "s" * 5000}],
+        }
+    )
+
+    assert store.curation.reviews(PROJECT)[ident].summary == "s" * MAX_TEXT
+
+
+def test_the_review_candidate_route_offers_the_asked_turn(tmp_path):
+    routes, _store, _lessons = rig(tmp_path)
+
+    (candidate,) = routes.review_candidates({"project": PROJECT})["candidates"]
+
+    assert candidate["asked"] == "No, don't touch refund.py, use the ledger instead"
+    assert candidate["times_it_happened"] == 1 and candidate["outcome"]
+
+
+def test_a_summary_that_is_not_text_is_refused_naming_the_field(tmp_path):
+    routes, _store, lessons = rig(tmp_path)
+    item = {"id": lesson_id(lessons[0]), "verdict": "mistake", "summary": 42}
+
+    with pytest.raises(BadRequestError, match="summary must be text"):
+        routes.save_reviews({"project": PROJECT, "reviews": [item]})

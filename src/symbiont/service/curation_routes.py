@@ -19,6 +19,7 @@ from symbiont.miner.lesson_context import (
     Severity,
     Verdict,
 )
+from symbiont.miner.lessons import Lesson
 from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
 from symbiont.readers.harnesses import HARNESSES, harness_for_reader
@@ -152,10 +153,11 @@ class CurationRoutes:
         """A capped batch of mined pain points that have no verdict yet."""
         project = self._allowed_project(request, {"project"})
         reviewed, words = self._store.curation.reviews(project), self._store.contexts.all(project)
-        waiting = [item for item in self._store.lessons(project) if lesson_id(item) not in reviewed]
+        stored = self._store.lessons(project)
+        waiting = [item for item in stored if lesson_id(item) not in reviewed]
         return {
             "candidates": [
-                review_candidate(item, words.get(lesson_id(item)))
+                review_candidate(item, words.get(lesson_id(item)), _same_trouble(item, stored))
                 for item in waiting[:REVIEW_BATCH]
             ],
             "remaining": max(0, len(waiting) - REVIEW_BATCH),
@@ -275,6 +277,12 @@ def _with_module_areas(applies: AppliesTo, files: tuple[str, ...]) -> AppliesTo:
     return AppliesTo(applies.terms, areas_of_files(files))
 
 
+def _same_trouble(lesson: Lesson, stored: list[Lesson]) -> list[Lesson]:
+    """The stored lessons about the same kind of trouble as `lesson`."""
+    signature = lesson.pain_point.signature
+    return [item for item in stored if item.pain_point.signature == signature]
+
+
 def _review(item: dict[str, Any]) -> Review:
     """A verdict from a request item."""
     return Review(
@@ -283,6 +291,7 @@ def _review(item: dict[str, Any]) -> Review:
         str(item.get("title", "")).strip()[:120],
         item.get("merge_with") if isinstance(item.get("merge_with"), str) else None,
         parse_applies(item.get("applies_to")),
+        _optional_text(item, "summary")[:MAX_TEXT],
     )
 
 
@@ -310,6 +319,14 @@ def _text(item: dict[str, Any], key: str) -> str:
     value = item.get(key)
     if not isinstance(value, str) or not value.strip():
         raise BadRequestError(f"{key} must be non-empty text")
+    return value.strip()
+
+
+def _optional_text(item: dict[str, Any], key: str) -> str:
+    """A string field that may be absent; a present one of another type is refused, not coerced."""
+    value = item.get(key, "")
+    if not isinstance(value, str):
+        raise BadRequestError(f"{key} must be text")
     return value.strip()
 
 

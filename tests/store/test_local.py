@@ -15,6 +15,7 @@ from record_builders import PUBLIC, edit, replace_text, run, session, user
 from symbiont.eval.training_manifest import check_manifest_against_hold_out
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.screen import ScreenRules
+from symbiont.miner.secrets import REDACTED
 from symbiont.miner.trained import export_id_of
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
@@ -89,7 +90,9 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
         "ignored",
     }
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
-    assert "fix it" not in body, "only the cited record's bounded quote is kept"
+    # The user's request survives only as the bounded `asked` field (CONTEXT_CHARS).
+    assert json.loads(body)["asked"] == "fix it" and body.count("fix it") == 1
+    assert "user_turn" not in body, "no whole record is kept"
 
 
 def test_mining_re_reads_the_logs_every_time(tmp_path, store):
@@ -246,3 +249,69 @@ def test_forgetting_a_trouble_deletes_only_its_lessons(tmp_path, store):
     assert store.lessons(PROJECT) == [lesson]
     assert store.catalog.forget(PROJECT, lesson.pain_point.signature) == 1
     assert store.lessons(PROJECT) == []
+
+
+def test_a_saved_review_keeps_its_summary(store):
+    from symbiont.miner.lesson_context import Review, Verdict
+
+    store.curation.save_review(
+        "demo", "l1", Review(Verdict.MISTAKE, summary="It broke; it was fixed.")
+    )
+
+    assert store.curation.reviews("demo")["l1"].summary == "It broke; it was fixed."
+
+
+def test_an_old_store_without_a_summary_column_opens_and_reads_empty_summaries(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.sqlite"
+    old = sqlite3.connect(path)
+    old.execute(
+        "CREATE TABLE reviews (lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, "
+        "verdict TEXT NOT NULL, rule TEXT NOT NULL, title TEXT NOT NULL, merge_with TEXT, "
+        "applies TEXT NOT NULL)"
+    )
+    old.execute(
+        "INSERT INTO reviews VALUES ('l1', 'demo', 'noise', '', '', NULL, "
+        '\'{"terms": [], "areas": []}\')'
+    )
+    old.commit()
+    old.close()
+
+    reopened = Store.open(path)
+
+    assert reopened.curation.reviews("demo")["l1"].summary == ""
+
+
+def test_a_lesson_row_from_before_the_turn_fields_reads_empty_context():
+    import json
+    from dataclasses import asdict
+
+    from symbiont.miner.lessons import lessons_from
+    from symbiont.miner.mine import mine_history, sessions_of
+    from symbiont.store.lesson_rows import lesson_from_json
+
+    records = failing_session()
+    (lesson,) = lessons_from(mine_history(sessions_of(records), {}), records)
+    data = asdict(lesson)
+    del data["asked"], data["agent_intent"]
+
+    restored = lesson_from_json(json.dumps(data))
+
+    assert (restored.asked, restored.agent_intent) == ("", "")
+    assert lesson.asked == "fix it"
+
+
+def test_the_spark_view_redacts_a_credential_pasted_into_the_users_request(tmp_path, store):
+    pasted = "to" + "ken=Zq7Lm2Xv9Rt4Wp8K"
+    records = [
+        replace(r, task_id=None) if r.step else replace(r, raw=f"fix it, {pasted}", task_id=None)
+        for r in failing_session()
+    ]
+    source = log_of(tmp_path, "a", records)
+    (lesson,) = remine(store, PROJECT, rules(), adding=[source])
+    assert pasted in lesson.asked
+
+    (shown,) = store.spark_view().lessons(PROJECT)
+
+    assert "Zq7Lm2Xv9Rt4Wp8K" not in shown.asked and REDACTED in shown.asked
