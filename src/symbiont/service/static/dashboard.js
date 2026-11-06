@@ -229,8 +229,11 @@ function resetBars(){document.querySelectorAll("#kbars i").forEach(i=>i.style.wi
 /* ===== stage 2: add context ===== */
 let sel=1,reveal=null,revealTimer=0;
 const PL=window.SymbiontPainList, PROJECT=DATA.repo.name;
+const IGN=window.SymbiontIgnored, ignored=DATA.ignored||[];
+let ignOpen=IGN.readOpen(window.localStorage,PROJECT,console.warn);
 const collapsed=PL.readCollapsed(window.localStorage,PROJECT,console.warn);
 function setGroupOpen(kind,open){
+  if(kind===IGN.KIND){ignOpen=open;IGN.writeOpen(window.localStorage,PROJECT,open,console.warn);return;}
   if(collapsed.has(kind)===!open)return;
   if(open)collapsed.delete(kind);else collapsed.add(kind);
   PL.writeCollapsed(window.localStorage,PROJECT,collapsed,console.warn);
@@ -249,10 +252,20 @@ function renderList(){
     const ps=P.filter(p=>p.kind===k).sort((a,b)=>cost(b)-cost(a));
     return {kind:k,label:KINDS[k].label+(k==="tdd"?" (not mistakes)":""),count:ps.length,itemsHtml:ps.map(itemHtml).join("")};
   });
-  const L=$("plist"),keep=L.scrollTop;L.innerHTML=PL.groupsHtml(groups,collapsed,esc);L.scrollTop=keep;
+  const L=$("plist"),keep=L.scrollTop;L.innerHTML=PL.groupsHtml([...groups,IGN.group(ignored,esc)],ignOpen?collapsed:new Set([...collapsed,IGN.KIND]),esc);L.scrollTop=keep;
+  L.querySelectorAll("button[data-restore]").forEach(b=>b.onclick=()=>restorePattern(ignored[+b.dataset.restore]));
   L.querySelectorAll("button.grp").forEach(b=>b.onclick=()=>toggleGroup(b.dataset.kind,b.getAttribute("aria-expanded")!=="true"));
   L.querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
 }
+/* The ignore reply carries the signature, which is what the Ignored list needs to restore it later. */
+function ignorePattern(){
+  const p=byId(sel);IGN.ignore(PROJECT,p.lessonId).then(r=>{
+    ignored.push({label:p.title,...r.signature});P.splice(P.indexOf(p),1);if(!P.length){location.reload();return;}
+    selectPain((P.find(q=>q.kind===p.kind)||P[0]).id);toastText("Ignored. Find it under Ignored to restore.");
+  }).catch(e=>toastText(String(e.message)));
+}
+function restorePattern(entry){IGN.restore(PROJECT,entry).then(()=>location.reload()).catch(e=>toastText(String(e.message)));}
+const toastText=text=>{const t=$("toast");t.textContent=text;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),2600);};
 function sourceChip(p){
   if(!p.srcLabel&&!p.srcUrl)return "";
   const label=esc(p.srcLabel||"source");
@@ -275,7 +288,7 @@ function showPain(id){
    +'<div class="tags"><label class="h" for="terms">Applies to: words and codes, comma separated</label><input id="terms" value="'+esc(st.terms)+'" placeholder="currency, BHD, refund">'
    +'<label class="h" for="areas">Paths it applies to, comma separated</label><input id="areas" value="'+esc(st.areas)+'" placeholder="ledger/"></div>'
    +'<div class="ctl"><button class="sw" id="sw" aria-pressed="'+st.intent+'"><i></i>Intentional, not a mistake</button>'
-   +'<div class="seg" role="group" aria-label="Priority">'+["low","normal","high"].map(x=>'<button data-p="'+x+'" aria-pressed="'+(st.prio===x)+'">'+x[0].toUpperCase()+x.slice(1)+" priority</button>").join("")+'</div><button class="save" id="save">Save context</button></div>';
+   +'<div class="seg" role="group" aria-label="Priority">'+["low","normal","high"].map(x=>'<button data-p="'+x+'" aria-pressed="'+(st.prio===x)+'">'+x[0].toUpperCase()+x.slice(1)+" priority</button>").join("")+'</div><button class="ignore" id="ignoreBtn">Ignore this pattern</button><button class="save" id="save">Save context</button></div>';
   $("ctx").oninput=e=>{st.ctx=e.target.value;st.saved=false;renderNote();};
   if($("exb"))$("exb").onclick=()=>{st.ctx=p.ex;$("ctx").value=p.ex;renderNote();};
   $("terms").oninput=e=>{st.terms=e.target.value;st.saved=false;};
@@ -283,12 +296,12 @@ function showPain(id){
   $("sw").onclick=()=>setIntent(!st.intent);
   if($("keepit")){$("keepit").onclick=()=>{st.kept=true;saveFor(byId(sel),{override:"keep"});selectPain(sel);};$("dismissit").onclick=()=>{st.intent=true;saveFor(byId(sel),{intentional:true,override:"dismiss"});selectPain(sel);};}
   $("edit").querySelectorAll(".seg button").forEach(b=>b.onclick=()=>setPrio(b.dataset.p));
-  $("save").onclick=save;
+  $("save").onclick=save;$("ignoreBtn").onclick=ignorePattern;
   startReveal();
 }
 function setIntent(v){saveFor(byId(sel),{intentional:v});$("sw").setAttribute("aria-pressed",v);renderNote();renderList();}
 function setPrio(x){saveFor(byId(sel),{priority:x});$("edit").querySelectorAll(".seg button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.p===x));renderNote();}
-function save(){saveFor(byId(sel),{context:ST[sel].ctx,intentional:ST[sel].intent,priority:ST[sel].prio,terms:ST[sel].terms,areas:ST[sel].areas});renderList();const t=$("toast");t.classList.add("on");setTimeout(()=>t.classList.remove("on"),2200);}
+function save(){saveFor(byId(sel),{context:ST[sel].ctx,intentional:ST[sel].intent,priority:ST[sel].prio,terms:ST[sel].terms,areas:ST[sel].areas});renderList();toastText("Saved. Used from the next session.");}
 function startReveal(){
   clearInterval(revealTimer);const p=byId(sel);const total=(ST[sel].prio==="high"?39:0)+p.note.length;reveal=0;
   revealTimer=setInterval(()=>{reveal+=4;if(reveal>=total){reveal=null;clearInterval(revealTimer);}renderNote();},22);

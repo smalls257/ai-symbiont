@@ -24,11 +24,12 @@ from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdEr
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record
 from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall, CheckerVerdict
-from symbiont.service.context_route import UnknownLessonError, context_target, save_context
+from symbiont.service.context_route import UnknownLessonError
 from symbiont.service.curation_routes import CurationRoutes
 from symbiont.service.dashboard_page import Live, Page, dashboard_page
 from symbiont.service.events import Call, EventLog, MemoryCost, checked_nightly
 from symbiont.service.follow_up import FollowUp
+from symbiont.service.ignore_route import developer_routes
 from symbiont.service.judge_model import JudgeModel
 from symbiont.service.learned_outcomes import replay_into_decider
 from symbiont.service.memory_model import (
@@ -172,11 +173,8 @@ class Service:
         if self._parts.curation is not None:
             for path, handler in self._parts.curation.routes().items():
                 routes[path] = _ok_route(handler)
-        lesson = context_target(name)
-        if lesson is not None:
-            routes[name] = lambda request, _: Response(
-                200, save_context(self._parts.store, lesson, request)
-            )
+        own = developer_routes(name, self._parts.store, self._parts.gate.registry)
+        routes.update({path: _ok_route(handler) for path, handler in own.items()})
         if name not in routes:
             return self._refuse(call, 404, f"no such route: {route}")
         try:

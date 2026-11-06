@@ -24,6 +24,8 @@ from symbiont.store.contexts import LessonContexts
 from symbiont.store.curation import Curation
 from symbiont.store.held_back import SCHEMA as HELD_BACK_SCHEMA
 from symbiont.store.held_back import MiningLedger, MiningOutcome
+from symbiont.store.ignored import SCHEMA as IGNORED_SCHEMA
+from symbiont.store.ignored import IgnoredPatterns
 from symbiont.store.lesson_rows import lesson_from_json
 
 log = logging.getLogger("symbiont.store")
@@ -132,6 +134,7 @@ class Store:
         db = sqlite3.connect(path, check_same_thread=False)
         db.executescript(_SCHEMA)
         db.executescript(HELD_BACK_SCHEMA)
+        db.executescript(IGNORED_SCHEMA)
         _add_missing_authored_columns(db)
         _warn_about_legacy_history(db, path)
         return cls(db)
@@ -159,11 +162,17 @@ class Store:
         self.mined.save(project, new_sources, outcome, held_out_tasks=held_out_tasks)
 
     def lessons(self, project: str) -> list[Lesson]:
-        """The stored lessons of `project`, in the order they were mined."""
+        """The stored lessons of `project`, in the order they were mined, minus ignored patterns.
+
+        This is the one read every note, review and dashboard goes through, so an ignored
+        signature is left out everywhere at once; `ignored` lists what was left out.
+        """
         rows = self._db.execute(
             "SELECT body FROM lessons WHERE project=? ORDER BY rowid", (project,)
         ).fetchall()
-        return [lesson_from_json(body) for (body,) in rows]
+        ignored = self.ignored.signatures(project)
+        lessons = [lesson_from_json(body) for (body,) in rows]
+        return [item for item in lessons if item.pain_point.signature not in ignored]
 
     def forget_trained(
         self, project: str, manifest_path: Path, *, exported: Sequence[Lesson]
@@ -196,17 +205,15 @@ class Store:
         rows = self._db.execute("SELECT lesson_id FROM trained WHERE project=?", (project,))
         return frozenset(row[0] for row in rows)
 
-    def has_private_lessons(self, project: str) -> bool:
-        """True when any lesson of `project` came from a record that is not Spark-safe."""
-        row = self._db.execute(
-            "SELECT 1 FROM lessons WHERE project=? AND spark_safe=0 LIMIT 1", (project,)
-        ).fetchone()
-        return row is not None
-
     @property
     def mined(self) -> MiningLedger:
         """Saving a mining run, and reading what it held back, in the same database."""
         return MiningLedger(self._db)
+
+    @property
+    def ignored(self) -> IgnoredPatterns:
+        """Patterns the developer set aside, in the same database."""
+        return IgnoredPatterns(self._db)
 
     @property
     def contexts(self) -> LessonContexts:
