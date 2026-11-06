@@ -150,6 +150,7 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
     assert "501" not in html and "measured results" not in html
     assert "Every note it showed" not in html and "mockup" not in html.lower()
     assert get(f"{base}/dashboard/dashboard.js")[2].startswith("text/javascript")
+    assert get(f"{base}/dashboard/painlist.js")[2].startswith("text/javascript")
     assert get(f"{base}/dashboard/dashboard.css")[0] == 200
     assert "http://" not in get(f"{base}/dashboard/dashboard.js")[1].replace("http://127", "")
 
