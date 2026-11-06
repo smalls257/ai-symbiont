@@ -18,6 +18,7 @@ from symbiont.readers.claude_code import session_logs
 from symbiont.readers.muse_code import muse_store_root
 from symbiont.readers.muse_code import session_logs as muse_session_logs
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
+from symbiont.store.held_back import held_back_sentence, held_by_reason
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import read_dashboard_settings
 
@@ -137,6 +138,8 @@ def _ended(progress: dict[str, Any], counts: str) -> int:
         sys.stderr.write(f"symbiont repo mine: mining failed: {progress['error']}\n")
         return 1
     _say(f"learned {progress['lessons']} lessons from {counts}; they stay on this computer")
+    held = held_back_sentence(held_by_reason(progress.get("held_back", {})))
+    _say(f"kept {progress['lessons']} lessons" + (f"; {held}" if held else ""))
     return 0
 
 

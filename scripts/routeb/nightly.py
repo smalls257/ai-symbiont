@@ -27,7 +27,7 @@ from symbiont.routeb.lesson_rows import memory_system, training_rows, verify_que
 from symbiont.routeb.review_rows import KIND as REVIEW_KIND
 from symbiont.routeb.review_rows import review_rows
 from symbiont.store.local import ForgetMismatchError, Source, Store
-from symbiont.store.mining import MiningRules, remine
+from symbiont.store.mining import MiningRules, remine, screen_rules_from
 from symbiont.store.training import lessons_for_personal_model
 
 STEPS = ("mine", "export", "rows", "upload", "train", "install", "verify", "forget")
@@ -95,7 +95,9 @@ def mine(night: Night) -> None:
     if night.dry_run:
         night.say("  dry run: the stored lessons stand in for tonight's mining")
         return
-    rules = MiningRules(READERS, night.repo.held_out)
+    rules = MiningRules(
+        READERS, night.repo.held_out, screen=screen_rules_from(night.config.data_dir)
+    )
     try:
         lessons = remine(night.store, night.repo.project, rules, adding=sources)
     except (OSError, ValueError) as failed:  # unreadable log, unknown reader, held-out task

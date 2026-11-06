@@ -3,8 +3,8 @@
 Shared by lessons (what a note says was done) and Route B (what a model is trained to do), so the
 two never disagree about the fix. Finding nothing is an answer with a stated reason, never a
 guess. A failed command's fix is what changed before the later pass of the same program,
-subcommand and target; re-running it unchanged fixes nothing, and edits to files it never names
-are reported alongside.
+subcommand and target; re-running it unchanged or re-spelled fixes nothing, and edits to files it
+never names are reported alongside. A wrong invocation's fix is the corrected command.
 """
 
 import re
@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from symbiont.miner.changes import applied_edit, changes_workspace
 from symbiont.miner.commands import normalise_command, program_words
 from symbiont.miner.diffs import added_lines, removed_lines
+from symbiont.miner.failure_keys import is_invocation_failure
 from symbiont.miner.painpoint import PainPoint, Signal
 from symbiont.miner.same_check import reruns_same_check
 from symbiont.records.schema import Kind, Record
@@ -22,6 +23,9 @@ NO_LATER_SUCCESS = (
     "no later command with exit 0 on the same program and target followed the failure"
 )
 NOTHING_CHANGED = "the same command passed later with nothing changed in between"
+PASSED_RESPELLED = (
+    "it passed when run again with different arguments; nothing else changed in between"
+)
 ONLY_UNRELATED_CHANGED = (
     "the same command passed later; only changes to files it never names came between, "
     "so what made it pass is not known"
@@ -101,9 +105,22 @@ def _failed_command(
     if success is None:
         return NO_LATER_SUCCESS
     fixes, others = _changes_between(failed, success, records)
-    if not fixes and (success.command == failed.command or not _same_attempt(failed, success)):
+    if fixes:
+        return Resolution((*fixes, success), others)
+    return _unchanged_pass(pain, failed, success, others)
+
+
+def _unchanged_pass(
+    pain: PainPoint, failed: Record, success: Record, others: tuple[Record, ...]
+) -> Resolution | NoResolution:
+    """A pass with no change that bears on the failure: a fix only for a corrected invocation."""
+    if success.command == failed.command:
         return Unresolved(ONLY_UNRELATED_CHANGED, others) if others else NOTHING_CHANGED
-    return Resolution((*fixes, success), others)
+    if is_invocation_failure(pain.signature.key[-1]):
+        return Resolution((success,), others)
+    if _same_attempt(failed, success):
+        return Unresolved(PASSED_RESPELLED, others)
+    return Unresolved(ONLY_UNRELATED_CHANGED, others) if others else NOTHING_CHANGED
 
 
 def _changes_between(

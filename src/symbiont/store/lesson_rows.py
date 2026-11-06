@@ -1,8 +1,10 @@
 """Reading a lesson back from the JSON the lessons table stores."""
 
 import json
+from dataclasses import asdict
 from typing import Any
 
+from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 
@@ -25,6 +27,8 @@ def lesson_from_json(body: str) -> Lesson:
         # Rows written before these fields existed carry no error lines or files.
         error_lines=tuple(data.get("error_lines", ())),
         files=tuple(data.get("files", ())),
+        # Rows written before this field existed name no fix; a re-mining fills it in.
+        fix=FixKind(data["fix"]) if data.get("fix") else None,
     )
 
 
@@ -37,3 +41,14 @@ def pain_point_from_dict(data: dict[str, Any]) -> PainPoint:
         step=data["step"],
         record_refs=tuple((ref[0], ref[1]) for ref in data["record_refs"]),
     )
+
+
+def lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]:
+    """The lessons-table row for a lesson."""
+    pain = lesson.pain_point
+    return (project, pain.session_id, pain.step, lesson.spark_safe, lesson_json(lesson))
+
+
+def lesson_json(lesson: Lesson) -> str:
+    """Serialize a lesson for the lessons table."""
+    return json.dumps(asdict(lesson))

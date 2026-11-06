@@ -40,6 +40,17 @@ def program_words(command: str) -> tuple[str, tuple[str, ...]]:
     return (program, tuple(args))
 
 
+def inline_script_program(command: str) -> str | None:
+    """`python` when the command runs a script typed into it (`python - <<EOF`, `python -c`).
+
+    Such scripts have no file name to key on, and each one is different, so they share one key.
+    """
+    program, args = program_words(command)
+    if not _PYTHONS.match(program) or not args:
+        return None
+    return "python" if args[0] == "-" or args[0] == "-c" else None
+
+
 def status_program(command: str) -> str | None:
     """The program whose exit status the shell reports for `command`, or None if unclear."""
     chain = _final_and_or_list(_tokens(command))

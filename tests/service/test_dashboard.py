@@ -222,3 +222,33 @@ def test_the_mine_address_without_any_job_shows_the_dashboard_not_an_empty_stage
     page = dashboard_page(store, None, "/dashboard?project=demo&mining=1", TODAY, Live())
 
     assert _mining_shell(page) is None
+
+
+def test_the_snapshot_shows_struggle_churn_and_held_back_counts_but_no_lessons_for_them():
+    from datetime import date
+
+    from symbiont.miner.churn import FileChurn
+    from symbiont.miner.painpoint import Signal, Signature
+    from symbiont.miner.screen import HoldReason
+    from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
+    from symbiont.store.held_back import StruggleGroup
+
+    trap = Signature(Signal.FAILED_COMMAND, ("make", "lint", "exit 2"))
+    view = RepoView(
+        "demo",
+        [],
+        {},
+        {},
+        held_back={HoldReason.NO_FIX_SHOWN: 3},
+        struggle=[StruggleGroup(trap, sessions=4, occurrences=10)],
+        churn=[FileChurn("a.py", "s1", 3), FileChurn("a.py", "s2", 2), FileChurn("b.py", "s1", 1)],
+    )
+    shown = dashboard_snapshot(view, date(2026, 11, 6))
+    assert shown["heldBack"] == {"no_fix_shown": 3}
+    assert shown["painPoints"] == [] and shown["lessons"] == []
+    assert (shown["struggle"][0]["sessions"], shown["struggle"][0]["occurrences"]) == (4, 10)
+    assert shown["struggle"][0]["minutes"] == 7.0
+    assert shown["churn"] == [
+        {"file": "a.py", "edits": 5, "sessions": 2},
+        {"file": "b.py", "edits": 1, "sessions": 1},
+    ]

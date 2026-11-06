@@ -269,6 +269,9 @@ def main() -> int:
     top = Path(tempfile.mkdtemp(prefix="symbiont-demo-"))
     rig = Rig(home=top / "home", work=top / "work" / PROJECT, data=top / "data")
     rig.home.mkdir(parents=True)
+    # One recorded session is the whole history, so a trap is taught after one sighting.
+    rig.data.mkdir(parents=True)
+    (rig.data / "settings.json").write_text(json.dumps({"mining": {"min_sessions": 1}}))
     try:
         demo(rig)
     except DemoError as failed:

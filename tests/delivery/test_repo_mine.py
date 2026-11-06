@@ -15,6 +15,7 @@ from symbiont.delivery import open_page
 from symbiont.delivery.recall import call_service
 from symbiont.service.asking import ServiceUnavailableError
 from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.settings import write_mining_setting
 
 pytestmark = pytest.mark.periphery
 
@@ -31,6 +32,7 @@ class Desk:
         monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
         install_claude_session(self.home, self.repo, claude_log())
         RepoRegistry(self.data).record_stance(project, RepoStance.GIVEN)
+        write_mining_setting(self.data, "min_sessions", 1)  # one fixture session
         self.opened: list[str] = []
         self.calls: list[str] = []
 

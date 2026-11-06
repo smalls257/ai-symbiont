@@ -11,17 +11,19 @@ import logging
 import shlex
 import sqlite3
 from collections.abc import Iterable, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 from symbiont.miner.lessons import Lesson, spark_allowed
 from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.secrets import scrubbed
-from symbiont.miner.trained import lesson_id, refuse_held_out_lessons, training_manifest
+from symbiont.miner.trained import lesson_id, training_manifest
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.store.catalog import LessonCatalog
 from symbiont.store.contexts import LessonContexts
 from symbiont.store.curation import Curation
+from symbiont.store.held_back import SCHEMA as HELD_BACK_SCHEMA
+from symbiont.store.held_back import MiningLedger, MiningOutcome
 from symbiont.store.lesson_rows import lesson_from_json
 
 log = logging.getLogger("symbiont.store")
@@ -129,6 +131,7 @@ class Store:
         # The threaded service shares one store; it serializes every call under its own lock.
         db = sqlite3.connect(path, check_same_thread=False)
         db.executescript(_SCHEMA)
+        db.executescript(HELD_BACK_SCHEMA)
         _add_missing_authored_columns(db)
         _warn_about_legacy_history(db, path)
         return cls(db)
@@ -148,21 +151,12 @@ class Store:
         *,
         held_out_tasks: frozenset[str],
     ) -> None:
-        """Register `new_sources` and replace `project`'s lessons, in one transaction.
+        """Register `new_sources` and replace `project`'s lessons; nothing was held back.
 
         Raises HoldOutViolationError, writing nothing, when a lesson quotes a held-out task.
         """
-        refuse_held_out_lessons(lessons, held_out_tasks)
-        with self._db:
-            self._db.executemany(
-                "INSERT OR IGNORE INTO sources VALUES (?, ?, ?)",
-                [(s.project, s.reader, s.path) for s in new_sources],
-            )
-            self._db.execute("DELETE FROM lessons WHERE project=?", (project,))
-            self._db.executemany(
-                "INSERT INTO lessons VALUES (?, ?, ?, ?, ?)",
-                [_lesson_row(project, lesson) for lesson in lessons],
-            )
+        outcome = MiningOutcome(list(lessons))
+        self.mined.save(project, new_sources, outcome, held_out_tasks=held_out_tasks)
 
     def lessons(self, project: str) -> list[Lesson]:
         """The stored lessons of `project`, in the order they were mined."""
@@ -170,10 +164,6 @@ class Store:
             "SELECT body FROM lessons WHERE project=? ORDER BY rowid", (project,)
         ).fetchall()
         return [lesson_from_json(body) for (body,) in rows]
-
-    def pain_points(self, project: str) -> list[PainPoint]:
-        """The pain points behind `project`'s lessons, in the order they were mined."""
-        return [lesson.pain_point for lesson in self.lessons(project)]
 
     def forget_trained(
         self, project: str, manifest_path: Path, *, exported: Sequence[Lesson]
@@ -212,6 +202,11 @@ class Store:
             "SELECT 1 FROM lessons WHERE project=? AND spark_safe=0 LIMIT 1", (project,)
         ).fetchone()
         return row is not None
+
+    @property
+    def mined(self) -> MiningLedger:
+        """Saving a mining run, and reading what it held back, in the same database."""
+        return MiningLedger(self._db)
 
     @property
     def contexts(self) -> LessonContexts:
@@ -273,17 +268,3 @@ def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
             shlex.quote(str(path)),
             shlex.quote(" ".join(f"DROP TABLE {name};" for name in legacy)),
         )
-
-
-# --- serialization -------------------------------------------------------------
-
-
-def _lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]:
-    """The lessons-table row for a lesson."""
-    pain = lesson.pain_point
-    return (project, pain.session_id, pain.step, lesson.spark_safe, _lesson_json(lesson))
-
-
-def _lesson_json(lesson: Lesson) -> str:
-    """Serialize a lesson for the lessons table."""
-    return json.dumps(asdict(lesson))

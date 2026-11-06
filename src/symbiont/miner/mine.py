@@ -1,9 +1,9 @@
 """Every pain-point signal, in one call.
 
 Callers use this rather than each signal, so a new signal is one line here. A chain is a
-developer's sessions on one repo in the order they ran; most signals look inside one session,
-reworked edits also look across the chain. Parallel attempts at the same task are not a chain:
-pass each alone.
+developer's sessions on one repo in the order they ran; every signal looks inside one session.
+Rework is no longer a signal: it is a churn measure (`miner.churn`). Parallel attempts at the
+same task are not a chain: pass each alone.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
@@ -14,7 +14,6 @@ from symbiont.miner.signals.correction import find_corrections
 from symbiont.miner.signals.failed_command import find_failed_commands
 from symbiont.miner.signals.loop import find_loops
 from symbiont.miner.signals.review_flag import find_review_flags
-from symbiont.miner.signals.reworked_edit import find_reworked_edits
 from symbiont.records.schema import Record
 
 References = Mapping[str, frozenset[str]]
@@ -26,9 +25,7 @@ def mine_chain(sessions: Sequence[Sequence[Record]], references: References) -> 
     `references[path]` = files that import or name `path` (see blast_radius); `{}`
     when there is no repo checkout, and blast radius then finds nothing.
     """
-    found = [p for session in sessions for p in _within_session(session, references)]
-    found += find_reworked_edits([record for session in sessions for record in session])
-    return found
+    return [p for session in sessions for p in _within_session(session, references)]
 
 
 def mine_session(session: Sequence[Record], references: References) -> list[PainPoint]:

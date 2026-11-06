@@ -7,6 +7,7 @@ import pytest
 from record_builders import PUBLIC, edit, run, session, user
 from symbiont.delivery.hooks import DATASET_PREFIX
 from symbiont.miner.lessons import spark_allowed
+from symbiont.miner.screen import ScreenRules
 from symbiont.records.privacy import LIVE_DATASET_PREFIX, OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.store.consent import ConsentFileError, read_consent, record_consent
@@ -32,7 +33,12 @@ def read_records_jsonl(path, project):
 
 
 def failing(session_id, provenance, command="pytest tests/test_cart.py"):
-    records = session(user("fix it"), run(command, 1, "ImportError: x"), edit("cart.py"))
+    records = session(
+        user("fix it"),
+        run(command, 1, "cart.py:1\nImportError: x"),
+        edit("app/cart.py"),
+        run(command, 0, "ok"),
+    )
     return [
         replace(r, project=PROJECT, session_id=session_id, provenance=provenance) for r in records
     ]
@@ -46,7 +52,10 @@ def store_with(tmp_path, *sessions):
         with path.open("w") as fh:
             dump_jsonl(records, fh)
         sources.append(Source(PROJECT, READER, str(path)))
-    remine(store, PROJECT, MiningRules({READER: read_records_jsonl}, frozenset()), adding=sources)
+    rules = MiningRules(
+        {READER: read_records_jsonl}, frozenset(), screen=ScreenRules(min_sessions=1)
+    )
+    remine(store, PROJECT, rules, adding=sources)
     return store
 
 

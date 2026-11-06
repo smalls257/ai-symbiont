@@ -4,7 +4,7 @@ from dataclasses import replace
 
 import pytest
 
-from record_builders import run, session
+from record_builders import edit, run, session
 from symbiont import cli
 from symbiont.records.schema import dump_jsonl, load_jsonl
 
@@ -21,7 +21,9 @@ def read_records_jsonl(path, project):
 @pytest.fixture
 def logs(tmp_path, monkeypatch):
     monkeypatch.setattr(cli, "READERS", {"records-jsonl": read_records_jsonl})
-    fixed = session(run(TEST, 1, "ImportError"), run("pip install pyyaml"), run(TEST, 0, "ok"))
+    fixed = session(
+        run(TEST, 1, "app/parser.py:1 ImportError"), edit("app/parser.py"), run(TEST, 0, "ok")
+    )
     never = [replace(r, session_id="s2") for r in session(run(TEST, 1, "ImportError"))]
     path = tmp_path / "log.jsonl"
     with path.open("w") as fh:

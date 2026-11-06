@@ -13,12 +13,17 @@ from typing import Any
 from symbiont.core.failure_signature import failure_detail
 from symbiont.core.notes import happened, render_lesson, resolution_clause
 from symbiont.core.rule_relevance import situation_terms
+from symbiont.miner.churn import FileChurn
 from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review, Verdict
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
+from symbiont.miner.screen import HoldReason
 from symbiont.miner.trained import lesson_id
+from symbiont.store.held_back import StruggleGroup
 
 REPLAY_DAYS = 30
+STRUGGLE_SHOWN = 20
+CHURN_SHOWN = 20
 MINUTES_PER_TURN = 0.7
 KIND_OF_SIGNAL = {
     Signal.FAILED_COMMAND: "repeat",
@@ -45,6 +50,11 @@ class RepoView:
     annotated: frozenset[str] = frozenset()
     # The nightly state (`never`, `trained` or `stale` with its sentence), or None when unknown.
     nightly: Mapping[str, object] | None = None
+    # What the last mining counted instead of teaching: groups held back per reason, failures
+    # that never showed a fix, and edits per file (churn).
+    held_back: Mapping[HoldReason, int] = field(default_factory=dict)
+    struggle: Sequence[StruggleGroup] = ()
+    churn: Sequence[FileChurn] = ()
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
@@ -78,7 +88,39 @@ def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
         "lessons": [lesson for _, lesson in points],
         "replay": _replay([p for p, _ in points], days, (today - first).days),
         "nightly": dict(view.nightly) if view.nightly is not None else None,
+        **_counted_not_taught(view),
     }
+
+
+def _counted_not_taught(view: RepoView) -> dict[str, Any]:
+    """What mining held back, the failures with no shown fix, and where files churned."""
+    return {
+        "heldBack": {reason.value: count for reason, count in view.held_back.items()},
+        "struggle": [_struggle_entry(group) for group in view.struggle[:STRUGGLE_SHOWN]],
+        "churn": _churn_entries(view.churn),
+    }
+
+
+def _struggle_entry(group: StruggleGroup) -> dict[str, Any]:
+    """A failure that never showed a fix: counted with its cost, never turned into a note."""
+    return {
+        "what": happened(group.signature),
+        "sessions": group.sessions,
+        "occurrences": group.occurrences,
+        # One turn per failure is the least it cost: an estimate, not a measurement.
+        "minutes": round(group.occurrences * MINUTES_PER_TURN, 1),
+    }
+
+
+def _churn_entries(churn: Sequence[FileChurn]) -> list[dict[str, Any]]:
+    """The files edited most across sessions: where agents struggle with the code itself."""
+    edits: dict[str, int] = defaultdict(int)
+    sessions: dict[str, int] = defaultdict(int)
+    for row in churn:
+        edits[row.file] += row.edits
+        sessions[row.file] += 1
+    ranked = sorted(edits, key=lambda file: (-edits[file], file))[:CHURN_SHOWN]
+    return [{"file": f, "edits": edits[f], "sessions": sessions[f]} for f in ranked]
 
 
 def _session_order(

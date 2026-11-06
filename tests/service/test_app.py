@@ -6,6 +6,7 @@ import pytest
 from record_builders import PUBLIC, edit, run, session, user
 from symbiont.core.counters import Counters
 from symbiont.core.similarity import Similarity
+from symbiont.miner.screen import ScreenRules
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.service.app import (
     NOTHING_MATCHES,
@@ -26,7 +27,12 @@ COMMAND = "pytest tests/test_parser.py"
 
 
 def failing_session(session_id, provenance=PUBLIC):
-    records = session(user("fix it"), run(COMMAND, 1, "AssertionError"), edit("sqlglot/parser.py"))
+    records = session(
+        user("fix it"),
+        run(COMMAND, 1, "sqlglot/parser.py:1\nAssertionError"),
+        edit("sqlglot/parser.py"),
+        run(COMMAND, 0, "1 passed"),
+    )
     return [replace(r, session_id=session_id, provenance=provenance) for r in records]
 
 
@@ -41,6 +47,7 @@ def read_records_jsonl(path, project):
 
 
 READERS = {READER: read_records_jsonl}
+ONE_SESSION = ScreenRules(min_sessions=1)  # the fixtures are one-session traps
 
 
 def write_log(path, records):
@@ -55,7 +62,7 @@ def make_store(tmp_path, *sessions):
     store = Store.open(tmp_path / "store.db")
     logs = [write_log(tmp_path / f"log{i}.jsonl", s) for i, s in enumerate(sessions)]
     sources = [Source(PROJECT, READER, str(log)) for log in logs]
-    remine(store, PROJECT, MiningRules(READERS, frozenset()), adding=sources)
+    remine(store, PROJECT, MiningRules(READERS, frozenset(), screen=ONE_SESSION), adding=sources)
     return store
 
 
@@ -63,7 +70,15 @@ def make_service(
     tmp_path, store, mode=ServiceMode.WARN_AND_RECALL, decider=None, held_out=(), readers=READERS
 ):
     events = EventLog(tmp_path / "run", "counters")
-    parts = ServiceParts(store, decider or Counters(), events, mode, frozenset(held_out), readers)
+    parts = ServiceParts(
+        store,
+        decider or Counters(),
+        events,
+        mode,
+        frozenset(held_out),
+        readers,
+        screen_rules=lambda: ONE_SESSION,
+    )
     return Service(parts), events
 
 
@@ -172,7 +187,7 @@ def test_learn_updates_state_between_sessions(tmp_path):
     service, events = make_service(tmp_path, make_store(tmp_path), decider=spy)
     service.respond("/observe", observe_body())
     learned = service.respond("/learn", learn_body(log))
-    assert learned.status == 200 and learned.body["learned_steps"] == 3
+    assert learned.status == 200 and learned.body["learned_steps"] == 4
     service.respond("/observe", observe_body("second"))
     assert spy.seen[0] == frozenset() and len(spy.seen[-1]) == 1
     assert events_of(events)[-2]["hook"] == "learn"
@@ -201,7 +216,7 @@ def test_learn_re_reads_every_registered_log_and_keeps_only_lessons(tmp_path):
     service, _ = make_service(tmp_path, store)
     log = write_log(tmp_path / "b.jsonl", failing_session("b"))
     assert service.respond("/learn", learn_body(log)).status == 200
-    assert [p.session_id for p in store.pain_points(PROJECT)] == ["a", "b"]
+    assert [x.pain_point.session_id for x in store.lessons(PROJECT)] == ["a", "b"]
     assert len(store.sources(PROJECT)) == 2
 
 

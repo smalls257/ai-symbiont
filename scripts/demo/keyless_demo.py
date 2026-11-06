@@ -25,6 +25,7 @@ sys.path.insert(0, str(HERE))
 import ledger_session as session  # noqa: E402
 
 from symbiont.delivery.recall import call_service  # noqa: E402
+from symbiont.store.settings import write_mining_setting  # noqa: E402
 
 LEDGER = HERE.parents[1] / "examples" / "ledger"
 PROJECT = "ledger"
@@ -222,6 +223,8 @@ def main() -> int:
         repo = make_ledger_repo(root)
         session.install_session(Path(env["HOME"]), repo)
         desk = Desk(repo, root / "data", free_port(), env)
+        # The demo's history is one hand-written session, so a trap is taught after one sighting.
+        write_mining_setting(desk.data, "min_sessions", 1)
         say("symbiont keyless demo: a synthetic ledger repository, replayed, offline.")
         with running_service(desk):
             narrate_flow(desk)
