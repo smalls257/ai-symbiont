@@ -94,7 +94,10 @@ def test_the_curation_running_in_check_accepts_it():
         route_and_body("symbiont_correction_candidates", {}, {}, KNOWN)
 
 
-def test_past_session_discovery_asks_it_for_its_logs(tmp_path, capsys):
+def test_past_session_discovery_asks_it_for_its_logs(tmp_path, monkeypatch):
+    monkeypatch.setenv("HOME", str(tmp_path / "home"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "home"))  # Path.home() on Windows
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
     RepoRegistry(tmp_path).record_stance("demo", RepoStance.GIVEN)
     asked: list[tuple[str, dict]] = []
 
