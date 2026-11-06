@@ -323,8 +323,10 @@ def _text(item: dict[str, Any], key: str) -> str:
 
 
 def _optional_text(item: dict[str, Any], key: str) -> str:
-    """A string field that may be absent; a present one of another type is refused, not coerced."""
-    value = item.get(key, "")
+    """A string field that may be absent or null; any other non-text is refused, not coerced."""
+    value = item.get(key)
+    if value is None:
+        return ""
     if not isinstance(value, str):
         raise BadRequestError(f"{key} must be text")
     return value.strip()

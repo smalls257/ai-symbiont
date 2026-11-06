@@ -297,3 +297,15 @@ def test_a_summary_that_is_not_text_is_refused_naming_the_field(tmp_path):
 
     with pytest.raises(BadRequestError, match="summary must be text"):
         routes.save_reviews({"project": PROJECT, "reviews": [item]})
+
+
+def test_a_null_summary_is_an_absent_one_not_a_refusal_of_the_whole_batch(tmp_path):
+    """Failure guarded against: one review with `summary: null` rejecting every review sent."""
+    routes, store, lessons = rig(tmp_path)
+    ident = lesson_id(lessons[0])
+
+    routes.save_reviews(
+        {"project": PROJECT, "reviews": [{"id": ident, "verdict": "mistake", "summary": None}]}
+    )
+
+    assert store.curation.reviews(PROJECT)[ident].summary == ""
