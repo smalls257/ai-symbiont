@@ -5,6 +5,7 @@ import threading
 
 import pytest
 
+from store_builders import save_lessons
 from symbiont import cli
 from symbiont.delivery import hooks, launch
 from symbiont.delivery.hooks import (
@@ -342,8 +343,8 @@ def test_a_failure_repeated_through_the_real_hook_gets_the_last_time_note(
         run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     records = [replace(r, project="demo") for r in steps]
-    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
-    Store.open(tmp_path / "store.db").save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
+    save_lessons(Store.open(tmp_path / "store.db"), "demo", [], lessons, held_out_tasks=frozenset())
     registry = RepoRegistry(tmp_path)
     registry.record_stance("demo", RepoStance.GIVEN)
     httpd = server.bind(

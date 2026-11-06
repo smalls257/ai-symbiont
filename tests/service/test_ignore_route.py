@@ -14,6 +14,7 @@ from dataclasses import replace
 import pytest
 
 from record_builders import edit, run, session
+from store_builders import save_lessons
 from symbiont.core.counters import Counters
 from symbiont.miner.lesson_context import Review, Verdict
 from symbiont.miner.lessons import lessons_from
@@ -45,7 +46,7 @@ def lessons_in(*session_ids):
                 run("pytest tests/test_parser.py", 0, "1 passed"),
             )
         ]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
 
 def rig(tmp_path, *, allow):
@@ -53,7 +54,9 @@ def rig(tmp_path, *, allow):
     if allow:
         registry.record_stance(PROJECT, RepoStance.GIVEN)
     lessons = lessons_in("a", "b")
-    Store.open(tmp_path / "store.db").save_mining(PROJECT, [], lessons, held_out_tasks=frozenset())
+    save_lessons(
+        Store.open(tmp_path / "store.db"), PROJECT, [], lessons, held_out_tasks=frozenset()
+    )
     service = open_service(tmp_path, ServiceMode.RECALL_ONLY, guards=Guards(repos=registry))
     return service, lesson_id(lessons[-1])
 
@@ -139,7 +142,7 @@ def merged_rig(tmp_path):
     registry.record_stance(PROJECT, RepoStance.GIVEN)
     first, second = lessons_in("a", "b")[-1], other_trouble("c")
     store = Store.open(tmp_path / "store.db")
-    store.save_mining(PROJECT, [], [first, second], held_out_tasks=frozenset())
+    save_lessons(store, PROJECT, [], [first, second], held_out_tasks=frozenset())
     store.curation.save_review(
         PROJECT,
         lesson_id(second),

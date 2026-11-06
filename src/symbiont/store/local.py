@@ -11,7 +11,7 @@ import json
 import logging
 import shlex
 import sqlite3
-from collections.abc import Iterable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,7 +24,7 @@ from symbiont.store.catalog import LessonCatalog
 from symbiont.store.contexts import LessonContexts
 from symbiont.store.curation import Curation
 from symbiont.store.held_back import SCHEMA as HELD_BACK_SCHEMA
-from symbiont.store.held_back import MiningLedger, MiningOutcome
+from symbiont.store.held_back import MiningLedger
 from symbiont.store.ignored import SCHEMA as IGNORED_SCHEMA
 from symbiont.store.ignored import IgnoredPatterns
 from symbiont.store.lesson_rows import lesson_from_json
@@ -184,21 +184,6 @@ class Store:
             "SELECT reader, path FROM sources WHERE project=? ORDER BY rowid", (project,)
         ).fetchall()
         return [Source(project, reader, path) for reader, path in rows]
-
-    def save_mining(
-        self,
-        project: str,
-        new_sources: Iterable[Source],
-        lessons: Sequence[Lesson],
-        *,
-        held_out_tasks: frozenset[str],
-    ) -> None:
-        """Register `new_sources` and replace `project`'s lessons; nothing was held back.
-
-        Raises HoldOutViolationError, writing nothing, when a lesson quotes a held-out task.
-        """
-        outcome = MiningOutcome(list(lessons))
-        self.mined.save(project, new_sources, outcome, held_out_tasks=held_out_tasks)
 
     def lessons(self, project: str) -> list[Lesson]:
         """The stored lessons of `project`, in the order they were mined, minus ignored patterns.

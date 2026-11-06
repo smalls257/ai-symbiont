@@ -12,6 +12,7 @@ from dataclasses import replace
 import pytest
 
 from record_builders import PUBLIC, edit, replace_text, run, session, user
+from store_builders import save_lessons
 from symbiont.eval.training_manifest import check_manifest_against_hold_out
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.screen import ScreenRules
@@ -237,7 +238,9 @@ def test_the_memory_model_is_not_offered_lessons_it_was_trained_on(tmp_path, sto
 def test_the_write_path_itself_refuses_a_held_out_lesson(tmp_path, store):
     (lesson,) = remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "a", failing_session())])
     with pytest.raises(HoldOutViolationError):
-        store.save_mining(PROJECT, [], [lesson], held_out_tasks=frozenset({"tobymao/sqlglot#1000"}))
+        save_lessons(
+            store, PROJECT, [], [lesson], held_out_tasks=frozenset({"tobymao/sqlglot#1000"})
+        )
     assert store.lessons(PROJECT) == [lesson]
 
 
@@ -293,7 +296,7 @@ def test_a_lesson_row_from_before_the_turn_fields_reads_empty_context():
     from symbiont.store.lesson_rows import lesson_from_json
 
     records = failing_session()
-    (lesson,) = lessons_from(mine_history(sessions_of(records), {}), records)
+    (lesson,) = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
     data = asdict(lesson)
     del data["asked"], data["agent_intent"]
 

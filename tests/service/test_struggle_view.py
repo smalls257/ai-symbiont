@@ -30,7 +30,7 @@ def lessons_in(*session_ids):
                 run("pytest tests/test_parser.py", 0, "1 passed"),
             )
         ]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
 
 def facts(sid, *, themes=(), patterns=(), turns=0, outcomes=None, struggled=False):

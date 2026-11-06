@@ -117,7 +117,8 @@ def mine_sources(
     for source in sources:
         read = read_source(source, rules.readers)
         records += read
-        on_read(lessons_from(mine_history(sessions_of(read), rules.references), read))
+        names = rules.repo_names | {source.project}
+        on_read(lessons_from(mine_history(sessions_of(read), rules.references), read, names))
     refuse_held_out(records, rules.held_out_tasks)
     return mined_outcome(records, rules, sources[0].project if sources else "")
 

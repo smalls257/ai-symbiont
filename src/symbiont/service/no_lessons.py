@@ -18,7 +18,9 @@ THE_RULE = (
 
 def no_lessons_sentence(held: Mapping[HoldReason, int], min_sessions: int) -> str:
     """Why no lesson was formed, from the main reason groups were held back."""
-    counts = {reason: n for reason, n in held.items() if n and reason is not HoldReason.IGNORED}
+    counts: dict[HoldReason, int] = {
+        reason: n for reason, n in held.items() if n and reason is not HoldReason.IGNORED
+    }
     if not counts:
         if held.get(HoldReason.IGNORED):
             return "No lesson is active: every lesson was set aside by you. Restore one to use it."

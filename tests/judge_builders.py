@@ -2,6 +2,7 @@
 
 import json
 
+from store_builders import save_lessons
 from symbiont.core.counters import Counters
 from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
@@ -40,8 +41,8 @@ def judge_saying(p_yes):
 def service_with(tmp_path, judge):
     store = Store.open(tmp_path / "store.db")
     lessons = [lesson(index, "ran `a`") for index in range(40)] + [lesson(7, "ran `b`")]
-    store.save_mining(
-        PROJECT, [Source(PROJECT, "claude_code", "x")], lessons, held_out_tasks=frozenset()
+    save_lessons(
+        store, PROJECT, [Source(PROJECT, "claude_code", "x")], lessons, held_out_tasks=frozenset()
     )
     parts = ServiceParts(
         store, Counters(), EventLog(tmp_path / "run", "c"), ServiceMode.RECALL_ONLY, judge=judge

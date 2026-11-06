@@ -81,9 +81,9 @@ class Coverage:
 def lessons_from(
     pain_points: Iterable[PainPoint],
     records: Sequence[Record],
-    repo_names: frozenset[str] = frozenset(),
+    repo_names: frozenset[str],
 ) -> list[Lesson]:
-    """Build one lesson per pain point; each fix is searched in its own session's records only.
+    """One lesson per pain point; its fix is searched in its own session, in `repo_names` dirs.
 
     Raises LookupError naming the reference when a cited record is missing:
     a lesson without its evidence would be a quote of nothing.

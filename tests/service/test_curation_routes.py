@@ -7,6 +7,7 @@ to another's session model, and a verdict that does not change what the note say
 import pytest
 
 from record_builders import edit, run, session, user
+from store_builders import save_lessons
 from symbiont.miner.lesson_context import LessonContext, Priority
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -48,9 +49,9 @@ def rig(tmp_path, harness="muse-code", settings=None, *, allow=True):
     with log.open("w") as fh:
         dump_jsonl(records, fh)
     store = Store.open(tmp_path / "s.db")
-    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
-    store.save_mining(
-        PROJECT, [Source(PROJECT, harness, str(log))], lessons, held_out_tasks=frozenset()
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
+    save_lessons(
+        store, PROJECT, [Source(PROJECT, harness, str(log))], lessons, held_out_tasks=frozenset()
     )
     registry = RepoRegistry(tmp_path)
     if allow:
