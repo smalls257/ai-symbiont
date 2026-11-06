@@ -6,12 +6,11 @@ harness-written user turns) is skipped, counted and logged; malformed shapes rai
 `read` is for private sessions: unknown privacy is never shareable.
 """
 
-import difflib
 import json
 import logging
 import re
 from collections import Counter
-from collections.abc import Callable, Iterator
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -22,6 +21,8 @@ from symbiont.readers.claude_code_fields import (
     require,
     require_text,
 )
+from symbiont.readers.claude_code_tags import TITLE_EVENT, EventTags, remember_title
+from symbiont.readers.claude_code_tools import TOOLS, make_relative, other_tool
 from symbiont.readers.errors import ReadError
 from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAMES, split_our_output
 from symbiont.records.output_failure import exit_code_with_output
@@ -83,7 +84,9 @@ def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
 
 def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
     """Yield one session's records; each tool result is folded into the action it answers."""
-    events = _conversation_events(Path(path))
+    titles: dict[str, str] = {}
+    events = _conversation_events(Path(path), titles)
+    tagger = EventTags(titles)
     results = _results_by_call(path, events)
     source = _Source(project, provenance)
     steps: dict[str, int] = {}
@@ -94,6 +97,11 @@ def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
                 session_id = require_text(event, "sessionId")
                 step = steps.get(session_id, 0)
                 steps[session_id] = step + 1
+                first_turn = fields["kind"] == Kind.USER_TURN
+                fields["tags"] = (
+                    *fields.get("tags", ()),
+                    *tagger.of(event, session_id, first_user_turn=first_turn),
+                )
                 yield _record(event, source, session_id, step, fields)
         except MalformedError as exc:
             raise ReadError(path, line_no, str(exc)) from exc
@@ -101,8 +109,11 @@ def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
         logger.warning("skipped content in %s: %s", path, dict(skips))
 
 
-def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
-    """User and assistant events; metadata events are counted and logged, not dropped silently."""
+def _conversation_events(path: Path, titles: dict[str, str]) -> list[tuple[int, dict[str, Any]]]:
+    """User and assistant events; metadata events are counted and logged, not dropped silently.
+
+    The session titles `ai-title` events carry are put into `titles`.
+    """
     events = []
     skipped: Counter[str] = Counter()
     with path.open(encoding="utf-8") as fh:
@@ -115,11 +126,21 @@ def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
                 raise ReadError(path, line_no, "a line must hold one event object")
             if _is_metadata(path, line_no, event):
                 skipped[event["type"]] += 1
+                _keep_title(path, line_no, event, titles)
             else:
                 events.append((line_no, event))
     if skipped:
         logger.info("skipped metadata events in %s: %s", path, dict(skipped))
     return events
+
+
+def _keep_title(path: Path, line_no: int, event: dict[str, Any], titles: dict[str, str]) -> None:
+    """Remember a session's title; a malformed `ai-title` event raises ReadError."""
+    try:
+        if event["type"] == TITLE_EVENT:
+            remember_title(event, titles)
+    except MalformedError as exc:
+        raise ReadError(path, line_no, str(exc)) from exc
 
 
 def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
@@ -258,7 +279,7 @@ def _tool_use(
     text = _result_content(result)
     # Our recall answer is ours from the first character.
     own, ours = ("", text) if name in RECALL_TOOL_NAMES else split_our_output(text)
-    fields = _TOOLS.get(name, _other_tool)(name, args, _make_relative(cwd))
+    fields = TOOLS.get(name, other_tool)(name, args, make_relative(cwd))
     fields["raw"] = own
     code = _exit_code(fields["kind"], result, own)
     if fields["kind"] == Kind.COMMAND:
@@ -293,106 +314,3 @@ def _exit_code(kind: Kind, result: dict[str, Any] | None, raw: str) -> int | Non
             return int(found.group(1))
         return None if result.get("is_error") else 0
     return 1 if result.get("is_error") else 0
-
-
-# --- tools ---------------------------------------------------------------------
-
-
-def _make_relative(cwd: str | None) -> Callable[[str], str]:
-    """A function that strips the session's cwd from absolute paths."""
-
-    def relative(path: str) -> str:
-        """The path relative to the session's cwd when it is inside it."""
-        if cwd and path.startswith(cwd.rstrip("/") + "/"):
-            return path[len(cwd.rstrip("/")) + 1 :]
-        return path
-
-    return relative
-
-
-def _bash(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """A shell command action."""
-    return {"kind": Kind.COMMAND, "command": require_text(args, "command")}
-
-
-def _read_file(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """A file-view action with the lines shown."""
-    return {
-        "kind": Kind.READ,
-        "files": (relative(require_text(args, "file_path")),),
-        "line_range": _read_range(args),
-    }
-
-
-def _read_range(args: dict[str, Any]) -> tuple[int, int] | None:
-    """(first, last) line shown from offset and limit; None for a whole-file read."""
-    offset, limit = args.get("offset"), args.get("limit")
-    if offset is None and limit is None:
-        return None
-    if not all(isinstance(v, int) for v in (offset or 1, limit or 1)):
-        raise MalformedError(f"Read offset and limit must be integers, got {offset!r}, {limit!r}")
-    first = offset or 1
-    return (first, first + limit - 1) if limit else (first, -1)
-
-
-def _edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """An edit action with a snippet-level diff."""
-    path = relative(require_text(args, "file_path"))
-    pairs = [(require_text(args, "old_string"), optional_text(args, "new_string"))]
-    return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
-
-
-def _multi_edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """One edit action for a MultiEdit call, its diffs joined in order."""
-    path = relative(require_text(args, "file_path"))
-    edits = require(args, "edits")
-    if not isinstance(edits, list):
-        raise MalformedError("MultiEdit 'edits' must be a list")
-    pairs = [(require_text(e, "old_string"), optional_text(e, "new_string")) for e in edits]
-    return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
-
-
-def _write(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """A whole-file write as an edit against /dev/null."""
-    path = relative(require_text(args, "file_path"))
-    return {
-        "kind": Kind.EDIT,
-        "files": (path,),
-        "diff": _diff(path, [("", require_text(args, "content"))], "/dev/null"),
-    }
-
-
-def _notebook_edit(
-    name: str, args: dict[str, Any], relative: Callable[[str], str]
-) -> dict[str, Any]:
-    """A notebook edit action; the previous cell text is not logged, so there is no diff."""
-    return {"kind": Kind.EDIT, "files": (relative(require_text(args, "notebook_path")),)}
-
-
-def _other_tool(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """Search, planning and MCP tools: kept as results so nothing is dropped."""
-    return {"kind": Kind.TOOL_RESULT, "command": name}
-
-
-def _diff(path: str, pairs: list[tuple[str, str]], old_name: str) -> str:
-    """Unified diff of each old/new pair, labeled with the file's path."""
-    # Claude Code does not record where old_string sits; hunk numbers are snippet-relative.
-    return "".join(
-        "".join(difflib.unified_diff(_lines(old), _lines(new), old_name, f"b/{path}"))
-        for old, new in pairs
-    )
-
-
-def _lines(text: str) -> list[str]:
-    """Text split into newline-terminated lines for difflib."""
-    return [line + "\n" for line in text.splitlines()]
-
-
-_TOOLS: dict[str, Callable[[str, dict[str, Any], Callable[[str], str]], dict[str, Any]]] = {
-    "Bash": _bash,
-    "Read": _read_file,
-    "Edit": _edit,
-    "MultiEdit": _multi_edit,
-    "Write": _write,
-    "NotebookEdit": _notebook_edit,
-}

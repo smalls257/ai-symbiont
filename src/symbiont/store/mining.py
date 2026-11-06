@@ -12,7 +12,10 @@ from pathlib import Path
 from symbiont.miner.churn import churn
 from symbiont.miner.lessons import Lesson, lessons_from, resolution_coverage
 from symbiont.miner.mine import mine_history, sessions_of
+from symbiont.miner.representatives import representative_strips
 from symbiont.miner.screen import ScreenRules, screen
+from symbiont.miner.struggle import facts_of
+from symbiont.miner.themes import Codebase, codebase_vocabulary
 from symbiont.readers import Reader
 from symbiont.records.holdout import refuse_held_out
 from symbiont.records.schema import Record
@@ -62,7 +65,12 @@ def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -
     names = rules.repo_names | {project}
     lessons = lessons_from(mine_history(sessions, rules.references), records, names)
     screened = screen(lessons, rules.screen)
-    return MiningOutcome(screened.kept, screened.held, screened.struggle, churn(sessions, names))
+    codebase = Codebase(names)
+    facts = facts_of(sessions, lessons, codebase, codebase_vocabulary(sessions, codebase))
+    strips = representative_strips(sessions, facts, codebase)
+    return MiningOutcome(
+        screened.kept, screened.held, screened.struggle, churn(sessions, names), facts, strips
+    )
 
 
 def remine(

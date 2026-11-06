@@ -10,6 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from symbiont.miner.screen import ScreenRules
 from symbiont.readers.harnesses import HARNESSES, Harness, UnknownHarnessError
 
 SETTINGS_FILE = "settings.json"
@@ -109,13 +110,15 @@ def write_correction_setting(
 
 
 MIN_SESSIONS_FLOOR = 1
+# One definition of the default: the screening rules own it.
+DEFAULT_MIN_SESSIONS = ScreenRules().min_sessions
 
 
 @dataclass(frozen=True)
 class MiningSettings:
     """How mining screens lessons: the sessions a trap must be seen in to become a lesson."""
 
-    min_sessions: int = 2
+    min_sessions: int = DEFAULT_MIN_SESSIONS
 
 
 def read_mining_settings(data_dir: Path) -> MiningSettings:

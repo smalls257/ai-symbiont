@@ -2,7 +2,7 @@
    A dashboard opened before the lessons exist must show the job
    (or why it stopped), never an empty page. The server injects {mining:{project,progress}} as the
    page's one data object; this file polls GET /mining/<project>/progress. When the job is done with
-   lessons it keeps the finished summary on screen (a Continue button, and an automatic move after
+   lessons, or with session facts to show, it keeps the finished summary on screen (a Continue button, and an automatic move after
    SUMMARY_MS) and only then loads the address without ?mining, which the server renders as the
    pain-point view from the stored lessons. A short job would otherwise finish before the page
    painted and the developer would never see what was read. Every number shown is the service's:
@@ -22,10 +22,12 @@ function describe(p){
       lede:p.error||"symbiont gave no reason; see the service log.",
       status:"failed after "+read+" of "+total+" sessions"};
   }
-  if(p.state==="done"&&p.lessons>0){
+  if(p.state==="done"&&(p.lessons>0||p.session_facts>0)){
+    /* No lesson yet can still leave struggle to see: where the agent lost turns, and in which sessions. */
     return {...base,percent:100,next:"summary",
       headline:"Read "+total+" sessions · found "+p.pain_points+" pain points · learned "+p.lessons+" lessons",
-      lede:"Continue to see what it found, or wait a moment.",status:"done · "+p.lessons+" lessons ready to use"};
+      lede:p.lessons>0?"Continue to see what it found, or wait a moment.":"No lesson yet, but there is struggle to see. Continue, or wait a moment.",
+      status:"done · "+p.lessons+" lessons ready to use"};
   }
   if(p.state==="done"){
     return {...base,percent:100,next:"stop",headline:"Read "+total+" sessions and found no pain points yet.",

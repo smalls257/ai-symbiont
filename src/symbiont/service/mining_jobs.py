@@ -48,6 +48,8 @@ class MiningProgress:
     error: str | None = None
     # Groups held back per reason (`HoldReason` value -> count) once the run is done.
     held_back: Mapping[str, int] = field(default_factory=dict)
+    # Sessions whose facts the finished run will save: what the Pain points stage is drawn from.
+    session_facts: int = 0
 
     def as_json(self) -> dict[str, Any]:
         """The route's answer."""
@@ -61,6 +63,7 @@ class MiningProgress:
             "recent": list(self.recent),
             "error": self.error,
             "held_back": dict(self.held_back),
+            "session_facts": self.session_facts,
         }
 
 
@@ -140,6 +143,7 @@ class MiningJobs:
             end = replace(
                 tally(outcome.kept, MiningState.DONE, total, total),
                 held_back={reason.value: count for reason, count in outcome.held.items()},
+                session_facts=len(outcome.facts),
             )
         except Exception as failed:  # a thread must report any failure, not die quietly
             log.exception("mining %s failed", project)

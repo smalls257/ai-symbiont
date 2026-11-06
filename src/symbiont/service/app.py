@@ -56,6 +56,7 @@ from symbiont.service.request_shapes import (
 )
 from symbiont.store.local import SparkPrivacyViolationError, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
+from symbiont.store.settings import read_mining_settings
 
 log = logging.getLogger("symbiont.service")
 SPARK_WITHHELD = "private history withheld from Spark"
@@ -146,7 +147,8 @@ class Service:
         with self._one_call_at_a_time:
             parts = self._parts
             nightly = checked_nightly(parts.gate.nightly_state, parts.events.path.parent.parent)
-            live = Live(self._jobs.progress, nightly)
+            data_dir = parts.events.path.parent.parent
+            live = Live(self._jobs.progress, nightly, read_mining_settings(data_dir).min_sessions)
             return dashboard_page(parts.store, parts.gate.registry, target, date.today(), live)
 
     def wait_for_mining(self, project: str, timeout_s: float) -> None:

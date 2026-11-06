@@ -16,14 +16,14 @@ from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.settings import DEFAULT_MIN_SESSIONS
 
 STATIC = Path(__file__).parent / "static"
 PLACEHOLDER = "__SYMBIONT_DATA__"
 WATCHING_MINE = "mining"
 FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
-    "/dashboard/timeline.js": ("timeline.js", "text/javascript; charset=utf-8"),
-    "/dashboard/treemap.js": ("treemap.js", "text/javascript; charset=utf-8"),
+    "/dashboard/struggle.js": ("struggle.js", "text/javascript; charset=utf-8"),
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
     "/dashboard/summary.js": ("summary.js", "text/javascript; charset=utf-8"),
     "/dashboard/ignored.js": ("ignored.js", "text/javascript; charset=utf-8"),
@@ -42,6 +42,8 @@ class Live:
 
     mining: Callable[[str], MiningProgress | None] = lambda project: None
     nightly: NightlyOf = lambda project, lessons: None
+    # How many sessions a trouble must come back in to become a lesson (the developer's setting).
+    min_sessions: int = DEFAULT_MIN_SESSIONS
 
 
 @dataclass(frozen=True)
@@ -97,17 +99,22 @@ def _project_page(
         listing = ", ".join(known) or "none yet; run `symbiont repo mine`"
         return Page(400, TEXT, f"choose a repository with ?project=NAME. Known: {listing}".encode())
     progress = live.mining(project)
+    has_stage = bool(store.mined.session_facts(project))
     if progress is not None and (
-        WATCHING_MINE in asked or _still_mining(progress, store.lessons(project))
+        WATCHING_MINE in asked
+        or _still_mining(progress, store.lessons(project), has_stage=has_stage)
     ):
         return Page(200, HTML, _mining_html(project, progress))
     focus = _focus_terms(registry, project)
-    return Page(200, HTML, _html(store, project, today, focus, live.nightly))
+    return Page(200, HTML, _html(store, project, today, focus, live))
 
 
-def _still_mining(progress: MiningProgress, lessons: list[Lesson]) -> bool:
-    """Whether the Mine stage, not the pain-point view, is what the page must show."""
-    return progress.state is not MiningState.DONE or not lessons
+def _still_mining(progress: MiningProgress, lessons: list[Lesson], *, has_stage: bool) -> bool:
+    """Whether the Mine stage, not the pain-point view, is what the page must show.
+
+    A finished job with no lesson still has session facts to show (where the agent struggled).
+    """
+    return progress.state is not MiningState.DONE or not (lessons or has_stage)
 
 
 def _mining_html(project: str, progress: MiningProgress) -> bytes:
@@ -128,9 +135,7 @@ def _query(query: str) -> dict[str, str]:
     return {percent_decoded(key): percent_decoded(value) for key, _, value in pairs}
 
 
-def _html(
-    store: Store, project: str, today: date, focus: frozenset[str], nightly: NightlyOf
-) -> bytes:
+def _html(store: Store, project: str, today: date, focus: frozenset[str], live: Live) -> bytes:
     """The page with the repository's data injected where the contract says."""
     lessons = store.lessons(project)
     view = RepoView(
@@ -142,10 +147,13 @@ def _html(
         store.curation.authored(project),
         focus,
         frozenset(store.contexts.all(project)) - frozenset(store.contexts.overrides(project)),
-        nightly(project, lessons),
+        live.nightly(project, lessons),
         store.mined.counts(project),
         store.mined.struggle(project),
         store.mined.churn(project),
+        store.mined.session_facts(project),
+        store.mined.session_strips(project),
+        min_sessions=live.min_sessions,
     )
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored_listing(store, project)

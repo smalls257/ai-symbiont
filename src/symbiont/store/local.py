@@ -27,6 +27,7 @@ from symbiont.store.held_back import MiningLedger, MiningOutcome
 from symbiont.store.ignored import SCHEMA as IGNORED_SCHEMA
 from symbiont.store.ignored import IgnoredPatterns
 from symbiont.store.lesson_rows import lesson_from_json
+from symbiont.store.struggle_rows import SCHEMA as STRUGGLE_SCHEMA
 
 log = logging.getLogger("symbiont.store")
 
@@ -143,6 +144,7 @@ class Store:
         db = sqlite3.connect(path, check_same_thread=False)
         db.executescript(_SCHEMA)
         db.executescript(HELD_BACK_SCHEMA)
+        db.executescript(STRUGGLE_SCHEMA)
         db.executescript(IGNORED_SCHEMA)
         _add_missing_authored_columns(db)
         _add_missing_review_summary(db)
