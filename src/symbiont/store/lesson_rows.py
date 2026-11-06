@@ -12,16 +12,17 @@ from symbiont.miner.painpoint import PainPoint, Signal, Signature
 def _remote_safe_of(data: dict[str, Any]) -> bool:
     """The privacy flag, under its new name or the one rows carried before the rename.
 
-    Raises ValueError naming the lesson when neither is stored: an unknown flag must never read
-    as shareable.
+    Raises ValueError naming the lesson for a missing or non-boolean flag:
+    an unknown flag must never read as shareable.
     """
+    pain = data["pain_point"]
+    named = f"lesson of session {pain['session_id']!r} step {pain['step']}"
     for key in ("remote_safe", "spark_safe"):
         if key in data:
-            return bool(data[key])
-    pain = data["pain_point"]
-    raise ValueError(
-        f"lesson of session {pain['session_id']!r} step {pain['step']} stores no remote_safe flag"
-    )
+            if not isinstance(data[key], bool):
+                raise ValueError(f"{named} stores {key}={data[key]!r}, not true or false")
+            return data[key]
+    raise ValueError(f"{named} stores no remote_safe flag")
 
 
 def lesson_from_json(body: str) -> Lesson:

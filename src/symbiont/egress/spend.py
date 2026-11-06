@@ -21,9 +21,8 @@ from symbiont.egress.file_lock import exclusive_file_lock
 
 DEFAULT_LEDGER = Path.home() / "symbiont-runs" / "spend" / "ledger.jsonl"
 CAP_VARIABLE = "SYMBIONT_SPEND_CAP_USD"
-DEFAULT_TOTAL_CAP_DOLLARS = (
-    15.0  # the owner's hackathon budget for remote model and Contributor calls
-)
+# The owner's hackathon budget for remote model and Contributor calls.
+DEFAULT_TOTAL_CAP_DOLLARS = 15.0
 PER_MILLION = 1_000_000
 PHASE_RESERVED, PHASE_SETTLED, PHASE_RELEASED = "reserved", "settled", "released"
 

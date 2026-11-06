@@ -97,11 +97,23 @@ def _rename_spark_safe_column(db: sqlite3.Connection) -> None:
     Runs before the schema script so the existing table and its index are renamed in place and
     no flag is lost; the lessons table may not exist yet in a fresh store.
     """
-    columns = {row[1] for row in db.execute("PRAGMA table_info(lessons)")}
-    if "spark_safe" in columns and "remote_safe" not in columns:
-        with db:
+    if not _needs_flag_rename(db):
+        return
+    db.execute("BEGIN IMMEDIATE")  # a second process opening the same old store waits here
+    try:
+        if _needs_flag_rename(db):  # re-checked inside the lock: the other process may have won
             db.execute("ALTER TABLE lessons RENAME COLUMN spark_safe TO remote_safe")
-        log.info("store: renamed lessons.spark_safe to remote_safe")
+            log.info("store: renamed lessons.spark_safe to remote_safe")
+        db.commit()
+    except BaseException:
+        db.rollback()
+        raise
+
+
+def _needs_flag_rename(db: sqlite3.Connection) -> bool:
+    """True for a lessons table that still carries the pre-rename column."""
+    columns = {row[1] for row in db.execute("PRAGMA table_info(lessons)")}
+    return "spark_safe" in columns and "remote_safe" not in columns
 
 
 def _add_missing_review_summary(db: sqlite3.Connection) -> None:

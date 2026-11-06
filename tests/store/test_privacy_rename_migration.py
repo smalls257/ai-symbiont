@@ -118,3 +118,13 @@ def test_a_record_saved_with_the_old_flag_name_loads_with_its_value():
     )  # fmt: skip
     (record,) = load_jsonl([line])
     assert record.provenance.remote_safe is False
+
+
+def test_a_non_boolean_privacy_flag_is_refused_naming_the_lesson(tmp_path):
+    store = mined_store(tmp_path / "store.db", failing("pub", PUBLIC))
+    (body,) = [row[0] for row in store._db.execute("SELECT body FROM lessons")]
+    data = json.loads(body)
+    data["remote_safe"] = "false"
+
+    with pytest.raises(ValueError, match="pub"):
+        lesson_from_json(json.dumps(data))
