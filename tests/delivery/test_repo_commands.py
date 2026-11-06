@@ -14,6 +14,7 @@ import pytest
 from claude_logs import claude_log
 from live_service import serving
 from record_builders import edit, run, session
+from store_builders import save_lessons
 from symbiont import cli
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -55,10 +56,10 @@ def mined_store(data_dir):
         run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     records = [replace(r, project="demo") for r in steps]
-    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
     data_dir.mkdir(parents=True, exist_ok=True)
     store = Store.open(data_dir / "store.db")
-    store.save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], lessons, held_out_tasks=frozenset())
     return store, lessons
 
 
@@ -108,7 +109,7 @@ def test_mining_reads_the_claude_code_sessions_of_the_repository(tmp_path, monke
     assert mine(repo, tmp_path / "data") == 0
 
     assert (
-        "learned 1 lessons from 1 claude-code sessions, 0 muse-code sessions"
+        "learned 1 lesson from 1 Claude Code session, 0 Muse Code sessions"
         in capsys.readouterr().out
     )
     assert len(Store.open(tmp_path / "data" / "store.db").lessons("demo")) == 1
@@ -255,7 +256,7 @@ def test_mining_reads_muse_code_sessions_of_the_repository_too(tmp_path, monkeyp
     assert mine(repo, tmp_path / "data") == 0
 
     assert (
-        "learned 1 lessons from 0 claude-code sessions, 1 muse-code sessions"
+        "learned 1 lesson from 0 Claude Code sessions, 1 Muse Code session"
         in capsys.readouterr().out
     )
 

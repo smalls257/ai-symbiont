@@ -23,8 +23,9 @@ from symbiont.miner.strips import SessionStrip
 from symbiont.miner.struggle import MINUTES_PER_TURN, SessionFacts
 from symbiont.miner.trained import lesson_id
 from symbiont.service.candidate_summary import rule_summary
+from symbiont.service.no_lessons import no_lessons_sentence
 from symbiont.service.struggle_view import StageInput, struggle_stage
-from symbiont.store.held_back import StruggleGroup
+from symbiont.store.held_back import REASON_WORDS, StruggleGroup
 from symbiont.store.settings import DEFAULT_MIN_SESSIONS
 
 REPLAY_DAYS = 30
@@ -120,15 +121,25 @@ def _counted_not_taught(view: RepoView) -> dict[str, Any]:
     """What mining held back, the failures with no shown fix, and where files churned."""
     return {
         "heldBack": {reason.value: count for reason, count in view.held_back.items()},
-        "struggle": [_struggle_entry(group) for group in view.struggle[:STRUGGLE_SHOWN]],
+        "struggle": [_struggle_entry(group) for group in _by_cost(view.struggle)],
+        "noLessons": no_lessons_sentence(view.held_back, view.min_sessions),
         "churn": _churn_entries(view.churn),
     }
+
+
+def _by_cost(struggle: Sequence[StruggleGroup]) -> list[StruggleGroup]:
+    """The failure groups that cost the most first (every occurrence is at least one turn)."""
+    ranked = sorted(
+        struggle, key=lambda group: (-group.occurrences, -group.sessions, group.signature.key)
+    )
+    return ranked[:STRUGGLE_SHOWN]
 
 
 def _struggle_entry(group: StruggleGroup) -> dict[str, Any]:
     """A failure that never showed a fix: counted with its cost, never turned into a note."""
     return {
-        "what": happened(group.signature),
+        "what": scrub(happened(group.signature)),
+        "reason": REASON_WORDS[HoldReason.NO_FIX_SHOWN],
         "sessions": group.sessions,
         "occurrences": group.occurrences,
         # One turn per failure is the least it cost: an estimate, not a measurement.

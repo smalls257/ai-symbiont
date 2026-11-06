@@ -40,7 +40,7 @@ def lesson_from(failing_output, fix_path, command="pytest tests/test_invoice.py"
         run(command, 0, "1 passed"),
     )
     steps = [replace(step, session_id=session_id) for step in steps]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)[0]
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())[0]
 
 
 def money_lesson():

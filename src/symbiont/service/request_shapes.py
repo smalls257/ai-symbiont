@@ -3,13 +3,15 @@
 import io
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 from symbiont.miner.lesson_context import AppliesTo
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.store.local import Source
 
-MINE_KEYS = frozenset({"project", "sources"})
+MINE_KEYS = frozenset({"project", "sources", "repo_dir"})
+MINE_REQUIRED = frozenset({"project", "sources"})
 
 
 class BadRequestError(ValueError):
@@ -78,13 +80,23 @@ def source_of(request: dict[str, Any]) -> Source:
 
 def mine_request_of(request: dict[str, Any]) -> tuple[str, list[Source]]:
     """The project and the logs a `/mine` request names (`sources`: [[reader, path], ...])."""
-    require_keys(request, MINE_KEYS, MINE_KEYS)
+    require_keys(request, MINE_KEYS, MINE_REQUIRED)
     project, listed = request["project"], request["sources"]
     if not (isinstance(project, str) and isinstance(listed, list) and listed):
         raise BadRequestError("mine takes a project and a non-empty list of [reader, path] pairs")
     if not all(_is_text_pair(pair) for pair in listed):
         raise BadRequestError("every source must be a [reader, path] pair of text")
     return project, [Source(project, reader, path) for reader, path in listed]
+
+
+def checkout_of(request: dict[str, Any]) -> Path | None:
+    """The checkout directory a `/mine` request names (`repo_dir`), or None when it names none."""
+    named = request.get("repo_dir")
+    if named is None:
+        return None
+    if not isinstance(named, str) or not named:
+        raise BadRequestError("repo_dir must be the path of the repository checkout")
+    return Path(named)
 
 
 def _is_text_pair(value: Any) -> bool:

@@ -16,6 +16,7 @@ from nightly_support import (
     general_rows,
     habit_rows,
 )
+from store_builders import save_lessons
 from symbiont.miner.twins import merge_twins
 from symbiont.service.nightly import NightlyJudges, NightlyState, lessons_digest
 from symbiont.service.nightly_backend import Backend
@@ -42,7 +43,8 @@ def setup(tmp_path, lessons=6):
     data = tmp_path / "data"
     data.mkdir()
     store = Store.open(data / "store.db")
-    store.save_mining(
+    save_lessons(
+        store,
         PROJECT,
         [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(lessons)],
@@ -82,7 +84,7 @@ def test_the_record_matches_the_stores_lessons_so_status_reads_trained_then_stal
     judges = NightlyJudges(plan.nightly_dir)
     report = judges.report(PROJECT, store.lessons(PROJECT))
     assert (report.state, report.lessons) == (NightlyState.TRAINED, 6)
-    store.save_mining(
+    save_lessons(store,
         PROJECT, [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(7)], held_out_tasks=frozenset(),
     )  # fmt: skip
@@ -141,7 +143,7 @@ def test_a_failed_night_leaves_the_older_record_which_then_reads_as_stale(tmp_pa
     plan = setup(tmp_path, lessons=4)
     run_night(plan, FakeNight(Backend.MLX).tools())
     store = Store.open(plan.data_dir / "store.db")
-    store.save_mining(
+    save_lessons(store,
         PROJECT, [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(5)], held_out_tasks=frozenset(),
     )  # fmt: skip
@@ -172,8 +174,8 @@ def test_lessons_without_a_fix_command_fail_loudly_instead_of_training_on_nothin
     store = Store.open(plan.data_dir / "store.db")
     lesson = failed_command_lesson(1)
     unfit = type(lesson)(lesson.pain_point, lesson.quote, (), "no fix", True, lesson.sources)
-    store.save_mining(
-        PROJECT, [Source(PROJECT, "claude_code", "x")], [unfit], held_out_tasks=frozenset()
+    save_lessons(
+        store, PROJECT, [Source(PROJECT, "claude_code", "x")], [unfit], held_out_tasks=frozenset()
     )
     night = FakeNight(Backend.MLX)
     assert run_night(plan, night.tools()) == EXIT_FAILED

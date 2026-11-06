@@ -5,6 +5,7 @@ import json
 import struct
 from pathlib import Path
 
+from store_builders import save_lessons
 from symbiont.core.judge_format import JUDGE_SYSTEM
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
@@ -116,7 +117,8 @@ def night_plan(tmp_path, lessons=6, url="http://127.0.0.1:8861"):
 
     data = tmp_path / "data"
     data.mkdir()
-    Store.open(data / "store.db").save_mining(
+    save_lessons(
+        Store.open(data / "store.db"),
         PROJECT,
         [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(lessons)],

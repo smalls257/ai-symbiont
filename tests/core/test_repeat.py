@@ -17,7 +17,7 @@ IMPORT = "File \"app/parser.py\", line 1\nImportError: cannot import name 'parse
 
 def stored_lessons(*steps):
     records = session(*steps)
-    return lessons_from(mine_history(sessions_of(records), {}), records)
+    return lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
 
 
 def fixed_import_error():

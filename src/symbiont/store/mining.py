@@ -69,7 +69,13 @@ def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -
     facts = facts_of(sessions, lessons, codebase, codebase_vocabulary(sessions, codebase))
     strips = representative_strips(sessions, facts, codebase)
     return MiningOutcome(
-        screened.kept, screened.held, screened.struggle, churn(sessions, names), facts, strips
+        screened.kept,
+        screened.held,
+        screened.struggle,
+        churn(sessions, names),
+        facts,
+        strips,
+        rules.screen.min_sessions,
     )
 
 
@@ -111,7 +117,8 @@ def mine_sources(
     for source in sources:
         read = read_source(source, rules.readers)
         records += read
-        on_read(lessons_from(mine_history(sessions_of(read), rules.references), read))
+        names = rules.repo_names | {source.project}
+        on_read(lessons_from(mine_history(sessions_of(read), rules.references), read, names))
     refuse_held_out(records, rules.held_out_tasks)
     return mined_outcome(records, rules, sources[0].project if sources else "")
 

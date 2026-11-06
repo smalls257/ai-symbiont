@@ -31,6 +31,9 @@ CREATE TABLE IF NOT EXISTS held_back (
     project TEXT NOT NULL, reason TEXT NOT NULL, groups INTEGER NOT NULL,
     PRIMARY KEY (project, reason)
 );
+CREATE TABLE IF NOT EXISTS mining_settings (
+    project TEXT PRIMARY KEY, min_sessions INTEGER NOT NULL
+);
 CREATE TABLE IF NOT EXISTS struggle (
     project TEXT NOT NULL, signal TEXT NOT NULL, key TEXT NOT NULL,
     sessions INTEGER NOT NULL, occurrences INTEGER NOT NULL
@@ -39,6 +42,8 @@ CREATE TABLE IF NOT EXISTS churn (
     project TEXT NOT NULL, file TEXT NOT NULL, session_id TEXT NOT NULL, edits INTEGER NOT NULL
 );
 """
+# Every table a mining run replaces for its project, in one transaction.
+REPLACED_TABLES = ("lessons", "held_back", "mining_settings", "struggle", "churn", *STRUGGLE_TABLES)
 # Plain words for the terminal and the dashboard; the reason's value is for storage only.
 REASON_WORDS = {
     HoldReason.IGNORED: "set aside by you",
@@ -69,6 +74,8 @@ class MiningOutcome:
     # Per-session facts and the few sessions drawn as strips (the Pain points stage).
     facts: list[SessionFacts] = field(default_factory=list)
     strips: list[SessionStrip] = field(default_factory=list)
+    # The min_sessions this run was screened with, so the page shows the value the lessons used.
+    min_sessions: int | None = None
 
 
 def struggle_groups(struggle: Sequence[Lesson]) -> list[StruggleGroup]:
@@ -129,7 +136,7 @@ class MiningLedger:
                 "INSERT OR IGNORE INTO sources VALUES (?, ?, ?)",
                 [(s.project, s.reader, s.path) for s in new_sources],
             )
-            for table in ("lessons", "held_back", "struggle", "churn", *STRUGGLE_TABLES):
+            for table in REPLACED_TABLES:
                 db.execute(f"DELETE FROM {table} WHERE project=?", (project,))  # noqa: S608
             db.executemany(
                 "INSERT INTO lessons VALUES (?, ?, ?, ?, ?)",
@@ -148,12 +155,23 @@ class MiningLedger:
                 [(project, row.file, row.session_id, row.edits) for row in outcome.churn],
             )
             insert_struggle(db, project, outcome.facts, outcome.strips)
+            if outcome.min_sessions is not None:
+                db.execute(
+                    "INSERT INTO mining_settings VALUES (?, ?)", (project, outcome.min_sessions)
+                )
 
     def counts(self, project: str) -> dict[HoldReason, int]:
         """Groups held per reason at the last mining; reasons that held nothing are absent."""
         rows = self._db.execute("SELECT reason, groups FROM held_back WHERE project=?", (project,))
         saved = dict(rows.fetchall())
         return {reason: saved[reason.value] for reason in HoldReason if reason.value in saved}
+
+    def min_sessions_used(self, project: str) -> int | None:
+        """The min_sessions the last mining screened with; None for a store mined before."""
+        row = self._db.execute(
+            "SELECT min_sessions FROM mining_settings WHERE project=?", (project,)
+        ).fetchone()
+        return None if row is None else int(row[0])
 
     def struggle(self, project: str) -> list[StruggleGroup]:
         """The failure groups with no shown fix, widest first."""

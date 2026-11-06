@@ -94,3 +94,27 @@ def test_a_credential_in_a_strip_label_is_scrubbed_where_the_label_is_made():
     drawn = strip_of(named("s", [run(f"curl {token}", 1, FAIL)]), CODE)
 
     assert token not in str(drawn)
+
+
+def test_a_long_session_is_drawn_around_its_worst_burst_not_its_quiet_start():
+    """Failure guarded against: a 7,000-step session drawn as its first 600 quiet steps."""
+    from symbiont.miner.strips import MAX_STRIP_STEPS
+
+    quiet = [run("pytest ok", 0)] * 2000
+    storm = [run(f"pytest t{n}", 1, FAIL) for n in range(40)]
+    long = named("long", [*quiet, *storm, *quiet])
+
+    (strip,) = representative_strips([long], [facts("long")], CODE)
+
+    failed_in_window = [s for s in strip.steps if s.lane is Lane.FAILED]
+    assert len(strip.steps) == MAX_STRIP_STEPS and strip.total_steps == 4040
+    assert len(failed_in_window) == 40
+    assert 1400 <= strip.offset <= 2000
+
+
+def test_a_session_that_fits_is_drawn_whole_from_its_first_step():
+    short = named("short", [run("pytest", 1, FAIL)] * 5)
+
+    (strip,) = representative_strips([short], [facts("short")], CODE)
+
+    assert (strip.offset, len(strip.steps), strip.total_steps) == (0, 5, 5)

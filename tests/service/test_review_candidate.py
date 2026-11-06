@@ -9,6 +9,7 @@ from dataclasses import replace
 from datetime import date
 
 from record_builders import edit, run, say, session, user
+from store_builders import save_lessons
 from symbiont.miner.lesson_context import LessonContext, Priority, Review, Verdict
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -35,7 +36,7 @@ def pytest_lessons():
         run("pytest tests/test_refund.py -q", 0, "5 passed in 0.5s"),
     )
     steps = [replace(step, project="demo", session_id="s1") for step in steps]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
 
 def test_the_candidate_names_the_command_the_error_the_fix_and_the_files():
@@ -67,7 +68,7 @@ def test_the_developers_words_travel_with_the_candidate():
 def test_a_credential_in_the_error_line_is_scrubbed():
     steps = session(run("pytest -q", 1, f"E   AssertionError: {SECRET} rejected\n"))
     steps = [replace(step, project="demo", session_id="s1") for step in steps]
-    (lesson,) = lessons_from(mine_history(sessions_of(steps), {}), steps)
+    (lesson,) = lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
     assert SECRET.split("=")[1] not in str(review_candidate(lesson, None))
 
@@ -81,7 +82,7 @@ def test_a_noise_verdict_does_not_silence_a_lesson_the_developer_annotated(tmp_p
     store.curation.save_review("demo", ident, Review(Verdict.NOISE))
     assert effective_contexts(store, "demo")[ident].intentional
 
-    store.save_mining("demo", [], [lesson], held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], [lesson], held_out_tasks=frozenset())
     store.contexts.save(ident, "demo", LessonContext(""))
 
     kept = effective_contexts(store, "demo")[ident]
@@ -113,7 +114,7 @@ def asked_lessons(user_text="fix the refund rounding", intent="I will round to o
         run("pytest tests/test_refund.py -q", 0, "5 passed in 0.5s"),
     )
     steps = [replace(step, project="demo", session_id="s1") for step in steps]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
 
 def test_the_review_candidate_carries_the_turns_around_the_failure_scrubbed():

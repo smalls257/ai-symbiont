@@ -73,3 +73,16 @@ def test_rework_no_longer_produces_lessons():
     )
     assert [p for p in mine_chain([steps], {}) if p.signature.signal is Signal.REWORKED_EDIT] == []
     assert churn([steps], REPO) == [FileChurn("sqlglot/parser.py", "s1", 2)]
+
+
+def test_a_claude_code_worktree_under_the_checkout_counts_as_the_codebase():
+    """Failure guarded against: edits in a `.claude/worktrees/<name>/` dropped as hidden."""
+    steps = session(
+        edit("/work/sqlglot/.claude/worktrees/fix-parser/sqlglot/parser.py"),
+        edit(".claude/worktrees/fix-parser/tests/test_parser.py"),
+        edit("/work/sqlglot/.claude/plans/idea.md"),
+    )
+    assert churn([steps], REPO) == [
+        FileChurn("sqlglot/parser.py", "s1", 1),
+        FileChurn("tests/test_parser.py", "s1", 1),
+    ]

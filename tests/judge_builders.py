@@ -2,7 +2,9 @@
 
 import json
 
+from store_builders import save_lessons
 from symbiont.core.counters import Counters
+from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.service.app import Service, ServiceMode, ServiceParts
@@ -19,7 +21,13 @@ def lesson(index, fix):
     signature = Signature(Signal.FAILED_COMMAND, (f"tool{index}", f"module{index}", f"Oops{index}"))
     pain = PainPoint(signature, f"s{index}", 1, ((f"s{index}", 1),))
     return Lesson(
-        pain, f"$ tool{index} module{index}\nOops{index}", (fix,), None, True, pain.record_refs
+        pain,
+        f"$ tool{index} module{index}\nOops{index}",
+        (fix,),
+        None,
+        True,
+        pain.record_refs,
+        fix=FixKind.CODE_FIX,
     )
 
 
@@ -33,8 +41,8 @@ def judge_saying(p_yes):
 def service_with(tmp_path, judge):
     store = Store.open(tmp_path / "store.db")
     lessons = [lesson(index, "ran `a`") for index in range(40)] + [lesson(7, "ran `b`")]
-    store.save_mining(
-        PROJECT, [Source(PROJECT, "claude_code", "x")], lessons, held_out_tasks=frozenset()
+    save_lessons(
+        store, PROJECT, [Source(PROJECT, "claude_code", "x")], lessons, held_out_tasks=frozenset()
     )
     parts = ServiceParts(
         store, Counters(), EventLog(tmp_path / "run", "c"), ServiceMode.RECALL_ONLY, judge=judge

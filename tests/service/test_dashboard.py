@@ -16,6 +16,7 @@ from pathlib import Path
 import pytest
 
 from record_builders import edit, run, session, user
+from store_builders import save_lessons
 from symbiont.miner.lesson_context import (
     AppliesTo,
     AuthoredLesson,
@@ -55,7 +56,7 @@ def lessons_in(*session_ids):
                 run("pytest tests/test_parser.py", 0, "1 passed"),
             )
         ]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
 
 def view(lessons, **extra):
@@ -126,7 +127,7 @@ def test_a_reviewer_can_merge_one_pain_point_into_another():
 @pytest.fixture
 def served(tmp_path):
     store = Store.open(tmp_path / "store.db")
-    store.save_mining("demo", [], lessons_in("a", "b"), held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], lessons_in("a", "b"), held_out_tasks=frozenset())
     httpd = server.bind(open_service(tmp_path, ServiceMode.RECALL_ONLY), 0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{httpd.server_address[1]}", store
@@ -154,6 +155,7 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
     assert "Every note it showed" not in html and "mockup" not in html.lower()
     assert get(f"{base}/dashboard/dashboard.js")[2].startswith("text/javascript")
     assert get(f"{base}/dashboard/painlist.js")[2].startswith("text/javascript")
+    assert get(f"{base}/dashboard/heldback.js")[2].startswith("text/javascript")
     assert get(f"{base}/dashboard/dashboard.css")[0] == 200
     assert "http://" not in get(f"{base}/dashboard/dashboard.js")[1].replace("http://127", "")
 
@@ -169,7 +171,7 @@ def test_every_script_and_stylesheet_the_page_names_is_served(served):
 
 def test_several_repositories_need_a_choice_and_an_unknown_path_is_a_404(served):
     base, store = served
-    store.save_mining("other", [], lessons_in("c"), held_out_tasks=frozenset())
+    save_lessons(store, "other", [], lessons_in("c"), held_out_tasks=frozenset())
 
     status, body, _ = get(f"{base}/dashboard")
 
@@ -194,7 +196,7 @@ def test_the_snapshot_carries_the_nightly_state_for_the_header():
 def test_the_served_page_says_never_trained_then_trained_after_a_night(tmp_path):
     store = Store.open(tmp_path / "store.db")
     lessons = lessons_in("a", "b")
-    store.save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], lessons, held_out_tasks=frozenset())
     nightly = NightlyJudges(tmp_path / "nightly")
     service = open_service(tmp_path, ServiceMode.RECALL_ONLY, guards=Guards(nightly_news=nightly))
 
@@ -358,7 +360,7 @@ def test_a_pain_point_without_a_review_gets_a_rule_built_summary_from_the_reques
         run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     steps = [replace(step, project="demo", session_id="a") for step in steps]
-    lessons = lessons_from(mine_history(sessions_of(steps), {}), steps)
+    lessons = lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
     point = dashboard_snapshot(view(lessons), TODAY)["painPoints"][0]
 

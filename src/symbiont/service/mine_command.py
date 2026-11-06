@@ -16,11 +16,13 @@ from typing import Any
 
 from symbiont.readers.harnesses import HARNESSES, Harness, in_reading_order, labels_or
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
+from symbiont.service.wording import counted
 from symbiont.store.held_back import held_back_sentence, held_by_reason
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import read_dashboard_settings
 
 POLL_S = 0.5
+STAYS_LOCAL = "the lessons and counts stay on this computer"
 OpenPage = Callable[[str], bool]
 
 
@@ -67,17 +69,15 @@ def mine_past_sessions(
         for entry in in_reading_order(known)
     }
     if not any(found.values()):
-        places = " and ".join(
-            str(entry.sessions_live_in(os.environ, home)) for entry in in_reading_order(known)
-        )
-        _say(
-            f"no {labels_or(known)} sessions found for {args.repo_dir.resolve()}; "
-            f"looked in {places}"
-        )
+        _say_nothing_found(args.repo_dir, known, home)
         return 0
     sources = [[reader, str(log)] for reader, logs in found.items() for log in logs]
     try:
-        started = client.ask("/mine", {"project": args.project, "sources": sources}, args.port)
+        started = client.ask(
+            "/mine",
+            {"project": args.project, "sources": sources, "repo_dir": str(args.repo_dir.resolve())},
+            args.port,
+        )
     except ServiceUnavailableError as offline:
         _say(f"symbiont offline: {offline}")
         return 1
@@ -87,8 +87,24 @@ def mine_past_sessions(
     if not started["started"]:
         _say(f"{args.project} is already being mined; following it")
     _show_dashboard(args, client)
-    counts = ", ".join(f"{len(logs)} {reader} sessions" for reader, logs in found.items())
-    return _follow(args, client, counts)
+    return _follow(args, client, _session_counts(found, known))
+
+
+def _say_nothing_found(repo_dir: Path, known: Sequence[Harness], home: Path) -> None:
+    """Say which harnesses were looked for, and where, when no session was found."""
+    places = " and ".join(
+        str(entry.sessions_live_in(os.environ, home)) for entry in in_reading_order(known)
+    )
+    _say(f"no {labels_or(known)} sessions found for {repo_dir.resolve()}; looked in {places}")
+
+
+def _session_counts(found: dict[str, list[Path]], known: Sequence[Harness]) -> str:
+    """`1 Claude Code session, 0 Muse Code sessions`: harness labels, not reader ids."""
+    labels = {entry.reader: entry.label for entry in known}
+    return ", ".join(
+        counted(len(logs), f"{labels.get(reader, reader)} session")
+        for reader, logs in found.items()
+    )
 
 
 def _show_dashboard(args: argparse.Namespace, client: MineClient) -> None:
@@ -135,11 +151,11 @@ def _progress_line(progress: dict[str, Any]) -> str:
 
 
 def _held_clause(progress: dict[str, Any]) -> str:
-    """`; held back 3: ...; they stay on this computer`, or a plain note that none was reported."""
+    """`; held back 3: ...; the lessons and counts stay on this computer`, or a note on none."""
     if "held_back" not in progress:
-        return "; the service did not report what it held back; they stay on this computer"
+        return f"; the service did not report what it held back; {STAYS_LOCAL}"
     held = held_back_sentence(held_by_reason(progress["held_back"]))
-    return f"; {held}; they stay on this computer" if held else "; they stay on this computer"
+    return f"; {held}; {STAYS_LOCAL}" if held else f"; {STAYS_LOCAL}"
 
 
 def _ended(progress: dict[str, Any], counts: str) -> int:
@@ -147,7 +163,8 @@ def _ended(progress: dict[str, Any], counts: str) -> int:
     if progress["state"] == "failed":
         sys.stderr.write(f"symbiont repo mine: mining failed: {progress['error']}\n")
         return 1
-    _say(f"learned {progress['lessons']} lessons from {counts}{_held_clause(progress)}")
+    lessons = counted(progress["lessons"], "lesson")
+    _say(f"learned {lessons} from {counts}{_held_clause(progress)}")
     return 0
 
 

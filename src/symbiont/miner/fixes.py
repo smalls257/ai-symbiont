@@ -23,7 +23,7 @@ class FixKind(StrEnum):
 
 
 def fix_kind(
-    pain: PainPoint, steps: Sequence[Record], repo_names: frozenset[str] = frozenset()
+    pain: PainPoint, steps: Sequence[Record], repo_names: frozenset[str]
 ) -> FixKind | None:
     """The kind of known fix `steps` (the resolution's own, never those made alongside) show."""
     if any(_edits_codebase(step, repo_names) for step in steps):

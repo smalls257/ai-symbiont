@@ -66,3 +66,15 @@ def test_raising_min_sessions_then_remining_holds_more_back(tmp_path, store):
     assert mine(tmp_path, store, records, min_sessions=3) == []
     assert store.mined.counts(PROJECT) == {HoldReason.TOO_FEW_SESSIONS: 1}
     assert len(mine(tmp_path, store, records, min_sessions=1)) == 2
+
+
+def test_the_min_sessions_used_by_a_mining_is_kept_with_its_held_back_counts(tmp_path, store):
+    """Failure guarded against: the page showing today's setting for older lessons."""
+    records = [*fixed_in("s1"), *fixed_in("s2")]
+    assert store.mined.min_sessions_used(PROJECT) is None
+
+    mine(tmp_path, store, records, min_sessions=3)
+
+    assert store.mined.min_sessions_used(PROJECT) == 3
+    mine(tmp_path, store, records, min_sessions=1)
+    assert store.mined.min_sessions_used(PROJECT) == 1

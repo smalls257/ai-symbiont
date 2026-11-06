@@ -4,6 +4,7 @@ import json
 from dataclasses import asdict, replace
 
 from record_builders import edit, run, session
+from store_builders import save_lessons
 from symbiont.core.counters import Counters
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -25,7 +26,7 @@ def fixed_failure_lessons():
         run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     records = [replace(r, project=PROJECT) for r in steps]
-    return lessons_from(mine_history(sessions_of(records), {}), records)
+    return lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
 
 
 class Rig:
@@ -33,7 +34,7 @@ class Rig:
         self.registry = RepoRegistry(tmp_path)
         self.events = EventLog(tmp_path / "runs" / "20261102T000000Z", "counters")
         store = Store.open(tmp_path / "store.db")
-        store.save_mining(PROJECT, [], fixed_failure_lessons(), held_out_tasks=frozenset())
+        save_lessons(store, PROJECT, [], fixed_failure_lessons(), held_out_tasks=frozenset())
         gate = RepoGate(self.registry, nightly, Lookups(contexts=store.contexts.all))
         parts = ServiceParts(
             store, Counters(), self.events, ServiceMode.WARN_AND_RECALL, nightly=judges, gate=gate

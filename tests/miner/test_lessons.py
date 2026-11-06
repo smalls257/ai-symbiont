@@ -39,7 +39,7 @@ def never_fixed():
 
 
 def lessons_of(records):
-    return lessons_from(mine_chain(sessions_of(records), {}), records)
+    return lessons_from(mine_chain(sessions_of(records), {}), records, frozenset())
 
 
 def test_a_lesson_quotes_what_happened_and_names_what_fixed_it():
@@ -80,7 +80,7 @@ def test_a_missing_cited_record_raises_rather_than_quoting_nothing():
     records = fixed_by_install()
     pains = mine_chain([records], {})
     with pytest.raises(LookupError, match="s1:1"):
-        lessons_from(pains, [r for r in records if r.step != 1])
+        lessons_from(pains, [r for r in records if r.step != 1], frozenset())
 
 
 def test_coverage_counts_resolved_lessons_per_signal_and_lists_every_signal():

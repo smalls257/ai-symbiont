@@ -53,5 +53,5 @@ def test_the_repeated_failure_gets_a_recall_note_and_why_explains_it(walkthrough
 def test_the_onboarding_note_comes_before_allow_and_mining_reports_its_lessons(walkthrough):
     out = walkthrough.stdout
     assert out.index("not switched on for this repository") < out.index("symbiont repo allow")
-    assert "learned 1 lessons from 1 claude-code sessions" in out
+    assert "learned 1 lesson from 1 Claude Code session" in out
     assert "dashboard: http://127.0.0.1:" in out

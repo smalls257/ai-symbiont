@@ -206,6 +206,7 @@ def _strip(strip: SessionStrip) -> dict[str, Any]:
         "task": scrub(strip.task_label),
         "burst": strip.burst,
         "total": strip.total_steps,
+        "offset": strip.offset,
         "bursts": [list(span) for span in burst_spans(failing)],
         "steps": [[s.step, s.lane.value, scrub(s.label)] for s in strip.steps],
     }

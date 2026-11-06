@@ -10,7 +10,7 @@ TEST = "pytest tests/test_parser.py -q"
 
 def fix_of(*records):
     records = session(*records)
-    (lesson,) = lessons_from(find_failed_commands(records), records)
+    (lesson,) = lessons_from(find_failed_commands(records), records, frozenset())
     return lesson.fix
 
 

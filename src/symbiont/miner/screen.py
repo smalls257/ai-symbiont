@@ -55,7 +55,10 @@ class Screened:
 
 
 def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
-    """Keep the lessons of groups no reason holds back; count every held group once."""
+    """Keep lesson-grade groups, count each held group once; an ignored one is counted, still kept.
+
+    Ignoring only hides on read (`Store.lessons`), so Restore after a re-mine needs no new mining.
+    """
     groups: dict[Signature, list[Lesson]] = defaultdict(list)
     for lesson in lessons:
         groups[lesson.pain_point.signature].append(lesson)
@@ -66,6 +69,8 @@ def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
         reason = hold_reason(signature, group, rules)
         if reason is None:
             kept.extend(group)
+            if signature in rules.ignored:
+                held[HoldReason.IGNORED] = held.get(HoldReason.IGNORED, 0) + 1
             continue
         held[reason] = held.get(reason, 0) + 1
         if reason is HoldReason.NO_FIX_SHOWN:
@@ -73,12 +78,31 @@ def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
     return Screened(kept, held, struggle)
 
 
+def taught_since_the_fix_rule(lessons: Sequence[Lesson]) -> list[Lesson]:
+    """`lessons` without what only an older mining kept: rework, and failures no lesson fixed.
+
+    Screening judges a failed command's whole group, so one lesson without a fix stays when a
+    sibling shows one. Delivery skips the rest until the store is mined again.
+    """
+    fixed = {lesson.pain_point.signature for lesson in lessons if lesson.fix is not None}
+    return [
+        lesson
+        for lesson in lessons
+        if lesson.pain_point.signature.signal is not Signal.REWORKED_EDIT
+        and (
+            lesson.pain_point.signature.signal is not Signal.FAILED_COMMAND
+            or lesson.pain_point.signature in fixed
+        )
+    ]
+
+
 def hold_reason(
     signature: Signature, group: Sequence[Lesson], rules: ScreenRules
 ) -> HoldReason | None:
-    """The first reason to hold the group back, or None when it is lesson-grade."""
-    if signature in rules.ignored:
-        return HoldReason.IGNORED
+    """The first reason to hold the group back, or None when it is lesson-grade.
+
+    The developer's ignored patterns are not a reason here: `screen` counts them separately.
+    """
     if signature.signal in EXEMPT_SIGNALS:
         return None
     if signature.signal is Signal.FAILED_COMMAND:
