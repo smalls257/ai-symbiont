@@ -78,4 +78,7 @@ def test_the_page_loads_the_list_module_before_the_dashboard_script_and_expands_
 
     assert page.index("/dashboard/painlist.js") < page.index("/dashboard/dashboard.js")
     selected = script[script.index("function selectPain(") :]
-    assert selected.index("setGroupOpen(p.kind,true)") < selected.index("renderList()")
+    assert selected.startswith(
+        "function selectPain(id){setGroupOpen(byId(id).kind,true);showPain(id);}"
+    )
+    assert "renderDashboard();renderList();showPain(1);" in script

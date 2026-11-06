@@ -254,9 +254,10 @@ function sourceChip(p){
   return /^https:\/\//.test(p.srcUrl)?'<a class="chip src" href="'+esc(p.srcUrl)+'" target="_blank" rel="noopener noreferrer">'+label+"</a>":'<span class="chip src">'+label+"</span>";
 }
 function openPain(id){go(2);selectPain(id);const b=$("plist").querySelector('[data-id="'+id+'"]');if(b)b.scrollIntoView({block:"center"});}
-function selectPain(id){
+function selectPain(id){setGroupOpen(byId(id).kind,true);showPain(id);}
+/* showPain does not expand: page load shows the first pain point and must keep the sections the developer closed. */
+function showPain(id){
   sel=id;const p=byId(id),st=ST[id];
-  setGroupOpen(p.kind,true);
   renderList();
   $("edit").style.setProperty("--k",KINDS[p.kind].color);
   $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span>'+sourceChip(p)+'<span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
@@ -373,7 +374,7 @@ document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e
 /* ===== boot ===== */
 $("repoName").textContent=DATA.repo.name;if(DATA.nightly){var nl=DATA.nightly,lc=nl.last_checked;$("nightly").textContent="Nightly training: "+nl.sentence+(lc?" \u00b7 last checked note: \u201c"+lc.note+"\u201d. "+lc.sentence:"");$("nightly").dataset.state=nl.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
 $("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
-renderDashboard();renderList();selectPain(1);
+renderDashboard();renderList();showPain(1);
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();
 go(1);
 window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};
