@@ -6,10 +6,10 @@ which history the session may read.
 """
 
 import json
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
-from symbiont.delivery.hooks import CLAUDE_CODE, MUSE_CODE, MUSE_MARKER
+from symbiont.readers.harnesses import HARNESSES, Harness, detect
 
 AREAS_AND_TERMS = {
     "type": "object",
@@ -72,7 +72,7 @@ TOOLS = [
         "symbiont_correction_candidates",
         "corrections/candidates",
         _DESCRIPTIONS["cand"],
-        {"running_in": {"type": "string", "enum": ["claude_code", "muse_code"]}},
+        {"running_in": {"type": "string", "enum": [entry.id for entry in HARNESSES]}},
         [],
     ),
     _tool(
@@ -110,29 +110,30 @@ def listed_tools() -> list[dict[str, Any]]:
     return [{key: value for key, value in tool.items() if key != "route"} for tool in TOOLS]
 
 
-# Claude Code sets CLAUDECODE in the shells it starts and CLAUDE_PLUGIN_ROOT for plugin servers.
-_CLAUDE_CODE_MARKERS = ("CLAUDECODE", "CLAUDE_PLUGIN_ROOT")
-
-
 def route_and_body(
-    name: str, arguments: dict[str, Any], environ: Mapping[str, str]
+    name: str,
+    arguments: dict[str, Any],
+    environ: Mapping[str, str],
+    known: Sequence[Harness] = HARNESSES,
 ) -> tuple[str, dict[str, Any]]:
     """The service route and request body for a tool call; the harness is read from the host."""
     body = dict(arguments)
     if name == "symbiont_correction_candidates":
-        body["running_in"] = _running_in(arguments, environ)
+        body["running_in"] = _running_in(arguments, environ, known)
     return BY_NAME[name]["route"], body
 
 
-def _running_in(arguments: dict[str, Any], environ: Mapping[str, str]) -> str:
+def _running_in(
+    arguments: dict[str, Any], environ: Mapping[str, str], known: Sequence[Harness]
+) -> str:
     """The host says so in its environment; otherwise the model must say which harness it is."""
-    if MUSE_MARKER in environ:  # first: Muse also sets CLAUDE_PLUGIN_ROOT
-        return MUSE_CODE
-    if any(marker in environ for marker in _CLAUDE_CODE_MARKERS):
-        return CLAUDE_CODE
+    found = detect(environ, known)
+    if found is not None:
+        return found.id
+    ids = [entry.id for entry in known]
     chosen = arguments.get("running_in")
-    if chosen not in ("claude_code", "muse_code"):
-        raise ValueError("pass running_in: claude_code or muse_code")
+    if chosen not in ids:
+        raise ValueError(f"pass running_in: {' or '.join(ids)}")
     return str(chosen)
 
 

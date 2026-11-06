@@ -128,7 +128,9 @@ def test_another_harness_history_is_withheld_unless_cross_harness_is_switched_on
 
 
 def test_the_muse_switch_turns_muse_correction_finding_off(tmp_path):
-    routes, _, _ = rig(tmp_path, settings=CorrectionSettings(muse_code=False))
+    routes, _, _ = rig(
+        tmp_path, settings=CorrectionSettings(enabled={"claude_code": True, "muse_code": False})
+    )
 
     result = routes.correction_candidates({"project": PROJECT, "running_in": "muse_code"})
 
