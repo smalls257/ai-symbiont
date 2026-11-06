@@ -30,3 +30,13 @@ def optional_text(mapping: dict[str, Any], key: str) -> str:
     """A field the harness may omit; empty then, but never a non-string."""
     value = mapping.get(key)
     return "" if value is None else require_str(value, key)
+
+
+def origin_kind(event: dict[str, Any]) -> str | None:
+    """The `origin.kind` Claude Code stamps on events; None in older logs."""
+    origin = event.get("origin")
+    if origin is None:
+        return None
+    if not isinstance(origin, dict):
+        raise MalformedError(f"'origin' must be an object, got {type(origin).__name__}")
+    return require_text(origin, "kind")
