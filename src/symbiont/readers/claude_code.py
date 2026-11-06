@@ -42,6 +42,10 @@ _NOT_TYPED_FLAGS = {
     "isMeta": "caveat or meta line",
     "isSidechain": "sidechain prompt",
 }
+# Claude Code logs the API requests it sends as events whose `message` is the request body.
+# They are bookkeeping, not turns: skip and count them. Any other non-conversation type with a
+# message is still new conversation-shaped content and raises.
+_REQUEST_LOG_TYPES = ("api-request-blob", "api-request", "api-request-shape")
 Skips = Counter[str]
 
 
@@ -119,7 +123,7 @@ def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
 
 
 def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
-    """True for non-conversation events without a message; one with a message raises ReadError."""
+    """True for bookkeeping events; an unknown type carrying a message raises ReadError."""
     kind = event.get("type")
     if not isinstance(kind, str):
         message = "missing 'type'" if kind is None else "'type' must be a string"
@@ -129,7 +133,7 @@ def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
         if not has_message:
             raise ReadError(path, line_no, f"{kind!r} event has no 'message'")
         return False
-    if has_message:
+    if has_message and kind not in _REQUEST_LOG_TYPES:
         raise ReadError(path, line_no, f"unknown event type {kind!r}")
     return True
 
