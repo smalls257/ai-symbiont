@@ -69,6 +69,7 @@ function renderScope(scoped) {
   $("scope").innerHTML = chips.length
     ? "Scope " + chips.map(c => '<span class="chip">' + esc(c[1]) + '<button data-clear="' + c[0] + '" aria-label="Clear ' + esc(c[1]) + '">✕</button></span>').join("") + "<span>" + HB.counted(scoped.n, "session") + "</span>"
     : "<span>All " + HB.counted(ALLS.n, "session") + " · click a theme, pattern or cell to scope</span>";
+  $("scope").title = $("scope").textContent.replace(/✕/g, "").trim();
   $("scope").querySelectorAll("[data-clear]").forEach(b => b.onclick = () => b.dataset.clear === "theme" ? setSel(null, sel.pattern) : setSel(sel.theme, null));
 }
 
