@@ -13,13 +13,11 @@ from pathlib import Path
 
 from symbiont.delivery.hook_profiles import ProjectNaming, profile
 from symbiont.delivery.hook_trace import record_outcome, record_received, trace_path
+from symbiont.delivery.hook_vocab import HookEvent, NoteStyle, NoteVisibility
 from symbiont.delivery.hooks import (
     AUTO,
-    HookEvent,
     HookInputError,
     HookSettings,
-    NoteStyle,
-    NoteVisibility,
     resolve_harness,
     run_hook,
 )

@@ -31,7 +31,7 @@ class EventTags:
     ) -> tuple[str, ...]:
         """The branch tag, then the title tag when this is the session's first user turn."""
         branch = optional_text(event, "gitBranch")
-        tags = (branch_tag(branch),) if branch else ()
+        tags: tuple[str, ...] = (branch_tag(branch),) if branch else ()
         title = self._titles.get(session_id)
         if first_user_turn and title and session_id not in self._given:
             self._given.add(session_id)
