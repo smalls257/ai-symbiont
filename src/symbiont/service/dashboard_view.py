@@ -66,6 +66,8 @@ class RepoView:
     strips: Sequence[SessionStrip] = ()
     # Sessions a trouble must come back in to become a lesson; the page says it in words.
     min_sessions: int = DEFAULT_MIN_SESSIONS
+    # Patterns the developer set aside; the empty state points at their Restore only when any exist.
+    ignored: int = 0
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
@@ -122,7 +124,7 @@ def _counted_not_taught(view: RepoView) -> dict[str, Any]:
     return {
         "heldBack": {reason.value: count for reason, count in view.held_back.items()},
         "struggle": [_struggle_entry(group) for group in _by_cost(view.struggle)],
-        "noLessons": no_lessons_sentence(view.held_back, view.min_sessions),
+        "noLessons": no_lessons_sentence(view.held_back, view.min_sessions, view.ignored),
         "churn": _churn_entries(view.churn),
     }
 

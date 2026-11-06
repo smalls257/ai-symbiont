@@ -25,6 +25,12 @@ function itemsHtml(entries,esc){
 }
 function group(entries,esc){return {kind:KIND,label:"Ignored",count:entries.length,role:"list",itemsHtml:itemsHtml(entries,esc)};}
 
+/* The empty Add context state: no lesson is active, so the Ignored group is the whole list and starts open (the caller passes the collapsed set).
+   Restore is the only way back, so it must not be collapsed away. Nothing ignored draws nothing. */
+function onlyGroupHtml(entries,esc,groupsHtml,collapsed){
+  return entries.length?groupsHtml([group(entries,esc)],collapsed,esc):"";
+}
+
 function post(url,body){
   return fetch(url,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)}).then(r=>{
     if(!r.ok)return r.text().then(t=>{throw new Error("symbiont could not do that (status "+r.status+"): "+t);});
@@ -34,5 +40,5 @@ function post(url,body){
 const ignore=(project,lessonId)=>post("/lessons/"+encodeURIComponent(lessonId)+"/ignore",{project});
 const restore=(project,entry)=>post("/ignored/restore",{project,signal:entry.signal,key:entry.key});
 
-window.SymbiontIgnored={KIND,storageKey,readOpen,writeOpen,itemsHtml,group,ignore,restore};
+window.SymbiontIgnored={KIND,storageKey,readOpen,writeOpen,itemsHtml,group,onlyGroupHtml,ignore,restore};
 })();

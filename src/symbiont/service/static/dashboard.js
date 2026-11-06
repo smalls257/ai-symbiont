@@ -181,7 +181,7 @@ function setGroupOpen(kind,open){
 }
 /* renderList replaces the list's markup, so focus returns to the heading or a keyboard user could not toggle twice or Tab on. */
 function toggleGroup(kind,open){
-  setGroupOpen(kind,open);renderList();
+  setGroupOpen(kind,open);P.length?renderList():renderEmptyList();
   $("plist").querySelector('button.grp[data-kind="'+kind+'"]').focus();
 }
 function itemHtml(p){
@@ -194,6 +194,13 @@ function renderList(){
     return {kind:k,label:KINDS[k].label+(k==="tdd"?" (not mistakes)":""),count:ps.length,itemsHtml:ps.map(itemHtml).join("")};
   });
   const L=$("plist"),keep=L.scrollTop;L.innerHTML=PL.groupsHtml([...groups,IGN.group(ignored,esc)],ignOpen?collapsed:new Set([...collapsed,IGN.KIND]),esc);L.scrollTop=keep;
+  wireList(L);
+}
+/* With no lesson active the Ignored group is the whole list and starts open, whatever was stored, so Restore is in reach. */
+function renderEmptyList(){
+  const L=$("plist");L.innerHTML=IGN.onlyGroupHtml(ignored,esc,PL.groupsHtml,ignOpen?new Set():new Set([IGN.KIND]));wireList(L);
+}
+function wireList(L){
   L.querySelectorAll("button[data-restore]").forEach(b=>b.onclick=()=>restorePattern(ignored[+b.dataset.restore]));
   L.querySelectorAll("button.grp").forEach(b=>b.onclick=()=>toggleGroup(b.dataset.kind,b.getAttribute("aria-expanded")!=="true"));
   L.querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
@@ -335,7 +342,7 @@ document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e
 $("repoName").textContent=DATA.repo.name;if(DATA.nightly){var nl=DATA.nightly,lc=nl.last_checked;$("nightly").textContent="Nightly training: "+nl.sentence+(lc?" \u00b7 last checked note: \u201c"+lc.note+"\u201d. "+lc.sentence:"");$("nightly").dataset.state=nl.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
 $("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
 if(P.length){renderList();showPain(1);}
-else{$("plist").textContent="";$("edit").innerHTML='<h2>No lessons yet</h2><p class="mu">'+esc(DATA.noLessons)+' There is nothing to add context to yet. The Pain points stage shows where the agent struggled and what was held back.</p>';}
+else{ignOpen=true;renderEmptyList();$("edit").innerHTML='<h2>No lessons yet</h2><p class="mu">'+esc(DATA.noLessons)+' There is nothing to add context to yet. The Pain points stage shows where the agent struggled and what was held back.</p>';}
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();
 go(1);
 window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};

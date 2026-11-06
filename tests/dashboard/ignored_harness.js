@@ -6,6 +6,8 @@ const vm = require("vm");
 const sandbox = { window: {} };
 vm.runInNewContext(fs.readFileSync(process.argv[2], "utf8"), sandbox);
 const I = sandbox.window.SymbiontIgnored;
+vm.runInNewContext(fs.readFileSync(process.argv[3], "utf8"), sandbox);
+const PL = sandbox.window.SymbiontPainList;
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const memory = (data) => ({ getItem: (k) => (k in data ? data[k] : null), setItem: (k, v) => { data[k] = v; } });
 const warnings = [];
@@ -22,5 +24,7 @@ console.log(JSON.stringify({
   html: I.itemsHtml([entry], esc),
   empty: I.itemsHtml([], esc),
   group: I.group([entry], esc),
+  emptyState: I.onlyGroupHtml([entry], esc, PL.groupsHtml, new Set()),
+  emptyStateNothingIgnored: I.onlyGroupHtml([], esc, PL.groupsHtml, new Set()),
   warnings,
 }));
