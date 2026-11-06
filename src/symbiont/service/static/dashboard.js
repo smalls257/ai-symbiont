@@ -280,8 +280,7 @@ function showPain(id){
   $("edit").style.setProperty("--k",KINDS[p.kind].color);
   $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span>'+sourceChip(p)+'<span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
    +"<h2>"+esc(p.title)+"</h2>"
-   +'<div class="occ" aria-label="Sessions where it happened">'+p.s.map(i=>'<i style="background:'+KINDS[p.kind].color+'" data-tip="'+dateOf(dayOf(i))+'"></i>').join("")+'<span class="mu">'+p.s.map(i=>dateOf(dayOf(i))).slice(-3).join(", ")+(p.s.length>3?" and earlier":"")+"</span></div>"
-   +(p.summary?'<p class="sum"><b>Summary.</b> '+esc(p.summary)+"</p>":p.ruleSummary?'<p class="sum"><b>Summary.</b> '+esc(p.ruleSummary)+'</p><p class="mu hint">Ask your session for a summary: /symbiont review</p>':"")
+   +'<div class="occ" aria-label="Sessions where it happened">'+p.s.map(i=>'<i style="background:'+KINDS[p.kind].color+'" data-tip="'+dateOf(dayOf(i))+'"></i>').join("")+'<span class="mu">'+p.s.map(i=>dateOf(dayOf(i))).slice(-3).join(", ")+(p.s.length>3?" and earlier":"")+"</span></div>"+window.SymbiontSummary.summaryHtml(p,esc)
    +"<p><span class=\"mu\">What happened.</span> "+fmt(p.what)+"</p>"+(p.fix?"<p><b>How it was fixed.</b> "+fmt(p.fix)+"</p>":"")
    +(p.conflict&&!st.intent&&!st.kept?'<div class="conflict" id="conflict" role="note">The reviewer thinks this is '+esc(p.conflict)+', but you added your own words, so it stays active. <button id="keepit">Keep</button> <button id="dismissit">Dismiss</button></div>':"")
    +'<div><label class="h" for="ctx">Add context in your own words</label><textarea id="ctx" placeholder="Tell the agent what it cannot see in the code." aria-label="Context for the agent">'+esc(st.ctx)+'</textarea>'

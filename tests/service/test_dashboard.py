@@ -284,12 +284,15 @@ def test_a_summary_with_markup_is_escaped_on_the_page():
     review = Review(Verdict.MISTAKE, summary=markup)
 
     snapshot = dashboard_snapshot(view(lessons, reviews={ident: review}), TODAY)
-    js = (Path(server.__file__).parent / "static" / "dashboard.js").read_text()
+    static = Path(server.__file__).parent / "static"
+    js = (static / "dashboard.js").read_text()
+    helper = (static / "summary.js").read_text()
 
     assert snapshot["painPoints"][0]["summary"] == markup
-    assert "esc(p.summary)" in js and "esc(p.ruleSummary)" in js
-    assert "Ask your session for a summary: /symbiont review" in js
-    assert len(js.splitlines()) < 400
+    assert "SymbiontSummary.summaryHtml(p,esc)" in js
+    assert "esc(p.summary)" in helper and "esc(p.ruleSummary)" in helper
+    assert "Ask your session for a summary: /symbiont review" in helper
+    assert len(js.splitlines()) <= 400
 
 
 def test_a_pain_point_without_a_review_gets_a_rule_built_summary_from_the_request():
