@@ -186,28 +186,30 @@ function renderHeld() {
 }
 
 /* One session, step by step: the densest struggle in scope, with a cursor for the arrow keys. */
-const LANE_Y = {you: 0.2, edit: 0.5, scratch: 0.5, failed: 0.8, passed: 0.8};
-const LANE_WORDS = {you: "you wrote", edit: "edit in the codebase", scratch: "edit to a scratch file", failed: "command failed", passed: "command passed"};
-const LANE_COLOR = {you: "#5cc8ff", edit: "#ff8c40", failed: "#f45454", passed: "#8c94ac"};
+/* Passed commands are most of any session and say nothing about the struggle; only failures are drawn. */
+const LANE_Y = {you: 0.2, edit: 0.5, scratch: 0.5, failed: 0.8};
+const LANE_WORDS = {you: "you wrote", edit: "edit in the codebase", scratch: "edit to a scratch file", failed: "command failed"};
+const LANE_COLOR = {you: "#5cc8ff", edit: "#ff8c40", failed: "#f45454"};
+const drawnSteps = st => st.steps.filter(s => s[1] in LANE_Y);
 function stepMark(s, x, y, at) {
   const [step, lane, label] = s, ring = at ? ' stroke="#ecf0f8" stroke-width="3"' : ' stroke="#16112a" stroke-width="2"';
   const tip = ' data-tip="' + esc(esc(label)) + "<br>" + LANE_WORDS[lane] + ', step ' + step + '"';
   if (lane === "scratch") return '<circle cx="' + x + '" cy="' + y + '" r="5" fill="none" stroke="' + (at ? "#ecf0f8" : "#8c94ac") + '" stroke-width="2"' + tip + "/>";
-  return '<circle cx="' + x + '" cy="' + y + '" r="' + (lane === "passed" ? 4 : 6) + '" fill="' + LANE_COLOR[lane] + '"' + ring + tip + "/>";
+  return '<circle cx="' + x + '" cy="' + y + '" r="' + 6 + '" fill="' + LANE_COLOR[lane] + '"' + ring + tip + "/>";
 }
 function renderStrip(scope) {
   const svg = $("stripsvg"), found = Object.entries(S.strips).filter(([i]) => scope.has(+i)).sort((a, b) => b[1].burst - a[1].burst)[0];
   if (!found) { drawn = null; $("stripSub").textContent = "No example session drawn for this scope."; svg.innerHTML = ""; $("stripNow").textContent = ""; return; }
-  const st = found[1], steps = st.steps;
+  const st = found[1], steps = drawnSteps(st);
   if (drawn !== st) { drawn = st; cursor = 0; }
   const first = steps[0][0], last = Math.max(first + 1, steps[steps.length - 1][0]);
-  $("stripSub").textContent = (sel.theme || sel.pattern ? "The densest struggle in this scope" : "The densest struggle overall") + " (" + st.task + "), " + (st.total > steps.length ? "steps " + fmt(st.offset + 1) + "–" + fmt(st.offset + steps.length) + " of " + fmt(st.total) + ", around the worst burst" : steps.length + " steps") + ". Shaded: " + S.burstFailures + " or more failures within " + S.burstSteps + " steps.";
+  $("stripSub").textContent = (sel.theme || sel.pattern ? "The densest struggle in this scope" : "The densest struggle overall") + " (" + st.task + "), " + (st.total > st.steps.length ? "steps " + fmt(st.offset + 1) + "–" + fmt(st.offset + st.steps.length) + " of " + fmt(st.total) + ", around the worst burst" : st.steps.length + " steps") + ". Shaded: " + S.burstFailures + " or more failures within " + S.burstSteps + " steps.";
   const b = svg.getBoundingClientRect(), W = Math.round(b.width) || 1600, H = Math.round(b.height) || 200, X0 = 150, X1 = W - 20;
   const xs = n => X0 + ((n - first) / (last - first)) * (X1 - X0), ys = lane => H * LANE_Y[lane];
   let h = st.bursts.map(([a, z]) => '<rect x="' + (xs(a) - 8) + '" y="4" width="' + (xs(z) - xs(a) + 16) + '" height="' + (H - 26) + '" rx="8" fill="rgba(244,84,84,.12)"/>').join("");
   [["you", "you"], ["edits", "edit"], ["commands", "failed"]].forEach(([name, lane]) => { h += '<text x="' + (X0 - 16) + '" y="' + (ys(lane) + 5) + '" text-anchor="end" font-size="15" fill="#8c94ac">' + name + '</text><line x1="' + X0 + '" x2="' + X1 + '" y1="' + ys(lane) + '" y2="' + ys(lane) + '" stroke="rgba(236,240,248,.1)" stroke-width="2"/>'; });
   h += steps.map((s, k) => stepMark(s, xs(s[0]), ys(s[1]), k === cursor)).join("");
-  [["failed", "#f45454"], ["passed", "#8c94ac"], ["edit in codebase", "#ff8c40"], ["you", "#5cc8ff"]].forEach((l, i) => { h += '<circle cx="' + (X0 + i * 150) + '" cy="' + (H - 6) + '" r="5" fill="' + l[1] + '"/><text x="' + (X0 + i * 150 + 10) + '" y="' + (H - 1) + '" font-size="13" fill="#8c94ac">' + l[0] + "</text>"; });
+  [["failed", "#f45454"], ["edit in codebase", "#ff8c40"], ["you", "#5cc8ff"]].forEach((l, i) => { h += '<circle cx="' + (X0 + i * 150) + '" cy="' + (H - 6) + '" r="5" fill="' + l[1] + '"/><text x="' + (X0 + i * 150 + 10) + '" y="' + (H - 1) + '" font-size="13" fill="#8c94ac">' + l[0] + "</text>"; });
   svg.setAttribute("viewBox", "0 0 " + W + " " + H); svg.innerHTML = h;
   const here = steps[cursor];
   $("stripNow").textContent = "Step " + here[0] + " (" + (cursor + 1) + " of " + steps.length + "): " + LANE_WORDS[here[1]] + ", " + here[2];
@@ -215,7 +217,7 @@ function renderStrip(scope) {
 $("stripsvg").addEventListener("keydown", e => {
   if (!drawn || (e.key !== "ArrowLeft" && e.key !== "ArrowRight")) return;
   e.preventDefault();
-  cursor = Math.max(0, Math.min(drawn.steps.length - 1, cursor + (e.key === "ArrowRight" ? 1 : -1)));
+  cursor = Math.max(0, Math.min(drawnSteps(drawn).length - 1, cursor + (e.key === "ArrowRight" ? 1 : -1)));
   renderStrip(currentScope());
 });
 
