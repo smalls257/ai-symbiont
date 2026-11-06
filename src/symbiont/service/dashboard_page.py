@@ -11,10 +11,11 @@ from symbiont.core.rule_relevance import situation_terms
 from symbiont.miner.lessons import Lesson
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
 from symbiont.service.effective_context import effective_contexts
+from symbiont.service.ignore_route import ignored_listing
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.store.local import Store
-from symbiont.store.repos import RepoRegistry
+from symbiont.store.repos import RepoRegistry, RepoStance
 
 STATIC = Path(__file__).parent / "static"
 PLACEHOLDER = "__SYMBIONT_DATA__"
@@ -23,12 +24,14 @@ FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
     "/dashboard/struggle.js": ("struggle.js", "text/javascript; charset=utf-8"),
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
+    "/dashboard/ignored.js": ("ignored.js", "text/javascript; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
 }
 NightlyOf = Callable[[str, Sequence[Lesson]], Mapping[str, object] | None]
 HTML = "text/html; charset=utf-8"
 TEXT = "text/plain; charset=utf-8"
+JSON = "application/json"
 
 
 @dataclass(frozen=True)
@@ -64,9 +67,20 @@ def dashboard_page(
     if path in FILES:
         name, content_type = FILES[path]
         return Page(200, content_type, (STATIC / name).read_bytes())
+    if path.rstrip("/") == "/ignored":
+        return _ignored_page(store, registry, _query(query).get("project", ""))
     if path.rstrip("/") != "/dashboard":
         return Page(404, TEXT, f"no such page: {path}".encode())
     return _project_page(store, registry, query, today, live or Live())
+
+
+def _ignored_page(store: Store, registry: RepoRegistry | None, project: str) -> Page:
+    """GET /ignored?project=: the patterns set aside in `project`, as JSON (allowed repos only)."""
+    if not project:
+        return Page(400, TEXT, b"choose a repository with ?project=NAME")
+    if registry is not None and registry.stance(project) is not RepoStance.GIVEN:
+        return Page(400, TEXT, f"run `symbiont repo allow` for {project} first".encode())
+    return Page(200, JSON, json.dumps({"ignored": ignored_listing(store, project)}).encode())
 
 
 def _project_page(
@@ -133,7 +147,9 @@ def _html(
         store.mined.session_facts(project),
         store.mined.session_strips(project),
     )
-    return _page_filled_with(dashboard_snapshot(view, today))
+    snapshot = dashboard_snapshot(view, today)
+    snapshot["ignored"] = ignored_listing(store, project)
+    return _page_filled_with(snapshot)
 
 
 def _session_dates(store: Store, project: str) -> dict[str, date]:

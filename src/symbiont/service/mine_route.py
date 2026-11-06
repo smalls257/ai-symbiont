@@ -23,7 +23,7 @@ from symbiont.service.mining_jobs import (
 from symbiont.service.request_shapes import BadRequestError, mine_request_of, named_project
 from symbiont.store.held_back import MiningOutcome, held_back_sentence, held_by_reason
 from symbiont.store.local import Source
-from symbiont.store.mining import MiningRules, mine_sources
+from symbiont.store.mining import MiningRules, mine_sources, with_ignored
 from symbiont.store.repos import RepoStance
 
 if TYPE_CHECKING:
@@ -84,7 +84,11 @@ class MineRoutes:
     def _work(self, project: str, new: list[Source], every: list[Source]) -> MiningWork:
         """The job body: mine every log, then save under the service lock."""
         setup = self._parts
-        rules = MiningRules(setup.readers, setup.held_out_tasks, screen=setup.screen_rules())
+        rules = with_ignored(
+            MiningRules(setup.readers, setup.held_out_tasks, screen=setup.screen_rules()),
+            setup.store,
+            project,
+        )
 
         def work(report: Callable[[list[Lesson]], None]) -> MiningOutcome:
             """Read and mine without the lock; store only when the whole run succeeded."""

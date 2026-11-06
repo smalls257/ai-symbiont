@@ -147,6 +147,10 @@ body.demo main{padding-bottom:3.8rem}
 .plist button[aria-selected=true]{background:rgba(255,140,64,.13);border-left-color:var(--or)}
 .plist i{width:.7rem;height:.7rem;border-radius:50%;background:var(--k)}
 .plist .t{font-size:1rem;line-height:1.2}
+.plist .ign{display:flex;align-items:center;gap:.7rem;padding:.45rem 1rem}
+.plist .ign .t{flex:1}
+.plist .ign button{display:block;width:auto;border:1px solid var(--line);border-radius:.5rem;padding:.3rem .8rem;color:inherit}
+.plist .ign-none{padding:.5rem 1rem;margin:0}
 .plist .c{font:.9rem var(--mono);color:var(--mu)}
 .plist .q{text-decoration:line-through;opacity:.55}
 .edit{display:flex;flex-direction:column;gap:.85rem;overflow-y:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#3a2f5a transparent}
@@ -174,6 +178,9 @@ textarea:focus{border-color:var(--vi);outline:none}
 .seg{display:inline-flex;border:1px solid var(--line);border-radius:.6rem;overflow:hidden}
 .seg button{background:none;border:0;padding:.4rem 1rem;color:var(--mu);font-weight:600;font-size:1.05rem}
 .seg button[aria-pressed=true]{background:var(--vi);color:#1a1020}
+.ignore{margin-left:auto;background:none;color:var(--mu);border:1px solid var(--line);border-radius:.7rem;padding:.55rem 1.1rem;font-size:1rem;cursor:pointer}
+.ignore:hover{color:inherit;border-color:var(--mu)}
+.ignore+.save{margin-left:.8rem}
 .save{margin-left:auto;background:var(--or);color:#1a1020;border:0;border-radius:.7rem;padding:.55rem 1.3rem;font-weight:700;font-size:1.1rem}
 .agent{display:flex;flex-direction:column;gap:.9rem;background:rgba(8,8,18,.55);border-color:rgba(178,140,255,.35);overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#3a2f5a transparent}
 .agent .bar2{display:flex;gap:.4rem;align-items:center;color:var(--mu);font-size:.95rem}

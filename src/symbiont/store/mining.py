@@ -6,7 +6,7 @@ it succeeds; a registered log that went missing or no longer parses raises namin
 """
 
 from collections.abc import Callable, Iterable, Mapping, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from symbiont.miner.churn import churn
@@ -53,6 +53,12 @@ def screen_rules_from(data_dir: Path) -> ScreenRules:
     return ScreenRules(min_sessions=read_mining_settings(data_dir).min_sessions)
 
 
+def with_ignored(rules: MiningRules, store: Store, project: str) -> MiningRules:
+    """`rules` plus the patterns the developer set aside in `project`, so mining holds them back."""
+    ignored = rules.screen.ignored | store.ignored.signatures(project)
+    return replace(rules, screen=replace(rules.screen, ignored=ignored))
+
+
 def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -> MiningOutcome:
     """Mine `records`, keep the lessons with a shown fix, count the rest, measure file churn."""
     sessions = sessions_of(records)
@@ -88,7 +94,7 @@ def remine_with_read(
     records = [r for source in known for r in read_source(source, rules.readers)]
     records += [r for read in new.values() for r in read]
     refuse_held_out(records, rules.held_out_tasks)
-    outcome = mined_outcome(records, rules, project)
+    outcome = mined_outcome(records, with_ignored(rules, store, project), project)
     store.mined.save(project, list(new), outcome, held_out_tasks=rules.held_out_tasks)
     return outcome.kept
 

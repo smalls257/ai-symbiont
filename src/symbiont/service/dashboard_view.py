@@ -136,6 +136,9 @@ def _churn_entries(churn: Sequence[FileChurn]) -> list[dict[str, Any]]:
     return [{"file": f, "edits": edits[f], "sessions": sessions[f]} for f in ranked]
 
 
+TITLE_CHARS = 90
+
+
 def _session_order(
     lessons: Sequence[Lesson], dates: Mapping[str, date], today: date
 ) -> dict[str, tuple[int, date]]:
@@ -162,6 +165,23 @@ def _grouped(
         groups,
         key=lambda group: -len(focus & situation_terms(happened(group[-1].pain_point.signature))),
     )
+
+
+def row_of(lessons: Sequence[Lesson], reviews: Mapping[str, Review], ident: str) -> list[Lesson]:
+    """The lessons the dashboard shows as one row with lesson `ident`; empty when none has it."""
+    for group in _grouped(lessons, reviews, frozenset()):
+        if ident in {lesson_id(item) for item in group}:
+            return group
+    return []
+
+
+def row_title(group: Sequence[Lesson], reviews: Mapping[str, Review]) -> str:
+    """The title the dashboard shows for a row: a reviewer's title, else what happened."""
+    review = next(
+        (reviews[lesson_id(item)] for item in reversed(group) if lesson_id(item) in reviews), None
+    )
+    title = review.title if review and review.title else happened(group[-1].pain_point.signature)
+    return title[:TITLE_CHARS]
 
 
 def _merge_home(
@@ -210,7 +230,7 @@ def _point(
     return {
         "id": number,
         "kind": KIND_OF_SIGNAL[signature.signal],
-        "title": title[:90],
+        "title": title[:TITLE_CHARS],
         "file": _file_of(signature),
         "command": command_of_signature(signature),
         "sessions": sessions,
