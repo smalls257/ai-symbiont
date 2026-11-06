@@ -9,9 +9,16 @@ from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import Any
 
+from symbiont.miner.struggle import SessionFacts
+
 REPLAY_DAYS = 30
 
 SessionOrder = Mapping[str, tuple[int, date | None]]
+
+
+def session_dates_of(facts: Sequence[SessionFacts]) -> dict[str, date]:
+    """Session id -> the day of its first timestamped record; undated sessions are absent."""
+    return {f.session_id: date.fromisoformat(f.started) for f in facts if f.started}
 
 
 def order_sessions(

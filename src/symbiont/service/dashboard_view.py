@@ -319,8 +319,9 @@ def _written_point(
     order: Mapping[str, tuple[int, date | None]],
     words: LessonContext | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """A written lesson as a pain point: it has no sessions of its own, so it sits on the newest."""
-    newest = max((index for index, _ in order.values()), default=0)
+    """A written lesson as a pain point, placed on the newest dated session (it has none)."""
+    dated = [index for index, when in order.values() if when is not None]
+    newest = max(dated or [index for index, _ in order.values()], default=0)
     kind = {"mistake": "repeat", "correction": "correction"}.get(item.kind.value, item.kind.value)
     point = {
         "id": number,

@@ -72,16 +72,26 @@ def test_ordering_puts_undated_sessions_after_dated_ones_in_first_seen_order():
     assert undated_count(order) == 2
 
 
-def test_the_page_dates_sessions_from_their_start_day_and_never_from_a_log_file():
-    from types import SimpleNamespace
-
+def test_sessions_are_dated_from_their_start_day_and_never_from_a_log_file():
     from symbiont.miner.struggle import SessionFacts
-    from symbiont.service.dashboard_page import _session_dates
+    from symbiont.service.session_dates import session_dates_of
 
     def fact(sid, started):
         return SessionFacts(sid, sid, frozenset(), frozenset(), 0, {}, False, started)
 
     facts = [fact("dated", "2026-03-02"), fact("undated", None)]
-    store = SimpleNamespace(mined=SimpleNamespace(session_facts=lambda project: facts))
 
-    assert _session_dates(store, "demo") == {"dated": date(2026, 3, 2)}
+    assert session_dates_of(facts) == {"dated": date(2026, 3, 2)}
+
+
+def test_a_written_lesson_sits_on_the_newest_dated_session_not_an_undated_one():
+    from symbiont.miner.lesson_context import AuthoredLesson, LessonKind
+
+    written = [AuthoredLesson("w1", "Refunds never retry.", LessonKind.RULE, ())]
+    view = RepoView("demo", lessons_in("u", "d"), {}, {"d": date(2026, 10, 3)}, written=written)
+
+    data = dashboard_snapshot(view, TODAY)
+
+    dated_index = next(s["index"] for s in data["sessions"] if s["date"])
+    written_point = next(p for p in data["painPoints"] if p["lessonId"] == "w1")
+    assert written_point["sessions"] == [dated_index]

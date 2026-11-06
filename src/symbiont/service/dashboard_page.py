@@ -14,6 +14,7 @@ from symbiont.service.effective_context import effective_contexts
 from symbiont.service.ignore_route import ignored_listing
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
+from symbiont.service.session_dates import session_dates_of
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import DEFAULT_MIN_SESSIONS
@@ -144,7 +145,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
         project,
         lessons,
         effective_contexts(store, project),
-        _session_dates(store, project),
+        session_dates_of(store.mined.session_facts(project)),
         store.curation.reviews(project),
         store.curation.authored(project),
         focus,
@@ -161,15 +162,6 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored
     return _page_filled_with(snapshot)
-
-
-def _session_dates(store: Store, project: str) -> dict[str, date]:
-    """Session id -> the day of its first timestamped record; undated sessions are absent."""
-    return {
-        fact.session_id: date.fromisoformat(fact.started)
-        for fact in store.mined.session_facts(project)
-        if fact.started
-    }
 
 
 def _focus_terms(registry: RepoRegistry | None, project: str) -> frozenset[str]:
