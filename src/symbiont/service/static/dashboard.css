@@ -102,7 +102,12 @@ body.demo main{padding-bottom:3.8rem}
 /* stage 2 */
 #s2{grid-template-columns:23% 1fr 36%;gap:1.2rem}
 .plist{overflow:auto;padding:0;scrollbar-width:thin;scrollbar-color:#3a2f5a transparent}
-.plist h3{position:sticky;top:0;background:#1a1330;padding:.6rem 1rem;font-size:.95rem;color:var(--mu);font-weight:600;border-bottom:1px solid var(--line);z-index:1}
+.plist h3{position:sticky;top:0;background:#1a1330;padding:0;font-size:.95rem;color:var(--mu);font-weight:600;border-bottom:1px solid var(--line);z-index:1}
+.plist h3 button.grp{display:flex;align-items:center;gap:.6rem;width:100%;padding:.6rem 1rem;border:0;border-left:0;background:none;color:inherit;font:inherit;font-size:.95rem;font-weight:600;text-align:left;cursor:pointer}
+.plist h3 button.grp:hover{background:rgba(255,255,255,.05)}
+.plist .chev{width:.5rem;height:.5rem;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg) translate(-.1rem,-.1rem);transition:transform .15s}
+.plist button[aria-expanded=false] .chev{transform:rotate(-45deg)}
+.plist .items[hidden]{display:none}
 .plist button{display:grid;grid-template-columns:auto 1fr auto;gap:.2rem .7rem;width:100%;text-align:left;background:none;border:0;border-left:.3rem solid transparent;padding:.55rem 1rem;align-items:center}
 .plist button:hover{background:rgba(255,255,255,.05)}
 .plist button[aria-selected=true]{background:rgba(255,140,64,.13);border-left-color:var(--or)}
