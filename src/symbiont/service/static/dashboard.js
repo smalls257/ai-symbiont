@@ -228,16 +228,25 @@ function resetBars(){document.querySelectorAll("#kbars i").forEach(i=>i.style.wi
 
 /* ===== stage 2: add context ===== */
 let sel=1,reveal=null,revealTimer=0;
+const PL=window.SymbiontPainList, PROJECT=DATA.repo.name;
+const collapsed=PL.readCollapsed(window.localStorage,PROJECT,console.warn);
+function setGroupOpen(kind,open){
+  if(collapsed.has(kind)===!open)return;
+  if(open)collapsed.delete(kind);else collapsed.add(kind);
+  PL.writeCollapsed(window.localStorage,PROJECT,collapsed,console.warn);
+}
+function itemHtml(p){
+  const st=ST[p.id];
+  return '<button role="option" aria-selected="'+(p.id===sel)+'" data-id="'+p.id+'" style="--k:'+KINDS[p.kind].color+'"><i></i><span class="t'+(st.intent&&p.kind!=="tdd"?" q":"")+'">'+esc(short(p.title))+'</span><span class="c">'+(st.saved?"✓ ":"")+"×"+p.s.length+"</span></button>";
+}
 function renderList(){
-  let h="";
-  Object.keys(KINDS).forEach(k=>{
+  const groups=Object.keys(KINDS).map(k=>{
     const ps=P.filter(p=>p.kind===k).sort((a,b)=>cost(b)-cost(a));
-    h+='<h3>'+KINDS[k].label+(k==="tdd"?" (not mistakes)":"")+"</h3>";
-    ps.forEach(p=>{const st=ST[p.id];
-      h+='<button role="option" aria-selected="'+(p.id===sel)+'" data-id="'+p.id+'" style="--k:'+KINDS[k].color+'"><i></i><span class="t'+(st.intent&&k!=="tdd"?" q":"")+'">'+esc(short(p.title))+'</span><span class="c">'+(st.saved?"✓ ":"")+"×"+p.s.length+"</span></button>";});
+    return {kind:k,label:KINDS[k].label+(k==="tdd"?" (not mistakes)":""),count:ps.length,itemsHtml:ps.map(itemHtml).join("")};
   });
-  const L=$("plist"),keep=L.scrollTop;L.innerHTML=h;L.scrollTop=keep;
-  L.querySelectorAll("button").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
+  const L=$("plist"),keep=L.scrollTop;L.innerHTML=PL.groupsHtml(groups,collapsed,esc);L.scrollTop=keep;
+  L.querySelectorAll("button.grp").forEach(b=>b.onclick=()=>{setGroupOpen(b.dataset.kind,b.getAttribute("aria-expanded")!=="true");renderList();});
+  L.querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
 }
 function sourceChip(p){
   if(!p.srcLabel&&!p.srcUrl)return "";
@@ -247,6 +256,7 @@ function sourceChip(p){
 function openPain(id){go(2);selectPain(id);const b=$("plist").querySelector('[data-id="'+id+'"]');if(b)b.scrollIntoView({block:"center"});}
 function selectPain(id){
   sel=id;const p=byId(id),st=ST[id];
+  setGroupOpen(p.kind,true);
   renderList();
   $("edit").style.setProperty("--k",KINDS[p.kind].color);
   $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span>'+sourceChip(p)+'<span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
