@@ -16,9 +16,10 @@ if(DATA.mining){window.SymbiontMining.run(DATA.mining);return;}
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const N=DATA.sessions.length;
 const dayOf=i=>DATA.sessions[i].day;
-const dateOf=d=>{if(!N)return "";const x=new Date(DATA.sessions[0].date+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+d);return MONTHS[x.getUTCMonth()]+" "+x.getUTCDate();};
+const FIRST_DATE=N?DATA.sessions[0].date:DATA.repo.today;
+const dateOf=d=>{const x=new Date(FIRST_DATE+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+d);return MONTHS[x.getUTCMonth()]+" "+x.getUTCDate();};
 const WINDOW_START=DATA.replay.windowStartDay;
-const LAST_DAY=Math.round((new Date(DATA.repo.today)-new Date(DATA.sessions[0].date))/864e5);
+const LAST_DAY=Math.round((new Date(DATA.repo.today)-new Date(FIRST_DATE))/864e5);
 const isMistake=p=>p.kind!=="tdd";
 const cost=p=>isMistake(p)?p.turns*p.s.length:0;
 const minutes=p=>isMistake(p)?p.min*p.s.length:0;
@@ -261,7 +262,8 @@ function trigger(p){return p.kind==="rework"?"before editing "+p.file.split("/")
 
 /* ===== stage 3: 30-day replay ===== */
 const EVENTS=DATA.replay.items.map(r=>{const p=byId(r.painPointId);return {p,k:p.s.indexOf(r.sessionIndex),day:r.day,saved:r.turnsSaved,mins:r.minutesSaved};});
-const RX=d=>40+(d-WINDOW_START)/(LAST_DAY-WINDOW_START)*1720;
+const SPAN_DAYS=Math.max(1,LAST_DAY-WINDOW_START);
+const RX=d=>40+(d-WINDOW_START)/SPAN_DAYS*1720;
 let replayRunning=false;
 function drawStrip(upto){
   let s='<line x1="40" x2="1760" y1="130" y2="130" stroke="rgba(236,240,248,.2)" stroke-width="2"/>';
@@ -290,7 +292,7 @@ async function playReplay(t,ms){
   try{
     renderReplay(0);let prev=WINDOW_START;
     for(let i=0;i<EVENTS.length;i++){
-      const dt=(EVENTS[i].day-prev)/(LAST_DAY-WINDOW_START)*ms*0.9+ms*0.1/EVENTS.length;prev=EVENTS[i].day;
+      const dt=(EVENTS[i].day-prev)/SPAN_DAYS*ms*0.9+ms*0.1/EVENTS.length;prev=EVENTS[i].day;
       await pause(t,Math.max(60,dt));renderReplay(i+1);
     }
   }finally{replayRunning=false;}

@@ -267,7 +267,9 @@ def test_the_boot_never_opens_a_pain_point_when_there_are_none():
     script = (STATIC / "dashboard.js").read_text(encoding="utf-8")
 
     assert "if(P.length){renderList();showPain(1);}" in script
-    assert 'dateOf=d=>{if(!N)return ""' in script
+    assert "RX=d=>40+(d-WINDOW_START)/SPAN_DAYS*1720" in script
+    assert "FIRST_DATE=N?DATA.sessions[0].date:DATA.repo.today" in script
+    assert "DATA.sessions[0]" not in script.replace("N?DATA.sessions[0].date", "")
 
 
 def test_the_mine_address_without_any_job_shows_the_dashboard_not_an_empty_stage(served):
