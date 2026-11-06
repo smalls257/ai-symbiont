@@ -217,3 +217,12 @@ def test_the_failures_never_shown_a_fix_are_listed_by_cost_with_the_hold_reason(
 
     assert [g["occurrences"] for g in groups] == [9, 3]
     assert groups[0]["reason"] == "no fix shown" and groups[0]["what"] and groups[0]["minutes"] > 0
+
+
+def test_a_windowed_strip_tells_the_page_where_its_window_starts_and_how_long_the_session_was():
+    strip = SessionStrip("a", "task a", 1, (StripStep(7, Lane.FAILED, "pytest x"),), 900, 250)
+    view = RepoView("demo", lessons_in("a", "b"), {}, DATES, facts=FACTS, strips=[strip])
+
+    shown = dashboard_snapshot(view, TODAY)["stage"]["strips"]["0"]
+
+    assert (shown["offset"], shown["total"]) == (250, 900)

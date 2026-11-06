@@ -70,3 +70,21 @@ def test_a_re_mine_replaces_the_facts_and_the_strips(tmp_path, store):
 def test_a_project_never_mined_has_no_facts(store):
     assert store.mined.session_facts("other") == []
     assert store.mined.session_strips("other") == []
+
+
+def test_a_strip_keeps_where_its_window_starts_and_one_stored_before_windows_still_reads(
+    tmp_path, store
+):
+    import json
+
+    storm = [run(f"pytest t{n}", 1, BROKEN) for n in range(30)]
+    quiet = [run("pytest ok", 0)] * 800
+    mine(tmp_path, store, [replace(r, session_id="long") for r in session(*quiet, *storm)])
+
+    (strip,) = store.mined.session_strips(PROJECT)
+    assert strip.offset > 0 and len(strip.steps) == 600 and strip.total_steps == 830
+
+    old = json.dumps([[3, "failed", "pytest t"]])
+    store._db.execute("UPDATE session_strips SET steps=?", (old,))
+    (before,) = store.mined.session_strips(PROJECT)
+    assert before.offset == 0 and before.steps[0].step == 3

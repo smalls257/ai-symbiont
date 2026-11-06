@@ -64,7 +64,7 @@ def _strip_row(project: str, strip: SessionStrip) -> tuple[str, str, str, int, s
         strip.session_id,
         strip.task_label,
         strip.burst,
-        json.dumps(steps),
+        json.dumps({"offset": strip.offset, "steps": steps}),
         strip.total_steps,
     )
 
@@ -98,10 +98,22 @@ def read_strips(db: sqlite3.Connection, project: str) -> list[SessionStrip]:
         (project,),
     ).fetchall()
     return [
-        SessionStrip(sid, label, burst, _steps_from(steps), total)
+        SessionStrip(sid, label, burst, _steps_from(steps), total, _offset_of(steps))
         for sid, label, burst, steps, total in rows
     ]
 
 
+def _listed(body: str) -> list[list[object]]:
+    """The steps in a stored strip; a strip stored before windows is the bare list."""
+    stored = json.loads(body)
+    return stored["steps"] if isinstance(stored, dict) else stored
+
+
+def _offset_of(body: str) -> int:
+    """How many drawn steps precede the stored window; 0 for a strip stored before windows."""
+    stored = json.loads(body)
+    return int(stored["offset"]) if isinstance(stored, dict) else 0
+
+
 def _steps_from(body: str) -> tuple[StripStep, ...]:
-    return tuple(StripStep(n, Lane(lane), name) for n, lane, name in json.loads(body))
+    return tuple(StripStep(int(n), Lane(lane), str(name)) for n, lane, name in _listed(body))

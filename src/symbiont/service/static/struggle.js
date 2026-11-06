@@ -200,10 +200,10 @@ function renderStrip(scope) {
   if (!found) { drawn = null; $("stripSub").textContent = "No example session drawn for this scope."; svg.innerHTML = ""; $("stripNow").textContent = ""; return; }
   const st = found[1], steps = st.steps;
   if (drawn !== st) { drawn = st; cursor = 0; }
-  const last = Math.max(1, steps[steps.length - 1][0]);
-  $("stripSub").textContent = (sel.theme || sel.pattern ? "The densest struggle in this scope" : "The densest struggle overall") + " (" + st.task + "), " + (st.total > steps.length ? "first " + steps.length + " of " + st.total : steps.length) + " steps. Shaded: " + S.burstFailures + " or more failures within " + S.burstSteps + " steps.";
+  const first = steps[0][0], last = Math.max(first + 1, steps[steps.length - 1][0]);
+  $("stripSub").textContent = (sel.theme || sel.pattern ? "The densest struggle in this scope" : "The densest struggle overall") + " (" + st.task + "), " + (st.total > steps.length ? "steps " + fmt(st.offset + 1) + "–" + fmt(st.offset + steps.length) + " of " + fmt(st.total) + ", around the worst burst" : steps.length + " steps") + ". Shaded: " + S.burstFailures + " or more failures within " + S.burstSteps + " steps.";
   const b = svg.getBoundingClientRect(), W = Math.round(b.width) || 1600, H = Math.round(b.height) || 200, X0 = 150, X1 = W - 20;
-  const xs = n => X0 + (n / last) * (X1 - X0), ys = lane => H * LANE_Y[lane];
+  const xs = n => X0 + ((n - first) / (last - first)) * (X1 - X0), ys = lane => H * LANE_Y[lane];
   let h = st.bursts.map(([a, z]) => '<rect x="' + (xs(a) - 8) + '" y="4" width="' + (xs(z) - xs(a) + 16) + '" height="' + (H - 26) + '" rx="8" fill="rgba(244,84,84,.12)"/>').join("");
   [["you", "you"], ["edits", "edit"], ["commands", "failed"]].forEach(([name, lane]) => { h += '<text x="' + (X0 - 16) + '" y="' + (ys(lane) + 5) + '" text-anchor="end" font-size="15" fill="#8c94ac">' + name + '</text><line x1="' + X0 + '" x2="' + X1 + '" y1="' + ys(lane) + '" y2="' + ys(lane) + '" stroke="rgba(236,240,248,.1)" stroke-width="2"/>'; });
   h += steps.map((s, k) => stepMark(s, xs(s[0]), ys(s[1]), k === cursor)).join("");

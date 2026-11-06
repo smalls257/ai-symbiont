@@ -10,10 +10,10 @@ from collections.abc import Iterable, Sequence
 
 from symbiont.miner.patterns import StrugglePattern
 from symbiont.miner.strips import (
-    MAX_STRIP_STEPS,
     READABLE_STEPS,
     SessionStrip,
     burstiness,
+    densest_window,
     strip_of,
 )
 from symbiont.miner.struggle import SessionFacts
@@ -87,6 +87,7 @@ def _densest(sessions: Sequence[Sequence[Record]], group: Sequence[int]) -> int 
 def _strip(session: Sequence[Record], facts: SessionFacts, codebase: Codebase) -> SessionStrip:
     """The strip of one session with its label and density."""
     steps = strip_of(session, codebase)
+    offset, window = densest_window(steps)
     return SessionStrip(
-        facts.session_id, facts.task_label, burstiness(session), steps[:MAX_STRIP_STEPS], len(steps)
+        facts.session_id, facts.task_label, burstiness(session), window, len(steps), offset
     )

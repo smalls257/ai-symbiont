@@ -52,8 +52,10 @@ class SessionStrip:
     task_label: str
     burst: int
     steps: tuple[StripStep, ...]
-    # The session's steps before the strip was cut at MAX_STRIP_STEPS.
+    # The session's drawn steps before the strip was cut to MAX_STRIP_STEPS.
     total_steps: int
+    # How many drawn steps come before the first one kept (0 when nothing was cut off the front).
+    offset: int = 0
 
 
 def strip_of(session: Sequence[Record], codebase: Codebase) -> tuple[StripStep, ...]:
@@ -63,6 +65,24 @@ def strip_of(session: Sequence[Record], codebase: Codebase) -> tuple[StripStep, 
     """
     steps = (_step(record, codebase) for record in session)
     return tuple(step for step in steps if step is not None)
+
+
+def densest_window(steps: Sequence[StripStep]) -> tuple[int, tuple[StripStep, ...]]:
+    """The MAX_STRIP_STEPS steps holding the most failures, and how many steps precede them.
+
+    A long session cut at its start would draw its quiet opening, not its worst stretch; the
+    earliest window wins a tie.
+    """
+    if len(steps) <= MAX_STRIP_STEPS:
+        return 0, tuple(steps)
+    failing = [int(step.lane is Lane.FAILED) for step in steps]
+    inside = sum(failing[:MAX_STRIP_STEPS])
+    best, best_start = inside, 0
+    for start in range(1, len(steps) - MAX_STRIP_STEPS + 1):
+        inside += failing[start + MAX_STRIP_STEPS - 1] - failing[start - 1]
+        if inside > best:
+            best, best_start = inside, start
+    return best_start, tuple(steps[best_start : best_start + MAX_STRIP_STEPS])
 
 
 def _step(record: Record, codebase: Codebase) -> StripStep | None:
