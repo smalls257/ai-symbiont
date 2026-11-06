@@ -43,8 +43,9 @@ def add_hook_arguments(parser: argparse.ArgumentParser) -> None:
         "--visibility",
         type=NoteVisibility,
         choices=list(NoteVisibility),
-        default=NoteVisibility.ALSO_DEVELOPER,
-        help="also-developer shows each note on screen via systemMessage, as well as to the model",
+        default=NoteVisibility.SHOWN,
+        help="shown: the developer sees each note (a headline via systemMessage; on Muse Code the "
+        "model is also asked to say it in its reply); model-only: the model alone",
     )
     parser.add_argument("--project", default=Path.cwd().name, help="used when the input has no cwd")
     parser.add_argument("--port", type=int, default=LOCAL_SERVICE_PORT)

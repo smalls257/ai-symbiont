@@ -6,7 +6,7 @@ history. Everything stays on your computer: the plugin only talks to a service o
 This folder is the plugin for Claude Code and Muse Code. It needs the `symbiont` command:
 
 ```bash
-uv tool install git+https://github.com/smalls257/ai-symbiont
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
 ```
 
 It adds hooks for session start, prompt submit and tool use, a `recall` tool over MCP, and the
@@ -23,10 +23,7 @@ uploaded. It needs the training packages, which a plain install does not carry:
 uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
 ```
 
-The first run also needs a judge kit, because Meta's license does not let us ship the weights. Download
-the base model and the small kit once (the commands are in the repository README, "Building the kit"),
-then run `/symbiont nightly` with their folders: `base` is the Llama 3.2 1B Instruct folder and `kit`
-is the downloaded `nightly-kit` folder. Later runs need no arguments. Without a kit the command stops
+Fastest path: run `/symbiont onboard`. It switches symbiont on, learns from your past sessions, finds your corrections, then downloads the Llama 3.2 1B base and the small judge kit (about 2.5 GB, once) and trains. Meta's license does not let me ship the weights, so symbiont fetches the public copy for you. If you already have the base and kit, `/symbiont nightly` also accepts their folders: `base` is the Llama 3.2 1B Instruct folder and `kit` is the `nightly-kit` folder. Later runs need no arguments. Without a kit the command stops
 and prints those steps; with the packages missing it prints the install command above and exits
 non-zero. Training takes 1-4 minutes, so the command returns within a minute with "training started";
 `/symbiont status` shows `training job: running`, `done on N lessons at <time>` or `failed: <reason>`,

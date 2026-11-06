@@ -43,7 +43,7 @@ class NoteVisibility(StrEnum):
     """Who reads a note: the model alone, or the developer on screen as well."""
 
     MODEL_ONLY = "model-only"
-    ALSO_DEVELOPER = "also-developer"
+    SHOWN = "shown"
 
 
 @dataclass(frozen=True)
@@ -62,7 +62,7 @@ class HookSettings:
     style: NoteStyle
     port: int
     fallback_project: str
-    visibility: NoteVisibility = NoteVisibility.ALSO_DEVELOPER
+    visibility: NoteVisibility = NoteVisibility.SHOWN
     # Projects the developer answered for; set for Claude Code only (see project_identity.py).
     known_projects: frozenset[str] = frozenset()
 
@@ -95,6 +95,13 @@ _EDIT_TOOLS = frozenset(
 # `powershell` is the shell tool Muse Code uses on Windows [measured on Windows 11, Muse 1.4.14].
 _SHELL_TOOLS = frozenset({"Bash", "shell", "bash", "exec_command", "powershell", "PowerShell"})
 _READ_TOOLS = frozenset({"Read", "read_file"})
+# Muse Code's TUI flashes `systemMessage` for a few seconds, so the developer never reads the
+# note itself; the model is asked to say it in its reply, where the transcript keeps it.
+# Claude Code shows `systemMessage` to the developer, so it gets no such line.
+ECHO_TO_DEVELOPER = (
+    'Before you continue, tell the developer in one line, starting with "symbiont:", '
+    "what this note says."
+)
 
 
 def resolve_harness(chosen: str, environ: Mapping[str, str]) -> str:
@@ -149,10 +156,17 @@ def run_hook(
     text = "\n".join(filter(None, [worded, *told, *_for_the_model(reply)]))
     if not text or event not in speaking_events(settings.harness):
         return HookResult()
+    if _asks_model_to_echo(settings):
+        text = f"{text}\n{ECHO_TO_DEVELOPER}"
     # The model gets the full note; the status line gets a headline (see headline.py).
-    shown_notes = [headline(notes)] if settings.visibility is NoteVisibility.ALSO_DEVELOPER else []
+    shown_notes = [headline(notes)] if settings.visibility is NoteVisibility.SHOWN else []
     seen = [*filter(None, shown_notes), *told]
     return HookResult(context=_inline_context(event, text, shown_to="\n".join(seen)))
+
+
+def _asks_model_to_echo(settings: HookSettings) -> bool:
+    """Whether the model is asked to repeat the note to the developer (Muse Code, shown)."""
+    return settings.harness == MUSE_CODE and settings.visibility is NoteVisibility.SHOWN
 
 
 def observe_body(

@@ -3,7 +3,7 @@
 # the host. The image does not change that; use it for `uv run pytest -q` and CLI commands.
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends git \
+RUN apt-get update && apt-get install -y --no-install-recommends git curl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
@@ -22,6 +22,8 @@ RUN git init -q \
     && find . -type f -not -path './.git/*' -not -path './.venv/*' -print0 | xargs -0 git update-index --add -- \
     && git -c user.name=build -c user.email=build@localhost commit -q -m "container snapshot"
 
+# `docker run -it --rm -e META_API_KEY=... ai-symbiont live` opens a real Muse Code session on the
+# synthetic ledger (Muse is fetched at run time, so no auth state lands in a layer).
 # `docker run --rm ai-symbiont demo` replays the keyless walkthrough; the flag tells it the
 # dashboard is not reachable from the host.
 ENV SYMBIONT_DEMO_IN_DOCKER=1

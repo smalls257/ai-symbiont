@@ -8,6 +8,7 @@ import pytest
 from symbiont import cli
 from symbiont.delivery import hooks, launch
 from symbiont.delivery.hooks import (
+    ECHO_TO_DEVELOPER,
     HookEvent,
     HookInputError,
     HookSettings,
@@ -156,7 +157,8 @@ def test_a_note_is_also_shown_to_the_developer_unless_model_only(monkeypatch, ha
     settings = HookSettings(harness, NoteStyle.PLAIN, 1, "p")
     shown = json.loads(hooks.run_hook(event, json.dumps(INPUTS[event]), settings).context)
     assert shown["systemMessage"] == "symbiont · Careful (this repo's rule)"
-    assert shown["hookSpecificOutput"]["additionalContext"] == "Careful."
+    echo = f"\n{ECHO_TO_DEVELOPER}" if harness == "muse_code" else ""
+    assert shown["hookSpecificOutput"]["additionalContext"] == "Careful." + echo
 
 
 def test_the_model_gets_the_full_note_and_the_developer_a_short_headline(monkeypatch):
@@ -166,7 +168,7 @@ def test_the_model_gets_the_full_note_and_the_developer_a_short_headline(monkeyp
     shown = json.loads(
         hooks.run_hook(HookEvent.USER_PROMPT_SUBMIT, json.dumps(PROMPT_INPUT), settings).context
     )
-    assert shown["hookSpecificOutput"]["additionalContext"] == long
+    assert shown["hookSpecificOutput"]["additionalContext"] == f"{long}\n{ECHO_TO_DEVELOPER}"
     assert len(shown["systemMessage"]) <= 90
 
 
@@ -182,8 +184,8 @@ def test_finding_style_words_a_post_tool_use_note_as_a_finding(monkeypatch):
         json.dumps(PROMPT_INPUT),
         HookSettings("muse_code", NoteStyle.FINDING, 1, "p"),
     )
-    assert inline_text(tool.context) == "Finding: It failed."
-    assert inline_text(prompt.context) == "It failed."
+    assert inline_text(tool.context) == f"Finding: It failed.\n{ECHO_TO_DEVELOPER}"
+    assert inline_text(prompt.context) == f"It failed.\n{ECHO_TO_DEVELOPER}"
 
 
 def test_no_notes_prints_nothing(monkeypatch):
@@ -229,7 +231,8 @@ def test_a_failure_note_is_inline_context_only_where_the_harness_takes_it(
     result = hooks.run_hook(event, json.dumps(INPUTS[event]), settings)
     assert bool(result.context) is speaks
     if speaks:
-        assert inline_text(result.context) == "Again."
+        echo = f"\n{ECHO_TO_DEVELOPER}" if harness == "muse_code" else ""
+        assert inline_text(result.context) == "Again." + echo
 
 
 def test_an_egress_refusal_is_a_refusal_not_offline(monkeypatch):

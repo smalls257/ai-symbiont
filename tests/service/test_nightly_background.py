@@ -171,3 +171,42 @@ def test_work_that_crashes_still_leaves_failed_and_reraises(tmp_path):
         work_job(plan, NONE, explode, log)
     state = read_job(plan.nightly_dir, PROJECT)
     assert state is not None and state.phase is JobPhase.FAILED and "kaboom" in state.reason
+
+
+def test_a_download_start_launches_with_fetch_into_and_says_it_is_downloading(tmp_path):
+    plan, launch, said = setup(tmp_path), Launches(), []
+    plan = plan.__class__(**{**plan.__dict__, "kit_dir": tmp_path / "no-kit"})
+    files = KitFiles(None, None, fetch_into=tmp_path / "models")
+    assert start_job(plan, files, tools(launch), said.append) == 0
+    assert said[-1].startswith("downloading the model (about 2.5 GB) and training kit")
+    assert read_job(plan.nightly_dir, PROJECT).phase is JobPhase.DOWNLOADING
+    argv = launch.calls[0][0]
+    assert argv[argv.index("--fetch-into") + 1] == str(tmp_path / "models")
+
+
+def test_a_second_start_while_the_model_downloads_launches_nothing(tmp_path):
+    plan, launch, said = setup(tmp_path), Launches(), []
+    state = JobState(JobPhase.DOWNLOADING, utc_now(), 6, None, "", 10, 100)
+    write_job(plan.nightly_dir, PROJECT, state)
+    assert start_job(plan, NONE, tools(launch), said.append) == 0
+    assert launch.calls == [] and "already running" in said[-1]
+
+
+def test_work_downloads_first_then_builds_and_trains_and_a_failed_download_leaves_failed(
+    tmp_path, monkeypatch
+):
+    from symbiont.egress import DownloadError
+    from symbiont.service import nightly_background
+
+    plan, log, make = make_work(tmp_path, FakeNight(Backend.MLX))
+    plan = plan.__class__(**{**plan.__dict__, "kit_dir": tmp_path / "no-kit"})
+
+    def refuse(plan, models_dir, started, lessons, say):
+        raise DownloadError("GET huggingface.co/unsloth/x broke after 5 bytes")
+
+    monkeypatch.setattr(nightly_background, "fetch_for_job", refuse)
+    files = KitFiles(None, None, fetch_into=tmp_path / "models")
+    assert work_job(plan, files, make, log) == EXIT_FAILED
+    state = read_job(plan.nightly_dir, PROJECT)
+    assert state is not None and state.phase is JobPhase.FAILED
+    assert "huggingface.co/unsloth/x" in state.reason

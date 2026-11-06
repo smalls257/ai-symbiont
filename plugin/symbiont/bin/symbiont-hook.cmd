@@ -10,7 +10,7 @@ set "PATH=%USERPROFILE%\.local\bin;%PATH%"
 if exist "%USERPROFILE%\.symbiont\hook-trace.on" >>"%USERPROFILE%\.symbiont\hook-trace.jsonl" echo {"stage":"wrapper","event":"%~1","ts":"%DATE% %TIME%"}
 where symbiont-hook >nul 2>&1
 if errorlevel 1 (
-  if "%~1"=="SessionStart" echo {"systemMessage":"symbiont is not installed, so it is off. Install it with: uv tool install git+https://github.com/smalls257/ai-symbiont"}
+  if "%~1"=="SessionStart" echo {"systemMessage":"symbiont is not installed, so it is off. Install it with: uv tool install \"ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont\""}
   exit /b 0
 )
 rem call: without it a .cmd shim would end this script before the exit below.

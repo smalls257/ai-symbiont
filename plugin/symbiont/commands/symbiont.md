@@ -1,6 +1,6 @@
 ---
 description: Show what symbiont is doing here, explain a note, silence it, forget a lesson, or answer for this repository
-argument-hint: "[status | dashboard | settings | why | mute | forget | lessons | context | reflect | learn-from-prs | allow | decline | mine | nightly | uninstall]"
+argument-hint: "[onboard | status | dashboard | settings | why | mute | forget | lessons | context | reflect | learn-from-prs | allow | decline | mine | nightly | uninstall]"
 allowed-tools: Bash(symbiont:*), mcp__symbiont, mcp__plugin_symbiont_symbiont
 ---
 
@@ -28,10 +28,19 @@ not retry through the shell.
 | `allow` | `symbiont_allow` | `symbiont repo allow` | switch symbiont on for this repository |
 | `decline` | `symbiont_decline` | `symbiont repo decline` | keep symbiont off for this repository |
 | `mine` | `symbiont_mine` | `symbiont repo mine` | learn from this repository's past agent sessions (needs `allow` first). It opens the dashboard unless the developer turned that off (`symbiont settings set open_dashboard_on_mine false`; shell: `--no-open` skips the browser) and returns the address with a progress summary; if the job is still running, say it carries on and give the address |
-| `nightly [base=<folder> kit=<folder>]` | `symbiont_nightly` with `base` and `kit` only when the developer gave them | `symbiont nightly start` (`--base <folder> --kit-files <folder>`) | train this repository's checker on its lessons, on this machine (nothing is uploaded). It builds the judge kit first if there is none, then trains in the background and returns within a minute with "training started; N lessons; check with `/symbiont status`"; training takes 1-4 minutes and `status` then shows `training job: running`, `done on N lessons at <time>` or `failed: <reason>`. If it fails because there is no kit, relay its steps (download the base and the kit, then run `/symbiont nightly` again with their folders as `base` and `kit`); if it says the nightly packages are missing, give the developer the install command it quotes. Never retry through the shell when the tool answered |
+| `nightly` (normal path: no arguments; optionally `base=<folder> kit=<folder>`) | `symbiont_nightly` with no arguments; `base` and `kit` only when the developer gave them | `symbiont nightly start` (`--base <folder> --kit-files <folder>`) | train this repository's checker on its lessons, on this machine (nothing is uploaded). It builds the judge kit first if there is none, then trains in the background and returns within a minute with "training started; N lessons; check with `/symbiont status`"; training takes 1-4 minutes and `status` then shows `training job: running`, `done on N lessons at <time>` or `failed: <reason>`. With no arguments it finds the Llama folder and the nightly kit by itself (`~/.symbiont/models`, then the Hugging Face cache), reuses a kit it already built, and when it finds nothing it downloads both itself (about 2.5 GB, public files, no login) in the background job before training; `/symbiont status` then shows `training job: downloading model 1.1 of 2.5 GB`. If a download fails, quote the `failed:` reason; if it says the nightly packages are missing, give the developer the install command it quotes. Never retry through the shell when the tool answered |
+| `onboard` | `symbiont_allow`, `symbiont_mine`, the correction tools, then `symbiont_nightly` (see below) | `symbiont repo allow`, `symbiont repo mine`, `symbiont nightly start` | set this repository up from nothing, in one command |
 | `dashboard` | `symbiont_dashboard` | `symbiont dashboard`, then `open <address>` on macOS | this repository's dashboard: pain points, lessons, the 30-day replay and the measured results. Tell the developer the address in your reply, so they can open it even if no browser opened |
 | `learn-from-prs` | `symbiont_learn_from_prs`, then follow the steps it returns yourself with your own `gh` access | `symbiont learn-from-prs`, then the same | learn lessons from this repository's recent pull-request reviews and CI failures; symbiont reads nothing from GitHub, you save the lessons with `symbiont_add_lessons` (source_label like "from PR #412 review", source_url the PR address) |
 | `reflect` | no tool or command; do it yourself now | | answer "In one or two plain sentences each, what non-obvious thing about this repository would you tell a teammate before they work on this area next time? Name the files or areas. Only things that were not obvious from the docs." from the work done in this session, then call `symbiont_add_lessons` with `source_label` "from reflection" (kind `rule` or `mistake`, `files`, `applies_to`); say "nothing" and call no tool if there is nothing |
+
+**`onboard`** runs these five steps in order and reports each in one plain line:
+
+1. `symbiont_allow`: switch symbiont on for this repository.
+2. `symbiont_mine`: learn from the past sessions; give the developer the dashboard address it returns.
+3. Find corrections the same way as always: `symbiont_correction_candidates`, judge each item yourself, then `symbiont_save_corrections`.
+4. `symbiont_nightly` with no `base` or `kit`. On a first run it downloads the model and kit itself (about 2.5 GB) before training; relay what it says. If it reports a failure, quote it and stop.
+5. Say that the download (first run only) and training run in the background (training takes 1-4 minutes) and to check `/symbiont status`.
 
 When the developer points you at notes, reports or lessons they keep, read what they point to, decide in your own words what is worth keeping, and call `symbiont_add_lessons`. When symbiont asks you to review pain points or look for corrections, call `symbiont_review_candidates` or `symbiont_correction_candidates`, judge each item yourself, and save with `symbiont_save_reviews` or `symbiont_save_corrections`. symbiont makes no model calls of its own.
 
@@ -41,4 +50,4 @@ the command and its stored data with `uv tool uninstall ai-symbiont` and by dele
 `~/.symbiont` (the lessons, the answers per repository and the logs; nothing else is stored).
 
 If the `symbiont` command is not found, tell the developer to install it with
-`uv tool install git+https://github.com/smalls257/ai-symbiont`.
+`uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'` (the `[nightly]` part brings the packages that train the checker).

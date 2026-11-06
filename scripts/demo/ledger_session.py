@@ -11,9 +11,15 @@ import re
 from pathlib import Path
 
 FAILING_TEST = "pytest -q -k refund"
+# The tail of what `pytest -q -k refund` really prints on examples/ledger (its last failure; the
+# miner keeps only the last 240 characters of a quote, so the assertion must sit near the end).
+# The same last assertion makes the recall fire when a judge's live Muse session runs that command.
 FAILURE_TEXT = (
-    "FAILED tests/test_refunds.py::test_jpy_refund_is_in_whole_yen\n"
-    "AssertionError: ledger/money.py: JPY refund recorded as 50 minor units, expected 5000"
+    "E       AssertionError: ledger/refunds.py: acme balance after a full JPY refund is "
+    "-150 USD cents, expected 0\n"
+    "E       assert -150 == 0\n"
+    "FAILED tests/test_refunds.py::test_full_refund_reverses_the_charge_at_the_stored_rate\n"
+    "3 failed, 3 deselected in 0.02s"
 )
 CORRECTIONS = (
     "every ledger entry gets an audit.record call",

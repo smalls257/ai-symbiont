@@ -11,6 +11,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/egress/`.
 - The one door in is `service/server.py` (`http.server`, literal `127.0.0.1` bind, no host parameter, no outbound call), held by semgrep `sym-service-server-transport` and one import-linter exception. Clients reach it through `Endpoint.LOCAL_SERVICE` and `post_json`; there is no second loopback check.
 - Spark, Contributor and Wonder endpoints (`REMOTE`) refuse: empty provenance, any `spark_safe=False` record, SWE-chat, non-https, private hosts, and every host outside `REMOTE_HOSTS` (`api.meta.ai`; a new API is a new entry plus a policy test). Local endpoints take any provenance but only loopback/LAN hosts.
 - Logs hold endpoint, host, byte size, record count and dataset names. Never the text (semgrep `sym-no-prompt-logging`).
+- `download.py` is the second door: GET-only model-file downloads from Hugging Face (`download_file`, `get_json`), owner-approved so the MCP tool can fetch the Llama base (`unsloth/Llama-3.2-1B-Instruct`, a public copy of Meta's weights; the meta-llama repo is gated) and the nightly kit. https only; hosts `huggingface.co` and `*.hf.co` (measured redirect targets: `us.aws.cdn.hf.co`, formerly `cas-bridge.xethub.hf.co`, `cdn-lfs*.hf.co`), checked on the URL and on every redirect; no payload, no credential; temp file, exact-size check, atomic rename; logs host and path, never the query. Tests use a fake opener.
 - A new remote model API is a new `Endpoint` member plus a policy test, not a new HTTP call.
 
 ## Imports

@@ -68,7 +68,9 @@ OPERATOR_TOOLS = [
         "symbiont_mine",
         "Learn from this repository's past Claude Code and Muse Code sessions (needs "
         "symbiont_allow first). Opens the dashboard unless the developer turned that off, and "
-        "returns its address with a progress summary; a long job keeps running in the service.",
+        "returns its address with a progress summary; a long job keeps running in the service. "
+        "When setting a repository up, next find the developer's past corrections "
+        "(symbiont_correction_candidates, then symbiont_save_corrections) before symbiont_nightly.",
         ("repo", "mine"),
         takes_port=True,
     ),
@@ -77,7 +79,9 @@ OPERATOR_TOOLS = [
         "Train this repository's checker on its lessons, on this machine (nothing is uploaded). "
         "Sets up first if needed, then trains in the background and returns within a minute; "
         "training takes 1-4 minutes, and symbiont_status reports its progress. With no base and "
-        "kit it reuses a kit that is already built; if there is none it says the exact steps.",
+        "kit it reuses a kit that is already built, else finds the model on this machine, else "
+        "downloads it (about 2.5 GB from Hugging Face) in the background first. Run it after the "
+        "developer's past corrections are saved, so the checker learns from them too.",
         ("nightly", "start"),
         properties={
             "base": {**_STRING, "description": "folder of the downloaded Llama-3.2-1B-Instruct"},

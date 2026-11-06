@@ -26,6 +26,12 @@ from symbiont.service.nightly_background import (
 )
 from symbiont.service.nightly_job import JOB_LOG
 from symbiont.service.nightly_kit import JudgeKitError
+from symbiont.service.nightly_locate import (
+    MODELS_FOLDER,
+    ModelsNotFoundError,
+    resolved_downloads,
+    search_roots,
+)
 from symbiont.service.nightly_run import EXIT_FAILED, NightFailedError, NightPlan, run_night
 from symbiont.service.nightly_schedule import (
     DEFAULT_AT,
@@ -77,6 +83,7 @@ def add_nightly_command(commands: Any, data_dir: Path) -> None:
         sub = inner.add_parser(name, parents=[shared], help=helped)
         sub.add_argument("--base", type=Path, help="folder of Llama-3.2-1B-Instruct")
         sub.add_argument("--kit-files", type=Path, help="the downloaded nightly-kit/ folder")
+        sub.add_argument("--fetch-into", type=Path, help=argparse.SUPPRESS)
     actions = schedule.add_subparsers(dest="schedule_action", required=True)
     for name in ACTIONS:
         action = actions.add_parser(name, parents=[shared])
@@ -221,11 +228,12 @@ def _setup(args: argparse.Namespace, say: Callable[[str], None]) -> int:
     With no folders and a complete kit it only says so; with no folders and no kit it fails with
     the steps to build one.
     """
-    kit_dir, files = _kit_dir(args), KitFiles.of(args)
+    kit_dir = _kit_dir(args)
     if kit_problem(kit_dir) is None:
         say(f"the judge kit at {kit_dir} is already complete; delete it to build it again")
         return 0
     try:
+        files = _downloads(args, kit_dir)
         build_kit(kit_dir, files, _judge_python(args), say)
     except (KitSetupError, NightFailedError) as failed:
         say(f"symbiont nightly setup: FAILED: {failed}")
@@ -240,7 +248,18 @@ def _start(
     """Train in a detached process and return once it is under way (or has ended)."""
     say(f"symbiont nightly: {args.project} (runs on this machine; nothing is uploaded)")
     tools = BackgroundTools(preflight, launch_detached_job, pause)
-    return start_job(_plan(args), KitFiles.of(args), tools, say)
+    plan = _plan(args)
+    try:
+        files = _downloads(args, plan.kit_dir)
+    except ModelsNotFoundError:
+        files = KitFiles(None, None, fetch_into=args.data_dir / MODELS_FOLDER)
+    return start_job(plan, files, tools, say)
+
+
+def _downloads(args: argparse.Namespace, kit_dir: Path) -> KitFiles:
+    """The folders to build the kit from: the options, else what is on this machine."""
+    roots = search_roots(os.environ, args.data_dir, Path.home())
+    return resolved_downloads(KitFiles.of(args), kit_dir, roots)
 
 
 def _work(args: argparse.Namespace) -> int:

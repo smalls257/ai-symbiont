@@ -15,6 +15,9 @@ BASE = "base"
 GENERAL_ROWS = "general-rows.jsonl"
 HABITS = "habits.jsonl"
 BASE_MARKER = "config.json"
+# Folder names under <data dir>/models where the downloaded base and kit files live.
+OWN_BASE = "llama-3.2-1b-instruct"
+OWN_KIT = "nightly-kit"
 
 
 class JudgeKitError(FileNotFoundError):

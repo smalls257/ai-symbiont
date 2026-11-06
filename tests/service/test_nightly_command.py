@@ -199,7 +199,7 @@ def test_setup_with_no_folders_and_no_kit_fails_with_the_steps(tmp_path):
     lines = []
     args = parse("setup", "--kit", str(tmp_path / "none"), *store_option(tmp_path))
     assert run(args, lines) == 1
-    assert "huggingface-cli download" in lines[0] and "symbiont nightly setup" in lines[0]
+    assert "hf download" in lines[0] and "/symbiont onboard again" in lines[0]
 
 
 def test_setup_with_no_folders_reuses_a_complete_kit(tmp_path):
@@ -222,3 +222,16 @@ def test_start_with_no_lessons_says_so_and_exits_2_without_launching(tmp_path, m
     lines = []
     assert nightly_command.run_nightly_command(args, lines.append, lambda seconds: None) == 2
     assert launched == [] and "mine" in lines[-1]
+
+
+def test_start_with_no_kit_and_no_model_on_the_machine_goes_on_to_download_not_to_fail(
+    tmp_path, monkeypatch
+):
+    monkeypatch.setattr(nightly_command, "preflight", lambda plan: None)
+    seen = []
+    monkeypatch.setattr(
+        nightly_command, "start_job", lambda plan, files, tools, say: seen.append(files) or 0
+    )
+    args = parse("start", "--kit", str(tmp_path / "none"), *store_option(tmp_path))
+    assert run(args, []) == 0
+    assert seen[0].fetch_into == tmp_path / "models" and seen[0].base is None
