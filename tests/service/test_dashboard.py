@@ -222,3 +222,22 @@ def test_the_mine_address_without_any_job_shows_the_dashboard_not_an_empty_stage
     page = dashboard_page(store, None, "/dashboard?project=demo&mining=1", TODAY, Live())
 
     assert _mining_shell(page) is None
+
+
+def _css_rule(css: str, selector: str) -> str:
+    match = re.search(r"(?m)^" + re.escape(selector) + r"\{([^}]*)\}", css)
+    assert match, f"no {selector} rule in dashboard.css"
+    return match.group(1)
+
+
+def test_the_add_context_panels_scroll_instead_of_clipping():
+    """Paper Tiger: a panel that shows a candidate but clips most of a long quote."""
+    from pathlib import Path
+
+    css = (Path(server.__file__).parent / "static" / "dashboard.css").read_text()
+    edit_rule = _css_rule(css, ".edit")
+    agent_rule = _css_rule(css, ".agent")
+    for rule in (edit_rule, agent_rule):
+        assert "overflow-y:auto" in rule
+        assert "min-height:0" in rule
+    assert "overflow:hidden" not in edit_rule

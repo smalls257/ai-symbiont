@@ -110,7 +110,7 @@ body.demo main{padding-bottom:3.8rem}
 .plist .t{font-size:1rem;line-height:1.2}
 .plist .c{font:.9rem var(--mono);color:var(--mu)}
 .plist .q{text-decoration:line-through;opacity:.55}
-.edit{display:flex;flex-direction:column;gap:.85rem;overflow:hidden}
+.edit{display:flex;flex-direction:column;gap:.85rem;overflow-y:auto;min-height:0;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#3a2f5a transparent}
 .edit h2{font-size:1.9rem;line-height:1.15}
 .chips{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center}
 .chip{font:.95rem var(--mono);padding:.15rem .6rem;border-radius:.4rem;border:1px solid var(--line);color:var(--mu)}
@@ -119,7 +119,7 @@ a.chip.src{color:var(--k);border-color:var(--k);text-decoration:none}
 a.chip.src:hover,a.chip.src:focus-visible{text-decoration:underline}
 .occ{display:flex;gap:.45rem;align-items:center;flex-wrap:wrap}
 .occ i{width:.8rem;height:.8rem;border-radius:50%;background:var(--rd)}
-.edit p{font-size:1.1rem;line-height:1.45;max-width:62ch}
+.edit p{font-size:1.1rem;line-height:1.45;max-width:62ch;overflow-wrap:anywhere}
 .edit p b{color:var(--gr);font-weight:600}
 .edit label.h{font-weight:650;font-size:1.15rem;display:block;margin-bottom:.35rem}
 textarea{width:100%;height:6.6rem;resize:none;background:rgba(0,0,0,.28);border:1.5px solid var(--line);border-radius:.8rem;color:var(--tx);font:500 1.3rem/1.4 var(--ui);padding:.8rem 1rem}
@@ -136,14 +136,14 @@ textarea:focus{border-color:var(--vi);outline:none}
 .seg button{background:none;border:0;padding:.4rem 1rem;color:var(--mu);font-weight:600;font-size:1.05rem}
 .seg button[aria-pressed=true]{background:var(--vi);color:#1a1020}
 .save{margin-left:auto;background:var(--or);color:#1a1020;border:0;border-radius:.7rem;padding:.55rem 1.3rem;font-weight:700;font-size:1.1rem}
-.agent{display:flex;flex-direction:column;gap:.9rem;background:rgba(8,8,18,.55);border-color:rgba(178,140,255,.35)}
+.agent{display:flex;flex-direction:column;gap:.9rem;background:rgba(8,8,18,.55);border-color:rgba(178,140,255,.35);overflow-y:auto;min-height:0;scrollbar-width:thin;scrollbar-color:#3a2f5a transparent}
 .agent .bar2{display:flex;gap:.4rem;align-items:center;color:var(--mu);font-size:.95rem}
 .agent .bar2 i{width:.7rem;height:.7rem;border-radius:50%;background:rgba(236,240,248,.2)}
 .agent .bar2 span{margin-left:.5rem}
 .cmd{color:var(--go);font-family:var(--mono)}
 .agent .run{font:500 1.15rem var(--mono);color:var(--tx)}
 .agent .run .cmd::before{content:"$ ";color:var(--mu)}
-.notebox{border-left:.3rem solid var(--vi);background:rgba(178,140,255,.1);border-radius:.2rem .8rem .8rem .2rem;padding:1rem 1.2rem;font:500 1.2rem/1.55 var(--mono);min-height:12rem}
+.notebox{border-left:.3rem solid var(--vi);background:rgba(178,140,255,.1);border-radius:.2rem .8rem .8rem .2rem;padding:1rem 1.2rem;font:500 1.2rem/1.55 var(--mono);min-height:12rem;overflow-wrap:anywhere}
 .notebox .tag{color:var(--vi);font-weight:700}
 .notebox .user{background:rgba(84,222,124,.16);box-shadow:0 .15rem 0 var(--gr);border-radius:.2rem}
 .notebox.quiet{border-left-color:var(--mu);background:rgba(255,255,255,.04);color:var(--mu)}
