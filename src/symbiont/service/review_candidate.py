@@ -13,6 +13,7 @@ from symbiont.miner.lesson_context import LessonContext
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
+from symbiont.service.candidate_summary import outcome_sentence
 from symbiont.service.dashboard_view import command_of_signature
 
 
@@ -42,7 +43,7 @@ def review_candidate(
         "agent_intent": scrub(lesson.agent_intent),
         "times_it_happened": max(len(same_trouble), 1),
         "sessions_it_happened_in": _sessions(lesson, same_trouble),
-        "outcome": scrub(_outcome(lesson)),
+        "outcome": scrub(outcome_sentence(lesson)),
     }
     if words is not None:
         candidate["developer_said"] = scrub(words.text)
@@ -68,12 +69,3 @@ def _sessions(lesson: Lesson, same_trouble: Sequence[Lesson]) -> int:
     """How many distinct sessions the trouble showed up in."""
     seen = {item.pain_point.session_id for item in same_trouble}
     return len(seen | {lesson.pain_point.session_id})
-
-
-def _outcome(lesson: Lesson) -> str:
-    """How it ended, in plain words, so a reviewer need not infer it from the fix field."""
-    if lesson.resolution:
-        return "It was fixed: " + ", then ".join(lesson.resolution) + "."
-    if lesson.changed_alongside:
-        return "No fix was confirmed; other changes were made before it passed."
-    return "The history shows no fix."

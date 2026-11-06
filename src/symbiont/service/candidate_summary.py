@@ -20,7 +20,7 @@ def rule_summary(lesson: Lesson) -> str:
     if lesson.asked:
         parts.append(f"You asked: {_short(lesson.asked)}")
     parts.append(f"What failed: {_short(failure)}")
-    parts.append(_ending(lesson))
+    parts.append(outcome_sentence(lesson))
     return scrub(" ".join(parts))
 
 
@@ -31,10 +31,10 @@ def _short(text: str) -> str:
     return line if line.endswith((".", "!", "?", "…")) else line + "."
 
 
-def _ending(lesson: Lesson) -> str:
-    """How it ended, in a sentence."""
+def outcome_sentence(lesson: Lesson) -> str:
+    """How it ended, in a plain sentence; the one wording the candidate and the summary share."""
     if lesson.resolution:
-        return "It was fixed later in the same session."
+        return "It was fixed: " + ", then ".join(lesson.resolution) + "."
     if lesson.changed_alongside:
         return "No fix was confirmed; other changes were made before it passed."
     return "The history shows no fix."

@@ -287,4 +287,13 @@ def test_the_review_candidate_route_offers_the_asked_turn(tmp_path):
 
     (candidate,) = routes.review_candidates({"project": PROJECT})["candidates"]
 
-    assert "asked" in candidate and "outcome" in candidate
+    assert candidate["asked"] == "No, don't touch refund.py, use the ledger instead"
+    assert candidate["times_it_happened"] == 1 and candidate["outcome"]
+
+
+def test_a_summary_that_is_not_text_is_refused_naming_the_field(tmp_path):
+    routes, _store, lessons = rig(tmp_path)
+    item = {"id": lesson_id(lessons[0]), "verdict": "mistake", "summary": 42}
+
+    with pytest.raises(BadRequestError, match="summary must be text"):
+        routes.save_reviews({"project": PROJECT, "reviews": [item]})

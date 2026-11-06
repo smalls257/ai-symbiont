@@ -291,7 +291,7 @@ def _review(item: dict[str, Any]) -> Review:
         str(item.get("title", "")).strip()[:120],
         item.get("merge_with") if isinstance(item.get("merge_with"), str) else None,
         parse_applies(item.get("applies_to")),
-        str(item.get("summary", "")).strip()[:MAX_TEXT],
+        _optional_text(item, "summary")[:MAX_TEXT],
     )
 
 
@@ -319,6 +319,14 @@ def _text(item: dict[str, Any], key: str) -> str:
     value = item.get(key)
     if not isinstance(value, str) or not value.strip():
         raise BadRequestError(f"{key} must be non-empty text")
+    return value.strip()
+
+
+def _optional_text(item: dict[str, Any], key: str) -> str:
+    """A string field that may be absent; a present one of another type is refused, not coerced."""
+    value = item.get(key, "")
+    if not isinstance(value, str):
+        raise BadRequestError(f"{key} must be text")
     return value.strip()
 
 

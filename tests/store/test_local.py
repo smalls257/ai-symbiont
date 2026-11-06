@@ -15,6 +15,7 @@ from record_builders import PUBLIC, edit, replace_text, run, session, user
 from symbiont.eval.training_manifest import check_manifest_against_hold_out
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.screen import ScreenRules
+from symbiont.miner.secrets import REDACTED
 from symbiont.miner.trained import export_id_of
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
@@ -296,3 +297,18 @@ def test_a_lesson_row_from_before_the_turn_fields_reads_empty_context():
 
     assert (restored.asked, restored.agent_intent) == ("", "")
     assert lesson.asked == "fix it"
+
+
+def test_the_spark_view_redacts_a_credential_pasted_into_the_users_request(tmp_path, store):
+    pasted = "to" + "ken=Zq7Lm2Xv9Rt4Wp8K"
+    records = [
+        replace(r, task_id=None) if r.step else replace(r, raw=f"fix it, {pasted}", task_id=None)
+        for r in failing_session()
+    ]
+    source = log_of(tmp_path, "a", records)
+    (lesson,) = remine(store, PROJECT, rules(), adding=[source])
+    assert pasted in lesson.asked
+
+    (shown,) = store.spark_view().lessons(PROJECT)
+
+    assert "Zq7Lm2Xv9Rt4Wp8K" not in shown.asked and REDACTED in shown.asked
