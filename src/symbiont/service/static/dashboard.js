@@ -76,6 +76,14 @@ document.addEventListener("mousemove",e=>{
   tip.style.left=Math.min(e.clientX+16,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=Math.min(e.clientY+16,innerHeight-tip.offsetHeight-8)+"px";
 });
 
+/* A control reached by keyboard shows the same tip a pointer does. */
+document.addEventListener("focusin",e=>{
+  const t=e.target.closest&&e.target.closest("[data-tip]");if(!t)return;
+  const b=t.getBoundingClientRect();tip.innerHTML=t.dataset.tip;tip.style.display="block";
+  tip.style.left=Math.max(8,Math.min(b.left,innerWidth-tip.offsetWidth-8))+"px";tip.style.top=Math.min(b.bottom+6,innerHeight-tip.offsetHeight-8)+"px";
+});
+document.addEventListener("focusout",()=>{tip.style.display="none";});
+
 /* ===== flow control ===== */
 let token=0;const CANCEL=Symbol("cancel");
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -154,77 +162,9 @@ $("startBtn").onclick=async()=>{
   const t=++token;try{await mine(t,13000);}catch(e){if(e!==CANCEL)throw e;}
 };
 
-/* ===== stage 1: pain-point dashboard ===== */
-function renderDashboard(){
-  const hrs=(totals.mins/60).toFixed(1);
-  $("kpis").innerHTML=[
-   [P.length,"pain points found",'<span>'+totals.mistakes+' mistakes, '+totals.tdd+' planned</span>',"var(--tx)"],
-   [totals.turns,"agent turns lost",'<span>to the same trouble recurring</span>',"var(--rd)"],
-   ["~"+hrs+" h","of working time lost",'<span>across '+N+' sessions, estimated</span>',"var(--or)"],
-   [totals.lessons,"lessons ready",'<span>a fix is known for each</span>',"var(--vi)"]
-  ].map(k=>'<div class="panel kpi"><div class="num" style="color:'+k[3]+'">'+k[0]+'</div><div class="lbl">'+k[1]+" "+k[2]+"</div></div>").join("");
-  // by kind
-  const kinds=["repeat","rework","correction","loop"];
-  const sum=k=>P.filter(p=>p.kind===k).reduce((a,p)=>a+cost(p),0);
-  const mx=Math.max(...kinds.map(sum));
-  let h=kinds.map(k=>{const n=P.filter(p=>p.kind===k).length;
-    return '<div class="kb" style="--k:'+KINDS[k].color+'" data-tip="'+KINDS[k].label+": "+n+" pain points, "+sum(k)+' turns lost"><div class="nm">'+KINDS[k].label+"<small>"+n+' points</small></div><div class="v">'+sum(k)+"<small>turns</small></div><div class=\"tr\"><i data-w=\""+(sum(k)/mx*100)+'"></i></div></div>';}).join("");
-  h+='<div class="kdiv">Not mistakes</div><div class="kb tdd" style="--k:#8c94ac" data-tip="Tests written red on purpose. symbiont never warns about these."><div class="nm">Planned red tests<small>'+totals.tdd+' points</small></div><div class="v">0<small>turns</small></div><div class="tr"><i data-w="100"></i></div></div>';
-  $("kbars").innerHTML=h;
-  renderTreemap();
-  // lessons
-  const les=P.filter(p=>p.lesson).sort((a,b)=>cost(b)-cost(a)).slice(0,3);
-  $("les").innerHTML=les.map(p=>'<li><button data-pick="'+p.id+'"><span class="t">'+esc(short(p.title))+'</span><span class="big">'+cost(p)+"<small>turns</small></span><span class=\"m\">"+p.s.length+" sessions, about "+p.turns+" turns each time</span></button></li>").join("");
-  $("les").querySelectorAll("button").forEach(b=>b.onclick=()=>{token++;setDemo(false);openPain(+b.dataset.pick);});
-  renderTimeline(P.filter(isMistake));
-}
-function mix(a,b,k){const h=s=>[1,3,5].map(i=>parseInt(s.slice(i,i+2),16));const A=h(a),B=h(b);return "#"+A.map((v,i)=>Math.round(v+(B[i]-v)*k).toString(16).padStart(2,"0")).join("");}
-/* "Where in the repo": every tile carries its file name and its turns, or is folded into "Other files (N)"
-   (treemap.js decides, in rendered pixels, so nothing is cut by scaling). */
-let tmSize="";
-function renderTreemap(){
-  const svg=$("tm"),box=svg.getBoundingClientRect(),W=Math.round(box.width)||478,H=Math.round(box.height)||245;
-  tmSize=W+"x"+H;
-  const files={};P.filter(isMistake).forEach(p=>{files[p.file]=(files[p.file]||0)+cost(p);});
-  const loose=window.SymbiontTreemap.noFileLabel(P.filter(isMistake));
-  const items=Object.entries(files).map(([f,v])=>(f?{f,v}:{f,v,label:loose}));
-  const lay=window.SymbiontTreemap.plan(items,W,H);if(!lay.length){svg.innerHTML="";return;}
-  const vmax=Math.max(...lay.map(r=>r.v));
-  svg.setAttribute("viewBox","0 0 "+W+" "+H);
-  svg.innerHTML=lay.map(r=>{
-    const k=r.v/vmax,col=r.folded?"#5a4f78":mix("#4a3470","#ff8c40",Math.pow(k,.7)),dark=!r.folded&&k>.45,ink=dark?"#1a1020":"#ecf0f8";
-    const TM=window.SymbiontTreemap,big=r.w>=200&&r.h>=80,fs=r.folded?TM.fitFont(r.name,r.w,13):big?20:13,ts=big?16:12;
-    const top=r.folded?null:P.filter(p=>p.file===r.f&&isMistake(p)).sort((a,b)=>cost(b)-cost(a))[0];
-    const tip=esc(r.title)+": "+r.v+" turns lost";
-    return '<g tabindex="0"'+(top?' data-pick="'+top.id+'"':' class="folded"')+' data-tip="'+tip+'"><title>'+tip+'</title><rect x="'+r.x+'" y="'+r.y+'" width="'+r.w+'" height="'+r.h+'" rx="6" fill="'+col+'"/>'
-      +'<text x="'+(r.x+9)+'" y="'+(r.y+fs+6)+'" font-family="ui-monospace,Menlo,monospace" font-size="'+fs+'" font-weight="700" fill="'+ink+'">'+esc(TM.fitName(r.name,r.w,fs))+"</text>"
-      +'<text x="'+(r.x+9)+'" y="'+(r.y+fs+ts+10)+'" font-size="'+ts+'" font-weight="600" fill="'+ink+'">'+r.v+" turns</text></g>";}).join("");
-  svg.querySelectorAll("g[data-pick]").forEach(g=>{g.onclick=()=>{token++;setDemo(false);openPain(+g.dataset.pick);};g.onkeydown=e=>{if(e.key==="Enter")g.onclick();};});
-}
-if(window.ResizeObserver)new ResizeObserver(()=>{const b=$("tm").getBoundingClientRect();if(b.width&&Math.round(b.width)+"x"+Math.round(b.height)!==tmSize)renderTreemap();}).observe($("tm"));
-function renderTimeline(points){
-  const TL=window.SymbiontTimeline, rows=TL.foldRows(points);
-  const X0=480,X1=1760,LBL_X=X0-30,LBL_CHARS=40,RH=54,Y0=34,xs=i=>X0+i/Math.max(1,N-1)*(X1-X0);
-  const rad=TL.dotRadius(N,X1-X0), step=TL.tickStep(N,X1-X0), ay=Y0+RH*rows.length+22, H=ay+16;
-  let s='';
-  s+='<line x1="'+xs(WIN_I-.5)+'" x2="'+xs(WIN_I-.5)+'" y1="8" y2="'+(Y0+RH*rows.length)+'" stroke="#b28cff" stroke-dasharray="6 6" stroke-width="2"/><text x="'+(xs(WIN_I-.5)+10)+'" y="18" font-size="17" fill="#b28cff">last 30 days</text>';
-  rows.forEach((p,r)=>{
-    const y=Y0+r*RH+RH/2,c=p.folded?"#8c94ac":KINDS[p.kind].color,lines=TL.labelLines(p.title,LBL_CHARS);
-    const y0=y+6-(lines.length-1)*11;
-    s+='<text text-anchor="end" font-size="18" fill="#ecf0f8" font-weight="600">'+lines.map((l,k)=>'<tspan x="'+LBL_X+'" y="'+(y0+k*22)+'">'+esc(l)+"</tspan>").join("")+"<title>"+esc(p.title)+"</title></text>";
-    s+='<line x1="'+X0+'" x2="'+X1+'" y1="'+y+'" y2="'+y+'" stroke="rgba(236,240,248,.1)" stroke-width="2"/>';
-    s+='<line x1="'+xs(p.s[0])+'" x2="'+xs(p.s[p.s.length-1])+'" y1="'+y+'" y2="'+y+'" stroke="'+c+'" stroke-opacity=".55" stroke-width="2"/>';
-    p.s.forEach((i,k)=>{const tip=p.folded?esc(p.title)+"<br>"+dateOf(dayOf(i))+", session with a repeated mistake":esc(p.title)+"<br>"+dateOf(dayOf(i))+", time "+(k+1)+" of "+p.s.length+", "+p.turns+" turns lost";
-      s+='<circle cx="'+xs(i)+'" cy="'+y+'" r="'+rad+'" fill="'+c+'" stroke="#16112a" stroke-width="2" tabindex="0" data-tip="'+tip+'"/>';});
-  });
-  for(let i=0;i<N;i+=step)s+='<text x="'+xs(i)+'" y="'+ay+'" text-anchor="middle" font-size="16" fill="#8c94ac">'+dateOf(dayOf(i))+"</text>";
-  $("tlsvg").setAttribute("viewBox","0 0 1800 "+H);
-  $("tlsvg").innerHTML=s;
-}
-const WIN_I=DATA.sessions.findIndex(s=>s.day>=WINDOW_START);
+/* ===== stage 1: the Pain points stage is struggle.js; a lesson there opens its pain point on stage 3 ===== */
 const short=t=>t.length>46?t.slice(0,44)+"…":t;
-function growBars(){requestAnimationFrame(()=>document.querySelectorAll("#kbars i").forEach(i=>i.style.width=i.dataset.w+"%"));}
-function resetBars(){document.querySelectorAll("#kbars i").forEach(i=>i.style.width="0");}
+document.addEventListener("symbiont:open-lesson",e=>{const p=P.find(x=>x.lessonId===e.detail.lessonId);if(p){token++;setDemo(false);openPain(p.id);}});
 
 /* ===== stage 2: add context ===== */
 let sel=1,reveal=null,revealTimer=0;
@@ -355,11 +295,11 @@ async function demo(){
     go(0);caption("symbiont reads every past session, locally");await pause(t,1200);
     caption("It pairs each failure with the fix that worked");await mine(t,15000);
     await pause(t,1800);
-    go(1);resetBars();growBars();
-    await spotlight(t,"kpis",totals.turns+" turns lost to trouble that kept coming back",3200);
-    await spotlight(t,"pKinds","Repeated failures cost the most. Planned red tests are not mistakes.",3600);
-    await spotlight(t,"pTree","Three files carry most of the pain",3200);
-    await spotlight(t,"pTl","The same mistake, session after session",3600);
+    go(1);
+    await spotlight(t,"kpis","How many agent turns went to trouble, and how much is a known fix",3200);
+    await spotlight(t,"pPat","How the struggle looks, and the help that fits each pattern",3600);
+    await spotlight(t,"pMap","What was being worked on: click a theme to scope the page",3200);
+    await spotlight(t,"pStrip","One session, step by step",3600);
     caption("Open the costliest one and tell it what only you know");await pause(t,1500);
     go(2);selectPain(1);caption("This is what the agent will see before it repeats the mistake");await pause(t,3400);
     caption("Add context in your own words");await typeInto(t,"Money must stay integer cents, round half-up.",55);
@@ -379,9 +319,8 @@ document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e
 /* ===== boot ===== */
 $("repoName").textContent=DATA.repo.name;if(DATA.nightly){var nl=DATA.nightly,lc=nl.last_checked;$("nightly").textContent="Nightly training: "+nl.sentence+(lc?" \u00b7 last checked note: \u201c"+lc.note+"\u201d. "+lc.sentence:"");$("nightly").dataset.state=nl.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
 $("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
-renderDashboard();renderList();showPain(1);
+renderList();showPain(1);
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();
 go(1);
 window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};
-const obs=new MutationObserver(()=>{if($("s1").classList.contains("on"))growBars();});obs.observe($("s1"),{attributes:true,attributeFilter:["class"]});
 })();

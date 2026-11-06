@@ -84,6 +84,8 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
         "held_back",
         "struggle",
         "churn",
+        "session_facts",
+        "session_strips",
     }
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
     assert "fix it" not in body, "only the cited record's bounded quote is kept"

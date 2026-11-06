@@ -375,3 +375,32 @@ def test_an_unknown_event_type_with_a_message_still_raises(tmp_path):
     with pytest.raises(ReadError, match="api-request-new") as err:
         list(read(path, PROJECT))
     assert err.value.line_no == 1
+
+
+# --- what the session was about: title and branch, kept as tags --------------
+
+
+def test_the_ai_title_becomes_a_tag_on_the_sessions_first_user_turn(tmp_path):
+    title = {"type": "ai-title", "aiTitle": "Fix tokenizer crash", "sessionId": "s"}
+    records = _read_events(tmp_path, _event("user", "first"), title, _event("user", "second"))
+    assert [r.tags for r in records] == [("ai-title:Fix tokenizer crash",), ()]
+
+
+def test_the_git_branch_of_each_event_is_a_tag_on_its_records(tmp_path):
+    records = _read_events(
+        tmp_path,
+        _event("user", "first", gitBranch="fix-window"),
+        _event("assistant", [{"type": "text", "text": "ok"}], gitBranch="main"),
+    )
+    assert [r.tags for r in records] == [("branch:fix-window",), ("branch:main",)]
+
+
+def test_an_event_without_a_branch_or_a_title_has_no_tags(tmp_path):
+    (record,) = _read_events(tmp_path, _event("user", "first"))
+    assert record.tags == ()
+
+
+def test_a_title_that_is_not_text_raises_readerror(tmp_path):
+    title = {"type": "ai-title", "aiTitle": 7, "sessionId": "s"}
+    with pytest.raises(ReadError, match="aiTitle"):
+        _read_events(tmp_path, _event("user", "first"), title)

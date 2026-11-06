@@ -87,7 +87,7 @@ def test_the_page_loads_the_list_module_before_the_dashboard_script_and_expands_
     assert selected.startswith(
         "function selectPain(id){setGroupOpen(byId(id).kind,true);showPain(id);}"
     )
-    assert "renderDashboard();renderList();showPain(1);" in script
+    assert "renderList();showPain(1);" in script and "renderDashboard" not in script
 
 
 def test_a_toggle_returns_focus_to_its_heading_after_the_list_is_redrawn():

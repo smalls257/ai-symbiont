@@ -155,6 +155,15 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
     assert "http://" not in get(f"{base}/dashboard/dashboard.js")[1].replace("http://127", "")
 
 
+def test_every_script_and_stylesheet_the_page_names_is_served(served):
+    base, _ = served
+    html = get(f"{base}/dashboard")[1]
+    named = re.findall(r'<(?:script src|link rel="stylesheet" href)="(/dashboard/[^"]+)"', html)
+
+    assert "/dashboard/struggle.js" in named
+    assert [path for path in named if get(base + path)[0] != 200] == []
+
+
 def test_several_repositories_need_a_choice_and_an_unknown_path_is_a_404(served):
     base, store = served
     store.save_mining("other", [], lessons_in("c"), held_out_tasks=frozenset())

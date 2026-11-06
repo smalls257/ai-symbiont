@@ -18,13 +18,15 @@ from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review,
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.screen import HoldReason
+from symbiont.miner.strips import SessionStrip
+from symbiont.miner.struggle import MINUTES_PER_TURN, SessionFacts
 from symbiont.miner.trained import lesson_id
+from symbiont.service.struggle_view import StageInput, struggle_stage
 from symbiont.store.held_back import StruggleGroup
 
 REPLAY_DAYS = 30
 STRUGGLE_SHOWN = 20
 CHURN_SHOWN = 20
-MINUTES_PER_TURN = 0.7
 KIND_OF_SIGNAL = {
     Signal.FAILED_COMMAND: "repeat",
     Signal.BLAST_RADIUS: "repeat",
@@ -55,6 +57,9 @@ class RepoView:
     held_back: Mapping[HoldReason, int] = field(default_factory=dict)
     struggle: Sequence[StruggleGroup] = ()
     churn: Sequence[FileChurn] = ()
+    # The Pain points stage: one row of facts per session and the few sessions drawn step by step.
+    facts: Sequence[SessionFacts] = ()
+    strips: Sequence[SessionStrip] = ()
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
@@ -88,8 +93,16 @@ def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
         "lessons": [lesson for _, lesson in points],
         "replay": _replay([p for p, _ in points], days, (today - first).days),
         "nightly": dict(view.nightly) if view.nightly is not None else None,
+        "stage": struggle_stage(_stage_input(view), today),
         **_counted_not_taught(view),
     }
+
+
+def _stage_input(view: RepoView) -> StageInput:
+    """What the Pain points stage is drawn from."""
+    return StageInput(
+        view.facts, view.strips, view.lessons, view.churn, view.session_dates, view.held_back
+    )
 
 
 def _counted_not_taught(view: RepoView) -> dict[str, Any]:

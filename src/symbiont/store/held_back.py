@@ -16,8 +16,12 @@ from symbiont.miner.churn import FileChurn
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.screen import HoldReason
+from symbiont.miner.strips import SessionStrip
+from symbiont.miner.struggle import SessionFacts
 from symbiont.miner.trained import refuse_held_out_lessons
 from symbiont.store.lesson_rows import lesson_row
+from symbiont.store.struggle_rows import TABLES as STRUGGLE_TABLES
+from symbiont.store.struggle_rows import insert_struggle, read_facts, read_strips
 
 if TYPE_CHECKING:
     from symbiont.store.local import Source
@@ -62,6 +66,9 @@ class MiningOutcome:
     held: dict[HoldReason, int] = field(default_factory=dict)
     struggle: list[Lesson] = field(default_factory=list)
     churn: list[FileChurn] = field(default_factory=list)
+    # Per-session facts and the few sessions drawn as strips (the Pain points stage).
+    facts: list[SessionFacts] = field(default_factory=list)
+    strips: list[SessionStrip] = field(default_factory=list)
 
 
 def struggle_groups(struggle: Sequence[Lesson]) -> list[StruggleGroup]:
@@ -122,7 +129,7 @@ class MiningLedger:
                 "INSERT OR IGNORE INTO sources VALUES (?, ?, ?)",
                 [(s.project, s.reader, s.path) for s in new_sources],
             )
-            for table in ("lessons", "held_back", "struggle", "churn"):
+            for table in ("lessons", "held_back", "struggle", "churn", *STRUGGLE_TABLES):
                 db.execute(f"DELETE FROM {table} WHERE project=?", (project,))  # noqa: S608
             db.executemany(
                 "INSERT INTO lessons VALUES (?, ?, ?, ?, ?)",
@@ -140,6 +147,7 @@ class MiningLedger:
                 "INSERT INTO churn VALUES (?, ?, ?, ?)",
                 [(project, row.file, row.session_id, row.edits) for row in outcome.churn],
             )
+            insert_struggle(db, project, outcome.facts, outcome.strips)
 
     def counts(self, project: str) -> dict[HoldReason, int]:
         """Groups held per reason at the last mining; reasons that held nothing are absent."""
@@ -165,3 +173,11 @@ class MiningLedger:
             "SELECT file, session_id, edits FROM churn WHERE project=? ORDER BY rowid", (project,)
         ).fetchall()
         return [FileChurn(file, session_id, edits) for file, session_id, edits in rows]
+
+    def session_facts(self, project: str) -> list[SessionFacts]:
+        """One row of facts per session of the last mining; empty for a store mined before."""
+        return read_facts(self._db, project)
+
+    def session_strips(self, project: str) -> list[SessionStrip]:
+        """The sessions drawn step by step, from the last mining."""
+        return read_strips(self._db, project)

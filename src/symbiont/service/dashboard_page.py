@@ -21,8 +21,7 @@ PLACEHOLDER = "__SYMBIONT_DATA__"
 WATCHING_MINE = "mining"
 FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
-    "/dashboard/timeline.js": ("timeline.js", "text/javascript; charset=utf-8"),
-    "/dashboard/treemap.js": ("treemap.js", "text/javascript; charset=utf-8"),
+    "/dashboard/struggle.js": ("struggle.js", "text/javascript; charset=utf-8"),
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
@@ -131,6 +130,8 @@ def _html(
         store.mined.counts(project),
         store.mined.struggle(project),
         store.mined.churn(project),
+        store.mined.session_facts(project),
+        store.mined.session_strips(project),
     )
     return _page_filled_with(dashboard_snapshot(view, today))
 
