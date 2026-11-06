@@ -260,7 +260,7 @@ function renderList(){
 /* The ignore reply carries the signature, which is what the Ignored list needs to restore it later. */
 function ignorePattern(){
   const p=byId(sel);IGN.ignore(PROJECT,p.lessonId).then(r=>{
-    ignored.push({label:p.title,...r.signature});P.splice(P.indexOf(p),1);if(!P.length){location.reload();return;}
+    ignored.push({label:r.label,...r.signature});P.splice(P.indexOf(p),1);if(!P.length){location.reload();return;}
     selectPain((P.find(q=>q.kind===p.kind)||P[0]).id);toastText("Ignored. Find it under Ignored to restore.");
   }).catch(e=>toastText(String(e.message)));
 }

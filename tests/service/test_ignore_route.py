@@ -7,12 +7,14 @@ that is accepted quietly, and an Ignored list the page does not show.
 import json
 import re
 import threading
+import urllib.error
 import urllib.request
 from dataclasses import replace
 
 import pytest
 
 from record_builders import edit, run, session
+from symbiont.miner.lesson_context import Review, Verdict
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
 from symbiont.miner.trained import lesson_id
@@ -109,3 +111,73 @@ def test_the_page_lists_ignored_patterns_with_their_labels(tmp_path):
     (entry,) = data["ignored"]
     assert entry["label"] and entry == listed["ignored"][0]
     assert script.status == 200
+
+
+def other_trouble(session_id):
+    (found,) = [
+        replace(
+            item,
+            pain_point=replace(
+                item.pain_point,
+                signature=replace(
+                    item.pain_point.signature, key=("pytest", "tests/test_other.py", "KeyError")
+                ),
+            ),
+        )
+        for item in lessons_in(session_id)
+    ]
+    return found
+
+
+def merged_rig(tmp_path):
+    registry = RepoRegistry(tmp_path)
+    registry.record_stance(PROJECT, RepoStance.GIVEN)
+    first, second = lessons_in("a", "b")[-1], other_trouble("c")
+    store = Store.open(tmp_path / "store.db")
+    store.save_mining(PROJECT, [], [first, second], held_out_tasks=frozenset())
+    store.curation.save_review(
+        PROJECT,
+        lesson_id(second),
+        Review(Verdict.MISTAKE, title="One merged row", merge_with=lesson_id(first)),
+    )
+    service = open_service(tmp_path, ServiceMode.RECALL_ONLY, guards=Guards(repos=registry))
+    return service, lesson_id(first), lesson_id(second)
+
+
+def test_ignoring_a_merged_row_hides_all_its_lessons_after_a_reload_and_restore_returns_them(
+    tmp_path,
+):
+    service, first, _ = merged_rig(tmp_path)
+
+    reply = service.respond(f"/lessons/{first}/ignore", {"project": PROJECT})
+
+    assert reply.status == 200 and len(reply.body["signatures"]) == 2
+    reopened = Store.open(tmp_path / "store.db")
+    assert reopened.lessons(PROJECT) == []
+    assert [label for _, label in reopened.ignored.listed(PROJECT)] == [reply.body["label"]]
+    one = reply.body["signatures"][1]
+    assert service.respond("/ignored/restore", {"project": PROJECT, **one}).status == 200
+    assert len(Store.open(tmp_path / "store.db").lessons(PROJECT)) == 2
+
+
+def test_the_ignored_label_is_the_title_the_dashboard_shows_for_that_row(tmp_path):
+    service, first, _ = merged_rig(tmp_path)
+
+    reply = service.respond(f"/lessons/{first}/ignore", {"project": PROJECT})
+
+    assert reply.body["label"] == "One merged row"
+
+
+def test_listing_ignored_patterns_needs_an_allowed_project(tmp_path):
+    service, _ = rig(tmp_path, allow=False)
+    httpd = server.bind(service, 0)
+    threading.Thread(target=httpd.serve_forever, daemon=True).start()
+    try:
+        url = f"http://127.0.0.1:{httpd.server_address[1]}/ignored?project={PROJECT}"
+        with pytest.raises(urllib.error.HTTPError) as refused:
+            urllib.request.urlopen(url)
+    finally:
+        httpd.shutdown()
+        httpd.server_close()
+
+    assert refused.value.code == 400 and "repo allow" in refused.value.read().decode()

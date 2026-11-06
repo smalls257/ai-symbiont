@@ -15,7 +15,7 @@ from symbiont.service.ignore_route import ignored_listing
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.store.local import Store
-from symbiont.store.repos import RepoRegistry
+from symbiont.store.repos import RepoRegistry, RepoStance
 
 STATIC = Path(__file__).parent / "static"
 PLACEHOLDER = "__SYMBIONT_DATA__"
@@ -69,16 +69,18 @@ def dashboard_page(
         name, content_type = FILES[path]
         return Page(200, content_type, (STATIC / name).read_bytes())
     if path.rstrip("/") == "/ignored":
-        return _ignored_page(store, _query(query).get("project", ""))
+        return _ignored_page(store, registry, _query(query).get("project", ""))
     if path.rstrip("/") != "/dashboard":
         return Page(404, TEXT, f"no such page: {path}".encode())
     return _project_page(store, registry, query, today, live or Live())
 
 
-def _ignored_page(store: Store, project: str) -> Page:
-    """GET /ignored?project=: the patterns set aside in `project`, as JSON."""
+def _ignored_page(store: Store, registry: RepoRegistry | None, project: str) -> Page:
+    """GET /ignored?project=: the patterns set aside in `project`, as JSON (allowed repos only)."""
     if not project:
         return Page(400, TEXT, b"choose a repository with ?project=NAME")
+    if registry is not None and registry.stance(project) is not RepoStance.GIVEN:
+        return Page(400, TEXT, f"run `symbiont repo allow` for {project} first".encode())
     return Page(200, JSON, json.dumps({"ignored": ignored_listing(store, project)}).encode())
 
 

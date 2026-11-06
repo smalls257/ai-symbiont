@@ -5,31 +5,29 @@ every mining, and restored in one call. Every other reader sees it gone through 
 alone, so no route or hook repeats the filter.
 """
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from typing import Any
 
-from symbiont.core.notes import happened
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.service.context_route import context_target, save_context
+from symbiont.service.dashboard_view import row_of, row_title
 from symbiont.service.request_shapes import BadRequestError, percent_decoded, require_keys
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
 
-MAX_LABEL_CHARS = 90
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 
 def developer_routes(name: str, store: Store, registry: RepoRegistry | None) -> dict[str, Handler]:
-    """The dashboard's own routes that apply to `name`: a lesson's words, ignore, restore."""
-    found: Mapping[str, Handler] = {
-        "ignored/restore": lambda request: restore_pattern(store, registry, request)
-    }
+    """The dashboard's own route for `name`: a lesson's words, ignore, restore; else none."""
     lesson, pattern = context_target(name), ignore_target(name)
+    if name == "ignored/restore":
+        return {name: lambda request: restore_pattern(store, registry, request)}
     if lesson is not None:
-        found = {name: lambda request: save_context(store, lesson, request)}
+        return {name: lambda request: save_context(store, lesson, request)}
     if pattern is not None:
-        found = {name: lambda request: ignore_pattern(store, registry, pattern, request)}
-    return dict(found)
+        return {name: lambda request: ignore_pattern(store, registry, pattern, request)}
+    return {}
 
 
 def ignore_target(route: str) -> str | None:
@@ -43,17 +41,24 @@ def ignore_target(route: str) -> str | None:
 def ignore_pattern(
     store: Store, registry: RepoRegistry | None, lesson_id: str, request: dict[str, Any]
 ) -> dict[str, Any]:
-    """Set aside every occurrence of the pattern `lesson_id` belongs to.
+    """Set aside every signature of the dashboard row `lesson_id` belongs to.
 
     Raises BadRequestError for a repository nobody allowed or a lesson id the project lacks.
     """
     project = _allowed_project(registry, request, frozenset({"project"}))
-    found = store.catalog.find(lesson_id)
-    if found is None or found[0] != project:
+    reviews = store.curation.reviews(project)
+    row = row_of(store.lessons(project), reviews, lesson_id)
+    if not row:
         raise BadRequestError(f"no pain point {lesson_id} in {project}")
-    signature = found[1].pain_point.signature
-    store.ignored.add(project, signature, happened(signature)[:MAX_LABEL_CHARS])
-    return {"ignored": True, "signature": _signature_json(signature)}
+    signatures = list(dict.fromkeys(item.pain_point.signature for item in row))
+    label = row_title(row, reviews)
+    store.ignored.add(project, signatures, label)
+    return {
+        "ignored": True,
+        "label": label,
+        "signature": _signature_json(signatures[0]),
+        "signatures": [_signature_json(sig) for sig in signatures],
+    }
 
 
 def restore_pattern(
@@ -74,8 +79,8 @@ def restore_pattern(
 def ignored_listing(store: Store, project: str) -> list[dict[str, Any]]:
     """The Ignored list: each pattern's label and signature, oldest first."""
     return [
-        {"label": label, **_signature_json(signature)}
-        for signature, label in store.ignored.listed(project)
+        {"label": label, **_signature_json(signatures[0])}
+        for signatures, label in store.ignored.listed(project)
     ]
 
 

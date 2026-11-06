@@ -54,18 +54,18 @@ def test_an_ignored_signature_is_left_out_of_lessons_and_pain_points(mined):
     store, lessons = mined
     signature = lessons[0].pain_point.signature
 
-    store.ignored.add(PROJECT, signature, "The parser import fails")
+    store.ignored.add(PROJECT, [signature], "The parser import fails")
 
     assert store.lessons(PROJECT) == []
     assert store.spark_view().pain_points(PROJECT) == []
-    assert store.ignored.listed(PROJECT) == [(signature, "The parser import fails")]
+    assert store.ignored.listed(PROJECT) == [((signature,), "The parser import fails")]
 
 
 def test_ignoring_one_occurrence_ignores_every_occurrence_of_its_pattern(mined):
     store, lessons = mined
     assert len({lesson.pain_point.session_id for lesson in lessons}) == 2
 
-    store.ignored.add(PROJECT, lessons[0].pain_point.signature, "label")
+    store.ignored.add(PROJECT, [lessons[0].pain_point.signature], "label")
 
     assert [lesson_id(item) for item in store.lessons(PROJECT)] == []
     assert store.lessons("other") == []
@@ -73,7 +73,7 @@ def test_ignoring_one_occurrence_ignores_every_occurrence_of_its_pattern(mined):
 
 def test_an_ignored_pattern_stays_ignored_after_a_remine(tmp_path, mined):
     store, lessons = mined
-    store.ignored.add(PROJECT, lessons[0].pain_point.signature, "label")
+    store.ignored.add(PROJECT, [lessons[0].pain_point.signature], "label")
 
     kept = mine(tmp_path, store)
 
@@ -84,7 +84,7 @@ def test_an_ignored_pattern_stays_ignored_after_a_remine(tmp_path, mined):
 def test_restoring_brings_the_lessons_back_without_a_remine(mined):
     store, lessons = mined
     signature = lessons[0].pain_point.signature
-    store.ignored.add(PROJECT, signature, "label")
+    store.ignored.add(PROJECT, [signature], "label")
 
     assert store.ignored.remove(PROJECT, signature) is True
 
@@ -97,8 +97,20 @@ def test_restoring_brings_the_lessons_back_without_a_remine(mined):
 
 def test_ignored_patterns_survive_reopening_the_store(tmp_path, mined):
     store, lessons = mined
-    store.ignored.add(PROJECT, lessons[0].pain_point.signature, "label")
+    store.ignored.add(PROJECT, [lessons[0].pain_point.signature], "label")
 
     reopened = Store.open(tmp_path / "store.db")
 
     assert reopened.ignored.signatures(PROJECT) == {lessons[0].pain_point.signature}
+
+
+def test_restoring_any_signature_of_a_row_brings_back_the_whole_row(mined):
+    store, lessons = mined
+    first = lessons[0].pain_point.signature
+    other = replace(first, key=("pytest", "tests/test_other.py", "KeyError"))
+    store.ignored.add(PROJECT, [first, other], "one row")
+
+    assert store.ignored.listed(PROJECT) == [((first, other), "one row")]
+    assert store.ignored.remove(PROJECT, other) is True
+
+    assert store.ignored.signatures(PROJECT) == frozenset()
