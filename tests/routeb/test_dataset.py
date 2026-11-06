@@ -246,15 +246,15 @@ def test_long_output_is_quoted_from_its_end_verbatim():
     assert len(example.completion) < 500
 
 
-def test_examples_carry_whether_every_source_is_spark_safe():
+def test_examples_carry_whether_every_source_is_remote_safe():
     s = wrong_path_then_corrected()
     private = [
-        replace(r, provenance=replace(r.provenance, spark_safe=False)) if r.step == 2 else r
+        replace(r, provenance=replace(r.provenance, remote_safe=False)) if r.step == 2 else r
         for r in s
     ]
     (pain,) = find_failed_commands(s)
-    assert recall_pairs(pain, s).examples[0].spark_safe is True
-    assert correction_pairs(pain, private).examples[0].spark_safe is False
+    assert recall_pairs(pain, s).examples[0].remote_safe is True
+    assert correction_pairs(pain, private).examples[0].remote_safe is False
 
 
 # --- selection and hold-out ---------------------------------------------------

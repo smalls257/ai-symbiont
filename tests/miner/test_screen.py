@@ -15,7 +15,7 @@ def lesson(signature=TRAP, session="s1", fix=FixKind.CODE_FIX):
         quote="q",
         resolution=("ran `x`",) if fix else (),
         unresolved_because=None if fix else "no later command",
-        spark_safe=True,
+        remote_safe=True,
         sources=((session, 1),),
         fix=fix,
     )

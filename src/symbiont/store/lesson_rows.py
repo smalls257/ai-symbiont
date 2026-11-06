@@ -9,6 +9,22 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 
 
+def _remote_safe_of(data: dict[str, Any]) -> bool:
+    """The privacy flag, under its new name or the one rows carried before the rename.
+
+    Raises ValueError naming the lesson for a missing or non-boolean flag:
+    an unknown flag must never read as shareable.
+    """
+    pain = data["pain_point"]
+    named = f"lesson of session {pain['session_id']!r} step {pain['step']}"
+    for key in ("remote_safe", "spark_safe"):
+        if key in data:
+            if not isinstance(data[key], bool):
+                raise ValueError(f"{named} stores {key}={data[key]!r}, not true or false")
+            return data[key]
+    raise ValueError(f"{named} stores no remote_safe flag")
+
+
 def lesson_from_json(body: str) -> Lesson:
     """Rebuild a lesson from its stored JSON."""
     data = json.loads(body)
@@ -17,7 +33,7 @@ def lesson_from_json(body: str) -> Lesson:
         quote=data["quote"],
         resolution=tuple(data["resolution"]),
         unresolved_because=data["unresolved_because"],
-        spark_safe=data["spark_safe"],
+        remote_safe=_remote_safe_of(data),
         sources=tuple((ref[0], ref[1]) for ref in data["sources"]),
         task_ids=tuple(data["task_ids"]),
         # Rows written before this field existed recorded no such changes.
@@ -49,7 +65,7 @@ def pain_point_from_dict(data: dict[str, Any]) -> PainPoint:
 def lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]:
     """The lessons-table row for a lesson."""
     pain = lesson.pain_point
-    return (project, pain.session_id, pain.step, lesson.spark_safe, lesson_json(lesson))
+    return (project, pain.session_id, pain.step, lesson.remote_safe, lesson_json(lesson))
 
 
 def lesson_json(lesson: Lesson) -> str:

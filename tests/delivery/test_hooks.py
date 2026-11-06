@@ -105,7 +105,7 @@ def test_the_observed_record_carries_what_the_harness_reported(event, kind, expe
     body = hooks.observe_body(event, INPUTS[event], "claude_code", "fallback")
     record = body["payload"]["record"]
     assert (body["event"], body["harness"], record["kind"]) == (event.value, "claude_code", kind)
-    assert record["project"] == "demo" and record["provenance"]["spark_safe"] is False
+    assert record["project"] == "demo" and record["provenance"]["remote_safe"] is False
     assert expected.items() <= record.items()
 
 

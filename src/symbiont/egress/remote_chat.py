@@ -1,4 +1,4 @@
-"""Meta's OpenAI-compatible chat API as a priced, capped, privacy-checked call.
+"""A remote provider's OpenAI-compatible chat API (Muse Spark today), priced, capped and checked.
 
 A reply whose content is None (a reasoning model out of `max_tokens`) raises, never becomes a
 move; a refusal, a cap and an API error raise too. Every call that reaches the server lands in the
@@ -18,6 +18,10 @@ from symbiont.egress.client import Transport, _urlopen, post_json
 from symbiont.egress.credentials import ApiKey
 from symbiont.egress.messages import Message, declared_provenance
 from symbiont.egress.policy import Destination, EgressRefusedError, Endpoint
+from symbiont.egress.providers import PROVIDERS as PROVIDERS
+from symbiont.egress.providers import RemoteProvider
+from symbiont.egress.providers import UnknownProviderError as UnknownProviderError
+from symbiont.egress.providers import provider as provider
 from symbiont.egress.spend import (
     Ledger,
     LedgerEntry,
@@ -30,7 +34,6 @@ from symbiont.egress.spend import (
 )
 from symbiont.records.schema import Provenance
 
-CHAT_URL = "https://api.meta.ai/v1/chat/completions"
 # Room for the hidden reasoning plus the answer: a 20-token cap returned content=None.
 DEFAULT_MAX_TOKENS = 4096
 ERROR_EXCERPT_CHARS = 300
@@ -47,7 +50,7 @@ class Effort(StrEnum):
     MAX = "max"
 
 
-class SparkReplyError(RuntimeError):
+class RemoteReplyError(RuntimeError):
     """The server answered, but not with a usable reply (no content, no usage, not JSON)."""
 
     def __init__(self, message: str, reason: str = "bad_reply"):
@@ -57,20 +60,22 @@ class SparkReplyError(RuntimeError):
 
 
 def _checked_message(out: dict[str, Any], usage: Usage, *, tool_calls_ok: bool) -> dict[str, Any]:
-    """The reply's message; raises SparkReplyError for no choices, a refusal or an empty reply."""
+    """The reply's message; raises RemoteReplyError for no choices, a refusal or an empty reply."""
     choices = out.get("choices") or []
     if not choices:
-        raise SparkReplyError("the reply has no choices", "no_choices")
+        raise RemoteReplyError("the reply has no choices", "no_choices")
     choice = choices[0]
     message: dict[str, Any] = choice.get("message") or {}
     reason = choice.get("finish_reason")
     if message.get("refusal") or reason == "content_filter":
-        raise SparkReplyError(f"the model refused this request (finish_reason={reason})", "refusal")
+        raise RemoteReplyError(
+            f"the model refused this request (finish_reason={reason})", "refusal"
+        )
     content = message.get("content")
     if tool_calls_ok and message.get("tool_calls"):
         return message
     if content is None or not str(content).strip():
-        raise SparkReplyError(
+        raise RemoteReplyError(
             f"no content (finish_reason={reason}, completion_tokens={usage.completion}, "
             f"reasoning_tokens={usage.reasoning}); raise max_tokens or lower the effort",
             "no_content",
@@ -78,26 +83,26 @@ def _checked_message(out: dict[str, Any], usage: Usage, *, tool_calls_ok: bool) 
     return message
 
 
-class SparkApiError(RuntimeError):
+class RemoteApiError(RuntimeError):
     """The server answered with an HTTP error; carries the status and a short server message."""
 
 
 def _status_of(error: Exception) -> str:
     """The ledger's error field: the HTTP status, the reply problem, or the exception class."""
-    if isinstance(error, SparkApiError):
+    if isinstance(error, RemoteApiError):
         return str(error).split(":")[0]
-    if isinstance(error, SparkReplyError):
+    if isinstance(error, RemoteReplyError):
         return error.reason
     return type(error).__name__
 
 
 def _rejected_before_generation(error: Exception) -> bool:
     """A 4xx was refused before the model ran; everything else may have been generated."""
-    return isinstance(error, SparkApiError) and str(error).startswith("status 4")
+    return isinstance(error, RemoteApiError) and str(error).startswith("status 4")
 
 
 @dataclass(frozen=True)
-class SparkReply:
+class RemoteReply:
     """What came back: the text, why it stopped, the token counts and the seconds it took."""
 
     text: str
@@ -110,16 +115,17 @@ def _usage_from(out: dict[str, Any]) -> Usage:
     """Token counts; the details blocks are omitted by the API when zero, so they default to 0."""
     usage = out.get("usage")
     if not usage or "prompt_tokens" not in usage or "completion_tokens" not in usage:
-        raise SparkReplyError("the server reported no token usage for this reply", "no_usage")
+        raise RemoteReplyError("the server reported no token usage for this reply", "no_usage")
     cached = (usage.get("prompt_tokens_details") or {}).get("cached_tokens", 0)
     reasoning = (usage.get("completion_tokens_details") or {}).get("reasoning_tokens", 0)
     return Usage(usage["prompt_tokens"], cached, usage["completion_tokens"], reasoning)
 
 
 @dataclass(frozen=True)
-class SparkSession:
-    """One run's door to the API: model, tier, caps, key, ledger and the provenance it declares."""
+class RemoteChatSession:
+    """One run's door to a provider: model, tier, caps, key, ledger and declared provenance."""
 
+    provider: RemoteProvider
     model: str
     tier: Tier
     run: str
@@ -135,10 +141,10 @@ class SparkSession:
 
     def chat(
         self, prompt: str, effort: Effort, label: str, max_tokens: int = DEFAULT_MAX_TOKENS
-    ) -> SparkReply:
+    ) -> RemoteReply:
         """One single-turn call; never returns an empty reply.
 
-        Raises SpendCapError, EgressRefusedError, SparkApiError or SparkReplyError.
+        Raises SpendCapError, EgressRefusedError, RemoteApiError or RemoteReplyError.
         """
         messages = [{"role": "user", "content": prompt}]
         if self.system is not None:
@@ -154,7 +160,7 @@ class SparkSession:
         out, usage, seconds = self._priced_call(body, label, list(self.provenance))
         message = _checked_message(out, usage, tool_calls_ok=False)
         finish = str(out["choices"][0].get("finish_reason"))
-        return SparkReply(message["content"], finish, usage, seconds)
+        return RemoteReply(message["content"], finish, usage, seconds)
 
     def converse(
         self,
@@ -187,7 +193,7 @@ class SparkSession:
         """Reserve the worst case under the caps, send, settle (a failed call at an estimate)."""
         worst = estimate_call_usd(self.tier, len(json.dumps(body).encode()), body["max_tokens"])
         call = self.ledger.reserve(self.run, self.caps, worst, label)
-        destination = Destination(self.endpoint, CHAT_URL, self.key)
+        destination = Destination(self.endpoint, self.provider.chat_url, self.key)
         started = time.monotonic()
         try:
             out = self._send(destination, body, provenance)
@@ -195,7 +201,7 @@ class SparkSession:
         except EgressRefusedError:
             self.ledger.release(call)  # refused before sending: nothing left, nothing billed
             raise
-        except (SparkApiError, SparkReplyError, OSError) as error:
+        except (RemoteApiError, RemoteReplyError, OSError) as error:
             failed = self._failure_entry(body, label, time.monotonic() - started, error)
             self.ledger.settle(call, failed)
             raise
@@ -222,11 +228,11 @@ class SparkSession:
     def _send(
         self, destination: Destination, body: dict[str, Any], provenance: list[Provenance]
     ) -> dict[str, Any]:
-        """Send via post_json; raises SparkApiError (HTTP error) or SparkReplyError (bad JSON)."""
+        """Send via post_json; raises RemoteApiError (HTTP error) or RemoteReplyError (bad JSON)."""
         try:
             return post_json(destination, body, provenance=provenance, transport=self.transport)
         except urllib.error.HTTPError as error:
             detail = error.read().decode(errors="replace")[:ERROR_EXCERPT_CHARS] if error.fp else ""
-            raise SparkApiError(f"status {error.code}: {detail}") from error
+            raise RemoteApiError(f"status {error.code}: {detail}") from error
         except json.JSONDecodeError:
-            raise SparkReplyError("the reply is not valid JSON", "bad_json") from None
+            raise RemoteReplyError("the reply is not valid JSON", "bad_json") from None

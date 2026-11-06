@@ -31,7 +31,7 @@ from symbiont.service import server
 from symbiont.service.app import ServiceMode
 from symbiont.service.wiring import open_memory, open_service
 from symbiont.store.consent import record_consent
-from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.store.local import RemotePrivacyViolationError, Source, Store
 from symbiont.store.mining import MiningRules, remine
 from symbiont.store.settings import write_mining_setting
 
@@ -247,7 +247,7 @@ def test_a_failed_training_run_forgets_no_lesson(tmp_path, monkeypatch):
     assert list((tmp_path / "memory" / "work").rglob("*.jsonl")) == []  # lesson text is gone
 
 
-OWN = Provenance(dataset="private-sessions", license="none", spark_safe=False)
+OWN = Provenance(dataset="private-sessions", license="none", remote_safe=False)
 TOKEN = "gh" + "p_" + "T0k3n" * 8  # assembled so no credential-shaped literal is committed
 
 
@@ -286,13 +286,13 @@ def own_args(data, tmp_path, trainer):
     )
 
 
-def test_own_history_trains_for_spark_only_with_consent(tmp_path, monkeypatch):
+def test_own_history_trains_for_remote_only_with_consent(tmp_path, monkeypatch):
     data = own_history_store(tmp_path)
     trainer = tmp_path / "fake_trainer.py"
     trainer.write_text(FAKE_TRAINER.format(python=sys.executable))
     trainer.chmod(0o755)
     script = load_script(monkeypatch, "train_memory")
-    with pytest.raises(SparkPrivacyViolationError):
+    with pytest.raises(RemotePrivacyViolationError):
         script.train(own_args(data, tmp_path, trainer))
     record_consent(data, OwnHistoryConsent.GIVEN)
     counts = script.train(own_args(data, tmp_path, trainer))

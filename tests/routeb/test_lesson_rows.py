@@ -23,7 +23,7 @@ def lesson(signature=FAILED, resolution=("ran `pip install -e .`",), step=3):
         quote="$ pytest tests/test_cli.py\nModuleNotFoundError: No module named 'demo'",
         resolution=resolution,
         unresolved_because=None if resolution else "no later command passed",
-        spark_safe=False,
+        remote_safe=False,
         sources=(("s1", step),),
     )
 

@@ -20,7 +20,7 @@ from symbiont.miner.painpoint import Signal
 from symbiont.miner.turns_before import CONTEXT_CHARS
 from symbiont.records.schema import Provenance, Record
 
-PRIVATE = Provenance(dataset="SWE-chat", license="ODC-BY", spark_safe=False)
+PRIVATE = Provenance(dataset="SWE-chat", license="ODC-BY", remote_safe=False)
 TEST = "pytest tests/test_parser.py -q"
 BROKE = "E   ModuleNotFoundError: No module named 'yaml'\n1 error"
 
@@ -48,7 +48,7 @@ def test_a_lesson_quotes_what_happened_and_names_what_fixed_it():
     assert lesson.resolution == ("ran `pip install pyyaml`", f"ran `{TEST}`")
     assert lesson.unresolved_because is None
     assert lesson.sources == (("s1", 1), ("s1", 2), ("s1", 3), ("s1", 0))  # then the asked turn
-    assert lesson.spark_safe
+    assert lesson.remote_safe
 
 
 def test_an_unresolved_lesson_says_why():
@@ -73,7 +73,7 @@ def test_the_privacy_flag_is_false_when_any_record_used_is_private():
     records = fixed_by_install()
     records[2] = replace(records[2], provenance=PRIVATE)  # only the install step is private
     (lesson,) = lessons_of(records)
-    assert lesson.spark_safe is False
+    assert lesson.remote_safe is False
 
 
 def test_a_missing_cited_record_raises_rather_than_quoting_nothing():
@@ -164,7 +164,7 @@ def test_a_private_turn_quoted_as_context_makes_the_lesson_private():
 
     (lesson,) = lessons_of(records)
 
-    assert lesson.spark_safe is False and lesson.private_datasets == ("SWE-chat",)
+    assert lesson.remote_safe is False and lesson.private_datasets == ("SWE-chat",)
 
 
 def test_the_context_cap_matches_a_correction_candidates_turn_cap():

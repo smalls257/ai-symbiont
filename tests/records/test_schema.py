@@ -12,7 +12,7 @@ from symbiont.records.schema import (
     load_jsonl,
 )
 
-PUBLIC = Provenance(dataset="synthetic", license="CC-BY-4.0", spark_safe=True)
+PUBLIC = Provenance(dataset="synthetic", license="CC-BY-4.0", remote_safe=True)
 
 
 def make_record(step: int, raw: str = "ok", **overrides) -> Record:
@@ -82,14 +82,14 @@ def test_load_bad_line_names_line():
     assert err.value.line_no == 3
 
 
-def test_load_line_missing_spark_safe_is_rejected_not_assumed_safe():
+def test_load_line_missing_remote_safe_is_rejected_not_assumed_safe():
     line = json.loads(_dumped_line(make_record(0)))
-    del line["provenance"]["spark_safe"]
+    del line["provenance"]["remote_safe"]
     buf = io.StringIO(json.dumps(line) + "\n")
     with pytest.raises(RecordFormatError) as err:
         list(load_jsonl(buf))
     assert err.value.line_no == 1
-    assert "spark_safe" in str(err.value)
+    assert "remote_safe" in str(err.value)
 
 
 def test_load_unknown_kind_names_line():

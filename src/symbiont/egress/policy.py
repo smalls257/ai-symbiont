@@ -1,6 +1,6 @@
 """What may leave this machine, decided without touching a network.
 
-A private record (`spark_safe=False`) bound for a remote model raises, never filtered quietly or
+A private record (`remote_safe=False`) bound for a remote model raises, never filtered quietly or
 sent with unknown provenance. The policy is a pure function over (endpoint, url, provenance); the
 thin client in `client.py` owns the socket.
 """
@@ -12,16 +12,17 @@ from enum import StrEnum
 from urllib.parse import urlsplit
 
 from symbiont.egress.credentials import ApiKey
+from symbiont.egress.providers import PROVIDERS
 from symbiont.records.schema import Provenance
 
-# Datasets whose rows are real people's text. spark_safe=False already covers them; the name
+# Datasets whose rows are real people's text. remote_safe=False already covers them; the name
 # check is a second lock for a record whose flag was set wrongly by a new reader.
 PRIVATE_DATASETS = frozenset({"swe-chat", "swechat"})
 LAN_SUFFIXES = (".local", ".lan", ".home", ".internal", ".localdomain", ".fritz.box")
-# The only hosts a remote tier may reach. Provenance says WHAT may leave; this says WHERE. A new
-# model API is a new entry here and a policy test, so a typo or a swapped host cannot send
-# spark_safe data to an unlisted server. Local tiers are bounded by loopback/LAN instead.
-REMOTE_HOSTS = frozenset({"api.meta.ai"})
+# The only hosts a remote tier may reach, derived from the provider table (a code constant, never
+# read from settings or the environment). Provenance says WHAT may leave; this says WHERE. A new
+# model API is a new PROVIDERS entry and a policy test. Local tiers are bounded by loopback/LAN.
+REMOTE_HOSTS = frozenset(entry.host for entry in PROVIDERS.values())
 # 7377 spells SYMB on a phone keypad. Where the service listens and where its clients look is one
 # fact, so it lives here, below both (a client must not import the service to learn it).
 LOCAL_SERVICE_PORT = 7377
@@ -33,12 +34,12 @@ class Endpoint(StrEnum):
     LOCAL_GLIMMER = "local_glimmer"  # the owner's own llama.cpp server (loopback or LAN)
     LOCAL_SERVICE = "local_service"  # the symbiont service on loopback
     LOCAL_MEMORY_MODEL = "local_memory_model"  # Route A's memory model (mlx_lm.server), loopback
-    SPARK = "spark"
+    REMOTE_CHAT = "remote_chat"
     CONTRIBUTOR = "contributor"
     WONDER = "wonder"
 
 
-REMOTE = frozenset({Endpoint.SPARK, Endpoint.CONTRIBUTOR, Endpoint.WONDER})
+REMOTE = frozenset({Endpoint.REMOTE_CHAT, Endpoint.CONTRIBUTOR, Endpoint.WONDER})
 
 
 class EgressRefusedError(PermissionError):
@@ -114,7 +115,9 @@ def _check_provenance(endpoint: Endpoint, provenance: Iterable[Provenance]) -> N
     _refuse_unless(endpoint, no_provenance, holds=bool(declared))
     for item in declared:
         name = repr(item.dataset)
-        _refuse_unless(endpoint, f"a record from {name} is spark_safe=False", holds=item.spark_safe)
+        _refuse_unless(
+            endpoint, f"a record from {name} is remote_safe=False", holds=item.remote_safe
+        )
         _refuse_unless(
             endpoint, f"{name} is private", holds=item.dataset.lower() not in PRIVATE_DATASETS
         )

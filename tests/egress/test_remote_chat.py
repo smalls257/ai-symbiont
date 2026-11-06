@@ -1,4 +1,4 @@
-"""The Spark session prices each call into the ledger; an empty reply never becomes a move."""
+"""The remote chat session prices each call into the ledger; an empty reply never becomes a move."""
 
 import json
 import urllib.error
@@ -7,12 +7,18 @@ import pytest
 
 from symbiont.egress import EgressRefusedError
 from symbiont.egress.credentials import ApiKey
-from symbiont.egress.spark import Effort, SparkApiError, SparkReplyError, SparkSession
+from symbiont.egress.remote_chat import (
+    Effort,
+    RemoteApiError,
+    RemoteChatSession,
+    RemoteReplyError,
+    provider,
+)
 from symbiont.egress.spend import Ledger, SpendCapError, SpendCaps, Tier
 from symbiont.records.schema import Provenance
 
-SAFE = Provenance(dataset="act1-freedoom2-selfplay", license="BSD-3-Clause", spark_safe=True)
-PRIVATE = Provenance(dataset="owner-sessions", license="private", spark_safe=False)
+SAFE = Provenance(dataset="act1-freedoom2-selfplay", license="BSD-3-Clause", remote_safe=True)
+PRIVATE = Provenance(dataset="owner-sessions", license="private", remote_safe=False)
 PROMPT = "the prompt text must never reach a log"
 
 
@@ -41,16 +47,17 @@ ROOMY = SpendCaps(15.0, 2.0)
 
 
 def session(tmp_path, transport, provenance=(SAFE,), caps=ROOMY):
-    return SparkSession(
-        "muse-spark-1.3-contributor", Tier.CONTRIBUTOR, "probe", caps, ApiKey("test-token"),
+    return RemoteChatSession(
+        provider("meta"), "muse-spark-1.3-contributor", Tier.CONTRIBUTOR, "probe", caps,
+        ApiKey("test-token"),
         Ledger(tmp_path / "ledger.jsonl"), provenance, transport,
     )  # fmt: skip
 
 
 def test_a_call_posts_to_the_contributor_lane_and_writes_one_ledger_line(tmp_path):
     transport = FakeTransport(reply_body())
-    spark = session(tmp_path, transport)
-    reply = spark.chat(PROMPT, Effort.LOW, "MAP01-s1-low")
+    remote = session(tmp_path, transport)
+    reply = remote.chat(PROMPT, Effort.LOW, "MAP01-s1-low")
     request = transport.requests[0]
     body = json.loads(request.data)
     assert request.full_url == "https://api.meta.ai/v1/chat/completions"
@@ -63,24 +70,24 @@ def test_a_call_posts_to_the_contributor_lane_and_writes_one_ledger_line(tmp_pat
 
 
 def test_empty_content_raises_and_the_tokens_it_burned_are_still_billed(tmp_path):
-    spark = session(tmp_path, FakeTransport(reply_body(content=None, finish="length")))
-    with pytest.raises(SparkReplyError, match="finish_reason=length"):
-        spark.chat(PROMPT, Effort.LOW, "g")
+    remote = session(tmp_path, FakeTransport(reply_body(content=None, finish="length")))
+    with pytest.raises(RemoteReplyError, match="finish_reason=length"):
+        remote.chat(PROMPT, Effort.LOW, "g")
     assert Ledger(tmp_path / "ledger.jsonl").spent("probe") > 0
 
 
 def test_a_reply_without_usage_raises(tmp_path):
     body = reply_body()
     del body["usage"]
-    with pytest.raises(SparkReplyError, match="usage"):
+    with pytest.raises(RemoteReplyError, match="usage"):
         session(tmp_path, FakeTransport(body)).chat(PROMPT, Effort.LOW, "g")
 
 
 def test_the_cap_raises_before_anything_is_sent(tmp_path):
     transport = FakeTransport(reply_body())
-    spark = session(tmp_path, transport, caps=SpendCaps(15.0, 0.0))
+    remote = session(tmp_path, transport, caps=SpendCaps(15.0, 0.0))
     with pytest.raises(SpendCapError):
-        spark.chat(PROMPT, Effort.LOW, "g")
+        remote.chat(PROMPT, Effort.LOW, "g")
     assert transport.requests == []
 
 
@@ -95,7 +102,7 @@ def test_an_http_error_becomes_an_api_error_with_the_status(tmp_path):
     def failing(request, timeout_s):
         raise urllib.error.HTTPError(request.full_url, 400, "bad", {}, None)
 
-    with pytest.raises(SparkApiError, match="400"):
+    with pytest.raises(RemoteApiError, match="400"):
         session(tmp_path, failing).chat(PROMPT, Effort.LOW, "g")
 
 
@@ -114,36 +121,36 @@ def test_a_failed_call_is_in_the_ledger_with_an_estimate_and_its_status(tmp_path
     def busy(request, timeout_s):
         raise urllib.error.HTTPError(request.full_url, 429, "slow down", {}, None)
 
-    spark = session(tmp_path, busy)
-    with pytest.raises(SparkApiError, match="429"):
-        spark.chat(PROMPT, Effort.LOW, "MAP01-s1-low")
-    (row,) = spark.ledger.entries()
+    remote = session(tmp_path, busy)
+    with pytest.raises(RemoteApiError, match="429"):
+        remote.chat(PROMPT, Effort.LOW, "MAP01-s1-low")
+    (row,) = remote.ledger.entries()
     assert row["error"] == "status 429" and row["estimated"] is True
     assert row["prompt"] > 0 and row["completion"] == 0 and row["label"] == "MAP01-s1-low"
-    assert row["cost_usd"] > 0 and spark.ledger.spent() == row["cost_usd"]
+    assert row["cost_usd"] > 0 and remote.ledger.spent() == row["cost_usd"]
 
 
 def test_a_dropped_connection_is_in_the_ledger_with_the_error_class(tmp_path):
     def down(request, timeout_s):
         raise urllib.error.URLError("nodename nor servname provided")
 
-    spark = session(tmp_path, down)
+    remote = session(tmp_path, down)
     with pytest.raises(urllib.error.URLError):
-        spark.chat(PROMPT, Effort.LOW, "label")
-    assert spark.ledger.entries()[0]["error"] == "URLError"
+        remote.chat(PROMPT, Effort.LOW, "label")
+    assert remote.ledger.entries()[0]["error"] == "URLError"
 
 
 def test_a_refused_payload_never_left_the_machine_so_it_is_not_in_the_ledger(tmp_path):
-    spark = session(tmp_path, FakeTransport(reply_body()), provenance=(PRIVATE,))
+    remote = session(tmp_path, FakeTransport(reply_body()), provenance=(PRIVATE,))
     with pytest.raises(EgressRefusedError):
-        spark.chat(PROMPT, Effort.LOW, "label")
-    assert spark.ledger.entries() == []
+        remote.chat(PROMPT, Effort.LOW, "label")
+    assert remote.ledger.entries() == []
 
 
 def test_a_successful_call_has_no_error_field(tmp_path):
-    spark = session(tmp_path, FakeTransport(reply_body()))
-    spark.chat(PROMPT, Effort.LOW, "label")
-    assert "error" not in spark.ledger.entries()[0]
+    remote = session(tmp_path, FakeTransport(reply_body()))
+    remote.chat(PROMPT, Effort.LOW, "label")
+    assert "error" not in remote.ledger.entries()[0]
 
 
 def test_temperature_and_a_system_message_are_sent_only_when_set(tmp_path):

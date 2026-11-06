@@ -1,7 +1,7 @@
 """Lessons: a pain point that carries its own evidence, so no raw history needs keeping.
 
 A lesson holds a short verbatim quote, the steps that resolved it in plain words, whether every
-record it came from may reach Spark, and the (session, step) ids it came from. The flag is
+record it came from may reach a remote model, and the (session, step) ids it came from. The flag is
 computed here from the source records and never defaulted: an unknown flag must not read as
 shareable. A lesson is training data for the personal model, deleted once training has consumed
 it.
@@ -43,7 +43,7 @@ class Lesson:
     resolution: tuple[str, ...]
     # Why there is no resolution; None when there is one.
     unresolved_because: str | None
-    spark_safe: bool
+    remote_safe: bool
     # Every record the lesson quotes: the cited ones, then the resolution's steps.
     sources: tuple[RecordRef, ...]
     # Benchmark task ids of those records (none for the developer's own sessions); kept so
@@ -52,7 +52,7 @@ class Lesson:
     # Changes made between a failure and its pass that the failure never pointed at,
     # in plain words: said to have happened, never claimed as the fix.
     changed_alongside: tuple[str, ...] = ()
-    # Datasets of the quoted records that are not Spark-safe; () when spark_safe. A private
+    # Datasets of the quoted records that are not remote-safe; () when remote_safe. A private
     # lesson with none named counts as third-party (unknown privacy is never shareable).
     private_datasets: tuple[str, ...] = ()
     # The failing tests and the assertion or exception line of the cited output, trimmed: the
@@ -131,7 +131,7 @@ def _lesson(
         quote=excerpt(cited[0], QUOTE_CHARS),
         resolution=tuple(_step_words(step) for step in steps),
         unresolved_because=reason_of(found),
-        spark_safe=all(r.provenance.spark_safe for r in used),
+        remote_safe=all(r.provenance.remote_safe for r in used),
         sources=tuple(dict.fromkeys((r.session_id, r.step) for r in used)),
         task_ids=tuple(dict.fromkeys(r.task_id for r in used if r.task_id is not None)),
         changed_alongside=tuple(_step_words(step) for step in alongside),
@@ -159,17 +159,17 @@ def _fix_parts(
 
 
 def _private_datasets(used: Sequence[Record]) -> tuple[str, ...]:
-    """Names of the datasets among `used` that are not Spark-safe."""
-    return tuple(sorted({r.provenance.dataset for r in used if not r.provenance.spark_safe}))
+    """Names of the datasets among `used` that are not remote-safe."""
+    return tuple(sorted({r.provenance.dataset for r in used if not r.provenance.remote_safe}))
 
 
-def spark_allowed(lesson: Lesson, consent: OwnHistoryConsent) -> bool:
-    """Whether the lesson may back a Spark-bound answer.
+def remote_allowed(lesson: Lesson, consent: OwnHistoryConsent) -> bool:
+    """Whether the lesson may back a remote-bound answer.
 
-    Spark-safe lessons may. A private one may only with the user's consent and only when every
+    remote-safe lessons may. A private one may only with the user's consent and only when every
     private record it quotes is the user's own session; third-party data never may.
     """
-    if lesson.spark_safe:
+    if lesson.remote_safe:
         return True
     if consent is not OwnHistoryConsent.GIVEN or not lesson.private_datasets:
         return False

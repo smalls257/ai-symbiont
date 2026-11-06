@@ -10,7 +10,9 @@ from pathlib import Path
 from symbiont.records.privacy import OwnHistoryConsent
 
 CONSENT_FILE = "consent.json"
-SETTING = "own_history_to_spark"
+SETTING = "own_history_to_remote"
+# Written before the privacy vocabulary went provider-neutral; still read, never written.
+LEGACY_SETTING = "own_history_to_spark"
 
 
 class ConsentFileError(ValueError):
@@ -23,7 +25,8 @@ def read_consent(data_dir: Path) -> OwnHistoryConsent:
     if not path.exists():
         return OwnHistoryConsent.WITHHELD
     try:
-        return OwnHistoryConsent(json.loads(path.read_text(encoding="utf-8"))[SETTING])
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        return OwnHistoryConsent(saved[SETTING] if SETTING in saved else saved[LEGACY_SETTING])
     except (ValueError, KeyError, TypeError) as exc:
         raise ConsentFileError(f"{path} does not hold a {SETTING} setting") from exc
 

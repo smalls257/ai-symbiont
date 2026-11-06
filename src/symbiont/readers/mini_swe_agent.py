@@ -1,7 +1,7 @@
 """Reader for mini-SWE-agent trajectories (JSONL, one trajectory per line).
 
 Each fenced bash command becomes one record carrying its observation as `raw`;
-a command that writes a file is an edit. `read` is never spark safe;
+a command that writes a file is an edit. `read` is never remote safe;
 `read_local_run` refuses any task that is not a public benchmark id. Text our
 delivery layer appended to an observation becomes its own tagged tool result.
 """
@@ -20,13 +20,15 @@ from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, split_our_output
 from symbiont.records.schema import Kind, Provenance, Record
 
 HARNESS = "mini-swe-agent"
-UNLABELED = Provenance(dataset="mini-swe-agent-unlabeled", license="unknown", spark_safe=False)
-OPEN_SWE_TRACES = Provenance(dataset="open-swe-traces", license="see-dataset-card", spark_safe=True)
-# Our own Glimmer runs use public benchmark repos only, so they may reach Spark.
-LOCAL_RUN = Provenance(dataset="local-run", license="own-output", spark_safe=True)
+UNLABELED = Provenance(dataset="mini-swe-agent-unlabeled", license="unknown", remote_safe=False)
+OPEN_SWE_TRACES = Provenance(
+    dataset="open-swe-traces", license="see-dataset-card", remote_safe=True
+)
+# Our own Glimmer runs use public benchmark repos only, so they may reach a remote model.
+LOCAL_RUN = Provenance(dataset="local-run", license="own-output", remote_safe=True)
 
 # Repos of the public benchmark tasks our Glimmer runs may use; a run on any other repo
-# could hold private code and must not be labeled spark safe.
+# could hold private code and must not be labeled remote safe.
 PUBLIC_BENCHMARK_REPOS = frozenset({"tobymao/sqlglot"})
 
 _BASH_BLOCK = re.compile(r"```bash[ \t]*\n(.*?)\n?```", re.DOTALL)
@@ -41,12 +43,12 @@ class _MalformedError(Exception):
 
 
 def read(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of a trajectory file of unlabeled origin (never spark safe)."""
+    """Yield records of a trajectory file of unlabeled origin (never remote safe)."""
     return _read(path, project, UNLABELED, public_tasks_only=False)
 
 
 def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of public Open-SWE-Traces `minisweagent` rows (spark safe)."""
+    """Yield records of public Open-SWE-Traces `minisweagent` rows (remote safe)."""
     return _read(path, project, OPEN_SWE_TRACES, public_tasks_only=False)
 
 

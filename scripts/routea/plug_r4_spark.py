@@ -5,9 +5,9 @@ Usage: uv run python scripts/routea/plug_r4_spark.py invent --pool P --repos R.j
 Usage:   --out O
 
 Spark sees only each lesson's template text (`Lesson.text()`, from the public nebius pool), through
-`symbiont.egress.spark` on the Contributor tier with the ledger and a run cap. Results append to
-JSONL as they come (a rerun skips done lessons); a rejected reply is recorded with its reason and
-counted, never replaced by the template silently. Prints counts and spend, never text.
+`symbiont.egress.remote_chat` on the Contributor tier with the ledger and a run cap. Results
+append to JSONL as they come (a rerun skips done lessons); a rejected reply is recorded with its
+reason and counted, never replaced by the template silently. Prints counts and spend, never text.
 """
 
 import argparse
@@ -35,7 +35,13 @@ from plug_r4_text import (  # noqa: E402
 )
 
 from symbiont.egress.credentials import load_meta_key  # noqa: E402
-from symbiont.egress.spark import Effort, SparkApiError, SparkReply, SparkSession  # noqa: E402
+from symbiont.egress.remote_chat import (  # noqa: E402
+    Effort,
+    RemoteApiError,
+    RemoteChatSession,
+    RemoteReply,
+    provider,
+)
 from symbiont.egress.spend import Ledger, Tier, caps_from_environment  # noqa: E402
 from symbiont.readers.openhands import PROVENANCE  # noqa: E402
 
@@ -55,9 +61,10 @@ def pool_lessons(pool: Path, repos: Path | None) -> list[Lesson]:
     return [lesson for repo in sorted(wanted & set(by_repo)) for lesson in by_repo[repo]]
 
 
-def session(run_cap_usd: float) -> SparkSession:
+def session(run_cap_usd: float) -> RemoteChatSession:
     """The Contributor door with the ledger, the run cap and the pool's provenance."""
-    return SparkSession(
+    return RemoteChatSession(
+        provider=provider("meta"),
         model=MODEL,
         tier=Tier.CONTRIBUTOR,
         run=RUN,
@@ -68,14 +75,14 @@ def session(run_cap_usd: float) -> SparkSession:
     )
 
 
-def asked(spark: SparkSession, prompt: str, label: str) -> SparkReply:
+def asked(spark: RemoteChatSession, prompt: str, label: str) -> RemoteReply:
     """One call, retried after a wait on a rate limit (429) only; every retry is counted, and
     the last failure raises."""
     wait = RATE_LIMIT_WAIT_S
     for attempt in range(RATE_LIMIT_TRIES):
         try:
             return spark.chat(prompt, Effort.LOW, label=label)
-        except SparkApiError as error:
+        except RemoteApiError as error:
             if "429" not in str(error) or attempt == RATE_LIMIT_TRIES - 1:
                 raise
             RETRIES["rate_limited"] += 1
@@ -84,7 +91,7 @@ def asked(spark: SparkSession, prompt: str, label: str) -> SparkReply:
     raise AssertionError("unreachable: the loop returns or raises")
 
 
-def rewrite_one(spark: SparkSession, lesson: Lesson) -> dict:
+def rewrite_one(spark: RemoteChatSession, lesson: Lesson) -> dict:
     """One lesson's trigger sentence, or the reason it was rejected."""
     reply = asked(spark, rewrite_prompt(lesson), "rewrite")
     try:
@@ -93,7 +100,7 @@ def rewrite_one(spark: SparkSession, lesson: Lesson) -> dict:
         return {"lesson_id": lesson.lesson_id, "rejected": str(error)}
 
 
-def invent_one(spark: SparkSession, lesson: Lesson, count: int) -> dict:
+def invent_one(spark: RemoteChatSession, lesson: Lesson, count: int) -> dict:
     """One lesson's invented situations, or the reason the reply was rejected."""
     reply = asked(spark, invent_prompt(lesson, count), "invent")
     try:

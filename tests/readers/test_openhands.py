@@ -84,13 +84,13 @@ def test_task_id_is_instance_id(records):
     }
 
 
-def test_provenance_spark_safe_true(records):
+def test_provenance_remote_safe_true(records):
     provenances = {r.provenance for r in records}
     assert len(provenances) == 1
     (provenance,) = provenances
     assert provenance.dataset == "nebius/SWE-rebench-openhands-trajectories"
     assert provenance.license == "CC-BY-4.0"
-    assert provenance.spark_safe is True
+    assert provenance.remote_safe is True
 
 
 def test_turns_in_order_with_dense_steps(records):

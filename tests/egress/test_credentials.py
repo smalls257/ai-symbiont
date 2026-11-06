@@ -10,7 +10,7 @@ from symbiont.egress import Destination, Endpoint, post_json
 from symbiont.egress.credentials import ApiKey, MissingCredentialError, load_meta_key
 from symbiont.records.schema import Provenance
 
-SAFE = Provenance(dataset="act1-freedoom2-selfplay", license="BSD-3-Clause", spark_safe=True)
+SAFE = Provenance(dataset="act1-freedoom2-selfplay", license="BSD-3-Clause", remote_safe=True)
 URL = "https://api.meta.ai/v1/chat/completions"
 SECRET = "test-token-value"
 

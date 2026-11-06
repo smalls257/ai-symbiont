@@ -57,7 +57,7 @@ def test_an_ignored_signature_is_left_out_of_lessons_and_pain_points(mined):
     store.ignored.add(PROJECT, [signature], "The parser import fails")
 
     assert store.lessons(PROJECT) == []
-    assert store.spark_view().pain_points(PROJECT) == []
+    assert store.remote_view().pain_points(PROJECT) == []
     assert store.ignored.listed(PROJECT) == [((signature,), "The parser import fails")]
 
 

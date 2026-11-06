@@ -30,17 +30,17 @@ TIMEOUT_S = 8.0
 class AdapterProvenance(StrEnum):
     """What trained an adapter, recorded at train time, ordered from most to least shareable.
 
-    PUBLIC and OWN_HISTORY_WITH_CONSENT come from the fail-closed Spark export; the second
-    answers Spark only while the user's consent still holds. PERSONAL never answers Spark.
+    PUBLIC and OWN_HISTORY_WITH_CONSENT come from the fail-closed remote export; the second
+    answers a remote model only while the user's consent still holds. PERSONAL never does.
     """
 
-    PUBLIC = "public"  # only Spark-safe lessons
+    PUBLIC = "public"  # only remote-safe lessons
     OWN_HISTORY_WITH_CONSENT = "own_history_with_consent"  # plus the user's own, consented
     PERSONAL = "personal"  # anything else; local models only
 
 
-def may_answer_spark(provenance: AdapterProvenance, consent: OwnHistoryConsent) -> bool:
-    """Whether an adapter of this provenance may answer a Spark-bound call under `consent`."""
+def may_answer_remote(provenance: AdapterProvenance, consent: OwnHistoryConsent) -> bool:
+    """Whether an adapter of this provenance may answer a remote-bound call under `consent`."""
     if provenance is AdapterProvenance.PUBLIC:
         return True
     consented = consent is OwnHistoryConsent.GIVEN

@@ -1,20 +1,9 @@
-"""Route B training data: what a personal LoRA on Glimmer learns from history.
+"""Route B training data: recall and correction pairs for a personal LoRA, from history.
 
-Route B teaches the model itself the pain points the MCP route would surface:
-to recall them (`recall_pairs`) and to make the correction unprompted
-(`correction_pairs`). The unit exists to prevent a Silent Fallback: a made-up
-target. Every completion is quoted from the original records (a summary would
-teach the model our paraphrase, not what happened), and when the history holds
-no correction for a pain point the derivation is empty with a stated reason.
-
-Pure: records in, examples out. No network, no clock, no files.
-
-Not mistakes, so never examples (same rule every learner reads history by,
-`core.features.meaningful_history`): breakage of a hub module, and rework of a
-file the session made for itself.
-
-`records` must hold the pain point's whole chain in the order it ran, since a
-reworked edit's surviving version may sit in a later session.
+Every completion is quoted from the original records, never summarized: a paraphrase would
+teach our wording, and a made-up target is worse than none. A pain point with no correction in
+history yields an empty derivation with a stated reason. Pure: records in, examples out; no
+network, clock or files. `records` must hold each pain point's whole chain, in order.
 """
 
 from collections import Counter
@@ -41,8 +30,8 @@ class Example:
     completion: str
     sources: tuple[RecordRef, ...]
     signature: Signature
-    # False if any source record is private: such an example must not reach Spark.
-    spark_safe: bool
+    # False if any source record is private: such an example must not reach a remote model.
+    remote_safe: bool
 
 
 @dataclass(frozen=True)
@@ -125,13 +114,9 @@ def build_dataset(
     *,
     hubs: frozenset[str] = frozenset(),
 ) -> Dataset:
-    """Examples for the `limits.top_n` most recurrent kinds of trouble.
+    """Examples for the `limits.top_n` most frequent signatures (ties by first appearance).
 
-    The cap is set by the pre-registration, not here. Rank is how many times
-    the same signature occurred, ties by first appearance; every occurrence of
-    a kept signature contributes. Held-out tasks are removed first, so they
-    neither take a slot nor serve as a source; each omission is counted in
-    `dropped`.
+    The cap comes from the prereg. Held-out tasks go before ranking, counted in `dropped`.
     """
     held = _held_out_sessions(records, limits.held_out_tasks)
     usable = [r for r in records if r.session_id not in held]
@@ -222,7 +207,7 @@ def _one(
         completion=completion,
         sources=tuple((r.session_id, r.step) for r in used),
         signature=pp.signature,
-        spark_safe=all(r.provenance.spark_safe for r in used),
+        remote_safe=all(r.provenance.remote_safe for r in used),
     )
     return Derivation((example,), None)
 

@@ -9,10 +9,10 @@ from symbiont.miner.twins import merge_twins
 FAILED = Signature(Signal.FAILED_COMMAND, ("pytest", "t.py", "ImportError"))
 
 
-def lesson(step, fix, signature=FAILED, spark_safe=True):
+def lesson(step, fix, signature=FAILED, remote_safe=True):
     pain = PainPoint(signature, "s", step, (("s", step),))
     resolution = (fix,) if fix else ()
-    return Lesson(pain, "q", resolution, None if fix else "none", spark_safe, (("s", step),))
+    return Lesson(pain, "q", resolution, None if fix else "none", remote_safe, (("s", step),))
 
 
 def test_twins_pool_their_fixes_in_first_seen_order_without_repeats():
@@ -22,8 +22,8 @@ def test_twins_pool_their_fixes_in_first_seen_order_without_repeats():
 
 
 def test_a_twin_with_a_fix_resolves_an_unresolved_first_and_privacy_takes_the_stricter():
-    merged = merge_twins([lesson(1, None), lesson(2, "ran b", spark_safe=False)])
-    assert merged[0].unresolved_because is None and merged[0].spark_safe is False
+    merged = merge_twins([lesson(1, None), lesson(2, "ran b", remote_safe=False)])
+    assert merged[0].unresolved_because is None and merged[0].remote_safe is False
 
 
 def test_different_errors_and_other_signals_stay_apart():

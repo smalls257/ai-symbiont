@@ -21,7 +21,7 @@ HARNESS = "openhands"
 PROVENANCE = Provenance(
     dataset="nebius/SWE-rebench-openhands-trajectories",
     license="CC-BY-4.0",
-    spark_safe=True,
+    remote_safe=True,
 )
 
 _WORKSPACE = re.compile(r"<uploaded_files>\s*(\S+?)/?\s*</uploaded_files>")

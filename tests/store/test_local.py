@@ -19,14 +19,14 @@ from symbiont.miner.secrets import REDACTED
 from symbiont.miner.trained import export_id_of
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
-from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.store.local import RemotePrivacyViolationError, Source, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, remine
 from symbiont.store.training import lessons_for_memory_model, lessons_for_personal_model
 
 pytestmark = pytest.mark.periphery
 
 PROJECT = "tobymao/sqlglot"
-SWE_CHAT = Provenance(dataset="SWE-chat", license="ODC-BY", spark_safe=False)
+SWE_CHAT = Provenance(dataset="SWE-chat", license="ODC-BY", remote_safe=False)
 READER = "records-jsonl"
 SECRET_OUTPUT = "AssertionError: secret-looking output that must not be copied"
 
@@ -125,24 +125,24 @@ def test_an_unrecognised_task_id_is_refused_when_something_is_held_out(tmp_path,
         remine(store, PROJECT, rules({"tobymao/sqlglot#1"}), adding=[source])
 
 
-def test_spark_view_raises_on_a_private_lesson_and_never_filters(tmp_path, store):
+def test_remote_view_raises_on_a_private_lesson_and_never_filters(tmp_path, store):
     public = log_of(tmp_path, "a", failing_session())
     remine(store, PROJECT, rules(), adding=[public])
-    assert len(store.spark_view().lessons(PROJECT)) == 1
+    assert len(store.remote_view().lessons(PROJECT)) == 1
     private = log_of(tmp_path, "p", failing_session("chat-1", None, SWE_CHAT))
     remine(store, PROJECT, rules(), adding=[private])
-    with pytest.raises(SparkPrivacyViolationError):
-        store.spark_view().lessons(PROJECT)
-    with pytest.raises(SparkPrivacyViolationError):
-        store.spark_view().pain_points(PROJECT)
-    assert not hasattr(store.spark_view(), "save_mining")
+    with pytest.raises(RemotePrivacyViolationError):
+        store.remote_view().lessons(PROJECT)
+    with pytest.raises(RemotePrivacyViolationError):
+        store.remote_view().pain_points(PROJECT)
+    assert not hasattr(store.remote_view(), "save_mining")
 
 
 def test_the_two_training_exports_differ_only_in_the_privacy_guard(tmp_path, store):
     private = log_of(tmp_path, "p", failing_session("chat-1", None, SWE_CHAT))
     remine(store, PROJECT, rules(), adding=[private])
     assert len(lessons_for_personal_model(store, PROJECT)) == 1
-    with pytest.raises(SparkPrivacyViolationError):
+    with pytest.raises(RemotePrivacyViolationError):
         lessons_for_memory_model(store, PROJECT)
 
 
@@ -302,7 +302,7 @@ def test_a_lesson_row_from_before_the_turn_fields_reads_empty_context():
     assert lesson.asked == "fix it"
 
 
-def test_the_spark_view_redacts_a_credential_pasted_into_the_users_request(tmp_path, store):
+def test_the_remote_view_redacts_a_credential_pasted_into_the_users_request(tmp_path, store):
     pasted = "to" + "ken=Zq7Lm2Xv9Rt4Wp8K"
     records = [
         replace(r, task_id=None) if r.step else replace(r, raw=f"fix it, {pasted}", task_id=None)
@@ -312,6 +312,6 @@ def test_the_spark_view_redacts_a_credential_pasted_into_the_users_request(tmp_p
     (lesson,) = remine(store, PROJECT, rules(), adding=[source])
     assert pasted in lesson.asked
 
-    (shown,) = store.spark_view().lessons(PROJECT)
+    (shown,) = store.remote_view().lessons(PROJECT)
 
     assert "Zq7Lm2Xv9Rt4Wp8K" not in shown.asked and REDACTED in shown.asked

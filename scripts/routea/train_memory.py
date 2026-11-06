@@ -22,7 +22,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.service.memory_model import DEFAULT_MEMORY_MODEL, AdapterProvenance
 from symbiont.service.wiring import ADAPTER_RECORD
 from symbiont.store.consent import ConsentFileError, read_consent
-from symbiont.store.local import ForgetMismatchError, SparkPrivacyViolationError, Store
+from symbiont.store.local import ForgetMismatchError, RemotePrivacyViolationError, Store
 from symbiont.store.training import lessons_for_memory_model
 
 HERE = Path(__file__).resolve().parent
@@ -83,7 +83,7 @@ def _record_adapter(memory_dir: Path, model: str, lessons: list[Lesson]) -> Adap
     """
     added = (
         AdapterProvenance.PUBLIC
-        if all(lesson.spark_safe for lesson in lessons)
+        if all(lesson.remote_safe for lesson in lessons)
         else AdapterProvenance.OWN_HISTORY_WITH_CONSENT
     )
     recorded = _recorded(memory_dir)
@@ -141,7 +141,7 @@ def main() -> None:
         counts = train(args)
     except (
         TrainingRefusedError,
-        SparkPrivacyViolationError,
+        RemotePrivacyViolationError,
         ConsentFileError,
         ForgetMismatchError,
     ) as refused:

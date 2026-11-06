@@ -8,7 +8,7 @@ A recurrence is a failed command in a later task whose exact (shown command, err
 a lesson mined from an earlier, different task of the same repository (the loose key normalizes
 the command instead). Distinct (later task, key) pairs count once. Sources: the nebius OpenHands
 exports on disk, deduplicated by session, and our own mini-SWE-agent runs (`read_local_run`, public
-tasks only; never Spark-bound here). Counts and ids only.
+tasks only; never remote-bound here). Counts and ids only.
 """
 
 import argparse
