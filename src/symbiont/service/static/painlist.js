@@ -33,9 +33,9 @@ function writeCollapsed(storage,project,collapsed,warn){
 function groupsHtml(groups,collapsed,esc){
   return groups.map(g=>{
     const open=!collapsed.has(g.kind), id="plist-"+g.kind;
-    return '<h3><button type="button" class="grp" data-kind="'+esc(g.kind)+'" aria-expanded="'+open+'" aria-controls="'+esc(id)+'">'
+    return '<h3><button type="button" class="grp" id="plist-h-'+esc(g.kind)+'" data-kind="'+esc(g.kind)+'" aria-expanded="'+open+'" aria-controls="'+esc(id)+'">'
       +'<span class="chev" aria-hidden="true"></span><span class="gl">'+esc(g.label)+" · "+g.count+"</span></button></h3>"
-      +'<div class="items" id="'+esc(id)+'" role="listbox"'+(open?"":" hidden")+">"+g.itemsHtml+"</div>";
+      +'<div class="items" id="'+esc(id)+'" role="listbox" aria-labelledby="plist-h-'+esc(g.kind)+'"'+(open?"":" hidden")+">"+g.itemsHtml+"</div>";
   }).join("");
 }
 
