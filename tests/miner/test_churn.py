@@ -24,18 +24,44 @@ def test_churn_counts_edits_per_file_per_session_repo_relative():
     ]
 
 
+def created(path):
+    return edit(path, diff=f"--- /dev/null\n+++ b/{path}\n+x\n")
+
+
 def test_churn_skips_files_outside_the_repo_and_scratch_files_deleted_in_session():
     steps = session(
         edit("/home/me/.config/tool.toml"),
         edit("/tmp/probe.py"),
+        edit("/elsewhere/other/file.py"),
         edit("../other/file.py"),
-        edit("scratch_repro.py"),
-        edit("scratch_repro.py"),
-        run("rm scratch_repro.py"),
-        edit("kept_script.py"),
+        created("pkg/scratch_repro.py"),
+        edit("pkg/scratch_repro.py"),
+        run("rm pkg/scratch_repro.py"),
+        edit("pkg/kept.py"),
         edit("sqlglot/parser.py", exit_code=1),
     )
-    assert churn([steps], REPO) == [FileChurn("kept_script.py", "s1", 1)]
+    assert churn([steps], REPO) == [FileChurn("pkg/kept.py", "s1", 1)]
+
+
+def test_only_a_file_created_in_the_session_and_then_removed_is_scratch():
+    steps = session(
+        edit("pkg/x.py"),  # existed before the session: removing it later does not erase the edit
+        run("rm pkg/x.py"),
+        edit("top/x.py"),
+        created("pkg/y.py"),
+        run("rm other/y.py"),  # a different file with the same base name
+    )
+    assert churn([steps], REPO) == [
+        FileChurn("pkg/x.py", "s1", 1),
+        FileChurn("pkg/y.py", "s1", 1),
+        FileChurn("top/x.py", "s1", 1),
+    ]
+
+
+def test_an_absolute_path_counts_only_below_a_repo_directory():
+    inside = session(edit("/work/sqlglot/sqlglot/parser.py"))
+    outside = [replace(r, session_id="s2") for r in session(edit("/work/other/sqlglot_like.py"))]
+    assert churn([inside, outside], REPO) == [FileChurn("sqlglot/parser.py", "s1", 1)]
 
 
 def test_rework_no_longer_produces_lessons():

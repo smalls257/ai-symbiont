@@ -31,3 +31,17 @@ def test_a_corrected_command_is_a_fix_but_a_respelled_pass_is_not():
     corrected = fix_of(run("pytest tests/a.py", 5, "no tests ran"), run("pytest tests/x/a.py", 0))
     assert corrected is FixKind.CORRECTED_COMMAND
     assert fix_of(run(TEST, 1, "E   assert 1 == 2"), run(f"{TEST} -x", 0)) is None
+
+
+def test_an_absolute_path_is_a_code_fix_only_below_the_repo():
+    failed = "sqlglot/parser.py:1\nE   NameError: name 'x'"
+    repo = frozenset({"sqlglot"})
+
+    def kind_of(path):
+        records = session(run(TEST, 1, failed), edit(path), run(TEST, 0, "ok"))
+        (lesson,) = lessons_from(find_failed_commands(records), records, repo)
+        return lesson.fix
+
+    assert kind_of("/work/sqlglot/sqlglot/parser.py") is FixKind.CODE_FIX
+    assert kind_of("/work/elsewhere/x/parser.py") is None
+    assert kind_of("/home/me/.claude/parser.py") is None

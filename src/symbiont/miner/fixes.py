@@ -9,24 +9,10 @@ from collections.abc import Sequence
 from enum import StrEnum
 
 from symbiont.miner.changes import applied_edit
+from symbiont.miner.codebase import repo_relative
 from symbiont.miner.failure_keys import is_invocation_failure
 from symbiont.miner.painpoint import PainPoint, Signal
 from symbiont.records.schema import Record
-
-_THROWAWAY_DIRS = ("/tmp/", "/var/folders/", "/private/tmp/")
-# Top-level files that are the project itself, not a scratch script dropped in the root.
-_PROJECT_FILES = frozenset(
-    {
-        "pyproject.toml",
-        "setup.py",
-        "setup.cfg",
-        "conftest.py",
-        "package.json",
-        "Cargo.toml",
-        "go.mod",
-        "Makefile",
-    }
-)
 
 
 class FixKind(StrEnum):
@@ -36,9 +22,11 @@ class FixKind(StrEnum):
     CORRECTED_COMMAND = "corrected_command"
 
 
-def fix_kind(pain: PainPoint, steps: Sequence[Record]) -> FixKind | None:
+def fix_kind(
+    pain: PainPoint, steps: Sequence[Record], repo_names: frozenset[str] = frozenset()
+) -> FixKind | None:
     """The kind of known fix `steps` (the resolution's own, never those made alongside) show."""
-    if any(applied_edit(step) and in_codebase(step.files) for step in steps):
+    if any(_edits_codebase(step, repo_names) for step in steps):
         return FixKind.CODE_FIX
     corrected = (
         steps
@@ -48,15 +36,10 @@ def fix_kind(pain: PainPoint, steps: Sequence[Record]) -> FixKind | None:
     return FixKind.CORRECTED_COMMAND if corrected else None
 
 
-def in_codebase(files: Sequence[str]) -> bool:
-    """True when the first edited file is part of the project, not a scratch file.
-
-    The miner does not know the repository root, so a scratch file is recognized by where it
-    sits: a temporary directory, a hidden tool directory, or a loose script in the top level.
-    """
-    if not files:
-        return False
-    path = files[0].removeprefix("./")
-    if path.startswith(_THROWAWAY_DIRS) or any(p.startswith(".") for p in path.split("/")[:-1]):
-        return False
-    return path.startswith("/") or "/" in path or path in _PROJECT_FILES
+def _edits_codebase(step: Record, repo_names: frozenset[str]) -> bool:
+    """An applied edit whose first file lies inside the codebase."""
+    return (
+        applied_edit(step)
+        and bool(step.files)
+        and repo_relative(step.files[0], repo_names) is not None
+    )

@@ -170,9 +170,9 @@ def _mine(args: argparse.Namespace) -> int:
     except (OSError, ValueError) as failed:  # unreadable log, unknown reader, held-out task
         print(f"symbiont mine: {failed}", file=sys.stderr)
         return 1
-    print(f"{len(lessons)} lessons from {len(store.sources(args.project))} logs")
     held = held_back_sentence(store.mined.counts(args.project))
-    print(f"kept {len(lessons)} lessons" + (f"; {held}" if held else ""))
+    logs = len(store.sources(args.project))
+    print(f"{len(lessons)} lessons from {logs} logs" + (f"; {held}" if held else ""))
     print("\n".join(coverage_lines(lessons)))
     return 0
 

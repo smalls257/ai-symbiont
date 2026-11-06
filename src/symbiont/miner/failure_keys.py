@@ -13,6 +13,7 @@ from symbiont.records.schema import Record
 
 _ERROR_CLASS = re.compile(r"\b([A-Z]\w*Error)\b")
 _BARE_EXIT = re.compile(r"^exit \d+$")
+_PLACEHOLDER = re.compile(r"<(?:n|path|hash)>")
 _MESSAGE_CHARS = 60
 INTERRUPTS = frozenset({"C-c", "C-d", "C-z"})
 SIGINT_EXIT = 130  # 128 + SIGINT: the shell's report of a Ctrl-C
@@ -48,6 +49,11 @@ def what_broke(record: Record, program: str, *, inline: bool) -> str:
     if signature is not None:
         return str(signature.message[:_MESSAGE_CHARS])
     return f"exit {record.exit_code}"
+
+
+def broke_in_words(broke: str) -> str:
+    """The last key element as prose: a normalized message is for grouping, not for reading."""
+    return "an unexpected result" if _PLACEHOLDER.search(broke) else broke
 
 
 def is_bare_exit(broke: str) -> bool:

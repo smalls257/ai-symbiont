@@ -8,6 +8,7 @@ from collections.abc import Callable, Collection, Sequence
 from enum import StrEnum
 
 from symbiont.core.slot import Decision
+from symbiont.miner.failure_keys import broke_in_words
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.records.schema import Record
@@ -109,7 +110,7 @@ def _failed_command(signature: Signature, count: int) -> str:
     """Note for a command that failed the same way before."""
     *target, error = signature.key
     command = " ".join(part for part in target if part != NO_PATH)
-    broke = "a non-zero exit" if error.startswith("exit ") else error
+    broke = "a non-zero exit" if error.startswith("exit ") else broke_in_words(error)
     return f"This command has failed {_times(count)} before: `{command}` -> {broke}."
 
 
@@ -167,7 +168,9 @@ def _where(path: str) -> str:
 
 
 _HAPPENED: dict[Signal, Callable[[Signature], str]] = {
-    Signal.FAILED_COMMAND: lambda sig: f"`{_command_of(sig)}` failed with {sig.key[-1]}",
+    Signal.FAILED_COMMAND: lambda sig: (
+        f"`{_command_of(sig)}` failed with {broke_in_words(sig.key[-1])}"
+    ),
     Signal.REWORKED_EDIT: lambda sig: f"your edits to `{sig.key[0]}` were redone",
     Signal.REVIEW_FLAG: lambda sig: f"a reviewer flagged `{sig.key[0]}`",
     Signal.CORRECTION: lambda sig: f"you were corrected{_where(sig.key[0])} on: {sig.key[1]}",

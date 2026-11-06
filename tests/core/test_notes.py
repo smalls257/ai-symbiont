@@ -65,3 +65,19 @@ def test_kinds_share_one_budget_and_can_be_chosen():
     only_recall = render(decision(FAILED, recall=recalled), kinds=[NoteKind.RECALL])
     assert only_recall == ["Earlier in this project you ran `make targeta`."]
     assert render(decision(FAILED), kinds=[]) == []
+
+
+def test_a_rendered_failure_note_never_shows_matching_tokens():
+    from record_builders import run
+    from symbiont.core.notes import happened
+    from symbiont.miner.failure_keys import what_broke
+    from symbiont.miner.painpoint import Signal, Signature
+
+    record = run("pytest tests/test_a.py", 1, "E   assert /tmp/x/y.txt == 42")
+    broke = what_broke(record, "pytest", inline=False)
+    assert "<n>" in broke and "<path>" in broke  # grouping form keeps the tokens
+    signature = Signature(Signal.FAILED_COMMAND, ("pytest", "tests/test_a.py", broke))
+    texts = [happened(signature), *render(decision(signature, count=3))]
+    assert texts[1:], "the repeat note was rendered"
+    for text in texts:
+        assert "<n>" not in text and "<path>" not in text

@@ -182,3 +182,20 @@ def test_windows_opens_the_page_with_explorer_detached_by_creation_flags(monkeyp
     assert command == ["explorer", "http://127.0.0.1:1/dashboard?project=a%20b"]
     assert options["creationflags"] == 0x08 | 0x200 | 0x01000000
     assert "start_new_session" not in options
+
+
+def test_the_end_line_is_one_line_and_never_reads_a_missing_report_as_nothing_held(capsys):
+    from symbiont.service.mine_command import _ended
+
+    done = {"state": "done", "lessons": 2}
+    assert _ended({**done, "held_back": {"no_fix_shown": 3}}, "1 claude-code sessions") == 0
+    assert _ended({**done, "held_back": {}}, "1 claude-code sessions") == 0
+    assert _ended(done, "1 claude-code sessions") == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert lines == [
+        "learned 2 lessons from 1 claude-code sessions; held back 3: 3 no fix shown; "
+        "they stay on this computer",
+        "learned 2 lessons from 1 claude-code sessions; they stay on this computer",
+        "learned 2 lessons from 1 claude-code sessions; the service did not report what it "
+        "held back; they stay on this computer",
+    ]

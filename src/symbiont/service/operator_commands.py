@@ -74,6 +74,18 @@ def _add_repo_parser(commands: Any, defaults: Defaults) -> None:
     )
 
 
+def _add_settings_parser(commands: Any) -> None:
+    """Register `settings`: show or switch the correction, dashboard and mining settings."""
+    setting = commands.add_parser("settings", help="show or switch correction-finding settings")
+    setting.add_argument("action", choices=["show", "set", "mining"])
+    setting.add_argument(
+        "name",
+        nargs="?",
+        help=f"claude_code, muse_code, cross_harness, {OPEN_DASHBOARD}; `mining`: min_sessions",
+    )
+    setting.add_argument("value", nargs="?", help="true or false; a whole number for min_sessions")
+
+
 def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
     _add_repo_parser(commands, defaults)
@@ -106,12 +118,7 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     words.add_argument("--areas", default="", help="comma-separated path prefixes it applies to")
     dashboard = commands.add_parser("dashboard", help="print this repository's dashboard address")
     dashboard.add_argument("--port", type=int, default=defaults.port)
-    setting = commands.add_parser("settings", help="show or switch correction-finding settings")
-    setting.add_argument("action", choices=["show", "set", "mining"])
-    setting.add_argument(
-        "name", nargs="?", help=f"claude_code, muse_code, cross_harness or {OPEN_DASHBOARD}"
-    )
-    setting.add_argument("value", nargs="?", help="true or false; a whole number for min_sessions")
+    _add_settings_parser(commands)
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
         parser.add_argument("--data-dir", type=Path, default=defaults.data_dir)

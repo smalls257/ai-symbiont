@@ -38,7 +38,7 @@ class MiningRules:
     held_out_tasks: frozenset[str]
     # references[path] = files that import or name `path`; {} when there is no checkout.
     references: Mapping[str, frozenset[str]] = field(default_factory=dict)
-    # Which groups become lessons; `rules_from_settings` builds it from the developer's settings.
+    # Which groups become lessons; `screen_rules_from` builds it from the developer's settings.
     screen: ScreenRules = field(default_factory=ScreenRules)
     # Directory names the repository goes by, for churn's repo-relative paths (the project's own
     # name is always added).
@@ -53,9 +53,9 @@ def screen_rules_from(data_dir: Path) -> ScreenRules:
 def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -> MiningOutcome:
     """Mine `records`, keep the lessons with a shown fix, count the rest, measure file churn."""
     sessions = sessions_of(records)
-    lessons = lessons_from(mine_history(sessions, rules.references), records)
-    screened = screen(lessons, rules.screen)
     names = rules.repo_names | {project}
+    lessons = lessons_from(mine_history(sessions, rules.references), records, names)
+    screened = screen(lessons, rules.screen)
     return MiningOutcome(screened.kept, screened.held, screened.struggle, churn(sessions, names))
 
 

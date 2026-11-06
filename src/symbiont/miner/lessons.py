@@ -72,7 +72,11 @@ class Coverage:
     total: int
 
 
-def lessons_from(pain_points: Iterable[PainPoint], records: Sequence[Record]) -> list[Lesson]:
+def lessons_from(
+    pain_points: Iterable[PainPoint],
+    records: Sequence[Record],
+    repo_names: frozenset[str] = frozenset(),
+) -> list[Lesson]:
     """Build one lesson per pain point; each fix is searched in its own session's records only.
 
     Raises LookupError naming the reference when a cited record is missing:
@@ -86,7 +90,7 @@ def lessons_from(pain_points: Iterable[PainPoint], records: Sequence[Record]) ->
     for pain in pain_points:
         cited = _cited(pain, by_ref)
         own = sessions[(cited[-1].harness, pain.session_id)]
-        lessons.append(_lesson(pain, cited, own))
+        lessons.append(_lesson(pain, cited, own, repo_names))
     return lessons
 
 
@@ -107,7 +111,9 @@ def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
     return [by_ref[ref] for ref in pain.record_refs]
 
 
-def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> Lesson:
+def _lesson(
+    pain: PainPoint, cited: list[Record], records: Sequence[Record], repo_names: frozenset[str]
+) -> Lesson:
     """One lesson: the pain point, its resolution and the quote it carries."""
     found = resolution_of(pain, cited, records)
     steps, alongside = _fix_parts(found)
@@ -124,7 +130,7 @@ def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> 
         private_datasets=_private_datasets(used),
         error_lines=key_error_lines(cited[0].raw),
         files=tuple(dict.fromkeys(name for r in used for name in r.files)),
-        fix=fix_kind(pain, steps),
+        fix=fix_kind(pain, steps, repo_names),
     )
 
 
