@@ -41,7 +41,8 @@ def test_labels_placed_by_uuid_other_lines_untouched(base, tmp_path):
 
 
 def write_tables(tmp_path, license_type="MIT"):
-    duckdb = pytest.importorskip("duckdb")
+    import duckdb
+
     con = duckdb.connect()
     con.execute(
         "CREATE TABLE s(session_id VARCHAR, repo_id VARCHAR, agent VARCHAR, "
@@ -103,3 +104,74 @@ def test_end_to_end_with_seams(base, tmp_path, monkeypatch, capsys):
     assert json.loads(out.read_text())["prompt_pushback"] == "correction"
     assert not stage.exists()
     assert "sessions 1, labels wanted 1, labels placed 1" in capsys.readouterr().out
+
+
+def test_missing_revision_exits_without_pinning(base, tmp_path):
+    with pytest.raises(SystemExit, match="fetch_swe_chat.py small first"):
+        base.main(["--dest", str(tmp_path), "--repos", "r"])
+    assert not (tmp_path / "REVISION").exists()
+
+
+def test_repo_without_claude_sessions_refused(base, tmp_path):
+    write_tables(tmp_path)
+    import duckdb
+
+    duckdb.execute(
+        f"COPY (SELECT * FROM '{tmp_path / 'sessions.parquet'}' WHERE agent='codex') "
+        f"TO '{tmp_path / 'sessions.parquet'}.new' (FORMAT PARQUET)"
+    )
+    (tmp_path / "sessions.parquet.new").replace(tmp_path / "sessions.parquet")
+    with pytest.raises(SystemExit, match="no Claude Code sessions"):
+        base.claude_sessions(tmp_path, ["r"])
+
+
+def test_failed_label_query_leaves_repos_empty(base, tmp_path, monkeypatch):
+    write_tables(tmp_path)
+    (tmp_path / "REVISION").write_text("rev1\n")
+
+    def fake_download(paths, local_dir, rev):
+        target = Path(local_dir) / paths[0]
+        target.parent.mkdir(parents=True)
+        target.write_bytes(b'{"type":"user","uuid":"a"}\n')
+
+    def broken(rev, repo_ids):
+        raise RuntimeError("query failed")
+
+    monkeypatch.setattr(base, "download_transcripts", fake_download)
+    monkeypatch.setattr(base, "fetch_labels", broken)
+    monkeypatch.setattr(base, "check_dest", lambda d: d)
+    with pytest.raises(RuntimeError):
+        base.main(["--dest", str(tmp_path), "--repos", "r"])
+    assert not (tmp_path / "repos").exists()
+
+
+def test_malformed_line_names_path_and_line_not_text(base, tmp_path):
+    path = tmp_path / "s.jsonl"
+    path.write_bytes(b'{"type":"user","uuid":"u"}\n{secret text\n')
+    with pytest.raises(SystemExit) as exc:
+        base.place_labels(path, {"u": "correction"})
+    assert "line 2" in str(exc.value) and str(path) in str(exc.value)
+    assert "secret" not in str(exc.value)
+
+
+def test_non_string_uuid_ignored(base, tmp_path):
+    path = tmp_path / "s.jsonl"
+    path.write_bytes(b'{"type":"user","uuid":["x"]}\n')
+    assert base.place_labels(path, {"x": "correction"}) == 0
+
+
+def test_label_query_selects_only_the_three_columns(base, monkeypatch):
+    seen = []
+
+    class Con:
+        def execute(self, sql, params):
+            seen.append(sql)
+            return self
+
+        def fetchall(self):
+            return []
+
+    monkeypatch.setattr(base, "remote_con", lambda rev: Con())
+    base.fetch_labels("rev1", ["o/r"])
+    select = seen[0].split(" FROM ")[0]
+    assert select == "SELECT session_id, source_entry_uuid, prompt_pushback"

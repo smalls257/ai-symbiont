@@ -10,7 +10,9 @@ Unknown or non-permissive repos exit loudly.
 """
 
 import argparse
+import collections
 import json
+import os
 import pathlib
 import shutil
 import sys
@@ -44,9 +46,9 @@ def claude_sessions(dest: pathlib.Path, names: list[str]) -> list[tuple[str, str
     unknown = sorted(set(names) - {r[0] for r in repos})
     if unknown:
         sys.exit(f"unknown repo name(s) in repositories.parquet: {', '.join(unknown)}")
-    for name, _repo_id, license in repos:
-        if license not in PERMISSIVE:
-            sys.exit(f"{name} is not permissively licensed ({license}); refusing to fetch it")
+    for name, _repo_id, license_type in repos:
+        if license_type not in PERMISSIVE:
+            sys.exit(f"{name} is not permissively licensed ({license_type}); refusing to fetch it")
     by_id = {r[1]: r[0] for r in repos}
     rows = duckdb.execute(
         f"SELECT repo_id, session_id, transcript_path FROM '{dest}/sessions.parquet' "
@@ -54,6 +56,9 @@ def claude_sessions(dest: pathlib.Path, names: list[str]) -> list[tuple[str, str
         "ORDER BY repo_id, session_id",
         list(by_id),
     ).fetchall()
+    empty = sorted(set(by_id.values()) - {by_id[r[0]] for r in rows})
+    if empty:
+        sys.exit(f"no Claude Code sessions for repo(s): {', '.join(empty)}")
     return [(by_id[rid], rid, sid, path) for rid, sid, path in rows]
 
 
@@ -95,7 +100,8 @@ def label_line(line: bytes, labels: dict[str, str]) -> bytes | None:
     if not line.startswith(b"{"):
         return None
     event = json.loads(line)
-    label = labels.get(event.get("uuid")) if event.get("type") == "user" else None
+    uuid = event.get("uuid")
+    label = labels.get(uuid) if event.get("type") == "user" and isinstance(uuid, str) else None
     if label is None:
         return None
     event["prompt_pushback"] = label
@@ -103,34 +109,58 @@ def label_line(line: bytes, labels: dict[str, str]) -> bytes | None:
 
 
 def place_labels(path: pathlib.Path, labels: dict[str, str]) -> int:
-    """Write labels onto user events by uuid; every other line stays byte-identical."""
+    """Write labels onto user events by uuid, atomically; other lines stay byte-identical.
+
+    A malformed line stops the run naming file and line number, never its text.
+    """
     lines = path.read_bytes().split(b"\n")
     placed = 0
-    for i, line in enumerate(lines):
-        labeled = label_line(line, labels)
+    for number, line in enumerate(lines, start=1):
+        try:
+            labeled = label_line(line, labels)
+        except json.JSONDecodeError:
+            sys.exit(f"malformed JSON in {path} at line {number}")
         if labeled is not None:
-            lines[i] = labeled
+            lines[number - 1] = labeled
             placed += 1
-    path.write_bytes(b"\n".join(lines))
+    if placed:
+        temp = path.with_name(path.name + ".tmp")
+        temp.write_bytes(b"\n".join(lines))
+        os.replace(temp, path)
     return placed
 
 
+def group_labels(rows: list[tuple[str, str, str]]) -> dict[str, dict[str, str]]:
+    grouped: dict[str, dict[str, str]] = collections.defaultdict(dict)
+    for sid, uuid, label in rows:
+        grouped[sid][uuid] = label
+    return grouped
+
+
+def label_staged(
+    stage: pathlib.Path, sessions: list[tuple[str, str, str, str]], rows: list[tuple[str, str, str]]
+) -> tuple[int, int]:
+    """(labels wanted, labels placed) over the staged transcripts of the fetched sessions."""
+    grouped = group_labels(rows)
+    placed = wanted = 0
+    for _name, _rid, sid, rel in sessions:
+        own = grouped.get(sid, {})
+        wanted += len(own)
+        placed += place_labels(stage / rel, own)
+    return wanted, placed
+
+
 def move_into_place(dest: pathlib.Path, sessions: list[tuple[str, str, str, str]]) -> None:
+    """Publish labeled transcripts; runs only after every label step has succeeded."""
     for name, _rid, sid, rel in sessions:
         target = dest / "repos" / name / f"{sid}.jsonl"
         target.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
         shutil.move(str(dest / STAGE / rel), target)
 
 
-def place_all(dest: pathlib.Path, sessions, rows) -> tuple[int, int]:
-    """(labels wanted, labels placed) over every fetched session."""
-    fetched = {s[2] for s in sessions}
-    wanted = {(sid, uuid): label for sid, uuid, label in rows if sid in fetched}
-    placed = 0
-    for name, _rid, sid, _rel in sessions:
-        own = {uuid: lab for (s, uuid), lab in wanted.items() if s == sid}
-        placed += place_labels(dest / "repos" / name / f"{sid}.jsonl", own)
-    return len(wanted), placed
+def require_small_fetch(dest: pathlib.Path) -> None:
+    if not (dest / "REVISION").exists():
+        sys.exit(f"{dest / 'REVISION'} is missing: run fetch_swe_chat.py small first")
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -141,12 +171,13 @@ def main(argv: list[str] | None = None) -> None:
     dest = check_dest(args.dest)
     stage = dest / STAGE
     try:
+        require_small_fetch(dest)
         rev = pinned_revision(dest, None)
         sessions = claude_sessions(dest, args.repos)
         download_transcripts([s[3] for s in sessions], stage, rev)
-        move_into_place(dest, sessions)
         rows = fetch_labels(rev, sorted({s[1] for s in sessions}))
-        wanted, placed = place_all(dest, sessions, rows)
+        wanted, placed = label_staged(stage, sessions, rows)
+        move_into_place(dest, sessions)
     except RateLimitExhaustedError as exc:
         sys.exit(str(exc))
     finally:
