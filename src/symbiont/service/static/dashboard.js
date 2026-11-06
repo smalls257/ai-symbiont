@@ -228,16 +228,30 @@ function resetBars(){document.querySelectorAll("#kbars i").forEach(i=>i.style.wi
 
 /* ===== stage 2: add context ===== */
 let sel=1,reveal=null,revealTimer=0;
+const PL=window.SymbiontPainList, PROJECT=DATA.repo.name;
+const collapsed=PL.readCollapsed(window.localStorage,PROJECT,console.warn);
+function setGroupOpen(kind,open){
+  if(collapsed.has(kind)===!open)return;
+  if(open)collapsed.delete(kind);else collapsed.add(kind);
+  PL.writeCollapsed(window.localStorage,PROJECT,collapsed,console.warn);
+}
+/* renderList replaces the list's markup, so focus returns to the heading or a keyboard user could not toggle twice or Tab on. */
+function toggleGroup(kind,open){
+  setGroupOpen(kind,open);renderList();
+  $("plist").querySelector('button.grp[data-kind="'+kind+'"]').focus();
+}
+function itemHtml(p){
+  const st=ST[p.id];
+  return '<button role="option" aria-selected="'+(p.id===sel)+'" data-id="'+p.id+'" style="--k:'+KINDS[p.kind].color+'"><i></i><span class="t'+(st.intent&&p.kind!=="tdd"?" q":"")+'">'+esc(short(p.title))+'</span><span class="c">'+(st.saved?"✓ ":"")+"×"+p.s.length+"</span></button>";
+}
 function renderList(){
-  let h="";
-  Object.keys(KINDS).forEach(k=>{
+  const groups=Object.keys(KINDS).map(k=>{
     const ps=P.filter(p=>p.kind===k).sort((a,b)=>cost(b)-cost(a));
-    h+='<h3>'+KINDS[k].label+(k==="tdd"?" (not mistakes)":"")+"</h3>";
-    ps.forEach(p=>{const st=ST[p.id];
-      h+='<button role="option" aria-selected="'+(p.id===sel)+'" data-id="'+p.id+'" style="--k:'+KINDS[k].color+'"><i></i><span class="t'+(st.intent&&k!=="tdd"?" q":"")+'">'+esc(short(p.title))+'</span><span class="c">'+(st.saved?"✓ ":"")+"×"+p.s.length+"</span></button>";});
+    return {kind:k,label:KINDS[k].label+(k==="tdd"?" (not mistakes)":""),count:ps.length,itemsHtml:ps.map(itemHtml).join("")};
   });
-  const L=$("plist"),keep=L.scrollTop;L.innerHTML=h;L.scrollTop=keep;
-  L.querySelectorAll("button").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
+  const L=$("plist"),keep=L.scrollTop;L.innerHTML=PL.groupsHtml(groups,collapsed,esc);L.scrollTop=keep;
+  L.querySelectorAll("button.grp").forEach(b=>b.onclick=()=>toggleGroup(b.dataset.kind,b.getAttribute("aria-expanded")!=="true"));
+  L.querySelectorAll("button[data-id]").forEach(b=>b.onclick=()=>{token++;setDemo(false);selectPain(+b.dataset.id);});
 }
 function sourceChip(p){
   if(!p.srcLabel&&!p.srcUrl)return "";
@@ -245,7 +259,9 @@ function sourceChip(p){
   return /^https:\/\//.test(p.srcUrl)?'<a class="chip src" href="'+esc(p.srcUrl)+'" target="_blank" rel="noopener noreferrer">'+label+"</a>":'<span class="chip src">'+label+"</span>";
 }
 function openPain(id){go(2);selectPain(id);const b=$("plist").querySelector('[data-id="'+id+'"]');if(b)b.scrollIntoView({block:"center"});}
-function selectPain(id){
+function selectPain(id){setGroupOpen(byId(id).kind,true);showPain(id);}
+/* showPain does not expand: page load shows the first pain point and must keep the sections the developer closed. */
+function showPain(id){
   sel=id;const p=byId(id),st=ST[id];
   renderList();
   $("edit").style.setProperty("--k",KINDS[p.kind].color);
@@ -363,7 +379,7 @@ document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e
 /* ===== boot ===== */
 $("repoName").textContent=DATA.repo.name;if(DATA.nightly){var nl=DATA.nightly,lc=nl.last_checked;$("nightly").textContent="Nightly training: "+nl.sentence+(lc?" \u00b7 last checked note: \u201c"+lc.note+"\u201d. "+lc.sentence:"");$("nightly").dataset.state=nl.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
 $("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
-renderDashboard();renderList();selectPain(1);
+renderDashboard();renderList();showPain(1);
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();
 go(1);
 window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};

@@ -4,7 +4,7 @@ The hook block shape is measured (accepted by `-c hooks=<json>`, day-1 G2); the 
 file path is not measured, so it is named here once.
 """
 
-from symbiont.delivery.hooks import HookEvent, NoteStyle
+from symbiont.delivery.hook_vocab import HookEvent, NoteStyle
 from symbiont.delivery.install.hook_config import hooks_block, merge_json
 from symbiont.delivery.install.transaction import HarnessInstall
 

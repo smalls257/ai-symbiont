@@ -9,6 +9,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from symbiont.readers.harnesses import labels_and
+
 PRIORITIES = ["low", "normal", "high"]
 
 
@@ -66,7 +68,7 @@ OPERATOR_TOOLS = [
     ),
     OperatorTool(
         "symbiont_mine",
-        "Learn from this repository's past Claude Code and Muse Code sessions (needs "
+        f"Learn from this repository's past {labels_and()} sessions (needs "
         "symbiont_allow first). Opens the dashboard unless the developer turned that off, and "
         "returns its address with a progress summary; a long job keeps running in the service. "
         "When setting a repository up, next find the developer's past corrections "

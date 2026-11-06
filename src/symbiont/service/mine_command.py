@@ -9,21 +9,17 @@ import argparse
 import os
 import sys
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from symbiont.readers.claude_code import session_logs
-from symbiont.readers.muse_code import muse_store_root
-from symbiont.readers.muse_code import session_logs as muse_session_logs
+from symbiont.readers.harnesses import HARNESSES, Harness, in_reading_order, labels_or
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
 from symbiont.store.held_back import held_back_sentence, held_by_reason
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import read_dashboard_settings
 
-CLAUDE_CODE_READER = "claude-code"
-MUSE_CODE_READER = "muse-code"
 POLL_S = 0.5
 OpenPage = Callable[[str], bool]
 
@@ -53,24 +49,30 @@ def mining_url(project: str, port: int) -> str:
     return dashboard_url(project, port) + "&mining=1"
 
 
-def mine_past_sessions(args: argparse.Namespace, registry: RepoRegistry, client: MineClient) -> int:
-    """Mine this repository's Claude Code and Muse Code sessions; refuses until it is allowed."""
+def mine_past_sessions(
+    args: argparse.Namespace,
+    registry: RepoRegistry,
+    client: MineClient,
+    known: Sequence[Harness] = HARNESSES,
+) -> int:
+    """Mine this repository's sessions in every known harness; refuses until it is allowed."""
     if registry.stance(args.project) is not RepoStance.GIVEN:
         sys.stderr.write(
             f"symbiont repo mine: run `symbiont repo allow` for {args.project} first\n"
         )
         return 1
+    home = Path.home()
     found = {
-        CLAUDE_CODE_READER: session_logs(args.repo_dir, Path.home()),
-        MUSE_CODE_READER: muse_session_logs(
-            args.repo_dir, muse_store_root(os.environ, Path.home())
-        ),
+        entry.reader: entry.find_sessions(args.repo_dir, os.environ, home)
+        for entry in in_reading_order(known)
     }
     if not any(found.values()):
+        places = " and ".join(
+            str(entry.sessions_live_in(os.environ, home)) for entry in in_reading_order(known)
+        )
         _say(
-            f"no Claude Code or Muse Code sessions found for {args.repo_dir.resolve()}; "
-            f"looked in {Path.home() / '.claude' / 'projects'} and "
-            f"{muse_store_root(os.environ, Path.home()) / 'muse' / 'sessions'}"
+            f"no {labels_or(known)} sessions found for {args.repo_dir.resolve()}; "
+            f"looked in {places}"
         )
         return 0
     sources = [[reader, str(log)] for reader, logs in found.items() for log in logs]

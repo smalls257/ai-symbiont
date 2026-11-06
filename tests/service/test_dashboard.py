@@ -150,6 +150,7 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
     assert "501" not in html and "measured results" not in html
     assert "Every note it showed" not in html and "mockup" not in html.lower()
     assert get(f"{base}/dashboard/dashboard.js")[2].startswith("text/javascript")
+    assert get(f"{base}/dashboard/painlist.js")[2].startswith("text/javascript")
     assert get(f"{base}/dashboard/dashboard.css")[0] == 200
     assert "http://" not in get(f"{base}/dashboard/dashboard.js")[1].replace("http://127", "")
 
@@ -252,3 +253,22 @@ def test_the_snapshot_shows_struggle_churn_and_held_back_counts_but_no_lessons_f
         {"file": "a.py", "edits": 5, "sessions": 2},
         {"file": "b.py", "edits": 1, "sessions": 1},
     ]
+
+
+def _css_rule(css: str, selector: str) -> str:
+    match = re.search(r"(?m)^" + re.escape(selector) + r"\{([^}]*)\}", css)
+    assert match, f"no {selector} rule in dashboard.css"
+    return match.group(1)
+
+
+def test_the_add_context_panels_scroll_instead_of_clipping():
+    """Paper Tiger: a panel that shows a candidate but clips most of a long quote."""
+    from pathlib import Path
+
+    css = (Path(server.__file__).parent / "static" / "dashboard.css").read_text()
+    edit_rule = _css_rule(css, ".edit")
+    agent_rule = _css_rule(css, ".agent")
+    for rule in (edit_rule, agent_rule):
+        assert "overflow-y:auto" in rule
+        assert "min-height:0" in rule
+    assert "overflow:hidden" not in edit_rule

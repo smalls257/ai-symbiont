@@ -21,6 +21,7 @@ from symbiont.miner.lesson_context import (
 )
 from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
+from symbiont.readers.harnesses import HARNESSES, harness_for_reader
 from symbiont.service.pr_learning import (
     MAX_LESSONS,
     UnsafeSourceUrlError,
@@ -33,12 +34,11 @@ from symbiont.service.review_candidate import review_candidate
 from symbiont.store.local import Store
 from symbiont.store.mining import read_source
 from symbiont.store.repos import RepoRegistry, RepoStance
-from symbiont.store.settings import HARNESSES, CorrectionSettings
+from symbiont.store.settings import CorrectionSettings
 
 BATCH = 40
 REVIEW_BATCH = 20
 MAX_ITEMS = 100
-READER_HARNESS = {"claude-code": "claude_code", "muse-code": "muse_code"}
 MAX_TEXT = 600
 
 
@@ -101,8 +101,9 @@ class CurationRoutes:
         """A batch of user turns that may be corrections, from histories this session may read."""
         project = self._allowed_project(request, {"project", "running_in"})
         running = request.get("running_in")
-        if running not in HARNESSES:
-            raise BadRequestError("running_in must be claude_code or muse_code")
+        if running not in {entry.id for entry in HARNESSES}:
+            ids = " or ".join(entry.id for entry in HARNESSES)
+            raise BadRequestError(f"running_in must be {ids}")
         allowed, blocked = self._readable(project, running)
         decided = self._store.curation.decided(project)
         found = [
@@ -220,7 +221,7 @@ class CurationRoutes:
         """The project's sources this session may read, and why the others are not shown."""
         settings, allowed, blocked = self._settings(), [], []
         for source in self._store.sources(project):
-            history = READER_HARNESS.get(source.reader)
+            history = harness_for_reader(source.reader)
             if history is None:
                 continue
             if settings.allows(history, running_in):

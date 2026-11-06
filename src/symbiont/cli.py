@@ -10,9 +10,8 @@ from typing import Any
 
 from symbiont.core.warner import WarnerWeightsError
 from symbiont.delivery.hook_main import add_hook_arguments, forward_hook, read_hook_input
+from symbiont.delivery.hook_profiles import PROFILES
 from symbiont.delivery.hooks import NoteStyle, offline_note
-from symbiont.delivery.install.claude_code import claude_code_install
-from symbiont.delivery.install.muse_code import muse_code_install
 from symbiont.delivery.install.transaction import (
     HarnessInstall,
     InstallError,
@@ -30,6 +29,7 @@ from symbiont.delivery.recall import (
     call_service,
     recall_answer,
 )
+from symbiont.delivery.setup_command import add_setup_arguments, run_setup
 from symbiont.delivery.stdio import use_utf8_lf_stdio
 from symbiont.readers import READERS
 from symbiont.records.privacy import OwnHistoryConsent
@@ -60,7 +60,7 @@ from symbiont.store.local import Source, Store
 from symbiont.store.mining import MiningRules, coverage_lines, remine, screen_rules_from
 from symbiont.store.repos import RepoRegistry
 
-INSTALLERS = {"muse_code": muse_code_install, "claude_code": claude_code_install}
+INSTALLERS = {harness_id: entry.install for harness_id, entry in PROFILES.items()}
 HARNESSES = sorted(INSTALLERS)
 
 
@@ -84,6 +84,8 @@ def main(
         return _hook(args)
     if args.command in ("install", "uninstall"):
         return _installation(args)
+    if args.command == "setup":
+        return run_setup(args)
     if args.command == "mine":
         return _mine(args)
     if args.command == "consent":
@@ -123,9 +125,18 @@ def _parser() -> argparse.ArgumentParser:
     mcp.add_argument("--project", default=Path.cwd().name, help="defaults to this directory's name")
     mcp.add_argument("--port", type=int, default=SERVICE_PORT)
     _add_hook_commands(commands)
+    add_setup_arguments(
+        commands.add_parser("setup", help="register the plugin in the coding harnesses found")
+    )
     add_repo_commands(commands, Defaults(DEFAULT_DATA_DIR, SERVICE_PORT))
     _add_mine_command(commands)
     add_nightly_command(commands, DEFAULT_DATA_DIR)
+    _add_consent_command(commands)
+    return parser
+
+
+def _add_consent_command(commands: Any) -> None:
+    """Register `consent`: give, withdraw or show the own-history consent."""
     consent = commands.add_parser(
         "consent",
         help="whether lessons from your OWN sessions may reach Spark (default: withheld); "
@@ -133,7 +144,6 @@ def _parser() -> argparse.ArgumentParser:
     )
     consent.add_argument("choice", choices=["give", "withdraw", "show"])
     consent.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
-    return parser
 
 
 def _add_mine_command(commands: Any) -> None:

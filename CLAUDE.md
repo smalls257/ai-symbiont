@@ -53,7 +53,7 @@ Software decays. Six Principles push back against ten named decays (Violations).
 | Violation | Tell | Where it bites here |
 |---|---|---|
 | **Paper Tiger** | Meets the spec, fails the need; green CI on a feature nobody can use | A fly learner that ties plain counters. The counters row prints beside the fly row; the dashboard exporter refuses a fly lane without one. |
-| **Distributed Monolith** | A small change needs edits in N services; shared mutable state across instances | The record schema and the local store are the only contracts. Hooks and MCP are thin clients of one service. A new harness is one new reader file. |
+| **Distributed Monolith** | A small change needs edits in N services; shared mutable state across instances | The record schema and the local store are the only contracts. Hooks and MCP are thin clients of one service. A new harness is one reader file, one `Harness` entry (`readers/harnesses.py`) and one `HookProfile` entry (`delivery/hook_profiles.py`). |
 | **Leaky Narrative** | Callers pass flags, modes, SQL fragments or options dicts they had to read source to fill | `recall(question)` has one string. Notes read as sentences, not scores. |
 | **Infected Core** | Unit tests need a database, a clock or a network | Pure core with state passed in; the store and service wrap it. Core passes the Airplane Test. |
 | **Black Box** | "It just stopped working" with no signal; no per-stage timing | Every service call writes an event to the event log; the dashboard replays it. First move on a mystery is to restore the sensor, not to guess. |

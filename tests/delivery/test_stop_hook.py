@@ -13,8 +13,6 @@ import pytest
 
 from symbiont import cli
 from symbiont.delivery.hooks import (
-    CLAUDE_CODE,
-    MUSE_CODE,
     HookInputError,
     HookSettings,
     NoteStyle,
@@ -27,6 +25,7 @@ from symbiont.service.reflection import REFLECTION_QUESTION
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.repos import RepoRegistry, RepoStance
 
+CLAUDE_CODE, MUSE_CODE = "claude_code", "muse_code"
 STOP_INPUT = {"session_id": "s1", "cwd": "/work/demo", "stop_hook_active": False}
 
 
