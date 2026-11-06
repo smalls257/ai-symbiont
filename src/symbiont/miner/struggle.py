@@ -5,6 +5,8 @@ functions over records, not from the page; and "turns lost" is a measured span o
 failure to the next pass of the same program), not a guess from the length of a fix.
 """
 
+import calendar
+import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
@@ -58,6 +60,9 @@ class SessionFacts:
     outcomes: Mapping[str, int]
     # Three or more failures within ten steps: the session had a bad stretch.
     struggled: bool
+    # ISO day (YYYY-MM-DD) of the session's first timestamped record; None when the harness
+    # recorded no times (OpenHands), so the dashboard says "date unknown" instead of guessing.
+    started: str | None = None
 
 
 def turns_lost(session: Sequence[Record]) -> int:
@@ -155,4 +160,21 @@ def _facts(
         turns_lost=turns_lost(session),
         outcomes=dict(outcomes or {}),
         struggled=has_failure_burst(session),
+        started=started_day(session),
     )
+
+
+_DAY = re.compile(r"(\d{4})-(\d{2})-(\d{2})")
+
+
+def started_day(session: Sequence[Record]) -> str | None:
+    """The ISO day of the first record whose `ts` starts with a real calendar date, else None."""
+    for record in session:
+        found = _DAY.match(record.ts or "")
+        if found and _is_calendar_day(*(int(part) for part in found.groups())):
+            return found.group(0)
+    return None
+
+
+def _is_calendar_day(year: int, month: int, day: int) -> bool:
+    return 1 <= month <= 12 and 1 <= day <= calendar.monthrange(year, month)[1]

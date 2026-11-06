@@ -134,10 +134,10 @@ function renderThemes() {
 const ramp = v => v === 0 ? "rgba(236,240,248,.05)" : ["#4a3470", "#7a4a6a", "#a95c5a", "#d9734a", "#ff8c40"][[0.05, 0.12, 0.2, 0.35].filter(c => v >= c).length];
 function fileRows(scope) {
   const perMonth = S.months.map(() => 0);
-  scope.forEach(i => perMonth[S.monthOf[i]]++);
+  scope.forEach(i => { if (S.monthOf[i] !== null) perMonth[S.monthOf[i]]++; });
   const rows = S.files.map(f => {
     const mine = f.sessions.filter(i => scope.has(i)), cells = S.months.map(() => 0);
-    mine.forEach(i => cells[S.monthOf[i]]++);
+    mine.forEach(i => { if (S.monthOf[i] !== null) cells[S.monthOf[i]]++; });
     return {file: f.file, n: mine.length, cells: cells.map((c, m) => ({c, share: perMonth[m] ? c / perMonth[m] : 0}))};
   }).filter(r => r.n > 0);
   return rows.sort((a, b) => b.n - a.n);

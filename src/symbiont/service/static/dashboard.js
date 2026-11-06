@@ -16,8 +16,11 @@ if(DATA.mining){window.SymbiontMining.run(DATA.mining);return;}
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const N=DATA.sessions.length;
 const dayOf=i=>DATA.sessions[i].day;
-const FIRST_DATE=N?DATA.sessions[0].date:DATA.repo.today;
-const dateOf=d=>{const x=new Date(FIRST_DATE+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+d);return MONTHS[x.getUTCMonth()]+" "+x.getUTCDate();};
+/* A session without a date has day and date null: say so, never invent a day. */
+const DATED=DATA.sessions.filter(s=>s.date!==null);
+const FIRST_DATE=DATED.length?DATED[0].date:DATA.repo.today;
+const UNKNOWN="date unknown";
+const dateOf=d=>{if(d===null||d===undefined)return UNKNOWN;const x=new Date(FIRST_DATE+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+d);return MONTHS[x.getUTCMonth()]+" "+x.getUTCDate();};
 const WINDOW_START=DATA.replay.windowStartDay;
 const LAST_DAY=Math.round((new Date(DATA.repo.today)-new Date(FIRST_DATE))/864e5);
 const isMistake=p=>p.kind!=="tdd";
@@ -27,6 +30,12 @@ const detectAt=p=>p.s[Math.min(1,p.s.length-1)];
 const LESSON=Object.fromEntries(DATA.lessons.map(l=>[l.id,l]));
 /* internal view of a pain point: the schema joined with its lesson */
 const P=DATA.painPoints.map(d=>{const l=LESSON[d.lessonId];return {id:d.id,kind:d.kind,title:d.title,file:d.file,cmd:d.command||"",s:d.sessions,turns:d.turnsPerOccurrence,min:d.minutesPerOccurrence,what:d.failure,fix:d.fix||"",note:l.note,ex:l.exampleContext,srcLabel:l.sourceLabel||"",srcUrl:l.sourceUrl||"",lesson:l.confirmed,lessonId:l.id,conflict:l.reviewConflict||null,summary:d.summary||"",ruleSummary:d.ruleSummary||""};});
+/* The last three known dates of a pain point's sessions; "date unknown" appears once, not per session. */
+function occurrenceDates(p){
+  const known=p.s.filter(i=>dayOf(i)!==null),shown=known.slice(-3).map(i=>dateOf(dayOf(i)));
+  if(known.length<p.s.length)shown.push(UNKNOWN);
+  return shown.join(", ")+(known.length>3?" and earlier":"");
+}
 const byId=id=>P.find(p=>p.id===id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
 const $=id=>document.getElementById(id);
@@ -228,7 +237,7 @@ function showPain(id){
   $("edit").style.setProperty("--k",KINDS[p.kind].color);
   $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span>'+sourceChip(p)+'<span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
    +"<h2>"+esc(p.title)+"</h2>"
-   +'<div class="occ" aria-label="Sessions where it happened">'+p.s.map(i=>'<i style="background:'+KINDS[p.kind].color+'" data-tip="'+dateOf(dayOf(i))+'"></i>').join("")+'<span class="mu">'+p.s.map(i=>dateOf(dayOf(i))).slice(-3).join(", ")+(p.s.length>3?" and earlier":"")+"</span></div>"+window.SymbiontSummary.summaryHtml(p,esc)
+   +'<div class="occ" aria-label="Sessions where it happened">'+p.s.map(i=>'<i style="background:'+KINDS[p.kind].color+'" data-tip="'+dateOf(dayOf(i))+'"></i>').join("")+'<span class="mu">'+occurrenceDates(p)+"</span></div>"+window.SymbiontSummary.summaryHtml(p,esc)
    +"<p><span class=\"mu\">What happened.</span> "+fmt(p.what)+"</p>"+(p.fix?"<p><b>How it was fixed.</b> "+fmt(p.fix)+"</p>":"")
    +(p.conflict&&!st.intent&&!st.kept?'<div class="conflict" id="conflict" role="note">The reviewer thinks this is '+esc(p.conflict)+', but you added your own words, so it stays active. <button id="keepit">Keep</button> <button id="dismissit">Dismiss</button></div>':"")
    +'<div><label class="h" for="ctx">Add context in your own words</label><textarea id="ctx" placeholder="Tell the agent what it cannot see in the code." aria-label="Context for the agent">'+esc(st.ctx)+'</textarea>'
@@ -274,7 +283,7 @@ const RX=d=>40+(d-WINDOW_START)/SPAN_DAYS*1720;
 let replayRunning=false;
 function drawStrip(upto){
   let s='<line x1="40" x2="1760" y1="130" y2="130" stroke="rgba(236,240,248,.2)" stroke-width="2"/>';
-  for(let d=WINDOW_START;d<=LAST_DAY;d+=5)s+='<text x="'+RX(d)+'" y="172" text-anchor="middle" font-size="17" fill="#8c94ac">'+dateOf(d)+"</text>";
+  for(let d=WINDOW_START;DATED.length&&d<=LAST_DAY;d+=5)s+='<text x="'+RX(d)+'" y="172" text-anchor="middle" font-size="17" fill="#8c94ac">'+dateOf(d)+"</text>";
   const slot={};
   EVENTS.forEach((e,i)=>{slot[e.day]=(slot[e.day]||0);const y=112-slot[e.day]*26;slot[e.day]++;
     if(i<upto)s+='<circle cx="'+RX(e.day)+'" cy="'+y+'" r="11" fill="#b28cff" stroke="#16112a" stroke-width="2" data-tip="'+dateOf(e.day)+": "+esc(e.p.title)+'"/>';});
@@ -340,7 +349,8 @@ document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e
 
 /* ===== boot ===== */
 $("repoName").textContent=DATA.repo.name;if(DATA.nightly){var nl=DATA.nightly,lc=nl.last_checked;$("nightly").textContent="Nightly training: "+nl.sentence+(lc?" \u00b7 last checked note: \u201c"+lc.note+"\u201d. "+lc.sentence:"");$("nightly").title=$("nightly").textContent;$("nightly").dataset.state=nl.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
-$("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
+$("rtitle").textContent=DATED.length?dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before":"No session has a date, so there is no timeline to replay";
+if(DATA.replay.undated>0){const n=DATA.replay.undated;$("estnote").textContent+=" "+n+(n===1?" session without a date is":" sessions without a date are")+" not shown.";}
 if(P.length){renderList();showPain(1);}
 else{ignOpen=true;renderEmptyList();$("edit").innerHTML='<h2>No lessons yet</h2><p class="mu">'+esc(DATA.noLessons)+' There is nothing to add context to yet. The Pain points stage shows where the agent struggled and what was held back.</p>';}
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();
