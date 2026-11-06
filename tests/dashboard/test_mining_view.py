@@ -61,6 +61,12 @@ def test_a_done_job_with_no_lessons_says_so_and_does_not_reload_into_nothing(vie
     assert "found no pain points" in empty["headline"]
 
 
+def test_a_done_job_with_no_lessons_but_session_facts_offers_the_stage(views):
+    shown = views["doneStruggleOnly"]
+
+    assert shown["next"] == "summary" and "struggle to see" in shown["lede"]
+
+
 def test_a_failed_job_shows_its_reason_and_stops(views):
     failed = views["failed"]
 

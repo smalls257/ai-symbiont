@@ -19,9 +19,11 @@ from symbiont.miner.secrets import scrub
 from symbiont.records.schema import Kind, Record
 from symbiont.records.session_tags import BRANCH_PREFIX, TITLE_PREFIX, tag_values
 
-# A name part must be seen this often in codebase edits to count as the codebase's own word.
-# Tuned once on sqlglot OpenHands traces (Step 6 of the plan re-measures it).
+# Sightings of a name part in codebase edits to call it the codebase's own word: 5 on large
+# histories (tuned once on sqlglot traces), scaled down on small ones; Step 6 re-measures it.
 VOCABULARY_MIN_SEEN = 5
+VOCABULARY_FLOOR = 2
+SESSIONS_PER_SIGHTING = 10  # one sighting per this many sessions, between the floor and 5
 MIN_WORD_CHARS = 4
 TASK_TEXT_CHARS = 1500
 LABEL_CHARS = 90
@@ -61,7 +63,14 @@ def codebase_vocabulary(sessions: Sequence[Sequence[Record]], codebase: Codebase
     for session in sessions:
         for record in session:
             seen.update(_words_edited(record, codebase))
-    return frozenset(word for word, count in seen.items() if count >= VOCABULARY_MIN_SEEN)
+    needed = vocabulary_min_seen(len(sessions))
+    return frozenset(word for word, count in seen.items() if count >= needed)
+
+
+def vocabulary_min_seen(session_count: int) -> int:
+    """Sightings a name part needs: 5 on a large history, down to 2 on a very small one."""
+    scaled = session_count // SESSIONS_PER_SIGHTING
+    return max(VOCABULARY_FLOOR, min(VOCABULARY_MIN_SEEN, scaled))
 
 
 def _words_edited(record: Record, codebase: Codebase) -> list[str]:

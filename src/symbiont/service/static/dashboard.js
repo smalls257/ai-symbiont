@@ -16,7 +16,7 @@ if(DATA.mining){window.SymbiontMining.run(DATA.mining);return;}
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const N=DATA.sessions.length;
 const dayOf=i=>DATA.sessions[i].day;
-const dateOf=d=>{const x=new Date(DATA.sessions[0].date+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+d);return MONTHS[x.getUTCMonth()]+" "+x.getUTCDate();};
+const dateOf=d=>{if(!N)return "";const x=new Date(DATA.sessions[0].date+"T00:00:00Z");x.setUTCDate(x.getUTCDate()+d);return MONTHS[x.getUTCMonth()]+" "+x.getUTCDate();};
 const WINDOW_START=DATA.replay.windowStartDay;
 const LAST_DAY=Math.round((new Date(DATA.repo.today)-new Date(DATA.sessions[0].date))/864e5);
 const isMistake=p=>p.kind!=="tdd";
@@ -164,7 +164,7 @@ $("startBtn").onclick=async()=>{
 
 /* ===== stage 1: the Pain points stage is struggle.js; a lesson there opens its pain point on stage 3 ===== */
 const short=t=>t.length>46?t.slice(0,44)+"…":t;
-document.addEventListener("symbiont:open-lesson",e=>{const p=P.find(x=>x.lessonId===e.detail.lessonId);if(p){token++;setDemo(false);openPain(p.id);}});
+document.addEventListener("symbiont:open-lesson",e=>{const p=P.find(x=>x.lessonId===e.detail.lessonId);if(p){token++;setDemo(false);openPain(p.id);}else console.warn("symbiont: no pain point for lesson "+e.detail.lessonId);});
 
 /* ===== stage 2: add context ===== */
 let sel=1,reveal=null,revealTimer=0;
@@ -332,7 +332,8 @@ document.addEventListener("keydown",e=>{if(e.key==="d"&&!/TEXTAREA|INPUT/.test(e
 /* ===== boot ===== */
 $("repoName").textContent=DATA.repo.name;if(DATA.nightly){var nl=DATA.nightly,lc=nl.last_checked;$("nightly").textContent="Nightly training: "+nl.sentence+(lc?" \u00b7 last checked note: \u201c"+lc.note+"\u201d. "+lc.sentence:"");$("nightly").dataset.state=nl.state}$("ofN").textContent="of "+N;$("demotag").style.display=DEMO?"":"none";$("playdemo").style.display=DEMO?"":"none";
 $("rtitle").textContent=dateOf(WINDOW_START)+" to "+dateOf(LAST_DAY)+": each dot is a repeat the note would have come before";
-renderList();showPain(1);
+if(P.length){renderList();showPain(1);}
+else{$("plist").textContent="";$("edit").innerHTML='<h2>No lessons yet</h2><p class="mu">Nothing has repeated enough to learn from, so there is nothing to add context to. The Pain points stage still shows where the agent struggled.</p>';}
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();
 go(1);
 window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};

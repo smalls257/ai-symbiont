@@ -78,7 +78,7 @@ function renderKpis(s, lessons) {
   $("kpis").innerHTML = [
     [fmt(s.turns), "agent turns lost", scoped ? against(fmt(ALLS.turns), "") : '<span class="of">from a failure to the next pass of the same program</span>', "var(--rd)"],
     ["~" + fmt(hrs) + " h", "of working time lost, estimated", scoped ? against("~" + fmt(allHrs), " h") : '<span class="of">a hypothesis: ' + MINUTES_PER_TURN + " min per turn, not measured</span>", "var(--or)"],
-    [fmt(lessons.length), "lessons ready", scoped ? against(fmt(S.lessons.length), "") : '<span class="of">a known fix, seen in 2+ sessions</span>', "var(--vi)"],
+    [fmt(lessons.length), "lessons ready", scoped ? against(fmt(S.lessons.length), "") : '<span class="of">a known fix, seen in ' + S.minSessions + '+ sessions</span>', "var(--vi)"],
     [pct(s.fixed + s.corrected, s.failures) + "%", "of failures ended in a known fix", '<span class="of">' + fmt(s.fixed) + " code edits, " + fmt(s.corrected) + " corrected commands" + (scoped ? " (all: " + pct(ALLS.fixed + ALLS.corrected, ALLS.failures) + "%)" : "") + "</span>", "var(--gr)"],
   ].map(k => '<div class="panel kpi"><div class="num" style="color:' + k[3] + '">' + k[0] + '</div><div class="lbl">' + k[1] + k[2] + "</div></div>").join("");
 }
@@ -167,7 +167,7 @@ function scopedLessons(scope) {
 }
 function renderLessons(list) {
   const scoped = sel.theme || sel.pattern;
-  $("lesSub").textContent = scoped ? "Lessons whose trouble shows up in this scope, most sessions first" : "A known fix (a code edit or a corrected command) that came back in 2+ sessions";
+  $("lesSub").textContent = scoped ? "Lessons whose trouble shows up in this scope, most sessions first" : "A known fix (a code edit or a corrected command) that came back in " + S.minSessions + "+ sessions";
   $("les").innerHTML = list.length ? list.slice(0, 8).map(({l, n}) => '<li><button data-id="' + esc(l.id) + '"' + tipAttrs([l.title, l.occurrences + " times in " + l.sessions.length + " sessions overall", "click to add your own context"]) + '><span class="t">' + esc(l.title) + '</span><span class="big">' + n + "<small>" + (scoped ? "of " + l.sessions.length + " sessions" : "sessions") + "</small></span>" + (l.fix ? '<span class="why">' + esc(l.fix) + "</span>" : "") + "</button></li>").join("")
     : '<li class="empty">No lesson-grade trouble in this scope: the struggle here never ended in a known fix.</li>';
   $("les").querySelectorAll("button").forEach(b => b.onclick = () => document.dispatchEvent(new CustomEvent("symbiont:open-lesson", {detail: {lessonId: b.dataset.id}})));
@@ -178,16 +178,6 @@ function renderLessons(list) {
 const LANE_Y = {you: 0.2, edit: 0.5, scratch: 0.5, failed: 0.8, passed: 0.8};
 const LANE_WORDS = {you: "you wrote", edit: "edit in the codebase", scratch: "edit to a scratch file", failed: "command failed", passed: "command passed"};
 const LANE_COLOR = {you: "#5cc8ff", edit: "#ff8c40", failed: "#f45454", passed: "#8c94ac"};
-function bursts(steps) {
-  const fails = steps.filter(s => s[1] === "failed").map(s => s[0]), out = [];
-  fails.forEach(s => {
-    const w = fails.filter(f => f >= s && f < s + 10);
-    if (w.length < 3) return;
-    const last = out[out.length - 1];
-    if (last && s <= last[1]) last[1] = Math.max(last[1], w[w.length - 1]); else out.push([s, w[w.length - 1]]);
-  });
-  return out;
-}
 function stepMark(s, x, y, at) {
   const [step, lane, label] = s, ring = at ? ' stroke="#ecf0f8" stroke-width="3"' : ' stroke="#16112a" stroke-width="2"';
   const tip = ' data-tip="' + esc(esc(label)) + "<br>" + LANE_WORDS[lane] + ', step ' + step + '"';
@@ -200,10 +190,10 @@ function renderStrip(scope) {
   const st = found[1], steps = st.steps;
   if (drawn !== st) { drawn = st; cursor = 0; }
   const last = Math.max(1, steps[steps.length - 1][0]);
-  $("stripSub").textContent = (sel.theme || sel.pattern ? "The densest struggle in this scope" : "The densest struggle overall") + " (" + st.task + "), " + steps.length + " steps. Shaded: three or more failures within ten steps.";
+  $("stripSub").textContent = (sel.theme || sel.pattern ? "The densest struggle in this scope" : "The densest struggle overall") + " (" + st.task + "), " + (st.total > steps.length ? "first " + steps.length + " of " + st.total : steps.length) + " steps. Shaded: " + S.burstFailures + " or more failures within " + S.burstSteps + " steps.";
   const b = svg.getBoundingClientRect(), W = Math.round(b.width) || 1600, H = Math.round(b.height) || 200, X0 = 150, X1 = W - 20;
   const xs = n => X0 + (n / last) * (X1 - X0), ys = lane => H * LANE_Y[lane];
-  let h = bursts(steps).map(([a, z]) => '<rect x="' + (xs(a) - 8) + '" y="4" width="' + (xs(z) - xs(a) + 16) + '" height="' + (H - 26) + '" rx="8" fill="rgba(244,84,84,.12)"/>').join("");
+  let h = st.bursts.map(([a, z]) => '<rect x="' + (xs(a) - 8) + '" y="4" width="' + (xs(z) - xs(a) + 16) + '" height="' + (H - 26) + '" rx="8" fill="rgba(244,84,84,.12)"/>').join("");
   [["you", "you"], ["edits", "edit"], ["commands", "failed"]].forEach(([name, lane]) => { h += '<text x="' + (X0 - 16) + '" y="' + (ys(lane) + 5) + '" text-anchor="end" font-size="15" fill="#8c94ac">' + name + '</text><line x1="' + X0 + '" x2="' + X1 + '" y1="' + ys(lane) + '" y2="' + ys(lane) + '" stroke="rgba(236,240,248,.1)" stroke-width="2"/>'; });
   h += steps.map((s, k) => stepMark(s, xs(s[0]), ys(s[1]), k === cursor)).join("");
   [["failed", "#f45454"], ["passed", "#8c94ac"], ["edit in codebase", "#ff8c40"], ["you", "#5cc8ff"]].forEach((l, i) => { h += '<circle cx="' + (X0 + i * 150) + '" cy="' + (H - 6) + '" r="5" fill="' + l[1] + '"/><text x="' + (X0 + i * 150 + 10) + '" y="' + (H - 1) + '" font-size="13" fill="#8c94ac">' + l[0] + "</text>"; });

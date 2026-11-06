@@ -14,13 +14,19 @@ from typing import Any
 from symbiont.core.notes import happened, resolution_clause
 from symbiont.miner.churn import FileChurn
 from symbiont.miner.lessons import Lesson
-from symbiont.miner.painpoint import Signature
 from symbiont.miner.patterns import HELP, NOTHING_TO_TEACH, StrugglePattern
 from symbiont.miner.representatives import min_sessions_shown, theme_words
 from symbiont.miner.screen import HoldReason
 from symbiont.miner.secrets import scrub
-from symbiont.miner.strips import SessionStrip
-from symbiont.miner.struggle import MINUTES_PER_TURN, Outcome, SessionFacts
+from symbiont.miner.strips import Lane, SessionStrip
+from symbiont.miner.struggle import (
+    BURST_FAILURES,
+    BURST_STEPS,
+    MINUTES_PER_TURN,
+    Outcome,
+    SessionFacts,
+    burst_spans,
+)
 from symbiont.miner.trained import lesson_id
 from symbiont.store.held_back import held_back_sentence
 
@@ -78,10 +84,13 @@ class StageInput:
 
     facts: Sequence[SessionFacts]
     strips: Sequence[SessionStrip]
-    lessons: Sequence[Lesson]
+    # The lessons as the pain-point list groups them (the reviewer's merges included), so a lesson
+    # here is the same row there.
+    groups: Sequence[Sequence[Lesson]]
     churn: Sequence[FileChurn]
     session_dates: Mapping[str, date]
     held_back: Mapping[HoldReason, int]
+    min_sessions: int
 
 
 def struggle_stage(view: StageInput, today: date) -> dict[str, Any] | None:
@@ -90,10 +99,13 @@ def struggle_stage(view: StageInput, today: date) -> dict[str, Any] | None:
     if not facts:
         return None
     index = {fact.session_id: i for i, fact in enumerate(facts)}
-    lessons = _lessons_ready(view.lessons, index)
+    lessons = _lessons_ready(view.groups, index)
     months = _months(facts, view.session_dates, today)
     return {
         "minutesPerTurn": MINUTES_PER_TURN,
+        "minSessions": view.min_sessions,
+        "burstFailures": BURST_FAILURES,
+        "burstSteps": BURST_STEPS,
         "heldBack": held_back_sentence(view.held_back),
         "kpis": _kpis(facts, len(lessons)),
         "facts": [_fact(fact) for fact in facts],
@@ -163,12 +175,11 @@ def _titles(facts: Sequence[SessionFacts]) -> dict[str, list[str]]:
     return dict(titles)
 
 
-def _lessons_ready(lessons: Sequence[Lesson], index: Mapping[str, int]) -> list[dict[str, Any]]:
-    """Kept lessons grouped by trouble, each with the sessions (by index) it came back in."""
-    groups: dict[Signature, list[Lesson]] = defaultdict(list)
-    for lesson in lessons:
-        groups[lesson.pain_point.signature].append(lesson)
-    ready = [_ready(group, index) for group in groups.values()]
+def _lessons_ready(
+    groups: Sequence[Sequence[Lesson]], index: Mapping[str, int]
+) -> list[dict[str, Any]]:
+    """One entry per pain-point row, with the sessions (by index) the trouble came back in."""
+    ready = [_ready(group, index) for group in groups]
     return sorted(ready, key=lambda item: (-len(item["sessions"]), item["title"]))
 
 
@@ -192,9 +203,12 @@ def _strips(strips: Sequence[SessionStrip], index: Mapping[str, int]) -> dict[st
 
 
 def _strip(strip: SessionStrip) -> dict[str, Any]:
+    failing = [s.step for s in strip.steps if s.lane is Lane.FAILED]
     return {
         "task": scrub(strip.task_label),
         "burst": strip.burst,
+        "total": strip.total_steps,
+        "bursts": [list(span) for span in burst_spans(failing)],
         "steps": [[s.step, s.lane.value, scrub(s.label)] for s in strip.steps],
     }
 

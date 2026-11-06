@@ -2,7 +2,7 @@
    A dashboard opened before the lessons exist must show the job
    (or why it stopped), never an empty page. The server injects {mining:{project,progress}} as the
    page's one data object; this file polls GET /mining/<project>/progress. When the job is done with
-   lessons it keeps the finished summary on screen (a Continue button, and an automatic move after
+   lessons, or with session facts to show, it keeps the finished summary on screen (a Continue button, and an automatic move after
    SUMMARY_MS) and only then loads the address without ?mining, which the server renders as the
    pain-point view from the stored lessons. A short job would otherwise finish before the page
    painted and the developer would never see what was read. Every number shown is the service's:
@@ -12,7 +12,7 @@
 const POLL_MS=700, RETRY_MS=2000, SUMMARY_MS=3500, CLEAR="#ff8c40";
 
 /* describe is pure: progress in, what the page says out. */
-function describe(p){
+function describe(p,hasStage){
   const total=p.sessions_total, read=p.sessions_read;
   const counts=[read,p.pain_points,p.fixes_paired,p.lessons];
   const percent=total?Math.min(100,Math.round(read/total*100)):0;
@@ -22,10 +22,12 @@ function describe(p){
       lede:p.error||"symbiont gave no reason; see the service log.",
       status:"failed after "+read+" of "+total+" sessions"};
   }
-  if(p.state==="done"&&p.lessons>0){
+  if(p.state==="done"&&(p.lessons>0||hasStage)){
+    /* No lesson yet can still leave struggle to see: where the agent lost turns, and in which sessions. */
     return {...base,percent:100,next:"summary",
       headline:"Read "+total+" sessions · found "+p.pain_points+" pain points · learned "+p.lessons+" lessons",
-      lede:"Continue to see what it found, or wait a moment.",status:"done · "+p.lessons+" lessons ready to use"};
+      lede:p.lessons>0?"Continue to see what it found, or wait a moment.":"No lesson yet, but there is struggle to see. Continue, or wait a moment.",
+      status:"done · "+p.lessons+" lessons ready to use"};
   }
   if(p.state==="done"){
     return {...base,percent:100,next:"stop",headline:"Read "+total+" sessions and found no pain points yet.",
@@ -81,7 +83,7 @@ async function run(shell){
   $("repoName").textContent=shell.project;
   let progress=shell.progress;
   for(;;){
-    const view=describe(progress);
+    const view=describe(progress,shell.stage===true);
     paint(view,progress.sessions_total);
     if(view.next==="summary"){offerContinue();return;}
     if(view.next==="stop")return;

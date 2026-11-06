@@ -23,7 +23,7 @@ from symbiont.miner.themes import Codebase, task_label, task_text, themes_of
 from symbiont.records.schema import Kind, Record
 
 # Tuned once on sqlglot OpenHands traces; Step 6 of the plan re-measures them on other history.
-MAX_SPAN_TURNS = 15  # a failure that never passes is not charged more than this
+MAX_SPAN_TURNS = 15  # a failure that never passes costs itself plus this many actions after it
 BURST_FAILURES = 3  # failures within BURST_STEPS steps make a session "struggled"
 BURST_STEPS = 10
 # The same command passed later but nothing that explains it was shown: no known fix.
@@ -57,7 +57,7 @@ class SessionFacts:
     turns_lost: int
     outcomes: Mapping[str, int]
     # Three or more failures within ten steps: the session had a bad stretch.
-    struggled: bool = False
+    struggled: bool
 
 
 def turns_lost(session: Sequence[Record]) -> int:
@@ -82,14 +82,31 @@ def _span_end(actions: Sequence[Record], start: int) -> int:
 
 
 def has_failure_burst(session: Sequence[Record]) -> bool:
-    """True when some failure is followed by enough more within a few steps."""
-    steps = [r.step for r in session if failed(r)]
-    return any(_failures_from(first, steps) >= BURST_FAILURES for first in steps)
+    """True when the session had a bad stretch: BURST_FAILURES failures within BURST_STEPS steps."""
+    return bool(burst_starts([r.step for r in session if failed(r)]))
 
 
-def _failures_from(first: int, steps: Sequence[int]) -> int:
-    """How many of the failing `steps` fall in the window that opens at `first`."""
-    return sum(first <= step < first + BURST_STEPS for step in steps)
+def burst_starts(failing: Sequence[int]) -> list[int]:
+    """The failing steps that open a burst: the one rule every burst question is answered by."""
+    return [first for first in failing if _burst_at(first, failing)]
+
+
+def burst_spans(failing: Sequence[int]) -> list[tuple[int, int]]:
+    """The step ranges of the bursts, overlapping ones merged (what a strip shades)."""
+    spans: list[tuple[int, int]] = []
+    for first in burst_starts(failing):
+        last = _burst_at(first, failing)[-1]
+        if spans and first <= spans[-1][1]:
+            spans[-1] = (spans[-1][0], max(spans[-1][1], last))
+        else:
+            spans.append((first, last))
+    return spans
+
+
+def _burst_at(first: int, failing: Sequence[int]) -> list[int]:
+    """The failing steps in the window that opens at `first`; empty when too few for a burst."""
+    window = [step for step in failing if first <= step < first + BURST_STEPS]
+    return window if len(window) >= BURST_FAILURES else []
 
 
 def outcome_of(lesson: Lesson) -> Outcome:

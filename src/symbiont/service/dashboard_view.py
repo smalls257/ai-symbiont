@@ -62,6 +62,8 @@ class RepoView:
     # The Pain points stage: one row of facts per session and the few sessions drawn step by step.
     facts: Sequence[SessionFacts] = ()
     strips: Sequence[SessionStrip] = ()
+    # Sessions a trouble must come back in to become a lesson; the page says it in words.
+    min_sessions: int = 2
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
@@ -95,15 +97,21 @@ def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
         "lessons": [lesson for _, lesson in points],
         "replay": _replay([p for p, _ in points], days, (today - first).days),
         "nightly": dict(view.nightly) if view.nightly is not None else None,
-        "stage": struggle_stage(_stage_input(view), today),
+        "stage": struggle_stage(_stage_input(view, groups), today),
         **_counted_not_taught(view),
     }
 
 
-def _stage_input(view: RepoView) -> StageInput:
+def _stage_input(view: RepoView, groups: Sequence[Sequence[Lesson]]) -> StageInput:
     """What the Pain points stage is drawn from."""
     return StageInput(
-        view.facts, view.strips, view.lessons, view.churn, view.session_dates, view.held_back
+        view.facts,
+        view.strips,
+        groups,
+        view.churn,
+        view.session_dates,
+        view.held_back,
+        view.min_sessions,
     )
 
 

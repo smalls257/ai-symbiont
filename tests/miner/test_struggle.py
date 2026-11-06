@@ -7,6 +7,8 @@ from symbiont.miner.mine import mine_history
 from symbiont.miner.struggle import (
     Outcome,
     SessionFacts,
+    burst_spans,
+    burst_starts,
     facts_of,
     turns_lost,
 )
@@ -75,3 +77,11 @@ def test_a_session_with_three_failures_within_ten_steps_struggled():
     burst = [run(f"pytest t{n}", 1, FAIL) for n in range(3)]
     assert facts_for(*burst)[0].struggled
     assert not facts_for(burst[0], run("pytest", 0))[0].struggled
+
+
+def test_one_rule_decides_bursts_for_the_flag_the_density_and_the_shading():
+    failing = [1, 2, 3, 4, 40, 41]
+
+    assert burst_starts(failing) == [1, 2]
+    assert burst_spans(failing) == [(1, 4)]
+    assert burst_spans([1, 30, 60]) == []

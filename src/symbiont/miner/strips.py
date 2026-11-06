@@ -12,12 +12,13 @@ from symbiont.miner.attempts import failed
 from symbiont.miner.changes import applied_edit
 from symbiont.miner.commands import normalise_command
 from symbiont.miner.failure_keys import is_interrupt
-from symbiont.miner.struggle import BURST_FAILURES, BURST_STEPS
+from symbiont.miner.secrets import scrub
+from symbiont.miner.struggle import burst_starts
 from symbiont.miner.themes import Codebase
 from symbiont.records.schema import Kind, Record
 
 LABEL_CHARS = 44
-# A strip is a picture, not a transcript: a longer session is cut here, and says so on the page.
+# A strip is a picture, not a transcript: a longer session is cut here and the page says so.
 MAX_STRIP_STEPS = 600
 BURST_WEIGHT = 1000  # one failure burst outweighs any difference in session length
 IDEAL_STEPS = 150  # between sessions equally bursty, the one nearest this reads best on a page
@@ -51,12 +52,17 @@ class SessionStrip:
     task_label: str
     burst: int
     steps: tuple[StripStep, ...]
+    # The session's steps before the strip was cut at MAX_STRIP_STEPS.
+    total_steps: int
 
 
 def strip_of(session: Sequence[Record], codebase: Codebase) -> tuple[StripStep, ...]:
-    """The session's user turns, edits and commands as steps (Ctrl-C and its friends left out)."""
+    """The session's user turns, edits and commands as steps (Ctrl-C and its friends left out).
+
+    Labels are scrubbed here, where they are made, so nothing stored holds a credential.
+    """
     steps = (_step(record, codebase) for record in session)
-    return tuple(step for step in steps if step is not None)[:MAX_STRIP_STEPS]
+    return tuple(step for step in steps if step is not None)
 
 
 def _step(record: Record, codebase: Codebase) -> StripStep | None:
@@ -66,21 +72,15 @@ def _step(record: Record, codebase: Codebase) -> StripStep | None:
     if applied_edit(record) and record.files:
         relative = codebase.relative(record.files[0])
         lane = Lane.CODE_EDIT if relative is not None else Lane.SCRATCH_EDIT
-        return StripStep(record.step, lane, (relative or record.files[0])[:LABEL_CHARS])
+        return StripStep(record.step, lane, scrub(relative or record.files[0])[:LABEL_CHARS])
     if record.kind == Kind.COMMAND and not is_interrupt(record):
         program, target = normalise_command(record.command or "")
         lane = Lane.FAILED if failed(record) else Lane.PASSED
-        return StripStep(record.step, lane, f"{program} {target}"[:LABEL_CHARS])
+        return StripStep(record.step, lane, scrub(f"{program} {target}")[:LABEL_CHARS])
     return None
 
 
 def burstiness(session: Sequence[Record]) -> int:
     """How dense the worst stretch of failures is: bursts weigh more than any session length."""
-    steps = [r.step for r in session if failed(r)]
-    bursts = sum(_in_window(first, steps) >= BURST_FAILURES for first in steps)
+    bursts = len(burst_starts([r.step for r in session if failed(r)]))
     return bursts * BURST_WEIGHT - abs(len(session) - IDEAL_STEPS)
-
-
-def _in_window(first: int, steps: Sequence[int]) -> int:
-    """How many failing steps fall in the window that opens at `first`."""
-    return sum(first <= step < first + BURST_STEPS for step in steps)

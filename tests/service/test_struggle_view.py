@@ -5,11 +5,13 @@ from datetime import date
 
 from record_builders import edit, run, session
 from symbiont.miner.churn import FileChurn
+from symbiont.miner.lesson_context import Review, Verdict
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
 from symbiont.miner.patterns import StrugglePattern
 from symbiont.miner.strips import Lane, SessionStrip, StripStep
 from symbiont.miner.struggle import MINUTES_PER_TURN, SessionFacts
+from symbiont.miner.trained import lesson_id
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
 
 TODAY = date(2026, 11, 2)
@@ -72,7 +74,7 @@ def test_the_page_data_draws_a_strip_for_the_densest_session_of_every_theme_and_
         StripStep(3, Lane.FAILED, f"curl {token}"),
         StripStep(4, Lane.CODE_EDIT, "app/parser.py"),
     )
-    stage = stage_of(strips=[SessionStrip("b", "task b", 2000, steps)])
+    stage = stage_of(strips=[SessionStrip("b", "task b", 2000, steps, 3)])
 
     strip = stage["strips"]["1"]
     assert strip["task"] == "task b" and strip["burst"] == 2000
@@ -94,7 +96,7 @@ def test_facts_keep_the_session_order_and_the_hand_set_themes():
 
     assert [f["turns"] for f in stage["facts"]] == [10, 4, 0]
     assert stage["facts"][0]["patterns"] == ["wrong_api"] and stage["facts"][0]["struggled"]
-    assert "parser" in stage["themeWords"] or stage["themeWords"] == []
+    assert stage["themeWords"] == ["parser", "window"]
 
 
 def test_every_pattern_has_a_name_a_meaning_and_the_help_that_fits():
@@ -131,3 +133,42 @@ def test_what_mining_held_back_is_told_in_a_sentence():
     held = RepoView("demo", [], {}, DATES, facts=FACTS, held_back={HoldReason.NO_FIX_SHOWN: 3})
     assert dashboard_snapshot(view, TODAY)["stage"]["heldBack"] == ""
     assert dashboard_snapshot(held, TODAY)["stage"]["heldBack"] == "held back 3: 3 no fix shown"
+
+
+def test_a_reviewers_merge_gives_the_stage_the_same_lesson_rows_as_the_pain_point_list():
+    first = lessons_in("a")
+    other = [
+        replace(
+            lesson,
+            pain_point=replace(
+                lesson.pain_point,
+                signature=replace(
+                    lesson.pain_point.signature, key=("pytest", "tests/test_other.py", "KeyError")
+                ),
+            ),
+        )
+        for lesson in lessons_in("b")
+    ]
+    merge = {lesson_id(other[0]): Review(Verdict.MISTAKE, merge_with=lesson_id(first[0]))}
+    view = RepoView("demo", [*first, *other], {}, DATES, reviews=merge, facts=FACTS)
+
+    data = dashboard_snapshot(view, TODAY)
+
+    (row,) = data["stage"]["lessons"]
+    assert row["id"] == data["painPoints"][0]["lessonId"]
+    assert row["sessions"] == [0, 1]
+
+
+def test_the_stage_says_how_a_lesson_and_a_burst_are_decided_so_the_page_hardcodes_neither():
+    view = RepoView("demo", lessons_in("a", "b"), {}, DATES, facts=FACTS, min_sessions=3)
+    stage = dashboard_snapshot(view, TODAY)["stage"]
+
+    assert (stage["minSessions"], stage["burstFailures"], stage["burstSteps"]) == (3, 3, 10)
+
+
+def test_a_strip_carries_its_shaded_bursts_and_the_full_step_count():
+    fails = tuple(StripStep(n, Lane.FAILED, "pytest x") for n in (1, 2, 3, 40))
+    stage = stage_of(strips=[SessionStrip("b", "task b", 1000, fails, 900)])
+
+    strip = stage["strips"]["1"]
+    assert strip["bursts"] == [[1, 3]] and strip["total"] == 900

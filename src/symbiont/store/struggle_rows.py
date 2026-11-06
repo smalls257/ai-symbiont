@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS session_facts (
 );
 CREATE TABLE IF NOT EXISTS session_strips (
     project TEXT NOT NULL, session_id TEXT NOT NULL, task_label TEXT NOT NULL,
-    burst INTEGER NOT NULL, steps TEXT NOT NULL
+    burst INTEGER NOT NULL, steps TEXT NOT NULL, total_steps INTEGER NOT NULL
 );
 """
 
@@ -39,7 +39,7 @@ def insert_struggle(
         [_fact_row(project, fact) for fact in facts],
     )
     db.executemany(
-        "INSERT INTO session_strips VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO session_strips VALUES (?, ?, ?, ?, ?, ?)",
         [_strip_row(project, strip) for strip in strips],
     )
 
@@ -57,9 +57,16 @@ def _fact_row(project: str, fact: SessionFacts) -> tuple[str, str, str, str, str
     )
 
 
-def _strip_row(project: str, strip: SessionStrip) -> tuple[str, str, str, int, str]:
+def _strip_row(project: str, strip: SessionStrip) -> tuple[str, str, str, int, str, int]:
     steps = [[s.step, s.lane.value, s.label] for s in strip.steps]
-    return (project, strip.session_id, strip.task_label, strip.burst, json.dumps(steps))
+    return (
+        project,
+        strip.session_id,
+        strip.task_label,
+        strip.burst,
+        json.dumps(steps),
+        strip.total_steps,
+    )
 
 
 def read_facts(db: sqlite3.Connection, project: str) -> list[SessionFacts]:
@@ -86,16 +93,15 @@ def read_facts(db: sqlite3.Connection, project: str) -> list[SessionFacts]:
 def read_strips(db: sqlite3.Connection, project: str) -> list[SessionStrip]:
     """The strips of the last mining."""
     rows = db.execute(
-        "SELECT session_id, task_label, burst, steps FROM session_strips "
+        "SELECT session_id, task_label, burst, steps, total_steps FROM session_strips "
         "WHERE project=? ORDER BY rowid",
         (project,),
     ).fetchall()
     return [
-        SessionStrip(
-            sid,
-            label,
-            burst,
-            tuple(StripStep(n, Lane(lane), name) for n, lane, name in json.loads(steps)),
-        )
-        for sid, label, burst, steps in rows
+        SessionStrip(sid, label, burst, _steps_from(steps), total)
+        for sid, label, burst, steps, total in rows
     ]
+
+
+def _steps_from(body: str) -> tuple[StripStep, ...]:
+    return tuple(StripStep(n, Lane(lane), name) for n, lane, name in json.loads(body))

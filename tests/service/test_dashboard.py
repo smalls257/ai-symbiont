@@ -11,6 +11,7 @@ import urllib.error
 import urllib.request
 from dataclasses import replace
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -35,6 +36,8 @@ from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.nightly import NightlyJudges, NightlyRecord, lessons_digest, write_record
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
+
+STATIC = Path(__file__).resolve().parents[2] / "src" / "symbiont" / "service" / "static"
 
 pytestmark = pytest.mark.periphery
 IMPORT = "File \"app/parser.py\", line 1\nImportError: cannot import name 'parse'"
@@ -224,6 +227,47 @@ def test_the_mine_address_keeps_the_mine_stage_up_for_a_job_that_already_finishe
 
     assert _mining_shell(watching)["progress"]["lessons"] == 9
     assert _mining_shell(plain) is None
+
+
+def _struggle_only_store(tmp_path):
+    from symbiont.miner.struggle import SessionFacts
+    from symbiont.store.held_back import MiningOutcome
+
+    store = Store.open(tmp_path / "facts.db")
+    facts = [SessionFacts("a", "task a", frozenset(), frozenset(), 5, {"never": 1}, False)]
+    store.mined.save("quiet", [], MiningOutcome([], facts=facts), held_out_tasks=frozenset())
+    return store
+
+
+def test_a_finished_job_with_session_facts_but_no_lesson_serves_the_stage(tmp_path):
+    store = _struggle_only_store(tmp_path)
+    done = MiningProgress(MiningState.DONE, 1, 1, 3, 0, 0)
+    live = Live(mining=lambda project: done)
+
+    page = dashboard_page(store, None, "/dashboard?project=quiet", TODAY, live)
+    watching = dashboard_page(store, None, "/dashboard?project=quiet&mining=1", TODAY, live)
+
+    assert _mining_shell(page) is None
+    assert '"stage": {' in page.body.decode()
+    assert _mining_shell(watching)["stage"] is True
+
+
+def test_a_finished_job_with_nothing_to_show_still_gets_the_mine_stage(tmp_path):
+    store = Store.open(tmp_path / "empty.db")
+    done = MiningProgress(MiningState.DONE, 1, 1, 0, 0, 0)
+
+    page = dashboard_page(
+        store, None, "/dashboard?project=none", TODAY, Live(mining=lambda p: done)
+    )
+
+    assert _mining_shell(page)["stage"] is False
+
+
+def test_the_boot_never_opens_a_pain_point_when_there_are_none():
+    script = (STATIC / "dashboard.js").read_text(encoding="utf-8")
+
+    assert "if(P.length){renderList();showPain(1);}" in script
+    assert 'dateOf=d=>{if(!N)return ""' in script
 
 
 def test_the_mine_address_without_any_job_shows_the_dashboard_not_an_empty_stage(served):

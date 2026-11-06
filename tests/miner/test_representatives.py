@@ -18,7 +18,7 @@ FAIL = "Traceback\nValueError: no"
 
 
 def facts(sid, themes=(), patterns=()):
-    return SessionFacts(sid, sid, frozenset(themes), frozenset(patterns), 0, {})
+    return SessionFacts(sid, sid, frozenset(themes), frozenset(patterns), 0, {}, struggled=False)
 
 
 def named(sid, records):
@@ -79,3 +79,20 @@ def test_the_densest_session_of_a_theme_and_of_a_pattern_cell_gets_the_strip():
         s.session_id for s in strips
     }
     assert all(s.steps for s in strips)
+
+
+def test_a_long_session_is_cut_but_remembers_how_long_it_was():
+    from symbiont.miner.strips import MAX_STRIP_STEPS
+
+    long = named("long", [run(f"pytest t{n}", 1, FAIL) for n in range(MAX_STRIP_STEPS + 50)])
+
+    (strip,) = representative_strips([long], [facts("long")], CODE)
+
+    assert len(strip.steps) == MAX_STRIP_STEPS and strip.total_steps == MAX_STRIP_STEPS + 50
+
+
+def test_a_credential_in_a_strip_label_is_scrubbed_where_the_label_is_made():
+    token = "ghp_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8"
+    drawn = strip_of(named("s", [run(f"curl {token}", 1, FAIL)]), CODE)
+
+    assert token not in str(drawn)

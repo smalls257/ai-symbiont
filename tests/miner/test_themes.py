@@ -6,6 +6,7 @@ from symbiont.miner.themes import (
     codebase_vocabulary,
     task_text,
     themes_of,
+    vocabulary_min_seen,
 )
 from symbiont.records.session_tags import branch_tag, title_tag
 
@@ -23,7 +24,7 @@ def test_codebase_decides_inside_by_the_one_repo_relative_rule():
 
 def test_the_vocabulary_is_file_stems_and_name_parts_seen_five_times_without_generic_words():
     edits = [defining("app/tokenizer.py", "split_window_frame") for _ in range(5)]
-    edits += [defining("app/rare.py", "once") for _ in range(2)]
+    edits += [defining("app/rare.py", "once")]
     words = codebase_vocabulary([session(*edits)], CODE)
     assert {"tokenizer", "split", "window", "frame"} <= words
     assert "rare" not in words
@@ -58,3 +59,19 @@ def test_a_claude_code_session_takes_its_title_and_branch_as_theme_text():
     text = task_text(session(tagged))
     assert themes_of(text, frozenset({"tokenizer", "window"})) == {"tokenizer", "window"}
     assert themes_of(task_text(session(user("please help"))), frozenset({"tokenizer"})) == set()
+
+
+def test_the_sightings_a_vocabulary_word_needs_scale_with_the_history():
+    assert vocabulary_min_seen(2678) == 5
+    assert vocabulary_min_seen(50) == 5
+    assert vocabulary_min_seen(30) == 3
+    assert vocabulary_min_seen(5) == 2
+
+
+def test_a_five_session_history_shows_a_word_seen_twice_but_a_large_one_does_not():
+    twice = [defining("app/tokenizer.py", "scan") for _ in range(2)]
+    small = [session(*twice)] + [session(edit("app/x.py")) for _ in range(4)]
+    large = small + [session(edit("app/x.py")) for _ in range(95)]
+
+    assert "tokenizer" in codebase_vocabulary(small, CODE)
+    assert "tokenizer" not in codebase_vocabulary(large, CODE)
