@@ -10,9 +10,8 @@ from typing import Any
 
 from symbiont.core.warner import WarnerWeightsError
 from symbiont.delivery.hook_main import add_hook_arguments, forward_hook, read_hook_input
+from symbiont.delivery.hook_profiles import PROFILES
 from symbiont.delivery.hooks import NoteStyle, offline_note
-from symbiont.delivery.install.claude_code import claude_code_install
-from symbiont.delivery.install.muse_code import muse_code_install
 from symbiont.delivery.install.transaction import (
     HarnessInstall,
     InstallError,
@@ -59,7 +58,7 @@ from symbiont.store.local import Source, Store
 from symbiont.store.mining import MiningRules, coverage_lines, remine
 from symbiont.store.repos import RepoRegistry
 
-INSTALLERS = {"muse_code": muse_code_install, "claude_code": claude_code_install}
+INSTALLERS = {harness_id: entry.install for harness_id, entry in PROFILES.items()}
 HARNESSES = sorted(INSTALLERS)
 
 

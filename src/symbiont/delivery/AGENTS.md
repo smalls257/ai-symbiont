@@ -8,6 +8,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/delivery/`
 
 ## Invariants
 - No learning, store or privacy logic here; the service owns it.
+- `hook_profiles.py` holds one `HookProfile` per harness (tool names, exit-status rule, echo policy, project naming, installer); with the `Harness` entry in `readers/harnesses.py` it is all a new harness needs. No other delivery file names a harness id. `--harness auto` detects from the registry; with no marker the hook prints the visible `symbiont: cannot tell which harness runs this hook` line and exits 0, never guessing Claude Code.
 - `operator_tools.py` makes each `/symbiont` action an MCP tool that is only an argv for the same `symbiont` subcommand (`mcp_operator.py` runs `cli.main` in the MCP process and captures its output). Why: Muse Code sandboxes the model's shell away from `~/.symbiont`, the MCP server is outside the sandbox. Do not reimplement an action in the tool; add the subcommand, then list it. A service `tell_model` line goes only into `additionalContext`.
 - Installers show a diff and ask before writing, are idempotent and reversible byte for byte, and never touch the user's global harness config.
 - `recall` stays one plain question string.
@@ -16,7 +17,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/delivery/`
 - The Stop hook (`stop_hook.py`) only forwards to the service's `/reflect` and prints `{"decision":"block","reason":<question>}` (Claude Code and Muse Code both honor it, measured); it prints nothing when `stop_hook_active` is set, so the reflection turn cannot loop.
 - The plain (floor) arm of a run appends nothing.
 - `hook_trace.py` is the hook's opt-in sensor (marker file or `SYMBIONT_HOOK_TRACE`); off by default; it holds raw payloads, so never commit a trace.
-- The plugin hook (`hook_main.py`, script `symbiont-hook`) exits 0 on every path and prints a visible line for each failure; it imports no learner, store or numpy so it starts fast. `launch.py` starts a down service once (detached, `service.log` in the data directory) and does not retry for 30 s. `--harness auto` reads `MUSE_PLUGIN_ROOT` to tell Muse Code from Claude Code. The bundle is `plugin/symbiont/`; design in `docs/product/plugin.md`.
+- The plugin hook (`hook_main.py`, script `symbiont-hook`) exits 0 on every path and prints a visible line for each failure; it imports no learner, store or numpy so it starts fast. `launch.py` starts a down service once (detached, `service.log` in the data directory) and does not retry for 30 s. `--harness auto` reads the registry's environment markers (see above). The bundle is `plugin/symbiont/`; design in `docs/product/plugin.md`.
 
 ## Imports
 - Talks to `service` over localhost HTTP; imports no core, store or eval. Nothing imports delivery.

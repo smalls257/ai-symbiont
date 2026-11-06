@@ -16,6 +16,7 @@ from symbiont.core.notes import happened
 from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
+from symbiont.readers.harnesses import HARNESSES, labels_and
 from symbiont.service.asking import AskService
 from symbiont.service.events import checker_sentences, last_note_event
 from symbiont.service.lesson_list import lesson_lines
@@ -72,6 +73,18 @@ def _add_repo_parser(commands: Any, defaults: Defaults) -> None:
     )
 
 
+def _add_settings_command(commands: Any) -> None:
+    """Register `settings show|set`, naming the harness switches from the registry."""
+    setting = commands.add_parser("settings", help="show or switch correction-finding settings")
+    setting.add_argument("action", choices=["show", "set"])
+    setting.add_argument(
+        "name",
+        nargs="?",
+        help=f"{', '.join(entry.id for entry in HARNESSES)}, cross_harness or {OPEN_DASHBOARD}",
+    )
+    setting.add_argument("value", nargs="?", choices=["true", "false"])
+
+
 def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
     _add_repo_parser(commands, defaults)
@@ -104,12 +117,7 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     words.add_argument("--areas", default="", help="comma-separated path prefixes it applies to")
     dashboard = commands.add_parser("dashboard", help="print this repository's dashboard address")
     dashboard.add_argument("--port", type=int, default=defaults.port)
-    setting = commands.add_parser("settings", help="show or switch correction-finding settings")
-    setting.add_argument("action", choices=["show", "set"])
-    setting.add_argument(
-        "name", nargs="?", help=f"claude_code, muse_code, cross_harness or {OPEN_DASHBOARD}"
-    )
-    setting.add_argument("value", nargs="?", choices=["true", "false"])
+    _add_settings_command(commands)
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
         parser.add_argument("--data-dir", type=Path, default=defaults.data_dir)
@@ -153,8 +161,8 @@ def _answer_message(project: str, stance: RepoStance) -> str:
         return f"{project}: symbiont stays off here; nothing from it is stored."
     return (
         f"{project}: symbiont is on. Everything stays on this computer. "
-        "Run `symbiont repo mine` to learn from this repository's past Claude Code "
-        "and Muse Code sessions. To find your past corrections, the model running your session "
+        f"Run `symbiont repo mine` to learn from this repository's past {labels_and()} "
+        "sessions. To find your past corrections, the model running your session "
         "reads short excerpts of past messages from the same tool's history."
     )
 
@@ -292,10 +300,8 @@ def _settings(args: argparse.Namespace) -> int:
         else:
             write_correction_setting(args.data_dir, args.name, value=switched)
     current = read_correction_settings(args.data_dir)
-    _say(
-        f"corrections: claude_code={current.claude_code} muse_code={current.muse_code} "
-        f"cross_harness={current.cross_harness}"
-    )
+    shown = " ".join(f"{name}={on}" for name, on in current.as_saved().items())
+    _say(f"corrections: {shown}")
     _say(f"dashboard: open_dashboard_on_mine={read_dashboard_settings(args.data_dir).open_on_mine}")
     return 0
 

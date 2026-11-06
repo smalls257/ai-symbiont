@@ -1,5 +1,7 @@
 """Correction finding is same-harness only unless the developer opts into crossing."""
 
+import json
+
 import pytest
 
 from symbiont.store.settings import (
@@ -32,6 +34,19 @@ def test_a_switch_is_saved_and_cross_harness_needs_its_own_opt_in(tmp_path):
 
     assert not settings.allows("muse_code", "muse_code")
     assert settings.allows("claude_code", "muse_code")
+
+
+def test_correction_settings_read_the_old_file_format_unchanged(tmp_path):
+    old = '{"corrections": {"claude_code": true, "muse_code": false, "cross_harness": true}}'
+    (tmp_path / "settings.json").write_text(old)
+
+    settings = read_correction_settings(tmp_path)
+
+    assert dict(settings.enabled) == {"claude_code": True, "muse_code": False}
+    assert settings.cross_harness is True
+    write_correction_setting(tmp_path, "claude_code", value=False)
+    saved = json.loads((tmp_path / "settings.json").read_text())["corrections"]
+    assert saved == {"claude_code": False, "muse_code": False, "cross_harness": True}
 
 
 def test_a_malformed_or_unknown_setting_raises(tmp_path):
