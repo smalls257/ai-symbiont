@@ -25,6 +25,7 @@ from symbiont.miner.trained import lesson_id
 from symbiont.service.candidate_summary import rule_summary
 from symbiont.service.struggle_view import StageInput, struggle_stage
 from symbiont.store.held_back import StruggleGroup
+from symbiont.store.settings import DEFAULT_MIN_SESSIONS
 
 REPLAY_DAYS = 30
 STRUGGLE_SHOWN = 20
@@ -63,7 +64,7 @@ class RepoView:
     facts: Sequence[SessionFacts] = ()
     strips: Sequence[SessionStrip] = ()
     # Sessions a trouble must come back in to become a lesson; the page says it in words.
-    min_sessions: int = 2
+    min_sessions: int = DEFAULT_MIN_SESSIONS
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:

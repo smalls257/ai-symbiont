@@ -114,9 +114,7 @@ def struggle_stage(view: StageInput, today: date) -> dict[str, Any] | None:
         "minThemeSessions": min_sessions_shown(len(facts)),
         "titles": _titles(facts),
         "lessons": lessons,
-        "strips": {
-            str(index[s.session_id]): _strip(s) for s in view.strips if s.session_id in index
-        },
+        "strips": _strips(view.strips, index),
         "files": _files(view.churn, index),
         **months,
     }

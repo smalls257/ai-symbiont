@@ -37,7 +37,7 @@ def test_turns_lost_merges_overlapping_failure_spans():
     assert turns_lost(steps) == 5
 
 
-def test_a_failure_that_never_passes_is_capped_at_fifteen_turns():
+def test_a_failure_that_never_passes_costs_itself_plus_fifteen_actions():
     steps = session(run("pytest", 1, FAIL), *[say(str(n)) for n in range(40)])
     assert turns_lost(steps) == 16
 

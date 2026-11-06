@@ -249,7 +249,7 @@ def test_a_finished_job_with_session_facts_but_no_lesson_serves_the_stage(tmp_pa
 
     assert _mining_shell(page) is None
     assert '"stage": {' in page.body.decode()
-    assert _mining_shell(watching)["stage"] is True
+    assert "stage" not in _mining_shell(watching)
 
 
 def test_a_finished_job_with_nothing_to_show_still_gets_the_mine_stage(tmp_path):
@@ -260,7 +260,7 @@ def test_a_finished_job_with_nothing_to_show_still_gets_the_mine_stage(tmp_path)
         store, None, "/dashboard?project=none", TODAY, Live(mining=lambda p: done)
     )
 
-    assert _mining_shell(page)["stage"] is False
+    assert _mining_shell(page)["progress"]["session_facts"] == 0
 
 
 def test_the_boot_never_opens_a_pain_point_when_there_are_none():

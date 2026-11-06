@@ -75,9 +75,7 @@ def test_the_densest_session_of_a_theme_and_of_a_pattern_cell_gets_the_strip():
 
     strips = representative_strips([calm, bursty], facts_, CODE)
 
-    assert {s.session_id for s in strips} == {"bursty"} or "bursty" in {
-        s.session_id for s in strips
-    }
+    assert {s.session_id for s in strips} == {"bursty"}
     assert all(s.steps for s in strips)
 
 

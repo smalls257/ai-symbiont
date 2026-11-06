@@ -104,7 +104,7 @@ def _project_page(
         WATCHING_MINE in asked
         or _still_mining(progress, store.lessons(project), has_stage=has_stage)
     ):
-        return Page(200, HTML, _mining_html(project, progress, has_stage=has_stage))
+        return Page(200, HTML, _mining_html(project, progress))
     focus = _focus_terms(registry, project)
     return Page(200, HTML, _html(store, project, today, focus, live))
 
@@ -117,11 +117,9 @@ def _still_mining(progress: MiningProgress, lessons: list[Lesson], *, has_stage:
     return progress.state is not MiningState.DONE or not (lessons or has_stage)
 
 
-def _mining_html(project: str, progress: MiningProgress, *, has_stage: bool) -> bytes:
+def _mining_html(project: str, progress: MiningProgress) -> bytes:
     """The page with the mining job where the dashboard's data goes; mining.js takes over."""
-    return _page_filled_with(
-        {"mining": {"project": project, "progress": progress.as_json(), "stage": has_stage}}
-    )
+    return _page_filled_with({"mining": {"project": project, "progress": progress.as_json()}})
 
 
 def _page_filled_with(data: dict[str, Any]) -> bytes:

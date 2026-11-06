@@ -12,7 +12,7 @@
 const POLL_MS=700, RETRY_MS=2000, SUMMARY_MS=3500, CLEAR="#ff8c40";
 
 /* describe is pure: progress in, what the page says out. */
-function describe(p,hasStage){
+function describe(p){
   const total=p.sessions_total, read=p.sessions_read;
   const counts=[read,p.pain_points,p.fixes_paired,p.lessons];
   const percent=total?Math.min(100,Math.round(read/total*100)):0;
@@ -22,7 +22,7 @@ function describe(p,hasStage){
       lede:p.error||"symbiont gave no reason; see the service log.",
       status:"failed after "+read+" of "+total+" sessions"};
   }
-  if(p.state==="done"&&(p.lessons>0||hasStage)){
+  if(p.state==="done"&&(p.lessons>0||p.session_facts>0)){
     /* No lesson yet can still leave struggle to see: where the agent lost turns, and in which sessions. */
     return {...base,percent:100,next:"summary",
       headline:"Read "+total+" sessions · found "+p.pain_points+" pain points · learned "+p.lessons+" lessons",
@@ -83,7 +83,7 @@ async function run(shell){
   $("repoName").textContent=shell.project;
   let progress=shell.progress;
   for(;;){
-    const view=describe(progress,shell.stage===true);
+    const view=describe(progress);
     paint(view,progress.sessions_total);
     if(view.next==="summary"){offerContinue();return;}
     if(view.next==="stop")return;

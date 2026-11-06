@@ -221,3 +221,30 @@ def test_the_page_ships_the_mine_stage_script_before_the_dashboard_script(tmp_pa
 
 def service_dir():
     return Path(__file__).parents[2] / "src" / "symbiont" / "service"
+
+
+def test_a_first_mining_with_struggle_but_no_lesson_offers_the_stage_when_it_finishes(tmp_path):
+    def struggling(path, project):
+        steps = session(run("make lint", 2, "make: *** [lint] Error 2"), run("make lint -j", 0, ""))
+        return [replace(step, project=project, session_id=path.stem) for step in steps]
+
+    reading = Reading()
+    reading.hold = True
+
+    def reader(path, project):
+        reading(path, project)  # holds the second log open
+        return struggling(path, project)
+
+    service, parts = service_with(tmp_path, reader)
+
+    start(service)
+    assert reading.second_log_reached.wait(10)
+    assert progress(service)[1]["session_facts"] == 0, "no facts exist while the job runs"
+    assert parts.store.mined.session_facts("demo") == []
+
+    reading.second_log_may_finish.set()
+    service.wait_for_mining("demo", 30)
+
+    done = progress(service)[1]
+    assert done["state"] == "done" and done["lessons"] == 0
+    assert done["session_facts"] == 2
