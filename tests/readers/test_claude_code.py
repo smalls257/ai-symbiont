@@ -349,3 +349,29 @@ def test_the_plugin_named_recall_tool_result_is_ours_entirely(tmp_path):
     assert call_rec.raw == ""
     assert answer_rec.tags == ("symbiont-output",)
     assert answer_rec.raw.startswith("This command failed twice")
+
+
+# --- request-log events carry a message but are not turns ---------------------
+
+
+def test_api_request_blob_events_are_skipped_and_counted(tmp_path, caplog):
+    turn = _event("user", "first")
+    after = _event("user", "second")
+    logged = [
+        {"type": kind, "message": {"model": "m", "messages": []}}
+        for kind in ("api-request-blob", "api-request", "api-request-shape")
+    ]
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        with_blobs = _read_events(tmp_path, turn, *logged, after)
+    without = _read_events(tmp_path, turn, after)
+    assert [(r.kind, r.raw) for r in with_blobs] == [(r.kind, r.raw) for r in without]
+    assert "'api-request-blob': 1" in caplog.text
+
+
+def test_an_unknown_event_type_with_a_message_still_raises(tmp_path):
+    path = write_lines(
+        tmp_path, [json.dumps({"type": "api-request-new", "message": {"content": "x"}})]
+    )
+    with pytest.raises(ReadError, match="api-request-new") as err:
+        list(read(path, PROJECT))
+    assert err.value.line_no == 1
