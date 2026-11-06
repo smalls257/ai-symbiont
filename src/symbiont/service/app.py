@@ -38,7 +38,7 @@ from symbiont.service.memory_model import (
     MemoryReply,
     may_answer_remote,
 )
-from symbiont.service.mine_route import MineRoutes, progress_path
+from symbiont.service.mine_route import MineRoutes, mining_rules, progress_path
 from symbiont.service.mining_jobs import MiningJobs, NoMiningJobError
 from symbiont.service.nightly import NightlyJudges
 from symbiont.service.repo_gate import Door, RepoGate
@@ -54,8 +54,9 @@ from symbiont.service.request_shapes import (
     require_keys,
     source_of,
 )
+from symbiont.store.checkouts import names_for
 from symbiont.store.local import RemotePrivacyViolationError, Store
-from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
+from symbiont.store.mining import UnknownReaderError, read_source, remine_with_read
 from symbiont.store.settings import read_mining_settings
 
 log = logging.getLogger("symbiont.service")
@@ -308,7 +309,7 @@ class Service:
         require_keys(request, LEARN_KEYS, LEARN_KEYS)
         source = source_of(request)
         parts = self._parts
-        rules = MiningRules(parts.readers, parts.held_out_tasks, screen=parts.screen_rules())
+        rules = mining_rules(parts, source.project, names_for(parts.gate.registry, source.project))
         try:
             records = read_source(source, parts.readers)
             remine_with_read(parts.store, source.project, rules, {source: records})

@@ -26,6 +26,7 @@ def repo_relative(path: str, repo_names: frozenset[str]) -> str | None:
     if path.startswith(_THROWAWAY_DIRS):
         return None
     relative = _below_repo(path, repo_names) if path.startswith("/") else path.removeprefix("./")
+    relative = _in_worktree(relative) if relative else relative
     if not relative or relative.startswith("..") or _in_hidden_dir(relative):
         return None
     return relative if "/" in relative or relative in PROJECT_FILES else None
@@ -39,6 +40,16 @@ def _below_repo(path: str, repo_names: frozenset[str]) -> str | None:
     parts = path.split("/")
     inside = [i for i, part in enumerate(parts[:-1]) if part in repo_names]
     return "/".join(parts[inside[0] + 1 :]) if inside else None
+
+
+def _in_worktree(relative: str) -> str:
+    """The path inside a Claude Code worktree (`.claude/worktrees/<name>/...`), else unchanged."""
+    parts = relative.split("/")
+    return (
+        "/".join(parts[3:])
+        if parts[:2] == [".claude", "worktrees"] and len(parts) > 3
+        else relative
+    )
 
 
 def _in_hidden_dir(relative: str) -> bool:

@@ -248,3 +248,26 @@ def test_a_first_mining_with_struggle_but_no_lesson_offers_the_stage_when_it_fin
     done = progress(service)[1]
     assert done["state"] == "done" and done["lessons"] == 0
     assert done["session_facts"] == 2
+
+
+def test_a_mine_request_that_names_the_checkout_remembers_it_for_later_minings(tmp_path):
+    """Failure guarded against: a re-mine from /learn forgetting the worktrees /mine knew about."""
+    checkout = tmp_path / "demo"
+    checkout.mkdir()
+    service, _ = service_with(tmp_path, Reading())
+
+    reply = service.respond(
+        "/mine", {"project": "demo", "sources": SOURCES, "repo_dir": str(checkout)}
+    )
+    service.wait_for_mining("demo", 10)
+
+    assert reply.status == 200
+    assert RepoRegistry(tmp_path).checkout("demo") == checkout
+
+
+def test_a_checkout_that_is_not_text_is_a_400(tmp_path):
+    service, _ = service_with(tmp_path, Reading())
+
+    reply = service.respond("/mine", {"project": "demo", "sources": SOURCES, "repo_dir": 5})
+
+    assert reply.status == 400 and "repo_dir" in str(reply.body)

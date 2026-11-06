@@ -69,17 +69,15 @@ def mine_past_sessions(
         for entry in in_reading_order(known)
     }
     if not any(found.values()):
-        places = " and ".join(
-            str(entry.sessions_live_in(os.environ, home)) for entry in in_reading_order(known)
-        )
-        _say(
-            f"no {labels_or(known)} sessions found for {args.repo_dir.resolve()}; "
-            f"looked in {places}"
-        )
+        _say_nothing_found(args.repo_dir, known, home)
         return 0
     sources = [[reader, str(log)] for reader, logs in found.items() for log in logs]
     try:
-        started = client.ask("/mine", {"project": args.project, "sources": sources}, args.port)
+        started = client.ask(
+            "/mine",
+            {"project": args.project, "sources": sources, "repo_dir": str(args.repo_dir.resolve())},
+            args.port,
+        )
     except ServiceUnavailableError as offline:
         _say(f"symbiont offline: {offline}")
         return 1
@@ -90,6 +88,14 @@ def mine_past_sessions(
         _say(f"{args.project} is already being mined; following it")
     _show_dashboard(args, client)
     return _follow(args, client, _session_counts(found, known))
+
+
+def _say_nothing_found(repo_dir: Path, known: Sequence[Harness], home: Path) -> None:
+    """Say which harnesses were looked for, and where, when no session was found."""
+    places = " and ".join(
+        str(entry.sessions_live_in(os.environ, home)) for entry in in_reading_order(known)
+    )
+    _say(f"no {labels_or(known)} sessions found for {repo_dir.resolve()}; looked in {places}")
 
 
 def _session_counts(found: dict[str, list[Path]], known: Sequence[Harness]) -> str:
