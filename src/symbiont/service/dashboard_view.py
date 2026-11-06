@@ -18,7 +18,9 @@ from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review,
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.screen import HoldReason
+from symbiont.miner.secrets import scrub
 from symbiont.miner.trained import lesson_id
+from symbiont.service.candidate_summary import rule_summary
 from symbiont.store.held_back import StruggleGroup
 
 REPLAY_DAYS = 30
@@ -226,6 +228,10 @@ def _point(
         "failure": failure_detail(latest.quote) or happened(signature),
         "fix": resolution_clause(latest) if latest.resolution else None,
         "lessonId": lesson_id(latest),
+        # Raw text: the page escapes it when drawing. The model's summary leads; the rule-built one
+        # fills in until the session's model has written one.
+        "summary": scrub(review.summary) if review else "",
+        "ruleSummary": rule_summary(latest),
     }
 
 

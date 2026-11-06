@@ -90,7 +90,7 @@ class Curation:
         """Store the verdict for a mined lesson."""
         with self._db:
             self._db.execute(
-                "INSERT OR REPLACE INTO reviews VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT OR REPLACE INTO reviews VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 (
                     lesson_id,
                     project,
@@ -99,18 +99,19 @@ class Curation:
                     review.title,
                     review.merge_with,
                     applies_json(review.applies),
+                    review.summary,
                 ),
             )
 
     def reviews(self, project: str) -> dict[str, Review]:
         """The project's verdicts by lesson id."""
         rows = self._db.execute(
-            "SELECT lesson_id, verdict, rule, title, merge_with, applies "
+            "SELECT lesson_id, verdict, rule, title, merge_with, applies, summary "
             "FROM reviews WHERE project=?",
             (project,),
         )
         return {
-            row[0]: Review(Verdict(row[1]), row[2], row[3], row[4], applies_from(row[5]))
+            row[0]: Review(Verdict(row[1]), row[2], row[3], row[4], applies_from(row[5]), row[6])
             for row in rows
         }
 

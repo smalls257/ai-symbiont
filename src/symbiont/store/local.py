@@ -59,7 +59,8 @@ CREATE TABLE IF NOT EXISTS authored (
 );
 CREATE TABLE IF NOT EXISTS reviews (
     lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, verdict TEXT NOT NULL,
-    rule TEXT NOT NULL, title TEXT NOT NULL, merge_with TEXT, applies TEXT NOT NULL
+    rule TEXT NOT NULL, title TEXT NOT NULL, merge_with TEXT, applies TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS decided (
     project TEXT NOT NULL, candidate_id TEXT NOT NULL, PRIMARY KEY (project, candidate_id)
@@ -86,6 +87,14 @@ def _add_missing_authored_columns(db: sqlite3.Connection) -> None:
         if name not in columns:
             with db:
                 db.execute(f"ALTER TABLE authored ADD COLUMN {name} TEXT NOT NULL DEFAULT ''")
+
+
+def _add_missing_review_summary(db: sqlite3.Connection) -> None:
+    """Add `reviews.summary` to stores from before the session's model could write one."""
+    columns = {row[1] for row in db.execute("PRAGMA table_info(reviews)")}
+    if "summary" not in columns:
+        with db:
+            db.execute("ALTER TABLE reviews ADD COLUMN summary TEXT NOT NULL DEFAULT ''")
 
 
 class SparkPrivacyViolationError(PermissionError):
@@ -136,6 +145,7 @@ class Store:
         db.executescript(HELD_BACK_SCHEMA)
         db.executescript(IGNORED_SCHEMA)
         _add_missing_authored_columns(db)
+        _add_missing_review_summary(db)
         _warn_about_legacy_history(db, path)
         return cls(db)
 

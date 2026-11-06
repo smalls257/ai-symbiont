@@ -90,3 +90,5 @@ class Review:
     title: str = ""
     merge_with: str | None = None
     applies: AppliesTo = AppliesTo()
+    # Two or three sentences the session's model wrote about the pain point; "" when none.
+    summary: str = ""

@@ -1,6 +1,6 @@
 ---
 description: Show what symbiont is doing here, explain a note, silence it, forget a lesson, or answer for this repository
-argument-hint: "[onboard | status | dashboard | settings | why | mute | forget | lessons | context | reflect | learn-from-prs | allow | decline | mine | nightly | uninstall]"
+argument-hint: "[onboard | status | dashboard | settings | why | mute | forget | lessons | context | reflect | learn-from-prs | review | allow | decline | mine | nightly | uninstall]"
 allowed-tools: Bash(symbiont:*), mcp__symbiont, mcp__plugin_symbiont_symbiont
 ---
 
@@ -32,6 +32,7 @@ not retry through the shell.
 | `onboard` | `symbiont_allow`, `symbiont_mine`, the correction tools, then `symbiont_nightly` (see below) | `symbiont repo allow`, `symbiont repo mine`, `symbiont nightly start` | set this repository up from nothing, in one command |
 | `dashboard` | `symbiont_dashboard` | `symbiont dashboard`, then `open <address>` on macOS | this repository's dashboard: pain points, lessons, the 30-day replay and the measured results. Tell the developer the address in your reply, so they can open it even if no browser opened |
 | `learn-from-prs` | `symbiont_learn_from_prs`, then follow the steps it returns yourself with your own `gh` access | `symbiont learn-from-prs`, then the same | learn lessons from this repository's recent pull-request reviews and CI failures; symbiont reads nothing from GitHub, you save the lessons with `symbiont_add_lessons` (source_label like "from PR #412 review", source_url the PR address) |
+| `review` | `symbiont_review_candidates`, then `symbiont_save_reviews` | no shell command | fetch the candidate pain points, which carry what the user asked, what the agent meant to do, how often it happened and how it ended; for each write a summary of two or three sentences (what the agent was trying to do, what went wrong, whether it was fixed, whether it is worth keeping as a lesson) and a verdict (mistake, expected or noise), then save them all with `symbiont_save_reviews` (`id`, `verdict`, `summary`, `rule_in_plain_words`, `title`). Repeat while `remaining` is above zero. Tell the developer how many you judged |
 | `reflect` | no tool or command; do it yourself now | | answer "In one or two plain sentences each, what non-obvious thing about this repository would you tell a teammate before they work on this area next time? Name the files or areas. Only things that were not obvious from the docs." from the work done in this session, then call `symbiont_add_lessons` with `source_label` "from reflection" (kind `rule` or `mistake`, `files`, `applies_to`); say "nothing" and call no tool if there is nothing |
 
 **`onboard`** runs these five steps in order and reports each in one plain line:

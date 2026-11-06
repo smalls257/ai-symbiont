@@ -21,6 +21,7 @@ from symbiont.miner.resolutions import (
     reason_of,
     resolution_of,
 )
+from symbiont.miner.turns_before import CONTEXT_CHARS, last_turn_before
 from symbiont.records.privacy import OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Kind, Record
 
@@ -62,6 +63,11 @@ class Lesson:
     # The known fix the resolution shows: an edit to the codebase or a corrected command; None
     # when it shows neither (the lesson is then struggle, counted but never taught).
     fix: FixKind | None = None
+    # The last user message before the cited step, and the agent's text just before it, each
+    # trimmed; "" when the session has none. They are quoted records, so they join `sources`
+    # and the privacy flag.
+    asked: str = ""
+    agent_intent: str = ""
 
 
 @dataclass(frozen=True)
@@ -117,7 +123,9 @@ def _lesson(
     """One lesson: the pain point, its resolution and the quote it carries."""
     found = resolution_of(pain, cited, records)
     steps, alongside = _fix_parts(found)
-    used = [*cited, *alongside, *steps]
+    asking = last_turn_before(records, cited[0].step, Kind.USER_TURN)
+    meaning = last_turn_before(records, cited[0].step, Kind.AGENT_TURN)
+    used = [*cited, *alongside, *steps, *filter(None, (asking, meaning))]
     return Lesson(
         pain_point=pain,
         quote=excerpt(cited[0], QUOTE_CHARS),
@@ -131,7 +139,14 @@ def _lesson(
         error_lines=key_error_lines(cited[0].raw),
         files=tuple(dict.fromkeys(name for r in used for name in r.files)),
         fix=fix_kind(pain, steps, repo_names),
+        asked=_context_text(asking),
+        agent_intent=_context_text(meaning),
     )
+
+
+def _context_text(record: Record | None) -> str:
+    """The record's text trimmed to CONTEXT_CHARS; "" when there is no such turn."""
+    return _clip_start(record.raw.strip(), CONTEXT_CHARS) if record is not None else ""
 
 
 def _fix_parts(

@@ -8,7 +8,7 @@ silencing a lesson the developer annotated).
 from dataclasses import replace
 from datetime import date
 
-from record_builders import edit, run, session
+from record_builders import edit, run, say, session, user
 from symbiont.miner.lesson_context import LessonContext, Priority, Review, Verdict
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -102,3 +102,50 @@ def test_the_dashboard_shows_the_conflict_only_for_an_annotated_lesson():
 
     assert flagged["lessons"][0]["reviewConflict"] == "noise"
     assert plain["lessons"][0]["reviewConflict"] is None
+
+
+def asked_lessons(user_text="fix the refund rounding", intent="I will round to one place"):
+    steps = session(
+        user(user_text),
+        say(intent),
+        run("pytest tests/test_refund.py -q", 1, LONG_OUTPUT),
+        edit("src/refund.py", diff="-round(x)\n+round(x, 1)\n"),
+        run("pytest tests/test_refund.py -q", 0, "5 passed in 0.5s"),
+    )
+    steps = [replace(step, project="demo", session_id="s1") for step in steps]
+    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+
+
+def test_the_review_candidate_carries_the_turns_around_the_failure_scrubbed():
+    (lesson,) = asked_lessons(f"fix it, my {SECRET} works", "I will retry")
+
+    candidate = review_candidate(lesson, None)
+
+    assert candidate["agent_intent"] == "I will retry"
+    assert candidate["asked"].startswith("fix it, my ")
+    assert SECRET.split("=")[1] not in str(candidate)
+    assert candidate["times_it_happened"] == 1 and candidate["sessions_it_happened_in"] == 1
+    assert candidate["outcome"]
+
+
+def test_the_candidate_counts_every_stored_lesson_of_the_same_trouble():
+    (lesson,) = asked_lessons()
+    other = replace(lesson, pain_point=replace(lesson.pain_point, session_id="s2"))
+
+    candidate = review_candidate(lesson, None, [lesson, other])
+
+    assert candidate["times_it_happened"] == 2 and candidate["sessions_it_happened_in"] == 2
+
+
+def test_an_unfixed_candidate_says_the_history_shows_no_fix():
+    (lesson,) = asked_lessons()
+    unfixed = replace(lesson, resolution=(), changed_alongside=())
+
+    assert review_candidate(unfixed, None)["outcome"] == "The history shows no fix."
+
+
+def test_a_fixed_candidate_names_the_fix_in_its_outcome():
+    (lesson,) = asked_lessons()
+    fixed = replace(lesson, resolution=("ran `pip install pyyaml`",))
+
+    assert review_candidate(fixed, None)["outcome"] == "It was fixed: ran `pip install pyyaml`."

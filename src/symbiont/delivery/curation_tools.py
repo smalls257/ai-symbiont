@@ -51,12 +51,14 @@ _DESCRIPTIONS = {
     "savec": ("Save your judgments: [{candidate_id, is_correction, rule_in_plain_words}]."),
     "rev": (
         "A batch of pain points found by rules. Judge each as mistake, expected or noise, "
-        "then call symbiont_save_reviews."
+        "then call symbiont_save_reviews. Each carries what the user asked, what the agent "
+        "meant to do, how often it happened and how it ended; use them to write the summary."
     ),
     "saver": (
         "Save your verdicts: [{id, verdict: mistake|expected|noise, rule_in_plain_words, "
-        "title, merge_with?, applies_to?: {terms, areas}}]. Expected and noise silence the "
-        "note."
+        "title, summary, merge_with?, applies_to?: {terms, areas}}]. summary is two or three "
+        "sentences: what the agent was trying to do, what went wrong, whether it was fixed, and "
+        "whether this is worth keeping as a lesson. Expected and noise silence the note."
     ),
     "focus": ("Save what the developer said symbiont should pay attention to in this repository."),
 }

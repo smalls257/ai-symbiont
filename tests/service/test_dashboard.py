@@ -14,7 +14,7 @@ from datetime import date
 
 import pytest
 
-from record_builders import edit, run, session
+from record_builders import edit, run, session, user
 from symbiont.miner.lesson_context import (
     AppliesTo,
     AuthoredLesson,
@@ -272,3 +272,41 @@ def test_the_add_context_panels_scroll_instead_of_clipping():
         assert "overflow-y:auto" in rule
         assert "min-height:0" in rule
     assert "overflow:hidden" not in edit_rule
+
+
+def test_a_summary_with_markup_is_escaped_on_the_page():
+    """Leaky Narrative at the page: model text must be drawn through esc, never as HTML."""
+    from pathlib import Path
+
+    markup = "<img src=x onerror=alert(1)>"
+    lessons = lessons_in("a", "b")
+    ident = lesson_id(lessons[0])
+    review = Review(Verdict.MISTAKE, summary=markup)
+
+    snapshot = dashboard_snapshot(view(lessons, reviews={ident: review}), TODAY)
+    static = Path(server.__file__).parent / "static"
+    js = (static / "dashboard.js").read_text()
+    helper = (static / "summary.js").read_text()
+
+    assert snapshot["painPoints"][0]["summary"] == markup
+    assert "SymbiontSummary.summaryHtml(p,esc)" in js
+    assert "esc(p.summary)" in helper and "esc(p.ruleSummary)" in helper
+    assert "Ask your session for a summary: /symbiont review" in helper
+    assert len(js.splitlines()) <= 400
+
+
+def test_a_pain_point_without_a_review_gets_a_rule_built_summary_from_the_request():
+    steps = session(
+        user("make the parser tests pass"),
+        run("pytest tests/test_parser.py", 1, IMPORT),
+        edit("app/parser.py", diff="-a\n+def parse(text):\n"),
+        run("pytest tests/test_parser.py", 0, "1 passed"),
+    )
+    steps = [replace(step, project="demo", session_id="a") for step in steps]
+    lessons = lessons_from(mine_history(sessions_of(steps), {}), steps)
+
+    point = dashboard_snapshot(view(lessons), TODAY)["painPoints"][0]
+
+    assert point["summary"] == ""
+    assert "You asked: make the parser tests pass" in point["ruleSummary"]
+    assert "ImportError" in point["ruleSummary"] and "fixed" in point["ruleSummary"]
