@@ -53,21 +53,36 @@ def test_a_single_user_correction_is_never_held():
 
 
 def test_each_group_is_counted_once_under_the_first_reason_that_applies():
-    ignored = Signature(Signal.FAILED_COMMAND, ("make", "-", "exit 2"))
     bare = Signature(Signal.FAILED_COMMAND, ("make", "lint", "exit 2"))
     probe = Signature(Signal.FAILED_COMMAND, ("grep", "a.py", "ImportError"))
     lessons = [
-        lesson(ignored, fix=None),  # ignored beats no fix shown
         lesson(bare, "s1", fix=FixKind.CODE_FIX),  # no message beats too few sessions
         lesson(probe, "s1", fix=FixKind.CODE_FIX),  # a probe beats too few sessions
         lesson(TRAP, "s1", fix=None),  # no fix shown
         lesson(TRAP, "s2", fix=None),
     ]
-    result = screen(lessons, ScreenRules(ignored=frozenset({ignored})))
+    result = screen(lessons, ScreenRules())
     assert result.held == {
-        HoldReason.IGNORED: 1,
         HoldReason.NO_MESSAGE: 1,
         HoldReason.PROBE_COMMAND: 1,
         HoldReason.NO_FIX_SHOWN: 1,
     }
     assert result.kept == []
+
+
+def test_an_ignored_group_is_counted_as_ignored_and_its_lessons_are_still_kept():
+    """Failure guarded against: dropping ignored lessons, so Restore after a re-mine finds none."""
+    ignored = Signature(Signal.FAILED_COMMAND, ("make", "lint", "exit 2 NameError"))
+    lessons = [
+        lesson(ignored, "s1", fix=FixKind.CODE_FIX),
+        lesson(ignored, "s2", fix=FixKind.CODE_FIX),
+    ]
+    result = screen(lessons, ScreenRules(ignored=frozenset({ignored})))
+    assert result.held == {HoldReason.IGNORED: 1}
+    assert result.kept == lessons
+
+
+def test_an_ignored_group_that_another_reason_holds_is_counted_under_that_reason():
+    ignored = Signature(Signal.FAILED_COMMAND, ("make", "-", "exit 2"))
+    result = screen([lesson(ignored, fix=None)], ScreenRules(ignored=frozenset({ignored})))
+    assert result.held == {HoldReason.NO_FIX_SHOWN: 1}

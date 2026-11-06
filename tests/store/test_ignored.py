@@ -75,10 +75,24 @@ def test_an_ignored_pattern_stays_ignored_after_a_remine(tmp_path, mined):
     store, lessons = mined
     store.ignored.add(PROJECT, [lessons[0].pain_point.signature], "label")
 
-    kept = mine(tmp_path, store)
+    mine(tmp_path, store)
 
-    assert kept == [] and store.lessons(PROJECT) == []
+    assert store.lessons(PROJECT) == []
     assert store.mined.counts(PROJECT)[HoldReason.IGNORED] == 1
+
+
+def test_ignore_then_remine_then_restore_brings_the_lessons_back(tmp_path, mined):
+    """Failure guarded against: a re-mine drops ignored lessons, so Restore restores nothing."""
+    store, lessons = mined
+    signature = lessons[0].pain_point.signature
+    store.ignored.add(PROJECT, [signature], "label")
+    mine(tmp_path, store)
+
+    assert store.ignored.remove(PROJECT, signature) is True
+
+    assert sorted(lesson_id(item) for item in store.lessons(PROJECT)) == sorted(
+        lesson_id(item) for item in lessons
+    )
 
 
 def test_restoring_brings_the_lessons_back_without_a_remine(mined):

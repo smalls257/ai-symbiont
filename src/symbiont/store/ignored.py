@@ -3,9 +3,8 @@
 A dashboard row can hold several signatures (a reviewer's merge), so ignoring a row stores them
 all under one label and one `row_id`, and restoring any of them brings the whole row back.
 
-An ignored pattern is hidden by every read of the lessons (`Store.lessons`) and held back as
-IGNORED on every later mining, and it stays listed here with its title so it can be restored.
-The row survives a re-mining because a signature is stable; nothing is deleted from the lessons.
+An ignored pattern is hidden on read (`Store.lessons`) and counted as IGNORED on every mining,
+but mining still saves its lessons, so restoring needs no re-mine, also after a re-mine.
 """
 
 import json

@@ -14,12 +14,17 @@ from dataclasses import replace
 import pytest
 
 from record_builders import edit, run, session
+from symbiont.core.counters import Counters
 from symbiont.miner.lesson_context import Review, Verdict
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
+from symbiont.miner.screen import ScreenRules
 from symbiont.miner.trained import lesson_id
+from symbiont.records.schema import dump_jsonl, load_jsonl
 from symbiont.service import server
-from symbiont.service.app import ServiceMode
+from symbiont.service.app import Service, ServiceMode, ServiceParts
+from symbiont.service.events import EventLog
+from symbiont.service.repo_gate import RepoGate
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -181,3 +186,48 @@ def test_listing_ignored_patterns_needs_an_allowed_project(tmp_path):
         httpd.server_close()
 
     assert refused.value.code == 400 and "repo allow" in refused.value.read().decode()
+
+
+def test_ignore_then_remine_then_restore_through_the_service_brings_the_pattern_back(tmp_path):
+    """Failure guarded against: a re-mine drops the ignored lessons and Restore restores nothing."""
+
+    def read_records_jsonl(path, project):
+        with path.open(encoding="utf-8") as fh:
+            return iter(list(load_jsonl(fh)))
+
+    registry = RepoRegistry(tmp_path)
+    registry.record_stance(PROJECT, RepoStance.GIVEN)
+    steps = []
+    for sid in ("a", "b"):
+        steps += [
+            replace(step, project=PROJECT, session_id=sid)
+            for step in session(
+                run("pytest tests/test_parser.py", 1, IMPORT),
+                edit("app/parser.py", diff="-a\n+def parse(text):\n"),
+                run("pytest tests/test_parser.py", 0, "1 passed"),
+            )
+        ]
+    log = tmp_path / "log.jsonl"
+    with log.open("w") as fh:
+        dump_jsonl(steps, fh)
+    store = Store.open(tmp_path / "store.db")
+    parts = ServiceParts(
+        store,
+        Counters(),
+        EventLog(tmp_path / "run", "counters"),
+        readers={"records-jsonl": read_records_jsonl},
+        gate=RepoGate(registry),
+        screen_rules=lambda: ScreenRules(min_sessions=2),
+    )
+    service = Service(parts)
+    learn = {"reader": "records-jsonl", "session_log_path": str(log), "project": PROJECT}
+    assert service.respond("/learn", learn).status == 200
+    ident = lesson_id(store.lessons(PROJECT)[-1])
+    signature = service.respond(f"/lessons/{ident}/ignore", {"project": PROJECT}).body["signature"]
+    assert service.respond("/learn", learn).status == 200
+    assert store.lessons(PROJECT) == []
+
+    assert service.respond("/ignored/restore", {"project": PROJECT, **signature}).status == 200
+
+    assert len(store.lessons(PROJECT)) == 2
+    assert store.mined.counts(PROJECT).get("ignored", 0) == 1
