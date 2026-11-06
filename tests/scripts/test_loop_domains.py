@@ -222,7 +222,7 @@ def write_episode(where, session):
     record = schema.Record(
         harness="vizdoom", project="freedoom2", session_id=session, step=0,
         kind=schema.Kind.COMMAND, raw=json.dumps({"level": "MAP01", "ended": "exited"}),
-        provenance=schema.Provenance(dataset="synthetic", license="none", spark_safe=True),
+        provenance=schema.Provenance(dataset="synthetic", license="none", remote_safe=True),
         command="scripted go_to(exit)",
     )  # fmt: skip
     with (where / f"{session}.jsonl").open("w") as handle:

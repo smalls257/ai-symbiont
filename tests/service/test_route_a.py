@@ -127,43 +127,43 @@ def test_recall_only_mode_never_warns_through_the_memory_model(tmp_path):
     assert prompts == []
 
 
-def spark_recall(service):
-    question = {"question": "what broke?", "project": PROJECT, "spark_bound": True}
+def remote_recall(service):
+    question = {"question": "what broke?", "project": PROJECT, "remote_bound": True}
     return service.respond("/recall", question)
 
 
-def test_a_personal_adapter_never_answers_spark_bound(tmp_path):
+def test_a_personal_adapter_never_answers_remote_bound(tmp_path):
     service, events, prompts = make(tmp_path, provenance=AdapterProvenance.PERSONAL)
-    response = spark_recall(service)
+    response = remote_recall(service)
     assert response.status == 409 and prompts == []
     assert events_of(events)[0]["status"] == 409
 
 
-def test_a_public_adapter_answers_spark_bound(tmp_path):
+def test_a_public_adapter_answers_remote_bound(tmp_path):
     service, _, prompts = make(tmp_path, provenance=AdapterProvenance.PUBLIC)
-    assert spark_recall(service).body == {"answer": LINE, "records": []}
+    assert remote_recall(service).body == {"answer": LINE, "records": []}
 
 
 @pytest.mark.parametrize(
     ("consent", "status"), [(OwnHistoryConsent.WITHHELD, 409), (OwnHistoryConsent.GIVEN, 200)]
 )
-def test_an_own_history_adapter_answers_spark_only_while_consent_holds(tmp_path, consent, status):
+def test_an_own_history_adapter_answers_remote_only_while_consent_holds(tmp_path, consent, status):
     own = AdapterProvenance.OWN_HISTORY_WITH_CONSENT
     service, _, _ = make(tmp_path, provenance=own, consent=consent)
-    assert spark_recall(service).status == status
+    assert remote_recall(service).status == status
     local = service.respond("/recall", {"question": "what broke?", "project": PROJECT})
     assert local.status == 200
 
 
-def test_a_spark_bound_answer_is_scrubbed_of_credentials(tmp_path):
+def test_a_remote_bound_answer_is_scrubbed_of_credentials(tmp_path):
     secret = "gh" + "p_" + "k" * 36
     line = f"Happened: `git push` failed -> Resolved: you set GH_TOKEN={secret} -> Check: run it"
     service, _, _ = make(tmp_path, content=line)
-    answer = spark_recall(service).body["answer"]
+    answer = remote_recall(service).body["answer"]
     assert secret not in answer and "[secret]" in answer
 
 
-def test_a_spark_bound_observe_with_a_personal_adapter_is_refused(tmp_path):
+def test_a_remote_bound_observe_with_a_personal_adapter_is_refused(tmp_path):
     service, _, prompts = make(tmp_path, provenance=AdapterProvenance.PERSONAL)
     record = replace(run("pytest tests/test_cli.py", 1, "ImportError: x"), project=PROJECT)
     body = {
@@ -171,7 +171,7 @@ def test_a_spark_bound_observe_with_a_personal_adapter_is_refused(tmp_path):
         "session_id": "live",
         "event": "PostToolUseFailure",
         "payload": {"record": json.loads(json.dumps(asdict(replace(record, step=0))))},
-        "spark_bound": True,
+        "remote_bound": True,
     }
     assert service.respond("/observe", body).status == 409
     assert prompts == []

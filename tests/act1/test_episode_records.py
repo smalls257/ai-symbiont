@@ -104,10 +104,10 @@ def test_records_roundtrip_through_jsonl():
     assert list(load_jsonl(buffer)) == records
 
 
-def test_records_are_spark_safe_selfplay():
+def test_records_are_remote_safe_selfplay():
     (record,) = episode_records(EPISODE, two_moves()[:1], ROOMS, EpisodeEnd.DIED)
     assert record.provenance == PROVENANCE
-    assert PROVENANCE.spark_safe is True
+    assert PROVENANCE.remote_safe is True
     assert PROVENANCE.license == "BSD-3-Clause"
 
 

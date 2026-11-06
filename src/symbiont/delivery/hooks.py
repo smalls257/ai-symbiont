@@ -193,7 +193,7 @@ def _record(harness: str, project: str, session_id: str) -> dict[str, Any]:
         "provenance": {
             "dataset": DATASET_PREFIX + harness,
             "license": LIVE_LICENSE,
-            "spark_safe": False,
+            "remote_safe": False,
         },
         "files": [],
     }

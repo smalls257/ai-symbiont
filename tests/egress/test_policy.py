@@ -5,18 +5,18 @@ import pytest
 from symbiont.egress import Destination, EgressRefusedError, Endpoint, check_outbound
 from symbiont.records.schema import Provenance
 
-SAFE = Provenance(dataset="openhands", license="MIT", spark_safe=True)
-PRIVATE = Provenance(dataset="owner-sessions", license="private", spark_safe=False)
-SWE_CHAT = Provenance(dataset="SWE-chat", license="research", spark_safe=True)
+SAFE = Provenance(dataset="openhands", license="MIT", remote_safe=True)
+PRIVATE = Provenance(dataset="owner-sessions", license="private", remote_safe=False)
+SWE_CHAT = Provenance(dataset="SWE-chat", license="research", remote_safe=True)
 REMOTE_URL = "https://api.meta.ai/v1/chat/completions"
 
 
-@pytest.mark.parametrize("endpoint", [Endpoint.SPARK, Endpoint.CONTRIBUTOR, Endpoint.WONDER])
-def test_remote_endpoints_take_spark_safe_records(endpoint):
+@pytest.mark.parametrize("endpoint", [Endpoint.REMOTE_CHAT, Endpoint.CONTRIBUTOR, Endpoint.WONDER])
+def test_remote_endpoints_take_remote_safe_records(endpoint):
     check_outbound(Destination(endpoint, REMOTE_URL), [SAFE, SAFE])
 
 
-@pytest.mark.parametrize("endpoint", [Endpoint.SPARK, Endpoint.CONTRIBUTOR, Endpoint.WONDER])
+@pytest.mark.parametrize("endpoint", [Endpoint.REMOTE_CHAT, Endpoint.CONTRIBUTOR, Endpoint.WONDER])
 @pytest.mark.parametrize("bad", [[PRIVATE], [SAFE, PRIVATE], [SWE_CHAT], []])
 def test_remote_endpoints_refuse_private_or_undeclared_provenance(endpoint, bad):
     with pytest.raises(EgressRefusedError):
@@ -25,7 +25,7 @@ def test_remote_endpoints_refuse_private_or_undeclared_provenance(endpoint, bad)
 
 def test_the_refusal_names_the_dataset_not_any_text():
     with pytest.raises(EgressRefusedError, match="owner-sessions"):
-        check_outbound(Destination(Endpoint.SPARK, REMOTE_URL), [PRIVATE])
+        check_outbound(Destination(Endpoint.REMOTE_CHAT, REMOTE_URL), [PRIVATE])
 
 
 @pytest.mark.parametrize(
@@ -39,7 +39,7 @@ def test_the_refusal_names_the_dataset_not_any_text():
 )
 def test_remote_endpoints_refuse_plain_http_private_hosts_and_other_schemes(url):
     with pytest.raises(EgressRefusedError):
-        check_outbound(Destination(Endpoint.SPARK, url), [SAFE])
+        check_outbound(Destination(Endpoint.REMOTE_CHAT, url), [SAFE])
 
 
 @pytest.mark.parametrize(
@@ -89,15 +89,15 @@ def test_the_memory_model_is_loopback_only(url):
 )
 def test_remote_endpoints_refuse_any_host_but_the_listed_one(url):
     with pytest.raises(EgressRefusedError, match="not an allowed remote host"):
-        check_outbound(Destination(Endpoint.SPARK, url), [SAFE])
+        check_outbound(Destination(Endpoint.REMOTE_CHAT, url), [SAFE])
 
 
 def test_the_listed_host_passes_with_a_trailing_dot_and_any_case():
-    check_outbound(Destination(Endpoint.SPARK, "https://API.Meta.AI./v1"), [SAFE])
+    check_outbound(Destination(Endpoint.REMOTE_CHAT, "https://API.Meta.AI./v1"), [SAFE])
 
 
 @pytest.mark.parametrize("host", ["box.lan.", "printer.localdomain", "router.fritz.box"])
 def test_private_host_spellings_are_refused_for_remote_and_accepted_for_glimmer(host):
     with pytest.raises(EgressRefusedError):
-        check_outbound(Destination(Endpoint.SPARK, f"https://{host}/v1"), [SAFE])
+        check_outbound(Destination(Endpoint.REMOTE_CHAT, f"https://{host}/v1"), [SAFE])
     check_outbound(Destination(Endpoint.LOCAL_GLIMMER, f"http://{host}/v1"))

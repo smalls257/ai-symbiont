@@ -27,7 +27,7 @@ def lesson(signature=FAILED, resolution=("ran `pip install pyyaml`", "ran `pytes
         quote=QUOTE if signature == FAILED else "edited the index page",
         resolution=resolution,
         unresolved_because=None if resolution else "no later command passed",
-        spark_safe=True,
+        remote_safe=True,
         sources=(("s1", step),),
     )
 

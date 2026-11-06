@@ -39,7 +39,7 @@ def _pooled(kept: Lesson, twin: Lesson) -> Lesson:
         task_ids=_union(kept.task_ids, twin.task_ids),
         changed_alongside=_union(kept.changed_alongside, twin.changed_alongside),
         private_datasets=_union(kept.private_datasets, twin.private_datasets),
-        spark_safe=kept.spark_safe and twin.spark_safe,
+        remote_safe=kept.remote_safe and twin.remote_safe,
         unresolved_because=None if resolution else kept.unresolved_because,
     )
 

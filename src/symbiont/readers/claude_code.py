@@ -29,9 +29,11 @@ from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
 
 HARNESS = "claude-code"
-PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", spark_safe=False)
-SWE_CHAT = Provenance(dataset="swe-chat", license="see-dataset-card", spark_safe=False)
-OPEN_SWE_TRACES = Provenance(dataset="open-swe-traces", license="see-dataset-card", spark_safe=True)
+PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", remote_safe=False)
+SWE_CHAT = Provenance(dataset="swe-chat", license="see-dataset-card", remote_safe=False)
+OPEN_SWE_TRACES = Provenance(
+    dataset="open-swe-traces", license="see-dataset-card", remote_safe=True
+)
 
 CORRECTION = "correction"
 _CONVERSATION_TYPES = ("user", "assistant")
@@ -68,17 +70,17 @@ def project_folder_name(repo_path: str) -> str:
 
 
 def read(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of the owner's private sessions (never spark safe)."""
+    """Yield records of the owner's private sessions (never remote safe)."""
     return _read(path, project, PRIVATE_SESSIONS)
 
 
 def read_swe_chat(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of SWE-chat sessions (never spark safe)."""
+    """Yield records of SWE-chat sessions (never remote safe)."""
     return _read(path, project, SWE_CHAT)
 
 
 def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of public Open-SWE-Traces Claude Code rows (spark safe)."""
+    """Yield records of public Open-SWE-Traces Claude Code rows (remote safe)."""
     return _read(path, project, OPEN_SWE_TRACES)
 
 

@@ -16,11 +16,11 @@ class BadRequestError(ValueError):
     """A request that does not have the shape its route takes."""
 
 
-def spark_bound(request: dict[str, Any]) -> bool:
+def remote_bound(request: dict[str, Any]) -> bool:
     """Absent means local; anything but a real bool is refused, never guessed."""
-    value = request.get("spark_bound", False)
+    value = request.get("remote_bound", False)
     if not isinstance(value, bool):
-        raise BadRequestError("spark_bound must be true or false")
+        raise BadRequestError("remote_bound must be true or false")
     return value
 
 

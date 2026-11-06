@@ -1,6 +1,6 @@
 """Build LCAP lessons, training sets and held-out questions from the public OpenHands pool.
 
-Lessons come only from the public nebius OpenHands trajectories (CC-BY-4.0, spark_safe); a record
+Lessons come only from the public nebius OpenHands trajectories (CC-BY-4.0, remote_safe); a record
 with any other provenance stops the run. Every dropped pair is counted by reason. Only counts are
 printed; lesson text stays in the work directory outside the repo.
 Usage: uv run python scripts/routea/build_lessons.py --pool ... --out ~/symbiont-runs/lcap/data

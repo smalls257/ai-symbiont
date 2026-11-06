@@ -106,7 +106,7 @@ def test_serve_refuses_a_memory_url_that_is_not_loopback_at_launch(tmp_path, cap
 def test_consent_is_given_withdrawn_and_shown(tmp_path, capsys):
     data = ["--data-dir", str(tmp_path)]
     assert cli.main(["consent", "show", *data]) == 0
-    assert "own_history_to_spark = withheld" in capsys.readouterr().out
+    assert "own_history_to_remote = withheld" in capsys.readouterr().out
     assert cli.main(["consent", "give", *data]) == 0
     assert "= consent" in capsys.readouterr().out
     assert cli.main(["consent", "withdraw", *data]) == 0

@@ -73,20 +73,20 @@ def test_user_pushback_label_kept(records):
     assert last.raw.startswith("No, that is wrong")
 
 
-def test_swe_chat_is_not_spark_safe():
+def test_swe_chat_is_not_remote_safe():
     out = list(read_swe_chat(SESSION, PROJECT))
-    assert {r.provenance.spark_safe for r in out} == {False}
+    assert {r.provenance.remote_safe for r in out} == {False}
     assert {r.provenance.dataset for r in out} == {"swe-chat"}
 
 
-def test_open_swe_traces_claudecode_is_spark_safe():
+def test_open_swe_traces_claudecode_is_remote_safe():
     out = list(read_open_swe_traces(SESSION, PROJECT))
-    assert {r.provenance.spark_safe for r in out} == {True}
+    assert {r.provenance.remote_safe for r in out} == {True}
     assert {r.provenance.dataset for r in out} == {"open-swe-traces"}
 
 
-def test_user_private_sessions_not_spark_safe(records):
-    assert {r.provenance.spark_safe for r in records} == {False}
+def test_user_private_sessions_not_remote_safe(records):
+    assert {r.provenance.remote_safe for r in records} == {False}
     assert {r.provenance.dataset for r in records} == {"private-sessions"}
 
 

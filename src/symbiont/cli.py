@@ -139,7 +139,7 @@ def _add_consent_command(commands: Any) -> None:
     """Register `consent`: give, withdraw or show the own-history consent."""
     consent = commands.add_parser(
         "consent",
-        help="whether lessons from your OWN sessions may reach Spark (default: withheld); "
+        help="whether lessons from your OWN sessions may reach a remote model (default: withheld); "
         "third-party private data never may",
     )
     consent.add_argument("choice", choices=["give", "withdraw", "show"])
