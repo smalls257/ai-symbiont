@@ -18,6 +18,7 @@ from typing import Any
 from symbiont.readers.claude_code_fields import (
     MalformedError,
     optional_text,
+    origin_kind,
     require,
     require_text,
 )
@@ -49,6 +50,14 @@ _NOT_TYPED_FLAGS = {
 # They are bookkeeping, not turns: skip and count them. Any other non-conversation type with a
 # message is still new conversation-shaped content and raises.
 _REQUEST_LOG_TYPES = ("api-request-blob", "api-request", "api-request-shape")
+# `origin.kind` of user events other than the developer's typing: background-agent notifications
+# and other sessions' messages arrive as user events but are not the developer's words. Any
+# kind not named here is counted under its own name.
+_HUMAN_ORIGIN = "human"
+_INJECTED_ORIGINS = {
+    "task-notification": "task notification",
+    "peer": "message from another session",
+}
 Skips = Counter[str]
 
 
@@ -236,10 +245,22 @@ def _user_turns(event: dict[str, Any], skips: Skips) -> Iterator[dict[str, Any]]
         if event.get(flag) is True:
             skips[label] += 1  # the harness wrote it, the developer did not: no correction signal
             return
+    injected = _injected_label(event)
+    if injected is not None:
+        skips[injected] += 1  # another process wrote it: quoting it as the developer would be false
+        return
     texts = [require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
     if not texts:
         return  # tool results only: they are folded into the action they answer
     yield {"kind": Kind.USER_TURN, "raw": "\n".join(texts), "tags": _pushback_tags(event)}
+
+
+def _injected_label(event: dict[str, Any]) -> str | None:
+    """Why a user event with a non-human `origin` is skipped; None for human or origin-less ones."""
+    kind = origin_kind(event)
+    if kind is None or kind == _HUMAN_ORIGIN:
+        return None
+    return _INJECTED_ORIGINS.get(kind, kind)
 
 
 def _pushback_tags(event: dict[str, Any]) -> tuple[str, ...]:

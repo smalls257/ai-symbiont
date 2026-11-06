@@ -404,3 +404,42 @@ def test_a_title_that_is_not_text_raises_readerror(tmp_path):
     title = {"type": "ai-title", "aiTitle": 7, "sessionId": "s"}
     with pytest.raises(ReadError, match="aiTitle"):
         _read_events(tmp_path, _event("user", "first"), title)
+
+
+def _injected(kind):
+    return _event("user", "<task-notification>done</task-notification>", origin={"kind": kind})
+
+
+def test_a_task_notification_is_not_a_user_turn_and_is_counted(tmp_path, caplog):
+    typed = _event("user", "no, use pytest")
+    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, _injected("task-notification"), typed)
+    assert [r.raw for r in records] == ["no, use pytest"]
+    assert "'task notification': 1" in caplog.text
+
+
+def test_a_message_from_another_session_is_not_a_user_turn(tmp_path, caplog):
+    with caplog.at_level("WARNING", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, _injected("peer"), _injected("scheduled"))
+    assert records == []
+    assert "'message from another session': 1" in caplog.text
+    assert "'scheduled': 1" in caplog.text
+
+
+def test_a_human_origin_is_a_user_turn(tmp_path):
+    typed = _event("user", "no, use pytest", origin={"kind": "human"})
+    assert [r.raw for r in _read_events(tmp_path, typed)] == ["no, use pytest"]
+
+
+def test_a_user_event_without_origin_is_still_a_user_turn(tmp_path):
+    assert [r.raw for r in _read_events(tmp_path, _event("user", "hello"))] == ["hello"]
+
+
+@pytest.mark.parametrize("origin", ["human", ["human"], {"kind": 3}, {}])
+def test_a_malformed_origin_raises_naming_the_line(tmp_path, origin):
+    path = write_lines(
+        tmp_path,
+        [json.dumps(_event("user", "ok")), json.dumps(_event("user", "x", origin=origin))],
+    )
+    with pytest.raises(ReadError, match=r":2\b|line 2"):
+        list(read(path, PROJECT))
