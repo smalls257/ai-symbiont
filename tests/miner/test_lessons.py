@@ -171,3 +171,18 @@ def test_the_context_cap_matches_a_correction_candidates_turn_cap():
     from symbiont.core.correction_candidates import MAX_TURN_CHARS
 
     assert CONTEXT_CHARS == MAX_TURN_CHARS
+
+
+def test_lessons_from_marks_a_target_created_in_the_session():
+    """Failure guarded against: a script the agent wrote itself passing as the project's own."""
+    made = replace(edit("/workspace/x/repro.py"), tags=("created",))
+    records = session(made, run("python ./repro.py", 1, "TypeError: x"), run("python repro.py", 0))
+    (lesson,) = lessons_of(records)
+    assert lesson.target_created is True
+
+
+def test_a_target_created_only_after_the_failure_is_not_marked():
+    made = replace(edit("repro.py"), tags=("created",))
+    records = session(run("python repro.py", 1, "TypeError: x"), made, run("python repro.py", 0))
+    (lesson,) = lessons_of(records)
+    assert lesson.target_created is False

@@ -48,6 +48,7 @@ REPLACED_TABLES = ("lessons", "held_back", "mining_settings", "struggle", "churn
 REASON_WORDS = {
     HoldReason.IGNORED: "set aside by you",
     HoldReason.NO_FIX_SHOWN: "no fix shown",
+    HoldReason.THROWAWAY_SCRIPT: "a throwaway script (its name repeats, its problem does not)",
     HoldReason.NO_MESSAGE: "no message to tell them apart",
     HoldReason.PROBE_COMMAND: "look-around commands",
     HoldReason.TOO_FEW_SESSIONS: "seen in too few sessions",

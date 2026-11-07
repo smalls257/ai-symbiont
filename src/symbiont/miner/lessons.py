@@ -11,6 +11,7 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
+from symbiont.miner.created import target_created_before
 from symbiont.miner.error_lines import key_error_lines
 from symbiont.miner.fixes import FixKind, fix_kind
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
@@ -68,6 +69,9 @@ class Lesson:
     # and the privacy flag.
     asked: str = ""
     agent_intent: str = ""
+    # A failed command's target file was created by an earlier edit of the same session: the
+    # agent's own throwaway script, whose name repeats across sessions while its problem does not.
+    target_created: bool = False
 
 
 @dataclass(frozen=True)
@@ -141,7 +145,18 @@ def _lesson(
         fix=fix_kind(pain, steps, repo_names),
         asked=_context_text(asking),
         agent_intent=_context_text(meaning),
+        target_created=_target_created(pain, cited[0], records, repo_names),
     )
+
+
+def _target_created(
+    pain: PainPoint, failure: Record, records: Sequence[Record], repo_names: frozenset[str]
+) -> bool:
+    """Whether a failed command ran a file its own session created earlier."""
+    signature = pain.signature
+    if signature.signal is not Signal.FAILED_COMMAND:
+        return False
+    return target_created_before(signature.key[1], records, failure.step, repo_names)
 
 
 def _context_text(record: Record | None) -> str:

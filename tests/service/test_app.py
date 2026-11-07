@@ -266,12 +266,16 @@ def test_observe_recalls_no_raw_records_because_none_are_stored(tmp_path):
 
 
 def test_a_warning_says_how_it_was_resolved_and_what_to_check(tmp_path):
-    fixed = session(
+    """Failure guarded against: quoting an occurrence that passed on a retry, not the fix."""
+    retried = session(
         run(COMMAND, 1, "AssertionError"), run("pip install pyyaml"), run(COMMAND, 0, "ok")
     )
-    service, _ = make_service(tmp_path, make_store(tmp_path, fixed, failing_session("b")))
+    service, _ = make_service(
+        tmp_path, make_store(tmp_path, retried, failing_session("b"), failing_session("c"))
+    )
     (note,) = service.respond("/observe", observe_body()).body["notes"]
-    assert "pip install pyyaml" in note and f"Check: run `{COMMAND}`" in note
+    assert "sqlglot/parser.py" in note and f"Check: run `{COMMAND}`" in note
+    assert "pip install pyyaml" not in note
 
 
 def test_recall_answers_with_structured_lessons(tmp_path):

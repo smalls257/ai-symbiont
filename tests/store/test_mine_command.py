@@ -24,10 +24,11 @@ def logs(tmp_path, monkeypatch):
     fixed = session(
         run(TEST, 1, "app/parser.py:1 ImportError"), edit("app/parser.py"), run(TEST, 0, "ok")
     )
+    again = [replace(r, session_id="s3") for r in fixed]
     never = [replace(r, session_id="s2") for r in session(run(TEST, 1, "ImportError"))]
     path = tmp_path / "log.jsonl"
     with path.open("w") as fh:
-        dump_jsonl(fixed + never, fh)
+        dump_jsonl(fixed + again + never, fh)
     return path
 
 
@@ -36,7 +37,7 @@ def test_mine_prints_lesson_count_and_per_signal_coverage(tmp_path, logs, capsys
     assert cli.main([*argv, "--source", f"records-jsonl={logs}"]) == 0
     out = capsys.readouterr().out
     assert "2 lessons from 1 logs" in out
-    assert "failed_command: 1 of 2 resolved" in out and "loop: 0 of 0 resolved" in out
+    assert "failed_command: 2 of 2 resolved" in out and "loop: 0 of 0 resolved" in out
     assert "ImportError" not in out and "pyyaml" not in out
     assert cli.main(argv) == 0, "a second run re-reads the registered log"
     assert "2 lessons from 1 logs" in capsys.readouterr().out
