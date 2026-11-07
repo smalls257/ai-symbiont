@@ -7,6 +7,10 @@ class MalformedError(Exception):
     """Internal: an event is not in the shape this reader knows. Becomes a ReadError."""
 
 
+class RefusedCallError(Exception):
+    """Internal: the tool would reject this call's input (the agent's mistake, not a bad file)."""
+
+
 def require(mapping: Any, key: str) -> Any:
     """The mapping's value for `key`; a missing or null one raises MalformedError."""
     if not isinstance(mapping, dict) or mapping.get(key) is None:
