@@ -11,7 +11,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/records/`.
 - `Provenance.remote_safe` has no default: unknown privacy is never treated as shareable.
 - `exit_code=None` means "not reported", never "succeeded".
 - Task-id normalization lives here (`owner__repo-123` and `owner/repo#123` compare equal); an unrecognized id raises.
-- `dashboard_views.py`: `DashboardView` (the dashboard pages) and `dashboard_address`, the one spelling of the dashboard address that the CLI, hooks and MCP tool share.
+- `dashboard_views.py`: `DashboardView` (the dashboard pages) and `dashboard_address`, the dashboard address contract shared by service and delivery. It lives here because records is the one package both may import (delivery must not import service, nothing imports delivery), and it is pure; before, the CLI, hooks and MCP tool each spelled the address themselves.
 - Pure: no network, clock, files (callers pass file handles to `load_jsonl`/`dump_jsonl`).
 
 ## Imports

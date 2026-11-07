@@ -95,6 +95,7 @@ def _add_dashboard_command(commands: Any, defaults: Defaults) -> None:
     dashboard.add_argument(
         "view",
         nargs="?",
+        default=DashboardView.INBOX.value,
         choices=[view.value for view in DashboardView],
         help="which page to open; inbox when left out",
     )

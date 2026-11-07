@@ -1,11 +1,12 @@
 """`symbiont dashboard [view] [--open]`: every view has its address; offline never gives a link."""
 
+from urllib.request import urlopen
+
 import pytest
 from tests.live_service import serving
 
 from symbiont import cli
-from symbiont.delivery.hooks import dashboard_url
-from symbiont.records.dashboard_views import DashboardView
+from symbiont.records.dashboard_views import DashboardView, dashboard_address
 
 pytestmark = pytest.mark.periphery
 
@@ -34,7 +35,7 @@ def test_each_view_prints_its_own_address(tmp_path, capsys, view):
         assert run(tmp_path, view.value, port=port) == 0
     shown = capsys.readouterr().out.strip()
     assert shown.endswith(f"&view={view.value}")
-    assert shown == dashboard_url(port, "demo", view)
+    assert shown == dashboard_address(port, "demo", view)
 
 
 def test_an_unknown_view_is_refused_listing_the_views(tmp_path, capsys):
@@ -68,9 +69,7 @@ def test_a_down_service_prints_offline_and_opens_nothing(tmp_path, capsys):
 
 
 def test_the_page_still_loads_with_a_view_it_does_not_read_yet(tmp_path):
-    from urllib.request import urlopen
-
     with serving(tmp_path) as (_, port):
-        url = dashboard_url(port, "demo", DashboardView.TOPICS)
-        with urlopen(url) as reply:  # noqa: S310 - loopback address built above
+        url = dashboard_address(port, "demo", DashboardView.TOPICS)
+        with urlopen(url) as reply:
             assert reply.status == 200

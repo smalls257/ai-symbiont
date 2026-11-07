@@ -26,7 +26,7 @@ def show_dashboard(args: argparse.Namespace, ask: AskService, client: MineClient
     except ServiceAnswerError as unusable:
         sys.stderr.write(f"symbiont dashboard: {unusable}\n")
         return 1
-    view = DashboardView(args.view or DashboardView.INBOX)
+    view = DashboardView(args.view)
     address = dashboard_address(args.port, args.project, view)
     sys.stdout.write(address + "\n")
     if args.open and not client.open_page(address):

@@ -131,7 +131,10 @@ def run_hook(
     notes = reply.get("notes")
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
-    told = _announcements(reply, dashboard_url(settings.port, body["payload"]["record"]["project"]))
+    told = _announcements(
+        reply,
+        dashboard_address(settings.port, body["payload"]["record"]["project"], DashboardView.INBOX),
+    )
     worded = _worded(event, notes, settings.style)
     text = "\n".join(filter(None, [worded, *told, *_for_the_model(reply)]))
     if not text or event not in speaking_events(settings.harness):
@@ -266,11 +269,6 @@ def _output_text(response: Any) -> str:
         if printed:
             return "\n".join(part for part in printed if part)
     return json.dumps(response)
-
-
-def dashboard_url(port: int, project: str, view: DashboardView = DashboardView.INBOX) -> str:
-    """Where the local dashboard for `project` is served, opened on `view`."""
-    return dashboard_address(port, project, view)
 
 
 def _announcements(reply: dict[str, Any], dashboard: str) -> list[str]:
