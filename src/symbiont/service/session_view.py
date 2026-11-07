@@ -1,18 +1,19 @@
 """GET /dashboard/session: one session's strip, messages and failed commands, read on demand.
 
-The log is read fresh and scrubbed here, then forgotten: nothing of it is stored, and only the
-developer's own harness logs are offered (dataset history is never shown as the developer's).
+The log is read fresh and scrubbed here, then forgotten: nothing of it is stored.
+The page is local and display is not egress, so dataset history is served like any other, scrubbed.
+Only the log that holds the session is parsed: found by file name, else by a raw text check.
 A sensor line carries sizes, never text.
 """
 
 from collections.abc import Callable, Mapping
+from pathlib import Path
 from typing import Any
 
 from symbiont.miner.mine import sessions_of
 from symbiont.miner.session_detail import session_detail
 from symbiont.readers import Reader
 from symbiont.readers.errors import ReadError
-from symbiont.readers.harnesses import harness_for_reader
 from symbiont.records.schema import Record
 from symbiont.store.local import Source, Store
 from symbiont.store.mining import UnknownReaderError, read_source
@@ -60,11 +61,9 @@ def _project_refusal(store: Store, registry: RepoRegistry | None, project: str) 
 def _records_of(
     store: Store, readers: Mapping[str, Reader], project: str, ident: str
 ) -> tuple[list[Record], bool]:
-    """The session's records from the first own-harness log holding it, and whether one failed."""
-    unreadable = False
-    for source in store.sources(project):
-        if harness_for_reader(source.reader) is None:
-            continue
+    """The session's records from the log that holds it, and whether a log was unreadable."""
+    holders, unreadable = _holders(store.sources(project), ident)
+    for source in holders:
         found = _read(source, readers)
         if found is None:
             unreadable = True
@@ -73,6 +72,32 @@ def _records_of(
         if session:
             return session, unreadable
     return [], unreadable
+
+
+def _holders(sources: list[Source], ident: str) -> tuple[list[Source], bool]:
+    """The sources that may hold `ident`, without parsing any: named by it, else mentioning it."""
+    named = [s for s in sources if Path(s.path).stem == ident]
+    if named:
+        return named, False
+    holders, unreadable = [], False
+    for source in sources:
+        try:
+            mentions = _mentions(Path(source.path), ident.encode())
+        except OSError:
+            mentions = None  # reported through `unreadable`: the page says the log is gone
+        if mentions is None:
+            unreadable = True
+        elif mentions:
+            holders.append(source)
+    return holders, unreadable
+
+
+def _mentions(path: Path, needle: bytes) -> bool:
+    """Whether the raw file contains `needle`; a folder may. OSError if unreadable."""
+    if path.is_dir():
+        return True
+    with path.open("rb") as fh:
+        return any(needle in line for line in fh)
 
 
 def _read(source: Source, readers: Mapping[str, Reader]) -> list[Record] | None:

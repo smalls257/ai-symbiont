@@ -119,9 +119,63 @@ def test_session_detail_missing_log(tmp_path):
     )
 
 
-def test_dataset_history_is_never_shown(tmp_path):
+def test_dataset_history_is_served_scrubbed(tmp_path):
     store, registry, _ = rig(tmp_path, reader="swe-chat")
 
     status, body = get(store, registry, f"project={PROJECT}&id=s1", [])
 
-    assert status == 404 and body["error"] == "no such session"
+    assert status == 200 and body["counts"]["failed"] == 1
+    assert "abcdefghij0123456789klmnop" not in json.dumps(body)
+
+
+def add_log(store, tmp_path, name, ident):
+    steps = session(user(f"work on {ident}"), run("ls", 0))
+    records = [replace(r, project=PROJECT, session_id=ident) for r in steps]
+    log = tmp_path / name
+    with log.open("w") as fh:
+        dump_jsonl(records, fh)
+    fresh = facts_of(sessions_of(records), [], Codebase(frozenset({PROJECT})), frozenset())
+    sources = [*store.sources(PROJECT), Source(PROJECT, "muse-code", str(log))]
+    facts = [*store.mined.session_facts(PROJECT), *fresh]
+    store.mined.save(PROJECT, sources, MiningOutcome([], facts=facts), held_out_tasks=frozenset())
+
+
+def counting_get(store, registry, ident, parsed):
+    def reader(path, project):
+        parsed.append(path.name)
+        return read_jsonl(path, project)
+
+    live = Live(readers={"muse-code": reader}, session_sensor=lambda project, line: None)
+    page = dashboard_page(
+        store, registry, f"/dashboard/session?project={PROJECT}&id={ident}", date(2026, 11, 7), live
+    )
+    return page.status
+
+
+def test_only_the_log_named_by_the_session_is_parsed(tmp_path):
+    store, registry, _ = rig(tmp_path)
+    for n in range(4):
+        add_log(store, tmp_path, f"sess-{n}.jsonl", f"sess-{n}")
+    parsed = []
+
+    assert counting_get(store, registry, "sess-2", parsed) == 200
+    assert parsed == ["sess-2.jsonl"]
+
+
+def test_a_log_not_named_by_the_session_is_found_by_its_text_and_alone(tmp_path):
+    store, registry, _ = rig(tmp_path)
+    for n in range(3):
+        add_log(store, tmp_path, f"log-{n}.jsonl", f"other-{n}")
+    parsed = []
+
+    assert counting_get(store, registry, "s1", parsed) == 200
+    assert parsed == ["log.jsonl"]
+
+
+def test_an_unknown_session_parses_no_file(tmp_path):
+    store, registry, _ = rig(tmp_path)
+    add_log(store, tmp_path, "sess-1.jsonl", "sess-1")
+    parsed = []
+
+    assert counting_get(store, registry, "ghost", parsed) == 404
+    assert parsed == []
