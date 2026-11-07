@@ -6,6 +6,7 @@ or lesson title running as markup). The renderers run under node with a fake con
 """
 
 import json
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -197,3 +198,32 @@ def test_a_triage_change_made_elsewhere_redraws_the_inbox_once_on_return(drawn):
     routing = drawn["routing"]
 
     assert routing["refreshedAfterChange"] == 1 and routing["refreshedAfterQuietReturn"] == 1
+
+
+def test_sticky_sub_nav_carries_the_stage_padding_so_nothing_scrolls_above_it():
+    """Violation prevented: Paper Tiger (a sticky tab bar that still shows scrolled cards above it).
+
+    The scrolling Pain points views drop the stage's top padding and the sub-nav pays it itself,
+    across the full width, with a solid background; sticky columns clear the bar.
+    """
+    inbox = (STATIC / "inbox.css").read_text(encoding="utf-8")
+    dash = (STATIC / "dashboard.css").read_text(encoding="utf-8")
+    stage_pad = re.search(r"\.stage\{[^}]*padding:([\d.]+)rem ([\d.]+)rem", dash)
+    top, side = stage_pad.groups()
+    scroller = r"#s1\.on\[data-view\]:not\(\[data-view=struggle\]\)"
+    assert re.search(scroller + r"\{padding-top:0\}", inbox)
+    bar = re.search(
+        scroller
+        + r">\.subnav\{margin:0 -"
+        + side
+        + r"rem;padding:"
+        + top
+        + "rem "
+        + side
+        + r"rem [\d.]+rem\}",
+        inbox,
+    )
+    assert bar, "the sub-nav must bleed over the side padding and carry the top padding"
+    assert re.search(r"\.subnav\{background:var\(--bg1\)", dash)
+    assert "position:sticky;top:var(--subnav-clear)" in inbox
+    assert "top:var(--subnav-clear)" in (STATIC / "topics.css").read_text(encoding="utf-8")
