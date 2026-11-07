@@ -1,6 +1,7 @@
 """Commands that change nothing: they cannot be what made a failed command pass."""
 
 from symbiont.miner.commands import program_words
+from symbiont.miner.resolutions import bare_arguments
 from symbiont.miner.screen import PROBES
 
 # Each Bash call starts a fresh shell, so these leave no state behind for the next call.
@@ -27,7 +28,7 @@ def is_read_only(command: str) -> bool:
     program, args = program_words(command)
     if _INFO_FLAGS & set(args) or program in SHELL_PLUMBING | READ_ONLY_PROGRAMS:
         return True
-    words = [arg for arg in args if not arg.startswith("-")]
+    words = bare_arguments(args)
     if program == "sed":
         return "-n" in args
     if program == "git":
