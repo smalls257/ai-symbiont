@@ -16,6 +16,7 @@ from symbiont.service.incident_view import incidents_snapshot
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.service.session_dates import session_dates_of
+from symbiont.service.topic_view import topic_snapshot
 from symbiont.service.triage_route import triage_listing
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -30,6 +31,7 @@ FILES = {
     "/dashboard/heldback.js": ("heldback.js", "text/javascript; charset=utf-8"),
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
     "/dashboard/summary.js": ("summary.js", "text/javascript; charset=utf-8"),
+    "/dashboard/topics.js": ("topics.js", "text/javascript; charset=utf-8"),
     "/dashboard/ignored.js": ("ignored.js", "text/javascript; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
@@ -165,6 +167,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     snapshot["ignored"] = ignored
     snapshot["triage"] = triage_listing(store, project)
     snapshot["incidents"] = incidents_snapshot(store, project)
+    snapshot["topicView"] = topic_snapshot(store, project)
     return _page_filled_with(snapshot)
 
 
