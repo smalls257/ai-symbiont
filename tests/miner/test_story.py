@@ -55,7 +55,11 @@ def test_a_failure_with_no_message_says_the_exit_not_a_guess():
         lesson.pain_point, signature=Signature(Signal.FAILED_COMMAND, ("pnpm", "-", "exit 1"))
     )
     bare = replace(
-        lesson, pain_point=pain, error_lines=(), quote="$ pnpm api:generate\nExit status 1"
+        lesson,
+        pain_point=pain,
+        error_lines=(),
+        complaint="",
+        quote="$ pnpm api:generate\nExit status 1",
     )
     assert story_of(bare).broke == "`pnpm api:generate` failed (exit 1)"
 
@@ -64,6 +68,7 @@ def test_a_plain_error_line_gets_a_short_path():
     lesson = replace(
         owners_lesson(),
         quote="$ pytest\n",
+        complaint="",
         error_lines=(
             "File \"/srv/build/app/parser.py\", line 4: NameError: name 'np' is not defined",
         ),
@@ -188,7 +193,9 @@ def test_the_real_message_line_is_shown_not_the_normalized_grouping_key():
 
 
 def test_a_deep_relative_path_in_an_error_shortens_to_its_file_name():
-    lesson = replace(owners_lesson(), error_lines=(), quote="$ x\nError: cannot read a/b/c/d.json")
+    lesson = replace(
+        owners_lesson(), error_lines=(), complaint="", quote="$ x\nError: cannot read a/b/c/d.json"
+    )
     assert "d.json" in story_of(lesson).broke and "a/b/c" not in story_of(lesson).broke
 
 
@@ -196,4 +203,9 @@ def test_the_chip_suggestion_is_the_clean_error_line_or_nothing():
     from symbiont.miner.story import error_summary
 
     assert error_summary(owners_lesson()).startswith("`identity.controller.ts:47`")
-    assert error_summary(replace(owners_lesson(), error_lines=(), quote="$ x\nExit status 1")) == ""
+    assert (
+        error_summary(
+            replace(owners_lesson(), error_lines=(), complaint="", quote="$ x\nExit status 1")
+        )
+        == ""
+    )

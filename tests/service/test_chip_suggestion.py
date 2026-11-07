@@ -14,5 +14,5 @@ def test_the_chip_is_the_what_broke_error_line_not_the_raw_output():
 
 
 def test_with_no_error_line_there_is_no_suggestion():
-    bare = replace(owners_lesson(), error_lines=(), quote="$ x\nExit status 1")
+    bare = replace(owners_lesson(), error_lines=(), complaint="", quote="$ x\nExit status 1")
     assert _lesson(1, bare, None, None, frozenset())["exampleContext"] == ""

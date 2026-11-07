@@ -41,6 +41,7 @@ def _pooled(kept: Lesson, twin: Lesson) -> Lesson:
         fix_steps=max(kept.fix_steps, twin.fix_steps),
         fix_added=kept.fix_added or twin.fix_added,
         failed_command=kept.failed_command or twin.failed_command,
+        complaint=kept.complaint or twin.complaint,
         changed_alongside=_union(kept.changed_alongside, twin.changed_alongside),
         private_datasets=_union(kept.private_datasets, twin.private_datasets),
         remote_safe=kept.remote_safe and twin.remote_safe,

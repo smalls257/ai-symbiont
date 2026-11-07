@@ -24,7 +24,7 @@ def test_a_command_below_a_cd_line_is_the_working_command():
     home = "/".join(["", "Users", "pat", "Code", "repo"])
     assert working_command(f"cd {home}\npnpm api:generate") == "pnpm api:generate"
     assert working_command(f"cd {home}; pnpm test") == "pnpm test"
-    assert working_command(f"cd {home} && git push && git commit -m 'x'") == "git commit -m …"
+    assert working_command(f"cd {home} && git push && git commit -m 'x'") == "git push"
 
 
 def test_redirections_and_trailing_filter_pipes_are_not_shown():

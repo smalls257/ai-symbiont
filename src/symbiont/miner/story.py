@@ -8,8 +8,10 @@ bounded plain lines out. Each line is "" when the history cannot say it, never a
 import re
 from dataclasses import dataclass
 
+from symbiont.miner.complaint_line import HINT_LINE
 from symbiont.miner.credential_patterns import scrub
 from symbiont.miner.failure_keys import broke_in_words
+from symbiont.miner.failure_program import failing_program
 from symbiont.miner.fix_words import Step, edit_clause, last_command, resolution_phrase
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
@@ -17,6 +19,8 @@ from symbiont.miner.shown_paths import plain_paths
 from symbiont.miner.working_command import working_command
 
 WORKING_ON_CHARS = 120
+# The same words the card verdict uses for a failure that went through on a second run.
+PASSED_AGAIN = "passed when run again"
 COMMAND_CHARS = 60
 ERROR_CHARS = 130
 BROKE_CHARS = 200
@@ -30,6 +34,7 @@ _BOILERPLATE = re.compile(
     r"|^\$ |^\d+ (?:failed|passed|error)|^\s*$|^\s*at\s|^Process exited",
     re.IGNORECASE,
 )
+_ADVICE = HINT_LINE
 _LOCATION = re.compile(r"[\w./\\-]+\.\w+[:(]\d+")
 _CODE = re.compile(r"\b(?:TS|E|ERR|TS\d)\d{3,5}\b|\berror TS\d+")
 _MESSAGE = re.compile(r"\w*(?:Error|Exception):? \S|\berror:? \S")
@@ -39,6 +44,8 @@ _TYPESCRIPT = re.compile(
 )
 # A relative path of three or more parts shortens to its file name; `.git/index.lock` stays.
 _DEEP_PATH = re.compile(r"(?<![\w:/.-])(?:[\w.@-]+/){2,}([\w.@-]+)")
+_HEREDOC = re.compile(r"<<[-~]?\s*['\"]?(\w+)['\"]?")
+_CLOSERS = frozenset({")", '"', "'", ')"', ")'"})
 _LEVEL = re.compile(r"^(?:fatal|error|warning):\s*", re.IGNORECASE)
 _POOLED = re.compile(r", and \d+ other fix(?:es)?$")
 _RAN_AGAIN = re.compile(r"re-ran ([^,]+)")
@@ -99,8 +106,14 @@ def error_summary(lesson: Lesson, repo_names: frozenset[str] = frozenset()) -> s
 
 
 def _error_of(lesson: Lesson) -> str:
-    """The most specific line of the failure's own output (the command's lines are not output)."""
-    return specific_error_line([*lesson.error_lines, *_output_lines(lesson)])
+    """The line that says why: the compiler's located error, the tool's complaint, then the rest.
+
+    Advice lines and the command's own lines (a heredoc commit message) are never output.
+    """
+    located = next((line for line in lesson.error_lines if _TYPESCRIPT.match(_clean(line))), "")
+    if located:
+        return _clean(located)
+    return lesson.complaint or specific_error_line([*lesson.error_lines, *_output_lines(lesson)])
 
 
 def _output_lines(lesson: Lesson) -> list[str]:
@@ -108,7 +121,43 @@ def _output_lines(lesson: Lesson) -> list[str]:
     head = f"$ {lesson.failed_command}\n"
     if lesson.failed_command and lesson.quote.startswith(head):
         return lesson.quote[len(head) :].splitlines()
-    return lesson.quote.splitlines()[1:]
+    lines = lesson.quote.splitlines()
+    return lines[_command_line_count(lines) :]
+
+
+def _command_line_count(lines: list[str]) -> int:
+    """How many leading quote lines are the command itself: a heredoc or open quote spans lines.
+
+    A head clipped by the quote limit has no output after it at all.
+    """
+    first = lines[0] if lines else ""
+    if first.rstrip().endswith("[...]"):
+        return len(lines)
+    heredoc = _HEREDOC.search(first)
+    if heredoc:
+        closing = (i for i, line in enumerate(lines[1:], 1) if line.strip() == heredoc.group(1))
+        end = next(closing, len(lines) - 1)
+        return _after_closers(lines, end + 1)
+    if first.count('"') % 2 or first.count("'") % 2:
+        return _after_open_quote(lines)
+    return 1
+
+
+def _after_closers(lines: list[str], index: int) -> int:
+    """`index`, moved past lines that only close a `$(...)` or a quote."""
+    while index < len(lines) and lines[index].strip() in _CLOSERS:
+        index += 1
+    return index
+
+
+def _after_open_quote(lines: list[str]) -> int:
+    """The line count up to the line that closes the quote the command opened."""
+    text = ""
+    for count, line in enumerate(lines, 1):
+        text += line + "\n"
+        if text.count('"') % 2 == 0 and text.count("'") % 2 == 0:
+            return count
+    return len(lines)
 
 
 def _without_message(reason: str) -> str:
@@ -121,7 +170,11 @@ def _without_message(reason: str) -> str:
 def specific_error_line(lines: list[str]) -> str:
     """The line that says why: a location and a code beat a message; else the last real line."""
     cleaned = [_clean(line) for line in lines]
-    useful = [line for line in cleaned if line and not _BOILERPLATE.search(line)]
+    useful = [
+        line
+        for line in cleaned
+        if line and not _BOILERPLATE.search(line) and not _ADVICE.search(line)
+    ]
     ranked = sorted(enumerate(useful), key=lambda item: (-_score(item[1]), item[0]))
     if ranked and _score(ranked[0][1]) > 0:
         return ranked[0][1]
@@ -175,6 +228,8 @@ def _by_command(lesson: Lesson, phrase: str, repo_names: frozenset[str], setup: 
     command = working_command(chosen, repo_names)
     if setup:
         return f"fixed the setup: ran `{command}`, then it passed"
+    if failing_program(chosen) == failed:
+        return PASSED_AGAIN
     if lesson.fix is not None and lesson.fix.value == "corrected_command":
         return f"ran it correctly: `{command}`"
     return f"fixed by running `{command}`, then `{_command_of(lesson, repo_names)}` passed"
@@ -202,12 +257,16 @@ def _say(line: str, repo_names: frozenset[str] = frozenset()) -> str:
     """The error line as a teammate reads it: short paths, no `fatal:` prefix, the code last."""
     text = _clean(line)
     found = _TYPESCRIPT.match(text)
-    if found:
-        base = plain_paths(found["path"].replace("\\", "/"), repo_names).rsplit("/", 1)[-1]
-        message = found["message"].rstrip(". ")
-        return _cut(scrub(f"`{base}:{found['line']}`: {message} ({found['code']})"), ERROR_CHARS)
-    shown = _DEEP_PATH.sub(r"\1", plain_paths(scrub(_LEVEL.sub("", text)), repo_names))
-    return _cut(shown, ERROR_CHARS)
+    if not found:
+        return _cut(_shown(_LEVEL.sub("", text), repo_names), ERROR_CHARS)
+    base = found["path"].replace("\\", "/").rsplit("/", 1)[-1]
+    message = _shown(found["message"].rstrip(". "), repo_names)
+    return _cut(f"`{base}:{found['line']}`: {message} ({found['code']})", ERROR_CHARS)
+
+
+def _shown(text: str, repo_names: frozenset[str]) -> str:
+    """Text for a card: scrubbed, home paths cut to repo-relative or a file name."""
+    return _DEEP_PATH.sub(r"\1", plain_paths(scrub(text), repo_names))
 
 
 def _cut(text: str, limit: int) -> str:

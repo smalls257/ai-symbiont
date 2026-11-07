@@ -12,6 +12,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.added_line import telling_added_line
+from symbiont.miner.complaint_line import complaint_of
 from symbiont.miner.created import target_created_before
 from symbiont.miner.error_lines import key_error_lines
 from symbiont.miner.fix_words import fix_phrase
@@ -86,6 +87,8 @@ class Lesson:
     fix_added: str = ""
     # The failed command as typed, clipped; "" for other signals and for rows stored before it.
     failed_command: str = ""
+    # The tool's own complaint line from the whole output (`complaint_line`); "" when it said none.
+    complaint: str = ""
 
 
 @dataclass(frozen=True)
@@ -164,6 +167,7 @@ def _lesson(
         fix_steps=len(steps),
         fix_added=telling_added_line(steps),
         failed_command=_clip_start(cited[0].command or "", FAILED_COMMAND_CHARS),
+        complaint=complaint_of(cited[0].raw),
     )
 
 
