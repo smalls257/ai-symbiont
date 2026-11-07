@@ -83,6 +83,8 @@ console.log(JSON.stringify({
   draft, neverFixed, corrDraft, corrDraftOwn, request, bare, emptyWhat,
   teachNotes: { trains: M.teachNote(draft), held: M.teachNote(heldBack) },
   archive: M.ARCHIVE_CHOICES.map((c) => c.body),
+  archiveLabels: M.ARCHIVE_CHOICES.map((c) => c.label),
+  archiveOn: M.archiveChoices(new Date(2026, 10, 7)).map((c) => c.detail),
   views: ["", "inbox", "topics", "trends", "struggle", "context", "replay", "nope"].map((v) => M.viewFrom(v ? "?view=" + v : "", warn)),
   warnings, tooLong, trimmed: M.cleanName("  Flaky  "),
   tips: [

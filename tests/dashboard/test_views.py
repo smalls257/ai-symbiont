@@ -84,3 +84,57 @@ def test_a_gone_group_with_no_last_day_and_a_hostile_title_still_draws_safely(dr
 
 def test_a_trend_with_too_few_occurrences_says_so(drawn):
     assert "too few to tell" in drawn["tooFew"]
+
+
+def test_route_round_trip_hostile_keys(drawn):
+    for case, key in zip(drawn["routing"]["roundTrip"], drawn["routing"]["hostile"], strict=True):
+        assert case["back"] == {"view": "group", "key": key, "hash": "teach me"}
+        assert case["href"].startswith("?project=my%20proj&view=group&key=")
+        assert "&" not in case["href"].split("key=")[1].split("#")[0]
+
+
+def test_group_without_key_is_notfound(drawn):
+    html = drawn["routing"]["missing"]
+
+    assert "No such group." in html and 'href="?project=p&view=inbox"' in html
+    assert drawn["routing"]["notFoundView"] == "notfound"
+
+
+def test_session_step_is_integer(drawn):
+    assert drawn["routing"]["steps"] == [None, 12, None, None, None]
+
+
+def test_unknown_view_warns_once(drawn):
+    routing = drawn["routing"]
+
+    assert routing["unknown"] == {"view": "inbox"}
+    assert len([w for w in routing["warnings"] if "unknown view" in w]) == 1
+
+
+def test_popstate_restores_the_view_and_clears_the_crumb(drawn):
+    routing = drawn["routing"]
+
+    assert routing["afterPop"] == {"view": "topics", "crumb": "", "crumbHidden": True}
+    assert routing["crumbA"] == "Group a"
+
+
+def test_navigation_pushes_history_and_redraws_detail_views_each_time(drawn):
+    routing = drawn["routing"]
+
+    assert routing["afterNavigate"] == {"view": "session", "url": "?project=p&view=session&id=s1"}
+    assert routing["unbuilt"] == '<p class="soon" role="status">Not built yet.</p>'
+    assert [c["route"]["key"] for c in routing["calls"]] == ["a", "b", "c:d"]
+    assert all(c["project"] == "p" and c["same"] for c in routing["calls"])
+    assert routing["groupPane"] == "G:c:d"
+
+
+def test_only_a_plain_left_click_on_a_route_link_navigates(drawn):
+    routing = drawn["routing"]
+
+    assert routing["plain"] is True
+    assert routing["ctrl"] is False and routing["middle"] is False
+    assert routing["pushedBeforePop"] == 4
+
+
+def test_the_header_meta_line_gives_scale_and_privacy(drawn):
+    assert drawn["routing"]["meta"] == "3 sessions · Jan 5, 2026 – Apr 2, 2026 · local only"

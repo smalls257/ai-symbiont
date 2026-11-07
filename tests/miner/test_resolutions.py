@@ -218,3 +218,9 @@ def test_each_lesson_is_resolved_against_its_own_session_records_only():
     other = [replace(r, session_id="s2") for r in session(run(TEST, 0, "1 passed"))]
     (lesson,) = lessons_from(find_failed_commands(one), one + other, frozenset())
     assert lesson.unresolved_because == NO_LATER_SUCCESS
+
+
+def test_a_name_value_argument_is_not_the_subcommand():
+    from symbiont.miner.resolutions import subcommand_of
+
+    assert subcommand_of("make CC=gcc test") == "test"

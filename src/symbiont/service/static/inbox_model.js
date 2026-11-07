@@ -7,7 +7,7 @@
 const TAB_OF_STATE={for_review:"review",reviewed:"reviewed",resolved:"resolved",archived:"archived"};
 const TABS=["review","reviewed","resolved","archived"];
 const TAB_WORDS={review:"For review",reviewed:"Reviewed",resolved:"Resolved",archived:"Archived"};
-const VIEWS=["inbox","topics","trends","struggle","context","replay"];
+const VIEWS=["inbox","topics","trends","struggle","context","replay","group","session"];
 const DAY_MS=864e5;
 
 const triageOf=(triage,g)=>(triage||{})[g.key]||{};
@@ -138,12 +138,21 @@ const TEACH_NOTES={
 };
 const teachNote=draft=>[draft.hasTrigger?"":TEACH_NOTES.noSituation,draft.trains?TEACH_NOTES.trains:TEACH_NOTES.noteOnly].filter(Boolean).join(" ");
 
-/* The ways back for an archived group; each maps to a rule POST /triage understands. */
+/* The ways back for an archived group, the mockup's four in its order; each body is a rule POST /triage
+   understands. "For 30 days" says its day only once `archiveChoices(today)` knows today. */
+const ARCHIVE_DAYS=30;
 const ARCHIVE_CHOICES=[
   {label:"Until it happens in 3 more sessions",detail:"Comes back after 3 more sessions show it.",body:{return_rule:"after_sessions",after_sessions:3}},
-  {label:"The next time it shows up",detail:"Comes back in the next session that has it.",body:{return_rule:"new_session"}},
+  {label:"Until it gets worse",detail:"Comes back if it shows up clearly more often than before.",body:{return_rule:"until_worse"}},
+  {label:"For 30 days",detail:"Comes back 30 days from now.",body:{return_rule:"on_date"}},
   {label:"Forever",detail:"Still counted; never comes back on its own.",body:{return_rule:"never"}}
 ];
+const MONTH_NAMES=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function archiveChoices(today){
+  const back=new Date(today.getFullYear(),today.getMonth(),today.getDate()+ARCHIVE_DAYS);
+  const day=MONTH_NAMES[back.getMonth()]+" "+back.getDate();
+  return ARCHIVE_CHOICES.map(c=>c.body.return_rule==="on_date"?{...c,detail:"Comes back on "+day+"."}:c);
+}
 
 /* ?view= picks the sub-view; an unknown value opens the inbox and says so once in the console. */
 function viewFrom(search,warn){
@@ -153,7 +162,43 @@ function viewFrom(search,warn){
   warn("symbiont: unknown view "+JSON.stringify(asked)+"; showing the inbox. Known views: "+VIEWS.join(", "));
   return "inbox";
 }
+/* Detail views need what names them; without it the page says what is missing instead of opening another item. */
+const ROUTE_PARTS=["key","id","step","t"];
+const NEEDS={group:"key",session:"id"};
+const enc=encodeURIComponent;
+function hrefFor(project,route){
+  let out="?project="+enc(project)+"&view="+enc(route.view);
+  for(const part of ROUTE_PARTS)if(route[part]!==undefined&&route[part]!==null&&route[part]!=="")out+="&"+part+"="+enc(route[part]);
+  return route.hash?out+"#"+enc(route.hash):out;
+}
+/* A hash that is not valid percent-encoding was typed by hand; it stays as typed. */
+function hashFrom(hash){
+  const raw=String(hash||"").replace(/^#/,"");
+  try{return decodeURIComponent(raw);}catch(_){return raw;}
+}
+function routeFrom(search,hash,warn){
+  const view=viewFrom(search,warn||console.warn),q=new URLSearchParams(search);
+  const route={view};
+  for(const part of ROUTE_PARTS){const v=q.get(part);if(v)route[part]=v;}
+  if(route.step!==undefined&&!/^\d+$/.test(route.step))delete route.step;
+  else if(route.step!==undefined)route.step=Number(route.step);
+  const missing=NEEDS[view];
+  if(missing&&!route[missing])return {view:"notfound",what:view};
+  const h=hashFrom(hash);
+  if(h)route.hash=h;
+  return route;
+}
+
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const dayWord=iso=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||"");return m?MONTHS[Number(m[2])-1]+" "+Number(m[3])+", "+m[1]:null;};
+/* The header's one line of scale: how many sessions, over which days, and that nothing left the machine. */
+function metaLine(sessions,groups){
+  const firsts=groups.map(g=>g.first).filter(Boolean).sort(),lasts=groups.map(g=>g.last).filter(Boolean).sort();
+  const first=dayWord(firsts[0]),last=dayWord(lasts[lasts.length-1]);
+  const span=first&&last?" \u00b7 "+first+" \u2013 "+last:"";
+  return sessions+(sessions===1?" session":" sessions")+span+" \u00b7 local only";
+}
 const cleanName=text=>window.SymbiontRename.clean(text);
 
-window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,cleanName,plural,triageOf};
+window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
 })();

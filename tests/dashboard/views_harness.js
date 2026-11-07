@@ -12,8 +12,9 @@ const document = {
   body: { appendChild() {} },
   addEventListener() {},
 };
-const sandbox = { window: {}, document, innerWidth: 1280, innerHeight: 800 };
-for (const file of ["tip.js", "rename.js", "topics.js", "trends.js"]) {
+const sandbox = { window: {}, document, innerWidth: 1280, innerHeight: 800, URL, URLSearchParams, console };
+sandbox.window.addEventListener = () => {};
+for (const file of ["tip.js", "rename.js", "inbox_model.js", "topics.js", "trends.js", "views.js"]) {
   vm.runInNewContext(fs.readFileSync(path.join(process.argv[2], file), "utf8"), sandbox);
 }
 const container = () => ({ innerHTML: "", classList: { add() {} }, addEventListener() {}, onclick: null });
@@ -51,7 +52,10 @@ const attr = (title) => {
   return sandbox.window.SymbiontTip.safe(decoded);
 };
 
+const routing = require("./routing_probe.js")(sandbox, path);
+
 console.log(JSON.stringify({
+  routing,
   datasetNotReady: draw(T, notReady({ datasetReaders: ["swe-chat"] }), { compact: false }),
   ownNotReady: draw(T, notReady({ datasetReaders: [] }), { compact: false }),
   hostileTopic: draw(T, ready, { compact: true }),

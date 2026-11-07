@@ -1,13 +1,17 @@
 """A multi-line shell command as the one line the shell would run.
 
 Heredoc bodies and comment lines are dropped, backslash continuations are joined and
-every newline outside quotes becomes ` ; `, so the tokenizer sees real commands.
+every newline outside quotes becomes ` ; `, so the tokenizer sees real commands. A line that
+ends in `&&`, `||` or `|` continues on the next one.
 """
 
 import re
 
 _HEREDOC = re.compile(r"<<[-~]?[ \t]*(?:'([^'\n]*)'|\"([^\"\n]*)\"|([\w.-]+))")
+_ARITHMETIC = re.compile(r"\(\([^\n]*?\)\)")
 _SEPARATOR = " ; "
+_CONTINUATION = " "
+_OPEN_OPERATORS = ("&&", "|")
 
 
 def shell_text(command: str) -> str:
@@ -31,6 +35,7 @@ class _Scan:
         self.quote = ""
         self.line_blank = True
         self.heredoc_words: list[str] = []
+        self.break_pending = False
 
     def run(self) -> None:
         while self.pos < len(self.text):
@@ -54,17 +59,21 @@ class _Scan:
             self._newline()
         elif char == "\\" and self.text[self.pos + 1 : self.pos + 2] == "\n":
             self.pos += 2
-        elif char == "#" and self.line_blank:
-            self._drop_comment_line()
+        elif char == "#" and (self.line_blank or self.text[self.pos - 1].isspace()):
+            self._drop_comment()
         elif char == "\\":
             self._take(2)
         elif char in "'\"":
             self.quote = char
             self._take(1)
-        elif self.text.startswith("<<", self.pos) and self._arm_heredoc():
-            return
-        else:
+        elif not self._take_construct():
             self._take(1)
+
+    def _take_construct(self) -> bool:
+        """Consume `((...))` or a heredoc opener when one starts here."""
+        if self.text.startswith("((", self.pos):
+            return self._drop_arithmetic()
+        return self.text.startswith("<<", self.pos) and self._arm_heredoc()
 
     def _take(self, count: int) -> None:
         chunk = self.text[self.pos : self.pos + count]
@@ -72,13 +81,42 @@ class _Scan:
         self.pos += count
         if chunk.strip():
             self.line_blank = False
+            self.break_pending = False
 
     def _newline(self) -> None:
         self.pos += 1
         self._skip_heredoc_bodies()
         self.line_blank = True
-        if self.out and self.out[-1] != _SEPARATOR:
-            self.out.append(_SEPARATOR)
+        if not self.out or self.break_pending:
+            return
+        self.break_pending = True
+        self.out.append(_CONTINUATION if self._ends_in_operator() else _SEPARATOR)
+
+    def _ends_in_operator(self) -> bool:
+        tail = "".join(self.out[-8:]).rstrip()
+        return tail.endswith(_OPEN_OPERATORS)
+
+    def _drop_arithmetic(self) -> bool:
+        """Keep `(())` for `((x<<=1))` and `$((1<<2))`: a shift inside is no heredoc."""
+        match = _ARITHMETIC.match(self.text, self.pos)
+        if not match:
+            return False
+        self.out.append("(())")
+        self.pos = match.end()
+        self.line_blank = False
+        self.break_pending = False
+        return True
+
+    def _drop_comment(self) -> None:
+        """A comment line goes whole; a trailing comment goes up to its newline."""
+        if self.line_blank:
+            self._drop_comment_line()
+        else:
+            self._drop_comment_tail()
+
+    def _drop_comment_tail(self) -> None:
+        end = self.text.find("\n", self.pos)
+        self.pos = len(self.text) if end < 0 else end
 
     def _drop_comment_line(self) -> None:
         end = self.text.find("\n", self.pos)

@@ -25,32 +25,79 @@ function drawInbox(pane,data,project){
   window.SymbiontInbox.start(pane,data,project);
 }
 
+const DETAIL_VIEWS=["group","session"];
+const DETAILS={};
+let nav=null;
+const tabOf=view=>["group","session","notfound"].includes(view)?"inbox":view;
+const NOT_FOUND={group:"No such group.",session:"No such session."};
+
+/* Tasks that own a detail page hand their renderer in here; until then the pane says it is not built. */
+function registerDetail(view,render){
+  if(!DETAIL_VIEWS.includes(view))throw new Error("symbiont: no detail view "+JSON.stringify(view));
+  DETAILS[view]=render;
+}
+function setCrumb(text){
+  const crumb=document.getElementById("crumb");
+  crumb.textContent=text||"";crumb.hidden=!text;
+}
+function navigate(route){
+  if(!nav)throw new Error("symbiont: navigate called before the dashboard was mounted");
+  nav(route);
+}
+function drawNotFound(pane,route,project){
+  const word=NOT_FOUND[route.what]||"Nothing here.";
+  pane.innerHTML='<p class="soon" role="status">'+word+' <a data-route href="'+M.hrefFor(project,{view:"inbox"})+'">Back to the inbox</a></p>';
+}
+function drawDetail(pane,route,data,project){
+  const render=DETAILS[route.view];
+  if(!render){pane.innerHTML='<p class="soon" role="status">Not built yet.</p>';return;}
+  render(pane,route,data,project);
+}
+const plainClick=e=>e.button===0&&!e.metaKey&&!e.ctrlKey&&!e.shiftKey&&!e.altKey&&!e.defaultPrevented;
+function followRouteLinks(go){
+  document.addEventListener("click",e=>{
+    const a=e.target.closest&&e.target.closest("a[data-route]");
+    if(!a||!plainClick(e))return;
+    const url=new URL(a.href,location.href);
+    e.preventDefault();
+    go(M.routeFrom(url.search,url.hash,console.warn));
+  });
+}
+
 /* Returns the stage the link asks for (1 is Pain points) and a `show` that opens the remembered sub-view. */
 function mount(data,project,s1,warn){
-  const asked=M.viewFrom(location.search,warn);
+  const first=M.routeFrom(location.search,location.hash,warn);
   const subnav=s1.querySelector("#subnav"),drawn=new Set();
   const draw={
     inbox:()=>drawInbox(s1.querySelector("#vInbox"),data,project),
     topics:()=>drawTopics(s1.querySelector("#vTopics"),data,project),
     trends:()=>drawTrends(s1.querySelector("#vTrends"),data)
   };
-  let current=asked in OTHER_STAGES?"inbox":asked;
-  subnav.innerHTML=SUBVIEWS.map(([k,l])=>'<button data-view="'+k+'">'+l+"</button>").join("");
-  const show=view=>{
-    current=view;s1.dataset.view=view;
+  const paneOf={group:"#vGroup",session:"#vSession",notfound:"#vNotFound"};
+  const inboxIfOtherStage=route=>route.view in OTHER_STAGES?{view:"inbox"}:route;
+  let current=inboxIfOtherStage(first);
+  subnav.insertAdjacentHTML("afterbegin",SUBVIEWS.map(([k,l])=>'<button data-view="'+k+'">'+l+"</button>").join(""));
+  document.getElementById("meta").textContent=M.metaLine(data.stage.facts.length,(data.incidents||{groups:[]}).groups);
+  const show=route=>{
+    const view=route.view;current=route;s1.dataset.view=view;setCrumb("");
     document.getElementById("scope").hidden=!M.scopeVisible(view,1);
-    subnav.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.view===view)));
+    subnav.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.view===tabOf(view))));
     if(view in draw&&!drawn.has(view)){drawn.add(view);draw[view]();}
+    if(view==="notfound")drawNotFound(s1.querySelector(paneOf.notfound),route,project);
+    else if(DETAIL_VIEWS.includes(view))drawDetail(s1.querySelector(paneOf[view]),route,data,project);
   };
+  nav=route=>{history.pushState(null,"",M.hrefFor(project,route));show(inboxIfOtherStage(route));};
+  window.addEventListener("popstate",()=>show(inboxIfOtherStage(M.routeFrom(location.search,location.hash,warn))));
+  followRouteLinks(route=>nav(route));
   subnav.onclick=e=>{
     const b=e.target.closest("button[data-view]");
     if(!b)return;
-    show(b.dataset.view);
-    const url=new URL(location.href);url.searchParams.set("view",b.dataset.view);history.replaceState(null,"",url);
+    show({view:b.dataset.view});
+    history.replaceState(null,"",M.hrefFor(project,{view:b.dataset.view}));
     b.focus();
   };
-  return {stage:OTHER_STAGES[asked]||1,show:()=>show(current),syncScope:stage=>{document.getElementById("scope").hidden=!M.scopeVisible(current,stage);}};
+  return {stage:OTHER_STAGES[first.view]||1,show:()=>show(current),syncScope:stage=>{document.getElementById("scope").hidden=!M.scopeVisible(current.view,stage);}};
 }
 
-window.SymbiontViews={mount};
+window.SymbiontViews={mount,navigate,registerDetail,setCrumb};
 })();

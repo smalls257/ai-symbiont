@@ -118,3 +118,42 @@ def test_a_store_from_before_names_gains_the_column_and_keeps_its_rows(tmp_path)
 
     assert reopened.review.triage.all("demo")["k"].state is GroupState.RESOLVED
     assert reopened.review.triage.names("demo") == {}
+
+
+def test_an_on_date_archive_round_trips_with_its_day(store):
+    row = triage_row(GroupState.ARCHIVED, ReturnRule.ON_DATE, None, DAY, date(2026, 12, 6))
+
+    store.review.triage.save("demo", "key-a", row)
+
+    assert store.review.triage.all("demo") == {"key-a": row}
+    assert row.until == date(2026, 12, 6)
+
+
+def test_an_until_worse_archive_round_trips_and_a_later_save_clears_the_day(store):
+    store.review.triage.save(
+        "demo", "key-a", triage_row(GroupState.ARCHIVED, ReturnRule.ON_DATE, None, DAY, LATER)
+    )
+    worse = triage_row(GroupState.ARCHIVED, ReturnRule.UNTIL_WORSE, None, LATER)
+
+    store.review.triage.save("demo", "key-a", worse)
+
+    assert store.review.triage.all("demo")["key-a"] == worse
+
+
+def test_a_store_from_before_for_30_days_gains_the_until_column(tmp_path):
+    path = tmp_path / "old.db"
+    db = sqlite3.connect(path)
+    db.execute(
+        "CREATE TABLE triage (project TEXT NOT NULL, group_key TEXT NOT NULL, state TEXT NOT NULL,"
+        " return_rule TEXT, after_sessions INTEGER, changed_on TEXT NOT NULL, taught_on TEXT,"
+        " name TEXT NOT NULL DEFAULT '', PRIMARY KEY (project, group_key))"
+    )
+    db.execute(
+        "INSERT INTO triage VALUES ('demo', 'k', 'archived', 'never', NULL, '2026-11-06', NULL, '')"
+    )
+    db.commit()
+    db.close()
+
+    store = Store.open(path)
+
+    assert store.review.triage.all("demo")["k"].until is None

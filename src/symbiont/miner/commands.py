@@ -9,6 +9,7 @@ same mistake gets the same key across sessions.
 import os
 import re
 import shlex
+from typing import NamedTuple
 
 from symbiont.miner.shell_text import shell_text
 
@@ -46,6 +47,48 @@ def program_words(command: str) -> tuple[str, tuple[str, ...]]:
         return (NO_PATH, ())
     program, args = _program_and_args(segment)
     return (program, tuple(args))
+
+
+class Stage(NamedTuple):
+    """One command a shell line runs, and whether a pipe feeds it."""
+
+    program: str
+    args: tuple[str, ...]
+    piped: bool
+
+
+def command_stages(command: str) -> list[Stage]:
+    """Every segment that runs something, in order; `Stage("-", (), False)` when none does.
+
+    Loop headers and bare assignments run nothing.
+    """
+    stages: list[Stage] = []
+    for segment, joiner in _joined_segments(_tokens(command)):
+        run = _without_keywords(segment)
+        if run and run[0] not in _SHELL_HEADERS and not _only_assignments(run):
+            program, args = _program_and_args(run)
+            stages.append(Stage(program, tuple(args), piped=joiner == "|"))
+    return stages or [Stage(NO_PATH, (), piped=False)]
+
+
+def _joined_segments(tokens: list[str]) -> list[tuple[list[str], str]]:
+    """Segments with the separator that precedes each (`|`, `&&`, `;` ...)."""
+    segments: list[tuple[list[str], str]] = []
+    current: list[str] = []
+    joiner = ""
+    for token in tokens:
+        if _is_redirection(token):
+            continue
+        if not all(ch in "&|;()" for ch in token):
+            current.append(token)
+            continue
+        if current:
+            segments.append((current, joiner))
+            current = []
+        joiner = token if set(token) - set("()") else joiner
+    if current:
+        segments.append((current, joiner))
+    return segments
 
 
 def final_program_words(command: str) -> tuple[str, tuple[str, ...]]:
@@ -221,13 +264,21 @@ def _only_assignments(segment: list[str]) -> bool:
 
 def _program_and_args(segment: list[str]) -> tuple[str, list[str]]:
     """The program and its arguments, after env assignments and wrappers."""
-    rest = _without_wrappers([token for token in segment if not _ENV_ASSIGNMENT.match(token)])
+    rest = _without_leading_assignments(_without_wrappers(_without_leading_assignments(segment)))
     if not rest:
         return (NO_PATH, [])
     program, args = os.path.basename(rest[0]), rest[1:]
     if _PYTHONS.match(program) and len(args) >= 2 and args[0] == "-m":
         return (args[1], args[2:])
     return (program, args)
+
+
+def _without_leading_assignments(words: list[str]) -> list[str]:
+    """Drop `NAME=value` words before the program; one after it is an argument (`-f title=x`)."""
+    start = 0
+    while start < len(words) and _ENV_ASSIGNMENT.match(words[start]):
+        start += 1
+    return words[start:]
 
 
 def _without_wrappers(words: list[str]) -> list[str]:

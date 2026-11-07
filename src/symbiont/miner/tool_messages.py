@@ -37,7 +37,7 @@ _COMPLAINT_ANYWHERE = re.compile("|".join(COMPLAINT_MARKERS))
 
 _URL = re.compile(r"""https?://[^\s'"`)]+""")
 _QUOTED = re.compile(r"""(?:(?<=\s)|(?<=[(:])|^)(?:'[^']*'|"[^"]*"|`[^`]*`)""")
-_PATH = re.compile(r"\S*/\S*")
+_SLASH_TOKEN = re.compile(r"\S*/\S*")
 _HASH = re.compile(r"\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b")
 _DURATION_PART = r"\d+(?:\.\d+)?(?:ms|[smh])\b"
 _DURATION = re.compile(rf"{_DURATION_PART}(?:\s+{_DURATION_PART})*")
@@ -76,11 +76,18 @@ def _is_complaint(line: str) -> bool:
 def _normalized(line: str) -> str:
     line = _URL.sub("<url>", line)
     line = _QUOTED.sub("<x>", line)
-    line = _PATH.sub("<path>", line)
+    line = _SLASH_TOKEN.sub(_path_placeholder, line)
     line = _HASH.sub("<hash>", line)
     line = _DURATION.sub("<n>", line)
     line = _NUMBER.sub("<n>", line)
     return cut_whole(" ".join(line.split()), MESSAGE_CHARS)
+
+
+def _path_placeholder(match: re.Match[str]) -> str:
+    """`<path>` for a token that is a path; prose such as `and/or` stays as written."""
+    token = match.group()
+    rooted = token.startswith(("/", "./", "~/"))
+    return "<path>" if rooted or "." in token or token.count("/") >= 2 else token
 
 
 def cut_whole(text: str, limit: int) -> str:
