@@ -6,7 +6,7 @@ Pure: text in, text out. Numbers, paths, URLs, hashes and quoted names become pl
 
 import re
 
-# The brief said 90, but its own TypeScript example normalizes to 99 characters.
+# Long enough for the longest TypeScript message seen (about 99 characters once normalized).
 MESSAGE_CHARS = 120
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
 _EVAL_PREFIX = re.compile(r"^\(eval\):\d+:\s*")
@@ -39,6 +39,7 @@ _PATH = re.compile(r"\S*/\S*")
 _HASH = re.compile(r"\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b")
 _DURATION_PART = r"\d+(?:\.\d+)?(?:ms|[smh])\b"
 _DURATION = re.compile(rf"{_DURATION_PART}(?:\s+{_DURATION_PART})*")
+_PARTIAL_PLACEHOLDER = re.compile(r"<[a-z]*$")
 _NUMBER = re.compile(r"(?<!HTTP )\b\d+(?:\.\d+)?\b")
 
 
@@ -74,4 +75,9 @@ def _normalized(line: str) -> str:
     line = _HASH.sub("<hash>", line)
     line = _DURATION.sub("<n>", line)
     line = _NUMBER.sub("<n>", line)
-    return " ".join(line.split())[:MESSAGE_CHARS]
+    return cut_whole(" ".join(line.split()), MESSAGE_CHARS)
+
+
+def cut_whole(text: str, limit: int) -> str:
+    """Cut to `limit` characters without leaving half a placeholder (`<ur`) at the end."""
+    return _PARTIAL_PLACEHOLDER.sub("", text[:limit]).rstrip()

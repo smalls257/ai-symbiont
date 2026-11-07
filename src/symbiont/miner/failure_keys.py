@@ -9,7 +9,7 @@ program correctly, which is its own kind of known fix.
 import re
 
 from symbiont.miner.failure_signature import failure_signature
-from symbiont.miner.tool_messages import tool_message
+from symbiont.miner.tool_messages import cut_whole, tool_message
 from symbiont.records.schema import Record
 
 _ERROR_CLASS = re.compile(r"\b([A-Z]\w*Error)\b")
@@ -44,7 +44,7 @@ INVOCATION_FAILURES = frozenset(
 
 
 def what_broke(record: Record, program: str, *, inline: bool) -> str:
-    """The error class, the program's exit meaning, a message, the shell's meaning, else `exit N`.
+    """The error class, exit meaning, message, shell meaning, else `exit N`.
 
     A script typed into the command (`inline`) is keyed by its error class only: its message
     names that one script's variables and would never repeat.
@@ -57,7 +57,7 @@ def what_broke(record: Record, program: str, *, inline: bool) -> str:
         return meaning
     signature = None if inline else failure_signature(record.raw)
     if signature is not None:
-        return str(signature.message[:_MESSAGE_CHARS])
+        return cut_whole(signature.message, _MESSAGE_CHARS)
     complaint = None if inline else tool_message(record.raw)
     if complaint is not None:
         return complaint
