@@ -140,7 +140,7 @@ class Service:
         self._agreed = AgreedRecall(parts, self._follow_up)
         self._jobs = MiningJobs()
         self._mining = MineRoutes(parts, self._jobs, self._one_call_at_a_time)
-        self._stale = StaleLessons()
+        self._stale = StaleLessons(parts.store, parts.screen_rules)
 
     def page(self, target: str) -> Page:
         """Answer a GET: the dashboard and its files, and a mining job's progress."""
@@ -266,8 +266,8 @@ class Service:
         """The project's lessons, through the remote view when the request is remote-bound."""
         store = self._parts.store
         if remote_bound(request):
-            return self._stale.deliverable(store.remote_view(self._parts.consent).lessons(project))
-        return self._stale.deliverable(store.lessons(project))
+            return self._stale.deliverable(store.remote_view(self._parts.consent), project)
+        return self._stale.deliverable(store, project)
 
     def _recall(self, request: dict[str, Any], call: Call) -> Response:
         """Answer a plain question from the project's sessions."""
