@@ -202,9 +202,7 @@ def test_a_placeholder_message_is_told_in_plain_words_and_stays_distinct_by_path
         ),
     ]
     names = [g["name"] for g in incident_groups(cards, DAYS)["groups"]]
-    assert len(set(names)) == 2 and all(
-        n.startswith("make failing with an unexpected result") for n in names
-    )
+    assert set(names) == {"make failing with exit N at …", "make failing with value N"}
 
 
 def test_a_leading_cd_is_dropped_from_the_command_a_group_shows():

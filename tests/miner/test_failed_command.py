@@ -68,7 +68,11 @@ def test_search_that_errored_is_a_failure():
     (pain,) = find_failed_commands(
         session(run("grep -n foo missing.py", 2, "grep: missing.py: No such file or directory"))
     )
-    assert pain.signature.key == ("grep", "missing.py", "exit 2")
+    assert pain.signature.key == (
+        "grep",
+        "missing.py",
+        "grep: missing.py: No such file or directory",
+    )
 
 
 def test_diff_and_test_exit_1_are_answers():

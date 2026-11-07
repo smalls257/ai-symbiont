@@ -10,6 +10,7 @@ from collections.abc import Sequence
 
 from symbiont.miner.commands import inline_script_program, normalise_command, status_program
 from symbiont.miner.failure_keys import is_interrupt, what_broke
+from symbiont.miner.failure_program import failing_program
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.planned_failure import FailureKind, failure_kind
 from symbiont.records.schema import Kind, Record
@@ -48,7 +49,11 @@ def _answered_no(command: str) -> bool:
 def _pain_point(record: Record) -> PainPoint:
     command = record.command or ""
     inline = inline_script_program(command)
-    program, target = ("python", "<inline>") if inline else normalise_command(command)
+    if inline:
+        program, target = "python", "<inline>"
+    else:
+        target = normalise_command(command)[1]
+        program = failing_program(command)
     key = (program, target, what_broke(record, program, inline=inline is not None))
     return PainPoint(
         signature=Signature(Signal.FAILED_COMMAND, key),

@@ -9,11 +9,13 @@ program correctly, which is its own kind of known fix.
 import re
 
 from symbiont.miner.failure_signature import failure_signature
+from symbiont.miner.tool_messages import cut_whole, tool_message
 from symbiont.records.schema import Record
 
 _ERROR_CLASS = re.compile(r"\b([A-Z]\w*Error)\b")
 _BARE_EXIT = re.compile(r"^exit \d+$")
-_PLACEHOLDER = re.compile(r"<(?:n|path|hash)>")
+_BLANK = re.compile(r"<(?:x|path|url|hash)>")
+_LEADING_LABEL = re.compile(r"^(?:fatal|error|hint): ")
 _MESSAGE_CHARS = 60
 INTERRUPTS = frozenset({"C-c", "C-d", "C-z"})
 SIGINT_EXIT = 130  # 128 + SIGINT: the shell's report of a Ctrl-C
@@ -25,6 +27,14 @@ EXIT_MEANINGS = {
     ("pytest", 4): "usage error or bad path",
     ("pytest", 5): "no tests collected",
 }
+# The shell reports 128+N for a signal (SIGKILL 9, SIGTERM 15); 126 and 127 are the shell's own
+# codes (bash manual, "Exit Status").
+SHELL_EXIT_MEANINGS = {
+    126: "not executable",
+    127: "command not found",
+    137: "killed (out of memory or SIGKILL)",
+    143: "stopped by a timeout",
+}
 # A wrong invocation, not a wrong program: the later pass is the same program run correctly.
 # The first two are EXIT_MEANINGS above (pytest exit 4 and 5); the classes are Python's own
 # "no such file" and "no such module" errors, which a corrected path or module name resolves.
@@ -34,7 +44,7 @@ INVOCATION_FAILURES = frozenset(
 
 
 def what_broke(record: Record, program: str, *, inline: bool) -> str:
-    """The error class, else the exit-code meaning, else the message line, else `exit N`.
+    """The error class, exit meaning, message, shell meaning, else `exit N`.
 
     A script typed into the command (`inline`) is keyed by its error class only: its message
     names that one script's variables and would never repeat.
@@ -47,13 +57,17 @@ def what_broke(record: Record, program: str, *, inline: bool) -> str:
         return meaning
     signature = None if inline else failure_signature(record.raw)
     if signature is not None:
-        return str(signature.message[:_MESSAGE_CHARS])
-    return f"exit {record.exit_code}"
+        return cut_whole(signature.message, _MESSAGE_CHARS)
+    complaint = None if inline else tool_message(record.raw)
+    if complaint is not None:
+        return complaint
+    return SHELL_EXIT_MEANINGS.get(record.exit_code or 0, f"exit {record.exit_code}")
 
 
 def broke_in_words(broke: str) -> str:
-    """The last key element as prose: a normalized message is for grouping, not for reading."""
-    return "an unexpected result" if _PLACEHOLDER.search(broke) else broke
+    """The last key element as prose: placeholders become `…` or `N`, a leading label goes."""
+    words = _LEADING_LABEL.sub("", broke)
+    return _BLANK.sub("…", words).replace("<n>", "N")
 
 
 def is_bare_exit(broke: str) -> bool:
