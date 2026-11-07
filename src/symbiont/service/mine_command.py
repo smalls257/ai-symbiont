@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from symbiont.readers.harnesses import HARNESSES, Harness, in_reading_order, labels_or
+from symbiont.records.dashboard_views import dashboard_address
 from symbiont.service.asking import AskService, ServiceAnswerError, ServiceUnavailableError
 from symbiont.service.wording import counted
 from symbiont.store.held_back import held_back_sentence, held_by_reason
@@ -36,14 +37,8 @@ class MineClient:
 
 
 def dashboard_url(project: str, port: int) -> str:
-    """The address of a repository's dashboard; the project name is percent-encoded."""
-    safe = "".join(
-        c
-        if c.isascii() and (c.isalnum() or c in "-._~")
-        else "".join(f"%{b:02X}" for b in c.encode())
-        for c in project
-    )
-    return f"http://127.0.0.1:{port}/dashboard?project={safe}"
+    """The address of a repository's dashboard as `repo mine` shows it (no view named)."""
+    return dashboard_address(port, project, None)
 
 
 def mining_url(project: str, port: int) -> str:

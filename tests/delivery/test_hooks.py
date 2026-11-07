@@ -380,4 +380,7 @@ def test_the_dashboard_link_in_an_announcement_points_at_the_local_service(monke
     result = hooks.run_hook(HookEvent.SESSION_START, json.dumps(data), settings)
 
     shown = json.loads(result.context)["systemMessage"]
-    assert shown == "symbiont's dashboard: http://127.0.0.1:7377/dashboard?project=my%20repo"
+    assert (
+        shown
+        == "symbiont's dashboard: http://127.0.0.1:7377/dashboard?project=my%20repo&view=inbox"
+    )

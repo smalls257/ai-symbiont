@@ -9,6 +9,7 @@ import json
 import socket
 
 import pytest
+from tests.live_service import serving
 
 from symbiont import cli
 from symbiont.delivery.mcp_operator import _WatchBudget, operate_in_server
@@ -83,6 +84,11 @@ def test_the_server_without_an_operator_offers_no_operator_tools():
         ("symbiont_mine", {}, ["repo", "mine", "--project", "demo", "--port", "7"]),
         ("symbiont_status", {}, ["status", "--project", "demo", "--port", "7"]),
         ("symbiont_dashboard", {}, ["dashboard", "--project", "demo", "--port", "7"]),
+        (
+            "symbiont_dashboard",
+            {"view": "trends"},
+            ["dashboard", "trends", "--project", "demo", "--port", "7"],
+        ),
         ("symbiont_why", {}, ["why", "--project", "demo"]),
         ("symbiont_mute", {}, ["mute", "--project", "demo"]),
         ("symbiont_lessons", {}, ["lessons", "--project", "demo"]),
@@ -190,11 +196,17 @@ def test_mine_before_allow_says_so_instead_of_returning_nothing(in_process):
     assert "symbiont repo allow" in reply["result"]["content"][0]["text"]
 
 
-def test_the_dashboard_tool_returns_the_address(in_process):
-    operate, _ = in_process
-    (reply,) = converse([call("symbiont_dashboard")], operate, port=7123)
+def test_the_dashboard_tool_returns_the_address_of_the_view_asked_for(in_process):
+    operate, data = in_process
+    with serving(data) as (_, port):
+        (inbox,) = converse([call("symbiont_dashboard")], operate, port=port)
+        (topics,) = converse([call("symbiont_dashboard", {"view": "topics"})], operate, port=port)
+        (bad,) = converse([call("symbiont_dashboard", {"view": "nope"})], operate, port=port)
 
-    assert reply["result"]["content"][0]["text"] == "http://127.0.0.1:7123/dashboard?project=demo"
+    base = f"http://127.0.0.1:{port}/dashboard?project=demo"
+    assert inbox["result"]["content"][0]["text"] == base + "&view=inbox"
+    assert topics["result"]["content"][0]["text"] == base + "&view=topics"
+    assert bad["result"]["isError"] is True
 
 
 def test_a_lessons_listing_of_an_empty_repository_says_so(in_process):

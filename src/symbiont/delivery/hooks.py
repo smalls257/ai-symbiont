@@ -22,6 +22,7 @@ from symbiont.delivery.hook_vocab import HookEvent, NoteStyle, NoteVisibility
 from symbiont.delivery.project_identity import project_for
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
 from symbiont.readers.harnesses import HARNESSES, Harness, UnknownHarnessError, detect, harness
+from symbiont.records.dashboard_views import DashboardView, dashboard_address
 from symbiont.records.output_failure import exit_code_with_output
 
 DATASET_PREFIX = "live-"
@@ -130,7 +131,10 @@ def run_hook(
     notes = reply.get("notes")
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
-    told = _announcements(reply, dashboard_url(settings.port, body["payload"]["record"]["project"]))
+    told = _announcements(
+        reply,
+        dashboard_address(settings.port, body["payload"]["record"]["project"], DashboardView.INBOX),
+    )
     worded = _worded(event, notes, settings.style)
     text = "\n".join(filter(None, [worded, *told, *_for_the_model(reply)]))
     if not text or event not in speaking_events(settings.harness):
@@ -265,17 +269,6 @@ def _output_text(response: Any) -> str:
         if printed:
             return "\n".join(part for part in printed if part)
     return json.dumps(response)
-
-
-def dashboard_url(port: int, project: str) -> str:
-    """Where the local dashboard for `project` is served."""
-    safe = "".join(
-        char
-        if char.isascii() and (char.isalnum() or char in "-._~")
-        else "".join(f"%{b:02X}" for b in char.encode())
-        for char in project
-    )
-    return f"http://127.0.0.1:{port}/dashboard?project={safe}"
 
 
 def _announcements(reply: dict[str, Any], dashboard: str) -> list[str]:

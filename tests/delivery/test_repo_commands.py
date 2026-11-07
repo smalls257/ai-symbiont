@@ -315,11 +315,6 @@ def test_context_add_last_in_a_repository_with_no_lessons_fails_loudly(tmp_path,
     assert "has no stored lessons" in capsys.readouterr().err
 
 
-def test_dashboard_prints_the_local_address_for_the_repository(tmp_path, capsys):
-    assert command("dashboard", "--port", "7377", data_dir=tmp_path) == 0
-    assert capsys.readouterr().out.strip() == "http://127.0.0.1:7377/dashboard?project=demo"
-
-
 def test_settings_show_and_set_the_correction_switches(tmp_path, capsys):
     assert command("settings", "show", data_dir=tmp_path) == 0
     assert "muse_code=True" in capsys.readouterr().out
