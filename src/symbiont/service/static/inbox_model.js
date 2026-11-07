@@ -56,7 +56,8 @@ function noiseReasons(noiseGroups){
 const plural=(n,one,many)=>n.toLocaleString("en-US")+" "+(n===1?one:(many||one+"s"));
 const sum=(list,pick)=>list.reduce((a,x)=>a+pick(x),0);
 
-/* The five headline tiles: a big number, and a label that is its noun. */
+/* The five headline tiles: a big number, and a label that is its noun. Sessions read are all mined sessions
+   (stage.facts), not only the ones with a lesson. */
 const noun=(n,one,many)=>(n===1?one:many);
 function tilesOf(data){
   const groups=data.incidents.groups,triage=data.triage;
@@ -64,9 +65,9 @@ function tilesOf(data){
   const failed=sum(failures,g=>g.times),said=sum(corrections,g=>g.times);
   const folded=sum(failures.filter(g=>g.noise),g=>g.times);
   const review=sectionsOf(groups,triage,"all","sessions").review.length;
-  const topics=data.incidents.topics.length;
+  const topics=data.incidents.topics.length,read=data.stage.facts.length;
   return [
-    {value:data.sessions.length,label:noun(data.sessions.length,"session read","sessions read"),sub:""},
+    {value:read,label:noun(read,"session read","sessions read"),sub:""},
     {value:failed,label:noun(failed,"failed command","failed commands"),sub:plural(folded,"failed command")+" folded as noise"},
     {value:said,label:noun(said,"message from you","messages from you"),sub:plural(sum(corrections.filter(g=>!g.noise),g=>g.times),"message")+" in correction groups"},
     {value:review,label:noun(review,"group for review","groups for review"),sub:"of "+plural(groups.length,"group")+" found"},
@@ -97,11 +98,17 @@ const seriesOf=(g,axis)=>{const by=new Map(g.weekly);return axis.map(w=>by.get(w
 
 /* "Teach the agent" opens with what symbiont would teach, already filled in. Nothing is required: the text falls
    back to the group's name so the route (which needs some words) still gets a sentence. */
+/* Only a card where something really fixed it has a fix to teach; "never fixed" and "passed when run again" teach nothing. */
+const FIXES=["fixed_in_code","environment_fixed","corrected_command"];
+function shownFix(g){
+  const card=g.cards.find(c=>FIXES.includes(c.outcome));
+  return card?card.fixed:"";
+}
 function teachDraft(g,name){
   const when=g.trigger?g.trigger.words:"";
   const first=g.kind==="correction"&&g.title?"You said: “"+g.title+"”. ":"";
-  const trains=g.kind==="failure"&&Boolean(g.fixed)&&g.verdict!=="never fixed";
-  return {when,what:(first+(g.fixed||"")).trim(),trains,name,hasTrigger:Boolean(g.trigger)};
+  const fix=shownFix(g),trains=g.kind==="failure"&&Boolean(fix);
+  return {when,what:(first+fix).trim(),trains,name,hasTrigger:Boolean(g.trigger)};
 }
 const capital=s=>s.charAt(0).toUpperCase()+s.slice(1);
 function lessonRequest(project,g,when,what,name){

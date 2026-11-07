@@ -72,9 +72,9 @@ function tilesHtml(tiles){
 
 /* A fold is never silent: the summary says how many, and why when it is noise. */
 function foldHtml(id,title,count,lead,body){
-  return '<details class="fold" id="'+id+'"><summary><span class="chev"></span>'+esc(title)+": "+count+(lead?' <span class="lead">'+lead+"</span>":"")+"</summary>"+body+"</details>";
+  return '<details class="fold" id="'+id+'"'+(body?" open":"")+"><summary><span class=\"chev\"></span><span>"+esc(title)+": "+count+"</span>"+(lead?' <span class="lead">'+lead+"</span>":"")+"</summary>"+body+"</details>";
 }
-function noiseLead(reasons){return reasons.map(r=>esc(r.reason)+": "+M.plural(r.times,"time")).join(" · ");}
+function noiseLead(reasons){return reasons.map(r=>esc(r.reason)+" ("+M.plural(r.times,"time")+")").join(" · ");}
 
 window.SymbiontInboxRows={esc,fd,rowHtml,tilesHtml,foldHtml,noiseLead};
 })();

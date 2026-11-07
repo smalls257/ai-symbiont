@@ -32,6 +32,7 @@ VERDICT_WORDS = {
 }
 FIXED_OUTCOMES = frozenset({Outcome.FIXED_IN_CODE, Outcome.ENVIRONMENT_FIXED})
 MIN_RECURRING_SESSIONS = 2
+NAME_CHARS = 80  # the most a group name may hold (POST /triage refuses longer)
 SINGLE_CORRECTION = "One correction, on its own."
 
 
@@ -156,11 +157,24 @@ def _group_json(
 
 
 def _generated_name(group: IncidentGroup) -> str:
-    """The heading a group has until the developer renames it: its model name or newest sentence."""
+    """The heading a group has until the developer renames it, at most NAME_CHARS long.
+
+    A correction group is called what the session model named it; a failure group by its program
+    and what broke, so two groups of the same program do not read alike.
+    """
     named = group.key.removeprefix("correction:")
-    if group.signal is Signal.CORRECTION and named != group.key and ":" not in named:
-        return named
-    return group.cards[0].what_happened
+    if group.signal is Signal.CORRECTION:
+        known = named != group.key and ":" not in named
+        return _shortened(named if known else group.cards[0].what_happened)
+    _, program, broke = (group.key.split(":", 2) + ["", ""])[:3]
+    if program and broke:
+        return _shortened(f"{program} failing with {broke}")
+    return _shortened(group.cards[0].what_happened)
+
+
+def _shortened(text: str) -> str:
+    one_line = " ".join(text.split())
+    return one_line if len(one_line) <= NAME_CHARS else one_line[: NAME_CHARS - 1] + "\u2026"
 
 
 def _recurring(cards: Sequence[Incident]) -> bool:

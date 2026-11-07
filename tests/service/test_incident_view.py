@@ -142,7 +142,7 @@ def test_a_session_dropped_from_the_topic_map_loses_its_topic(tmp_path):
 
 def test_a_group_has_a_generated_name_and_a_correction_card_carries_its_episode():
     failure = incident_groups([card("a")], DAYS)["groups"][0]
-    assert failure["name"] == "The agent ran pytest and it failed."
+    assert failure["name"] == "pytest failing with boom"
     stepped_in = Incident(
         **{**card("a").__dict__, "signal": Signal.CORRECTION, "fingerprint": "",
            "first_wrong": "Edited the wrong config", "cost_steps": 4}
@@ -156,3 +156,11 @@ def test_a_group_has_a_generated_name_and_a_correction_card_carries_its_episode(
         "Edited the wrong config",
         4,
     )
+
+
+def test_a_long_generated_name_is_cut_to_what_a_renamed_group_may_hold():
+    long = Incident(**{**card("a").__dict__, "fingerprint": "failure:sqlite3:" + "x" * 200})
+
+    name = incident_groups([long], DAYS)["groups"][0]["name"]
+
+    assert len(name) == 80 and name.endswith("\u2026")

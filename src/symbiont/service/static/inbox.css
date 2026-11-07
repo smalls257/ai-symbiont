@@ -91,7 +91,8 @@
 .fold>summary::-webkit-details-marker{display:none}
 .fold>summary .chev{display:inline-block;width:.5rem;height:.5rem;border-right:2px solid var(--mu);border-bottom:2px solid var(--mu);transform:rotate(-45deg);transition:transform .15s;margin-right:.2rem}
 .fold[open]>summary .chev{transform:rotate(45deg)}
-.fold .lead{color:var(--mu);font-weight:400;font-size:.95rem}
+.fold>summary{flex-wrap:wrap}
+.fold .lead{color:var(--mu);font-weight:400;font-size:.95rem;flex-basis:100%;padding-left:1.2rem}
 /* noise and seen-once folds */
 /* noise fold */
 .fold .glist{margin-top:.8rem}

@@ -15,18 +15,18 @@ const group = (key, over) => ({
   key, name: "Name of " + key, title: "pytest tests", groupedBecause: "Every card is pytest failing the same way.",
   kind: "failure", happened: "The agent ran pytest and it failed.", fixed: "Edited app.py.", verdict: "fixed in the code",
   noise: null, noiseWords: "", sessions: 3, times: 4, recurring: true, weekly: [["2026-W41", 2], ["2026-W43", 2]],
-  undated: 0, first: "2026-10-05", last: "2026-10-20", cards: [{ firstWrong: "", costSteps: 0 }],
+  undated: 0, first: "2026-10-05", last: "2026-10-20", cards: [{ firstWrong: "", costSteps: 0, outcome: "never_fixed", fixed: "Never fixed in this session." }, { firstWrong: "", costSteps: 0, outcome: "fixed_in_code", fixed: "Edited app.py." }],
   trigger: { kind: "running", program: "pytest", path: "tests/e2e", words: "when running pytest on tests/e2e" }, ...over,
 });
 const warnings = [];
 const warn = (m) => warnings.push(m);
 
 const groups = [
-  group("once", { recurring: false, sessions: 1, times: 1, fixed: "" }),
+  group("once", { recurring: false, sessions: 1, times: 1, fixed: "Never fixed in this session.", cards: [{ firstWrong: "", costSteps: 0, outcome: "never_fixed", fixed: "Never fixed in this session." }] }),
   group("many"),
   group("noisy", { noise: "plain_retry", noiseWords: "passed when run again", times: 5, sessions: 2 }),
   group("noisy2", { noise: "plain_retry", noiseWords: "passed when run again", times: 2, sessions: 1 }),
-  group("corr", { kind: "correction", title: "no, use uv", cards: [{ firstWrong: "Ran pip install", costSteps: 4 }], trigger: null }),
+  group("corr", { kind: "correction", title: "no, use uv", cards: [{ firstWrong: "Ran pip install", costSteps: 4, outcome: "developer_stepped_in", fixed: "" }], trigger: null }),
 ];
 const archivedAll = groups.map((g) => g.noise ? g : { ...g, recurring: true });
 const triageAll = Object.fromEntries(archivedAll.filter((g) => !g.noise).map((g) => [g.key, { state: "archived" }]));
@@ -38,8 +38,9 @@ let badState = "";
 try { M.tabOf({ many: { state: "weird" } }, groups[1]); } catch (e) { badState = e.message; }
 
 const axis = M.weekAxis(groups);
-const data = { sessions: [1, 2, 3], incidents: { groups, topics: [1, 2] }, triage: {} };
+const data = { stage: { facts: [1, 2, 3] }, incidents: { groups, topics: [1, 2] }, triage: {} };
 const draft = M.teachDraft(groups[1], "n");
+const neverFixed = M.teachDraft(groups[0], "n");
 const corrDraft = M.teachDraft(groups[4], "n");
 const request = M.lessonRequest("demo", groups[1], draft.when, draft.what, "n");
 const bare = M.lessonRequest("demo", groups[4], "", "", "Corrections group");
@@ -58,7 +59,7 @@ console.log(JSON.stringify({
   tiles: M.tilesOf(data),
   axisKeys: axis.map((w) => w.key),
   series: M.seriesOf(groups[1], axis),
-  draft, corrDraft, request, bare,
+  draft, neverFixed, corrDraft, request, bare,
   archive: M.ARCHIVE_CHOICES.map((c) => c.body),
   views: ["", "inbox", "topics", "trends", "struggle", "context", "replay", "nope"].map((v) => M.viewFrom(v ? "?view=" + v : "", warn)),
   warnings, tooLong, trimmed: M.cleanName("  Flaky  "),

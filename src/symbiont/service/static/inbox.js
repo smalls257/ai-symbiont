@@ -27,12 +27,13 @@ function skeleton(){
 }
 
 function start(container,data,project){
-  const ui={container,data,project,tab:"review",kind:"all",sort:"sessions"};
+  const ui={container,data,project,tab:"review",kind:"all",sort:"sessions",open:new Set()};
   container.innerHTML=skeleton();
   const $=sel=>container.querySelector(sel);
   ui.$=$;
   $("#inSort").onchange=e=>{ui.sort=e.target.value;draw(ui);};
   container.addEventListener("click",e=>onClick(ui,e));
+  container.addEventListener("toggle",e=>onToggle(ui,e),true);
   drawTopics(ui);
   draw(ui);
 }
@@ -65,14 +66,23 @@ function drawTabs(ui,found){
   ui.$("#inKinds").innerHTML=M.KIND_FILTERS.map(k=>'<button aria-pressed="'+(ui.kind===k)+'" data-kind="'+k+'">'+KIND_WORDS[k]+"</button>").join("");
 }
 
+/* A fold is drawn closed and empty until opened: a project can have hundreds of seen-once groups, and building
+   their rows up front would make every redraw slow. Opened folds stay open across redraws. */
 function foldsHtml(ui,found,axis){
   const rows=list=>'<div class="glist">'+list.map(g=>R.rowHtml(shownOf(ui,g,axis))).join("")+"</div>";
-  const once=found.once.length?R.foldHtml("inOnce","Seen once",found.once.length.toLocaleString("en-US")+" "+(found.once.length===1?"group":"groups"),
-    "happened in one session and had no fix shown",rows(found.once)):"";
-  const reasons=M.noiseReasons(found.noise);
-  const noise=found.noise.length?R.foldHtml("inNoise","Noise",found.noise.length.toLocaleString("en-US")+" "+(found.noise.length===1?"group":"groups"),
-    R.noiseLead(reasons),rows(found.noise)):"";
+  const body=(id,list)=>ui.open.has(id)?rows(list):"";
+  const count=list=>M.plural(list.length,"group");
+  const once=found.once.length?R.foldHtml("inOnce","Seen once",count(found.once),"each happened in one session, and no fix was shown",body("inOnce",found.once)):"";
+  const noise=found.noise.length?R.foldHtml("inNoise","Noise",count(found.noise),R.noiseLead(M.noiseReasons(found.noise)),body("inNoise",found.noise)):"";
   return once+noise;
+}
+
+function onToggle(ui,e){
+  const fold=e.target.closest&&e.target.closest("details.fold");
+  if(!fold||fold.open===ui.open.has(fold.id))return;
+  if(fold.open)ui.open.add(fold.id);else ui.open.delete(fold.id);
+  draw(ui);
+  ui.$("#"+fold.id+" summary").focus();
 }
 
 function drawTopics(ui){

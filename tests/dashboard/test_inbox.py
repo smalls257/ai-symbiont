@@ -101,6 +101,7 @@ def test_teach_still_saves_when_the_group_has_no_trigger_and_nothing_was_typed(d
 
 def test_only_a_failed_command_with_a_fix_is_said_to_feed_nightly_training(decided):
     assert decided["draft"]["trains"] is True
+    assert decided["neverFixed"]["trains"] is False and decided["neverFixed"]["what"] == ""
     assert decided["corrDraft"]["trains"] is False
 
 
