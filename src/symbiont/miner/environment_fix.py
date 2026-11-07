@@ -17,7 +17,7 @@ COMMAND_CHARS = 80
 
 
 def setup_command(failed: Record, records: Sequence[Record]) -> str | None:
-    """The first command run between `failed` and its later pass that is neither it nor a probe.
+    """The first command that succeeded between `failed` and its later pass, neither it nor a probe.
 
     None when the command never passed later or nothing else ran. The text is scrubbed.
     """
@@ -29,12 +29,15 @@ def setup_command(failed: Record, records: Sequence[Record]) -> str | None:
         key=lambda record: record.step,
     )
     own = _identity(failed.command or "")
-    for record in between:
-        command = record.command or ""
-        if program_words(command)[0] in PROBES or _identity(command) == own:
-            continue
-        return _short(scrub(command))
-    return None
+    return next((_short(scrub(r.command or "")) for r in between if _is_setup(r, own)), None)
+
+
+def _is_setup(record: Record, failed_identity: tuple[tuple[str, str], str]) -> bool:
+    """A command that succeeded and is neither a look-around nor the failed command again."""
+    command = record.command or ""
+    if record.exit_code != 0 or program_words(command)[0] in PROBES:
+        return False
+    return _identity(command) != failed_identity
 
 
 def _short(command: str) -> str:

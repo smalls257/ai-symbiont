@@ -338,3 +338,11 @@ def test_repo_names_make_paths_repo_relative():
     lesson = failure(("pytest", "/home/me/shop/tests/test_a.py", "exit 1"))
     (card,) = incidents_from([lesson], {}, {}, frozenset({"shop"}))
     assert card.situation == ("running", "pytest", "tests/test_a.py")
+
+
+def test_a_failed_install_before_the_pass_did_not_fix_the_setup():
+    card = _passing_after(
+        [command(2, "pip install x", exit_code=1)], key=("python", "app.py", "OSError")
+    )
+    assert card.outcome is not Outcome.ENVIRONMENT_FIXED
+    assert card.noise is NoiseReason.PLAIN_RETRY
