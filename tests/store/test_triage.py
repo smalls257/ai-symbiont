@@ -4,6 +4,7 @@ Failure guarded against: a re-mine (which replaces mined tables) wiping what the
 decided, so every Resolved group shows up as new work again.
 """
 
+import sqlite3
 from datetime import date
 
 import pytest
@@ -72,3 +73,48 @@ def test_a_remine_keeps_triage_rows(store):
     save_lessons(store, "demo", [], [], held_out_tasks=frozenset())
 
     assert store.review.triage.all("demo") == {"key-a": row}
+
+
+def test_a_rename_is_kept_with_the_row_and_an_empty_name_restores_the_generated_one(store):
+    store.review.triage.save("demo", "key-a", triage_row(GroupState.RESOLVED, None, None, DAY))
+
+    store.review.triage.rename("demo", "key-a", "Flaky e2e login", DAY)
+    store.review.triage.save("demo", "key-a", triage_row(GroupState.REVIEWED, None, None, LATER))
+
+    assert store.review.triage.names("demo") == {"key-a": "Flaky e2e login"}
+    store.review.triage.rename("demo", "key-a", "", LATER)
+    assert store.review.triage.names("demo") == {}
+    assert store.review.triage.all("demo")["key-a"].state is GroupState.REVIEWED
+
+
+def test_naming_an_untriaged_group_leaves_it_for_review(store):
+    store.review.triage.rename("demo", "key-b", "Docker build", DAY)
+
+    assert store.review.triage.all("demo")["key-b"].state is GroupState.FOR_REVIEW
+
+
+def test_a_renamed_group_keeps_its_name_after_a_re_mine(store):
+    store.review.triage.rename("demo", "key-a", "Flaky e2e login", DAY)
+
+    save_lessons(store, "demo", [], [], held_out_tasks=frozenset())
+
+    assert store.review.triage.names("demo") == {"key-a": "Flaky e2e login"}
+
+
+def test_a_store_from_before_names_gains_the_column_and_keeps_its_rows(tmp_path):
+    path = tmp_path / "old.db"
+    Store.open(path)
+    db = sqlite3.connect(path)
+    db.executescript(
+        "DROP TABLE IF EXISTS triage;"
+        "CREATE TABLE triage (project TEXT NOT NULL, group_key TEXT NOT NULL, state TEXT NOT NULL,"
+        " return_rule TEXT, after_sessions INTEGER, changed_on TEXT NOT NULL, taught_on TEXT,"
+        " PRIMARY KEY (project, group_key));"
+        "INSERT INTO triage VALUES ('demo','k','resolved',NULL,NULL,'2026-11-06',NULL);"
+    )
+    db.close()
+
+    reopened = Store.open(path)
+
+    assert reopened.review.triage.all("demo")["k"].state is GroupState.RESOLVED
+    assert reopened.review.triage.names("demo") == {}

@@ -17,7 +17,8 @@ from symbiont.miner.topics import TopicMapError, topic_map_from
 from symbiont.readers.harnesses import harness_for_reader
 from symbiont.records.schema import Record
 from symbiont.service.curation_routes import BATCH, CurationRoutes, items_of, running_harness
-from symbiont.service.request_shapes import BadRequestError
+from symbiont.service.developer_names import KEEP_NAMES, developer_names
+from symbiont.service.request_shapes import BadRequestError, display_name
 from symbiont.store.local import Store
 from symbiont.store.mining import read_source
 
@@ -53,6 +54,7 @@ class SummaryRoutes:
             "summaries/save": self.save_summaries,
             "topics/candidates": self.topic_candidates,
             "topics/save": self.save_topics,
+            "topics/rename": self.rename_topic,
         }
 
     def session_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -108,10 +110,26 @@ class SummaryRoutes:
         started = {
             fact.session_id: fact.started for fact in self._store.mined.session_facts(project)
         }
-        return {
+        answer: dict[str, Any] = {
             "candidates": [_summary_json(s, started.get(s.session_id), found) for s in kept],
             "not_shown": blocked + self._withheld_datasets(project),
         }
+        chosen = developer_names(self._store, project)
+        if chosen:
+            answer |= {"developer_names": chosen, "keep_names": KEEP_NAMES}
+        return answer
+
+    def rename_topic(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Keep the developer's name for a saved topic; an empty name restores the model's."""
+        project = self._curation.allowed_project(request, {"project", "topic", "name"})
+        topic, name = request.get("topic"), display_name(request.get("name"))
+        known = {g.name for g in self._store.review.summaries.topics(project).topics}
+        if not isinstance(topic, str) or topic not in known:
+            raise BadRequestError(
+                f"no topic {topic!r} in {project}; known: {', '.join(sorted(known))}"
+            )
+        self._store.review.summaries.rename_topic(project, topic, name)
+        return {"topic": topic, "name": name}
 
     def save_topics(self, request: dict[str, Any]) -> dict[str, Any]:
         """Keep the topic map when every offered, non-noise session is in exactly one topic."""

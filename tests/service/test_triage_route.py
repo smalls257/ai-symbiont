@@ -13,7 +13,7 @@ import pytest
 
 from symbiont.core.triage import GroupActivity, GroupState, ReturnRule, triage_row
 from symbiont.service.app import ServiceMode
-from symbiont.service.triage_route import triage_listing
+from symbiont.service.triage_route import group_activity, triage_listing
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -120,6 +120,7 @@ def test_every_triage_call_writes_an_event_and_a_refusal_too(tmp_path):
         "group_key": KEY,
         "state": "resolved",
         "taught_on": None,
+        "name": "",
     }
     assert events[1]["status"] == 400
 
@@ -131,7 +132,9 @@ def test_the_page_carries_the_triage_of_each_group(tmp_path):
     page = service.page(f"/dashboard?project={PROJECT}")
 
     data = json.loads(re.search(r'id="symbiont-data">(.*?)</script>', page.body.decode(), re.S)[1])
-    assert data["triage"] == {KEY: {"state": "resolved", "regressed": False, "taught_on": None}}
+    assert data["triage"] == {
+        KEY: {"state": "resolved", "regressed": False, "taught_on": None, "name": ""}
+    }
 
 
 def test_a_resolved_group_seen_again_is_listed_for_review_and_regressed(tmp_path):
@@ -142,4 +145,84 @@ def test_a_resolved_group_seen_again_is_listed_for_review_and_regressed(tmp_path
 
     listing = triage_listing(store, PROJECT, {KEY: GroupActivity(1, seen_in_new_session=True)})
 
-    assert listing[KEY] == {"state": "for_review", "regressed": True, "taught_on": None}
+    assert listing[KEY] == {
+        "state": "for_review",
+        "regressed": True,
+        "taught_on": None,
+        "name": "",
+    }
+
+
+def test_a_name_is_trimmed_saved_and_shown_and_an_empty_name_restores_the_generated_one(tmp_path):
+    service = rig(tmp_path)
+
+    reply = service.respond("/triage", body(name="  Flaky login  "))
+
+    assert reply.status == 200 and reply.body["name"] == "Flaky login"
+    assert reply.body["state"] == "for_review"
+    page = service.page(f"/dashboard?project={PROJECT}")
+    data = json.loads(re.search(r'id="symbiont-data">(.*?)</script>', page.body.decode(), re.S)[1])
+    assert data["triage"][KEY]["name"] == "Flaky login"
+    assert service.respond("/triage", body(name="   ")).body["name"] == ""
+
+
+def test_a_name_may_travel_with_a_state_and_the_state_is_kept_when_only_renaming(tmp_path):
+    service = rig(tmp_path)
+    service.respond("/triage", body(state="resolved", name="Docker build"))
+
+    service.respond("/triage", body(name="Docker build, again"))
+
+    assert saved(tmp_path)[KEY].state is GroupState.RESOLVED
+
+
+@pytest.mark.parametrize("name", ["x" * 81, 7, None, ["a"]])
+def test_a_name_over_80_characters_or_not_text_is_a_400_and_saves_nothing(tmp_path, name):
+    reply = rig(tmp_path).respond("/triage", body(name=name))
+
+    assert reply.status == 400 and "name" in str(reply.body)
+    assert saved(tmp_path) == {}
+
+
+def test_a_name_of_exactly_80_characters_is_kept(tmp_path):
+    assert rig(tmp_path).respond("/triage", body(name="x" * 80)).status == 200
+
+
+def test_a_bad_state_sent_with_a_name_saves_neither(tmp_path):
+    reply = rig(tmp_path).respond("/triage", body(state="bogus", name="Docker build"))
+
+    assert reply.status == 400
+    assert saved(tmp_path) == {}
+
+
+def groups_seen_on(*days):
+    cards = [{"sessionId": f"s{n}", "date": day} for n, day in enumerate(days)]
+    return [{"key": KEY, "cards": cards}]
+
+
+def test_a_resolved_group_seen_in_a_later_session_is_regressed_on_the_page_data(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    store.review.triage.save(
+        PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
+    )
+
+    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20", None))
+    listing = triage_listing(store, PROJECT, seen)
+
+    assert listing[KEY]["state"] == "for_review" and listing[KEY]["regressed"] is True
+
+
+def test_a_resolved_group_not_seen_since_stays_resolved_and_an_untriaged_one_has_no_entry(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    store.review.triage.save(
+        PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
+    )
+
+    quiet = group_activity(store, PROJECT, groups_seen_on("2026-10-05", None))
+
+    assert triage_listing(store, PROJECT, quiet)[KEY] == {
+        "state": "resolved",
+        "regressed": False,
+        "taught_on": None,
+        "name": "",
+    }
+    assert group_activity(store, PROJECT, [{"key": "other", "cards": []}]) == {}

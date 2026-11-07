@@ -13,6 +13,7 @@ from record_builders import edit, say, session, user
 from symbiont.miner.mine import sessions_of
 from symbiont.miner.struggle import facts_of
 from symbiont.miner.themes import Codebase
+from symbiont.miner.topics import Group, TopicMap
 from symbiont.records.schema import dump_jsonl, load_jsonl
 from symbiont.service.curation_routes import CurationRoutes
 from symbiont.service.request_shapes import BadRequestError
@@ -280,3 +281,52 @@ def test_a_correction_ref_to_a_step_that_was_not_offered_is_refused_by_name(tmp_
 
     with pytest.raises(BadRequestError, match=r"unknown corrections.*m001:99"):
         routes.save_topics(request)
+
+
+def named_topics(routes, store):
+    summarize_all(routes, MIN_TOPIC_SESSIONS + 5)
+    ids = tuple(f"s{n:03d}" for n in range(MIN_TOPIC_SESSIONS + 5))
+    store.review.summaries.save_topics(PROJECT, TopicMap((Group("Parser", "d", ids),), (), ()))
+
+
+def test_a_topic_is_renamed_trimmed_and_an_empty_name_restores_it(tmp_path):
+    routes, store = rig(tmp_path, 40)
+    named_topics(routes, store)
+
+    saved = routes.rename_topic({"project": PROJECT, "topic": "Parser", "name": "  My parser  "})
+
+    assert saved == {"topic": "Parser", "name": "My parser"}
+    assert store.review.summaries.topic_names(PROJECT) == {"Parser": "My parser"}
+    assert routes.rename_topic({"project": PROJECT, "topic": "Parser", "name": " "})["name"] == ""
+    assert store.review.summaries.topic_names(PROJECT) == {}
+
+
+@pytest.mark.parametrize(
+    ("fields", "named"),
+    [
+        ({"topic": "Nope", "name": "x"}, "Nope"),
+        ({"topic": "Parser", "name": "x" * 81}, "80"),
+        ({"topic": "Parser", "name": 5}, "name"),
+        ({"name": "x"}, "topic"),
+    ],
+)
+def test_a_bad_topic_rename_is_a_400_naming_the_problem(tmp_path, fields, named):
+    routes, store = rig(tmp_path, 40)
+    named_topics(routes, store)
+
+    with pytest.raises(BadRequestError, match=named):
+        routes.rename_topic({"project": PROJECT, **fields})
+    assert store.review.summaries.topic_names(PROJECT) == {}
+
+
+def test_topic_candidates_tell_the_model_the_names_the_developer_chose(tmp_path):
+    routes, store = rig(tmp_path, 40)
+    named_topics(routes, store)
+    routes.rename_topic({"project": PROJECT, "topic": "Parser", "name": "My parser"})
+
+    answer = routes.topic_candidates(RUNNING)
+
+    assert answer["developer_names"] == [
+        {"was": "Parser", "now": "My parser", "of": "topic"},
+    ]
+    assert "Keep" in answer["keep_names"]

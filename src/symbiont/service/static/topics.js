@@ -70,7 +70,7 @@ function injectOnce(){
   if(document.getElementById("sbt-style"))return;
   const style=document.createElement("style");style.id="sbt-style";style.textContent=CSS;document.head.appendChild(style);
   const box=document.createElement("div");box.id="sbt-tip";box.setAttribute("role","tooltip");document.body.appendChild(box);
-  const show=(el,x,y)=>{box.innerHTML=el.getAttribute("data-tip");box.style.display="block";
+  const show=(el,x,y)=>{box.innerHTML=window.SymbiontTip.safe(el.getAttribute("data-tip"));box.style.display="block";
     const r=box.getBoundingClientRect();box.style.left=Math.max(4,Math.min(innerWidth-r.width-8,x+14))+"px";
     box.style.top=(y+18+r.height>innerHeight?y-r.height-10:y+18)+"px";};
   const target=e=>e.target.closest&&e.target.closest("[data-tip]");
@@ -114,8 +114,11 @@ function emptyHtml(tv,compact){
   return '<p class="ins">'+INSTRUCTION+"</p>"+need+(list.length?"<h3>Sessions by date</h3>"+rows+rest:"");
 }
 
+/* A topic's name edits in place; `key` is the model's name, which the service uses to find the topic. */
+const nameButton=t=>'<button type="button" class="nm edit-name" data-rename="'+esc(t.key)+'" title="Click to rename" aria-label="Rename topic: '+esc(t.name)+'">'+esc(t.name)+"</button>";
+
 function compactHtml(tv){
-  const rows=tv.topics.slice().sort((a,b)=>b.sessions-a.sessions).map(t=>'<div class="trow"><span class="nm">'+esc(t.name)+'</span><span class="ct">'+t.sessions+"<small>"+(t.sessions===1?"session":"sessions")+"</small></span>"
+  const rows=tv.topics.slice().sort((a,b)=>b.sessions-a.sessions).map(t=>'<div class="trow">'+nameButton(t)+'<span class="ct">'+t.sessions+"<small>"+(t.sessions===1?"session":"sessions")+"</small></span>"
     +'<span class="ds">'+esc(t.description)+'</span><div class="barw">'+outcomeBar(t.outcomes,t.name)+'</div><span class="dt">'+span(t)+"</span></div>").join("");
   return '<p class="sub">'+counted(tv.topics.length,"topic")+" from "+counted(tv.sessions,"summarized session")+". The bar shows how each session ended.</p>"
     +legend(totals(tv.topics))+'<div style="margin-top:.4rem">'+rows+"</div>";
@@ -133,7 +136,7 @@ function detailHtml(tv,state){
   const shown=state.outcome==="all"?t.sessionList:t.sessionList.filter(s=>s.outcome===state.outcome);
   const filters=["all",...OUTCOMES].map(k=>'<button type="button" class="btn" data-outcome="'+k+'" aria-pressed="'+(k===state.outcome)+'"'+(k===state.outcome?' style="border-color:var(--vi)"':"")+">"
     +(k==="all"?"All":k)+" "+(k==="all"?t.sessions:t.outcomes[k])+"</button>").join(" ");
-  return "<h2>"+esc(t.name)+' <span class="mu">'+counted(t.sessions,"session")+" · "+span(t)+"</span></h2><p class=\"sub\">"+esc(t.description)+"</p>"
+  return "<h2>"+nameButton(t)+' <span class="mu">'+counted(t.sessions,"session")+" · "+span(t)+"</span></h2><p class=\"sub\">"+esc(t.description)+"</p>"
     +'<div class="cols2"><div><h3 style="margin-top:0">How the sessions ended</h3>'+outcomeBar(t.outcomes,t.name)+'<div style="margin-top:.5rem">'+legend(t.outcomes)+"</div></div>"
     +"<div><h3 style=\"margin-top:0\">What went wrong here</h3><p>"+counted(t.incidents,"failure card")+" from this topic's sessions.</p></div></div>"
     +"<h3>Sessions</h3><div>"+filters+"</div>"+sessionTable(shown,FULL_SESSIONS,state.all);
@@ -187,15 +190,43 @@ function fullHtml(tv,state){
     +"<h3>Where each topic got stuck</h3><p class=\"sub\">Sessions per friction category; a session can sit in more than one.</p>"+frictionHtml(tv,state);
 }
 
+async function postRename(project,topic,text){
+  const name=window.SymbiontRename.clean(text);
+  const reply=await fetch("/topics/rename",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({project,topic:topic.key,name})});
+  const body=await reply.text();
+  if(!reply.ok)throw new Error(body||"status "+reply.status);
+  return JSON.parse(body).name||topic.key;
+}
+
+/* Rename in place. After a save the panel redraws from the same data with the new name; a refusal says why. */
+function wireRename(container,tv,options,redraw){
+  container.addEventListener("click",e=>{
+    const button=e.target.closest("[data-rename]");
+    if(!button||!options||!options.project)return;
+    e.stopPropagation();
+    const topic=tv.topics.find(t=>t.key===button.dataset.rename);
+    const say=message=>{container.insertAdjacentHTML("afterbegin",'<p class="undated" role="alert">'+esc(message)+"</p>");};
+    window.SymbiontRename.inPlace(button,async text=>{
+      const was=topic.name;
+      topic.name=await postRename(options.project,topic,text);
+      redraw(was,topic.name);
+    },say);
+  },true);
+}
+
 function render(container,tv,options){
   injectOnce();
   const compact=Boolean(options&&options.compact);
   container.classList.add("sbt");
   if(!tv||!tv.ready){container.innerHTML=emptyHtml(tv,compact);return;}
-  if(compact){container.innerHTML=compactHtml(tv);return;}
+  if(compact){
+    const drawCompact=()=>{container.innerHTML=compactHtml(tv);};
+    drawCompact();wireRename(container,tv,options,drawCompact);return;
+  }
   const top=tv.topics.slice().sort((a,b)=>b.sessions-a.sessions)[0];
   const state={topic:top.name,outcome:"all",all:false};
-  const draw=()=>{container.innerHTML=fullHtml(tv,state);};
+  const draw=(was,now)=>{if(was!==undefined&&state.topic===was)state.topic=now;container.innerHTML=fullHtml(tv,state);};
+  wireRename(container,tv,options,draw);
   container.onclick=e=>{
     const pick=e.target.closest("[data-topic]"),filter=e.target.closest("[data-outcome]"),more=e.target.closest("[data-more]");
     if(pick){state.topic=pick.dataset.topic;state.outcome="all";state.all=false;}

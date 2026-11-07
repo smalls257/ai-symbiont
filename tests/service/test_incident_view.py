@@ -138,3 +138,68 @@ def test_a_session_dropped_from_the_topic_map_loses_its_topic(tmp_path):
     assert incidents_snapshot(store, "demo")["topics"]
     summaries.save_topics("demo", TopicMap((), (), ()))
     assert incidents_snapshot(store, "demo")["topics"] == []
+
+
+def test_a_group_has_a_generated_name_and_a_correction_card_carries_its_episode():
+    failure = incident_groups([card("a")], DAYS)["groups"][0]
+    assert failure["name"] == "pytest failing: tests"
+    stepped_in = Incident(
+        **{**card("a").__dict__, "signal": Signal.CORRECTION, "fingerprint": "",
+           "first_wrong": "Edited the wrong config", "cost_steps": 4}
+    )  # fmt: skip
+    context = IncidentContext(correction_names={("a", 1): "Config edits"})
+
+    group = incident_groups([stepped_in], DAYS, context)["groups"][0]
+
+    assert group["name"] == "Config edits"
+    assert (group["cards"][0]["firstWrong"], group["cards"][0]["costSteps"]) == (
+        "Edited the wrong config",
+        4,
+    )
+
+
+def test_a_long_generated_name_is_cut_to_what_a_renamed_group_may_hold():
+    long = replace(card("a"), example="pytest " + "x" * 200)
+
+    name = incident_groups([long], DAYS)["groups"][0]["name"]
+
+    assert len(name) == 80 and name.endswith("\u2026") and name.startswith("pytest failing: xx")
+
+
+def test_the_generated_name_does_not_depend_on_the_shape_of_the_key():
+    odd = replace(card("a"), fingerprint="anything at all")
+
+    assert incident_groups([odd], DAYS)["groups"][0]["name"] == "pytest failing: tests"
+
+
+def test_what_fixed_it_comes_from_a_card_with_the_groups_verdict_not_the_newest_card():
+    fixed = [replace(card(s), what_fixed_it=f"Fixed it in {s}") for s in ("a", "b")]
+    newest_unfixed = replace(
+        card("c"), outcome=Outcome.NEVER_FIXED, what_fixed_it="Never fixed in this session."
+    )
+
+    group = incident_groups([*fixed, newest_unfixed], DAYS)["groups"][0]
+
+    assert group["verdict"] == "fixed in the code"
+    assert group["fixed"] == "Fixed it in b" and group["fixShown"] is True
+    assert incident_groups([newest_unfixed], DAYS)["groups"][0]["fixShown"] is False
+
+
+def test_the_names_the_developer_gave_groups_are_told_with_the_generated_name_they_replace(
+    tmp_path,
+):
+    from datetime import date
+
+    from symbiont.service.developer_names import developer_names
+
+    store = Store.open(tmp_path / "s.db")
+    mine_one_failure(tmp_path, store)
+    group = incidents_snapshot(store, "demo")["groups"][0]
+    store.review.triage.rename("demo", group["key"], "Flaky import", date(2026, 11, 6))
+    store.review.triage.rename(
+        "demo", "failure:gone:forever", "Left from an older mine", date(2026, 11, 6)
+    )
+
+    told = developer_names(store, "demo")
+
+    assert told == [{"was": group["name"], "now": "Flaky import", "of": "failure group"}]

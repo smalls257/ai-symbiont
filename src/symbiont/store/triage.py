@@ -14,9 +14,17 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS triage (
     project TEXT NOT NULL, group_key TEXT NOT NULL, state TEXT NOT NULL,
     return_rule TEXT, after_sessions INTEGER, changed_on TEXT NOT NULL, taught_on TEXT,
+    name TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (project, group_key)
 );
 """
+
+
+def add_missing_name(db: sqlite3.Connection) -> None:
+    """Give a store from before group names the `name` column, once, when it is opened."""
+    if "name" not in {column[1] for column in db.execute("PRAGMA table_info(triage)")}:
+        with db:
+            db.execute("ALTER TABLE triage ADD COLUMN name TEXT NOT NULL DEFAULT ''")
 
 
 class GroupTriage:
@@ -25,6 +33,27 @@ class GroupTriage:
     def __init__(self, db: sqlite3.Connection) -> None:
         """Use the store's connection."""
         self._db = db
+
+    def rename(self, project: str, group_key: str, name: str, day: date) -> None:
+        """Keep the developer's name for a group; "" restores the generated name.
+
+        The name lives on the triage row, which a re-mine never replaces, so it outlives re-mines.
+        A group not yet triaged stays For review.
+        """
+        with self._db:
+            self._db.execute(
+                "INSERT INTO triage (project, group_key, state, changed_on, name)"
+                " VALUES (?, ?, ?, ?, ?) ON CONFLICT (project, group_key) DO"
+                " UPDATE SET name=excluded.name",
+                (project, group_key, GroupState.FOR_REVIEW.value, day.isoformat(), name),
+            )
+
+    def names(self, project: str) -> dict[str, str]:
+        """The developer's names for groups of `project`, by group key; unnamed ones are absent."""
+        rows = self._db.execute(
+            "SELECT group_key, name FROM triage WHERE project=? AND name != ''", (project,)
+        )
+        return dict(rows)
 
     def save(self, project: str, group_key: str, row: TriageRow) -> None:
         """Set the group's state; the day "Teach the agent" was used is kept."""

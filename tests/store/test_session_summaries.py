@@ -109,3 +109,26 @@ def test_a_store_made_before_summaries_existed_still_reads_its_facts(tmp_path):
 
     assert reopened.mined.session_facts(PROJECT)[0].title == "make the parser faster please"
     assert reopened.mined.session_strips(PROJECT) == []
+
+
+def test_a_topic_name_the_developer_chose_survives_a_new_map_that_keeps_the_topic(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    store.review.summaries.save_topics(PROJECT, topic_map())
+    kept = topic_map().topics[0].name
+
+    store.review.summaries.rename_topic(PROJECT, kept, "My name for it")
+    store.review.summaries.save_topics(PROJECT, topic_map())
+
+    assert store.review.summaries.topic_names(PROJECT) == {kept: "My name for it"}
+    store.review.summaries.rename_topic(PROJECT, kept, "")
+    assert store.review.summaries.topic_names(PROJECT) == {}
+
+
+def test_a_chosen_name_is_forgotten_once_the_new_map_drops_its_topic(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    store.review.summaries.save_topics(PROJECT, topic_map())
+    store.review.summaries.rename_topic(PROJECT, topic_map().topics[0].name, "Mine")
+
+    store.review.summaries.save_topics(PROJECT, TopicMap((), (), ()))
+
+    assert store.review.summaries.topic_names(PROJECT) == {}

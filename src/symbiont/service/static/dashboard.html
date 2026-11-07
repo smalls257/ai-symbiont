@@ -7,6 +7,7 @@
 <link rel="icon" href="data:,">
 <title>symbiont dashboard</title>
 <link rel="stylesheet" href="/dashboard/dashboard.css">
+<link rel="stylesheet" href="/dashboard/inbox.css">
 </head>
 <body>
 <header class="top">
@@ -44,6 +45,10 @@
 </section>
 
 <section class="stage" id="s1" aria-label="Pain-point dashboard">
+  <div class="subnav" id="subnav" role="group" aria-label="Pain points views"></div>
+  <div class="subview" id="vInbox"></div>
+  <div class="subview" id="vTopics"></div>
+  <div class="subview" id="vTrends"></div>
   <div class="kpis" id="kpis"></div>
   <div class="panel scroll" id="pPat"><h2>How the struggle looks</h2><p class="sub">Share of sessions showing each pattern, and the help that fits. Click one to scope the page.</p><div class="body" id="pats"></div></div>
   <div class="panel scroll" id="pMap">
@@ -90,6 +95,15 @@
 <script src="/dashboard/struggle.js"></script>
 <script src="/dashboard/ignored.js"></script>
 <script src="/dashboard/summary.js"></script>
+<script src="/dashboard/tip.js"></script>
+<script src="/dashboard/rename.js"></script>
+<script src="/dashboard/inbox_model.js"></script>
+<script src="/dashboard/inbox_rows.js"></script>
+<script src="/dashboard/inbox_dialogs.js"></script>
+<script src="/dashboard/inbox.js"></script>
+<script src="/dashboard/topics.js"></script>
+<script src="/dashboard/trends.js"></script>
+<script src="/dashboard/views.js"></script>
 <script src="/dashboard/dashboard.js"></script>
 </body>
 </html>
