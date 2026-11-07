@@ -81,8 +81,18 @@ const bigGroups = [group("big <1>", { name: "Evil <b>name</b>", noise: "plain_re
 const bigRules = N.rulesOf([{ reason: "passed when run again", count: 30 }], bigGroups, "all");
 const bigHtml = N.rulesHtml(bigRules, "", "demo");
 
+const storyCode = (s) => R.esc(s).replace(/`([^`]+)`/g, "<code>$1</code>");
+const full = { kind: "failure", workingOn: "moving the allowed domains", broke: "`pnpm api:generate` failed", ended: "fixed by editing a.ts", verdict: "fixed in the code", verdictSentence: "The fix hid the cause." };
+const story = {
+  full: M.storyHtml(full, R.esc, storyCode),
+  pill: M.storyHtml({ ...full, verdictSentence: null }, R.esc, storyCode),
+  bare: M.storyHtml({ kind: "failure", broke: "`x` failed", ended: "", verdict: "", verdictSentence: null }, R.esc, storyCode),
+  correction: M.storyHtml({ kind: "correction", broke: "no, use uv", ended: "The agent then edited a.py." }, R.esc, storyCode),
+  hostile: M.storyHtml({ kind: "failure", workingOn: "<img src=x onerror=1>", broke: "<b>x</b>", ended: "`<i>`" }, R.esc, storyCode),
+};
+
 console.log(JSON.stringify({
-  bigHtml, bigGroupKeys: bigGroups.map((g) => g.key),
+  story, bigHtml, bigGroupKeys: bigGroups.map((g) => g.key),
   badges: [M.badgeLabel("new"), M.badgeLabel("rising"), M.badgeLabel(null)], badBadge,
   verdicts: [M.verdictText({ verdict: "fixed in the code", verdictSentence: "Worth a look: it costs time." }), M.verdictText({ verdict: "fixed in the code", verdictSentence: null })],
   rules, unknownReason,

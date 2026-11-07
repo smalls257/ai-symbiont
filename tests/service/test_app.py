@@ -281,7 +281,10 @@ def test_a_warning_says_how_it_was_resolved_and_what_to_check(tmp_path):
 def test_recall_answers_with_structured_lessons(tmp_path):
     service, _ = make_service(tmp_path, two_failures(tmp_path))
     answer = service.respond("/recall", {"question": "test_parser", "project": PROJECT}).body
-    assert answer["answer"].startswith("What happened: ") and "Check: " in answer["answer"]
+    assert (
+        "`pytest tests/test_parser.py` failed" in answer["answer"]
+        and "Last time:" in answer["answer"]
+    )
     assert answer["records"] == [["a", 1], ["b", 1]]
 
 

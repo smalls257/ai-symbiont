@@ -356,7 +356,7 @@ def test_a_summary_with_markup_is_escaped_on_the_page():
 
     assert snapshot["painPoints"][0]["summary"] == markup
     assert "SymbiontSummary.summaryHtml(p,esc)" in js
-    assert "esc(p.summary)" in helper and "esc(p.ruleSummary)" in helper
+    assert "esc(p.summary)" in helper and "workingOn" in helper
     assert "Ask your session for a summary: /symbiont review" in helper
     assert len(js.splitlines()) <= 400
 
@@ -374,9 +374,9 @@ def test_a_pain_point_without_a_review_gets_a_rule_built_summary_from_the_reques
     point = dashboard_snapshot(view(lessons), TODAY)["painPoints"][0]
 
     assert point["summary"] == ""
-    summary = point["ruleSummary"]
-    assert "You asked" not in summary and "def parse" not in summary and len(summary) <= 200
-    assert "ImportError" in summary and "edited parser.py" in summary
+    assert point["workingOn"] == "make the parser tests pass"
+    assert "ImportError" in point["broke"] and "ruleSummary" not in point
+    assert point["ended"].startswith("fixed by editing parser.py (added `def parse(text):`)")
 
 
 def test_the_inbox_assets_are_served_and_the_pain_points_tab_has_its_sub_navigation(served):

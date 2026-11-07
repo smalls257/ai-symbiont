@@ -43,4 +43,8 @@ def incident_from_json(body: str) -> Incident:
         situation=(data["situation"][0], data["situation"][1], data["situation"][2]),
         fingerprint=data["fingerprint"],
         example=data["example"],
+        # Cards stored before the story lines carry none; the page falls back to the sentences.
+        working_on=data.get("working_on", ""),
+        broke=data.get("broke", ""),
+        ended=data.get("ended", ""),
     )

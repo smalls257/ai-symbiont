@@ -27,6 +27,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.resolutions import NOTHING_CHANGED, ONLY_UNRELATED_CHANGED, PASSED_RESPELLED
 from symbiont.miner.screen import INLINE_TARGET, PROBES
+from symbiont.miner.story import Story, story_of
 from symbiont.records.schema import Record
 
 __all__ = [
@@ -121,6 +122,7 @@ def _failure_card(
     setup = setup_command(failed, records) if failed is not None else None
     detail = failure_detail(failed.raw) if failed is not None else ""
     outcome = _failure_outcome(lesson, setup)
+    story = story_of(lesson)
     return Incident(
         session_id=pain.session_id,
         step=pain.step,
@@ -136,7 +138,17 @@ def _failure_card(
         situation=(TriggerKind.RUNNING.value, program, path_of(target, repo_names)),
         fingerprint=f"failure:{program}:{broke}",
         example=words.command_example(failed.command if failed is not None else None),
+        working_on=story.working_on,
+        broke=story.broke,
+        ended=_failure_ended(story, outcome, setup),
     )
+
+
+def _failure_ended(story: Story, outcome: Outcome, setup: str | None) -> str:
+    """How it ended; a setup command seen between the failure and the pass is named as typed."""
+    if outcome is Outcome.ENVIRONMENT_FIXED and setup is not None:
+        return f"fixed the setup: ran `{words.working_command(setup)}`, then it passed"
+    return story.ended
 
 
 def _failure_noise(lesson: Lesson, failed: Record | None, outcome: Outcome) -> NoiseReason | None:

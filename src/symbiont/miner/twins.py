@@ -39,6 +39,7 @@ def _pooled(kept: Lesson, twin: Lesson) -> Lesson:
         task_ids=_union(kept.task_ids, twin.task_ids),
         fix_commands=_union(kept.fix_commands, twin.fix_commands),
         fix_steps=max(kept.fix_steps, twin.fix_steps),
+        fix_added=kept.fix_added or twin.fix_added,
         changed_alongside=_union(kept.changed_alongside, twin.changed_alongside),
         private_datasets=_union(kept.private_datasets, twin.private_datasets),
         remote_safe=kept.remote_safe and twin.remote_safe,

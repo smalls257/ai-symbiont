@@ -32,8 +32,10 @@ def test_a_resolved_lesson_gives_two_cards_and_one_corrected_action():
     rows = training_rows("demo", [lesson()])
     assert [row.kind for row in rows] == ["self-study", "self-study", "action"]
     card = rows[0].messages[2]["content"]
-    assert card.startswith("What happened: `pytest tests/test_cli.py` failed with ModuleNotFound")
-    assert "Last time: ran pip install" in card and rows[1].messages[2]["content"] == card
+    assert card.startswith("`pytest tests/test_cli.py` failed: ModuleNotFoundError")
+    assert (
+        "Last time: " in card and "pip install" in card and rows[1].messages[2]["content"] == card
+    )
     action = rows[2].messages
     assert action[0]["content"] == agent_system("demo")
     assert action[1]["content"] == (

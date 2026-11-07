@@ -29,7 +29,7 @@ const minutes=p=>isMistake(p)?p.min*p.s.length:0;
 const detectAt=p=>p.s[Math.min(1,p.s.length-1)];
 const LESSON=Object.fromEntries(DATA.lessons.map(l=>[l.id,l]));
 /* internal view of a pain point: the schema joined with its lesson */
-const P=DATA.painPoints.map(d=>{const l=LESSON[d.lessonId];return {id:d.id,kind:d.kind,title:d.title,file:d.file,cmd:d.command||"",s:d.sessions,turns:d.turnsPerOccurrence,min:d.minutesPerOccurrence,what:d.failure,fix:d.fix||"",note:l.note,ex:l.exampleContext,srcLabel:l.sourceLabel||"",srcUrl:l.sourceUrl||"",lesson:l.confirmed,lessonId:l.id,conflict:l.reviewConflict||null,summary:d.summary||"",ruleSummary:d.ruleSummary||""};});
+const P=DATA.painPoints.map(d=>{const l=LESSON[d.lessonId];return {id:d.id,kind:d.kind,title:d.title,file:d.file,cmd:d.command||"",s:d.sessions,turns:d.turnsPerOccurrence,min:d.minutesPerOccurrence,what:d.failure,fix:d.fix||"",note:l.note,ex:l.exampleContext,srcLabel:l.sourceLabel||"",srcUrl:l.sourceUrl||"",lesson:l.confirmed,lessonId:l.id,conflict:l.reviewConflict||null,summary:d.summary||"",workingOn:d.workingOn||"",broke:d.broke||"",ended:d.ended||""};});
 /* The last three known dates of a pain point's sessions; "date unknown" appears once, not per session. */
 function occurrenceDates(p){
   const known=p.s.filter(i=>dayOf(i)!==null),shown=known.slice(-3).map(i=>dateOf(dayOf(i)));
@@ -240,7 +240,6 @@ function showPain(id){
   $("edit").innerHTML='<div class="chips"><span class="chip kind">'+KINDS[p.kind].label+'</span><span class="chip">'+esc(p.file)+'</span>'+sourceChip(p)+'<span class="chip">seen '+p.s.length+(p.s.length===1?" time":" times")+"</span></div>"
    +"<h2>"+esc(p.title)+"</h2>"
    +'<div class="occ" aria-label="Sessions where it happened">'+p.s.map(i=>'<i style="background:'+KINDS[p.kind].color+'" data-tip="'+dateOf(dayOf(i))+'"></i>').join("")+'<span class="mu">'+occurrenceDates(p)+"</span></div>"+window.SymbiontSummary.summaryHtml(p,esc)
-   +"<p><span class=\"mu\">What happened.</span> "+fmt(p.what)+"</p>"+(p.fix?"<p><b>How it was fixed.</b> "+fmt(p.fix)+"</p>":"")
    +(p.conflict&&!st.intent&&!st.kept?'<div class="conflict" id="conflict" role="note">The reviewer thinks this is '+esc(p.conflict)+', but you added your own words, so it stays active. <button id="keepit">Keep</button> <button id="dismissit">Dismiss</button></div>':"")
    +'<div><label class="h" for="ctx">Add context in your own words</label><textarea id="ctx" placeholder="Tell the agent what it cannot see in the code." aria-label="Context for the agent">'+esc(st.ctx)+'</textarea>'
    +(p.ex?'<div class="ex"><button id="exb">Use: “'+esc(p.ex)+'”</button></div>':"")+"</div>"

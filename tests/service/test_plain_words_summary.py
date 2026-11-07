@@ -7,7 +7,8 @@ from symbiont.core.notes import render_lesson, title_of
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_chain, sessions_of
 from symbiont.miner.painpoint import Signal, Signature
-from symbiont.service.candidate_summary import SUMMARY_CHARS, rule_summary
+from symbiont.miner.story import ENDED_CHARS, story_of
+from symbiont.service.candidate_summary import rule_summary
 
 ASKED = (
     "Im looking through the code, and think that the identity controller should not be "
@@ -31,11 +32,13 @@ def lesson_of(records):
     return lessons_from(mine_chain(sessions_of(records), {}), records, frozenset())[0]
 
 
-def test_the_owners_summary_is_two_short_plain_sentences():
+def test_the_owners_summary_is_three_labeled_plain_lines():
     summary = rule_summary(lesson_of(owners_session()))
-    assert len(summary) <= SUMMARY_CHARS
-    assert "You asked" not in summary and "`" not in summary and "REDIS_HOST" not in summary
-    assert "apps/api" not in summary and "identity.controller.ts" in summary
+    working, broke, ended = summary.splitlines()
+    assert working.startswith("Working on: ") and "You asked" not in summary
+    assert broke.startswith("What broke: `pnpm api:generate`")
+    assert ended.startswith("How it ended: fixed by editing identity.controller.ts")
+    assert "apps/api" not in summary
 
 
 def test_a_note_for_a_six_edit_fix_is_short_and_still_names_the_file():
@@ -77,7 +80,7 @@ def test_a_fix_with_no_real_step_reads_as_no_fix_in_the_note_and_the_summary():
     fixed = lesson_of(owners_session())
     unfixed = replace(fixed, resolution=(), fix=None, unresolved_because="nothing changed")
     note, summary = render_lesson(unfixed), rule_summary(unfixed)
-    assert "No fix was found" in note and "history shows no fix" in summary
+    assert "No fix was found" in note and "no fix was shown" in summary
     assert "ran another command" not in note + summary
 
 
@@ -92,7 +95,7 @@ def test_a_pooled_lesson_stays_short_in_the_note_the_card_and_the_summary():
     lesson = pooled(6)
     resolved = render_lesson(lesson).split("Last time: ")[1].split(" Check:")[0]
     assert len(resolved) <= 200 and "other fixes" in resolved
-    assert len(rule_summary(lesson)) <= SUMMARY_CHARS
+    assert len(story_of(lesson).ended) <= ENDED_CHARS
     recs = owners_session()
     (card,) = incidents_from([replace(lesson, fix=None)], {"s1": recs}, {"s1": recs})
     assert len(card.what_fixed_it) <= 200
@@ -106,14 +109,17 @@ def test_an_old_stored_row_reads_plain_on_the_note_and_the_card():
     from symbiont.store.lesson_rows import lesson_from_json
 
     old = asdict(lesson_of(owners_session()))
-    del old["fix_commands"], old["fix_steps"]
+    del old["fix_commands"], old["fix_steps"], old["fix_added"]
     old["resolution"] = [
         f"edited `{PATH}` to add `host: this.configService.get('REDIS_HOST', 'localhost'),`",
         "ran `pnpm api:generate 2>&1 | tail -5`",
     ]
     lesson = lesson_from_json(json.dumps(old))
     note = render_lesson(lesson)
-    assert "Last time: edited identity.controller.ts, then re-ran pnpm." in note
+    assert (
+        "Last time: fixed by editing identity.controller.ts, then `pnpm api:generate` passed"
+        in note
+    )
     assert "REDIS_HOST" not in note and "apps/api" not in note
     recs = owners_session()
     (card,) = incidents_from([lesson], {}, {"s1": recs})

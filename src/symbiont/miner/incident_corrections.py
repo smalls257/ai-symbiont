@@ -22,6 +22,8 @@ from symbiont.miner.screen import INLINE_TARGET
 from symbiont.records.schema import Kind, Record
 
 # Steps worth warning about before they happen: they are hard to take back.
+# What a correction card quotes of the developer: a line, not their whole message.
+SAID_CHARS = 120
 BEFORE_STEPS = frozenset({"git push", "git commit", "git merge", "git rebase", "npm publish"})
 
 
@@ -48,7 +50,15 @@ def correction_card(
         files=lesson.files,
         situation=situation_of(episode.first_wrong, repo_names),
         example=words.quoted_words(text),
+        broke="" if empty else _said(text),
+        ended=words.next_edit_sentence(first_file(episode.next_edit)),
     )
+
+
+def _said(text: str) -> str:
+    """The developer's own words, one line of at most SAID_CHARS."""
+    flat = " ".join(words.quoted_words(text).split())
+    return flat if len(flat) <= SAID_CHARS else flat[: SAID_CHARS - 1].rstrip() + "…"
 
 
 def _first_wrong_words(action: Record | None) -> str:

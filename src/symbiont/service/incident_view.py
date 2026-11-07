@@ -61,6 +61,8 @@ class IncidentContext:
     # Sessions per ISO week over the whole project and its newest session day, for the badges.
     sessions_per_week: Sequence[Sequence[Any]] = ()
     latest_day: date | None = None
+    # The session model's goal per session id, for "Working on"; see `store.session_summaries`.
+    goals: Mapping[str, str] = field(default_factory=dict)
 
 
 def incidents_snapshot(
@@ -87,7 +89,13 @@ def incidents_snapshot(
     shown = incident_groups(
         cards,
         days,
-        _context_of(facts, topic_map, trained, store.review.verdicts.sentences(project)),
+        _context_of(
+            facts,
+            topic_map,
+            trained,
+            store.review.verdicts.sentences(project),
+            {s.session_id: s.goal for s in store.review.summaries.all(project)},
+        ),
     )
     shown["ownHistory"] = not dataset_readers(store, project)
     return shown
@@ -98,6 +106,7 @@ def _context_of(
     topic_map: TopicMap,
     trained: frozenset[str],
     verdicts: Mapping[str, str],
+    goals: Mapping[str, str],
 ) -> IncidentContext:
     groups = topic_map.correction_groups
     return IncidentContext(
@@ -107,6 +116,7 @@ def _context_of(
         {g.name: g.description for g in groups},
         trained,
         verdicts,
+        goals=goals,
     )
 
 
@@ -138,8 +148,18 @@ def _worth(incidents: Sequence[Incident], topic: str) -> list[Incident]:
     return [c for c in incidents if c.topic == topic and c.noise is None]
 
 
+def _story(card: Incident, context: IncidentContext) -> dict[str, str]:
+    """The card's story lines: the goal leads; cards stored before the lines fall back."""
+    return {
+        "workingOn": context.goals.get(card.session_id) or card.working_on,
+        "broke": card.broke or card.what_happened,
+        "ended": card.ended or card.what_fixed_it,
+    }
+
+
 def _card(card: Incident, days: SessionDays, context: IncidentContext) -> dict[str, Any]:
     return {
+        **_story(card, context),
         "happened": card.what_happened,
         "fixed": card.what_fixed_it,
         "outcome": card.outcome.value,
@@ -201,6 +221,7 @@ def _group_json(
         "title": without_cd(newest.example) or newest.what_happened,
         "groupedBecause": _grouped_because(group, context),
         "kind": "correction" if group.signal is Signal.CORRECTION else "failure",
+        **_story(_card_behind_verdict(group.cards), context),
         "happened": newest.what_happened,
         "fixed": _fix_behind_verdict(group.cards),
         "fixShown": _dominant_outcome(group.cards) in TEACHABLE_OUTCOMES,
@@ -231,10 +252,15 @@ def _dominant_outcome(cards: Sequence[Incident]) -> Outcome:
     return Counter(c.outcome for c in cards).most_common(1)[0][0]
 
 
-def _fix_behind_verdict(cards: Sequence[Incident]) -> str:
-    """What fixed it, told by the newest card whose outcome is the verdict's, so they agree."""
+def _card_behind_verdict(cards: Sequence[Incident]) -> Incident:
+    """The newest card whose outcome is the verdict's, so the story and the verdict agree."""
     outcome = _dominant_outcome(cards)
-    return next(c.what_fixed_it for c in cards if c.outcome is outcome)
+    return next(c for c in cards if c.outcome is outcome)
+
+
+def _fix_behind_verdict(cards: Sequence[Incident]) -> str:
+    """What fixed it, told by the card behind the verdict."""
+    return _card_behind_verdict(cards).what_fixed_it
 
 
 def _first_and_last(cards: Sequence[Incident], days: SessionDays) -> dict[str, str | None]:

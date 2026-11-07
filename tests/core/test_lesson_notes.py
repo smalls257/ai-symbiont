@@ -36,10 +36,10 @@ def lesson(signature=FAILED, resolution=("ran pip install, then re-ran pytest",)
 def test_a_lesson_reads_as_happened_resolved_check():
     note = render_lesson(lesson())
     assert note == (
-        "What happened: `pytest tests/test_parser.py` failed with ModuleNotFoundError. "
-        "Last time: ran pip install, then re-ran pytest. "
-        "Check: run `pytest tests/test_parser.py` and confirm it passes before moving on."
+        "`pytest tests/test_parser.py` failed with ModuleNotFoundError. "
+        "Last time: fixed the setup: ran `pytest`, then it passed."
     )
+    assert len(note) <= 300
 
 
 def test_an_unresolved_lesson_says_no_fix_was_found_rather_than_inventing_one():
@@ -58,7 +58,10 @@ def test_every_signal_renders_as_prose_with_a_check():
     }
     for signal, key in keys.items():
         note = render_lesson(lesson(Signature(signal, key)))
-        assert note.startswith("What happened: ") and "Check: " in note
+        if signal is Signal.FAILED_COMMAND:
+            assert note.startswith("`pytest") and "Last time" in note
+        else:
+            assert note.startswith("What happened: ") and "Check: " in note
         assert not FORBIDDEN.search(note), note
 
 
@@ -89,5 +92,4 @@ def test_changes_alongside_are_said_to_have_happened_not_claimed_as_the_fix():
     from dataclasses import replace
 
     note = render_lesson(replace(lesson(), changed_alongside=("edited notes.md",)))
-    assert "Before it passed you also edited notes.md." in note
-    assert "Last time: ran pip install, then re-ran pytest." in note
+    assert "notes.md" not in note and "Last time: " in note

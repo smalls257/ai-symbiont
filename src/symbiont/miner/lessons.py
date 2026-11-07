@@ -11,6 +11,7 @@ from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 
+from symbiont.miner.added_line import telling_added_line
 from symbiont.miner.created import target_created_before
 from symbiont.miner.error_lines import key_error_lines
 from symbiont.miner.fix_words import fix_phrase
@@ -79,6 +80,8 @@ class Lesson:
     fix_commands: tuple[str, ...] = ()
     # How many steps the resolution took; a cost estimate, since the phrase hides the count.
     fix_steps: int = 0
+    # The one telling line the fix added (`added_line`); "" when it added none worth quoting.
+    fix_added: str = ""
 
 
 @dataclass(frozen=True)
@@ -155,6 +158,7 @@ def _lesson(
         target_created=_target_created(pain, cited[0], records, repo_names),
         fix_commands=_commands_of(steps),
         fix_steps=len(steps),
+        fix_added=telling_added_line(steps),
     )
 
 

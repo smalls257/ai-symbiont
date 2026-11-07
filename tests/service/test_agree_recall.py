@@ -22,7 +22,7 @@ pytestmark = pytest.mark.periphery
 
 def test_agreement_returns_the_stored_note_with_both_twins_fixes(tmp_path):
     answer = recall(service_with(tmp_path, judge_saying(0.99))).body["answer"]
-    assert "ran a, and 1 other fix" in answer and answer.startswith("What happened: ")
+    assert "and 1 other fix" in answer and answer.startswith("`tool7 module7` failed")
 
 
 def test_a_judge_under_the_bar_gives_the_plain_nothing_matches(tmp_path):
@@ -65,7 +65,7 @@ def nightly_service(tmp_path, digest, p_yes=0.99):
 def test_after_the_first_night_the_repos_own_adapter_judges_with_no_ranker_cut(tmp_path):
     service = nightly_service(tmp_path, digest="")
     answer = service.respond("/recall", {"question": "tool7", "project": PROJECT}).body["answer"]
-    assert answer.startswith("What happened: ")
+    assert answer.startswith("`tool7 module7` failed")
 
 
 def test_the_nightly_bar_is_stricter_than_the_agree_bar(tmp_path):
@@ -96,7 +96,7 @@ def observe_action(service, command, exit_code, step):
 
 def test_a_shown_note_is_logged_with_its_rule_and_the_next_three_actions(tmp_path):
     service = service_with(tmp_path, judge_saying(0.99))
-    assert recall(service).body["answer"].startswith("What happened: ")
+    assert recall(service).body["answer"].startswith("`tool7 module7` failed")
     for step, (command, code) in enumerate([("ls", 0), ("a", 0), ("make", 2)]):
         observe_action(service, command, code, step)
     events = [

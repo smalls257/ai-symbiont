@@ -62,6 +62,11 @@ class Incident:
     fingerprint: str = ""
     # A real example for a group title: the failing command line, or the developer's own words.
     example: str = ""
+    # The story lines (`miner.story`), "" on cards stored before them. For a correction `broke`
+    # is what the developer said and `ended` what the agent did next.
+    working_on: str = ""
+    broke: str = ""
+    ended: str = ""
 
 
 @dataclass(frozen=True)
