@@ -22,6 +22,7 @@ from symbiont.delivery.hook_vocab import HookEvent, NoteStyle, NoteVisibility
 from symbiont.delivery.project_identity import project_for
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
 from symbiont.readers.harnesses import HARNESSES, Harness, UnknownHarnessError, detect, harness
+from symbiont.records.dashboard_views import DashboardView, dashboard_address
 from symbiont.records.output_failure import exit_code_with_output
 
 DATASET_PREFIX = "live-"
@@ -267,15 +268,9 @@ def _output_text(response: Any) -> str:
     return json.dumps(response)
 
 
-def dashboard_url(port: int, project: str) -> str:
-    """Where the local dashboard for `project` is served."""
-    safe = "".join(
-        char
-        if char.isascii() and (char.isalnum() or char in "-._~")
-        else "".join(f"%{b:02X}" for b in char.encode())
-        for char in project
-    )
-    return f"http://127.0.0.1:{port}/dashboard?project={safe}"
+def dashboard_url(port: int, project: str, view: DashboardView = DashboardView.INBOX) -> str:
+    """Where the local dashboard for `project` is served, opened on `view`."""
+    return dashboard_address(port, project, view)
 
 
 def _announcements(reply: dict[str, Any], dashboard: str) -> list[str]:

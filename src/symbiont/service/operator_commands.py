@@ -17,11 +17,13 @@ from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
 from symbiont.readers.harnesses import HARNESSES, labels_and
+from symbiont.records.dashboard_views import DashboardView
 from symbiont.service.asking import AskService
+from symbiont.service.dashboard_command import show_dashboard
 from symbiont.service.events import checker_sentences, last_note_event
 from symbiont.service.lesson_list import lesson_lines
 from symbiont.service.lesson_lookup import project_of_lesson
-from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
+from symbiont.service.mine_command import MineClient, mine_past_sessions
 from symbiont.service.pr_learning import PR_INSTRUCTIONS
 from symbiont.service.status_report import status_report
 from symbiont.service.supersessions import superseded_sentences
@@ -88,6 +90,18 @@ def _add_settings_command(commands: Any) -> None:
     setting.add_argument("value", nargs="?", help="true or false; a whole number for min_sessions")
 
 
+def _add_dashboard_command(commands: Any, defaults: Defaults) -> None:
+    dashboard = commands.add_parser("dashboard", help="print this repository's dashboard address")
+    dashboard.add_argument(
+        "view",
+        nargs="?",
+        choices=[view.value for view in DashboardView],
+        help="which page to open; inbox when left out",
+    )
+    dashboard.add_argument("--open", action="store_true", help="also open it in the browser")
+    dashboard.add_argument("--port", type=int, default=defaults.port)
+
+
 def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
     _add_repo_parser(commands, defaults)
@@ -118,8 +132,7 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     words.add_argument("--priority", choices=[p.value for p in Priority], default="normal")
     words.add_argument("--terms", default="", help="comma-separated words this applies to")
     words.add_argument("--areas", default="", help="comma-separated path prefixes it applies to")
-    dashboard = commands.add_parser("dashboard", help="print this repository's dashboard address")
-    dashboard.add_argument("--port", type=int, default=defaults.port)
+    _add_dashboard_command(commands, defaults)
     _add_settings_command(commands)
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
@@ -134,6 +147,8 @@ def run_repo_command(args: argparse.Namespace, ask: AskService, client: MineClie
     try:
         if args.command == "status":
             return status_report(args, ask)
+        if args.command == "dashboard":
+            return show_dashboard(args, ask, client)
         if args.command == "repo" and args.action == "mine":
             return mine_past_sessions(args, RepoRegistry(args.data_dir), client)
         return _COMMANDS[args.command](args)
@@ -286,12 +301,6 @@ def _described(store: Store, ident: str) -> str:
     return "written lesson: " + (written[1].text[:60] if written else ident)
 
 
-def _dashboard(args: argparse.Namespace) -> int:
-    """Print the dashboard address for this repository."""
-    _say(dashboard_url(args.project, args.port))
-    return 0
-
-
 def _settings(args: argparse.Namespace) -> int:
     """Show, or switch, the correction-finding histories and whether mining opens the dashboard."""
     if args.action == "mining":
@@ -382,6 +391,5 @@ _COMMANDS = {
     "lessons": _lessons,
     "learn-from-prs": _learn_from_prs,
     "context": _context,
-    "dashboard": _dashboard,
     "settings": _settings,
 }
