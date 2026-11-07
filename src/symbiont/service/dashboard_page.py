@@ -42,6 +42,7 @@ FILES = {
     "/dashboard/rename.js": ("rename.js", JS),
     "/dashboard/inbox_model.js": ("inbox_model.js", JS),
     "/dashboard/inbox_rows.js": ("inbox_rows.js", JS),
+    "/dashboard/inbox_noise.js": ("inbox_noise.js", JS),
     "/dashboard/inbox_dialogs.js": ("inbox_dialogs.js", JS),
     "/dashboard/inbox.js": ("inbox.js", JS),
     "/dashboard/views.js": ("views.js", JS),

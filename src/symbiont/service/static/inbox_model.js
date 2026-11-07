@@ -53,16 +53,6 @@ function sectionsOf(groups,triage,kind,sort){
   return out;
 }
 
-/* Per reason: how many groups and how many times. Every count carries its noun at the call site. */
-function noiseReasons(noiseGroups){
-  const by=new Map();
-  noiseGroups.forEach(g=>{
-    const row=by.get(g.noiseWords)||{reason:g.noiseWords,groups:0,times:0,sessions:0};
-    row.groups+=1;row.times+=g.times;row.sessions+=g.sessions;by.set(g.noiseWords,row);
-  });
-  return [...by.values()].sort((a,b)=>b.times-a.times);
-}
-
 const plural=(n,one,many)=>n.toLocaleString("en-US")+" "+(n===1?one:(many||one+"s"));
 const sum=(list,pick)=>list.reduce((a,x)=>a+pick(x),0);
 
@@ -77,13 +67,22 @@ function tilesOf(data){
   const review=sectionsOf(groups,triage,"all","sessions").review.length;
   const topics=data.incidents.topics.length,read=data.stage.facts.length;
   return [
-    {value:read,label:noun(read,"session read","sessions read"),sub:""},
+    {value:read,label:noun(read,"session read","sessions read"),sub:rangeText(groups)},
     {value:failed,label:noun(failed,"failed command","failed commands"),sub:plural(folded,"failed command")+" folded as noise"},
     {value:said,label:noun(said,"message from you","messages from you"),sub:plural(sum(corrections.filter(g=>!g.noise),g=>g.times),"message")+" in correction groups"},
     {value:review,label:noun(review,"group for review","groups for review"),sub:"of "+plural(groups.length,"group")+" found"},
-    {value:topics,label:noun(topics,"topic","topics"),sub:""}
+    {value:topics,label:noun(topics,"topic","topics"),sub:requestsText(data.topicView)}
   ];
 }
+
+/* First and last day any group was seen, "Feb 11 – Aug 31"; empty when no group has a date. */
+const shortDay=d=>{const p=d.split("-");return MONTH_NAMES[+p[1]-1]+" "+(+p[2]);};
+function rangeText(groups){
+  const firsts=groups.map(g=>g.first).filter(Boolean).sort(),lasts=groups.map(g=>g.last).filter(Boolean).sort();
+  return firsts.length&&lasts.length?shortDay(firsts[0])+" – "+shortDay(lasts[lasts.length-1]):"";
+}
+/* The request count is omitted, not guessed, when the snapshot does not know it. */
+const requestsText=view=>view&&view.requests?"from "+plural(view.requests,"summarizer request"):"";
 
 /* ISO weeks on one shared axis, so two groups' bars can be compared by eye. */
 function isoMonday(key){
@@ -204,5 +203,28 @@ function metaLine(sessions,groups){
 }
 const cleanName=text=>window.SymbiontRename.clean(text);
 
-window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,taughtRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
+/* A group's trend pill word and its verdict line. A badge value this page does not know is a bug upstream. */
+const BADGE_WORDS={new:"New this month",rising:"Rising"};
+function badgeLabel(badge){
+  if(!badge)return "";
+  if(!(badge in BADGE_WORDS))throw new Error("symbiont: unknown group badge "+JSON.stringify(badge));
+  return BADGE_WORDS[badge];
+}
+/* The Seen once fold's one-line promise: nothing here is lost, it just is not a pattern yet. */
+function seenOnceLine(once){
+  if(!once.length)return "";
+  const failed=sum(once.filter(g=>g.kind==="failure"),g=>g.times);
+  return "Seen once: "+plural(once.length,"group")+" ("+plural(failed,"failed command")+") — counted, not yet a pattern. They still count in topic outcomes.";
+}
+const verdictText=g=>g.verdictSentence||g.verdict;
+
+/* "Where sessions got stuck": biggest first, bar scaled to the biggest, share of all sessions in the tooltip. */
+function frictionRows(view){
+  const all=view.sessions,list=(view.frictions||[]).slice().sort((a,b)=>b.sessions-a.sessions);
+  const peak=Math.max(1,...list.map(f=>f.sessions));
+  return list.map(f=>({name:f.name,description:f.description,sessions:f.sessions,width:100*f.sessions/peak,
+    tip:plural(f.sessions,"session")+" of "+all.toLocaleString("en-US")+" ("+(all?Math.round(100*f.sessions/all):0)+"%)"}));
+}
+
+window.SymbiontInboxModel={badgeLabel,verdictText,frictionRows,rangeText,seenOnceLine,shortDay,TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf,taughtRequest};
 })();

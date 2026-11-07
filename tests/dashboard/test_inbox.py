@@ -47,12 +47,6 @@ def test_all_archived_groups_show_with_the_noise_and_not_an_empty_list(decided):
     assert shown["noise"] == ["noisy", "noisy2"]
 
 
-def test_noise_is_counted_per_reason_with_its_nouns(decided):
-    assert decided["noiseReasons"] == [
-        {"reason": "passed when run again", "groups": 2, "times": 7, "sessions": 3}
-    ]
-
-
 def test_a_saved_name_wins_over_the_generated_one_and_an_unknown_state_is_refused_loudly(decided):
     assert decided["renamed"] == "Mine" and decided["generated"] == "Name of many"
     assert "unknown triage state" in decided["badState"] and "many" in decided["badState"]
@@ -226,3 +220,91 @@ def test_marking_a_group_taught_sends_the_id_the_lessons_store_gave_it(decided):
     assert body["taught"] is True and body["project"] == "demo"
     assert body["lesson_id"] == "lesson-9" and "lesson" not in body
     assert body["group_key"]
+
+
+def test_badges_say_new_this_month_or_rising_and_an_unknown_badge_raises(decided):
+    assert decided["badges"] == ["New this month", "Rising", ""]
+    assert "unknown group badge" in decided["badBadge"]
+    assert 'class="pill rising">Rising</span>' in decided["rowOpen"]
+
+
+def test_the_verdict_is_the_sentence_when_there_is_one_else_the_word(decided):
+    assert decided["verdicts"] == ["Worth a look: it costs time.", "fixed in the code"]
+    assert "<b>Worth a look: slow.</b>" in decided["rowOpen"]
+
+
+def test_a_row_is_focusable_and_has_a_visible_open_link_to_its_group(decided):
+    row = decided["rowOpen"]
+
+    assert 'tabindex="0"' in row
+    assert 'data-route href="?project=my%20proj&amp;view=group&amp;key=many">Open</a>' in row
+    assert 'data-a="teach"' in row
+
+
+def test_tiles_carry_the_date_range_and_the_request_count_only_when_known(decided):
+    assert decided["tiles"][0]["sub"] == "Oct 5 – Oct 20" and decided["tiles"][4]["sub"] == ""
+    assert decided["tilesWithRequests"][4] == "from 12 summarizer requests"
+
+
+def test_noise_rules_carry_why_returns_counts_and_examples_from_the_cards(decided):
+    retry, acknowledged, mystery = decided["rules"]
+
+    assert retry["count"] == 9 and retry["sessions"] == 1 and len(retry["examples"]) == 2
+    assert retry["copy"]["returns"] == "Comes back if a retry stops passing."
+    assert acknowledged["copy"]["returns"] == "Never returns."
+    assert mystery["copy"] is None and mystery["examples"] == []
+    assert decided["rulesFailureOnly"] == ["passed when run again", "mystery"]
+
+
+def test_a_noise_reason_without_an_explanation_raises_instead_of_matching_nothing(decided):
+    assert "no explanation for noise reason" in decided["unknownReason"]
+
+
+def test_noise_rules_html_escapes_caps_and_links_each_example_to_its_session(decided):
+    html = decided["rulesHtml"]
+
+    assert "Show 2 real examples" in html and "<span>npm test &lt;b&gt;</span>" in html
+    assert 'href="?project=demo&amp;view=session&amp;id=s1&amp;step=7">Oct 5</a>' in html
+    assert "x" * 200 not in html and "…</span>" in html
+    assert "No examples are in this snapshot." in html
+    assert "Seen once: 2 groups (2 failed commands)" in html
+    assert "Nothing was folded as noise" in decided["rulesEmpty"]
+
+
+def test_the_seen_once_line_counts_groups_and_failed_commands(decided):
+    line, empty = decided["seenOnce"]
+
+    assert line.startswith("Seen once: 2 groups (3 failed commands)")
+    assert "still count in topic outcomes" in line
+    assert empty == ""
+
+
+def test_friction_rows_are_biggest_first_with_a_share_tooltip_and_escaped_names(decided):
+    rows = decided["frictions"]
+
+    assert [r["name"] for r in rows] == ["Flaky", "Slow <i>CI</i>"]
+    assert rows[0]["tip"] == "10 sessions of 40 (25%)" and rows[1]["width"] == 40
+    assert decided["frictionsEmpty"] == []
+    html = decided["frictionHtml"]
+    assert "Slow &lt;i&gt;CI&lt;/i&gt;" in html and "<i>CI</i>" not in html
+    assert "10 sessions of 40 (25%)" in html
+
+
+def test_a_rule_with_thirty_cards_shows_twelve_of_thirty_then_all_thirty(decided):
+    html = decided["bigHtml"]
+
+    assert "Show 12 of 30 real examples" in html and "Show all 30" in html
+    assert html.count("<li><a data-route") - 4 == 30  # four group links below
+
+
+def test_every_noise_group_is_a_link_to_its_page_and_names_are_escaped(decided):
+    html = decided["bigHtml"]
+
+    assert "Evil &lt;b&gt;name&lt;/b&gt;" in html and "Evil <b>name</b>" not in html
+    assert "key=big%20%3C1%3E" in html
+    for key in decided["bigGroupKeys"]:
+        assert (
+            "view=group&amp;key=" + key.replace(" ", "%20").replace("<", "%3C").replace(">", "%3E")
+            in html
+        )
+    assert "4 groups</summary>" in html
