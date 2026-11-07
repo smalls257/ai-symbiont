@@ -561,3 +561,19 @@ def test_claude_code_own_logs_still_raise_for_a_line_without_type(tmp_path):
         list(read(path, PROJECT))
     with pytest.raises(ReadError, match="type"):
         list(read_open_swe_traces(path, PROJECT))
+
+
+def test_swe_chat_skips_and_counts_a_json_line_that_is_not_an_object(tmp_path, caplog):
+    path = write_lines(tmp_path, [json.dumps(_event("user", "go")), json.dumps([1, 2])])
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        records = list(read_swe_chat(path, PROJECT))
+    assert [r.raw for r in records] == ["go"]
+    infos = [r.getMessage() for r in caplog.records if r.levelname == "INFO"]
+    assert any("line the dataset could not parse': 1" in m and "session.jsonl" in m for m in infos)
+
+
+def test_claude_code_own_logs_still_raise_for_a_line_that_is_not_an_object(tmp_path):
+    path = write_lines(tmp_path, [json.dumps([1, 2])])
+    for reader in (read, read_open_swe_traces):
+        with pytest.raises(ReadError, match="event object"):
+            list(reader(path, PROJECT))

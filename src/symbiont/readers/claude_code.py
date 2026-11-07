@@ -99,8 +99,8 @@ def read(path: Path, project: str) -> Iterator[Record]:
 def read_swe_chat(path: Path, project: str) -> Iterator[Record]:
     """Yield records of SWE-chat sessions (never remote safe).
 
-    A line holding only `_swe_chat_unparsed` is the dataset exporter's own parse failure: skipped
-    and counted, because the source never had an event there to read.
+    A line holding only `_swe_chat_unparsed`, or valid JSON that is not an object, is the dataset
+    exporter's own failure: skipped and counted, the source never had an event there to read.
     """
     return _read(path, project, SWE_CHAT, unparsed_marker=UNPARSED_MARKER)
 
@@ -170,11 +170,11 @@ def _conversation_events(
                 event = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise ReadError(path, line_no, f"not valid JSON ({exc.msg})") from exc
-            if not isinstance(event, dict):
-                raise ReadError(path, line_no, "a line must hold one event object")
-            if unparsed_marker and set(event) == {unparsed_marker}:
+            if unparsed_marker and _is_export_artifact(event, unparsed_marker):
                 skipped[UNPARSED_SKIP] += 1
                 continue
+            if not isinstance(event, dict):
+                raise ReadError(path, line_no, "a line must hold one event object")
             if _is_metadata(path, line_no, event):
                 skipped[event["type"]] += 1
                 _keep_title(path, line_no, event, titles)
@@ -183,6 +183,11 @@ def _conversation_events(
     if skipped:
         logger.info("skipped metadata events in %s: %s", path, dict(skipped))
     return events
+
+
+def _is_export_artifact(line: Any, marker: str) -> bool:
+    """True for a SWE-chat line the exporter broke: only the marker key, or not an object at all."""
+    return not isinstance(line, dict) or set(line) == {marker}
 
 
 def _keep_title(path: Path, line_no: int, event: dict[str, Any], titles: dict[str, str]) -> None:
