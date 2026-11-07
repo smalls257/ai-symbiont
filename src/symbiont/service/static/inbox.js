@@ -6,7 +6,7 @@
 (function () {
 "use strict";
 const M=window.SymbiontInboxModel,R=window.SymbiontInboxRows;
-const SORT_WORDS={worth:"Worth a look",sessions:"most sessions",last:"last seen",first:"newest group"};
+const SORT_WORDS=M.SORT_WORDS;
 const KIND_WORDS={all:"All",failure:"Agent failures",correction:"Your corrections"};
 const STATE_OF={reviewed:"reviewed",resolve:"resolved",reopen:"for_review"};
 const DONE_WORDS={
@@ -27,7 +27,7 @@ function skeleton(){
 }
 
 function start(container,data,project){
-  const ui={container,data,project,tab:"review",kind:"all",sort:"worth",open:new Set()};
+  const ui={container,data,project,tab:"review",kind:"all",sort:M.DEFAULT_SORT,open:new Set()};
   container.innerHTML=skeleton();
   const $=sel=>container.querySelector(sel);
   ui.$=$;
@@ -108,7 +108,13 @@ function onClick(ui,e){
   const tab=e.target.closest("[data-tab]"),kind=e.target.closest("[data-kind]"),act=e.target.closest("button[data-a]");
   if(tab){ui.tab=tab.dataset.tab;draw(ui);ui.$('#inTabs button[aria-pressed="true"]').focus();return;}
   if(kind){ui.kind=kind.dataset.kind;draw(ui);ui.$('#inKinds button[aria-pressed="true"]').focus();return;}
-  if(e.target.closest("[data-more]")){ui.open.add("review:more");draw(ui);return;}
+  if(e.target.closest("[data-more]")){
+    const first=M.focusAfterExpand(M.REVIEW_PAGE);
+    ui.open.add("review:more");draw(ui);
+    const row=ui.container.querySelectorAll("#inList .grp")[first],control=row&&row.querySelector("button.btn");
+    if(control)control.focus();
+    return;
+  }
   if(!act)return;
   const row=act.closest(".grp"),g=ui.data.incidents.groups.find(x=>x.key===row.dataset.key);
   runAction(ui,g,act).catch(err=>window.SymbiontInboxDialogs.toast(ui.container,"symbiont could not do that: "+err.message));

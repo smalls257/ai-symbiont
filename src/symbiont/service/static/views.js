@@ -38,7 +38,7 @@ function mount(data,project,s1,warn){
   subnav.innerHTML=SUBVIEWS.map(([k,l])=>'<button data-view="'+k+'">'+l+"</button>").join("");
   const show=view=>{
     current=view;s1.dataset.view=view;
-    document.getElementById("scope").hidden=!M.scopeVisible(view);
+    document.getElementById("scope").hidden=!M.scopeVisible(view,1);
     subnav.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.view===view)));
     if(view in draw&&!drawn.has(view)){drawn.add(view);draw[view]();}
   };
@@ -49,7 +49,7 @@ function mount(data,project,s1,warn){
     const url=new URL(location.href);url.searchParams.set("view",b.dataset.view);history.replaceState(null,"",url);
     b.focus();
   };
-  return {stage:OTHER_STAGES[asked]||1,show:()=>show(current)};
+  return {stage:OTHER_STAGES[asked]||1,show:()=>show(current),syncScope:stage=>{document.getElementById("scope").hidden=!M.scopeVisible(current,stage);}};
 }
 
 window.SymbiontViews={mount};

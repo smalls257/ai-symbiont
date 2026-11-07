@@ -56,15 +56,21 @@ try { M.cleanName("x".repeat(81)); } catch (e) { tooLong = e.message; }
 
 const worthy = [group("loud", { fixShown: false, sessions: 40 }), group("fixed", { fixShown: true, sessions: 3 })];
 const rows = (n) => Array.from({ length: n }, (_, i) => i);
-let orphan = "";
-try { orphan = JSON.stringify(M.sectionsOf(groups, { "failure:gone:exit 1": { state: "resolved" } }, "all", "worth")); } catch (e) { orphan = "threw: " + e.message; }
+let orphan = null, orphanError = "";
+try { orphan = M.sectionsOf(groups, { "failure:gone:exit 1": { state: "resolved" } }, "all", "worth"); } catch (e) { orphanError = e.message; }
+const unmarked = group("unmarked", { sessions: 99 });
+delete unmarked.fixShown;
 
 console.log(JSON.stringify({
   worth: M.sectionsOf(worthy, {}, "all", "worth").review.map((g) => g.key),
   pages: { twenty: M.pageOf(rows(20), false), expanded: M.pageOf(rows(20), true), three: M.pageOf(rows(3), false), pageSize: M.REVIEW_PAGE },
-  scope: ["struggle", "inbox", "topics", "trends", "context", "replay"].map((v) => M.scopeVisible(v)),
-  orphan: orphan === "" ? "" : JSON.parse(orphan.startsWith("threw") ? "{}" : orphan),
-  orphanThrew: orphan.startsWith("threw") ? orphan : "",
+  scope: ["struggle", "inbox", "topics", "trends", "context", "replay"].map((v) => M.scopeVisible(v, 1)),
+  scopeByStage: [0, 1, 2, 3].map((n) => M.scopeVisible("struggle", n)),
+  scopeViewsOnOtherStages: ["context", "replay"].flatMap((v) => [0, 1, 2, 3].map((n) => M.scopeVisible(v, n))),
+  focusAfterExpand: M.focusAfterExpand(M.REVIEW_PAGE),
+  sortOptions: Object.keys(M.SORT_WORDS), sortWords: M.SORT_WORDS, defaultSort: M.DEFAULT_SORT,
+  unmarkedWorth: M.sectionsOf([unmarked, group("fixedlow", { sessions: 1 })], {}, "all", "worth").review.map((g) => g.key),
+  orphan, orphanThrew: orphanError,
   orphanPlain: M.sectionsOf(groups, {}, "all", "worth"),
   plain: Object.fromEntries(Object.entries(plain).map(([k, v]) => [k, v.map((g) => g.key)])),
   allArchived: Object.fromEntries(Object.entries(allArchived).map(([k, v]) => [k, v.map((g) => g.key)])),

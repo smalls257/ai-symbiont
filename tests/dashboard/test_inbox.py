@@ -182,6 +182,25 @@ def test_scope_hint_shows_only_on_struggle(decided):
     assert decided["scope"] == [True, False, False, False, False, False]
 
 
+def test_scope_hint_shows_only_for_struggle_inside_pain_points(decided):
+    assert decided["scopeByStage"] == [False, True, False, False]
+    assert not any(decided["scopeViewsOnOtherStages"])
+
+
+def test_focus_after_show_more_lands_on_the_first_newly_revealed_row(decided):
+    assert decided["focusAfterExpand"] == 15
+
+
+def test_a_group_without_fix_shown_sorts_as_not_fixed(decided):
+    assert decided["unmarkedWorth"] == ["fixedlow", "unmarked"]
+
+
+def test_worth_a_look_is_the_default_and_the_first_sort_option(decided):
+    assert decided["defaultSort"] == "worth"
+    assert decided["sortOptions"][0] == "worth"
+    assert decided["sortWords"]["worth"] == "Worth a look"
+
+
 def test_orphan_triage_keys_are_ignored(decided):
     assert decided["orphanThrew"] == ""
     assert decided["orphan"] == decided["orphanPlain"]
