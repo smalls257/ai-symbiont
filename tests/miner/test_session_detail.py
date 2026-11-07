@@ -5,6 +5,7 @@ or an error) and Silent Fallback (a long session cut with no word of how much wa
 """
 
 from dataclasses import replace
+from datetime import datetime
 
 from record_builders import edit, run, say, session, user
 from symbiont.miner.session_detail import session_detail
@@ -15,7 +16,9 @@ BEARER = "Bearer " + "abcdefghij0123456789klmnop"
 
 def stamped(records, first="2026-03-04T10:00:00+00:00", last="2026-03-04T10:42:00+00:00"):
     records = [replace(r, project="demo") for r in records]
-    return [replace(records[0], ts=first), *records[1:-1], replace(records[-1], ts=last)]
+    start, end = datetime.fromisoformat(first), datetime.fromisoformat(last)
+    spread = [start + (end - start) * i / (len(records) - 1) for i in range(len(records))]
+    return [replace(r, ts=at.isoformat()) for r, at in zip(records, spread, strict=True)]
 
 
 def story():
@@ -115,7 +118,75 @@ def test_minutes_span_mixed_zone_and_naive_stamps():
     steps = session(user("a"), user("b"))
     steps = [
         replace(steps[0], ts="2026-03-04T10:00:00"),
-        replace(steps[1], ts="2026-03-04T11:30:00Z"),
+        replace(steps[1], ts="2026-03-04T10:20:00Z"),
     ]
 
-    assert session_detail(steps).as_json()["minutes"] == 90
+    assert session_detail(steps).as_json()["minutes"] == 20
+
+
+def test_harness_markup_is_not_listed_as_your_messages():
+    steps = session(
+        user("please fix the parser"),
+        user(
+            "<command-name>/compact</command-name><command-message>compact</command-message>"
+            "<command-args></command-args>"
+        ),
+        user("<local-command-stdout>Compacted</local-command-stdout>"),
+        user(
+            "<local-command-caveat>Caveat: the messages below were generated</local-command-caveat>"
+        ),
+        user("This session is being continued from a previous conversation"),
+        run("pytest -q", 1, "E   AssertionError: no"),
+    )
+
+    detail = session_detail(stamped(steps)).as_json()
+
+    assert [m["text"] for m in detail["messages"]] == ["please fix the parser", "/compact"]
+    assert detail["counts"]["messages"] == 2
+    assert "local-command" not in str(detail["messages"])  # fmt: skip
+
+
+def test_a_slash_command_keeps_its_arguments():
+    steps = session(
+        user("<command-name>/model</command-name><command-args>opus</command-args>"),
+        run("ls", 0),
+    )
+
+    (message,) = session_detail(stamped(steps)).as_json()["messages"]
+
+    assert message["text"] == "/model opus"
+
+
+def test_a_capped_session_reports_whole_session_counts_and_the_window_counts():
+    steps = session(
+        user("start"),
+        *[run(f"ls dir{n}", 1, "E   Error: x") for n in range(30)],
+        user("again"),
+        *[run(f"ls other{n}", 0) for n in range(30)],
+    )
+
+    detail = session_detail(stamped(steps), max_steps=20).as_json()
+
+    assert detail["total"] == 62 and detail["shown"] == 20
+    assert detail["counts"]["failed"] == 30 and detail["counts"]["messages"] == 2
+    window = detail["shownCounts"]
+    assert window["steps"] == 20 and window["failed"] == len(detail["failed"])
+    assert window["messages"] == len(detail["messages"])
+
+
+def test_minutes_count_active_time_not_the_gap_of_a_resumed_session():
+    steps = session(
+        user("morning"),
+        run("ls", 0),
+        user("a day later"),
+        run("ls", 0),
+    )
+    stamps = (
+        "2026-03-04T10:00:00+00:00",
+        "2026-03-04T10:10:00+00:00",
+        "2026-03-05T10:00:00+00:00",
+        "2026-03-05T10:05:00+00:00",
+    )
+    stamped_steps = [replace(r, project="demo", ts=ts) for r, ts in zip(steps, stamps, strict=True)]
+
+    assert session_detail(stamped_steps).as_json()["minutes"] == 15

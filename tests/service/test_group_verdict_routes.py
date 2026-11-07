@@ -4,6 +4,7 @@ Failures guarded against: Silent Fallback (a bad or unknown-key sentence accepte
 history quietly offered to the session model) and Paper Tiger (a sentence saved but never shown).
 """
 
+import json
 from dataclasses import replace
 from datetime import date
 
@@ -193,3 +194,24 @@ def test_one_sentence_per_group_in_a_batch_and_running_in_is_required(tmp_path):
         routes.save_verdicts({"project": PROJECT, "verdicts": twice})
     with pytest.raises(BadRequestError, match="running_in must be"):
         routes.verdict_candidates({"project": PROJECT})
+
+
+def test_nothing_a_barred_card_says_reaches_the_candidates_in_any_field(tmp_path):
+    barred = [
+        replace(
+            card(name),
+            what_happened="BARRED-HAPPENED the agent dropped the customers table.",
+            what_fixed_it="BARRED-FIXED restored it from the secret backup.",
+            outcome=Outcome.NEVER_FIXED,
+            example="BARRED-COMMAND psql prod",
+        )
+        for name in ("c", "d", "e")
+    ]
+    logs = {"muse-code": ["a", "b"], "claude-code": ["c", "d", "e"]}
+    routes, _ = rig(tmp_path, [card("a"), card("b"), *barred], logs=logs)
+
+    answer = routes.verdict_candidates(REQUEST)
+
+    (group,) = answer["candidates"]
+    assert "BARRED" not in json.dumps(answer["candidates"])
+    assert group["verdict"] == "fixed in the code" and group["sessions"] == 2

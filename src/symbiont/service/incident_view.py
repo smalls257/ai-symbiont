@@ -64,13 +64,21 @@ class IncidentContext:
 
 
 def incidents_snapshot(
-    store: Store, project: str, rules: ScreenRules | None = None
+    store: Store,
+    project: str,
+    rules: ScreenRules | None = None,
+    only_sessions: frozenset[str] | None = None,
 ) -> dict[str, Any] | None:
-    """The `incidents` data of `project`; None when sessions have no incident rows."""
+    """The `incidents` data of `project`; None when sessions have no incident rows.
+
+    `only_sessions` regroups from those sessions' cards, so every group field is theirs alone.
+    """
     facts = store.mined.session_facts(project)
     mined = store.mined.incidents(project)
     if facts and not mined:
         return None
+    if only_sessions is not None:
+        mined = [card for card in mined if card.session_id in only_sessions]
     topic_map = store.review.summaries.topics(project)
     topic_of = {sid: g.name for g in topic_map.topics for sid in g.session_ids}
     cards = [replace(card, topic=topic_of.get(card.session_id, "")) for card in mined]
