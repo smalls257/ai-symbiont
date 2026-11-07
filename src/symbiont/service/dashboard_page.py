@@ -35,6 +35,7 @@ FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
     "/dashboard/struggle.js": ("struggle.js", "text/javascript; charset=utf-8"),
     "/dashboard/heldback.js": ("heldback.js", "text/javascript; charset=utf-8"),
+    "/dashboard/heatcell.js": ("heatcell.js", "text/javascript; charset=utf-8"),
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
     "/dashboard/summary.js": ("summary.js", "text/javascript; charset=utf-8"),
     "/dashboard/ignored.js": ("ignored.js", "text/javascript; charset=utf-8"),
