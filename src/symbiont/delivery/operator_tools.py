@@ -93,7 +93,7 @@ OPERATOR_TOOLS = [
     ),
     OperatorTool(
         "symbiont_dashboard",
-        "The address of one view of this repository's dashboard (inbox when no view is named). "
+        "The address of one view of this repository's dashboard (overview when no view is named). "
         "Tell the developer the address.",
         ("dashboard",),
         takes_port=True,
@@ -101,7 +101,7 @@ OPERATOR_TOOLS = [
             "view": {
                 **_STRING,
                 "enum": [view.value for view in DashboardView],
-                "description": "which page to open; inbox when left out",
+                "description": "which page to open; overview when left out",
             }
         },
     ),

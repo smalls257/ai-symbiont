@@ -139,11 +139,11 @@ def test_for_30_days_names_the_day_computed_from_the_given_today(decided):
     assert decided["archiveOn"][2] == "Comes back on Dec 7."
 
 
-def test_the_view_parameter_picks_the_view_and_an_unknown_one_opens_the_inbox_with_one_warning(
+def test_no_view_or_an_unknown_one_opens_the_overview_with_one_warning(
     decided,
 ):
     assert decided["views"] == [
-        "inbox", "inbox", "topics", "trends", "struggle", "context", "replay", "inbox"
+        "struggle", "inbox", "topics", "trends", "struggle", "context", "replay", "struggle"
     ]  # fmt: skip
     assert len(decided["warnings"]) == 1 and "nope" in decided["warnings"][0]
 

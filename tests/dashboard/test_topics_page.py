@@ -146,3 +146,15 @@ def test_hostile_text_stays_text_everywhere(drawn):
 
     assert "<img src=x onerror" not in html and "<b>g</b>" not in html and "<u>grp</u>" not in html
     assert "&lt;img src=x onerror=1&gt;" in html and "&lt;b&gt;g&lt;/b&gt;" in html
+
+
+def test_topics_adds_no_tooltip_of_its_own(drawn):
+    """Violation prevented: Distributed Monolith (two tooltip owners, so two pop-ups on one hover).
+
+    The shared delegated `#tip` in dashboard.js is the only tooltip; topics.js neither appends
+    an element to the page nor listens on the document for hover or focus.
+    """
+    assert drawn["appendedToPage"] == 0
+    assert drawn["documentListeners"] == []
+    assert "sbt-tip" not in (STATIC / "topics.js").read_text(encoding="utf-8")
+    assert "sbt-tip" not in (STATIC / "topics.css").read_text(encoding="utf-8")

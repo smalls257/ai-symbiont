@@ -95,9 +95,9 @@ def _add_dashboard_command(commands: Any, defaults: Defaults) -> None:
     dashboard.add_argument(
         "view",
         nargs="?",
-        default=DashboardView.INBOX.value,
+        default=DashboardView.STRUGGLE.value,
         choices=[view.value for view in DashboardView],
-        help="which page to open; inbox when left out",
+        help="which page to open; overview when left out",
     )
     dashboard.add_argument("--open", action="store_true", help="also open it in the browser")
     dashboard.add_argument("--port", type=int, default=defaults.port)

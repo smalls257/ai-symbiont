@@ -29,7 +29,7 @@ const SORTS={
 /* Twenty rows of equal weight is a wall; the first fifteen are what to read, the rest are one click away. */
 const REVIEW_PAGE=15;
 const pageOf=(list,expanded)=>expanded?{rows:list,more:0}:{rows:list.slice(0,REVIEW_PAGE),more:Math.max(0,list.length-REVIEW_PAGE)};
-/* The "click a theme" hint describes the Struggle page's selection; on other views it points at nothing. */
+/* The "click a theme" hint describes the Overview page's selection; on other views it points at nothing. */
 const scopeVisible=(view,stage)=>stage===1&&view==="struggle";
 /* Show more redraws the list; the first row that was not there before is where keyboard focus continues. */
 const focusAfterExpand=shownBefore=>shownBefore;
@@ -157,13 +157,13 @@ function archiveChoices(today){
   return ARCHIVE_CHOICES.map(c=>c.body.return_rule==="on_date"?{...c,detail:"Comes back on "+day+"."}:c);
 }
 
-/* ?view= picks the sub-view; an unknown value opens the inbox and says so once in the console. */
+/* ?view= picks the sub-view; no value, or an unknown one, opens the Overview (key `struggle`); an unknown one says so once in the console. */
 function viewFrom(search,warn){
   const asked=new URLSearchParams(search).get("view");
-  if(asked===null||asked==="")return "inbox";
+  if(asked===null||asked==="")return "struggle";
   if(VIEWS.includes(asked))return asked;
-  warn("symbiont: unknown view "+JSON.stringify(asked)+"; showing the inbox. Known views: "+VIEWS.join(", "));
-  return "inbox";
+  warn("symbiont: unknown view "+JSON.stringify(asked)+"; showing the overview. Known views: "+VIEWS.join(", "));
+  return "struggle";
 }
 /* Detail views need what names them; without it the page says what is missing instead of opening another item. */
 const ROUTE_PARTS=["key","id","step","t"];

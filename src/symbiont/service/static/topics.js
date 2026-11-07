@@ -3,25 +3,13 @@
    page, and returns {select(key)} for the page so a link can change the topic without a redraw of the pane.
    options: project, groups and triage (the Inbox's, to list what went wrong per topic), t (the topic key asked for).
    Before topics exist it draws the one-line instruction and the sessions by date instead of empty sections.
-   Hover tips are HTML in a data attribute and are read back only through SymbiontTip.safe. */
+   Hover tips are HTML in a data attribute; the shared tooltip in dashboard.js shows them (hover and keyboard focus) through SymbiontTip.safe. */
 (function () {
 "use strict";
 const P=window.SymbiontTopicParts;
 const {esc,counted}=P;
 const INSTRUCTION="Summarize your sessions to see topics: /symbiont summarize";
 const COMPACT_SESSIONS=8;
-
-function injectOnce(){
-  if(document.getElementById("sbt-tip"))return;
-  const box=document.createElement("div");box.id="sbt-tip";box.setAttribute("role","tooltip");document.body.appendChild(box);
-  const show=(el,x,y)=>{box.innerHTML=window.SymbiontTip.safe(el.getAttribute("data-tip"));box.style.display="block";
-    const r=box.getBoundingClientRect();box.style.left=Math.max(4,Math.min(innerWidth-r.width-8,x+14))+"px";
-    box.style.top=(y+18+r.height>innerHeight?y-r.height-10:y+18)+"px";};
-  const target=e=>e.target.closest&&e.target.closest("[data-tip]");
-  document.addEventListener("mousemove",e=>{const el=target(e);if(el&&el.closest(".sbt"))show(el,e.clientX,e.clientY);else box.style.display="none";});
-  document.addEventListener("focusin",e=>{const el=target(e);if(el&&el.closest(".sbt")){const r=el.getBoundingClientRect();show(el,r.left,r.bottom-10);}});
-  document.addEventListener("focusout",()=>{box.style.display="none";});
-}
 
 /* Dataset history (swe-chat, openhands) is never shown to a session model, so asking the developer to run
    /symbiont summarize would send them to a dead end: say why there are no topics instead. */
@@ -137,7 +125,6 @@ function renderPage(container,tv,options){
 }
 
 function render(container,tv,options){
-  injectOnce();
   const compact=Boolean(options&&options.compact);
   container.classList.add("sbt");
   if(!tv||!tv.ready){container.innerHTML=emptyHtml(tv,compact);return undefined;}

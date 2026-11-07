@@ -199,12 +199,12 @@ def test_mine_before_allow_says_so_instead_of_returning_nothing(in_process):
 def test_the_dashboard_tool_returns_the_address_of_the_view_asked_for(in_process):
     operate, data = in_process
     with serving(data) as (_, port):
-        (inbox,) = converse([call("symbiont_dashboard")], operate, port=port)
+        (overview,) = converse([call("symbiont_dashboard")], operate, port=port)
         (topics,) = converse([call("symbiont_dashboard", {"view": "topics"})], operate, port=port)
         (bad,) = converse([call("symbiont_dashboard", {"view": "nope"})], operate, port=port)
 
     base = f"http://127.0.0.1:{port}/dashboard?project=demo"
-    assert inbox["result"]["content"][0]["text"] == base + "&view=inbox"
+    assert overview["result"]["content"][0]["text"] == base + "&view=struggle"
     assert topics["result"]["content"][0]["text"] == base + "&view=topics"
     assert bad["result"]["isError"] is True
 

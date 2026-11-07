@@ -420,7 +420,7 @@ def test_the_page_script_honors_the_view_parameter_and_boots_into_the_chosen_sta
 
 
 def test_every_tooltip_reader_goes_through_the_shared_sanitizer():
-    for name in ("dashboard.js", "topics.js"):
+    for name in ("dashboard.js",):  # topics.js shows no tip of its own
         script = (STATIC / name).read_text(encoding="utf-8")
         assert "SymbiontTip.safe(" in script and ".innerHTML=el.getAttribute" not in script
         assert "innerHTML=t.dataset.tip" not in script

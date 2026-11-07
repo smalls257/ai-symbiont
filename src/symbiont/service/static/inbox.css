@@ -1,7 +1,11 @@
-/* The Pain points sub-views (Inbox, Topics, Is it getting better?, Struggle) and the Inbox itself.
+/* The Pain points sub-views (Overview, Inbox, Topics, Is it getting better?) and the Inbox itself.
    Adapted from the owner-approved mockup; colors and sizes come from dashboard.css tokens. */
-:root{--card:rgba(255,255,255,.035)}
+:root{--card:rgba(255,255,255,.035);--subnav-clear:4.8rem}
 .subnav{grid-column:1/-1;display:flex;gap:.4rem;align-items:center;position:sticky;top:0;z-index:5}
+/* In the scrolling views the stage's top padding moves into the sticky bar: with padding on the scroller the bar
+   stuck 1.2rem below the top edge and scrolled cards showed in that strip. The bar bleeds over the side padding too. */
+#s1.on[data-view]:not([data-view=struggle]){padding-top:0}
+#s1.on[data-view]:not([data-view=struggle])>.subnav{margin:0 -2rem;padding:1.2rem 2rem .4rem}
 .subnav button{background:none;border:1px solid transparent;border-radius:2rem;padding:.35rem .95rem;color:var(--mu);font-weight:600;font-size:1.02rem}
 .subnav button:hover{border-color:var(--line);color:var(--tx)}
 .subnav button[aria-current=true]{color:var(--tx);border-color:var(--vi);background:rgba(178,140,255,.12)}
@@ -20,7 +24,7 @@
 .tbar{display:flex;gap:.8rem;align-items:center;flex-wrap:wrap;margin-top:.2rem}
 .tbar .sp{flex:1}
 .sortl{font-size:.95rem}
-.side{display:flex;flex-direction:column;gap:1.2rem;position:sticky;top:3.6rem}
+.side{display:flex;flex-direction:column;gap:1.2rem;position:sticky;top:var(--subnav-clear)}
 .sumline{grid-column:1/-1;display:grid;grid-template-columns:repeat(5,1fr);gap:1rem}
 .sumline .panel{padding:.8rem 1.1rem}
 .sumline .num{font-size:2.3rem;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
