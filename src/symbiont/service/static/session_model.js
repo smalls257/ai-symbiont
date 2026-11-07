@@ -70,10 +70,10 @@ function keptFailed(failed,tagFor,filter){
   return filter==="quiet"?failed.filter(f=>tagFor(f.step).kind!=="noise"):failed;
 }
 function noiseCount(failed,tagFor){return failed.filter(f=>tagFor(f.step).kind==="noise").length;}
-/* Header facts: "41 min", "2 h" past 90 minutes, null when the log has no clock. */
-function wallClock(minutes){
+/* Header facts: active time as "41 min", "2 h" past 90 minutes, null when the log has no clock. */
+function activeTime(minutes){
   if(!Number.isFinite(minutes))return null;
   return minutes>=90?Math.round(minutes/60)+" h":minutes+" min";
 }
-window.SymbiontSessionModel={PICKER_SIZE,joinOf,tagOf,pickerOf,summaryOf,capText,markClass,MESSAGE_FILTERS,FAILED_FILTERS,keptMessages,keptFailed,noiseCount,wallClock};
+window.SymbiontSessionModel={PICKER_SIZE,joinOf,tagOf,pickerOf,summaryOf,capText,markClass,MESSAGE_FILTERS,FAILED_FILTERS,keptMessages,keptFailed,noiseCount,activeTime};
 })();

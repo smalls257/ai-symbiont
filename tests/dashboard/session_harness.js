@@ -39,7 +39,7 @@ const body = (over) => ({
   steps: [[0, "you", "you"], [3, "failed", "pytest tests/x"], [4, "edit", "src/a.py"], [5, "failed", "ls nothing"], [7, "failed", "ls"], [9, "you", "you"]],
   messages: [{ step: 0, text: "please fix it", before: null, then: "pytest tests/x" }, { step: 9, text: HOSTILE, before: "ls", then: null }],
   failed: [{ step: 3, command: "pytest tests/x", error: "ImportError: x" }, { step: 5, command: HOSTILE, error: "boom" }, { step: 7, command: "ls", error: "no" }],
-  counts: { steps: 5000, failed: 3, edits: 1, scratch: 0, messages: 2, passed: 40 }, outcome: "done", friction: "Imports kept breaking.", ...over,
+  counts: { steps: 5000, failed: 41, edits: 1, scratch: 0, messages: 9, passed: 40 }, shownCounts: { steps: 600, failed: 3, edits: 1, scratch: 0, messages: 2, passed: 40 }, outcome: "done", friction: "Imports kept breaking.", ...over,
 });
 const reply = (status, json) => ({ ok: status < 400, status, json: async () => json });
 
@@ -77,7 +77,7 @@ async function drawn(route, answer) {
     picker: Model.pickerOf(data, "s1"), pickerOther: Model.pickerOf(data, "nope").currentListed, capped40: Model.pickerOf(many, "s0").rows.length,
     keptMessages: Model.keptMessages(messages, tagFor, "group").map((m) => m.step), keptAll: Model.keptMessages(messages, tagFor, "all").length,
     keptFailed: Model.keptFailed(failed, tagFor, "quiet").map((f) => f.step), noise: Model.noiseCount(failed, tagFor),
-    capText: Model.capText(600, 5000), capNone: Model.capText(6, 6), wall: [Model.wallClock(41), Model.wallClock(120), Model.wallClock(null)],
+    capText: Model.capText(600, 5000), capNone: Model.capText(6, 6), wall: [Model.activeTime(41), Model.activeTime(120), Model.activeTime(null)],
     loading: ok.loading, url: ok.url, html: capped, unsummarized: unsummarized.html, plainNotFound: plainNotFound.html, oddLane: oddLane.html, small: small.html, outside: outside.html,
     afterGroupFilter, afterQuiet, navigated, crumbs, missing: missing.html, gone: gone.html, refused: refused.html, down: down.html,
   }));

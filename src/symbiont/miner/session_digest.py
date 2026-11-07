@@ -39,6 +39,8 @@ _CHAT = re.compile(
     r"^(ok|okay|yes|yeah|yep|sure|thanks|great|cool|nice|continue|go ahead)\b", re.IGNORECASE
 )
 _INJECTED = ("This session is being continued", "[Request interrupted", "Caveat:")
+_COMMAND_NAME = re.compile(r"<command-name>\s*([^<\s]+)\s*</command-name>")
+_COMMAND_ARGS = re.compile(r"<command-args>(.*?)</command-args>", re.DOTALL)
 _PLAN = "Implement the following plan"
 _PLAN_HEADING = re.compile(r"^#+\s*(?:Plan:\s*)?(.+)$", re.MULTILINE)
 
@@ -79,6 +81,21 @@ def session_corrections(session: Sequence[Record]) -> list[tuple[int, str]]:
         if CORRECTION_TAGS & set(record.tags)
         if (text := _clean(record.raw))
     ]
+
+
+def typed_message(record: Record) -> str | None:
+    """What the developer typed in a user turn, or None for text the harness injected.
+
+    A slash command reads as the command ("/compact"); local command output, caveats and
+    summaries of an earlier session are None, so a page never lists them as your messages.
+    """
+    if record.kind != Kind.USER_TURN or OUR_OUTPUT_RECORD_TAG in record.tags:
+        return None
+    named = _COMMAND_NAME.search(record.raw)
+    if named:
+        args = _COMMAND_ARGS.search(record.raw)
+        return " ".join((named.group(1), *(args.group(1).split() if args else ())))
+    return None if _is_injected(_clean(record.raw)) else record.raw
 
 
 def _typed_turns(session: Sequence[Record]) -> list[Record]:

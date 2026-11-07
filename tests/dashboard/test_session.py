@@ -131,7 +131,7 @@ def test_the_header_names_the_session_and_its_counts(drawn):
 
     assert "Fix the parser" in html and "Mar 9, 2026" in html and "41 min" in html
     assert "Imports kept breaking." in html and "Sessions with the most grouped trouble" in html
-    assert "failed commands (1 noise)" in html and "5,000" in html and "Topic: Parser work" in html
+    assert "failed commands (1 noise in the steps shown)" in html and "Topic: Parser work" in html
     assert drawn["wall"] == ["41 min", "2 h", None]
 
 
@@ -209,4 +209,15 @@ def test_a_404_that_is_not_json_is_its_own_error(drawn):
 
 def test_an_unknown_lane_is_not_drawn_and_odd_minutes_are_left_out(drawn):
     assert "undefined" not in drawn["oddLane"] and "NaN" not in drawn["oddLane"]
-    assert "wall clock" not in drawn["oddLane"]
+    assert " active<" not in drawn["oddLane"]
+
+
+def test_a_capped_session_tiles_count_the_whole_session_and_the_lists_say_what_they_cover(drawn):
+    tiles = drawn["html"].split('class="cnts"')[1].split("</section>")[0]
+    lists = drawn["html"].split("Your messages")[1]
+
+    assert "<b>41</b>failed commands" in tiles and "<b>9</b>messages from you" in tiles
+    assert "<b>5,000</b>steps in all" in tiles
+    assert lists.count("in the steps shown") == 2
+    assert "in the steps shown" not in drawn["small"].split("Your messages")[1]
+    assert "<b>41 min</b> active" in drawn["html"] and "wall clock" not in drawn["html"]

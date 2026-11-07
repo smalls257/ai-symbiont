@@ -14,7 +14,7 @@ from typing import Any
 from symbiont.miner.commands import NO_PATH, program_words
 from symbiont.miner.credential_patterns import scrub
 from symbiont.miner.error_lines import key_error_lines
-from symbiont.miner.session_digest import digest_of
+from symbiont.miner.session_digest import digest_of, typed_message
 from symbiont.miner.strips import Lane, StripStep, densest_window, strip_of
 from symbiont.miner.themes import Codebase
 from symbiont.miner.tool_messages import raw_complaint
@@ -26,6 +26,8 @@ MESSAGE_CHARS = 300
 NEIGHBOR_CHARS = 80
 COMMAND_CHARS = 160
 ERROR_CHARS = 160
+# A longer gap is the developer away or a session resumed later, not time spent on the session.
+ACTIVE_GAP_MINUTES = 30
 _ISO_DAY = re.compile(r"^\d{4}-\d{2}-\d{2}")
 _ISO_TIME = re.compile(
     r"^(\d{4})-(\d{2})-(\d{2})[T ](?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d{1,6})?"
@@ -45,6 +47,7 @@ class SessionDetail:
     messages: tuple[dict[str, Any], ...]
     failed: tuple[dict[str, Any], ...]
     counts: dict[str, int] = field(default_factory=dict)
+    shown_counts: dict[str, int] = field(default_factory=dict)
 
     def as_json(self) -> dict[str, Any]:
         """The detail as plain JSON values."""
@@ -58,6 +61,7 @@ class SessionDetail:
             "messages": list(self.messages),
             "failed": list(self.failed),
             "counts": self.counts,
+            "shownCounts": self.shown_counts,
         }
 
 
@@ -78,7 +82,8 @@ def session_detail(
         steps=shown,
         messages=_messages(shown, by_step),
         failed=_failures(shown, by_step),
-        counts=_counts(every),
+        counts=_counts(every, by_step),
+        shown_counts=_counts(shown, by_step),
     )
 
 
@@ -86,7 +91,10 @@ def _minutes(records: Sequence[Record]) -> int | None:
     stamps = [parsed for r in records if (parsed := _parsed(r.ts)) is not None]
     if len(stamps) < 2:
         return None
-    return round((max(stamps) - min(stamps)).total_seconds() / 60)
+    stamps.sort()
+    limit = ACTIVE_GAP_MINUTES * 60
+    gaps = [(b - a).total_seconds() for a, b in zip(stamps, stamps[1:], strict=False)]
+    return round(sum(gap for gap in gaps if gap <= limit) / 60)
 
 
 def _parsed(stamp: str | None) -> datetime | None:
@@ -108,14 +116,14 @@ def _real_day(year: int, month: int, day: int) -> bool:
 def _messages(steps: Sequence[StripStep], by_step: dict[int, Record]) -> tuple[dict, ...]:
     out = []
     for index, step in enumerate(steps):
-        if step.lane is not Lane.YOU:
+        if step.lane is not Lane.YOU or (said := typed_message(by_step[step.step])) is None:
             continue
         before = next((s for s in reversed(steps[:index]) if s.lane is not Lane.YOU), None)
         then = next((s for s in steps[index + 1 :] if s.lane is not Lane.YOU), None)
         out.append(
             {
                 "step": step.step,
-                "text": _line(by_step[step.step].raw, MESSAGE_CHARS),
+                "text": _line(said, MESSAGE_CHARS),
                 "before": before.label[:NEIGHBOR_CHARS] if before else None,
                 "then": then.label[:NEIGHBOR_CHARS] if then else None,
             }
@@ -152,13 +160,18 @@ def _line(text: str, limit: int) -> str:
     return scrub(" ".join(text.split()))[:limit]
 
 
-def _counts(steps: Sequence[StripStep]) -> dict[str, int]:
+def _counts(steps: Sequence[StripStep], by_step: dict[int, Record]) -> dict[str, int]:
     lanes = [step.lane for step in steps]
+    typed = sum(
+        1
+        for step in steps
+        if step.lane is Lane.YOU and typed_message(by_step[step.step]) is not None
+    )
     return {
         "steps": len(lanes),
         "failed": lanes.count(Lane.FAILED),
         "edits": lanes.count(Lane.CODE_EDIT),
         "scratch": lanes.count(Lane.SCRATCH_EDIT),
-        "messages": lanes.count(Lane.YOU),
+        "messages": typed,
         "passed": lanes.count(Lane.PASSED),
     }

@@ -32,13 +32,17 @@ function pickerHtml(data,id){
   const extra=currentListed?"":'<option value="'+esc(id)+'" selected>this session</option>';
   return '<label class="mu pickl">Sessions with the most grouped trouble <select class="sel" data-pick>'+options+extra+"</select></label>";
 }
+/* Tiles count the whole session; the noise figure can only be known for the steps drawn, so a capped session says so. */
+function noiseWord(body,noise){
+  return noise+" noise"+(body.shown<body.total?" in the steps shown":"");
+}
 function tilesHtml(body,noise){
   const c=body.counts||{},tile=(n,w)=>"<div><b>"+num(n)+"</b>"+w+"</div>";
-  return '<div class="cnts">'+tile(body.total,"steps in all")+tile(c.failed,"failed commands ("+noise+" noise)")+tile(c.edits,"code edits")+tile(c.scratch,"doc or scratch edits")+tile(c.messages,"messages from you")+tile(c.passed,"passed commands, hidden")+"</div>";
+  return '<div class="cnts">'+tile(body.total,"steps in all")+tile(c.failed,"failed commands ("+noiseWord(body,noise)+")")+tile(c.edits,"code edits")+tile(c.scratch,"doc or scratch edits")+tile(c.messages,"messages from you")+tile(c.passed,"passed commands, hidden")+"</div>";
 }
 function metaHtml(body,summary){
-  const bits=["<span><b>"+esc(dayWord(body.date)||"undated")+"</b></span>"],wall=SM.wallClock(body.minutes);
-  if(wall)bits.push("<span><b>"+wall+"</b> wall clock</span>");
+  const bits=["<span><b>"+esc(dayWord(body.date)||"undated")+"</b></span>"],wall=SM.activeTime(body.minutes);
+  if(wall)bits.push("<span><b>"+wall+"</b> active</span>");
   if(summary.outcome)bits.push('<span>ended <span class="pill">'+esc(summary.outcome)+"</span></span>");
   return '<div class="meta">'+bits.join("")+"</div>";
 }
@@ -63,11 +67,13 @@ function legendHtml(){
 function listsHtml(ctx){
   const {body,tagFor,hrefOf,state}=ctx;
   const msgs=SM.keptMessages(body.messages,tagFor,state.messages),fails=SM.keptFailed(body.failed,tagFor,state.failed);
+  const capNote=body.shown<body.total?" These counts are for the messages in the steps shown.":"";
+  const capNoteFailed=body.shown<body.total?" These counts are for the failed commands in the steps shown.":"";
   const inGroup=body.messages.filter(m=>tagFor(m.step).kind==="group").length;
-  return '<section class="panel"><h2>Your messages, in context</h2><p class="sub">What the agent had just done, what you said, and what it did next.</p>'+
+  return '<section class="panel"><h2>Your messages, in context</h2><p class="sub">What the agent had just done, what you said, and what it did next.'+capNote+'</p>'+
     P.filterButtons("messages",[["all","All "+body.messages.length],["group","In a group "+inGroup]],state.messages)+
     '<div class="items">'+P.itemsHtml(msgs.map(m=>P.messageItem(m,tagFor(m.step),hrefOf)),"No messages from you in this filter.")+"</div></section>"+
-    '<section class="panel"><h2>Failed commands</h2><p class="sub">Grouped ones link to their group; noise says why it was folded.</p>'+
+    '<section class="panel"><h2>Failed commands</h2><p class="sub">Grouped ones link to their group; noise says why it was folded.'+capNoteFailed+'</p>'+
     P.filterButtons("failed",[["all","All "+body.failed.length],["quiet","Hide noise "+(body.failed.length-ctx.noise)]],state.failed)+
     '<div class="items">'+P.itemsHtml(fails.map(f=>P.failedItem(f,tagFor(f.step),hrefOf)),"No failed commands in this filter.")+"</div></section>";
 }
