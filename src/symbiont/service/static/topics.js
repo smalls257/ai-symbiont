@@ -1,9 +1,9 @@
 /* Topics: what the developer was working on, named from batched session summaries.
-   Empty topic sections and bars that do not add up look finished and tell
-   nothing, so before topics exist the page says how to get them (and still lists the sessions by date), every
-   count carries its noun, and one scale serves every row of "topics over time".
    window.SymbiontTopics.render(container, topicView, {compact}) draws the Inbox panel (compact) or the whole view.
-   All text from the store goes through esc. Colors come from dashboard.css variables. */
+   Before topics exist it draws the one-line instruction and the sessions by date instead of empty sections.
+   Every text field from the store (names, goals, descriptions) goes through esc before it reaches innerHTML,
+   including the hover tips, which are HTML in a data attribute. Colors come from dashboard.css variables;
+   the few it lacks are declared once, scoped to .sbt, at the top of CSS. */
 (function () {
 "use strict";
 const INSTRUCTION="Summarize your sessions to see topics: /symbiont summarize";
@@ -11,7 +11,7 @@ const OUTCOMES=["done","partly","stuck","unclear"];
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const COMPACT_SESSIONS=8,FULL_SESSIONS=12,HOT_SHARE=1.5,HOT_MIN=3;
 const CSS=`
-.sbt{--o-done:#2fb36a;--o-partly:#f0b43c;--o-stuck:#f45454;--o-unclear:#6e7591;font-size:1rem}
+.sbt{--o-done:var(--gr);--o-partly:var(--go);--o-stuck:var(--rd);--o-unclear:#6e7591;--soft-vi:color-mix(in srgb,var(--vi) 55%,transparent);--faint:rgba(236,240,248,.04);--hair:var(--hair);font-size:1rem}
 .sbt h3{font-size:1.05rem;font-weight:650;margin:1rem 0 .5rem}
 .sbt .sub{color:var(--mu);font-size:.95rem;margin:.15rem 0 .7rem}
 .sbt .ob{display:flex;gap:2px;height:.7rem;border-radius:.3rem;overflow:hidden}
@@ -25,14 +25,14 @@ const CSS=`
 .sbt .trow{display:grid;grid-template-columns:1fr auto;gap:.15rem .8rem;padding:.6rem .5rem;border-bottom:1px solid var(--line);border-radius:.4rem;text-align:left;width:100%;background:none;border-top:0;border-left:0;border-right:0}
 .sbt .trow.pick{cursor:pointer}
 .sbt .trow.pick:hover{background:rgba(255,255,255,.04)}
-.sbt .trow.on{background:rgba(178,140,255,.12);box-shadow:inset .25rem 0 0 var(--vi)}
+.sbt .trow.on{background:color-mix(in srgb,var(--vi) 12%,transparent);box-shadow:inset .25rem 0 0 var(--vi)}
 .sbt .trow .nm{font-weight:650;font-size:1.04rem}
 .sbt .trow .ds{color:var(--mu);font-size:.9rem;grid-column:1/-1;line-height:1.3}
 .sbt .trow .ct{text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
 .sbt .trow .ct small{font-weight:400;color:var(--mu);font-size:.82rem;margin-left:.2rem}
 .sbt .trow .barw{grid-column:1/-1;margin-top:.3rem}
 .sbt .trow .dt{grid-column:1/-1;color:var(--mu);font:.82rem var(--mono)}
-.sbt .ins{color:var(--tx);padding:.6rem .8rem;border:1px dashed rgba(255,204,64,.5);border-radius:.6rem;font:500 .95rem var(--mono)}
+.sbt .ins{color:var(--tx);padding:.6rem .8rem;border:1px dashed color-mix(in srgb,var(--go) 50%,transparent);border-radius:.6rem;font:500 .95rem var(--mono)}
 .sbt .sl{width:100%;border-collapse:collapse;font-size:.95rem;margin-top:.5rem}
 .sbt .sl th{text-align:left;color:var(--mu);font-weight:500;font-size:.85rem;padding:.35rem .5rem;border-bottom:1px solid var(--line)}
 .sbt .sl td{padding:.45rem .5rem;border-bottom:1px solid var(--line);vertical-align:top}
@@ -61,9 +61,9 @@ const CSS=`
 
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const counted=(n,one,many)=>n.toLocaleString("en-US")+" "+(n===1?one:(many||one+"s"));
-const dayLabel=d=>{if(!d)return "date unknown";const [,m,dd]=d.split("-");return MONTHS[+m-1]+" "+(+dd);};
-const dayLabelYear=d=>d?dayLabel(d)+", "+d.slice(0,4):"date unknown";
-const monthLabel=m=>{const [y,mo]=m.split("-");return MONTHS[+mo-1]+" "+y;};
+const dayLabel=d=>{if(!d)return "date unknown";const [,m,dd]=d.split("-");return esc(MONTHS[+m-1]+" "+(+dd));};
+const dayLabelYear=d=>d?dayLabel(d)+", "+esc(d.slice(0,4)):"date unknown";
+const monthLabel=m=>{const [y,mo]=m.split("-");return esc(MONTHS[+mo-1]+" "+y);};
 const tip=html=>' data-tip="'+esc(html)+'" tabindex="0"';
 
 function injectOnce(){
@@ -145,27 +145,27 @@ function timelineHtml(tv,state){
   const row=t=>{
     const bars=t.perMonth.map((v,i)=>{
       const bh=v?Math.max(2,v/max*(H-3)):0;
-      const rect=v?'<rect x="'+(i*bw+1)+'" y="'+(H-bh)+'" width="'+(bw-2)+'" height="'+bh+'" rx="1" fill="'+(t.name===state.topic?"var(--vi)":"rgba(178,140,255,.55)")+'"/>':"";
-      return rect+'<rect x="'+i*bw+'" y="0" width="'+bw+'" height="'+H+'" fill="transparent"'+tip("<b>"+t.name+"</b>, "+monthLabel(tv.months[i])+"<br>"+counted(v,"session"))+"/>";
+      const rect=v?'<rect x="'+(i*bw+1)+'" y="'+(H-bh)+'" width="'+(bw-2)+'" height="'+bh+'" rx="1" fill="'+(t.name===state.topic?"var(--vi)":"var(--soft-vi)")+'"/>':"";
+      return rect+'<rect x="'+i*bw+'" y="0" width="'+bw+'" height="'+H+'" fill="transparent"'+tip("<b>"+esc(t.name)+"</b>, "+monthLabel(tv.months[i])+"<br>"+counted(v,"session"))+"/>";
     }).join("");
     return '<button type="button" class="l'+(t.name===state.topic?" on":"")+'" data-topic="'+esc(t.name)+'">'+esc(t.name)+"</button>"
-      +'<svg viewBox="0 0 '+W+" "+H+'" preserveAspectRatio="none" role="img" aria-label="'+esc(t.name)+' sessions per month"><line x1="0" x2="'+W+'" y1="'+(H-.5)+'" y2="'+(H-.5)+'" stroke="rgba(236,240,248,.15)"/>'+bars+"</svg>"
+      +'<svg viewBox="0 0 '+W+" "+H+'" preserveAspectRatio="none" role="img" aria-label="'+esc(t.name)+' sessions per month"><line x1="0" x2="'+W+'" y1="'+(H-.5)+'" y2="'+(H-.5)+'" stroke="var(--hair)"/>'+bars+"</svg>"
       +'<span class="n">'+counted(t.sessions,"session")+"</span>";
   };
   const axis='<span></span><div class="axis">'+tv.months.map(m=>"<span>"+monthLabel(m)+"</span>").join("")+"</div><span></span>";
   return '<div class="tl">'+axis+tv.topics.slice().sort((a,b)=>b.sessions-a.sessions).map(row).join("")+"</div>";
 }
 
-const shade=s=>"rgba(255,140,64,"+(0.08+0.75*Math.min(1,s/0.5)).toFixed(2)+")";
+const shade=s=>"color-mix(in srgb,var(--or) "+Math.round(100*(0.08+0.75*Math.min(1,s/0.5)))+"%,transparent)";
 function frictionHtml(tv,state){
   if(!tv.frictions.length)return '<p class="sub">No friction categories were named yet.</p>';
   const cols="12rem repeat("+tv.frictions.length+",minmax(4.5rem,1fr))";
-  const head="<span></span>"+tv.frictions.map(f=>'<span class="h"'+tip("<b>"+f.name+"</b><br>"+f.description)+">"+esc(f.name)+"</span>").join("");
+  const head="<span></span>"+tv.frictions.map(f=>'<span class="h"'+tip("<b>"+esc(f.name)+"</b><br>"+esc(f.description))+">"+esc(f.name)+"</span>").join("");
   const cell=(t,f)=>{
     const v=t.frictions[f.name]||0,share=v/t.sessions,all=f.sessions/tv.sessions;
     const hot=v>=HOT_MIN&&share>=HOT_SHARE*all;
-    return '<span class="c'+(v?"":" zero")+(hot?" hot":"")+'" style="background:'+(v?shade(share):"rgba(236,240,248,.04)")+'"'
-      +tip("<b>"+t.name+" · "+f.name+"</b><br>"+counted(v,"session")+" of "+t.sessions+" ("+Math.round(100*share)+"%)<br>across all topics: "+Math.round(100*all)+"%")+">"+v+"</span>";
+    return '<span class="c'+(v?"":" zero")+(hot?" hot":"")+'" style="background:'+(v?shade(share):"var(--faint)")+'"'
+      +tip("<b>"+esc(t.name)+" · "+esc(f.name)+"</b><br>"+counted(v,"session")+" of "+t.sessions+" ("+Math.round(100*share)+"%)<br>across all topics: "+Math.round(100*all)+"%")+">"+v+"</span>";
   };
   const rows=tv.topics.slice().sort((a,b)=>b.sessions-a.sessions).map(t=>'<button type="button" class="l'+(t.name===state.topic?" on":"")+'" data-topic="'+esc(t.name)+'">'+esc(t.name)+" <small>"+counted(t.sessions,"session")+"</small></button>"+tv.frictions.map(f=>cell(t,f)).join("")).join("");
   const key=[0,.12,.25,.38,.5].map(s=>'<i style="background:'+shade(s)+';border-radius:.15rem"></i>').join("");
@@ -175,12 +175,15 @@ function frictionHtml(tv,state){
 }
 
 function fullHtml(tv,state){
-  const undated=tv.undated?'<p class="undated">'+counted(tv.undated,"session")+" without a known date are left out of the timeline.</p>":"";
+  const undated=tv.undated?'<p class="undated">'+counted(tv.undated,"session")+" without a known date are not on the timeline.</p>":"";
+  const timeline=tv.months.length
+    ?"<h3>Topics over time</h3><p class=\"sub\">Sessions per month, every row on the same scale (tallest bar: "+counted(Math.max(1,...tv.topics.flatMap(t=>t.perMonth)),"session")+"). Months with no sessions show as 0 on hover.</p>"+timelineHtml(tv,state)+undated
+    :undated;
   return '<h2>Topics <span class="mu">'+counted(tv.topics.length,"topic")+" · "+counted(tv.sessions,"session")+"</span></h2>"
     +'<p class="sub">Named by your session model from one-line summaries. Click a topic.</p>'+legend(totals(tv.topics))
     +'<div style="margin-top:.4rem">'+listHtml(tv,state)+"</div>"
     +'<section class="det" style="margin-top:1.2rem">'+detailHtml(tv,state)+"</section>"
-    +"<h3>Topics over time</h3><p class=\"sub\">Sessions per month, every row on the same scale (tallest bar: "+counted(Math.max(1,...tv.topics.flatMap(t=>t.perMonth)),"session")+"). Months with no sessions show as 0 on hover.</p>"+timelineHtml(tv,state)+undated
+    +timeline
     +"<h3>Where each topic got stuck</h3><p class=\"sub\">Sessions per friction category; a session can sit in more than one.</p>"+frictionHtml(tv,state);
 }
 

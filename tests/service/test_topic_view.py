@@ -91,3 +91,44 @@ def test_each_topic_counts_its_incident_cards_without_noise():
     cards = [card("s0"), card("s0"), card("s1", noise=object()), card("zzz")]
     shown = build(sessions, [Group("All", "d", ids)], incidents=cards)
     assert shown["topics"][0]["incidents"] == 2
+
+
+def test_enough_summaries_but_no_topic_map_is_not_ready():
+    shown = build(many(MIN_SUMMARIES + 5), [])
+    assert shown["ready"] is False
+    assert shown["needed"] == 0
+    assert len(shown["sessionsByDate"]) == MIN_SUMMARIES + 5
+
+
+def test_all_undated_history_has_no_months_and_counts_the_undated():
+    sessions = many(MIN_SUMMARIES)
+    shown = build(sessions, [Group("All", "d", tuple(s.session_id for s in sessions))])
+    assert shown["months"] == []
+    assert shown["topics"][0]["perMonth"] == []
+    assert shown["topics"][0]["first"] is None
+    assert shown["undated"] == MIN_SUMMARIES
+
+
+def test_a_month_with_only_noise_sessions_is_still_a_zero_month_inside_the_range():
+    sessions = many(MIN_SUMMARIES) + [summary("junk", noise=True)]
+    ids = tuple(s.session_id for s in sessions if not s.noise)
+    dates = {"s0": date(2026, 1, 5), "junk": date(2026, 2, 5), "s1": date(2026, 3, 5)}
+    shown = build(sessions, [Group("All", "d", ids)], dates=dates)
+    assert shown["months"] == ["2026-01", "2026-02", "2026-03"]
+    assert shown["allPerMonth"] == [1, 0, 1]
+
+
+def test_a_noise_only_month_at_the_edge_does_not_extend_the_axis():
+    sessions = many(MIN_SUMMARIES) + [summary("junk", noise=True)]
+    ids = tuple(s.session_id for s in sessions if not s.noise)
+    dates = {"s0": date(2026, 2, 5), "junk": date(2026, 9, 5)}
+    shown = build(sessions, [Group("All", "d", ids)], dates=dates)
+    assert shown["months"] == ["2026-02"]
+
+
+def test_a_topic_whose_members_are_all_noise_is_dropped():
+    sessions = many(MIN_SUMMARIES) + [summary("junk", noise=True)]
+    ids = tuple(s.session_id for s in sessions if not s.noise)
+    topics = [Group("All", "d", ids), Group("Ghost", "d", ("junk",)), Group("Empty", "d", ())]
+    shown = build(sessions, topics)
+    assert [t["name"] for t in shown["topics"]] == ["All"]

@@ -42,7 +42,8 @@ def topic_view(
 ) -> dict[str, Any]:
     """Topics with outcomes, months, frictions and sessions (by date alone before topics exist)."""
     real = {s.session_id: s for s in summaries if not s.noise}
-    ready = len(real) >= MIN_SUMMARIES and bool(topics.topics)
+    named = [g for g in topics.topics if _members(g, real)]
+    ready = len(real) >= MIN_SUMMARIES and bool(named)
     months = _months(dates, real)
     return {
         "ready": ready,
@@ -53,9 +54,7 @@ def topic_view(
         "months": months,
         "allPerMonth": _per_month(real, dates, months),
         "frictions": _frictions(topics.frictions, real),
-        "topics": [
-            _topic(g, Timeline(real, dates, months), topics, incidents) for g in topics.topics
-        ]
+        "topics": [_topic(g, Timeline(real, dates, months), topics, incidents) for g in named]
         if ready
         else [],
         "sessionsByDate": _sessions(real, dates),
@@ -69,8 +68,13 @@ def _months(dates: Mapping[str, date], real: Collection[str]) -> list[str]:
         return []
     first, last = min(days), max(days)
     count = (last.year - first.year) * 12 + last.month - first.month + 1
-    return [f"{first.year + (first.month - 1 + i) // 12}-{(first.month - 1 + i) % 12 + 1:02d}"
-            for i in range(count)]  # fmt: skip
+    return [_month_after(first, offset) for offset in range(count)]
+
+
+def _month_after(first: date, offset: int) -> str:
+    """`first`'s month moved forward by `offset` months, as YYYY-MM."""
+    index = first.month - 1 + offset
+    return f"{first.year + index // 12}-{index % 12 + 1:02d}"
 
 
 def _per_month(ids: Collection[str], dates: Mapping[str, date], months: list[str]) -> list[int]:
