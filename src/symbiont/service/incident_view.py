@@ -23,6 +23,7 @@ from symbiont.miner.incident_words import without_cd
 from symbiont.miner.incidents import noise_words
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.screen import ScreenRules
+from symbiont.miner.story import working_on_line
 from symbiont.miner.struggle import SessionFacts
 from symbiont.miner.topics import TopicMap
 from symbiont.service.dataset_history import dataset_readers
@@ -151,7 +152,7 @@ def _worth(incidents: Sequence[Incident], topic: str) -> list[Incident]:
 def _story(card: Incident, context: IncidentContext) -> dict[str, str]:
     """The card's story lines: the goal leads; cards stored before the lines fall back."""
     return {
-        "workingOn": context.goals.get(card.session_id) or card.working_on,
+        "workingOn": working_on_line(context.goals.get(card.session_id, ""), card.working_on, ""),
         "broke": card.broke or card.what_happened,
         "ended": card.ended or card.what_fixed_it,
     }

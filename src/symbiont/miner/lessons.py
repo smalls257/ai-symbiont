@@ -33,6 +33,8 @@ from symbiont.records.schema import Kind, Record
 QUOTE_CHARS = 240
 # A command kept for the judge and the training rows is clipped to this many characters.
 STEP_CHARS = 120
+# The failed command is kept whole enough to find the working line below `cd dir` and heredocs.
+FAILED_COMMAND_CHARS = 400
 _CUT = "[...]"
 
 
@@ -82,6 +84,8 @@ class Lesson:
     fix_steps: int = 0
     # The one telling line the fix added (`added_line`); "" when it added none worth quoting.
     fix_added: str = ""
+    # The failed command as typed, clipped; "" for other signals and for rows stored before it.
+    failed_command: str = ""
 
 
 @dataclass(frozen=True)
@@ -159,6 +163,7 @@ def _lesson(
         fix_commands=_commands_of(steps),
         fix_steps=len(steps),
         fix_added=telling_added_line(steps),
+        failed_command=_clip_start(cited[0].command or "", FAILED_COMMAND_CHARS),
     )
 
 

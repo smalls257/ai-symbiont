@@ -78,6 +78,7 @@ def lesson_from_json(body: str) -> Lesson:
         agent_intent=data.get("agent_intent", ""),
         fix_commands=_fix_commands_of(data),
         fix_added=data.get("fix_added", ""),
+        failed_command=data.get("failed_command", ""),
         # Rows written before this field existed counted one step per old-style resolution item.
         fix_steps=data.get("fix_steps", len(data["resolution"])),
     )

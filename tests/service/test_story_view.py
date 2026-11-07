@@ -51,3 +51,10 @@ def test_the_note_to_the_agent_is_at_most_300_characters_and_has_no_labels():
     assert "What broke" not in note and "Working on" not in note
     quiet = story_note(replace(lesson, asked="", agent_intent=""))
     assert quiet.startswith("`pnpm api:generate` failed")
+
+
+def test_the_inbox_goal_is_scrubbed_and_capped_like_the_story_goal():
+    token = "ghp_" + "a1b2c3d4e5" * 4
+    context = IncidentContext(goals={"s1": f"deploy with {token}. " + "word " * 80})
+    (group,) = incident_groups([card()], DAYS, context)["groups"]
+    assert token not in group["workingOn"] and len(group["workingOn"]) <= 120

@@ -36,8 +36,9 @@ def lesson(signature=FAILED, resolution=("ran pip install, then re-ran pytest",)
 def test_a_lesson_reads_as_happened_resolved_check():
     note = render_lesson(lesson())
     assert note == (
-        "`pytest tests/test_parser.py` failed with ModuleNotFoundError. "
-        "Last time: fixed the setup: ran `pytest`, then it passed."
+        "`pytest tests/test_parser.py` failed: No module named 'yaml'. "
+        "Last time: fixed by running `pip install pyyaml`, "
+        "then `pytest tests/test_parser.py` passed."
     )
     assert len(note) <= 300
 

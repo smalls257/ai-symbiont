@@ -26,6 +26,7 @@ _CUT = "…"
 _EDITED = "edited "
 # Package managers whose first word is what the command does; a fix names `pip install`, not `pip`.
 _SUBCOMMAND_PROGRAMS = SUBCOMMAND_PROGRAMS | {"pip", "pip3", "poetry", "apt", "apt-get", "bundle"}
+_POOLED_TAIL = re.compile(r", and \d+ other fix(?:es)?$")
 _OLD_EDIT = re.compile(r"edited `([^`]+)`")
 _OLD_RAN = re.compile(r"ran `([^`]+)`")
 
@@ -94,7 +95,8 @@ def edit_clause(phrase: str) -> str:
     """The "X" of a phrase that starts "edited X, then ..."; "" when it names no edit."""
     if not phrase.startswith(_EDITED):
         return ""
-    return phrase.removeprefix(_EDITED).split(", then ")[0]
+    named = phrase.removeprefix(_EDITED).split(", then ")[0]
+    return _POOLED_TAIL.sub("", named)
 
 
 def command_name(command: str) -> str:

@@ -19,7 +19,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.screen import HoldReason
 from symbiont.miner.secrets import scrub
-from symbiont.miner.story import story_of
+from symbiont.miner.story import error_summary, story_of
 from symbiont.miner.strips import SessionStrip
 from symbiont.miner.struggle import MINUTES_PER_TURN, SessionFacts
 from symbiont.miner.trained import lesson_id
@@ -298,7 +298,7 @@ def _lesson(
         "reviewConflict": _conflict(lesson_id(latest), review, annotated),
         "appliesTo": _tags(words, review),
         "note": render_lesson(latest),
-        "exampleContext": latest.quote[:200],
+        "exampleContext": scrub(error_summary(latest)),
         "context": words.text if words else "",
         "intentional": words.intentional if words else False,
         "priority": words.priority.value if words else "normal",

@@ -99,7 +99,9 @@ def test_a_setup_fix_a_corrected_command_and_no_fix_each_have_their_own_ending()
     setup = replace(
         base, resolution=("ran pip install",), fix_commands=("pip install x",), fix=None
     )
-    assert story_of(setup).ended == "fixed the setup: ran `pip install x`, then it passed"
+    named = story_of(setup, setup="pip install x")
+    assert named.ended == "fixed the setup: ran `pip install x`, then it passed"
+    assert story_of(setup).ended.startswith("fixed by running `pip install x`")
     from symbiont.miner.fixes import FixKind
 
     corrected = replace(setup, fix=FixKind.CORRECTED_COMMAND, fix_commands=("pytest -k a",))
@@ -148,3 +150,50 @@ def test_a_correction_card_quotes_the_developer_and_an_empty_one_quotes_nothing(
         (lesson,) = lessons_from([pain], records, frozenset())
         card = correction_card(lesson, records, "", frozenset())
         assert (card.broke == "") is expected_empty and len(card.broke) <= SAID_CHARS
+
+
+def _session_with_setup():
+    return session(
+        user("make the build pass"),
+        run("pnpm build", 1, "boom"),
+        run("pip install foo"),
+        run("ls"),
+        run("pnpm build", 0, "ok"),
+    )
+
+
+def test_a_pooled_story_names_the_files_once_and_says_how_many_other_fixes():
+    pooled = ("edited a.ts", "edited b.ts", "edited c.ts")
+    ended = story_of(replace(owners_lesson(), resolution=pooled)).ended
+    assert ended.count("other fixes") == 1 and ended.startswith("fixed by editing a.ts (added")
+
+
+def test_the_command_named_as_the_fix_is_the_step_that_changed_things_not_the_rerun():
+    records = _session_with_setup()
+    (lesson,) = lessons_from(mine_chain(sessions_of(records), {}), records, frozenset())
+    assert story_of(lesson).ended == "fixed by running `pip install foo`, then `pnpm build` passed"
+    named = story_of(lesson, setup="pip install foo").ended
+    assert named == "fixed the setup: ran `pip install foo`, then it passed"
+    assert "pnpm build`," not in named
+
+
+def test_the_real_message_line_is_shown_not_the_normalized_grouping_key():
+    lock = "/".join(["", "Users", "pat", "Code", "cipher-box", ".git", "index.lock"])
+    out = f"fatal: Unable to create '{lock}': File exists.\n\nAnother git process is running"
+    records = session(run("git pull", 128, out), run("rm " + lock), run("git pull", 0, ""))
+    (lesson,) = lessons_from(mine_chain(sessions_of(records), {}), records, frozenset())
+    story = story_of(lesson, repo_names=frozenset({"cipher-box"}))
+    assert "Unable to create '.git/index.lock': File exists." in story.broke
+    assert "/Users" not in " ".join([story.broke, story.ended]) and "fatal:" not in story.broke
+
+
+def test_a_deep_relative_path_in_an_error_shortens_to_its_file_name():
+    lesson = replace(owners_lesson(), error_lines=(), quote="$ x\nError: cannot read a/b/c/d.json")
+    assert "d.json" in story_of(lesson).broke and "a/b/c" not in story_of(lesson).broke
+
+
+def test_the_chip_suggestion_is_the_clean_error_line_or_nothing():
+    from symbiont.miner.story import error_summary
+
+    assert error_summary(owners_lesson()).startswith("`identity.controller.ts:47`")
+    assert error_summary(replace(owners_lesson(), error_lines=(), quote="$ x\nExit status 1")) == ""

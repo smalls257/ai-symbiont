@@ -59,9 +59,9 @@ def without_cd(command: str) -> str:
     return _LEADING_CD.sub("", command) if _LEADING_CD.match(command) else command
 
 
-def command_example(command: str | None) -> str:
+def command_example(command: str | None, repo_names: frozenset[str] = frozenset()) -> str:
     """The working command of a failing command line, on one line; empty when it is gone."""
-    return working_command(command or "")
+    return working_command(command or "", repo_names)
 
 
 def correction_sentence(text: str) -> str:
