@@ -66,3 +66,38 @@ def test_a_remine_replaces_incidents_and_keeps_the_rest(tmp_path, store):
     mine(tmp_path, store, fixed_in("s1"))
     assert store.mined.incidents(PROJECT) == first
     assert len(store.sources(PROJECT)) == 1
+
+
+def test_a_stored_correction_card_keeps_every_field(tmp_path, store):
+    from symbiont.miner.incident_types import Incident, NoiseReason
+    from symbiont.miner.painpoint import Signal
+    from symbiont.store.incident_rows import incident_from_json, incident_row
+
+    card = Incident(
+        session_id="s9", step=7, signal=Signal.CORRECTION, what_happened="said",
+        first_wrong="ran x",
+        cost_steps=4, what_fixed_it="edited y", outcome=Outcome.DEVELOPER_STEPPED_IN,
+        noise=NoiseReason.EMPTY_CORRECTION, topic="Parser", files=("a.py", "b.py"),
+        situation=("before", "git push", "src"), fingerprint="f", example="the words",
+    )  # fmt: skip
+    assert incident_from_json(incident_row("p", card)[3]) == card
+
+
+def test_a_remine_with_different_records_drops_the_old_incidents(tmp_path, store):
+    mine(tmp_path, store, fixed_in("s1"))
+    path = tmp_path / "log.jsonl"
+    with path.open("w") as fh:
+        dump_jsonl(never_fixed("s2"), fh)
+    remine(store, PROJECT, MiningRules({READER: read_records_jsonl}, frozenset()))
+    assert {c.session_id for c in store.mined.incidents(PROJECT)} == {"s2"}
+
+
+def test_a_store_without_the_incidents_table_opens_and_has_none(tmp_path):
+    import sqlite3
+
+    Store.open(tmp_path / "old.db")
+    db = sqlite3.connect(tmp_path / "old.db")
+    db.execute("DROP TABLE incidents")
+    db.commit()
+    db.close()
+    assert Store.open(tmp_path / "old.db").mined.incidents(PROJECT) == []

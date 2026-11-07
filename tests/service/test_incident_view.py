@@ -105,3 +105,36 @@ def mine_one_failure(tmp_path, store):
         dump_jsonl([replace(r, session_id="s1") for r in steps], fh)
     rules = MiningRules({"jsonl": lambda p, project: iter(list(load_jsonl(p.open())))}, frozenset())
     remine(store, "demo", rules, adding=[Source("demo", "jsonl", str(path))])
+
+
+def fixed_card(session, outcome):
+    return Incident(**{**card(session).__dict__, "outcome": outcome})
+
+
+def recurring_of(cards):
+    return incident_groups(cards, DAYS)["groups"][0]["recurring"]
+
+
+def test_a_group_seen_once_and_never_fixed_is_not_recurring():
+    assert recurring_of([fixed_card("a", Outcome.NEVER_FIXED)]) is False
+
+
+def test_a_group_in_two_sessions_is_recurring():
+    cards = [fixed_card("a", Outcome.NEVER_FIXED), fixed_card("b", Outcome.NEVER_FIXED)]
+    assert recurring_of(cards) is True
+
+
+def test_a_single_session_group_with_a_code_or_setup_fix_is_recurring():
+    assert recurring_of([fixed_card("a", Outcome.FIXED_IN_CODE)]) is True
+    assert recurring_of([fixed_card("a", Outcome.ENVIRONMENT_FIXED)]) is True
+    assert recurring_of([fixed_card("a", Outcome.PASSED_ON_RETRY)]) is False
+
+
+def test_a_session_dropped_from_the_topic_map_loses_its_topic(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    summaries = store.review.summaries
+    summaries.save_topics("demo", TopicMap((Group("Parser work", "x", ("s1",)),), (), ()))
+    mine_one_failure(tmp_path, store)
+    assert incidents_snapshot(store, "demo")["topics"]
+    summaries.save_topics("demo", TopicMap((), (), ()))
+    assert incidents_snapshot(store, "demo")["topics"] == []

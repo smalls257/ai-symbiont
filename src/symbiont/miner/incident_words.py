@@ -90,10 +90,8 @@ def command_example(command: str | None) -> str:
 
 
 def correction_sentence(text: str) -> str:
-    """The developer's correction, quoted to at most QUOTE_CHARS characters."""
-    flat = " ".join(text.split())
-    quoted = flat if len(flat) <= QUOTE_CHARS else flat[: QUOTE_CHARS - 3] + "..."
-    return f'You corrected the agent: "{quoted}"'
+    """The developer's correction, scrubbed and quoted to at most QUOTE_CHARS characters."""
+    return f'You corrected the agent: "{quoted_words(text)}"'
 
 
 def edited_then_passed(path: str, *, script: bool) -> str:

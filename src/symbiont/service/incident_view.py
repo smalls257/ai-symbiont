@@ -30,6 +30,8 @@ VERDICT_WORDS = {
     Outcome.NEVER_FIXED: "never fixed",
     Outcome.DEVELOPER_STEPPED_IN: "you stepped in",
 }
+FIXED_OUTCOMES = frozenset({Outcome.FIXED_IN_CODE, Outcome.ENVIRONMENT_FIXED})
+MIN_RECURRING_SESSIONS = 2
 SINGLE_CORRECTION = "One correction, on its own."
 
 
@@ -49,7 +51,7 @@ def incidents_snapshot(store: Store, project: str) -> dict[str, Any]:
     topic_map = store.review.summaries.topics(project)
     topic_of = {sid: g.name for g in topic_map.topics for sid in g.session_ids}
     cards = [
-        replace(card, topic=topic_of[card.session_id]) if card.session_id in topic_of else card
+        replace(card, topic=topic_of.get(card.session_id, ""))
         for card in store.mined.incidents(project)
     ]
     groups = topic_map.correction_groups
@@ -141,12 +143,19 @@ def _group_json(
         "noiseWords": noise_words(group.noise) if group.noise else "",
         "sessions": len({c.session_id for c in group.cards}),
         "times": len(group.cards),
+        "recurring": _recurring(group.cards),
         "weekly": weeks,
         "undated": undated,
         **_first_and_last(group.cards, days),
         "cards": [_card(c, days, context) for c in group.cards],
         "trigger": _trigger_json(group.trigger),
     }
+
+
+def _recurring(cards: Sequence[Incident]) -> bool:
+    """Seen in two or more sessions, or a fix was shown: the owner asked not to see one-offs."""
+    fixed = any(c.outcome in FIXED_OUTCOMES for c in cards)
+    return fixed or len({c.session_id for c in cards}) >= MIN_RECURRING_SESSIONS
 
 
 def _verdict(cards: Sequence[Incident]) -> str:
