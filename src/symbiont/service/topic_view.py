@@ -17,11 +17,14 @@ from symbiont.miner.struggle import SessionFacts
 from symbiont.miner.topics import Group, TopicMap
 from symbiont.service.dataset_history import dataset_readers
 from symbiont.service.session_dates import session_dates_of
+from symbiont.service.week_axis import per_week, weeks_spanning
 from symbiont.store.local import Store
 
 # The same bar `topics/candidates` applies before it offers sessions for naming (summary_routes).
 MIN_SUMMARIES = 30
 OUTCOMES = [o.value for o in SummaryOutcome]
+# How many goals a topic card quotes: enough to recognize the topic, few enough to stay short.
+EXAMPLE_GOALS = 3
 
 
 def topic_snapshot(store: Store, project: str) -> dict[str, Any]:
@@ -71,6 +74,7 @@ def topic_view(
     named = [g for g in topics.topics if _members(g, real)]
     ready = len(real) >= MIN_SUMMARIES and bool(named)
     months = _months(dates, real)
+    weeks = weeks_spanning(_days_of(real, dates))
     return {
         "ready": ready,
         "needed": max(0, MIN_SUMMARIES - len(real)),
@@ -79,9 +83,13 @@ def topic_view(
         "undated": sum(1 for sid in real if sid not in dates),
         "months": months,
         "allPerMonth": _per_month(real, dates, months),
+        "weeks": weeks,
+        "allPerWeek": per_week(_days_of(real, dates), weeks),
+        "requests": None,
         "frictions": _frictions(topics.frictions, real),
         "topics": [
-            _topic(g, Timeline(real, dates, months), topics, incidents, names or {}) for g in named
+            _topic(g, Timeline(real, dates, months, weeks), topics, incidents, names or {})
+            for g in named
         ]
         if ready
         else [],
@@ -147,6 +155,7 @@ class Timeline:
     real: Mapping[str, SessionSummary]
     dates: Mapping[str, date]
     months: list[str]
+    weeks: list[str]
 
 
 def _topic(
@@ -159,7 +168,7 @@ def _topic(
     real, dates, months = line.real, line.dates, line.months
     members = _members(group, real)
     outcomes = Counter(real[sid].outcome.value for sid in members)
-    days = sorted(dates[sid].isoformat() for sid in members if sid in dates)
+    days = sorted(day.isoformat() for day in _days_of(members, dates))
     return {
         "key": group.name,
         "name": names.get(group.name, group.name),
@@ -169,7 +178,23 @@ def _topic(
         "first": days[0] if days else None,
         "last": days[-1] if days else None,
         "perMonth": _per_month(members, dates, months),
+        "perWeek": per_week(_days_of(members, dates), line.weeks),
+        "examples": _examples(_sessions({sid: real[sid] for sid in members}, dates)),
         "frictions": {f.name: len(_members(f, real) & members) for f in topics.frictions},
-        "incidents": sum(1 for c in incidents if c.session_id in members and c.noise is None),
+        "incidents": _worth_looking_at(incidents, members),
         "sessionList": _sessions({sid: real[sid] for sid in members}, dates),
     }
+
+
+def _days_of(ids: Collection[str], dates: Mapping[str, date]) -> list[date]:
+    return [dates[sid] for sid in ids if sid in dates]
+
+
+def _examples(sessions: Sequence[Mapping[str, Any]]) -> list[str]:
+    """The first three distinct, non-empty goals of `sessions` (already newest first)."""
+    goals = dict.fromkeys(row["goal"] for row in sessions if row["goal"])
+    return list(goals)[:EXAMPLE_GOALS]
+
+
+def _worth_looking_at(incidents: Sequence[Incident], members: Collection[str]) -> int:
+    return sum(1 for c in incidents if c.session_id in members and c.noise is None)

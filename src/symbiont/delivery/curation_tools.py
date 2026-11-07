@@ -40,6 +40,7 @@ _READS_HISTORY = frozenset(
     {
         "symbiont_correction_candidates",
         "symbiont_session_candidates",
+        "symbiont_group_candidates",
         "symbiont_topic_candidates",
         "symbiont_save_topics",
     }
@@ -96,6 +97,18 @@ _DESCRIPTIONS = {
         "allowed. Split a topic that holds more than a quarter of the sessions. Pass running_in "
         "if asked."
     ),
+    "groupcand": (
+        "Up to 40 recurring pain-point groups that have no one-line verdict yet, each with its "
+        "name, what happened, what fixed it, how often, and 3 example cards. Dataset history is "
+        "refused; history the developer barred from this session is left out (see not_shown). "
+        "Write one sentence per group, then call symbiont_save_group_verdicts. Pass running_in "
+        "if asked."
+    ),
+    "savegroup": (
+        "Save your verdicts: [{key (from the candidates), sentence}]. One line, at most 220 "
+        "characters, starting 'Worth a look: ' (what is going on and what would stop it), "
+        "'Fixed in practice: ' or 'Noise: '. Say only what the examples show."
+    ),
     "focus": ("Save what the developer said symbiont should pay attention to in this repository."),
 }
 TOOLS = [
@@ -145,6 +158,16 @@ TOOLS = [
         _DESCRIPTIONS["savetop"],
         {"topics": _ITEMS, "frictions": _ITEMS, "correction_groups": _ITEMS} | _HARNESS,
         ["topics"],
+    ),
+    _tool(
+        "symbiont_group_candidates", "verdicts/candidates", _DESCRIPTIONS["groupcand"], _HARNESS, []
+    ),
+    _tool(
+        "symbiont_save_group_verdicts",
+        "verdicts/save",
+        _DESCRIPTIONS["savegroup"],
+        {"verdicts": _ITEMS},
+        ["verdicts"],
     ),
     _tool(
         "symbiont_set_focus",
