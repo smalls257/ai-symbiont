@@ -68,3 +68,12 @@ def test_the_working_line_is_named_not_the_first():
 
 def test_a_write_behind_a_flag_value_is_still_setup():
     assert _between("git -C /repo config user.email x") == "git -C /repo config user.email x"
+
+
+def test_the_shown_command_keeps_name_value_arguments():
+    shown = _between("gh api repos/o/r/issues -f title=x")
+    assert shown == "gh api repos/o/r/issues -f title=x"
+
+
+def test_leading_env_assignments_may_be_dropped_and_the_text_is_cut():
+    assert _between("CI=1 npm install " + "x" * 100) == "npm install " + "x" * 65 + "..."
