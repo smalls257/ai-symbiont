@@ -12,6 +12,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
 from symbiont.service.effective_context import effective_contexts
 from symbiont.service.ignore_route import ignored_listing
+from symbiont.service.incident_view import incidents_snapshot
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.service.session_dates import session_dates_of
@@ -163,6 +164,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored
     snapshot["triage"] = triage_listing(store, project)
+    snapshot["incidents"] = incidents_snapshot(store, project)
     return _page_filled_with(snapshot)
 
 

@@ -29,7 +29,7 @@ from symbiont.service.request_shapes import (
 from symbiont.store.checkouts import checkout_names, names_for
 from symbiont.store.held_back import MiningOutcome, held_back_sentence, held_by_reason
 from symbiont.store.local import Source
-from symbiont.store.mining import MiningRules, mine_sources, with_ignored
+from symbiont.store.mining import MiningRules, mine_sources, with_ignored, with_topics
 from symbiont.store.repos import RepoStance
 
 if TYPE_CHECKING:
@@ -104,6 +104,7 @@ class MineRoutes:
         """The job body: mine every log, then save under the service lock."""
         setup = self._parts
         rules = with_ignored(mining_rules(setup, project, names), setup.store, project)
+        rules = with_topics(rules, setup.store, project)
 
         def work(report: Callable[[list[Lesson]], None]) -> MiningOutcome:
             """Read and mine without the lock; store only when the whole run succeeded."""

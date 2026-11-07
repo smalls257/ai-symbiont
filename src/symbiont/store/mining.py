@@ -10,6 +10,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from symbiont.miner.churn import churn
+from symbiont.miner.incidents import incidents_from
 from symbiont.miner.lessons import Lesson, lessons_from, resolution_coverage
 from symbiont.miner.mine import mine_history, sessions_of
 from symbiont.miner.representatives import representative_strips
@@ -46,6 +47,8 @@ class MiningRules:
     # Directory names the repository goes by, for churn's repo-relative paths (the project's own
     # name is always added).
     repo_names: frozenset[str] = frozenset()
+    # Session id -> topic name from the developer's session model; empty before topics exist.
+    topics: Mapping[str, str] = field(default_factory=dict)
 
 
 def screen_rules_from(data_dir: Path) -> ScreenRules:
@@ -59,6 +62,13 @@ def with_ignored(rules: MiningRules, store: Store, project: str) -> MiningRules:
     return replace(rules, screen=replace(rules.screen, ignored=ignored))
 
 
+def with_topics(rules: MiningRules, store: Store, project: str) -> MiningRules:
+    """`rules` plus the session -> topic names `project` has, so each card says its topic."""
+    topic_map = store.review.summaries.topics(project)
+    named = {sid: group.name for group in topic_map.topics for sid in group.session_ids}
+    return replace(rules, topics=named)
+
+
 def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -> MiningOutcome:
     """Mine `records`, keep the lessons with a shown fix, count the rest, measure file churn."""
     sessions = sessions_of(records)
@@ -68,6 +78,8 @@ def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -
     codebase = Codebase(names)
     facts = facts_of(sessions, lessons, codebase, codebase_vocabulary(sessions, codebase))
     strips = representative_strips(sessions, facts, codebase)
+    by_id = {session[0].session_id: session for session in sessions if session}
+    cards = incidents_from(lessons, rules.topics, by_id, names)
     return MiningOutcome(
         screened.kept,
         screened.held,
@@ -76,6 +88,7 @@ def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -
         facts,
         strips,
         rules.screen.min_sessions,
+        cards,
     )
 
 
@@ -100,7 +113,9 @@ def remine_with_read(
     records = [r for source in known for r in read_source(source, rules.readers)]
     records += [r for read in new.values() for r in read]
     refuse_held_out(records, rules.held_out_tasks)
-    outcome = mined_outcome(records, with_ignored(rules, store, project), project)
+    outcome = mined_outcome(
+        records, with_topics(with_ignored(rules, store, project), store, project), project
+    )
     store.mined.save(project, list(new), outcome, held_out_tasks=rules.held_out_tasks)
     return outcome.kept
 

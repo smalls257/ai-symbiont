@@ -78,6 +78,17 @@ def failure_sentence(program: str, target: str, broke: str, detail: str) -> str:
     return _sentence(f"The agent ran {subject} and it failed", broke_in_words(broke))
 
 
+def quoted_words(text: str) -> str:
+    """`text` on one line, secrets scrubbed, cut to at most QUOTE_CHARS characters."""
+    flat = scrub(" ".join(text.split()))
+    return flat if len(flat) <= QUOTE_CHARS else flat[: QUOTE_CHARS - 3] + "..."
+
+
+def command_example(command: str | None) -> str:
+    """A failing command line as a group title; empty when the record is gone."""
+    return quoted_words(command or "")
+
+
 def correction_sentence(text: str) -> str:
     """The developer's correction, quoted to at most QUOTE_CHARS characters."""
     flat = " ".join(text.split())

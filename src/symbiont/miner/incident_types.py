@@ -57,6 +57,11 @@ class Incident:
     files: tuple[str, ...]
     # (kind, program, path) of the action it is about: the failed command, or first_wrong.
     situation: tuple[str, str, str]
+    # What groups it with others: a failure's (program, what broke); "" for a correction, which
+    # is grouped by the developer-model's correction groups when the page is built.
+    fingerprint: str = ""
+    # A real example for a group title: the failing command line, or the developer's own words.
+    example: str = ""
 
 
 @dataclass(frozen=True)
