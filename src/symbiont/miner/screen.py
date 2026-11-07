@@ -1,10 +1,9 @@
 """Screening: which mined groups of trouble become lessons, and why the rest are held back.
 
-A group is every lesson with one signature. Counting repeats of a trap with no shown fix teaches
-nothing, and a threshold nobody measured is a magic number, so the
-rules are few, named and counted: a failed-command group needs a known fix before it may be
-taught, then `min_sessions` distinct sessions. Every held group is counted under the first reason
-that applies and shown; nothing is dropped quietly. Pure: lessons in, lessons out.
+A group is every lesson with one signature. Repeats of a trap with no shown fix teach nothing, so
+a failed-command group needs a known fix, recurring in `min_sessions` distinct sessions, on a
+script that outlives its session. Every held group is counted under the first reason that
+applies and shown; nothing is dropped quietly. Pure: lessons in, lessons out.
 """
 
 from collections import defaultdict
@@ -21,7 +20,10 @@ PROBES = frozenset(
     {"ls", "cat", "head", "tail", "find", "stat", "file", "which", "pwd", "wc", "grep", "rg"}
 )
 # A correction or a reviewer's flag is a person speaking: one is enough, and it is never held.
-EXEMPT_SIGNALS = frozenset({Signal.CORRECTION, Signal.REVIEW_FLAG})
+# A loop is the agent repeating itself inside one session: once is already the finding.
+EXEMPT_SIGNALS = frozenset({Signal.CORRECTION, Signal.REVIEW_FLAG, Signal.LOOP})
+# The target a script typed into the command shares (`python -c`, `python - <<EOF`).
+INLINE_TARGET = "<inline>"
 
 
 class HoldReason(StrEnum):
@@ -31,6 +33,7 @@ class HoldReason(StrEnum):
     NO_FIX_SHOWN = "no_fix_shown"
     NO_MESSAGE = "no_message"
     PROBE_COMMAND = "probe_command"
+    THROWAWAY_SCRIPT = "throwaway_script"
     TOO_FEW_SESSIONS = "too_few_sessions"
 
 
@@ -68,7 +71,7 @@ def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
     for signature, group in groups.items():
         reason = hold_reason(signature, group, rules)
         if reason is None:
-            kept.extend(group)
+            kept.extend(_taught(signature, group))
             if signature in rules.ignored:
                 held[HoldReason.IGNORED] = held.get(HoldReason.IGNORED, 0) + 1
             continue
@@ -79,7 +82,7 @@ def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
 
 
 def taught_since_the_fix_rule(lessons: Sequence[Lesson]) -> list[Lesson]:
-    """`lessons` without what only an older mining kept: rework, and failures no lesson fixed.
+    """`lessons` without what only an older mining kept: rework, unfixed and inline failures.
 
     Screening judges a failed command's whole group, so one lesson without a fix stays when a
     sibling shows one. Delivery skips the rest until the store is mined again.
@@ -91,7 +94,10 @@ def taught_since_the_fix_rule(lessons: Sequence[Lesson]) -> list[Lesson]:
         if lesson.pain_point.signature.signal is not Signal.REWORKED_EDIT
         and (
             lesson.pain_point.signature.signal is not Signal.FAILED_COMMAND
-            or lesson.pain_point.signature in fixed
+            or (
+                lesson.pain_point.signature in fixed
+                and lesson.pain_point.signature.key[1] != INLINE_TARGET
+            )
         )
     ]
 
@@ -113,14 +119,28 @@ def hold_reason(
 def _failed_command_reason(
     signature: Signature, group: Sequence[Lesson], rules: ScreenRules
 ) -> HoldReason | None:
-    """A failed command needs a known fix, a message to compare, and to not be a probe."""
-    if not any(lesson.fix is not None for lesson in group):
+    """A failed command needs a shown fix, a message, a lasting target, and to not be a probe.
+
+    Sessions are counted over the occurrences that show the fix: a lesson promises a fix that
+    came back, not a failure that came back once fixed and otherwise not.
+    """
+    fixed = _taught(signature, group)
+    if not fixed:
         return HoldReason.NO_FIX_SHOWN
     if is_bare_exit(signature.key[-1]):
         return HoldReason.NO_MESSAGE
     if signature.key[0] in PROBES:
         return HoldReason.PROBE_COMMAND
-    return _too_few_sessions(group, rules)
+    if signature.key[1] == INLINE_TARGET or all(lesson.target_created for lesson in fixed):
+        return HoldReason.THROWAWAY_SCRIPT
+    return _too_few_sessions(fixed, rules)
+
+
+def _taught(signature: Signature, group: Sequence[Lesson]) -> list[Lesson]:
+    """The occurrences a lesson is made of: for a failed command only those that show the fix."""
+    if signature.signal is not Signal.FAILED_COMMAND:
+        return list(group)
+    return [lesson for lesson in group if lesson.fix is not None]
 
 
 def _too_few_sessions(group: Sequence[Lesson], rules: ScreenRules) -> HoldReason | None:

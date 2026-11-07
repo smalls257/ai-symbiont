@@ -171,3 +171,43 @@ def test_the_context_cap_matches_a_correction_candidates_turn_cap():
     from symbiont.core.correction_candidates import MAX_TURN_CHARS
 
     assert CONTEXT_CHARS == MAX_TURN_CHARS
+
+
+def test_lessons_from_marks_a_target_created_in_the_session():
+    """Failure guarded against: a script the agent wrote itself passing as the project's own."""
+    made = replace(edit("/workspace/x/repro.py"), tags=("created",))
+    records = session(made, run("python ./repro.py", 1, "TypeError: x"), run("python repro.py", 0))
+    (lesson,) = lessons_of(records)
+    assert lesson.target_created is True
+
+
+def test_a_target_created_only_after_the_failure_is_not_marked():
+    made = replace(edit("repro.py"), tags=("created",))
+    records = session(run("python repro.py", 1, "TypeError: x"), made, run("python repro.py", 0))
+    (lesson,) = lessons_of(records)
+    assert lesson.target_created is False
+
+
+def _failed_on(target_command, made_path, tags=("created",)):
+    made = replace(edit(made_path), tags=tags)
+    records = session(made, run(target_command, 1, "TypeError: x"), run(target_command, 0))
+    (lesson,) = lessons_of(records)
+    return lesson
+
+
+def test_a_temporary_file_of_the_same_name_is_not_the_projects_script():
+    """Failure guarded against: a scratch `/tmp/manage.py` hiding the project's `manage.py`."""
+    assert _failed_on("python manage.py", "/tmp/manage.py").target_created is False
+
+
+def test_a_created_repo_path_matches_the_same_repo_path():
+    assert _failed_on("python src/run.py", "src/run.py").target_created is True
+
+
+def test_a_created_repo_path_is_not_another_directorys_file_of_that_name():
+    assert _failed_on("python lib/run.py", "src/run.py").target_created is False
+
+
+def test_a_refused_create_made_no_file():
+    """Failure guarded against: a create the harness refused counting as the agent's own script."""
+    assert _failed_on("python repro.py", "repro.py", ("created", "refused")).target_created is False

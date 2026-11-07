@@ -103,7 +103,7 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
 def test_mining_re_reads_the_logs_every_time(tmp_path, store):
     source = log_of(tmp_path, "a", failing_session())
     remine(store, PROJECT, rules(), adding=[source])
-    log_of(tmp_path, "a", failing_session() + [replace(failing_session()[1], step=3)])
+    log_of(tmp_path, "a", failing_session() + failing_session("s2"))
     assert len(remine(store, PROJECT, rules())) == 2
 
 

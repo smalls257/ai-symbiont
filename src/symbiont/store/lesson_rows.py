@@ -46,6 +46,8 @@ def lesson_from_json(body: str) -> Lesson:
         files=tuple(data.get("files", ())),
         # Rows written before this field existed name no fix; a re-mining fills it in.
         fix=FixKind(data["fix"]) if data.get("fix") else None,
+        # Rows written before this field existed read as False: the script was never known created.
+        target_created=data.get("target_created", False),
         # Rows written before these fields existed carry no turns around the failure.
         asked=data.get("asked", ""),
         agent_intent=data.get("agent_intent", ""),
