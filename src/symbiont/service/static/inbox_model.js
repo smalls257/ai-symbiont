@@ -126,6 +126,10 @@ function lessonRequest(project,g,when,what,name){
   if(applies)lesson.applies_to=applies;
   return {project,lessons:[lesson]};
 }
+/* The body that records the day a lesson was taught, with the id /lessons/add gave it. */
+function taughtRequest(project,g,added){
+  return {project,group_key:g.key,taught:true,lesson_id:added.ids[0]};
+}
 function appliesTo(trigger){
   if(!trigger)return null;
   const terms=trigger.program?[trigger.program]:[],areas=trigger.path?[trigger.path]:[];
@@ -200,5 +204,5 @@ function metaLine(sessions,groups){
 }
 const cleanName=text=>window.SymbiontRename.clean(text);
 
-window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
+window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,taughtRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
 })();

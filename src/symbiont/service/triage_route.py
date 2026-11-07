@@ -33,7 +33,16 @@ if TYPE_CHECKING:
     from symbiont.service.app import ServiceParts
 
 TRIAGE_KEYS = frozenset(
-    {"project", "group_key", "state", "return_rule", "after_sessions", "taught", "name"}
+    {
+        "project",
+        "group_key",
+        "state",
+        "return_rule",
+        "after_sessions",
+        "taught",
+        "name",
+        "lesson_id",
+    }
 )
 TRIAGE_REQUIRED = frozenset({"project", "group_key"})
 NO_ACTIVITY = GroupActivity(0, seen_in_new_session=False)
@@ -62,7 +71,9 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     if row is not None:
         store.review.triage.save(project, key, row)
     if taught:
-        store.review.triage.mark_taught(project, key, today)
+        store.review.triage.mark_taught(
+            project, key, today, _taught_lesson_id(store, project, request)
+        )
     saved = store.review.triage.all(project)[key]
     reply = {
         "group_key": key,
@@ -73,6 +84,16 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     events = parts.events
     write_event(events.path, events.filler, Call("triage", "triage", project), {"triage": reply})
     return reply
+
+
+def _taught_lesson_id(store: Store, project: str, request: dict[str, Any]) -> str:
+    """The id of the lesson `taught` stored; "" when none was sent, BadRequestError if unknown."""
+    ident = request.get("lesson_id", "")
+    if not isinstance(ident, str):
+        raise BadRequestError("lesson_id must be text")
+    if ident and ident not in {item.ident for item in store.curation.authored(project)}:
+        raise BadRequestError(f"no lesson {ident} in {project}; add it with /lessons/add first")
+    return ident
 
 
 def triage_listing(

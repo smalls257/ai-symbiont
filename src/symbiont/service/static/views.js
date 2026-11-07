@@ -18,10 +18,10 @@ function drawTopics(pane,data,project,route){
   const incidents=data.incidents||{groups:[]};
   topicsPage=topics.render(pane,data.topicView,{compact:false,project,groups:incidents.groups,triage:data.triage,t:route.t})||null;
 }
-function drawTrends(pane,data){
+function drawTrends(pane,data,project){
   const trends=window.SymbiontTrends;
   if(!trends||!data.trends)return soon(pane,"trends");
-  trends.render(pane,data.trends);
+  trends.render(pane,data.trends,project);
 }
 function drawInbox(pane,data,project){
   if(!data.incidents){pane.innerHTML='<p class="soon" role="status">Mine this repository again to fill the inbox.</p>';return;}
@@ -74,7 +74,7 @@ function mount(data,project,s1,warn){
   const draw={
     inbox:()=>drawInbox(s1.querySelector("#vInbox"),data,project),
     topics:route=>drawTopics(s1.querySelector("#vTopics"),data,project,route),
-    trends:()=>drawTrends(s1.querySelector("#vTrends"),data)
+    trends:()=>drawTrends(s1.querySelector("#vTrends"),data,project)
   };
   const paneOf={group:"#vGroup",session:"#vSession",notfound:"#vNotFound"};
   const inboxIfOtherStage=route=>route.view in OTHER_STAGES?{view:"inbox"}:route;

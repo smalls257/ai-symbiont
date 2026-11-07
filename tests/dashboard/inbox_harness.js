@@ -80,6 +80,7 @@ console.log(JSON.stringify({
   tiles: M.tilesOf(data),
   axisKeys: axis.map((w) => w.key),
   series: M.seriesOf(groups[1], axis),
+  taughtBody: M.taughtRequest("demo", groups[1], { added: 1, ids: ["lesson-9"] }),
   draft, neverFixed, corrDraft, corrDraftOwn, request, bare, emptyWhat,
   teachNotes: { trains: M.teachNote(draft), held: M.teachNote(heldBack) },
   archive: M.ARCHIVE_CHOICES.map((c) => c.body),

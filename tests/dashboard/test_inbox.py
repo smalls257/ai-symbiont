@@ -218,3 +218,11 @@ def test_worth_a_look_is_the_default_and_the_first_sort_option(decided):
 def test_orphan_triage_keys_are_ignored(decided):
     assert decided["orphanThrew"] == ""
     assert decided["orphan"] == decided["orphanPlain"]
+
+
+def test_marking_a_group_taught_sends_the_id_the_lessons_store_gave_it(decided):
+    body = decided["taughtBody"]
+
+    assert body["taught"] is True and body["project"] == "demo"
+    assert body["lesson_id"] == "lesson-9" and "lesson" not in body
+    assert body["group_key"]

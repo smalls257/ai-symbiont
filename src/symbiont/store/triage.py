@@ -14,7 +14,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS triage (
     project TEXT NOT NULL, group_key TEXT NOT NULL, state TEXT NOT NULL,
     return_rule TEXT, after_sessions INTEGER, changed_on TEXT NOT NULL, taught_on TEXT,
-    name TEXT NOT NULL DEFAULT '', until TEXT,
+    name TEXT NOT NULL DEFAULT '', until TEXT, lesson_id TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (project, group_key)
 );
 """
@@ -32,6 +32,13 @@ def add_missing_until(db: sqlite3.Connection) -> None:
     if "until" not in {column[1] for column in db.execute("PRAGMA table_info(triage)")}:
         with db:
             db.execute("ALTER TABLE triage ADD COLUMN until TEXT")
+
+
+def add_missing_lesson_id(db: sqlite3.Connection) -> None:
+    """Give a store from before lesson ids were kept the `lesson_id` column, once, when opened."""
+    if "lesson_id" not in {column[1] for column in db.execute("PRAGMA table_info(triage)")}:
+        with db:
+            db.execute("ALTER TABLE triage ADD COLUMN lesson_id TEXT NOT NULL DEFAULT ''")
 
 
 class GroupTriage:
@@ -84,15 +91,34 @@ class GroupTriage:
                 ),
             )
 
-    def mark_taught(self, project: str, group_key: str, day: date) -> None:
-        """Record the day "Teach the agent" was used; a group not yet triaged stays For review."""
+    def mark_taught(self, project: str, group_key: str, day: date, lesson_id: str = "") -> None:
+        """Record the day "Teach the agent" was used and the id of the lesson it stored.
+
+        A teach with no id keeps the id already there. A group not yet triaged stays For review.
+        """
         with self._db:
             self._db.execute(
-                "INSERT INTO triage (project, group_key, state, changed_on, taught_on)"
-                " VALUES (?, ?, ?, ?, ?) ON CONFLICT (project, group_key) DO UPDATE"
-                " SET taught_on=excluded.taught_on",
-                (project, group_key, GroupState.FOR_REVIEW.value, day.isoformat(), day.isoformat()),
+                "INSERT INTO triage (project, group_key, state, changed_on, taught_on, lesson_id)"
+                " VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (project, group_key) DO UPDATE"
+                " SET taught_on=excluded.taught_on, lesson_id=CASE WHEN excluded.lesson_id != ''"
+                " THEN excluded.lesson_id ELSE triage.lesson_id END",
+                (
+                    project,
+                    group_key,
+                    GroupState.FOR_REVIEW.value,
+                    day.isoformat(),
+                    day.isoformat(),
+                    lesson_id,
+                ),
             )
+
+    def lesson_ids(self, project: str) -> dict[str, str]:
+        """The id of the lesson each taught group stored, by group key; none known is absent."""
+        rows = self._db.execute(
+            "SELECT group_key, lesson_id FROM triage WHERE project=? AND lesson_id != ''",
+            (project,),
+        )
+        return dict(rows)
 
     def all(self, project: str) -> dict[str, TriageRow]:
         """Every saved group of `project`, by group key."""

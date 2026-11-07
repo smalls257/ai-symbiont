@@ -52,6 +52,7 @@ FILES = {
     "/dashboard/session_model.js": ("session_model.js", JS),
     "/dashboard/session_parts.js": ("session_parts.js", JS),
     "/dashboard/session.js": ("session.js", JS),
+    "/dashboard/trends_side.js": ("trends_side.js", JS),
     "/dashboard/inbox.css": ("inbox.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
