@@ -101,7 +101,7 @@ def _failed_command(
 ) -> Resolution | NoResolution:
     """What changed before the same command passed; a stated reason when nothing did."""
     (failed,) = cited
-    success = _later_success_of(failed, records)
+    success = later_success_of(failed, records)
     if success is None:
         return NO_LATER_SUCCESS
     fixes, others = _changes_between(failed, success, records)
@@ -136,7 +136,7 @@ def _changes_between(
     return fixes, tuple(r for r in between if not _bears_on(r, failed))
 
 
-def _later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
+def later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
     """The first later pass of the same command, or of the same check spelled differently."""
     later_commands = [r for r in session_from(failed, records)[1:] if r.kind == Kind.COMMAND]
     return next(
@@ -153,13 +153,13 @@ def _same_attempt(failed: Record, later: Record) -> bool:
     """A pass of the same program, subcommand and target."""
     if later.exit_code != 0:
         return False
-    return (normalise_command(later.command or ""), _subcommand(later.command or "")) == (
+    return (normalise_command(later.command or ""), subcommand_of(later.command or "")) == (
         normalise_command(failed.command or ""),
-        _subcommand(failed.command or ""),
+        subcommand_of(failed.command or ""),
     )
 
 
-def _subcommand(command: str) -> str:
+def subcommand_of(command: str) -> str:
     """The first argument when it is a bare word (`push` in `git push origin`), else "-".
 
     Paths and node ids are left to `normalise_command`, which already compares the target.

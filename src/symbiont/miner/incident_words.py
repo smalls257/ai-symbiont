@@ -9,6 +9,7 @@ import re
 from symbiont.miner.failure_keys import EXIT_MEANINGS, broke_in_words, is_bare_exit
 from symbiont.miner.resolutions import NOTHING_CHANGED, ONLY_UNRELATED_CHANGED, PASSED_RESPELLED
 from symbiont.miner.screen import INLINE_TARGET
+from symbiont.miner.secrets import scrub
 
 # The most common openers of SWE-chat corrections that carry no instruction (cipher-box: 275 of
 # 1,396 started with "ok") [measured], plus the words that go with them.
@@ -44,8 +45,8 @@ _WORD = re.compile(r"[A-Za-z']+")
 _BAD_PATH = EXIT_MEANINGS[("pytest", 4)]
 _NO_TESTS = EXIT_MEANINGS[("pytest", 5)]
 _NO_RETRY_FIX = {
-    NOTHING_CHANGED: "Nothing: it passed when run again unchanged.",
-    PASSED_RESPELLED: "Nothing: it passed when run again with different arguments.",
+    NOTHING_CHANGED: "Nothing: it passed when run again.",
+    PASSED_RESPELLED: "Nothing: it passed when run again.",
     ONLY_UNRELATED_CHANGED: "Unclear: it passed later, but only unrelated changes came between.",
 }
 
@@ -59,6 +60,7 @@ def is_empty_correction(text: str) -> bool:
 
 def failure_sentence(program: str, target: str, broke: str, detail: str) -> str:
     """What the agent ran and how it went wrong, as one sentence ending in a period."""
+    detail = detail.removeprefix(f"{broke}:").strip()
     where = _where(target)
     subject = f"an inline {program} script" if target == INLINE_TARGET else f"{program}{where}"
     if broke == _BAD_PATH:
@@ -93,6 +95,11 @@ def corrected_command_sentence(command: str) -> str:
     return f"Ran the corrected command instead: {command}."
 
 
+def setup_sentence(command: str) -> str:
+    """The fix when the session ran a setup command before the pass."""
+    return f"Fixed the setup: ran `{command}`, then it passed."
+
+
 def passed_later_sentence(steps: str) -> str:
     """The fix when something other than a codebase edit came before the pass."""
     return f"It passed later, after the agent {steps}."
@@ -110,7 +117,7 @@ def edit_sentence(path: str) -> str:
 
 def ran_sentence(command: str, *, failed: bool) -> str:
     """What the agent ran, with or without the failure."""
-    first = (command.strip().splitlines() or [""])[0]
+    first = (scrub(command).strip().splitlines() or [""])[0]
     short = first if len(first) <= COMMAND_CHARS else first[: COMMAND_CHARS - 3] + "..."
     return f"The agent ran `{short}`" + (", which failed." if failed else ".")
 

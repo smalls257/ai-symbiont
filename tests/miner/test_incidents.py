@@ -106,7 +106,7 @@ def test_passing_unchanged_is_a_plain_retry():
     (card,) = cards([lesson])
     assert card.noise is NoiseReason.PLAIN_RETRY
     assert card.outcome is Outcome.PASSED_ON_RETRY
-    assert card.what_fixed_it == "Nothing: it passed when run again unchanged."
+    assert card.what_fixed_it == "Nothing: it passed when run again."
 
 
 def test_passing_with_other_arguments_is_never_shown_as_fixed():
@@ -261,3 +261,80 @@ def test_nothing_shared_is_no_trigger():
 def test_a_bare_command_with_no_path_has_no_path_in_its_words():
     (only,) = [incident(("running", "make", ""))]
     assert trigger_of([only]).words == "when running make"
+
+
+def _passing_after(setup, resolution=(), fix=None, reason=NOTHING_CHANGED, key=None):
+    records = [command(1, "python app.py"), *setup, command(9, "python app.py", exit_code=0)]
+    key = key or ("python", "app.py", "ModuleNotFoundError")
+    lesson = failure(key, resolution=resolution, fix=fix, unresolved_because=reason)
+    return cards([lesson], records)[0]
+
+
+def test_an_install_between_failure_and_pass_is_an_environment_fix():
+    card = _passing_after(
+        [command(2, "pip install requests", exit_code=0)],
+        resolution=("ran `python app.py`",), fix=FixKind.CORRECTED_COMMAND, reason=None,
+    )  # fmt: skip
+    assert card.outcome is Outcome.ENVIRONMENT_FIXED
+    assert card.noise is None
+    assert card.what_fixed_it == "Fixed the setup: ran `pip install requests`, then it passed."
+
+
+def test_npm_install_then_pass_is_an_environment_fix():
+    records = [
+        command(1, "npm test"), command(2, "npm install", exit_code=0),
+        command(3, "npm test", exit_code=0),
+    ]  # fmt: skip
+    lesson = failure(
+        ("npm", "-", "exit 1"), resolution=("ran `npm install`", "ran `npm test`"),
+        unresolved_because=None,
+    )  # fmt: skip
+    (card,) = cards([lesson], records)
+    assert card.outcome is Outcome.ENVIRONMENT_FIXED
+    assert "`npm install`" in card.what_fixed_it
+
+
+def test_an_unrecognized_setup_command_still_counts_as_the_setup():
+    card = _passing_after(
+        [command(2, "docker compose up -d", exit_code=0)], key=("python", "app.py", "OSError")
+    )
+    assert card.outcome is Outcome.ENVIRONMENT_FIXED
+    assert card.noise is None
+    assert "`docker compose up -d`" in card.what_fixed_it
+
+
+def test_a_look_around_between_failure_and_pass_is_not_a_setup():
+    card = _passing_after([command(2, "ls", exit_code=0)], key=("python", "app.py", "OSError"))
+    assert card.noise is NoiseReason.PLAIN_RETRY
+
+
+def test_a_broader_rerun_with_nothing_else_is_a_plain_retry():
+    records = [command(1, "pytest tests/test_a.py"), command(2, "pytest", exit_code=0)]
+    lesson = failure(("pytest", "tests/test_a.py", "exit 1"), unresolved_because=PASSED_RESPELLED)
+    (card,) = cards([lesson], records)
+    assert card.noise is NoiseReason.PLAIN_RETRY
+    assert card.what_fixed_it == "Nothing: it passed when run again."
+
+
+def test_a_secret_in_the_setup_command_is_scrubbed():
+    secret = "abcdefgh" + "12345678"
+    card = _passing_after(
+        [command(2, f"pip install x --token={secret}", exit_code=0)],
+        key=("python", "app.py", "OSError"),
+    )
+    assert secret not in card.what_fixed_it
+
+
+def test_the_error_class_is_not_said_twice():
+    lesson = failure(("python", "a.py", "ValueError"))
+    (card,) = cards([lesson], [command(1, "python a.py", raw="ValueError: bad value")])
+    assert (
+        card.what_happened
+        == "The agent ran python on a.py and it stopped with ValueError: bad value."
+    )
+
+
+def test_repo_names_make_paths_repo_relative():
+    lesson = failure(("pytest", "/home/me/shop/tests/test_a.py", "exit 1"))
+    (card,) = incidents_from([lesson], {}, {}, frozenset({"shop"}))
+    assert card.situation == ("running", "pytest", "tests/test_a.py")

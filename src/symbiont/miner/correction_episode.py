@@ -23,6 +23,9 @@ class Episode:
     next_edit: Record | None
 
 
+NO_EPISODE = Episode(None, 0, None)
+
+
 def episode_of(turn: Record, records: Sequence[Record]) -> Episode:
     """The episode of the correction `turn` in its session's `records`."""
     ordered = sorted(records, key=lambda record: record.step)
