@@ -9,6 +9,7 @@ from enum import StrEnum
 
 from symbiont.core.slot import Decision
 from symbiont.miner.failure_keys import broke_in_words
+from symbiont.miner.fix_words import resolution_phrase
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.records.schema import Record
@@ -77,7 +78,7 @@ def resolution_clause(lesson: Lesson) -> str:
     """How the lesson was resolved, or that the history shows no fix, as a clause."""
     if not lesson.resolution:
         return "no fix was found in the history"
-    return f"you {', then '.join(lesson.resolution)}"
+    return f"you {resolution_phrase(lesson.resolution)}"
 
 
 def _recalls(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
@@ -109,11 +110,11 @@ def _resolved(lesson: Lesson) -> str:
     """How a lesson was resolved, and what else changed between the failure and the pass."""
     meanwhile = ""
     if lesson.changed_alongside:
-        changed = ", then ".join(lesson.changed_alongside)
+        changed = resolution_phrase(lesson.changed_alongside)
         meanwhile = f" Before it passed you also {changed}."
     if not lesson.resolution:
         return "No fix was found in the history." + meanwhile
-    return f"Last time: {', then '.join(lesson.resolution)}.{meanwhile}"
+    return f"Last time: {resolution_phrase(lesson.resolution)}.{meanwhile}"
 
 
 def _times(count: int) -> str:

@@ -22,7 +22,7 @@ pytestmark = pytest.mark.periphery
 
 def test_agreement_returns_the_stored_note_with_both_twins_fixes(tmp_path):
     answer = recall(service_with(tmp_path, judge_saying(0.99))).body["answer"]
-    assert "ran a" in answer and "ran b" in answer and answer.startswith("What happened: ")
+    assert "ran a, and 1 other fix" in answer and answer.startswith("What happened: ")
 
 
 def test_a_judge_under_the_bar_gives_the_plain_nothing_matches(tmp_path):

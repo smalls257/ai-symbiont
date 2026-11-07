@@ -13,7 +13,7 @@ from symbiont.miner import incident_words as words
 from symbiont.miner.environment_fix import setup_command
 from symbiont.miner.failure_keys import INTERRUPTS, is_interrupt
 from symbiont.miner.failure_signature import failure_detail
-from symbiont.miner.fix_words import edit_clause
+from symbiont.miner.fix_words import edit_clause, resolution_phrase
 from symbiont.miner.fixes import FixKind
 from symbiont.miner.incident_corrections import correction_card, path_of, record_at
 from symbiont.miner.incident_types import (
@@ -178,7 +178,7 @@ def _failure_fix(lesson: Lesson, outcome: Outcome, setup: str | None, failed: Re
     if outcome is Outcome.CORRECTED_COMMAND:
         return words.corrected_command_sentence(_ran_command(lesson, failed))
     if lesson.resolution:
-        return words.passed_later_sentence(", then ".join(lesson.resolution))
+        return words.passed_later_sentence(resolution_phrase(lesson.resolution))
     return words.unresolved_sentence(lesson.unresolved_because)
 
 

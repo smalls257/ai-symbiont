@@ -8,6 +8,7 @@ model.
 
 from symbiont.core.notes import happened
 from symbiont.miner.failure_keys import broke_in_words
+from symbiont.miner.fix_words import resolution_phrase
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.secrets import scrub
@@ -47,7 +48,7 @@ def _capped(text: str, limit: int) -> str:
 def outcome_sentence(lesson: Lesson) -> str:
     """How it ended, in a plain sentence; the one wording the candidate and the summary share."""
     if lesson.resolution:
-        return "It was fixed: " + ", then ".join(lesson.resolution) + "."
+        return f"It was fixed: {resolution_phrase(lesson.resolution)}."
     if lesson.changed_alongside:
         return "No fix was confirmed; other changes were made before it passed."
     return "The history shows no fix."

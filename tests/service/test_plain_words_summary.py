@@ -71,3 +71,58 @@ def test_a_slash_only_or_acknowledgment_turn_is_not_a_correction():
     found = find_corrections(turns)
     assert [pain.step for pain in found] == [2]
     assert replace(turns[0]).raw == "/compact"
+
+
+def test_a_fix_with_no_real_step_reads_as_no_fix_in_the_note_and_the_summary():
+    fixed = lesson_of(owners_session())
+    unfixed = replace(fixed, resolution=(), fix=None, unresolved_because="nothing changed")
+    note, summary = render_lesson(unfixed), rule_summary(unfixed)
+    assert "No fix was found" in note and "history shows no fix" in summary
+    assert "ran another command" not in note + summary
+
+
+def pooled(count):
+    phrases = tuple(f"edited {'file' * 12}{n}.ts, then re-ran pnpm exec" for n in range(count))
+    return replace(lesson_of(owners_session()), resolution=phrases)
+
+
+def test_a_pooled_lesson_stays_short_in_the_note_the_card_and_the_summary():
+    from symbiont.miner.incidents import incidents_from
+
+    lesson = pooled(6)
+    resolved = render_lesson(lesson).split("Last time: ")[1].split(" Check:")[0]
+    assert len(resolved) <= 200 and "other fixes" in resolved
+    assert len(rule_summary(lesson)) <= SUMMARY_CHARS
+    recs = owners_session()
+    (card,) = incidents_from([replace(lesson, fix=None)], {"s1": recs}, {"s1": recs})
+    assert len(card.what_fixed_it) <= 200
+
+
+def test_an_old_stored_row_reads_plain_on_the_note_and_the_card():
+    import json
+    from dataclasses import asdict
+
+    from symbiont.miner.incidents import incidents_from
+    from symbiont.store.lesson_rows import lesson_from_json
+
+    old = asdict(lesson_of(owners_session()))
+    del old["fix_commands"], old["fix_steps"]
+    old["resolution"] = [
+        f"edited `{PATH}` to add `host: this.configService.get('REDIS_HOST', 'localhost'),`",
+        "ran `pnpm api:generate 2>&1 | tail -5`",
+    ]
+    lesson = lesson_from_json(json.dumps(old))
+    note = render_lesson(lesson)
+    assert "Last time: edited identity.controller.ts, then re-ran pnpm." in note
+    assert "REDIS_HOST" not in note and "apps/api" not in note
+    recs = owners_session()
+    (card,) = incidents_from([lesson], {}, {"s1": recs})
+    assert card.what_fixed_it == "Fixed by editing identity.controller.ts."
+
+
+def test_short_real_corrections_stay_and_slash_commands_and_agreement_do_not():
+    from symbiont.miner.signals.correction import find_corrections
+
+    texts = ["use pnpm", "wrong file", "/compact", "/clear now", "ok", "thanks", "go on", ""]
+    turns = session(*[user(text, tags=("correction",)) for text in texts])
+    assert [pain.step for pain in find_corrections(turns)] == [0, 1]

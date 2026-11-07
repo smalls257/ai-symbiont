@@ -1,7 +1,16 @@
 """A fix reads as one short plain phrase: file names and one command, never code or paths."""
 
+from dataclasses import replace
+
 from record_builders import edit, run
-from symbiont.miner.fix_words import PHRASE_CHARS, edit_clause, fix_phrase
+from symbiont.miner.fix_words import (
+    PHRASE_CHARS,
+    RESOLUTION_CHARS,
+    edit_clause,
+    fix_phrase,
+    phrase_from_old_steps,
+    resolution_phrase,
+)
 
 SPEC = "src/vault/republish.service.spec.ts"
 
@@ -52,8 +61,31 @@ def test_the_phrase_is_capped_even_for_long_names():
     assert len(fix_phrase(steps, "pnpm exec")) <= PHRASE_CHARS
 
 
-def test_steps_that_were_all_read_only_still_say_something_was_done():
-    assert fix_phrase([run("ls")]) == "ran another command"
+def test_read_only_steps_or_an_edit_without_a_file_are_no_fix_at_all():
+    assert fix_phrase([run("ls"), run("git status")]) == ""
+    assert fix_phrase([replace(edit("a.py"), files=())]) == ""
+
+
+def test_a_pooled_resolution_is_one_bounded_phrase():
+    phrases = [f"edited {'x' * 50}{n}.ts, then re-ran pnpm exec" for n in range(6)]
+    pooled = resolution_phrase(phrases)
+    assert pooled.endswith(", and 5 other fixes") and len(pooled) <= RESOLUTION_CHARS
+    assert resolution_phrase(phrases[:2]).endswith(", and 1 other fix")
+    assert resolution_phrase(["edited a.ts", "edited a.ts"]) == "edited a.ts"
+    assert resolution_phrase([]) == ""
+
+
+def test_an_old_stored_step_reads_as_the_plain_phrase():
+    old = [
+        "edited `apps/api/src/identity.controller.ts` to add `host: x.get('REDIS_HOST'),`",
+        "ran `cat a.py`",
+        "ran `pnpm api:generate 2>&1 | tail -5`",
+    ]
+    assert phrase_from_old_steps(old, "pnpm") == "edited identity.controller.ts, then re-ran pnpm"
+
+
+def test_a_secret_looking_file_name_is_scrubbed():
+    assert "ghp_" not in fix_phrase([edit("ghp_abcdefghijklmnopqrstuvwxyz0123456789.env")])
 
 
 def test_no_steps_is_no_phrase():

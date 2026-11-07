@@ -9,7 +9,7 @@ lowercased with punctuation dropped, so the note can quote how the developer put
 import re
 from collections.abc import Sequence
 
-from symbiont.miner.empty_correction import is_empty_correction
+from symbiont.miner.empty_correction import is_bare_acknowledgment
 from symbiont.miner.failing_tests import failing_test_files
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.records.schema import Kind, Record
@@ -46,7 +46,7 @@ def _turn_correction(
     turn: Record, edited_ever: list[str], edited_after_failure: list[str]
 ) -> PainPoint | None:
     """The correction a user turn is, or None; "ok" and "/compact" teach nothing."""
-    if is_empty_correction(turn.raw):
+    if is_bare_acknowledgment(turn.raw):
         return None
     if CORRECTION_TAGS & set(turn.tags):
         return _pain_point(turn, _named_file(turn.raw, edited_ever))
