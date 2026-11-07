@@ -15,7 +15,7 @@ const T = sandbox.window.SymbiontTip;
 const group = (key, over) => ({
   key, name: "Name of " + key, title: "pytest tests", groupedBecause: "Every card is pytest failing the same way.",
   kind: "failure", happened: "The agent ran pytest and it failed.", fixed: "Edited app.py.", verdict: "fixed in the code", fixShown: true,
-  noise: null, noiseWords: "", sessions: 3, times: 4, recurring: true, weekly: [["2026-W41", 2], ["2026-W43", 2]],
+  noise: null, noiseWords: "", sessions: 3, times: 4, recurring: true, trains: true, undatedSessions: 0, weekly: [["2026-W41", 2], ["2026-W43", 2]],
   undated: 0, first: "2026-10-05", last: "2026-10-20", cards: [{ firstWrong: "", costSteps: 0 }],
   trigger: { kind: "running", program: "pytest", path: "tests/e2e", words: "when running pytest on tests/e2e" }, ...over,
 });
@@ -23,11 +23,11 @@ const warnings = [];
 const warn = (m) => warnings.push(m);
 
 const groups = [
-  group("once", { recurring: false, sessions: 1, times: 1, fixed: "Never fixed in this session.", fixShown: false, cards: [{ firstWrong: "", costSteps: 0 }] }),
+  group("once", { recurring: false, trains: false, sessions: 1, times: 1, fixed: "Never fixed in this session.", fixShown: false, cards: [{ firstWrong: "", costSteps: 0 }] }),
   group("many"),
   group("noisy", { noise: "plain_retry", noiseWords: "passed when run again", times: 5, sessions: 2 }),
   group("noisy2", { noise: "plain_retry", noiseWords: "passed when run again", times: 2, sessions: 1 }),
-  group("corr", { kind: "correction", fixShown: false, fixed: "", title: "no, use uv", cards: [{ firstWrong: "Ran pip install", costSteps: 4, outcome: "developer_stepped_in", fixed: "" }], trigger: null }),
+  group("corr", { kind: "correction", fixShown: false, trains: false, fixed: "", title: "no, use uv", cards: [{ firstWrong: "Ran pip install", costSteps: 4, outcome: "developer_stepped_in", fixed: "" }], trigger: null }),
 ];
 const archivedAll = groups.map((g) => g.noise ? g : { ...g, recurring: true });
 const triageAll = Object.fromEntries(archivedAll.filter((g) => !g.noise).map((g) => [g.key, { state: "archived" }]));
@@ -40,12 +40,15 @@ try { M.tabOf({ many: { state: "weird" } }, groups[1]); } catch (e) { badState =
 
 const axis = M.weekAxis(groups);
 const data = { stage: { facts: [1, 2, 3] }, incidents: { groups, topics: [1, 2] }, triage: {} };
-const draft = M.teachDraft(groups[1], "n");
-const neverFixed = M.teachDraft(groups[0], "n");
-const corrDraft = M.teachDraft(groups[4], "n");
+const draft = M.teachDraft(groups[1], "n", true);
+const neverFixed = M.teachDraft(groups[0], "n", true);
+const corrDraft = M.teachDraft(groups[4], "n", false);
+const corrDraftOwn = M.teachDraft(groups[4], "n", true);
+const heldBack = M.teachDraft(group("held", { trains: false }), "n", true);
+const emptyWhat = M.lessonRequest("demo", group("e", { happened: "The agent ran pytest and it failed." }), "when running pytest", "", "n");
 const request = M.lessonRequest("demo", groups[1], draft.when, draft.what, "n");
 const bare = M.lessonRequest("demo", groups[4], "", "", "Corrections group");
-const rowFailure = R.rowHtml({ g: groups[1], name: "A <b>name</b>", tab: "review", tri: { regressed: true }, series: M.seriesOf(groups[1], axis), weeks: axis });
+const rowFailure = R.rowHtml({ g: { ...groups[1], undatedSessions: 149 },  name: "A <b>name</b>", tab: "review", tri: { regressed: true }, series: M.seriesOf(groups[1], axis), weeks: axis });
 const rowCorr = R.rowHtml({ g: groups[4], name: "Corr", tab: "archived", tri: { taught_on: "2026-11-01" }, series: [], weeks: axis });
 
 let tooLong = "";
@@ -60,7 +63,8 @@ console.log(JSON.stringify({
   tiles: M.tilesOf(data),
   axisKeys: axis.map((w) => w.key),
   series: M.seriesOf(groups[1], axis),
-  draft, neverFixed, corrDraft, request, bare,
+  draft, neverFixed, corrDraft, corrDraftOwn, request, bare, emptyWhat,
+  teachNotes: { trains: M.teachNote(draft), held: M.teachNote(heldBack) },
   archive: M.ARCHIVE_CHOICES.map((c) => c.body),
   views: ["", "inbox", "topics", "trends", "struggle", "context", "replay", "nope"].map((v) => M.viewFrom(v ? "?view=" + v : "", warn)),
   warnings, tooLong, trimmed: M.cleanName("  Flaky  "),

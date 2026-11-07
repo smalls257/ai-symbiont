@@ -1,10 +1,8 @@
 """The `topicView` key of the dashboard data: what the developer worked on, by topic.
 
-A topic bar that does not add up to its sessions, or a month
-with no sessions that vanishes from the timeline, looks finished and misleads. Outcomes are
-counted from the sessions listed, a quiet month is a 0, and a session counts once per friction.
-Below the summary threshold `ready` is false, so the page shows the instruction and the plain
-sessions-by-date list instead of empty topic sections. Pure over what the store hands in.
+A topic bar that does not add up to its sessions, or a quiet month that vanishes from the
+timeline, looks finished and misleads: outcomes are counted from the sessions listed and a quiet
+month is a 0. Below the summary threshold `ready` is false and the page lists the sessions by date.
 """
 
 from collections import Counter
@@ -15,7 +13,9 @@ from typing import Any
 
 from symbiont.miner.incident_types import Incident
 from symbiont.miner.session_summary import SessionSummary, SummaryOutcome
+from symbiont.miner.struggle import SessionFacts
 from symbiont.miner.topics import Group, TopicMap
+from symbiont.service.dataset_history import dataset_readers
 from symbiont.service.session_dates import session_dates_of
 from symbiont.store.local import Store
 
@@ -26,13 +26,33 @@ OUTCOMES = [o.value for o in SummaryOutcome]
 
 def topic_snapshot(store: Store, project: str) -> dict[str, Any]:
     """The `topicView` data of `project` from what the store keeps."""
-    return topic_view(
+    facts = store.mined.session_facts(project)
+    summaries = store.review.summaries.all(project)
+    view = topic_view(
         store.review.summaries.topics(project),
-        store.review.summaries.all(project),
+        summaries,
         store.mined.incidents(project),
-        session_dates_of(store.mined.session_facts(project)),
+        session_dates_of(facts),
         store.review.summaries.topic_names(project),
     )
+    view["sessionsByDate"] = sessions_by_date(facts, summaries)
+    view["datasetReaders"] = dataset_readers(store, project)
+    return view
+
+
+def sessions_by_date(
+    facts: Sequence[SessionFacts], summaries: Sequence[SessionSummary]
+) -> list[dict[str, Any]]:
+    """Every mined session, newest first, undated last, from the facts so it is never empty.
+
+    A session nobody summarized has a null outcome.
+    """
+    ended = {s.session_id: s.outcome.value for s in summaries if not s.noise}
+    rows = [
+        {"id": f.session_id, "date": f.started, "goal": f.title, "outcome": ended.get(f.session_id)}
+        for f in facts
+    ]
+    return sorted(rows, key=lambda row: row["date"] or "", reverse=True)
 
 
 def topic_view(
@@ -65,7 +85,6 @@ def topic_view(
         ]
         if ready
         else [],
-        "sessionsByDate": _sessions(real, dates),
     }
 
 

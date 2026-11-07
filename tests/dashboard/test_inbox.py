@@ -95,14 +95,32 @@ def test_teach_still_saves_when_the_group_has_no_trigger_and_nothing_was_typed(d
     lesson = decided["bare"]["lessons"][0]
 
     assert "applies_to" not in lesson
-    assert lesson["text_in_plain_words"] == "Corrections group" and lesson["kind"] == "correction"
+    assert lesson["text_in_plain_words"] == "The agent ran pytest and it failed."
+    assert lesson["kind"] == "correction"
     assert decided["corrDraft"]["hasTrigger"] is False
 
 
-def test_only_a_failed_command_with_a_fix_is_said_to_feed_nightly_training(decided):
+def test_the_dialog_says_it_trains_only_when_the_server_says_the_lesson_behind_it_does(decided):
     assert decided["draft"]["trains"] is True
     assert decided["neverFixed"]["trains"] is False and decided["neverFixed"]["what"] == ""
     assert decided["corrDraft"]["trains"] is False
+    assert decided["teachNotes"]["trains"] == (
+        "The mined lesson behind this group feeds nightly training; "
+        "your note is delivered to the agent."
+    )
+    assert decided["teachNotes"]["held"] == (
+        "Delivered to the agent as a note; it does not feed nightly training."
+    )
+
+
+def test_a_correction_is_quoted_as_you_said_only_in_the_developers_own_history(decided):
+    assert decided["corrDraftOwn"]["what"].startswith("You said: ")
+    assert "You said" not in decided["corrDraft"]["what"]
+
+
+def test_an_empty_what_falls_back_to_what_happened_so_a_lesson_is_never_only_a_trigger(decided):
+    text = decided["emptyWhat"]["lessons"][0]["text_in_plain_words"]
+    assert text == "When running pytest: The agent ran pytest and it failed."
 
 
 def test_archive_asks_for_a_return_condition_the_service_knows(decided):
@@ -129,7 +147,9 @@ def test_a_row_escapes_the_name_says_regressed_and_shows_the_episode_of_a_correc
     assert "Regressed" in failure and "4 times" in failure and "3<small>sessions</small>" in failure
     assert "Where it went wrong" in correction and "Ran pip install" in correction
     assert "4 agent steps before you stepped in" in correction
-    assert "Lesson added on Nov 1" in correction and "Move to For review" in correction
+    assert "Lesson added on Nov 1." in correction and "Move to For review" in correction
+    assert "shows here again" not in correction
+    assert "149 sessions without a date" in failure
 
 
 def test_a_tooltip_keeps_its_formatting_tags_and_turns_every_other_tag_into_text(decided):

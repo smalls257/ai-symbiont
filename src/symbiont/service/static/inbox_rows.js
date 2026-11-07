@@ -29,7 +29,7 @@ function sparkHtml(series,weeks,kind){
 
 const BADGES={regressed:'<span class="pill rising">Regressed</span> '};
 function stateNote(g,tri){
-  if(tri.taught_on)return "Lesson added on "+fd(tri.taught_on)+". It shows here again if it happens after that.";
+  if(tri.taught_on)return "Lesson added on "+fd(tri.taught_on)+".";
   return "";
 }
 
@@ -60,7 +60,7 @@ function rowHtml(shown){
     +"<dt>What fixed it</dt><dd>"+(g.fixed?code(g.fixed):"Nothing fixed it in these sessions.")+"</dd><dt>Verdict</dt><dd><b>"+esc(g.verdict)+"</b></dd></dl>"
     +'<div class="gacts">'+actionsHtml(tab)+"</div>"+(stat?'<div class="stnote">'+esc(stat)+"</div>":"")
     +'<div class="gstat"><div class="big">'+g.sessions.toLocaleString("en-US")+"<small>"+(g.sessions===1?"session":"sessions")+"</small></div>"
-    +'<div class="sm"><b>'+M.plural(g.times,"time")+"</b> in all"+(g.undated?", "+M.plural(g.undated,"without a date"):"")+"</div>"
+    +'<div class="sm"><b>'+M.plural(g.times,"time")+"</b> in all"+(g.undatedSessions?", "+M.plural(g.undatedSessions,"session")+" without a date":"")+"</div>"
     +(series.length?sparkHtml(series,weeks,g.kind):"")
     +'<div class="sm">first <b>'+fd(g.first)+"</b> · last <b>"+fd(g.last)+"</b></div></div></article>";
 }

@@ -151,7 +151,7 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
 
     assert status == 200 and kind.startswith("text/html")
     assert data["repo"]["name"] == "demo" and len(data["painPoints"]) == 1
-    assert set(data["trends"]) == {"months", "undatedSessions", "groups"}
+    assert set(data["trends"]) == {"months", "undatedSessions", "undatedReason", "groups"}
     assert get(f"{base}/dashboard/trends.js")[2].startswith("text/javascript")
     assert "501" not in html and "measured results" not in html
     assert "Every note it showed" not in html and "mockup" not in html.lower()

@@ -11,10 +11,12 @@ const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Se
 /* A month with fewer sessions than this is read loosely (hatched). The same ten as the after-lesson rule. */
 const THIN_SESSIONS = 10;
 /* Shown order: what needs attention first. */
-const TREND_RANK = {rising: 0, steady: 1, fading: 2, gone: 3};
+const TREND_RANK = {rising: 0, steady: 1, too_few: 1, fading: 2, gone: 3};
 const NO_DATES = "no dates";
 /* Rows shown before the rest fold away: a project can have a hundred groups and the ones that matter sort first. */
 const MAX_ROWS = 20;
+/* The server shows this many months at most (trend_view.SHOWN_MONTHS). */
+const SHOWN_MONTHS = 12;
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const counted = (n, one) => n + " " + one + (n === 1 ? "" : "s");
@@ -40,24 +42,24 @@ const STYLE = `
 .trn .l .dot.correction{background:var(--cy)}
 .trn .c{height:2.1rem;border-radius:.35rem;display:grid;place-items:center;font-size:.9rem;font-variant-numeric:tabular-nums}
 .trn .c.z{color:var(--mu);opacity:.6}
-.trn .c.thin{background-image:repeating-linear-gradient(45deg,rgba(236,240,248,.07) 0 3px,transparent 3px 7px)}
+.trn .c.thin{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tx) 7%,transparent) 0 3px,transparent 3px 7px)}
 .trn .c.lesson{outline:2px solid var(--vi);outline-offset:-2px}
 .trn .pill{display:inline-flex;font-size:.82rem;font-weight:650;padding:.08rem .55rem;border-radius:2rem;border:1px solid var(--line);color:var(--mu);white-space:nowrap}
-.trn .pill.rising{color:var(--rd);border-color:rgba(244,84,84,.5)}
-.trn .pill.resolved{color:var(--gr);border-color:rgba(84,222,124,.5)}
+.trn .pill.rising{color:var(--rd);border-color:color-mix(in srgb,var(--rd) 50%,transparent)}
+.trn .pill.resolved{color:var(--gr);border-color:color-mix(in srgb,var(--gr) 50%,transparent)}
 .trn .w{font-size:.88rem;padding-left:.6rem;white-space:nowrap}
 .trn .lg{display:flex;gap:.4rem 1.2rem;flex-wrap:wrap;color:var(--mu);font-size:.88rem;align-items:center}
 .trn .lg span{display:inline-flex;align-items:center;gap:.35rem}
 .trn .lg i{display:inline-block;width:.9rem;height:.9rem;border-radius:.2rem}
 .trn .lg i.lesson{background:none;outline:2px solid var(--vi);outline-offset:-2px}
-.trn .lg i.thin{background-image:repeating-linear-gradient(45deg,rgba(236,240,248,.35) 0 2px,transparent 2px 5px)}
+.trn .lg i.thin{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tx) 35%,transparent) 0 2px,transparent 2px 5px)}
 .trn summary{cursor:pointer;color:var(--vi);margin-top:.7rem}
 .trn .note{color:var(--mu);font-size:.9rem;margin-top:.7rem}
 .trn .taught-one{border-top:1px solid var(--line);padding:.8rem 0}
 .trn .taught-one .t{font-weight:650}
 .trn .bars{display:grid;grid-template-columns:9rem minmax(8rem,1fr) minmax(16rem,22rem);gap:.35rem .7rem;align-items:center;margin-top:.5rem}
 .trn .bars .lab{font-size:.9rem;color:var(--mu)}
-.trn .bars .track{height:1.1rem;background:rgba(236,240,248,.05);border-radius:.3rem}
+.trn .bars .track{height:1.1rem;background:color-mix(in srgb,var(--tx) 5%,transparent);border-radius:.3rem}
 .trn .bars .fill{height:100%;border-radius:.3rem;min-width:2px}
 .trn .bars .fill.before{background:var(--or)}
 .trn .bars .fill.after{background:var(--gr)}
@@ -68,7 +70,11 @@ const STYLE = `
 /* One row's trend: a pill with a word; gone says since when. */
 function trendHtml(group) {
   if (group.trend === null) return '<span class="pill">' + NO_DATES + "</span>";
-  if (group.trend === "gone") return '<span class="pill resolved">gone since ' + esc(dayLabel(group.last)) + "</span>";
+  if (group.trend === "too_few") return '<span class="pill">too few to tell</span>';
+  if (group.trend === "gone") {
+    const since = group.last ? " since " + esc(dayLabel(group.last)) : "";
+    return '<span class="pill resolved">gone' + since + "</span>";
+  }
   return '<span class="pill ' + (group.trend === "steady" ? "" : esc(group.trend)) + '">' + esc(group.trend) + "</span>";
 }
 
@@ -84,7 +90,7 @@ function cellTip(group, month, cell) {
   const lesson = group.taught && group.taught.month === month.month
     ? "<br>You taught the agent about this on " + esc(dayLabel(group.taught.on)) : "";
   const label = monthLabel(month.month);
-  return "<b>" + label.name + " " + label.year + "</b>: " + what + " in " + counted(cell.sessions, "session")
+  return "<b>" + esc(label.name) + " " + esc(label.year) + "</b>: " + what + " in " + counted(cell.sessions, "session")
     + "<br>" + perTen(cell.per10) + lesson;
 }
 
@@ -104,7 +110,7 @@ function rowHtml(group, months, maxRate) {
 function headerHtml(months) {
   const cols = months.map(m => {
     const label = monthLabel(m.month);
-    return '<span class="h">' + label.name + "<small>" + label.year + "</small><b>" + counted(m.sessions, "session") + "</b></span>";
+    return '<span class="h">' + esc(label.name) + "<small>" + esc(label.year) + "</small><b>" + counted(m.sessions, "session") + "</b></span>";
   }).join("");
   return '<span></span>' + cols + '<span class="h" style="text-align:left;padding-left:.6rem">direction</span>';
 }
@@ -143,16 +149,34 @@ function legendHtml(anyTaught) {
     + '<span><i class="thin"></i>fewer than ' + THIN_SESSIONS + " sessions: read loosely</span>" + lesson + "</div>";
 }
 
+const UNDATED_WHY = {
+  old_store: "mined before session dates were kept; mine again",
+  no_timestamps: "their history carries no timestamps"
+};
+const outsideTimes = trends => trends.groups.reduce((sum, g) => sum + (g.outsideTimes || 0), 0);
+
 function undatedHtml(trends) {
-  const times = trends.groups.reduce((sum, g) => sum + g.undatedTimes, 0);
-  if (!trends.undatedSessions && !times) return "";
-  return '<p class="note">' + counted(trends.undatedSessions, "session") + " had no date (their history carries no timestamps), so "
-    + "they are left out of every rate; " + counted(times, "occurrence") + " in them are not placed in a month.</p>";
+  const times = trends.groups.reduce((sum, g) => sum + g.undatedTimes, 0), outside = outsideTimes(trends);
+  const parts = [];
+  if (trends.undatedSessions || times) {
+    parts.push(counted(trends.undatedSessions, "session") + " had no date (" + esc(UNDATED_WHY[trends.undatedReason] || UNDATED_WHY.no_timestamps)
+      + "), so they are left out of every rate; " + counted(times, "occurrence") + " in them are not placed in a month.");
+  }
+  if (outside) parts.push(counted(outside, "more occurrence") + " fall outside the last " + SHOWN_MONTHS + " months.");
+  return parts.length ? '<p class="note">' + parts.join(" ") + "</p>" : "";
+}
+
+/* With no dated session there is no month to rate: one sentence says why instead of a table of "no dates". */
+function noDatesHtml(trends) {
+  const why = trends.undatedReason === "old_store"
+    ? "These sessions were mined before session dates were kept; mine this repository again to see change over time."
+    : "No session in this history has a date (it carries no timestamps), so there is no month to rate.";
+  return '<p class="note" role="status">' + counted(trends.undatedSessions, "session") + ". " + why + "</p>";
 }
 
 function barRow(label, name, window, scale) {
   const width = window.per10 === null ? 0 : Math.round(100 * window.per10 / scale);
-  const tip = esc("<b>" + label + "</b>: " + counted(window.times, "time") + " in " + counted(window.sessions, "session")
+  const tip = esc("<b>" + esc(label) + "</b>: " + counted(window.times, "time") + " in " + counted(window.sessions, "session")
     + "<br>" + perTen(window.per10));
   return '<span class="lab">' + esc(label) + '</span><span class="track" data-tip="' + tip + '"><span class="fill ' + name
     + '" style="display:block;width:' + width + '%"></span></span><span class="val">' + perTen(window.per10) + " ("
@@ -187,6 +211,10 @@ function render(container, trends) {
   const style = '<style>' + STYLE + "</style>";
   const head = "<h2>Is it getting better?</h2>"
     + '<p class="sub">Each group per month, as a rate: times per 10 sessions that month. Session counts swing, so raw counts would mislead.</p>';
+  if (!trends.months.length && trends.undatedSessions) {
+    container.innerHTML = style + '<div class="trn">' + head + noDatesHtml(trends) + "</div>";
+    return;
+  }
   if (!trends.groups.length) {
     container.innerHTML = style + '<div class="trn">' + head + '<p class="mu">No group has come back in more than one session yet.</p>' + undatedHtml(trends) + "</div>";
     return;

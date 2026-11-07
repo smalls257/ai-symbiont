@@ -8,13 +8,16 @@ from datetime import date
 
 import pytest
 
-from symbiont.service.trend_view import trends_of
+from quiet_store import mine_a_session_without_failures
+from symbiont.service.trend_view import trends_of, trends_snapshot
+from symbiont.store.local import Store
 
 
 def group(key, dates, *, recurring=True, noise=None):
     last = max((d for d in dates if d), default=None)
     return {
-        "key": key, "title": key, "kind": "failure", "last": last,
+        "key": key, "name": f"{key} failing", "title": f"raw command of {key}",
+        "kind": "failure", "last": last,
         "recurring": recurring, "noise": noise, "cards": [{"date": d} for d in dates],
     }  # fmt: skip
 
@@ -75,3 +78,29 @@ def test_a_group_not_taught_has_no_split():
         trends_of([group("g", ["2026-10-02"])], sessions(10, 3), 0, {})["groups"][0]["taught"]
         is None
     )
+
+
+def test_a_row_is_called_by_the_inbox_name_and_the_developers_rename_wins():
+    shown = trends_of(
+        [group("g", ["2026-10-02"]), group("h", ["2026-10-02"])],
+        sessions(10, 3),
+        0,
+        {},
+        {"h": "Flaky CI"},
+    )
+    assert [row["title"] for row in shown["groups"]] == ["g failing", "Flaky CI"]
+
+
+def test_a_store_mined_before_incidents_says_its_dates_were_not_kept(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    mine_a_session_without_failures(tmp_path, store)
+    assert trends_snapshot(store, "demo", None)["undatedReason"] == "old_store"
+    assert trends_snapshot(store, "demo", {"groups": []})["undatedReason"] == "no_timestamps"
+
+
+def test_occurrences_in_months_beyond_the_twelve_shown_are_counted_not_dropped():
+    days = [date(2025 + (m - 1) // 12, (m - 1) % 12 + 1, 1) for m in range(1, 15)]
+    seen = ["2025-01-01", "2025-02-01", "2026-02-01"]
+    row = trends_of([group("g", seen)], days, 0, {})["groups"][0]
+    assert row["outsideTimes"] == 2
+    assert len(row["cells"]) == 12

@@ -87,7 +87,7 @@ function outcomeBar(o,label){
   return '<div class="ob" role="img" aria-label="'+esc(label+": "+OUTCOMES.map(k=>(o[k]||0)+" "+k).join(", "))+'">'+parts+"</div>";
 }
 const legend=o=>'<div class="lg">'+OUTCOMES.map(k=>'<span><i class="o-'+k+'"></i>'+k+" <b>"+counted(o[k]||0,"session")+"</b></span>").join("")+"</div>";
-const chip=k=>'<span class="outc"><i class="o-'+k+'"></i>'+esc(k)+"</span>";
+const chip=k=>k?'<span class="outc"><i class="o-'+k+'"></i>'+esc(k)+"</span>":"";
 const span=t=>t.first?dayLabel(t.first)+" – "+dayLabel(t.last):"dates unknown";
 
 function totals(topics){
@@ -104,14 +104,24 @@ function sessionTable(list,limit,more){
   return '<table class="sl">'+head+"<tbody>"+sessionRows(list,more?list.length:limit)+"</tbody></table>"+button;
 }
 
-/* Before topics exist: the one-line instruction and the sessions in date order, never empty sections. */
+/* Dataset history (swe-chat, openhands) is never shown to a session model, so asking the developer to run
+   /symbiont summarize would send them to a dead end: say why there are no topics instead. */
+function whyNoTopics(tv){
+  const readers=(tv&&tv.datasetReaders)||[];
+  if(!readers.length)return '<p class="ins">'+INSTRUCTION+"</p>";
+  return '<p class="ins">No topics for this repository: its history comes from the '+esc(readers.join(" and "))
+    +" dataset, and dataset sessions are never shown to a session model, so they cannot be summarized.</p>";
+}
+
+/* Before topics exist: why, and the sessions in date order from the session facts, never empty sections. */
 function emptyHtml(tv,compact){
   const list=(tv&&tv.sessionsByDate)||[];
   const limit=compact?COMPACT_SESSIONS:list.length;
   const rows=list.slice(0,limit).map(s=>'<div class="trow"><span class="nm">'+esc(s.goal)+'</span><span class="ct">'+chip(s.outcome)+'</span><span class="dt">'+dayLabelYear(s.date)+"</span></div>").join("");
   const rest=list.length>limit?'<p class="undated">and '+counted(list.length-limit,"more session")+"</p>":"";
-  const need=tv&&tv.needed?'<p class="sub">'+counted(tv.needed,"more session summary","more session summaries")+" needed before topics can be named.</p>":"";
-  return '<p class="ins">'+INSTRUCTION+"</p>"+need+(list.length?"<h3>Sessions by date</h3>"+rows+rest:"");
+  const readers=(tv&&tv.datasetReaders)||[];
+  const need=tv&&tv.needed&&!readers.length?'<p class="sub">'+counted(tv.needed,"more session summary","more session summaries")+" needed before topics can be named.</p>":"";
+  return whyNoTopics(tv)+need+(list.length?"<h3>Sessions by date</h3>"+rows+rest:"");
 }
 
 /* A topic's name edits in place; `key` is the model's name, which the service uses to find the topic. */
