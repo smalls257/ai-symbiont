@@ -131,6 +131,7 @@ def run_hook(
     notes = reply.get("notes")
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
+    # Pain points to work through live in the Inbox, so the notice skips the Overview default.
     told = _announcements(
         reply,
         dashboard_address(settings.port, body["payload"]["record"]["project"], DashboardView.INBOX),

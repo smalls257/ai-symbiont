@@ -11,7 +11,7 @@ const LESSON_GONE = "Lesson text not available (removed or taught before this ve
 
 const STYLE = `
 .trn .pg{display:grid;grid-template-columns:minmax(0,1fr) 30rem;gap:1.2rem;align-items:start}
-.trn .side{display:flex;flex-direction:column;gap:1.2rem;position:sticky;top:5.2rem}
+.trn .side{display:flex;flex-direction:column;gap:1.2rem;position:sticky;top:calc(var(--subnav-clear) + 1.6rem)}
 .trn .ba{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.8rem}
 .trn .ba div{border:1px solid var(--line);border-radius:.7rem;padding:.7rem .9rem}
 .trn .ba b{display:block;font-size:2.2rem;line-height:1.05;font-variant-numeric:tabular-nums}
