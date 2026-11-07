@@ -39,7 +39,7 @@
 .sbt .outc i{width:.6rem;height:.6rem;border-radius:.15rem;display:inline-block}
 .sbt .btn{margin-top:.6rem}
 .sbt .tpage{display:grid;grid-template-columns:24rem minmax(0,1fr);gap:1.2rem;align-items:start}
-.sbt .lcol{position:sticky;top:3.6rem}
+.sbt .lcol{position:sticky;top:var(--subnav-clear)}
 .sbt .mcol{display:flex;flex-direction:column;gap:1.2rem;min-width:0}
 .sbt .sortrow{display:flex;align-items:center;gap:.6rem;margin-bottom:.5rem}
 .sbt .sortrow .btn{margin-top:0}
@@ -63,4 +63,3 @@
 .sbt .fx .c.zero{color:var(--mu);opacity:.6}
 .sbt .cols2{display:grid;grid-template-columns:1fr 1fr;gap:1.2rem}
 .sbt .undated{color:var(--mu);font-size:.88rem;margin-top:.5rem}
-#sbt-tip{position:fixed;pointer-events:none;background:#0a0816;border:1px solid var(--vi);border-radius:.5rem;padding:.4rem .7rem;font-size:.92rem;max-width:26rem;display:none;z-index:20;line-height:1.35}

@@ -5,12 +5,14 @@ const vm = require("vm");
 const path = require("path");
 
 const replaced = [];
+const documentListeners = [];
+const appended = [];
 const document = {
   getElementById: () => null,
   createElement: () => ({ style: {}, setAttribute() {}, appendChild() {} }),
-  head: { appendChild() {} },
-  body: { appendChild() {} },
-  addEventListener() {},
+  head: { appendChild: (el) => appended.push(el) },
+  body: { appendChild: (el) => appended.push(el) },
+  addEventListener: (type) => documentListeners.push(type),
 };
 const history = { replaceState: (_s, _t, url) => replaced.push(url) };
 const sandbox = { window: {}, document, history, CSS: { escape: (s) => s }, innerWidth: 1280, innerHeight: 800, URL, URLSearchParams, console };
@@ -63,6 +65,8 @@ const select = draw(view(topics), { groups, triage: {} });
 select.page.select("Slow CI");
 
 console.log(JSON.stringify({
+  appendedToPage: appended.length,
+  documentListeners,
   main: main.box.innerHTML,
   mainOrder: rowOrder(main.box.innerHTML),
   hardOrder: rowOrder(hard.box.innerHTML),
