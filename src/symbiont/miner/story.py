@@ -15,6 +15,7 @@ from symbiont.miner.failure_program import failing_program
 from symbiont.miner.fix_words import Step, edit_clause, last_command, resolution_phrase
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
+from symbiont.miner.read_only import changing_command
 from symbiont.miner.shown_paths import plain_paths
 from symbiont.miner.working_command import working_command
 
@@ -225,7 +226,7 @@ def _by_command(lesson: Lesson, phrase: str, repo_names: frozenset[str], setup: 
     chosen = setup or last_command([Step(command=c) for c in lesson.fix_commands], failed)
     if not chosen:
         return phrase
-    command = working_command(chosen, repo_names)
+    command = working_command(changing_command(chosen) or chosen, repo_names)
     if setup:
         return f"fixed the setup: ran `{command}`, then it passed"
     if failing_program(chosen) == failed:

@@ -37,6 +37,18 @@ def is_read_only(command: str) -> bool:
     return all(_stage_reads(stage) for stage in command_stages(command))
 
 
+def changing_command(command: str) -> str:
+    """The first step of the command that changes something, as `program args`; "" when none does.
+
+    A chain such as `git commit -m x && git log -1` changes things through its commit; naming
+    the working (last) segment would credit the read-only `git log`.
+    """
+    for stage in command_stages(command):
+        if not _stage_reads(stage):
+            return " ".join((stage.program, *stage.args))
+    return ""
+
+
 def _stage_reads(stage: Stage) -> bool:
     if stage.piped and stage.program in OUTPUT_FILTERS:
         return True

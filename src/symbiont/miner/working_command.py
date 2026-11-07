@@ -21,15 +21,26 @@ _MESSAGE = re.compile(
 )
 _REDIRECTION = re.compile(r"\s+(?:\d*|&)>>?(?:&\d+|\s*[^\s|;&]+)")
 _QUOTED = re.compile(r"\"(?:[^\"\\]|\\.)*\"|'[^']*'")
+_ENVIRONMENT = re.compile(r"^(?:env\s+(?:-\w+\s+)*|[A-Za-z_]\w*=(?:\"[^\"]*\"|'[^']*'|\S*)\s+)")
 _CUT = "…"
 
 
 def working_command(command: str, repo_names: frozenset[str] = frozenset()) -> str:
     """The working command on one line, at most LINE_CHARS, paths shortened and secrets scrubbed."""
     bare = _MESSAGE.sub(lambda found: found["flag"].rstrip("= ") + " " + _CUT, command)
-    line = _without_noise(_working_segment(shell_text(bare)))
+    line = _without_noise(_without_environment(_working_segment(shell_text(bare))))
     line = plain_paths(scrub(line), repo_names)
     return line if len(line) <= LINE_CHARS else line[: LINE_CHARS - 1].rstrip() + _CUT
+
+
+def _without_environment(segment: str) -> str:
+    """The segment without leading `NAME=value` words and `env`: it starts at the program."""
+    text = segment.strip()
+    while True:
+        stripped = _ENVIRONMENT.sub("", text, count=1)
+        if stripped == text:
+            return text
+        text = stripped
 
 
 def _working_segment(text: str) -> str:
