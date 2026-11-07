@@ -108,7 +108,7 @@ def test_session_step_is_integer(drawn):
 def test_unknown_view_warns_once(drawn):
     routing = drawn["routing"]
 
-    assert routing["unknown"] == {"view": "inbox"}
+    assert routing["unknown"] == {"view": "struggle"}
     assert len([w for w in routing["warnings"] if "unknown view" in w]) == 1
 
 
@@ -198,6 +198,42 @@ def test_a_triage_change_made_elsewhere_redraws_the_inbox_once_on_return(drawn):
     routing = drawn["routing"]
 
     assert routing["refreshedAfterChange"] == 1 and routing["refreshedAfterQuietReturn"] == 1
+
+
+def test_sub_nav_reads_overview_inbox_topics_trends_and_the_default_view_is_the_overview():
+    """Violation prevented: Leaky Narrative (the internal key `struggle` showing as the tab label).
+
+    Overview is first and the default; `?view=inbox` and unknown views behave as before otherwise.
+
+    Label and order only: the view key stays `struggle` so URLs and the CLI do not change.
+    """
+    views_js = (STATIC / "views.js").read_text(encoding="utf-8")
+    declared = re.search(r"const SUBVIEWS=(\[\[.*?\]\]);", views_js).group(1)
+    node = shutil.which("node")
+    script = (
+        "const vm=require('vm'),fs=require('fs');const sb={window:{},URLSearchParams,console};"
+        "vm.runInNewContext(fs.readFileSync(process.argv[1],'utf8'),sb);"
+        "const V=s=>sb.window.SymbiontInboxModel.viewFrom(s,()=>{});"
+        f"console.log(JSON.stringify({{tabs:{declared},def:V(''),asked_inbox:V('?view=inbox'),unknown:V('?view=nope')}}));"
+    )
+    out = subprocess.run(  # noqa: S603
+        [node, "-e", script, str(STATIC / "inbox_model.js")],
+        check=True,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        timeout=30,
+    )
+    shown = json.loads(out.stdout)
+    assert shown["tabs"] == [
+        ["struggle", "Overview"],
+        ["inbox", "Inbox"],
+        ["topics", "Topics"],
+        ["trends", "Is it getting better?"],
+    ]
+    assert shown["def"] == "struggle"
+    assert shown["asked_inbox"] == "inbox"
+    assert shown["unknown"] == "struggle"
 
 
 def test_sticky_sub_nav_carries_the_stage_padding_so_nothing_scrolls_above_it():

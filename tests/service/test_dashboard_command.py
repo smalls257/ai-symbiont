@@ -21,11 +21,11 @@ def run(tmp_path, *words, opened=None, port):
     return cli.main([*argv, "--port", str(port)], open_page=open_page)
 
 
-def test_no_view_means_the_inbox(tmp_path, capsys):
+def test_no_view_means_the_overview(tmp_path, capsys):
     with serving(tmp_path) as (_, port):
         assert run(tmp_path, port=port) == 0
     assert capsys.readouterr().out.strip() == (
-        f"http://127.0.0.1:{port}/dashboard?project=demo&view=inbox"
+        f"http://127.0.0.1:{port}/dashboard?project=demo&view=struggle"
     )
 
 

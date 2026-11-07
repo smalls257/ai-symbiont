@@ -13,7 +13,7 @@ from symbiont.service.mine_command import MineClient
 
 
 def show_dashboard(args: argparse.Namespace, ask: AskService, client: MineClient) -> int:
-    """Print the address of the chosen view (inbox when none); with `--open`, open it too.
+    """Print the address of the chosen view (the overview when none); with `--open`, open it too.
 
     Exit 0 when the service is down (it prints the offline line, like `status`), 1 when it
     answers unusably. The opener returning False is said aloud; the address is printed anyway.

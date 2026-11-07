@@ -1,10 +1,10 @@
 /* The Pain points tab's sub-views and the `?view=` link into them.
    Violation prevented: Silent Fallback. A renderer that has not shipped, or a snapshot key that is absent, shows a
-   one-line "coming soon" instead of a blank pane or a crash; an unknown `?view=` opens the inbox and warns once. */
+   one-line "coming soon" instead of a blank pane or a crash; no `?view=` opens the Overview (view key `struggle`); an unknown one does too and warns once. */
 (function () {
 "use strict";
 const M=window.SymbiontInboxModel;
-const SUBVIEWS=[["inbox","Inbox"],["topics","Topics"],["trends","Is it getting better?"],["struggle","Struggle"]];
+const SUBVIEWS=[["struggle","Overview"],["inbox","Inbox"],["topics","Topics"],["trends","Is it getting better?"]];
 const OTHER_STAGES={context:2,replay:3};
 const SOON={topics:"Topics are coming soon.",trends:"The view of whether it is getting better is coming soon."};
 
@@ -86,8 +86,8 @@ function mount(data,project,s1,warn){
     trends:()=>drawTrends(s1.querySelector("#vTrends"),data,project)
   };
   const paneOf={group:"#vGroup",session:"#vSession",notfound:"#vNotFound"};
-  const inboxIfOtherStage=route=>route.view in OTHER_STAGES?{view:"inbox"}:route;
-  let current=inboxIfOtherStage(first);
+  const overviewIfOtherStage=route=>route.view in OTHER_STAGES?{view:"struggle"}:route;
+  let current=overviewIfOtherStage(first);
   subnav.insertAdjacentHTML("afterbegin",SUBVIEWS.map(([k,l])=>'<button data-view="'+k+'">'+l+"</button>").join(""));
   document.getElementById("meta").textContent=M.metaLine(data.stage.facts.length,(data.incidents||{groups:[]}).groups);
   const show=route=>{
@@ -100,8 +100,8 @@ function mount(data,project,s1,warn){
     if(view==="notfound")drawNotFound(s1.querySelector(paneOf.notfound),route,project);
     else if(DETAIL_VIEWS.includes(view))drawDetail(s1.querySelector(paneOf[view]),route,data,project);
   };
-  nav=route=>{history.pushState(null,"",M.hrefFor(project,route));show(inboxIfOtherStage(route));};
-  window.addEventListener("popstate",()=>show(inboxIfOtherStage(M.routeFrom(location.search,location.hash,warn))));
+  nav=route=>{history.pushState(null,"",M.hrefFor(project,route));show(overviewIfOtherStage(route));};
+  window.addEventListener("popstate",()=>show(overviewIfOtherStage(M.routeFrom(location.search,location.hash,warn))));
   followRouteLinks(route=>nav(route));
   subnav.onclick=e=>{
     const b=e.target.closest("button[data-view]");
