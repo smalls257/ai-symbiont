@@ -38,6 +38,7 @@ function mount(data,project,s1,warn){
   subnav.innerHTML=SUBVIEWS.map(([k,l])=>'<button data-view="'+k+'">'+l+"</button>").join("");
   const show=view=>{
     current=view;s1.dataset.view=view;
+    document.getElementById("scope").hidden=!M.scopeVisible(view);
     subnav.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.view===view)));
     if(view in draw&&!drawn.has(view)){drawn.add(view);draw[view]();}
   };
