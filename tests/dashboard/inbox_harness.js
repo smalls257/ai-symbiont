@@ -75,7 +75,14 @@ const frictionView = { sessions: 40, frictions: [{ name: "Slow <i>CI</i>", descr
 let badBadge = "";
 try { M.badgeLabel("hot"); } catch (e) { badBadge = e.message; }
 
+const bigCards = Array.from({ length: 30 }, (_, i) => noiseCard("plain_retry", "passed when run again", "s" + i, "cmd" + i));
+const bigGroups = [group("big <1>", { name: "Evil <b>name</b>", noise: "plain_retry", noiseWords: "passed when run again", cards: bigCards, times: 30 }),
+  ...["a", "b", "c"].map((k) => group("noise " + k, { noise: "plain_retry", noiseWords: "passed when run again", cards: [], times: 1 }))];
+const bigRules = N.rulesOf([{ reason: "passed when run again", count: 30 }], bigGroups, "all");
+const bigHtml = N.rulesHtml(bigRules, "", "demo");
+
 console.log(JSON.stringify({
+  bigHtml, bigGroupKeys: bigGroups.map((g) => g.key),
   badges: [M.badgeLabel("new"), M.badgeLabel("rising"), M.badgeLabel(null)], badBadge,
   verdicts: [M.verdictText({ verdict: "fixed in the code", verdictSentence: "Worth a look: it costs time." }), M.verdictText({ verdict: "fixed in the code", verdictSentence: null })],
   rules, unknownReason,
@@ -100,7 +107,6 @@ console.log(JSON.stringify({
   plain: Object.fromEntries(Object.entries(plain).map(([k, v]) => [k, v.map((g) => g.key)])),
   allArchived: Object.fromEntries(Object.entries(allArchived).map(([k, v]) => [k, v.map((g) => g.key)])),
   correctionsOnly: M.sectionsOf(groups, {}, "correction", "sessions").review.map((g) => g.key),
-  noiseReasons: M.noiseReasons(plain.noise),
   renamed, generated: M.displayName({}, groups[1]), badState,
   tiles: M.tilesOf(data),
   axisKeys: axis.map((w) => w.key),

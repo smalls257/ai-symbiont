@@ -152,3 +152,9 @@ dialog.teach #teachErr{color:var(--rd);font-size:.95rem}
 .frow .tr{grid-column:1/-1;height:.45rem;border-radius:.3rem;background:rgba(236,240,248,.06)}
 .frow .tr i{display:block;height:100%;border-radius:.3rem;background:var(--vi)}
 .frow .ds{grid-column:1/-1;color:var(--mu);font-size:.88rem}
+.nzall{margin-top:.3rem}
+.nzall summary{cursor:pointer;color:var(--vi);font-size:.9rem}
+.nzgroups{grid-column:1/-1;font-size:.9rem}
+.nzgroups summary{cursor:pointer;color:var(--vi)}
+.nzgroups ul{list-style:none;padding:.2rem 0 0;margin:0}
+.nzgroups a{color:var(--vi);text-decoration:none}

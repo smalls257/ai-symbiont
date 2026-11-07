@@ -84,12 +84,12 @@ function foldsHtml(ui,found,axis){
 
 /* The rules say why items are folded; the Archived tab shows them open, the other tabs behind the fold. */
 function noiseHtml(ui,found){
-  const incidents=ui.data.incidents,rules=N.rulesOf(incidents.noise.byReason,incidents.groups,ui.kind);
-  const body=N.rulesHtml(rules,M.seenOnceLine(found.once),ui.project);
-  if(ui.tab==="archived")return '<div class="rules">'+body+"</div>";
+  const incidents=ui.data.incidents,rules=()=>N.rulesOf(incidents.noise.byReason,incidents.groups,ui.kind);
+  const body=()=>N.rulesHtml(rules(),M.seenOnceLine(found.once),ui.project);
+  if(ui.tab==="archived")return '<div class="rules">'+body()+"</div>";
   if(!incidents.noise.total)return "";
-  const lead=rules.map(r=>R.esc(r.reason)+" ("+M.plural(r.count,"item")+")").join(" · ");
-  return R.foldHtml("inNoise","Folded as noise",M.plural(incidents.noise.total,"item"),lead,ui.open.has("inNoise")?body:"");
+  const lead=incidents.noise.byReason.map(r=>R.esc(r.reason)+" ("+M.plural(r.count,"item")+")").join(" · ");
+  return R.foldHtml("inNoise","Folded as noise",M.plural(incidents.noise.total,"item"),lead,ui.open.has("inNoise")?body():"");
 }
 
 function onToggle(ui,e){

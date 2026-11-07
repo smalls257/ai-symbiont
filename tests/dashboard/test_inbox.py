@@ -47,12 +47,6 @@ def test_all_archived_groups_show_with_the_noise_and_not_an_empty_list(decided):
     assert shown["noise"] == ["noisy", "noisy2"]
 
 
-def test_noise_is_counted_per_reason_with_its_nouns(decided):
-    assert decided["noiseReasons"] == [
-        {"reason": "passed when run again", "groups": 2, "times": 7, "sessions": 3}
-    ]
-
-
 def test_a_saved_name_wins_over_the_generated_one_and_an_unknown_state_is_refused_loudly(decided):
     assert decided["renamed"] == "Mine" and decided["generated"] == "Name of many"
     assert "unknown triage state" in decided["badState"] and "many" in decided["badState"]
@@ -286,3 +280,23 @@ def test_friction_rows_are_biggest_first_with_a_share_tooltip_and_escaped_names(
     html = decided["frictionHtml"]
     assert "Slow &lt;i&gt;CI&lt;/i&gt;" in html and "<i>CI</i>" not in html
     assert "10 sessions of 40 (25%)" in html
+
+
+def test_a_rule_with_thirty_cards_shows_twelve_of_thirty_then_all_thirty(decided):
+    html = decided["bigHtml"]
+
+    assert "Show 12 of 30 real examples" in html and "Show all 30" in html
+    assert html.count("<li><a data-route") - 4 == 30  # four group links below
+
+
+def test_every_noise_group_is_a_link_to_its_page_and_names_are_escaped(decided):
+    html = decided["bigHtml"]
+
+    assert "Evil &lt;b&gt;name&lt;/b&gt;" in html and "Evil <b>name</b>" not in html
+    assert "key=big%20%3C1%3E" in html
+    for key in decided["bigGroupKeys"]:
+        assert (
+            "view=group&amp;key=" + key.replace(" ", "%20").replace("<", "%3C").replace(">", "%3E")
+            in html
+        )
+    assert "4 groups</summary>" in html

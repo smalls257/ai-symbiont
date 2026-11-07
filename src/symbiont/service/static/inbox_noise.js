@@ -5,7 +5,7 @@
 "use strict";
 const M=window.SymbiontInboxModel;
 const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-const EXAMPLES_SHOWN=12,EXAMPLE_CHARS=160;
+const EXAMPLES_SHOWN=12,EXAMPLE_CHARS=160,GROUPS_INLINE=3;
 
 /* Copy per NoiseReason value, from the mockup; `kind` says which Kind filter lists the rule. */
 const RULES={
@@ -31,13 +31,16 @@ function noiseCards(groups){
   return by;
 }
 
+/* The noise groups behind a reason, so each stays reachable (its page holds its triage actions). */
+const noiseGroupsOf=(groups,reason)=>groups.filter(g=>g.noise&&g.noiseWords===reason);
+
 /* One rule per reason in incidents.noise.byReason, in its order: counts from byReason, examples from the cards. */
 function rulesOf(byReason,groups,kind){
   const cards=noiseCards(groups);
   return byReason.map(r=>{
     const found=cards.get(r.reason),copy=found?RULES[found.value]:null,list=found?found.cards:[];
     return {reason:r.reason,count:r.count,copy,sessions:new Set(list.map(c=>c.sessionId)).size,
-      examples:list.slice(0,EXAMPLES_SHOWN),total:list.length};
+      examples:list,total:list.length,groups:noiseGroupsOf(groups,r.reason)};
   }).filter(r=>!r.copy||keepRule(kind,r.copy));
 }
 
@@ -47,15 +50,31 @@ function exampleHtml(c,project){
   return '<li><a data-route href="'+esc(href)+'">'+esc(date)+"</a> <span>"+esc(cap(c.command||""))+"</span> · "+esc(cap(c.happened||""))+"</li>";
 }
 
+const exampleList=(list,project)=>"<ul>"+list.map(c=>exampleHtml(c,project)).join("")+"</ul>";
+
+/* The first EXAMPLES_SHOWN examples, then a control that reveals every other one. */
+function examplesHtml(r,project){
+  if(!r.examples.length)return '<div class="w wide">No examples are in this snapshot.</div>';
+  const head=r.examples.slice(0,EXAMPLES_SHOWN),rest=r.examples.slice(EXAMPLES_SHOWN);
+  const all=rest.length?'<details class="nzall"><summary>Show all '+r.total.toLocaleString("en-US")+"</summary>"+exampleList(rest,project)+"</details>":"";
+  const word=rest.length?head.length+" of "+r.total.toLocaleString("en-US"):String(r.total);
+  return '<details class="nzex"><summary>Show '+word+" real "+(r.total===1?"example":"examples")+"</summary>"+exampleList(head,project)+all+"</details>";
+}
+
+function groupLinksHtml(r,project){
+  if(!r.groups.length)return "";
+  const links=r.groups.map(g=>'<li><a data-route href="'+esc(M.hrefFor(project,{view:"group",key:g.key}))+'">'+esc(g.name)+"</a> · "+esc(M.plural(g.times,"time"))+"</li>").join("");
+  const list="<ul>"+links+"</ul>";
+  if(r.groups.length<=GROUPS_INLINE)return '<div class="nzgroups">'+list+"</div>";
+  return '<details class="nzgroups"><summary>'+M.plural(r.groups.length,"group")+"</summary>"+list+"</details>";
+}
+
 function ruleHtml(r,project){
   const unit=r.copy?r.copy.unit:"item";
-  const examples=r.examples.length
-    ?'<details class="nzex"><summary>Show '+M.plural(r.examples.length,"real example")+"</summary><ul>"+r.examples.map(c=>exampleHtml(c,project)).join("")+"</ul></details>"
-    :'<div class="w wide">No examples are in this snapshot.</div>';
   return '<div class="nz"><div class="r">'+esc(r.reason)+"</div>"
     +(r.copy?'<div class="w">'+esc(r.copy.why)+'</div><div class="ret">'+esc(r.copy.returns)+"</div>":"")
     +'<div class="ct"><b>'+r.count.toLocaleString("en-US")+"</b><span>"+(r.count===1?unit:unit+"s")+(r.sessions?" · "+M.plural(r.sessions,"session"):"")+"</span></div>"
-    +examples+"</div>";
+    +groupLinksHtml(r,project)+examplesHtml(r,project)+"</div>";
 }
 
 /* The section's body: the rules and the Seen once line. */

@@ -53,16 +53,6 @@ function sectionsOf(groups,triage,kind,sort){
   return out;
 }
 
-/* Per reason: how many groups and how many times. Every count carries its noun at the call site. */
-function noiseReasons(noiseGroups){
-  const by=new Map();
-  noiseGroups.forEach(g=>{
-    const row=by.get(g.noiseWords)||{reason:g.noiseWords,groups:0,times:0,sessions:0};
-    row.groups+=1;row.times+=g.times;row.sessions+=g.sessions;by.set(g.noiseWords,row);
-  });
-  return [...by.values()].sort((a,b)=>b.times-a.times);
-}
-
 const plural=(n,one,many)=>n.toLocaleString("en-US")+" "+(n===1?one:(many||one+"s"));
 const sum=(list,pick)=>list.reduce((a,x)=>a+pick(x),0);
 
@@ -232,5 +222,5 @@ function frictionRows(view){
     tip:plural(f.sessions,"session")+" of "+all.toLocaleString("en-US")+" ("+(all?Math.round(100*f.sessions/all):0)+"%)"}));
 }
 
-window.SymbiontInboxModel={badgeLabel,verdictText,frictionRows,rangeText,seenOnceLine,shortDay,TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
+window.SymbiontInboxModel={badgeLabel,verdictText,frictionRows,rangeText,seenOnceLine,shortDay,TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
 })();

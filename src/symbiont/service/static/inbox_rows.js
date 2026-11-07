@@ -77,7 +77,6 @@ function tilesHtml(tiles){
 function foldHtml(id,title,count,lead,body){
   return '<details class="fold" id="'+id+'"'+(body?" open":"")+"><summary><span class=\"chev\"></span><span>"+esc(title)+": "+count+"</span>"+(lead?' <span class="lead">'+lead+"</span>":"")+"</summary>"+body+"</details>";
 }
-function noiseLead(reasons){return reasons.map(r=>esc(r.reason)+" ("+M.plural(r.times,"time")+")").join(" · ");}
 
 /* "Where sessions got stuck": one row per friction, its bar scaled to the biggest. */
 function frictionHtml(rows){
@@ -87,5 +86,5 @@ function frictionHtml(rows){
     +'<div class="tr"><i style="width:'+f.width.toFixed(1)+'%" tabindex="0" data-tip="'+esc("<b>"+esc(f.name)+"</b><br>"+f.tip)+'"></i></div><span class="ds">'+esc(f.description)+"</span></div>").join("");
 }
 
-window.SymbiontInboxRows={esc,fd,rowHtml,tilesHtml,foldHtml,noiseLead,frictionHtml};
+window.SymbiontInboxRows={esc,fd,rowHtml,tilesHtml,foldHtml,frictionHtml};
 })();
