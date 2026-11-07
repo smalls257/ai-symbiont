@@ -21,9 +21,17 @@ def failed_command_lesson(index, fix=None, error=None, files=("app/mod.py",)):
     signature = Signature(Signal.FAILED_COMMAND, (f"tool{index}", f"module{index}", "Oops"))
     pain = PainPoint(signature, f"s{index}", 1, ((f"s{index}", 1),))
     quote = f"$ pytest tests/test_{index}.py\n{error or f'Oops{index}: broken'}"
-    steps = (f"ran `{fix or f'pytest tests/test_{index}.py -q'}`",)
+    command = fix or f"pytest tests/test_{index}.py -q"
     return Lesson(
-        pain, quote, steps, None, True, pain.record_refs, files=files, fix=FixKind.CODE_FIX
+        pain,
+        quote,
+        (f"ran {command.split()[0]}",),
+        None,
+        True,
+        pain.record_refs,
+        files=files,
+        fix=FixKind.CODE_FIX,
+        fix_commands=(command,),
     )
 
 

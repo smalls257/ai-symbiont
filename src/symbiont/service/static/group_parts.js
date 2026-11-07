@@ -7,8 +7,6 @@ const M=window.SymbiontInboxModel,R=window.SymbiontInboxRows,G=window.SymbiontGr
 const esc=R.esc,fd=R.fd,code=s=>esc(s).replace(/`([^`]+)`/g,"<code>$1</code>");
 const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const dayOf=d=>MON[d.getUTCMonth()]+" "+d.getUTCDate();
-const CAP_COMMAND=300;
-const clip=text=>{const s=String(text==null?"":text);return s.length>CAP_COMMAND?s.slice(0,CAP_COMMAND)+"…":s;};
 const unitOf=(g,n)=>M.plural(n,G.noun(g));
 
 function factsHtml(g,topic,sessionsRead){
@@ -75,8 +73,7 @@ function timelineHtml(shown){
 }
 
 function threeHtml(g){
-  return "<h2>In three lines</h2><p class=\"sub\">Summarized from all "+esc(unitOf(g,g.times))+'.</p><dl class="three"><dt>What happened</dt><dd>'+code(g.happened)+"</dd><dt>What fixed it</dt><dd>"
-    +(g.fixed?code(g.fixed):"Nothing fixed it in these sessions.")+'</dd><dt>Verdict</dt><dd class="v"><b>'+esc(M.verdictText(g))+"</b></dd></dl>";
+  return "<h2>In three lines</h2><p class=\"sub\">Summarized from all "+esc(unitOf(g,g.times))+'.</p><dl class="three">'+M.storyHtml(g,esc,code)+"</dl>";
 }
 
 function teachPanelHtml(draft,taught){
@@ -93,25 +90,19 @@ const previewHtml=parts=>esc(parts.lead)+'<span class="user">'+esc(parts.lesson)
 function outcomeChip(summary){
   return summary&&summary.outcome?' <span class="outc"><i class="o-'+esc(summary.outcome)+'"></i>'+esc(summary.outcome)+"</span>":"";
 }
-function whatHappenedHtml(card,cor){
-  if(!cor)return '<span class="cmd">$ '+esc(clip(card.command))+'</span><span class="err">'+esc(clip(card.happened))+"</span>";
-  const before=card.firstWrong?'<span class="ctx">Agent had just: '+code(clip(card.firstWrong))+"</span>":"";
-  const said=card.command?'<span class="cmd you">You: “'+esc(clip(card.command))+"”</span>":'<span class="ctx">'+esc(clip(card.happened))+"</span>";
-  return before+said;
+/* An occurrence's story: its own three lines; Working on only when it differs from the group's. */
+function occurrenceStory(shown){
+  const {card,cor,groupWorkingOn}=shown;
+  return {kind:cor?"correction":"failure",workingOn:card.workingOn===groupWorkingOn?"":card.workingOn,broke:card.broke,ended:card.ended};
 }
-function verdictHtml(card,cor){
-  if(card.outcome==="never_fixed"&&!cor)return "<b>Unresolved here:</b> the session moved on without a fix.";
-  return "<b>Same as the group:</b> "+(cor?"a correction worth teaching.":"a repeat with a known fix.");
-}
-/* shown: {card, summary, project, cor, clearest}. */
+/* shown: {card, summary, project, cor, clearest, groupWorkingOn}. */
 function occurrenceHtml(shown){
   const {card,summary,project,cor}=shown;
   const open=card.sessionId?'<a data-route href="'+esc(M.hrefFor(project,{view:"session",id:card.sessionId,step:card.step}))+'">open session →</a>':"";
   const goal=(summary&&summary.goal)||card.session||"(no summary)";
   return '<div class="occ2'+(shown.clearest?" rec":"")+'"><div class="d">'+esc(fd(card.date))+open+"</div><div>"
     +'<div class="g">'+esc(goal)+outcomeChip(summary)+(shown.clearest?' <span class="pill reviewed">clearest example</span>':"")+"</div>"
-    +'<dl class="three"><dt>What happened</dt><dd>'+whatHappenedHtml(card,cor)+"</dd><dt>What fixed it</dt><dd>"
-    +(card.fixed?code(card.fixed):"Nothing fixed it here.")+"</dd><dt>Verdict</dt><dd>"+verdictHtml(card,cor)+"</dd></dl></div></div>";
+    +'<dl class="three">'+M.storyHtml(occurrenceStory(shown),esc,code)+"</dl></div></div>";
 }
 function pagerHtml(page,pages){
   const btn=(id,label,off)=>'<button class="btn" data-occ="'+id+'"'+(off?" disabled":"")+">"+label+"</button>";

@@ -45,7 +45,8 @@ def lessons_of(records):
 def test_a_lesson_quotes_what_happened_and_names_what_fixed_it():
     (lesson,) = lessons_of(fixed_by_install())
     assert lesson.quote.startswith(f"$ {TEST}\n") and "No module named 'yaml'" in lesson.quote
-    assert lesson.resolution == ("ran `pip install pyyaml`", f"ran `{TEST}`")
+    assert lesson.resolution == ("ran pip install",)
+    assert lesson.fix_commands == ("pip install pyyaml", TEST)
     assert lesson.unresolved_because is None
     assert lesson.sources == (("s1", 1), ("s1", 2), ("s1", 3), ("s1", 0))  # then the asked turn
     assert lesson.remote_safe
@@ -91,12 +92,12 @@ def test_coverage_counts_resolved_lessons_per_signal_and_lists_every_signal():
     assert set(coverage) == set(Signal)
 
 
-def test_an_edit_step_names_the_file_and_its_first_new_line():
+def test_an_edit_step_names_the_file_and_never_the_code_it_added():
     added = "+install_requires=['pyyaml']\n"
     failure = f"{BROKE}\nhint: check setup.py"
     records = session(run(TEST, 1, failure), edit("setup.py", diff=added), run(TEST, 0, "ok"))
     (lesson,) = lessons_of(records)
-    assert lesson.resolution[0] == "edited `setup.py` to add `install_requires=['pyyaml']`"
+    assert lesson.resolution == ("edited setup.py, then re-ran pytest",)
 
 
 def test_an_unrelated_edit_is_worded_as_alongside_not_as_the_fix():
@@ -107,8 +108,8 @@ def test_an_unrelated_edit_is_worded_as_alongside_not_as_the_fix():
         run(TEST, 0, "ok"),
     )
     (lesson,) = lessons_of(records)
-    assert lesson.resolution == ("ran `pip install pyyaml`", f"ran `{TEST}`")
-    assert lesson.changed_alongside == ("edited `docs/notes.md` to add `b`",)
+    assert lesson.resolution == ("ran pip install",)
+    assert lesson.changed_alongside == ("edited notes.md",)
 
 
 def test_history_chains_timed_sessions_and_mines_untimed_ones_alone():

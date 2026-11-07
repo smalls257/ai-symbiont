@@ -11,7 +11,7 @@ from datetime import date
 from typing import Any
 
 from symbiont.core.failure_signature import failure_detail
-from symbiont.core.notes import happened, render_lesson, resolution_clause
+from symbiont.core.notes import happened, render_lesson, resolution_clause, title_of
 from symbiont.core.rule_relevance import situation_terms
 from symbiont.miner.churn import FileChurn
 from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review, Verdict
@@ -19,10 +19,10 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.screen import HoldReason
 from symbiont.miner.secrets import scrub
+from symbiont.miner.story import error_summary, story_of
 from symbiont.miner.strips import SessionStrip
 from symbiont.miner.struggle import MINUTES_PER_TURN, SessionFacts
 from symbiont.miner.trained import lesson_id
-from symbiont.service.candidate_summary import rule_summary
 from symbiont.service.no_lessons import no_lessons_sentence
 from symbiont.service.session_dates import (
     day_offsets,
@@ -74,6 +74,8 @@ class RepoView:
     min_sessions: int = DEFAULT_MIN_SESSIONS
     # Patterns the developer set aside; the empty state points at their Restore only when any exist.
     ignored: int = 0
+    # The session model's goal per session id: the "Working on" line when one exists.
+    goals: Mapping[str, str] = field(default_factory=dict)
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
@@ -202,7 +204,7 @@ def row_title(group: Sequence[Lesson], reviews: Mapping[str, Review]) -> str:
     review = next(
         (reviews[lesson_id(item)] for item in reversed(group) if lesson_id(item) in reviews), None
     )
-    title = review.title if review and review.title else happened(group[-1].pain_point.signature)
+    title = review.title if review and review.title else title_of(group[-1].pain_point.signature)
     return title[:TITLE_CHARS]
 
 
@@ -237,18 +239,29 @@ def _pain_point(
         (contexts[lesson_id(item)] for item in reversed(group) if lesson_id(item) in contexts), None
     )
     sessions = sorted(order[item.pain_point.session_id][0] for item in group)
-    return _point(number, latest, sessions, review), _lesson(
+    goal = view.goals.get(latest.pain_point.session_id, "")
+    return _point(number, latest, sessions, review, goal), _lesson(
         number, latest, words, review, view.annotated
     )
 
 
+def _story_json(lesson: Lesson, goal: str) -> dict[str, str]:
+    """The pain point's three story lines, scrubbed."""
+    story = story_of(lesson, goal)
+    return {
+        "workingOn": scrub(story.working_on),
+        "broke": scrub(story.broke),
+        "ended": scrub(story.ended),
+    }
+
+
 def _point(
-    number: int, latest: Lesson, sessions: list[int], review: Review | None
+    number: int, latest: Lesson, sessions: list[int], review: Review | None, goal: str = ""
 ) -> dict[str, Any]:
     """The pain point's fields."""
     signature = latest.pain_point.signature
-    turns = 1 + len(latest.resolution)
-    title = review.title if review and review.title else happened(signature)
+    turns = 1 + latest.fix_steps
+    title = review.title if review and review.title else title_of(signature)
     return {
         "id": number,
         "kind": KIND_OF_SIGNAL[signature.signal],
@@ -264,7 +277,7 @@ def _point(
         # Raw text: the page escapes it when drawing. The model's summary leads; the rule-built one
         # fills in until the session's model has written one.
         "summary": scrub(review.summary) if review else "",
-        "ruleSummary": rule_summary(latest),
+        **_story_json(latest, goal),
     }
 
 
@@ -285,7 +298,7 @@ def _lesson(
         "reviewConflict": _conflict(lesson_id(latest), review, annotated),
         "appliesTo": _tags(words, review),
         "note": render_lesson(latest),
-        "exampleContext": latest.quote[:200],
+        "exampleContext": scrub(error_summary(latest)),
         "context": words.text if words else "",
         "intentional": words.intentional if words else False,
         "priority": words.priority.value if words else "normal",

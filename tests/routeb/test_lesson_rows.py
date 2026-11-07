@@ -17,7 +17,7 @@ CORRECTED = Signature(Signal.CORRECTION, ("-", "use uv, not pip"))
 FORBIDDEN = re.compile(r"score|feature|threshold|activation|\d\.\d", re.IGNORECASE)
 
 
-def lesson(signature=FAILED, resolution=("ran `pip install -e .`",), step=3):
+def lesson(signature=FAILED, resolution=("ran pip install",), step=3):
     return Lesson(
         pain_point=PainPoint(signature, "s1", step, (("s1", step),)),
         quote="$ pytest tests/test_cli.py\nModuleNotFoundError: No module named 'demo'",
@@ -32,15 +32,17 @@ def test_a_resolved_lesson_gives_two_cards_and_one_corrected_action():
     rows = training_rows("demo", [lesson()])
     assert [row.kind for row in rows] == ["self-study", "self-study", "action"]
     card = rows[0].messages[2]["content"]
-    assert card.startswith("What happened: `pytest tests/test_cli.py` failed with ModuleNotFound")
-    assert "you ran `pip install -e .`" in card and rows[1].messages[2]["content"] == card
+    assert card.startswith("`pytest tests/test_cli.py` failed: ModuleNotFoundError")
+    assert (
+        "Last time: " in card and "pip install" in card and rows[1].messages[2]["content"] == card
+    )
     action = rows[2].messages
     assert action[0]["content"] == agent_system("demo")
     assert action[1]["content"] == (
         "Task in demo: you are about to run `pytest tests/test_cli.py`. What is your next action?"
     )
     assert action[2]["content"].startswith("Last time `pytest tests/test_cli.py` failed")
-    assert "resolved when you ran `pip install -e .`" in action[2]["content"]
+    assert "resolved when you ran pip install" in action[2]["content"]
 
 
 def test_a_lesson_with_no_fix_teaches_no_made_up_action():

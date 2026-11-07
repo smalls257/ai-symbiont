@@ -5,14 +5,15 @@ nothing, and asking them to write triggers is work symbiont can do from what it 
 Pure over lessons and the session records passed in; failed commands and corrections only.
 """
 
-import re
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from pathlib import PurePosixPath
 
 from symbiont.miner import incident_words as words
 from symbiont.miner.environment_fix import setup_command
 from symbiont.miner.failure_keys import INTERRUPTS, is_interrupt
 from symbiont.miner.failure_signature import failure_detail
+from symbiont.miner.fix_words import edit_clause, resolution_phrase
 from symbiont.miner.fixes import FixKind
 from symbiont.miner.incident_corrections import correction_card, path_of, record_at
 from symbiont.miner.incident_types import (
@@ -26,6 +27,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.resolutions import NOTHING_CHANGED, ONLY_UNRELATED_CHANGED, PASSED_RESPELLED
 from symbiont.miner.screen import INLINE_TARGET, PROBES
+from symbiont.miner.story import story_of
 from symbiont.records.schema import Record
 
 __all__ = [
@@ -42,8 +44,6 @@ __all__ = [
 # A trigger needs most of a group's occurrences to agree; 0.6 is "clearly more than a coin flip"
 # and was chosen by hand, not tuned [hypothesis].
 TRIGGER_SHARE = 0.6
-_EDITED_FILE = re.compile(r"edited `([^`]+)`")
-_RAN_COMMAND = re.compile(r"ran `([^`]+)`")
 _RETRIES = (NOTHING_CHANGED, PASSED_RESPELLED)
 
 
@@ -136,8 +136,17 @@ def _failure_card(
         files=lesson.files,
         situation=(TriggerKind.RUNNING.value, program, path_of(target, repo_names)),
         fingerprint=f"failure:{program}:{broke}",
-        example=words.command_example(failed.command if failed is not None else None),
+        example=words.command_example(failed.command if failed is not None else None, repo_names),
+        **_story_fields(
+            lesson, repo_names, setup if outcome is Outcome.ENVIRONMENT_FIXED else None
+        ),
     )
+
+
+def _story_fields(lesson: Lesson, repo_names: frozenset[str], setup: str | None) -> dict[str, str]:
+    """The card's story lines; the setup command is named only when the miner found one."""
+    story = story_of(lesson, "", repo_names, setup)
+    return {"working_on": story.working_on, "broke": story.broke, "ended": story.ended}
 
 
 def _failure_noise(lesson: Lesson, failed: Record | None, outcome: Outcome) -> NoiseReason | None:
@@ -173,29 +182,28 @@ def _failure_outcome(lesson: Lesson, setup: str | None) -> Outcome:
 
 def _failure_fix(lesson: Lesson, outcome: Outcome, setup: str | None, failed: Record | None) -> str:
     if outcome is Outcome.FIXED_IN_CODE:
-        return words.edited_then_passed(_edited_path(lesson), script=lesson.target_created)
+        return words.edited_then_passed(_edited_names(lesson), script=lesson.target_created)
     if outcome is Outcome.ENVIRONMENT_FIXED and setup is not None:
         return words.setup_sentence(setup)
     if outcome is Outcome.CORRECTED_COMMAND:
         return words.corrected_command_sentence(_ran_command(lesson, failed))
     if lesson.resolution:
-        return words.passed_later_sentence(", then ".join(lesson.resolution))
+        return words.passed_later_sentence(resolution_phrase(lesson.resolution))
     return words.unresolved_sentence(lesson.unresolved_because)
 
 
-def _edited_path(lesson: Lesson) -> str:
-    """The file the fix edited, read from the resolution's own words, else the first file."""
-    for step in lesson.resolution:
-        if match := _EDITED_FILE.match(step):
-            return match.group(1)
-    return lesson.files[0] if lesson.files else "the code"
+def _edited_names(lesson: Lesson) -> str:
+    """The file names the fix edited, as the fix phrase says them, else the first file's name."""
+    for phrase in lesson.resolution:
+        if named := edit_clause(phrase):
+            return named
+    return PurePosixPath(lesson.files[0]).name if lesson.files else "the code"
 
 
 def _ran_command(lesson: Lesson, failed: Record | None) -> str:
     """The last command the resolution ran that is not the failed command itself."""
     own = failed.command if failed is not None else None
-    for step in reversed(lesson.resolution):
-        match = _RAN_COMMAND.match(step)
-        if match and match.group(1) != own:
-            return match.group(1)
-    return lesson.resolution[-1] if lesson.resolution else "the command"
+    for command in reversed(lesson.fix_commands):
+        if command != own:
+            return command
+    return lesson.fix_commands[-1] if lesson.fix_commands else "the command"

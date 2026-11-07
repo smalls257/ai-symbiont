@@ -2,7 +2,7 @@
 
 import pytest
 
-from symbiont.miner.incident_words import is_empty_correction
+from symbiont.miner.empty_correction import is_empty_correction
 from symbiont.miner.incidents import NoiseReason, noise_words
 
 

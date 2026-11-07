@@ -210,6 +210,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
         store.mined.session_strips(project),
         min_sessions=store.mined.min_sessions_used(project) or live.min_sessions,
         ignored=len(ignored),
+        goals={s.session_id: s.goal for s in store.review.summaries.all(project)},
     )
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored

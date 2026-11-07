@@ -8,7 +8,7 @@ the failed command itself are not setup.
 from collections.abc import Sequence
 
 from symbiont.miner.commands import normalise_command, program_words
-from symbiont.miner.read_only import is_read_only
+from symbiont.miner.read_only import changing_command, is_read_only
 from symbiont.miner.resolutions import later_success_of, subcommand_of
 from symbiont.miner.secrets import scrub
 from symbiont.records.schema import Kind, Record
@@ -42,8 +42,9 @@ def _is_setup(record: Record, failed_identity: tuple[tuple[str, str], str]) -> b
 
 def _short(command: str) -> str:
     """The working segment (`npm install` of `cd /repo` then `npm install`), cut to fit."""
+    named = changing_command(command)
     program, args = program_words(command)
-    text = scrub(" ".join((program, *args)))
+    text = scrub(named or " ".join((program, *args)))
     return text if len(text) <= COMMAND_CHARS else text[: COMMAND_CHARS - 3] + "..."
 
 

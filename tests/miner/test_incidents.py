@@ -61,7 +61,7 @@ def cards(lessons, records=(), topics=None):
 def test_a_bad_pytest_path_reads_as_tests_that_do_not_exist():
     lesson = failure(
         ("pytest", "tests/test_app.py", "usage error or bad path"),
-        resolution=("ran `pytest tests/`",), unresolved_because=None,
+        resolution=("ran pytest",), fix_commands=("pytest tests/",), unresolved_because=None,
         fix=FixKind.CORRECTED_COMMAND,
     )  # fmt: skip
     (card,) = cards([lesson], [command(1, "pytest tests/test_app.py")])
@@ -76,13 +76,13 @@ def test_a_bad_pytest_path_reads_as_tests_that_do_not_exist():
 def test_a_repro_script_fixed_by_a_codebase_edit_is_a_deliberate_repro():
     lesson = failure(
         ("python", "reproduce_issue.py", "TypeError"),
-        resolution=("edited `pkg/ops.py` to add `x`", "ran `python reproduce_issue.py`"),
+        resolution=("edited ops.py, then re-ran python",),
         unresolved_because=None, fix=FixKind.CODE_FIX, target_created=True,
         files=("pkg/ops.py",),
     )  # fmt: skip
     (card,) = cards([lesson])
     assert card.noise is NoiseReason.DELIBERATE_REPRO
-    assert card.what_fixed_it == "Edited pkg/ops.py, then the script passed."
+    assert card.what_fixed_it == "Passed after editing ops.py."
     assert card.outcome is Outcome.FIXED_IN_CODE
 
 
@@ -124,12 +124,12 @@ def test_an_unresolved_failure_was_never_fixed():
 
 def test_a_real_failure_fixed_in_code_is_worth_a_look():
     lesson = failure(
-        ("manage.py", "-", "OperationalError"), resolution=("edited `shop/models.py`",),
+        ("manage.py", "-", "OperationalError"), resolution=("edited models.py",),
         unresolved_because=None, fix=FixKind.CODE_FIX, files=("shop/models.py",),
     )  # fmt: skip
     (card,) = cards([lesson])
     assert (card.noise, card.outcome) == (None, Outcome.FIXED_IN_CODE)
-    assert card.what_fixed_it == "Edited shop/models.py, then the command passed."
+    assert card.what_fixed_it == "Fixed by editing models.py."
 
 
 def test_acknowledgments_are_empty_corrections():
@@ -263,21 +263,22 @@ def test_a_bare_command_with_no_path_has_no_path_in_its_words():
     assert trigger_of([only]).words == "when running make"
 
 
-def _passing_after(setup, resolution=(), fix=None, reason=NOTHING_CHANGED, key=None):
+def _passing_after(setup, resolution=(), fix=None, reason=NOTHING_CHANGED, key=None, **more):
     records = [command(1, "python app.py"), *setup, command(9, "python app.py", exit_code=0)]
     key = key or ("python", "app.py", "ModuleNotFoundError")
-    lesson = failure(key, resolution=resolution, fix=fix, unresolved_because=reason)
+    lesson = failure(key, resolution=resolution, fix=fix, unresolved_because=reason, **more)
     return cards([lesson], records)[0]
 
 
 def test_an_install_between_failure_and_pass_is_an_environment_fix():
     card = _passing_after(
         [command(2, "pip install requests", exit_code=0)],
-        resolution=("ran `python app.py`",), fix=FixKind.CORRECTED_COMMAND, reason=None,
+        resolution=("re-ran python",), fix_commands=("python app.py",),
+        fix=FixKind.CORRECTED_COMMAND, reason=None,
     )  # fmt: skip
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
     assert card.noise is None
-    assert card.what_fixed_it == "Fixed the setup: ran `pip install requests`, then it passed."
+    assert card.what_fixed_it == "Fixed the setup: ran pip install."
 
 
 def test_npm_install_then_pass_is_an_environment_fix():
@@ -286,12 +287,12 @@ def test_npm_install_then_pass_is_an_environment_fix():
         command(3, "npm test", exit_code=0),
     ]  # fmt: skip
     lesson = failure(
-        ("npm", "-", "exit 1"), resolution=("ran `npm install`", "ran `npm test`"),
+        ("npm", "-", "exit 1"), resolution=("ran npm install",),
         unresolved_because=None,
     )  # fmt: skip
     (card,) = cards([lesson], records)
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
-    assert "`npm install`" in card.what_fixed_it
+    assert card.what_fixed_it == "Fixed the setup: ran npm install."
 
 
 def test_an_unrecognized_setup_command_still_counts_as_the_setup():
@@ -300,7 +301,7 @@ def test_an_unrecognized_setup_command_still_counts_as_the_setup():
     )
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
     assert card.noise is None
-    assert "`docker compose up -d`" in card.what_fixed_it
+    assert card.what_fixed_it == "Fixed the setup: ran docker compose."
 
 
 def test_a_look_around_between_failure_and_pass_is_not_a_setup():

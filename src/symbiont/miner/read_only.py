@@ -3,8 +3,8 @@
 import re
 
 from symbiont.miner.commands import Stage, command_stages
+from symbiont.miner.probes import PROBES
 from symbiont.miner.resolutions import bare_arguments
-from symbiont.miner.screen import PROBES
 
 # Each Bash call starts a fresh shell, so these leave no state behind for the next call.
 SHELL_PLUMBING = frozenset(
@@ -35,6 +35,18 @@ _SED_IN_PLACE = re.compile(r"-[A-Za-z]*i|--in-place")
 def is_read_only(command: str) -> bool:
     """True when every working segment is plumbing, a look-around or a report."""
     return all(_stage_reads(stage) for stage in command_stages(command))
+
+
+def changing_command(command: str) -> str:
+    """The first step of the command that changes something, as `program args`; "" when none does.
+
+    A chain such as `git commit -m x && git log -1` changes things through its commit; naming
+    the working (last) segment would credit the read-only `git log`.
+    """
+    for stage in command_stages(command):
+        if not _stage_reads(stage):
+            return " ".join((stage.program, *stage.args))
+    return ""
 
 
 def _stage_reads(stage: Stage) -> bool:

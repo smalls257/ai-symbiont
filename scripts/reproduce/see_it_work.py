@@ -197,7 +197,7 @@ def replay_repeat_failure(rig: Rig) -> str:
 
 def check_note_names_the_earlier_fix(note: str) -> None:
     """Fail the demo unless the note is the exact-repeat note about the earlier fix."""
-    wanted = ("Last time", "AssertionError", "ledger/invoices.py", "currency_exponent", USER_WORDS)
+    wanted = ("Last time", "AssertionError", "edited invoices.py", USER_WORDS)
     missing = [part for part in wanted if part not in note]
     if missing:
         raise DemoError(f"the note does not mention {missing}; it says: {note!r}")

@@ -230,7 +230,7 @@ def test_badges_say_new_this_month_or_rising_and_an_unknown_badge_raises(decided
 
 def test_the_verdict_is_the_sentence_when_there_is_one_else_the_word(decided):
     assert decided["verdicts"] == ["Worth a look: it costs time.", "fixed in the code"]
-    assert "<b>Worth a look: slow.</b>" in decided["rowOpen"]
+    assert "<dt>Worth a look</dt><dd>Worth a look: slow.</dd>" in decided["rowOpen"]
 
 
 def test_a_row_is_focusable_and_has_a_visible_open_link_to_its_group(decided):
@@ -308,3 +308,28 @@ def test_every_noise_group_is_a_link_to_its_page_and_names_are_escaped(decided):
             in html
         )
     assert "4 groups</summary>" in html
+
+
+def test_the_story_lines_come_in_order_and_worth_a_look_only_when_a_sentence_exists(decided):
+    story = decided["story"]
+    labels = ["Working on", "What broke", "How it ended", "Worth a look"]
+    positions = [story["full"].index(f"<dt>{label}</dt>") for label in labels]
+    assert positions == sorted(positions)
+    assert "vpill" not in story["full"]
+    assert (
+        "Worth a look" not in story["pill"]
+        and 'class="pill vpill">fixed in the code' in story["pill"]
+    )
+    assert story["bare"].count("<dt>") == 1 and "Working on" not in story["bare"]
+    assert "<dt>What you said</dt>" in story["correction"]
+    assert "<dt>What the agent did next</dt>" in story["correction"]
+
+
+def test_story_lines_are_escaped_and_backticks_become_code(decided):
+    assert "<code>pnpm api:generate</code>" in decided["story"]["full"]
+    hostile = decided["story"]["hostile"]
+    assert (
+        "<img" not in hostile
+        and "&lt;img src=x onerror=1&gt;" in hostile
+        and "<b>x</b>" not in hostile
+    )

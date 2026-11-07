@@ -7,6 +7,7 @@ from symbiont.miner import incident_words as words
 from symbiont.miner.codebase import repo_relative
 from symbiont.miner.commands import normalise_command, program_words
 from symbiont.miner.correction_episode import NO_EPISODE, episode_of
+from symbiont.miner.empty_correction import is_empty_correction
 from symbiont.miner.incident_types import (
     NO_SITUATION,
     Incident,
@@ -21,6 +22,8 @@ from symbiont.miner.screen import INLINE_TARGET
 from symbiont.records.schema import Kind, Record
 
 # Steps worth warning about before they happen: they are hard to take back.
+# What a correction card quotes of the developer: a line, not their whole message.
+SAID_CHARS = 120
 BEFORE_STEPS = frozenset({"git push", "git commit", "git merge", "git rebase", "npm publish"})
 
 
@@ -31,7 +34,7 @@ def correction_card(
     pain = lesson.pain_point
     turn = record_at(records, pain.step)
     text = turn.raw if turn is not None else lesson.quote
-    empty = words.is_empty_correction(text)
+    empty = is_empty_correction(text)
     episode = episode_of(turn, records) if turn is not None and not empty else NO_EPISODE
     return Incident(
         session_id=pain.session_id,
@@ -47,7 +50,15 @@ def correction_card(
         files=lesson.files,
         situation=situation_of(episode.first_wrong, repo_names),
         example=words.quoted_words(text),
+        broke="" if empty else _said(text),
+        ended=words.next_edit_sentence(first_file(episode.next_edit)),
     )
+
+
+def _said(text: str) -> str:
+    """The developer's own words, one line of at most SAID_CHARS."""
+    flat = " ".join(words.quoted_words(text).split())
+    return flat if len(flat) <= SAID_CHARS else flat[: SAID_CHARS - 1].rstrip() + "…"
 
 
 def _first_wrong_words(action: Record | None) -> str:

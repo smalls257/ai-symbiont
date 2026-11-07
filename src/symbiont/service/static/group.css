@@ -48,7 +48,7 @@
 .gp .occ2 .outc{display:inline-flex;align-items:center;gap:.3rem;margin-left:.5rem;font-size:.85rem;font-weight:500}
 .gp .occ2 .outc i{width:.6rem;height:.6rem;border-radius:.15rem;background:#6e7591}
 .gp .occ2 .outc i.o-done{background:var(--gr)}.gp .occ2 .outc i.o-partly{background:var(--go)}.gp .occ2 .outc i.o-stuck{background:var(--rd)}
-.gp .occ2 .three{margin-top:.1rem;grid-template-columns:7.2rem 1fr}
+.gp .occ2 .three{margin-top:.1rem;grid-template-columns:9rem 1fr}
 .gp .occ2 .cmd{font:500 .9rem var(--mono);color:#e6d9ff;overflow-wrap:anywhere;display:block}
 .gp .occ2 .cmd.you{color:var(--cy)}
 .gp .occ2 .err{font:500 .88rem var(--mono);color:var(--rd);overflow-wrap:anywhere;display:block}

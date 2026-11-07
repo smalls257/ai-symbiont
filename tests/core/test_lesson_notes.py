@@ -20,12 +20,13 @@ FORBIDDEN = re.compile(r"score|KC|feature|threshold|risk", re.IGNORECASE)
 QUOTE = "$ pytest tests/test_parser.py\nNo module named 'yaml'"
 
 
-def lesson(signature=FAILED, resolution=("ran `pip install pyyaml`", "ran `pytest`"), step=1):
+def lesson(signature=FAILED, resolution=("ran pip install, then re-ran pytest",), step=1):
     pain = PainPoint(signature, "s1", step, (("s1", step),))
     return Lesson(
         pain_point=pain,
         quote=QUOTE if signature == FAILED else "edited the index page",
         resolution=resolution,
+        fix_commands=("pip install pyyaml", "pytest") if signature == FAILED else (),
         unresolved_because=None if resolution else "no later command passed",
         remote_safe=True,
         sources=(("s1", step),),
@@ -35,15 +36,16 @@ def lesson(signature=FAILED, resolution=("ran `pip install pyyaml`", "ran `pytes
 def test_a_lesson_reads_as_happened_resolved_check():
     note = render_lesson(lesson())
     assert note == (
-        "What happened: `pytest tests/test_parser.py` failed with ModuleNotFoundError. "
-        "Last time it was resolved when you ran `pip install pyyaml`, then ran `pytest`. "
-        "Check: run `pytest tests/test_parser.py` and confirm it passes before moving on."
+        "`pytest tests/test_parser.py` failed: No module named 'yaml'. "
+        "Last time: fixed by running `pip install pyyaml`, "
+        "then `pytest tests/test_parser.py` passed."
     )
+    assert len(note) <= 300
 
 
 def test_an_unresolved_lesson_says_no_fix_was_found_rather_than_inventing_one():
     note = render_lesson(lesson(resolution=()))
-    assert "No fix was found in the history." in note and "resolved when" not in note
+    assert "No fix was found in the history." in note and "Last time" not in note
 
 
 def test_every_signal_renders_as_prose_with_a_check():
@@ -57,7 +59,10 @@ def test_every_signal_renders_as_prose_with_a_check():
     }
     for signal, key in keys.items():
         note = render_lesson(lesson(Signature(signal, key)))
-        assert note.startswith("What happened: ") and "Check: " in note
+        if signal is Signal.FAILED_COMMAND:
+            assert note.startswith("`pytest") and "Last time" in note
+        else:
+            assert note.startswith("What happened: ") and "Check: " in note
         assert not FORBIDDEN.search(note), note
 
 
@@ -66,7 +71,7 @@ def test_a_warning_backed_by_a_lesson_adds_the_fix_and_the_check():
     decision = Decision(FAILED, (backing.pain_point,), (), None)
     (note,) = render(decision, kinds=[NoteKind.WARN], lessons=[backing])
     assert note.startswith("This command has failed once before")
-    assert "pip install pyyaml" in note and "Check: run `pytest" in note
+    assert "ran pip install" in note and "Check: run `pytest" in note
 
 
 def test_a_warning_with_no_lesson_stays_the_plain_sentence():
@@ -87,6 +92,5 @@ def test_recall_finds_lessons_by_trouble_quote_or_fix():
 def test_changes_alongside_are_said_to_have_happened_not_claimed_as_the_fix():
     from dataclasses import replace
 
-    note = render_lesson(replace(lesson(), changed_alongside=("edited `docs/notes.md`",)))
-    assert "you also edited `docs/notes.md`." in note
-    assert "resolved when you ran `pip install pyyaml`, then ran `pytest`." in note
+    note = render_lesson(replace(lesson(), changed_alongside=("edited notes.md",)))
+    assert "notes.md" not in note and "Last time: " in note

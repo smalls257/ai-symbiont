@@ -59,8 +59,7 @@ function rowHtml(shown){
     +'<div><button class="sn" data-a="rename" title="Click to rename" aria-label="Rename group: '+esc(name)+'">'+esc(name)+"</button>"
     +'<div class="ttl'+(g.kind==="failure"?" mono":"")+'">'+esc(g.title)+"</div>"
     +'<div class="why">'+(tri.regressed?BADGES.regressed:"")+trendPill(g)+(tab!=="review"?'<span class="pill '+tab+'">'+M.TAB_WORDS[tab]+"</span> ":"")+"Grouped because: "+esc(g.groupedBecause)+"</div></div>"
-    +'<dl class="three"><dt>What happened</dt><dd>'+code(g.happened)+"</dd>"+episodeRows(g)
-    +"<dt>What fixed it</dt><dd>"+(g.fixed?code(g.fixed):"Nothing fixed it in these sessions.")+"</dd><dt>Verdict</dt><dd><b>"+esc(M.verdictText(g))+"</b></dd></dl>"
+    +'<dl class="three">'+M.storyHtml(g,esc,code)+episodeRows(g)+"</dl>"
     +'<div class="gacts">'+actionsHtml(tab,openHref)+"</div>"+(stat?'<div class="stnote">'+esc(stat)+"</div>":"")
     +'<div class="gstat"><div class="big">'+g.sessions.toLocaleString("en-US")+"<small>"+(g.sessions===1?"session":"sessions")+"</small></div>"
     +'<div class="sm"><b>'+M.plural(g.times,"time")+"</b> in all"+(g.undatedSessions?", "+M.plural(g.undatedSessions,"session")+" without a date":"")+"</div>"

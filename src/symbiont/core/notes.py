@@ -9,12 +9,18 @@ from enum import StrEnum
 
 from symbiont.core.slot import Decision
 from symbiont.miner.failure_keys import broke_in_words
+from symbiont.miner.fix_words import resolution_phrase
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
+from symbiont.miner.story import story_of
 from symbiont.records.schema import Record
 
 DEFAULT_MAX_NOTES = 2
 NO_PATH = "-"
+TITLE_QUOTE_CHARS = 60
+# A note is read in passing by the agent; owner: "word vomit" is the failure to avoid.
+NOTE_CHARS = 300
+MIN_WHILE_CHARS = 30
 
 
 class NoteKind(StrEnum):
@@ -42,15 +48,58 @@ def render(
 
 
 def render_lesson(lesson: Lesson) -> str:
-    """What happened, how it was resolved, and the check to run, as three sentences."""
+    """A failed command as its story; any other trouble as what happened, resolution and check."""
     signature = lesson.pain_point.signature
+    if signature.signal is Signal.FAILED_COMMAND:
+        return story_note(lesson)
     happened = _HAPPENED[signature.signal](signature)
     return f"What happened: {happened}. {_resolved(lesson)} {_check(signature)}"
+
+
+def story_note(lesson: Lesson) -> str:
+    """The story as `While <working on>: <what broke>. Last time: <how it ended>.`, short.
+
+    No labels, scores or checks: the agent reads a colleague's account. The While clause gives way
+    first when the note would run long, and is left out when the work is unknown.
+    """
+    story = story_of(lesson)
+    ending = (
+        f"Last time: {story.ended}." if lesson.resolution else "No fix was found in the history."
+    )
+    body = _clipped(f"{story.broke}. {ending}" if story.broke else ending)
+    room = NOTE_CHARS - len(body) - len("While : ")
+    if not story.working_on or room < MIN_WHILE_CHARS:
+        return body
+    working = (
+        story.working_on if len(story.working_on) <= room else story.working_on[: room - 1] + "…"
+    )
+    return f"While {working}: {body}"
+
+
+def _clipped(text: str) -> str:
+    """The text cut to NOTE_CHARS at a word boundary, marked with an ellipsis."""
+    if len(text) <= NOTE_CHARS:
+        return text
+    return text[: NOTE_CHARS - 1].rsplit(" ", 1)[0].rstrip(" ,(") + "…"
 
 
 def happened(signature: Signature) -> str:
     """What the trouble was, as a clause: "`pytest x` failed with ImportError"."""
     return _HAPPENED[signature.signal](signature)
+
+
+def title_of(signature: Signature, group_name: str = "") -> str:
+    """The heading a page gives the trouble; a correction is named, not quoted as "corrected on".
+
+    `group_name` is the session model's name for the correction group, when one exists.
+    """
+    if signature.signal is not Signal.CORRECTION:
+        return happened(signature)
+    if group_name:
+        return group_name
+    quoted = signature.key[1]
+    short = quoted if len(quoted) <= TITLE_QUOTE_CHARS else quoted[: TITLE_QUOTE_CHARS - 1] + "…"
+    return f'You corrected the agent: "{short}"'
 
 
 def check_to_run(signature: Signature) -> str:
@@ -62,7 +111,7 @@ def resolution_clause(lesson: Lesson) -> str:
     """How the lesson was resolved, or that the history shows no fix, as a clause."""
     if not lesson.resolution:
         return "no fix was found in the history"
-    return f"you {', then '.join(lesson.resolution)}"
+    return f"you {resolution_phrase(lesson.resolution)}"
 
 
 def _recalls(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
@@ -94,11 +143,11 @@ def _resolved(lesson: Lesson) -> str:
     """How a lesson was resolved, and what else changed between the failure and the pass."""
     meanwhile = ""
     if lesson.changed_alongside:
-        changed = ", ".join(lesson.changed_alongside)
-        meanwhile = f" Between the failure and the pass you also {changed}."
+        changed = resolution_phrase(lesson.changed_alongside)
+        meanwhile = f" Before it passed you also {changed}."
     if not lesson.resolution:
         return "No fix was found in the history." + meanwhile
-    return f"Last time it was resolved when you {', then '.join(lesson.resolution)}.{meanwhile}"
+    return f"Last time: {resolution_phrase(lesson.resolution)}.{meanwhile}"
 
 
 def _times(count: int) -> str:

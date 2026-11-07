@@ -39,7 +39,8 @@ def _correction(session, step):
     return Incident(
         session_id=session, step=step, signal=Signal.CORRECTION,
         what_happened="You told the agent to use uv, not pip.",
-        first_wrong="Ran pip install", cost_steps=3,
+        first_wrong="Ran pip install", cost_steps=3, broke="no, use uv",
+        ended="The agent then edited a.py.",
         what_fixed_it="", outcome=Outcome.DEVELOPER_STEPPED_IN, noise=None, topic="Parser work",
         files=(), situation=("running", "pip", ""), fingerprint="", example="no, use uv",
     )  # fmt: skip
@@ -141,7 +142,7 @@ def test_the_clearest_example_is_a_real_fix_with_a_short_command_and_the_latest_
     assert page["model"]["pick"] == 3  # not 1: its command is too long; not 0: no fix
     assert page["clearestJump"].count("clearest example</span>") == 1
     marked = page["clearestJump"].split('occ2 rec"')[1].split("</dl>")[0]
-    assert "$ pytest tests" in marked and "$ pytest xxxx" not in marked and "Oct 28" in marked
+    assert "What broke" in marked and "pytest xxxx" not in marked and "Oct 28" in marked
 
 
 def test_each_occurrence_links_to_its_session_at_the_step_and_shows_goal_and_outcome(page):
@@ -157,8 +158,11 @@ def test_an_unsummarized_session_shows_no_outcome_chip(page):
     )  # only s27 has a summary; 11 others show none
 
 
-def test_verdict_lines_say_same_as_the_group_or_unresolved(page):
-    assert "Same as the group:" in page["firstPage"] and "Unresolved here:" in page["secondPage"]
+def test_an_occurrence_tells_what_broke_and_how_it_ended(page):
+    assert (
+        "<dt>How it ended</dt>" in page["firstPage"]
+        and "Same as the group" not in page["firstPage"]
+    )
 
 
 def test_the_header_names_the_group_and_its_facts(page):
@@ -190,9 +194,10 @@ def test_a_taught_lesson_draws_the_dashed_marker_and_says_update(page):
     assert "Update lesson" in page["teachTaught"] and "Lesson added on Oct 12" in page["headTaught"]
 
 
-def test_three_lines_say_what_happened_what_fixed_it_and_the_verdict(page):
-    for word in ("What happened", "What fixed it", "Verdict"):
+def test_three_lines_say_what_broke_and_how_it_ended(page):
+    for word in ("What broke", "How it ended"):
         assert word in page["three"]
+    assert "What happened" not in page["three"] and "What fixed it" not in page["three"]
 
 
 def test_the_teach_panel_is_prefilled_and_shows_the_note_the_agent_receives(page):
@@ -303,7 +308,7 @@ def test_the_crumb_names_the_kind_and_group(page):
 
 def test_a_correction_shows_what_the_agent_had_done_and_your_words_for_any_history(page):
     for key in ("corr", "corrDataset"):
-        assert "You: “no, use uv”" in page[key] and "Agent had just: " in page[key]
+        assert "<dt>What you said</dt><dd>no, use uv</dd>" in page[key]
         assert "e.g. no, use uv" in page[key]
     assert "House rules for this repo" in page["corr"]
 

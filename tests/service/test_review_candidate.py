@@ -47,8 +47,8 @@ def test_the_candidate_names_the_command_the_error_the_fix_and_the_files():
     assert candidate["command"] == "pytest tests/test_refund.py"
     assert any("AssertionError: assert 12.5 == 13.0" in line for line in candidate["error_lines"])
     assert any("test_rounding" in line for line in candidate["error_lines"])
-    assert candidate["fix"] and "src/refund.py" in candidate["fix"]
-    assert "round(x, 1)" in " ".join(candidate["also_changed"])
+    assert candidate["fix"] and "refund.py" in candidate["fix"]
+    assert "round(x, 1)" not in " ".join(candidate["also_changed"])
     assert "src/refund.py" in candidate["files"]
     assert FOOTER_ONLY not in candidate["error"] and candidate["error"]
     assert "developer_said" not in candidate

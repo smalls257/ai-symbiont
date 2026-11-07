@@ -1,12 +1,36 @@
 """Reading a lesson back from the JSON the lessons table stores."""
 
 import json
+import re
 from dataclasses import asdict
 from typing import Any
 
+from symbiont.miner.fix_words import phrase_from_old_steps
 from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+
+_OLD_RAN_STEP = re.compile(r"ran `([^`]+)`")
+
+
+def _fix_commands_of(data: dict[str, Any]) -> tuple[str, ...]:
+    """The commands the fix ran; rows from before the field read them off the old step wording."""
+    if "fix_commands" in data:
+        return tuple(data["fix_commands"])
+    found = (_OLD_RAN_STEP.search(step) for step in data["resolution"])
+    return tuple(match.group(1) for match in found if match)
+
+
+def _plain_steps(steps: list[str], pain: PainPoint) -> tuple[str, ...]:
+    """Steps as stored; rows from before the plain phrase (backticked paths and code) are re-worded.
+
+    Done at read time so an old store reads plain without a re-mining.
+    """
+    if not any("`" in step for step in steps):
+        return tuple(steps)
+    failed = pain.signature.signal is Signal.FAILED_COMMAND
+    phrase = phrase_from_old_steps(steps, pain.signature.key[0] if failed else "")
+    return (phrase,) if phrase else ()
 
 
 def _remote_safe_of(data: dict[str, Any]) -> bool:
@@ -29,16 +53,17 @@ def _remote_safe_of(data: dict[str, Any]) -> bool:
 def lesson_from_json(body: str) -> Lesson:
     """Rebuild a lesson from its stored JSON."""
     data = json.loads(body)
+    pain = pain_point_from_dict(data["pain_point"])
     return Lesson(
-        pain_point=pain_point_from_dict(data["pain_point"]),
+        pain_point=pain,
         quote=data["quote"],
-        resolution=tuple(data["resolution"]),
+        resolution=_plain_steps(data["resolution"], pain),
         unresolved_because=data["unresolved_because"],
         remote_safe=_remote_safe_of(data),
         sources=tuple((ref[0], ref[1]) for ref in data["sources"]),
         task_ids=tuple(data["task_ids"]),
         # Rows written before this field existed recorded no such changes.
-        changed_alongside=tuple(data.get("changed_alongside", ())),
+        changed_alongside=_plain_steps(data.get("changed_alongside", []), pain),
         # Rows written before this field existed name no dataset: a private one stays blocked.
         private_datasets=tuple(data.get("private_datasets", ())),
         # Rows written before these fields existed carry no error lines or files.
@@ -51,6 +76,12 @@ def lesson_from_json(body: str) -> Lesson:
         # Rows written before these fields existed carry no turns around the failure.
         asked=data.get("asked", ""),
         agent_intent=data.get("agent_intent", ""),
+        fix_commands=_fix_commands_of(data),
+        fix_added=data.get("fix_added", ""),
+        failed_command=data.get("failed_command", ""),
+        complaint=data.get("complaint", ""),
+        # Rows written before this field existed counted one step per old-style resolution item.
+        fix_steps=data.get("fix_steps", len(data["resolution"])),
     )
 
 

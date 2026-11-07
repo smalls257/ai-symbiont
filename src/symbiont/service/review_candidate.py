@@ -9,6 +9,7 @@ from typing import Any
 
 from symbiont.core.failure_signature import failure_detail
 from symbiont.core.notes import happened, resolution_clause
+from symbiont.miner.fix_words import resolution_phrase
 from symbiont.miner.lesson_context import LessonContext
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.secrets import scrub
@@ -61,7 +62,9 @@ def _fix(lesson: Lesson) -> str | None:
     if lesson.resolution:
         return resolution_clause(lesson)
     if lesson.changed_alongside:
-        return "no confirmed fix; before it passed you " + ", then ".join(lesson.changed_alongside)
+        return "no confirmed fix; before it passed you " + resolution_phrase(
+            lesson.changed_alongside
+        )
     return None
 
 

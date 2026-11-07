@@ -218,6 +218,21 @@ function seenOnceLine(once){
 }
 const verdictText=g=>g.verdictSentence||g.verdict;
 
+/* The story lines of a group or card: Working on / What broke / How it ended, then Worth a look when the
+   session model wrote one. A correction has no failed command: it reads What you said / What the agent did next.
+   A line the miner could not say is left out, never filled with a placeholder. */
+const STORY_LABELS={failure:["Working on","What broke","How it ended"],correction:["Working on","What you said","What the agent did next"]};
+function storyRows(s){
+  const label=STORY_LABELS[s.kind==="correction"?"correction":"failure"];
+  const rows=[[label[0],s.workingOn,false],[label[1],s.broke,true],[label[2],s.ended,true],["Worth a look",s.verdictSentence,false]];
+  return rows.filter(row=>row[1]).map(([name,text,code])=>({name,text,code}));
+}
+/* esc and code come from the caller; the verdict word is a small pill on the ending only when no Worth a look line exists. */
+function storyHtml(s,esc,code){
+  const pill=!s.verdictSentence&&s.verdict?' <span class="pill vpill">'+esc(s.verdict)+"</span>":"";
+  return storyRows(s).map(row=>"<dt>"+row.name+"</dt><dd>"+(row.code?code(row.text):esc(row.text))+(row.name===STORY_LABELS.failure[2]||row.name===STORY_LABELS.correction[2]?pill:"")+"</dd>").join("");
+}
+
 /* "Where sessions got stuck": biggest first, bar scaled to the biggest, share of all sessions in the tooltip. */
 function frictionRows(view){
   const all=view.sessions,list=(view.frictions||[]).slice().sort((a,b)=>b.sessions-a.sessions);
@@ -226,5 +241,5 @@ function frictionRows(view){
     tip:plural(f.sessions,"session")+" of "+all.toLocaleString("en-US")+" ("+(all?Math.round(100*f.sessions/all):0)+"%)"}));
 }
 
-window.SymbiontInboxModel={badgeLabel,verdictText,frictionRows,rangeText,seenOnceLine,shortDay,TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf,taughtRequest};
+window.SymbiontInboxModel={badgeLabel,verdictText,storyRows,storyHtml,frictionRows,rangeText,seenOnceLine,shortDay,TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf,taughtRequest};
 })();

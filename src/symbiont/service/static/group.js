@@ -66,7 +66,7 @@ function drawOccurrences(ctx){
   ctx.$("#gOccN").textContent=M.plural(list.length,"occurrence");
   ctx.$("#gNav").innerHTML=P.pagerHtml(ctx.page,pages);
   ctx.$("#gList").innerHTML=G.pageSlice(list,ctx.page).map(({card,index})=>P.occurrenceHtml({
-    card,summary:G.sessionById(data,card.sessionId),project,cor:g.kind==="correction",clearest:index===ctx.rec})).join("");
+    card,summary:G.sessionById(data,card.sessionId),project,cor:g.kind==="correction",clearest:index===ctx.rec,groupWorkingOn:g.workingOn})).join("");
 }
 function drawSide(ctx){
   const {g,data,project}=ctx;
