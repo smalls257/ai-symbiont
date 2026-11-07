@@ -19,11 +19,18 @@ function tabOf(triage,g){
 }
 const displayName=(triage,g)=>triageOf(triage,g).name||g.name;
 
+/* worth: a group with a fix the page shows leads, then the one in more sessions, then the one that happened more. */
 const SORTS={
+  worth:(a,b)=>(b.fixShown-a.fixShown)||b.sessions-a.sessions||b.times-a.times,
   sessions:(a,b)=>b.sessions-a.sessions||b.times-a.times,
   last:(a,b)=>(b.last||"").localeCompare(a.last||""),
   first:(a,b)=>(b.first||"").localeCompare(a.first||"")
 };
+/* Twenty rows of equal weight is a wall; the first fifteen are what to read, the rest are one click away. */
+const REVIEW_PAGE=15;
+const pageOf=(list,expanded)=>expanded?{rows:list,more:0}:{rows:list.slice(0,REVIEW_PAGE),more:Math.max(0,list.length-REVIEW_PAGE)};
+/* The "click a theme" hint describes the Struggle page's selection; on other views it points at nothing. */
+const scopeVisible=view=>view==="struggle";
 const KIND_FILTERS=["all","failure","correction"];
 const keepKind=(kind,g)=>kind==="all"||g.kind===kind;
 
@@ -144,5 +151,5 @@ function viewFrom(search,warn){
 }
 const cleanName=text=>window.SymbiontRename.clean(text);
 
-window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,cleanName,plural,triageOf};
+window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,cleanName,plural,triageOf};
 })();

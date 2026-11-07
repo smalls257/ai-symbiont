@@ -6,7 +6,7 @@
 (function () {
 "use strict";
 const M=window.SymbiontInboxModel,R=window.SymbiontInboxRows;
-const SORT_WORDS={sessions:"most sessions",last:"last seen",first:"newest group"};
+const SORT_WORDS={worth:"Worth a look",sessions:"most sessions",last:"last seen",first:"newest group"};
 const KIND_WORDS={all:"All",failure:"Agent failures",correction:"Your corrections"};
 const STATE_OF={reviewed:"reviewed",resolve:"resolved",reopen:"for_review"};
 const DONE_WORDS={
@@ -27,7 +27,7 @@ function skeleton(){
 }
 
 function start(container,data,project){
-  const ui={container,data,project,tab:"review",kind:"all",sort:"sessions",open:new Set()};
+  const ui={container,data,project,tab:"review",kind:"all",sort:"worth",open:new Set()};
   container.innerHTML=skeleton();
   const $=sel=>container.querySelector(sel);
   ui.$=$;
@@ -46,9 +46,12 @@ function draw(ui){
   drawTabs(ui,found);
   const list=found[ui.tab],axis=M.weekAxis(ui.data.incidents.groups);
   ui.$("#inCount").textContent=list.length?M.plural(list.length,"group"):"";
-  ui.$("#inList").innerHTML=list.length?list.map(g=>R.rowHtml(shownOf(ui,g,axis))).join(""):emptyHtml(ui,found);
+  const page=ui.tab==="review"?M.pageOf(list,ui.open.has("review:more")):{rows:list,more:0};
+  ui.$("#inList").innerHTML=(list.length?page.rows.map(g=>R.rowHtml(shownOf(ui,g,axis))).join(""):emptyHtml(ui,found))+moreHtml(page.more);
   ui.$("#inFolds").innerHTML=foldsHtml(ui,found,axis);
 }
+
+const moreHtml=n=>n?'<button class="btn more" data-more="review">Show '+M.plural(n,"more group","more groups")+"</button>":"";
 
 function shownOf(ui,g,axis){
   const tri=M.triageOf(ui.data.triage,g);
@@ -105,6 +108,7 @@ function onClick(ui,e){
   const tab=e.target.closest("[data-tab]"),kind=e.target.closest("[data-kind]"),act=e.target.closest("button[data-a]");
   if(tab){ui.tab=tab.dataset.tab;draw(ui);ui.$('#inTabs button[aria-pressed="true"]').focus();return;}
   if(kind){ui.kind=kind.dataset.kind;draw(ui);ui.$('#inKinds button[aria-pressed="true"]').focus();return;}
+  if(e.target.closest("[data-more]")){ui.open.add("review:more");draw(ui);return;}
   if(!act)return;
   const row=act.closest(".grp"),g=ui.data.incidents.groups.find(x=>x.key===row.dataset.key);
   runAction(ui,g,act).catch(err=>window.SymbiontInboxDialogs.toast(ui.container,"symbiont could not do that: "+err.message));

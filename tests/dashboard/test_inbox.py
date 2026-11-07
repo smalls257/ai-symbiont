@@ -163,3 +163,25 @@ def test_a_tooltip_keeps_its_formatting_tags_and_turns_every_other_tag_into_text
 
 def test_a_group_kind_cannot_break_out_of_the_class_attribute(decided):
     assert 'class="kmark x&quot; onmouseover=&quot;window.__x=1"' in decided["rowEvil"]
+
+
+def test_worth_sort_puts_a_shown_fix_first(decided):
+    assert decided["worth"] == ["fixed", "loud"]
+
+
+def test_review_folds_after_fifteen_rows_and_counts_the_rest(decided):
+    pages = decided["pages"]
+
+    assert pages["pageSize"] == 15
+    assert len(pages["twenty"]["rows"]) == 15 and pages["twenty"]["more"] == 5
+    assert len(pages["expanded"]["rows"]) == 20 and pages["expanded"]["more"] == 0
+    assert len(pages["three"]["rows"]) == 3 and pages["three"]["more"] == 0
+
+
+def test_scope_hint_shows_only_on_struggle(decided):
+    assert decided["scope"] == [True, False, False, False, False, False]
+
+
+def test_orphan_triage_keys_are_ignored(decided):
+    assert decided["orphanThrew"] == ""
+    assert decided["orphan"] == decided["orphanPlain"]
