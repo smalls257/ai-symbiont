@@ -9,6 +9,7 @@ from typing import Any
 from symbiont.miner.lesson_context import AppliesTo
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.store.local import Source
+from symbiont.store.repos import RepoRegistry, RepoStance
 
 MINE_KEYS = frozenset({"project", "sources", "repo_dir"})
 MINE_REQUIRED = frozenset({"project", "sources"})
@@ -140,3 +141,13 @@ def _tags(value: Any, name: str) -> tuple[str, ...]:
     if not ok or not all(isinstance(tag, str) and 0 < len(tag) <= MAX_TAG_CHARS for tag in value):
         raise BadRequestError(f"applies_to.{name} must be a list of up to {MAX_TAGS} short strings")
     return tuple(tag.strip() for tag in value)
+
+
+def consented_project(registry: RepoRegistry | None, request: dict[str, Any]) -> str:
+    """The request's project when it is text and the developer allowed the repository."""
+    project = request["project"]
+    if not isinstance(project, str) or not project:
+        raise BadRequestError("project must be text")
+    if registry is not None and registry.stance(project) is not RepoStance.GIVEN:
+        raise BadRequestError(f"run `symbiont repo allow` for {project} first")
+    return project

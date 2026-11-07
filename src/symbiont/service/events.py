@@ -132,13 +132,18 @@ class EventLog:
 
     def _write(self, call: Call, event: dict[str, object]) -> None:
         """Append one timestamped event line."""
-        self.path.parent.mkdir(parents=True, exist_ok=True)
-        stamped = {"ts": time.time(), "route": call.route, "hook": call.hook, **event}
-        if call.project:
-            stamped["project"] = call.project
-        line = json.dumps({**stamped, "filler": self.filler})
-        with self.path.open("a", encoding="utf-8") as log:
-            log.write(line + "\n")
+        write_event(self.path, self.filler, call, event)
+
+
+def write_event(path: Path, filler: str, call: Call, event: dict[str, object]) -> None:
+    """Append one timestamped event line to the log at `path`; also for routes outside EventLog."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    stamped = {"ts": time.time(), "route": call.route, "hook": call.hook, **event}
+    if call.project:
+        stamped["project"] = call.project
+    line = json.dumps({**stamped, "filler": filler})
+    with path.open("a", encoding="utf-8") as log:
+        log.write(line + "\n")
 
 
 def last_note_event(runs_dir: Path, project: str) -> dict[str, Any] | None:

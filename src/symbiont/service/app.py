@@ -178,7 +178,7 @@ class Service:
         if self._parts.curation is not None:
             for path, handler in self._parts.curation.routes().items():
                 routes[path] = _ok_route(handler)
-        own = developer_routes(name, self._parts.store, self._parts.gate.registry)
+        own = developer_routes(name, self._parts, date.today())
         routes.update({path: _ok_route(handler) for path, handler in own.items()})
         if name not in routes:
             return self._refuse(call, 404, f"no such route: {route}")

@@ -16,6 +16,7 @@ See root CLAUDE.md for the repo rules. This file covers `src/symbiont/core/`.
 - Notes are domain prose: no scores, feature names, thresholds or activations. A lesson renders as what happened, how it was resolved (or that no fix was found), and the check to run.
 - No claim about speed of learning; "a learner built on the fly's real circuit".
 
+- `triage.py` (Violation prevented: Silent Fallback): `state_now(saved, sessions_since, *, seen_in_new_session)` gives a failure group's state and whether it regressed. Resolved returns to For review when seen in a new session; Archived returns per its rule (`NEW_SESSION`, `AFTER_SESSIONS` n, `NEVER` stays). `GroupActivity` is what the caller measured since `changed_on`. Dates are passed in; `triage_row` refuses a shape that does not fit its rule.
 ## Imports
 - May import: `records`, `miner`, numpy. Must not import: store, service, delivery, readers, eval, routeb, act1, time, sockets, subprocess.
 

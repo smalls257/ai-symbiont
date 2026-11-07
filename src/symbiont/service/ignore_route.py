@@ -6,21 +6,37 @@ alone, so no route or hook repeats the filter.
 """
 
 from collections.abc import Callable
-from typing import Any
+from datetime import date
+from typing import TYPE_CHECKING, Any
 
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.service.context_route import context_target, save_context
 from symbiont.service.dashboard_view import row_of, row_title
-from symbiont.service.request_shapes import BadRequestError, percent_decoded, require_keys
+from symbiont.service.request_shapes import (
+    BadRequestError,
+    consented_project,
+    percent_decoded,
+    require_keys,
+)
+from symbiont.service.triage_route import save_triage
 from symbiont.store.local import Store
-from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.repos import RepoRegistry
+
+if TYPE_CHECKING:
+    from symbiont.service.app import ServiceParts
 
 Handler = Callable[[dict[str, Any]], dict[str, Any]]
 
 
-def developer_routes(name: str, store: Store, registry: RepoRegistry | None) -> dict[str, Handler]:
-    """The dashboard's own route for `name`: a lesson's words, ignore, restore; else none."""
+def developer_routes(name: str, parts: "ServiceParts", today: date) -> dict[str, Handler]:
+    """The dashboard's own route for `name`: a lesson's words, ignore, restore, triage; else none.
+
+    `today` is the day the service says it is; triage stamps its changes with it.
+    """
+    store, registry = parts.store, parts.gate.registry
     lesson, pattern = context_target(name), ignore_target(name)
+    if name == "triage":
+        return {name: lambda request: save_triage(parts, request, today)}
     if name == "ignored/restore":
         return {name: lambda request: restore_pattern(store, registry, request)}
     if lesson is not None:
@@ -106,9 +122,4 @@ def _allowed_project(
 ) -> str:
     """The request's project, when its fields are right and the developer allowed it."""
     require_keys(request, fields, frozenset(fields))
-    project = request["project"]
-    if not isinstance(project, str) or not project:
-        raise BadRequestError("project must be text")
-    if registry is not None and registry.stance(project) is not RepoStance.GIVEN:
-        raise BadRequestError(f"run `symbiont repo allow` for {project} first")
-    return project
+    return consented_project(registry, request)

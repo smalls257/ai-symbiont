@@ -14,6 +14,7 @@ from symbiont.service.effective_context import effective_contexts
 from symbiont.service.ignore_route import ignored_listing
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
+from symbiont.service.triage_route import triage_listing
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import DEFAULT_MIN_SESSIONS
@@ -160,6 +161,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     )
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored
+    snapshot["triage"] = triage_listing(store, project)
     return _page_filled_with(snapshot)
 
 
