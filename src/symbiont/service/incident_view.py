@@ -189,9 +189,8 @@ def _group_json(
 
 
 def _recurring(cards: Sequence[Incident]) -> bool:
-    """Seen in two or more sessions, or a fix was shown: the owner asked not to see one-offs."""
-    fixed = any(c.outcome in FIXED_OUTCOMES for c in cards)
-    return fixed or len({c.session_id for c in cards}) >= MIN_RECURRING_SESSIONS
+    """Seen in two or more sessions and nothing else: a one-session group is Seen once."""
+    return len({c.session_id for c in cards}) >= MIN_RECURRING_SESSIONS
 
 
 def _dominant_outcome(cards: Sequence[Incident]) -> Outcome:
