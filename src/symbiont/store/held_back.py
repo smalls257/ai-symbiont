@@ -13,12 +13,15 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from symbiont.miner.churn import FileChurn
+from symbiont.miner.incident_types import Incident
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.screen import HoldReason
 from symbiont.miner.strips import SessionStrip
 from symbiont.miner.struggle import SessionFacts
 from symbiont.miner.trained import refuse_held_out_lessons
+from symbiont.store.incident_rows import SCHEMA as INCIDENT_SCHEMA
+from symbiont.store.incident_rows import incident_from_json, incident_row
 from symbiont.store.lesson_rows import lesson_row
 from symbiont.store.struggle_rows import TABLES as STRUGGLE_TABLES
 from symbiont.store.struggle_rows import insert_struggle, read_facts, read_strips
@@ -26,7 +29,8 @@ from symbiont.store.struggle_rows import insert_struggle, read_facts, read_strip
 if TYPE_CHECKING:
     from symbiont.store.local import Source
 
-SCHEMA = """
+SCHEMA = (
+    """
 CREATE TABLE IF NOT EXISTS held_back (
     project TEXT NOT NULL, reason TEXT NOT NULL, groups INTEGER NOT NULL,
     PRIMARY KEY (project, reason)
@@ -42,8 +46,18 @@ CREATE TABLE IF NOT EXISTS churn (
     project TEXT NOT NULL, file TEXT NOT NULL, session_id TEXT NOT NULL, edits INTEGER NOT NULL
 );
 """
+    + INCIDENT_SCHEMA
+)
 # Every table a mining run replaces for its project, in one transaction.
-REPLACED_TABLES = ("lessons", "held_back", "mining_settings", "struggle", "churn", *STRUGGLE_TABLES)
+REPLACED_TABLES = (
+    "lessons",
+    "held_back",
+    "mining_settings",
+    "struggle",
+    "churn",
+    "incidents",
+    *STRUGGLE_TABLES,
+)
 # Plain words for the terminal and the dashboard; the reason's value is for storage only.
 REASON_WORDS = {
     HoldReason.IGNORED: "set aside by you",
@@ -77,6 +91,8 @@ class MiningOutcome:
     strips: list[SessionStrip] = field(default_factory=list)
     # The min_sessions this run was screened with, so the page shows the value the lessons used.
     min_sessions: int | None = None
+    # A plain-language card per failed command or correction (kept, held and struggle alike).
+    incidents: list[Incident] = field(default_factory=list)
 
 
 def struggle_groups(struggle: Sequence[Lesson]) -> list[StruggleGroup]:
@@ -111,6 +127,22 @@ def _struggle_row(project: str, group: StruggleGroup) -> tuple[str, str, str, in
     return (project, signature.signal.value, key, group.sessions, group.occurrences)
 
 
+def _insert_counts(db: sqlite3.Connection, project: str, outcome: MiningOutcome) -> None:
+    """The held-back, struggle and churn rows of a mining run."""
+    db.executemany(
+        "INSERT INTO held_back VALUES (?, ?, ?)",
+        [(project, reason.value, count) for reason, count in outcome.held.items()],
+    )
+    db.executemany(
+        "INSERT INTO struggle VALUES (?, ?, ?, ?, ?)",
+        [_struggle_row(project, group) for group in struggle_groups(outcome.struggle)],
+    )
+    db.executemany(
+        "INSERT INTO churn VALUES (?, ?, ?, ?)",
+        [(project, row.file, row.session_id, row.edits) for row in outcome.churn],
+    )
+
+
 class MiningLedger:
     """Saving a mining run, and reading what it held back, struggled with and churned."""
 
@@ -143,17 +175,10 @@ class MiningLedger:
                 "INSERT INTO lessons VALUES (?, ?, ?, ?, ?)",
                 [lesson_row(project, lesson) for lesson in outcome.kept],
             )
+            _insert_counts(db, project, outcome)
             db.executemany(
-                "INSERT INTO held_back VALUES (?, ?, ?)",
-                [(project, reason.value, count) for reason, count in outcome.held.items()],
-            )
-            db.executemany(
-                "INSERT INTO struggle VALUES (?, ?, ?, ?, ?)",
-                [_struggle_row(project, group) for group in struggle_groups(outcome.struggle)],
-            )
-            db.executemany(
-                "INSERT INTO churn VALUES (?, ?, ?, ?)",
-                [(project, row.file, row.session_id, row.edits) for row in outcome.churn],
+                "INSERT INTO incidents VALUES (?, ?, ?, ?)",
+                [incident_row(project, card) for card in outcome.incidents],
             )
             insert_struggle(db, project, outcome.facts, outcome.strips)
             if outcome.min_sessions is not None:
@@ -200,3 +225,10 @@ class MiningLedger:
     def session_strips(self, project: str) -> list[SessionStrip]:
         """The sessions drawn step by step, from the last mining."""
         return read_strips(self._db, project)
+
+    def incidents(self, project: str) -> list[Incident]:
+        """The cards of the last mining in mined order; none for a store mined before them."""
+        rows = self._db.execute(
+            "SELECT body FROM incidents WHERE project=? ORDER BY rowid", (project,)
+        ).fetchall()
+        return [incident_from_json(body) for (body,) in rows]

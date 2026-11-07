@@ -135,6 +135,8 @@ def _failure_card(
         topic=topic,
         files=lesson.files,
         situation=(TriggerKind.RUNNING.value, program, path_of(target, repo_names)),
+        fingerprint=f"failure:{program}:{broke}",
+        example=words.command_example(failed.command if failed is not None else None),
     )
 
 

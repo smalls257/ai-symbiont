@@ -45,6 +45,7 @@ def correction_card(
         topic=topic,
         files=lesson.files,
         situation=situation_of(episode.first_wrong, repo_names),
+        example=words.quoted_words(text),
     )
 
 

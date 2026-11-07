@@ -28,3 +28,11 @@ def test_every_noise_reason_has_words_without_jargon():
         noise_words(NoiseReason.THROWAWAY_SCRIPT)
         == "the agent's own throwaway script: its name repeats, its problem does not"
     )
+
+
+def test_a_credential_in_a_correction_never_reaches_the_sentence():
+    from symbiont.miner.incident_words import correction_sentence
+
+    secret = "sk-" + "A1b2C3d4E5f6G7h8I9j0K1l2"
+    said = correction_sentence(f"use the key {secret} for the call")
+    assert secret not in said
