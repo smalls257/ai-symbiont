@@ -26,12 +26,13 @@ from symbiont.records.schema import Record
 from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall, CheckerVerdict
 from symbiont.service.context_route import UnknownLessonError
 from symbiont.service.curation_routes import CurationRoutes
-from symbiont.service.dashboard_page import Live, Page, dashboard_page
-from symbiont.service.events import Call, EventLog, MemoryCost, checked_nightly
+from symbiont.service.dashboard_page import Page, dashboard_page
+from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.follow_up import FollowUp
 from symbiont.service.ignore_route import developer_routes
 from symbiont.service.judge_model import JudgeModel
 from symbiont.service.learned_outcomes import replay_into_decider
+from symbiont.service.live_state import live_state
 from symbiont.service.memory_model import (
     MemoryModel,
     MemoryModelOfflineError,
@@ -58,7 +59,6 @@ from symbiont.service.stale_lessons import StaleLessons
 from symbiont.store.checkouts import names_for
 from symbiont.store.local import RemotePrivacyViolationError, Store
 from symbiont.store.mining import UnknownReaderError, read_source, remine_with_read
-from symbiont.store.settings import read_mining_settings
 
 log = logging.getLogger("symbiont.service")
 REMOTE_WITHHELD = "private history withheld from the remote model"
@@ -149,9 +149,7 @@ class Service:
             return self._mining.progress_page(percent_decoded(project))
         with self._one_call_at_a_time:
             parts = self._parts
-            nightly = checked_nightly(parts.gate.nightly_state, parts.events.path.parent.parent)
-            data_dir = parts.events.path.parent.parent
-            live = Live(self._jobs.progress, nightly, read_mining_settings(data_dir).min_sessions)
+            live = live_state(parts.gate, parts.events, parts.readers, self._jobs)
             return dashboard_page(parts.store, parts.gate.registry, target, date.today(), live)
 
     def wait_for_mining(self, project: str, timeout_s: float) -> None:

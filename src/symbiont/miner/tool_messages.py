@@ -50,12 +50,18 @@ def tool_message(output: str) -> str | None:
 
     Credentials are scrubbed first: the line becomes part of a group name.
     """
+    line = raw_complaint(output)
+    return None if line is None else _normalized(line)
+
+
+def raw_complaint(output: str) -> str | None:
+    """The last complaint line as the tool printed it (scrubbed, not normalized), or None."""
     text = scrub(_ANSI.sub("", output))
     typescript = _TYPESCRIPT_ERROR.findall(text)
     if typescript:
-        return _normalized(typescript[-1])
+        return typescript[-1]
     complaints = [line for line in map(_cleaned, text.splitlines()) if _is_complaint(line)]
-    return _normalized(complaints[-1]) if complaints else None
+    return complaints[-1] if complaints else None
 
 
 def _cleaned(line: str) -> str:
