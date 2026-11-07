@@ -6,6 +6,9 @@
 /* The same ten sessions as trends.js and core/trends.py: fewer cannot show whether a lesson worked. */
 const ENOUGH_SESSIONS = 10;
 
+/* Shown, never the group title in its place: the lesson was removed, or taught before its id was kept. */
+const LESSON_GONE = "Lesson text not available (removed or taught before this version)";
+
 const STYLE = `
 .trn .pg{display:grid;grid-template-columns:minmax(0,1fr) 30rem;gap:1.2rem;align-items:start}
 .trn .side{display:flex;flex-direction:column;gap:1.2rem;position:sticky;top:5.2rem}
@@ -48,7 +51,7 @@ function afterWords(taught, fmt) {
 
 function lessonHtml(group, fmt) {
   const taught = group.taught;
-  return '<a class="one" data-route href="' + fmt.esc(fmt.groupHref(group.key)) + '">' + fmt.esc(taught.lesson || group.title)
+  return '<a class="one" data-route href="' + fmt.esc(fmt.groupHref(group.key)) + '">' + fmt.esc(taught.lesson === null ? LESSON_GONE : taught.lesson)
     + "<small>added " + fmt.esc(fmt.dayLabel(taught.on)) + " · before: " + fmt.esc(fmt.perTen(taught.before.per10))
     + " · after: " + fmt.esc(afterWords(taught, fmt)) + "</small></a>";
 }

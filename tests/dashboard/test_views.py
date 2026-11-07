@@ -162,6 +162,13 @@ def test_lessons_show_their_words_a_link_and_the_after_wait_or_rate(drawn):
     assert HOSTILE not in html and "&lt;img src=x onerror" in html
 
 
+def test_a_lesson_whose_words_are_gone_says_so_and_never_shows_the_group_title_instead(drawn):
+    html = drawn["lessonGone"].split("Lessons you added")[1]
+
+    assert "Lesson text not available (removed or taught before this version)" in html
+    assert "Group title" not in html
+
+
 def test_no_lessons_says_how_to_add_one(drawn):
     assert 'Use "Teach the agent"' in drawn["noLessons"]
 

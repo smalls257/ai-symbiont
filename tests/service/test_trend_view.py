@@ -9,7 +9,8 @@ from datetime import date
 import pytest
 
 from quiet_store import mine_a_session_without_failures
-from symbiont.service.trend_view import Taught, trends_of, trends_snapshot
+from symbiont.miner.lesson_context import AuthoredLesson, LessonKind
+from symbiont.service.trend_view import Taught, taught_lessons, trends_of, trends_snapshot
 from symbiont.store.local import Store
 
 
@@ -147,3 +148,36 @@ def test_a_group_the_developer_taught_is_not_offered_as_one_they_did_not():
     taught = {"g": Taught(date(2026, 9, 4), "Unset it.")}
     shown = trends_of([gone("g", ["2026-09-02", "2026-09-03"])], QUIET_AFTER, 0, taught)
     assert shown["natural"] is None
+
+
+def taught_group_store(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    mine_a_session_without_failures(tmp_path, store)
+    store.curation.add_authored(
+        "demo", AuthoredLesson("l1", "Unset the token first.", LessonKind.MISTAKE)
+    )
+    store.review.triage.mark_taught("demo", "g", date(2026, 10, 10), "l1")
+    return store
+
+
+def lesson_shown(store):
+    return taught_lessons(store, "demo")["g"].lesson
+
+
+def test_the_lesson_words_come_from_the_lessons_store(tmp_path):
+    assert lesson_shown(taught_group_store(tmp_path)) == "Unset the token first."
+
+
+def test_a_forgotten_lesson_leaves_no_words_to_show(tmp_path):
+    store = taught_group_store(tmp_path)
+    store.curation.forget_authored("demo", "l1")
+
+    assert lesson_shown(store) is None
+
+
+def test_a_group_taught_before_ids_were_kept_has_no_words_to_show(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    mine_a_session_without_failures(tmp_path, store)
+    store.review.triage.mark_taught("demo", "g", date(2026, 10, 10))
+
+    assert lesson_shown(store) is None

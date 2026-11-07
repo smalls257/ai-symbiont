@@ -112,20 +112,38 @@ def test_taught_records_the_day_without_changing_the_state(tmp_path):
     assert saved(tmp_path)[KEY].state is GroupState.REVIEWED
 
 
-def test_taught_keeps_the_lesson_text_scrubbed_and_capped(tmp_path):
-    service = rig(tmp_path)
-
-    reply = service.respond("/triage", body(taught=True, lesson="Run it as `env -u X gh`. " * 80))
-
+def add_lesson(service, text):
+    reply = service.respond(
+        "/lessons/add",
+        {"project": PROJECT, "lessons": [{"text_in_plain_words": text, "kind": "mistake"}]},
+    )
     assert reply.status == 200
-    text = Store.open(tmp_path / "store.db").review.triage.lessons(PROJECT)[KEY]
-    assert text.startswith("Run it as") and len(text) <= 600
+    return reply.body["ids"][0]
 
 
-def test_a_lesson_that_is_not_text_is_a_400(tmp_path):
-    reply = rig(tmp_path).respond("/triage", body(taught=True, lesson=5))
+def test_taught_keeps_the_id_of_the_lesson_it_stored_and_a_later_teach_without_one_keeps_it(
+    tmp_path,
+):
+    service = rig(tmp_path)
+    ident = add_lesson(service, "Unset the token first.")
 
-    assert reply.status == 400 and "lesson" in str(reply.body)
+    service.respond("/triage", body(taught=True, lesson_id=ident))
+    service.respond("/triage", body(taught=True))
+
+    ids = Store.open(tmp_path / "store.db").review.triage.lesson_ids(PROJECT)
+    assert ids == {KEY: ident}
+
+
+def test_a_lesson_id_nobody_stored_is_a_400_naming_it(tmp_path):
+    reply = rig(tmp_path).respond("/triage", body(taught=True, lesson_id="nope"))
+
+    assert reply.status == 400 and "nope" in str(reply.body)
+
+
+def test_a_lesson_id_that_is_not_text_is_a_400(tmp_path):
+    reply = rig(tmp_path).respond("/triage", body(taught=True, lesson_id=5))
+
+    assert reply.status == 400 and "lesson_id" in str(reply.body)
 
 
 def test_every_triage_call_writes_an_event_and_a_refusal_too(tmp_path):

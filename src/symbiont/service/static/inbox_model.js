@@ -126,9 +126,9 @@ function lessonRequest(project,g,when,what,name){
   if(applies)lesson.applies_to=applies;
   return {project,lessons:[lesson]};
 }
-/* The body that records the day a lesson was taught, with its words so Trends can show them. */
-function taughtRequest(project,g,request){
-  return {project,group_key:g.key,taught:true,lesson:request.lessons[0].text_in_plain_words};
+/* The body that records the day a lesson was taught, with the id /lessons/add gave it. */
+function taughtRequest(project,g,added){
+  return {project,group_key:g.key,taught:true,lesson_id:added.ids[0]};
 }
 function appliesTo(trigger){
   if(!trigger)return null;

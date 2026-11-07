@@ -220,9 +220,9 @@ def test_orphan_triage_keys_are_ignored(decided):
     assert decided["orphan"] == decided["orphanPlain"]
 
 
-def test_marking_a_group_taught_sends_the_lesson_words_so_trends_can_show_them(decided):
+def test_marking_a_group_taught_sends_the_id_the_lessons_store_gave_it(decided):
     body = decided["taughtBody"]
 
     assert body["taught"] is True and body["project"] == "demo"
-    assert body["lesson"] == decided["request"]["lessons"][0]["text_in_plain_words"]
+    assert body["lesson_id"] == "lesson-9" and "lesson" not in body
     assert body["group_key"]

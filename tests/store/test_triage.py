@@ -159,8 +159,40 @@ def test_a_store_from_before_for_30_days_gains_the_until_column(tmp_path):
     assert store.review.triage.all("demo")["k"].until is None
 
 
-def test_the_lesson_a_group_was_taught_is_kept_with_its_day_and_empty_when_none_was_sent(store):
-    store.review.triage.mark_taught("demo", "key-a", DAY, "Unset the token first.")
+def test_the_id_of_the_lesson_a_group_was_taught_is_kept_and_absent_when_none_was_sent(store):
+    store.review.triage.mark_taught("demo", "key-a", DAY, "lesson-1")
     store.review.triage.mark_taught("demo", "key-b", DAY)
 
-    assert store.review.triage.lessons("demo") == {"key-a": "Unset the token first."}
+    assert store.review.triage.lesson_ids("demo") == {"key-a": "lesson-1"}
+
+
+def test_teaching_again_updates_the_id_and_a_teach_without_one_keeps_it(store):
+    store.review.triage.mark_taught("demo", "key-a", DAY, "lesson-1")
+    store.review.triage.mark_taught("demo", "key-a", LATER, "lesson-2")
+    store.review.triage.mark_taught("demo", "key-a", LATER)
+
+    assert store.review.triage.lesson_ids("demo") == {"key-a": "lesson-2"}
+
+
+def test_a_store_from_before_lesson_ids_opens_reads_none_and_takes_a_teach(tmp_path):
+    path = tmp_path / "old.db"
+    db = sqlite3.connect(path)
+    db.execute(
+        "CREATE TABLE triage (project TEXT NOT NULL, group_key TEXT NOT NULL, state TEXT NOT NULL,"
+        " return_rule TEXT, after_sessions INTEGER, changed_on TEXT NOT NULL, taught_on TEXT,"
+        " name TEXT NOT NULL DEFAULT '', until TEXT, PRIMARY KEY (project, group_key))"
+    )
+    db.execute(
+        "INSERT INTO triage VALUES ('demo', 'k', 'reviewed', NULL, NULL, '2026-11-06',"
+        " '2026-11-06', '', NULL)"
+    )
+    db.commit()
+    db.close()
+
+    store = Store.open(path)
+    assert store.review.triage.lesson_ids("demo") == {}
+    store.review.triage.mark_taught("demo", "k", DAY, "lesson-1")
+
+    assert store.review.triage.lesson_ids("demo") == {"k": "lesson-1"}
+    columns = {c[1] for c in sqlite3.connect(path).execute("PRAGMA table_info(triage)")}
+    assert "lesson" not in columns

@@ -17,10 +17,10 @@ from symbiont.store.local import Store
 
 @dataclass(frozen=True)
 class Taught:
-    """The day a group was taught to the agent and the words ("" when none were kept)."""
+    """The day a group was taught to the agent and its lesson's words (None: not available)."""
 
     on: date
-    lesson: str = ""
+    lesson: str | None = None
 
 
 # A year of columns is as many as the table can show without squeezing the numbers.
@@ -46,17 +46,27 @@ def trends_snapshot(
     facts = store.mined.session_facts(project)
     session_days = list(session_dates_of(facts).values())
     triage = store.review.triage
-    words = triage.lessons(project)
-    taught = {
-        key: Taught(row.taught_on, words.get(key, ""))
-        for key, row in triage.all(project).items()
-        if row.taught_on
-    }
+    taught = taught_lessons(store, project)
     groups = incidents["groups"] if incidents else []
     shown = trends_of(
         groups, session_days, len(facts) - len(session_days), taught, triage.names(project)
     )
     return {**shown, "undatedReason": "no_timestamps" if incidents else "old_store"}
+
+
+def taught_lessons(store: Store, project: str) -> dict[str, Taught]:
+    """Each taught group's day and the words of its lesson, read from the lessons store.
+
+    A lesson that was forgotten, or taught before its id was kept, has no words (None).
+    """
+    triage = store.review.triage
+    ids = triage.lesson_ids(project)
+    written = {item.ident: item.text for item in store.curation.authored(project)}
+    return {
+        key: Taught(row.taught_on, written.get(ids.get(key, "")))
+        for key, row in triage.all(project).items()
+        if row.taught_on
+    }
 
 
 def trends_of(

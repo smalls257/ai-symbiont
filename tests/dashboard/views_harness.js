@@ -76,6 +76,7 @@ console.log(JSON.stringify({
   replayTip: attr(HOSTILE),
   linked: draw(R, trends({ groups: [row({ key: "a&b c" })] })),
   lessons: draw(R, trends({ groups: [row({ taught: taughtOf() }), row({ key: "k2", title: "Other", taught: taughtOf({ lesson: HOSTILE, enough: true, after: cell(1, 12) }) })] })),
+  lessonGone: draw(R, trends({ groups: [row({ title: "Group title", taught: taughtOf({ lesson: null }) })] })),
   noLessons: draw(R, trends()),
   found: draw(R, trends({ natural: natural() })),
   foundHostile: draw(R, trends({ natural: natural({ title: HOSTILE, key: "x\"y" }) })),
