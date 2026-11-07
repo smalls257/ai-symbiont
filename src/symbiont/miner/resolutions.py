@@ -159,13 +159,31 @@ def _same_attempt(failed: Record, later: Record) -> bool:
     )
 
 
+# These flags take the next word as their value, so it is not a subcommand.
+_FLAGS_WITH_VALUES = {"--filter", "-F", "-C", "--dir", "--prefix", "--repo", "-R", "-c"}
+
+
+def _bare_arguments(args: tuple[str, ...]) -> list[str]:
+    """Arguments that are neither flags nor the value of a flag that takes one."""
+    words: list[str] = []
+    skip_next = False
+    for arg in args:
+        if skip_next:
+            skip_next = False
+        elif arg in _FLAGS_WITH_VALUES:
+            skip_next = True
+        elif not arg.startswith("-"):
+            words.append(arg)
+    return words
+
+
 def subcommand_of(command: str) -> str:
     """The first argument when it is a bare word (`push` in `git push origin`), else "-".
 
     Paths and node ids are left to `normalise_command`, which already compares the target.
     """
     program, args = program_words(command)
-    words = [arg for arg in args if not arg.startswith("-")] or ["-"]
+    words = _bare_arguments(args) or ["-"]
     if not _BARE_WORD.match(words[0]):
         return "-"
     if program in _SCRIPT_TOOLS and words[0] in _SCRIPT_RUNNERS and len(words) > 1:

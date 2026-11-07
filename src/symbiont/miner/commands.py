@@ -10,10 +10,18 @@ import os
 import re
 import shlex
 
+from symbiont.miner.shell_text import shell_text
+
 NO_PATH = "-"
 
 # Segments that set up the shell rather than do the work.
 _SETUP_PROGRAMS = {"cd", "source", ".", "export", "set", "pushd", "popd"}
+# Reserved words that open a segment; the command is whatever follows them.
+_SHELL_KEYWORDS = {"do", "then", "else", "elif", "if", "while", "until", "!", "{", "}"}
+# A segment starting with one is loop or case syntax; its words are not a command.
+_SHELL_HEADERS = {"for", "select", "case", "done", "fi", "esac", "in"}
+# Banners and pauses around the real work; they never carry the failure.
+_PASSIVE_PROGRAMS = {"echo", "printf", "sleep", "true", ":", "wait"}
 # Wrappers whose own arguments come before the real program.
 _WRAPPERS = {"timeout", "time", "env", "nohup"}
 _PYTHONS = re.compile(r"^python(\d+(\.\d+)?)?$")
@@ -58,6 +66,8 @@ def status_program(command: str) -> str | None:
         return None
     last_stage, joiner = chain[-1]
     if joiner == "&&" and (len(chain) < 2 or not _only_sets_up(chain[-2][0])):
+        return None
+    if last_stage[0] in _SHELL_HEADERS:
         return None
     program, args = _program_and_args(last_stage)
     if program == "git" and args[:1] == ["grep"]:
@@ -105,17 +115,16 @@ def _only_sets_up(stage: list[str]) -> bool:
 
 
 def _tokens(command: str) -> list[str]:
-    """Shell tokens of the command's first line; later lines are heredoc bodies."""
-    # Their free text often has unbalanced quotes, so only the first line is tokenized.
-    first_line = command.strip().splitlines()[0] if command.strip() else ""
-    lexer = shlex.shlex(first_line, posix=True, punctuation_chars=True)
+    """Shell tokens of the whole command, heredoc bodies and comment lines removed."""
+    line = shell_text(command)
+    lexer = shlex.shlex(line, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
     try:
         return list(lexer)
     except ValueError:
-        # An unbalanced quote on the first line (the shell would reject it
-        # too); plain whitespace still yields the program and its targets.
-        return first_line.split()
+        # An unbalanced quote (the shell would reject it too); plain
+        # whitespace still yields the program and its targets.
+        return line.split()
 
 
 def _segments(tokens: list[str]) -> list[list[str]]:
@@ -144,12 +153,45 @@ def _is_redirection(token: str) -> bool:
 
 
 def _working_segment(tokens: list[str]) -> list[str]:
-    """The first segment that does real work, skipping shell setup."""
-    segments = _segments(tokens)
-    for segment in segments:
-        if os.path.basename(segment[0]) not in _SETUP_PROGRAMS:
-            return segment
-    return segments[0] if segments else []
+    """The first segment that does real work, skipping setup, banners and loop syntax."""
+    segments = [_without_keywords(segment) for segment in _segments(tokens)]
+    segments = [segment for segment in segments if segment]
+    # Setup-only commands (`export X=1`) and banners (`echo hi`) are still that program.
+    fallbacks = (_does_work, _is_not_header_or_setup, _is_not_header)
+    return next((s for test in fallbacks for s in segments if test(s)), [])
+
+
+def _does_work(segment: list[str]) -> bool:
+    return not _is_scaffolding(segment) and not _only_assignments(segment)
+
+
+def _is_not_header_or_setup(segment: list[str]) -> bool:
+    return not _is_header_or_setup(segment)
+
+
+def _is_not_header(segment: list[str]) -> bool:
+    return segment[0] not in _SHELL_HEADERS
+
+
+def _without_keywords(segment: list[str]) -> list[str]:
+    """The segment minus leading reserved words such as `do` and `then`."""
+    start = 0
+    while start < len(segment) and segment[start] in _SHELL_KEYWORDS:
+        start += 1
+    return segment[start:]
+
+
+def _is_header_or_setup(segment: list[str]) -> bool:
+    return segment[0] in _SHELL_HEADERS or os.path.basename(segment[0]) in _SETUP_PROGRAMS
+
+
+def _is_scaffolding(segment: list[str]) -> bool:
+    """Header, setup or passive segment: shell structure or a banner, not the work."""
+    return _is_header_or_setup(segment) or os.path.basename(segment[0]) in _PASSIVE_PROGRAMS
+
+
+def _only_assignments(segment: list[str]) -> bool:
+    return all(_ENV_ASSIGNMENT.match(token) for token in segment)
 
 
 def _program_and_args(segment: list[str]) -> tuple[str, list[str]]:
@@ -164,11 +206,28 @@ def _program_and_args(segment: list[str]) -> tuple[str, list[str]]:
 
 
 def _without_wrappers(words: list[str]) -> list[str]:
-    """Drop leading `timeout`/`time`/`env`/`nohup`, and timeout's duration."""
+    """Drop leading `timeout`/`time`/`env`/`nohup`, timeout's duration and env's own flags."""
     while len(words) > 1 and os.path.basename(words[0]) in _WRAPPERS:
-        is_timeout = words[0] == "timeout"
-        words = [w for w in words[1:] if not (is_timeout and _NUMBER.match(w))]
+        wrapper, words = words[0], words[1:]
+        if wrapper == "timeout":
+            words = [w for w in words if not _NUMBER.match(w)]
+        elif wrapper == "env":
+            words = _without_env_flags(words)
     return words
+
+
+def _without_env_flags(words: list[str]) -> list[str]:
+    """Drop env's `-i`, `-`, `-u NAME`, `--unset NAME` and `--unset=NAME` from the front."""
+    index = 0
+    while index < len(words):
+        word = words[index]
+        if word in ("-u", "--unset"):
+            index += 2
+        elif word in ("-i", "-") or word.startswith("--unset="):
+            index += 1
+        else:
+            break
+    return words[index:]
 
 
 def _first_path(args: list[str]) -> str:
