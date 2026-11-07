@@ -2,7 +2,7 @@
 
 import re
 
-from symbiont.miner.commands import segment_program_words
+from symbiont.miner.commands import Stage, command_stages
 from symbiont.miner.resolutions import bare_arguments
 from symbiont.miner.screen import PROBES
 
@@ -10,6 +10,7 @@ from symbiont.miner.screen import PROBES
 SHELL_PLUMBING = frozenset(
     {"cd", "pushd", "popd", "pwd", "echo", "printf", "sleep", "true", ":", "wait"}
     | {"export", "set", "unset", "source", "."}
+    | {"[", "[[", "test", "read"}
 )
 # They only report; the pass that follows cannot be owed to them.
 READ_ONLY_PROGRAMS = PROBES | {"jq", "tree", "env", "ps", "lsof", "pgrep"}
@@ -23,13 +24,23 @@ READ_ONLY_GH = {
 }
 _GH_WRITE_FLAGS = {"-f", "-F", "--field", "--raw-field"}
 _GIT_REMOTE_READS = {"show", "get-url"}
+# After a pipe these only reshape what the first stage printed.
+OUTPUT_FILTERS = frozenset(
+    {"sort", "uniq", "cut", "tr", "head", "tail", "grep", "wc", "column", "jq", "less", "cat"}
+)
 _INFO_FLAGS = {"--version", "--help"}
 _SED_IN_PLACE = re.compile(r"-[A-Za-z]*i|--in-place")
 
 
 def is_read_only(command: str) -> bool:
     """True when every working segment is plumbing, a look-around or a report."""
-    return all(_segment_reads(program, args) for program, args in segment_program_words(command))
+    return all(_stage_reads(stage) for stage in command_stages(command))
+
+
+def _stage_reads(stage: Stage) -> bool:
+    if stage.piped and stage.program in OUTPUT_FILTERS:
+        return True
+    return _segment_reads(stage.program, stage.args)
 
 
 def _segment_reads(program: str, args: tuple[str, ...]) -> bool:

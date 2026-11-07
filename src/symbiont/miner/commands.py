@@ -9,6 +9,7 @@ same mistake gets the same key across sessions.
 import os
 import re
 import shlex
+from typing import NamedTuple
 
 from symbiont.miner.shell_text import shell_text
 
@@ -48,16 +49,46 @@ def program_words(command: str) -> tuple[str, tuple[str, ...]]:
     return (program, tuple(args))
 
 
-def segment_program_words(command: str) -> list[tuple[str, tuple[str, ...]]]:
-    """(program, arguments) of every segment that runs something, in order.
+class Stage(NamedTuple):
+    """One command a shell line runs, and whether a pipe feeds it."""
 
-    Loop headers and bare assignments run nothing; `("-", ())` when no segment does.
+    program: str
+    args: tuple[str, ...]
+    piped: bool
+
+
+def command_stages(command: str) -> list[Stage]:
+    """Every segment that runs something, in order; `Stage("-", (), False)` when none does.
+
+    Loop headers and bare assignments run nothing.
     """
-    segments = [_without_keywords(segment) for segment in _segments(_tokens(command))]
-    runs = [s for s in segments if s and s[0] not in _SHELL_HEADERS and not _only_assignments(s)]
-    if not runs:
-        return [(NO_PATH, ())]
-    return [(program, tuple(args)) for program, args in map(_program_and_args, runs)]
+    stages: list[Stage] = []
+    for segment, joiner in _joined_segments(_tokens(command)):
+        run = _without_keywords(segment)
+        if run and run[0] not in _SHELL_HEADERS and not _only_assignments(run):
+            program, args = _program_and_args(run)
+            stages.append(Stage(program, tuple(args), piped=joiner == "|"))
+    return stages or [Stage(NO_PATH, (), piped=False)]
+
+
+def _joined_segments(tokens: list[str]) -> list[tuple[list[str], str]]:
+    """Segments with the separator that precedes each (`|`, `&&`, `;` ...)."""
+    segments: list[tuple[list[str], str]] = []
+    current: list[str] = []
+    joiner = ""
+    for token in tokens:
+        if _is_redirection(token):
+            continue
+        if not all(ch in "&|;()" for ch in token):
+            current.append(token)
+            continue
+        if current:
+            segments.append((current, joiner))
+            current = []
+        joiner = token if set(token) - set("()") else joiner
+    if current:
+        segments.append((current, joiner))
+    return segments
 
 
 def final_program_words(command: str) -> tuple[str, tuple[str, ...]]:

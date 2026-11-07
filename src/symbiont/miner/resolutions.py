@@ -37,6 +37,7 @@ _SCRIPT_TOOLS = (
     "uv",
 )  # `<tool> run <script>`: the script is part of the subcommand
 _SCRIPT_RUNNERS = ("run", "run-script")
+_NAME_VALUE = re.compile(r"^\w+=")
 _BARE_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
@@ -189,7 +190,7 @@ def subcommand_of(command: str) -> str:
 
 def subcommand_after(program: str, args: tuple[str, ...]) -> str:
     """`subcommand_of` for a program and arguments already picked out of a command."""
-    words = bare_arguments(args) or ["-"]
+    words = [w for w in bare_arguments(args) if not _NAME_VALUE.match(w)] or ["-"]
     if not _BARE_WORD.match(words[0]):
         return "-"
     if program in _SCRIPT_TOOLS and words[0] in _SCRIPT_RUNNERS and len(words) > 1:
