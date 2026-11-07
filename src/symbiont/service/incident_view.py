@@ -54,6 +54,8 @@ class IncidentContext:
     correction_descriptions: Mapping[str, str] = field(default_factory=dict)
     # Group keys whose mined lesson nightly training reads; see `training_groups`.
     trained: frozenset[str] = frozenset()
+    # The session model's one-sentence verdict per group key; see `store.group_verdicts`.
+    verdicts: Mapping[str, str] = field(default_factory=dict)
 
 
 def incidents_snapshot(
@@ -69,13 +71,20 @@ def incidents_snapshot(
     cards = [replace(card, topic=topic_of.get(card.session_id, "")) for card in mined]
     trained = trained_fingerprints(store, project, rules or ScreenRules())
     days = {sid: when.isoformat() for sid, when in session_dates_of(facts).items()}
-    shown = incident_groups(cards, days, _context_of(facts, topic_map, trained))
+    shown = incident_groups(
+        cards,
+        days,
+        _context_of(facts, topic_map, trained, store.review.verdicts.sentences(project)),
+    )
     shown["ownHistory"] = not dataset_readers(store, project)
     return shown
 
 
 def _context_of(
-    facts: Sequence[SessionFacts], topic_map: TopicMap, trained: frozenset[str]
+    facts: Sequence[SessionFacts],
+    topic_map: TopicMap,
+    trained: frozenset[str],
+    verdicts: Mapping[str, str],
 ) -> IncidentContext:
     groups = topic_map.correction_groups
     return IncidentContext(
@@ -84,6 +93,7 @@ def _context_of(
         {ref: g.name for g in groups for ref in g.refs},
         {g.name: g.description for g in groups},
         trained,
+        verdicts,
     )
 
 
@@ -174,6 +184,7 @@ def _group_json(
         "fixShown": _dominant_outcome(group.cards) in TEACHABLE_OUTCOMES,
         "trains": group.signal is not Signal.CORRECTION and group.key in context.trained,
         "verdict": VERDICT_WORDS[_dominant_outcome(group.cards)],
+        "verdictSentence": context.verdicts.get(group.key),
         "noise": group.noise.value if group.noise else None,
         "noiseWords": noise_words(group.noise) if group.noise else "",
         "sessions": len({c.session_id for c in group.cards}),
