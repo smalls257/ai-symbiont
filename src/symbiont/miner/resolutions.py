@@ -164,7 +164,7 @@ def _same_attempt(failed: Record, later: Record) -> bool:
 _FLAGS_WITH_VALUES = {"--filter", "-F", "-C", "--dir", "--prefix", "--repo", "-R", "-c"}
 
 
-def _bare_arguments(args: tuple[str, ...]) -> list[str]:
+def bare_arguments(args: tuple[str, ...]) -> list[str]:
     """Arguments that are neither flags nor the value of a flag that takes one."""
     words: list[str] = []
     skip_next = False
@@ -188,7 +188,7 @@ def subcommand_of(command: str) -> str:
 
 def subcommand_after(program: str, args: tuple[str, ...]) -> str:
     """`subcommand_of` for a program and arguments already picked out of a command."""
-    words = _bare_arguments(args) or ["-"]
+    words = bare_arguments(args) or ["-"]
     if not _BARE_WORD.match(words[0]):
         return "-"
     if program in _SCRIPT_TOOLS and words[0] in _SCRIPT_RUNNERS and len(words) > 1:

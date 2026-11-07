@@ -37,6 +37,9 @@ def _between(text):
         "jq . x.json",
         "sed -n 1,5p a.py",
         "sleep 5 && git diff",
+        "git -C /repo status",
+        "git -c core.x=1 log --oneline",
+        "gh --repo o/r pr view 3",
     ],
 )
 def test_plumbing_and_read_only_commands_are_no_setup(text):
@@ -61,3 +64,7 @@ def test_installs_and_writes_are_setup(text):
 
 def test_the_working_line_is_named_not_the_first():
     assert _between("cd /repo\nnpm install") == "npm install"
+
+
+def test_a_write_behind_a_flag_value_is_still_setup():
+    assert _between("git -C /repo config user.email x") == "git -C /repo config user.email x"

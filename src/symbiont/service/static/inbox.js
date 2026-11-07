@@ -75,7 +75,7 @@ function foldsHtml(ui,found,axis){
   const rows=list=>'<div class="glist">'+list.map(g=>R.rowHtml(shownOf(ui,g,axis))).join("")+"</div>";
   const body=(id,list)=>ui.open.has(id)?rows(list):"";
   const count=list=>M.plural(list.length,"group");
-  const once=found.once.length?R.foldHtml("inOnce","Seen once",count(found.once),"each happened in one session, and no fix was shown",body("inOnce",found.once)):"";
+  const once=found.once.length?R.foldHtml("inOnce","Seen once",count(found.once),"each happened in one session",body("inOnce",found.once)):"";
   const noise=found.noise.length?R.foldHtml("inNoise","Noise",count(found.noise),R.noiseLead(M.noiseReasons(found.noise)),body("inNoise",found.noise)):"";
   return once+noise;
 }
