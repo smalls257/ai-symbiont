@@ -5,7 +5,7 @@ where a path sits: below a repo-name directory, relative with a directory of its
 top-level file that is the project itself. Temporary and hidden tool directories never count.
 """
 
-_THROWAWAY_DIRS = ("/tmp/", "/var/folders/", "/private/tmp/")
+THROWAWAY_DIRS = ("/tmp/", "/var/folders/", "/private/tmp/")
 # Top-level files that are the project itself, not a scratch script dropped in the root.
 PROJECT_FILES = frozenset(
     {
@@ -23,7 +23,7 @@ PROJECT_FILES = frozenset(
 
 def repo_relative(path: str, repo_names: frozenset[str]) -> str | None:
     """`path` relative to the repo root, or None when it is outside the codebase."""
-    if path.startswith(_THROWAWAY_DIRS):
+    if path.startswith(THROWAWAY_DIRS):
         return None
     relative = _below_repo(path, repo_names) if path.startswith("/") else path.removeprefix("./")
     relative = _in_worktree(relative) if relative else relative

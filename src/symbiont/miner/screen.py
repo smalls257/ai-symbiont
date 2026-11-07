@@ -1,10 +1,9 @@
 """Screening: which mined groups of trouble become lessons, and why the rest are held back.
 
-A group is every lesson with one signature. Counting repeats of a trap with no shown fix teaches
-nothing, and a threshold nobody measured is a magic number, so the
-rules are few, named and counted: a failed-command group needs a known fix before it may be
-taught, then that fix in `min_sessions` distinct sessions. Every held group is counted under the
-first reason that applies and shown; nothing is dropped quietly. Pure: lessons in, lessons out.
+A group is every lesson with one signature. Repeats of a trap with no shown fix teach nothing, so
+a failed-command group needs a known fix, recurring in `min_sessions` distinct sessions, on a
+script that outlives its session. Every held group is counted under the first reason that
+applies and shown; nothing is dropped quietly. Pure: lessons in, lessons out.
 """
 
 from collections import defaultdict
@@ -83,7 +82,7 @@ def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
 
 
 def taught_since_the_fix_rule(lessons: Sequence[Lesson]) -> list[Lesson]:
-    """`lessons` without what only an older mining kept: rework, and failures no lesson fixed.
+    """`lessons` without what only an older mining kept: rework, unfixed and inline failures.
 
     Screening judges a failed command's whole group, so one lesson without a fix stays when a
     sibling shows one. Delivery skips the rest until the store is mined again.
@@ -95,7 +94,10 @@ def taught_since_the_fix_rule(lessons: Sequence[Lesson]) -> list[Lesson]:
         if lesson.pain_point.signature.signal is not Signal.REWORKED_EDIT
         and (
             lesson.pain_point.signature.signal is not Signal.FAILED_COMMAND
-            or lesson.pain_point.signature in fixed
+            or (
+                lesson.pain_point.signature in fixed
+                and lesson.pain_point.signature.key[1] != INLINE_TARGET
+            )
         )
     ]
 
@@ -129,7 +131,7 @@ def _failed_command_reason(
         return HoldReason.NO_MESSAGE
     if signature.key[0] in PROBES:
         return HoldReason.PROBE_COMMAND
-    if signature.key[1] == INLINE_TARGET or all(lesson.target_created for lesson in group):
+    if signature.key[1] == INLINE_TARGET or all(lesson.target_created for lesson in fixed):
         return HoldReason.THROWAWAY_SCRIPT
     return _too_few_sessions(fixed, rules)
 

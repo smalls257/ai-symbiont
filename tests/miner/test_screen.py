@@ -3,7 +3,7 @@
 from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
-from symbiont.miner.screen import HoldReason, ScreenRules, screen
+from symbiont.miner.screen import HoldReason, ScreenRules, screen, taught_since_the_fix_rule
 
 TRAP = Signature(Signal.FAILED_COMMAND, ("pytest", "tests/test_x.py", "ImportError"))
 
@@ -140,3 +140,18 @@ def test_an_ignored_group_that_another_reason_holds_is_counted_under_that_reason
     ignored = Signature(Signal.FAILED_COMMAND, ("make", "-", "exit 2"))
     result = screen([lesson(ignored, fix=None)], ScreenRules(ignored=frozenset({ignored})))
     assert result.held == {HoldReason.NO_FIX_SHOWN: 1}
+
+
+def test_the_kept_occurrences_decide_whether_the_script_is_throwaway():
+    """Failure guarded against: an unfixed non-created sibling hiding a scratch script's lessons."""
+    created = [lesson(SCRATCH, s, target_created=True) for s in ("s1", "s2")]
+    sibling = lesson(SCRATCH, "s3", fix=None, target_created=False)
+    result = screen([*created, sibling], ScreenRules())
+    assert result.kept == [] and result.held == {HoldReason.THROWAWAY_SCRIPT: 1}
+
+
+def test_delivery_filter_drops_inline_failed_command_lessons():
+    """Failure guarded against: an older mining's `python -c` lessons reaching a note."""
+    inline = lesson(INLINE)
+    kept = lesson(MANAGE)
+    assert taught_since_the_fix_rule([inline, kept]) == [kept]
