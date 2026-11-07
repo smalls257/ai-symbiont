@@ -130,3 +130,16 @@ def test_a_row_escapes_the_name_says_regressed_and_shows_the_episode_of_a_correc
     assert "Where it went wrong" in correction and "Ran pip install" in correction
     assert "4 agent steps before you stepped in" in correction
     assert "Lesson added on Nov 1" in correction and "Move to For review" in correction
+
+
+def test_a_tooltip_keeps_its_formatting_tags_and_turns_every_other_tag_into_text(decided):
+    plain, img, onclick, script, escaped = decided["tips"]
+
+    assert plain == "<b>Week of Oct 5</b><br>1 time"
+    assert "<img" not in img and "&lt;img src=x onerror=window.__x=1>" in img
+    assert onclick.startswith("&lt;b onclick=") and "<script" not in script
+    assert "<span class=m>quiet</span>" in script and escaped == "&lt;img src=x&gt; already escaped"
+
+
+def test_a_group_kind_cannot_break_out_of_the_class_attribute(decided):
+    assert 'class="kmark x&quot; onmouseover=&quot;window.__x=1"' in decided["rowEvil"]

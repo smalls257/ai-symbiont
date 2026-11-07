@@ -5,28 +5,29 @@ const vm = require("vm");
 const path = require("path");
 
 const sandbox = { window: {}, URLSearchParams };
-for (const file of ["inbox_model.js", "inbox_rows.js"]) {
+for (const file of ["rename.js", "inbox_model.js", "inbox_rows.js", "tip.js"]) {
   vm.runInNewContext(fs.readFileSync(path.join(process.argv[2], file), "utf8"), sandbox);
 }
 const M = sandbox.window.SymbiontInboxModel;
 const R = sandbox.window.SymbiontInboxRows;
+const T = sandbox.window.SymbiontTip;
 
 const group = (key, over) => ({
   key, name: "Name of " + key, title: "pytest tests", groupedBecause: "Every card is pytest failing the same way.",
-  kind: "failure", happened: "The agent ran pytest and it failed.", fixed: "Edited app.py.", verdict: "fixed in the code",
+  kind: "failure", happened: "The agent ran pytest and it failed.", fixed: "Edited app.py.", verdict: "fixed in the code", fixShown: true,
   noise: null, noiseWords: "", sessions: 3, times: 4, recurring: true, weekly: [["2026-W41", 2], ["2026-W43", 2]],
-  undated: 0, first: "2026-10-05", last: "2026-10-20", cards: [{ firstWrong: "", costSteps: 0, outcome: "never_fixed", fixed: "Never fixed in this session." }, { firstWrong: "", costSteps: 0, outcome: "fixed_in_code", fixed: "Edited app.py." }],
+  undated: 0, first: "2026-10-05", last: "2026-10-20", cards: [{ firstWrong: "", costSteps: 0 }],
   trigger: { kind: "running", program: "pytest", path: "tests/e2e", words: "when running pytest on tests/e2e" }, ...over,
 });
 const warnings = [];
 const warn = (m) => warnings.push(m);
 
 const groups = [
-  group("once", { recurring: false, sessions: 1, times: 1, fixed: "Never fixed in this session.", cards: [{ firstWrong: "", costSteps: 0, outcome: "never_fixed", fixed: "Never fixed in this session." }] }),
+  group("once", { recurring: false, sessions: 1, times: 1, fixed: "Never fixed in this session.", fixShown: false, cards: [{ firstWrong: "", costSteps: 0 }] }),
   group("many"),
   group("noisy", { noise: "plain_retry", noiseWords: "passed when run again", times: 5, sessions: 2 }),
   group("noisy2", { noise: "plain_retry", noiseWords: "passed when run again", times: 2, sessions: 1 }),
-  group("corr", { kind: "correction", title: "no, use uv", cards: [{ firstWrong: "Ran pip install", costSteps: 4, outcome: "developer_stepped_in", fixed: "" }], trigger: null }),
+  group("corr", { kind: "correction", fixShown: false, fixed: "", title: "no, use uv", cards: [{ firstWrong: "Ran pip install", costSteps: 4, outcome: "developer_stepped_in", fixed: "" }], trigger: null }),
 ];
 const archivedAll = groups.map((g) => g.noise ? g : { ...g, recurring: true });
 const triageAll = Object.fromEntries(archivedAll.filter((g) => !g.noise).map((g) => [g.key, { state: "archived" }]));
@@ -63,5 +64,13 @@ console.log(JSON.stringify({
   archive: M.ARCHIVE_CHOICES.map((c) => c.body),
   views: ["", "inbox", "topics", "trends", "struggle", "context", "replay", "nope"].map((v) => M.viewFrom(v ? "?view=" + v : "", warn)),
   warnings, tooLong, trimmed: M.cleanName("  Flaky  "),
+  tips: [
+    "<b>Week of Oct 5</b><br>1 time",
+    "Oct 5: <img src=x onerror=window.__x=1>",
+    '<b onclick="window.__x=1">x</b>',
+    "<span class=m>quiet</span> <script>1</script>",
+    "&lt;img src=x&gt; already escaped",
+  ].map((t) => T.safe(t)),
+  rowEvil: R.rowHtml({ g: group("e", { kind: "x\" onmouseover=\"window.__x=1" }), name: "n", tab: "review", tri: {}, series: [], weeks: axis }),
   rowFailure, rowCorr, tilesHtml: R.tilesHtml(M.tilesOf(data)),
 }));

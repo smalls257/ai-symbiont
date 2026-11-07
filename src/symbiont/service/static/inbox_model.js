@@ -8,7 +8,6 @@ const TAB_OF_STATE={for_review:"review",reviewed:"reviewed",resolved:"resolved",
 const TABS=["review","reviewed","resolved","archived"];
 const TAB_WORDS={review:"For review",reviewed:"Reviewed",resolved:"Resolved",archived:"Archived"};
 const VIEWS=["inbox","topics","trends","struggle","context","replay"];
-const MAX_NAME=80;
 const DAY_MS=864e5;
 
 const triageOf=(triage,g)=>(triage||{})[g.key]||{};
@@ -98,16 +97,11 @@ const seriesOf=(g,axis)=>{const by=new Map(g.weekly);return axis.map(w=>by.get(w
 
 /* "Teach the agent" opens with what symbiont would teach, already filled in. Nothing is required: the text falls
    back to the group's name so the route (which needs some words) still gets a sentence. */
-/* Only a card where something really fixed it has a fix to teach; "never fixed" and "passed when run again" teach nothing. */
-const FIXES=["fixed_in_code","environment_fixed","corrected_command"];
-function shownFix(g){
-  const card=g.cards.find(c=>FIXES.includes(c.outcome));
-  return card?card.fixed:"";
-}
+/* g.fixed is the server's one answer; it is taught only when the verdict says something really fixed it. */
 function teachDraft(g,name){
   const when=g.trigger?g.trigger.words:"";
   const first=g.kind==="correction"&&g.title?"You said: “"+g.title+"”. ":"";
-  const fix=shownFix(g),trains=g.kind==="failure"&&Boolean(fix);
+  const fix=g.fixShown?g.fixed:"",trains=g.kind==="failure"&&g.fixShown;
   return {when,what:(first+fix).trim(),trains,name,hasTrigger:Boolean(g.trigger)};
 }
 const capital=s=>s.charAt(0).toUpperCase()+s.slice(1);
@@ -145,11 +139,7 @@ function viewFrom(search,warn){
   warn("symbiont: unknown view "+JSON.stringify(asked)+"; showing the inbox. Known views: "+VIEWS.join(", "));
   return "inbox";
 }
-function cleanName(text){
-  const name=text.trim();
-  if(name.length>MAX_NAME)throw new Error("A name can have at most "+MAX_NAME+" characters; this one has "+name.length+".");
-  return name;
-}
+const cleanName=text=>window.SymbiontRename.clean(text);
 
-window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,MAX_NAME,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,cleanName,plural,triageOf};
+window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,cleanName,plural,triageOf};
 })();

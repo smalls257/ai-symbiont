@@ -5,6 +5,7 @@ returns to For review marked Regressed (the Sentry and Datadog issue lifecycle).
 and session counts come in, no clock is read.
 """
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date
 from enum import StrEnum
@@ -55,6 +56,16 @@ class GroupActivity:
 
     sessions_since: int
     seen_in_new_session: bool
+
+
+def activity_since(changed_on: date, card_days: Iterable[tuple[str, date | None]]) -> GroupActivity:
+    """What happened to a group after `changed_on`, from its cards as (session id, day) pairs.
+
+    Counts distinct sessions dated strictly after the change. A card whose session has no date
+    is not counted: nothing says it came after, so it must not reopen a Resolved group.
+    """
+    later = {session for session, day in card_days if day is not None and day > changed_on}
+    return GroupActivity(len(later), seen_in_new_session=bool(later))
 
 
 def triage_row(

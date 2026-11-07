@@ -14,6 +14,7 @@ from symbiont.core.triage import (
     ReturnRule,
     TriageRow,
     TriageShapeError,
+    activity_since,
     state_now,
     triage_row,
 )
@@ -109,3 +110,21 @@ def test_an_after_sessions_row_with_no_count_raises():
         state_now(
             saved(GroupState.ARCHIVED, ReturnRule.AFTER_SESSIONS), 1, seen_in_new_session=True
         )
+
+
+def test_activity_counts_distinct_sessions_dated_after_the_change_and_skips_undated_ones():
+    cards = [
+        ("old", date(2026, 11, 5)),
+        ("same-day", DAY),
+        ("later", date(2026, 11, 8)),
+        ("later", date(2026, 11, 9)),
+        ("other", date(2026, 11, 10)),
+        ("undated", None),
+    ]
+
+    assert activity_since(DAY, cards) == GroupActivity(2, seen_in_new_session=True)
+
+
+def test_a_group_with_nothing_after_the_change_has_no_activity():
+    assert activity_since(DAY, [("a", DAY), ("b", None)]) == GroupActivity(0, False)
+    assert activity_since(DAY, []) == GroupActivity(0, False)

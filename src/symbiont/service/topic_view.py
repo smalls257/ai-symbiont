@@ -31,6 +31,7 @@ def topic_snapshot(store: Store, project: str) -> dict[str, Any]:
         store.review.summaries.all(project),
         store.mined.incidents(project),
         session_dates_of(store.mined.session_facts(project)),
+        store.review.summaries.topic_names(project),
     )
 
 
@@ -39,8 +40,13 @@ def topic_view(
     summaries: Sequence[SessionSummary],
     incidents: Sequence[Incident],
     dates: Mapping[str, date],
+    names: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Topics with outcomes, months, frictions and sessions (by date alone before topics exist)."""
+    """Topics with outcomes, months, frictions and sessions (by date alone before topics exist).
+
+    `names` are the developer's names by the model's topic name; a topic's `key` stays the
+    model's name so a rename can address it.
+    """
     real = {s.session_id: s for s in summaries if not s.noise}
     named = [g for g in topics.topics if _members(g, real)]
     ready = len(real) >= MIN_SUMMARIES and bool(named)
@@ -54,7 +60,9 @@ def topic_view(
         "months": months,
         "allPerMonth": _per_month(real, dates, months),
         "frictions": _frictions(topics.frictions, real),
-        "topics": [_topic(g, Timeline(real, dates, months), topics, incidents) for g in named]
+        "topics": [
+            _topic(g, Timeline(real, dates, months), topics, incidents, names or {}) for g in named
+        ]
         if ready
         else [],
         "sessionsByDate": _sessions(real, dates),
@@ -123,14 +131,19 @@ class Timeline:
 
 
 def _topic(
-    group: Group, line: Timeline, topics: TopicMap, incidents: Sequence[Incident]
+    group: Group,
+    line: Timeline,
+    topics: TopicMap,
+    incidents: Sequence[Incident],
+    names: Mapping[str, str],
 ) -> dict[str, Any]:
     real, dates, months = line.real, line.dates, line.months
     members = _members(group, real)
     outcomes = Counter(real[sid].outcome.value for sid in members)
     days = sorted(dates[sid].isoformat() for sid in members if sid in dates)
     return {
-        "name": group.name,
+        "key": group.name,
+        "name": names.get(group.name, group.name),
         "description": group.description,
         "sessions": len(members),
         "outcomes": {name: outcomes.get(name, 0) for name in OUTCOMES},

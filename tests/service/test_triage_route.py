@@ -13,7 +13,7 @@ import pytest
 
 from symbiont.core.triage import GroupActivity, GroupState, ReturnRule, triage_row
 from symbiont.service.app import ServiceMode
-from symbiont.service.triage_route import triage_listing
+from symbiont.service.triage_route import group_activity, triage_listing
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -192,3 +192,37 @@ def test_a_bad_state_sent_with_a_name_saves_neither(tmp_path):
 
     assert reply.status == 400
     assert saved(tmp_path) == {}
+
+
+def groups_seen_on(*days):
+    cards = [{"sessionId": f"s{n}", "date": day} for n, day in enumerate(days)]
+    return [{"key": KEY, "cards": cards}]
+
+
+def test_a_resolved_group_seen_in_a_later_session_is_regressed_on_the_page_data(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    store.review.triage.save(
+        PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
+    )
+
+    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20", None))
+    listing = triage_listing(store, PROJECT, seen)
+
+    assert listing[KEY]["state"] == "for_review" and listing[KEY]["regressed"] is True
+
+
+def test_a_resolved_group_not_seen_since_stays_resolved_and_an_untriaged_one_has_no_entry(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    store.review.triage.save(
+        PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
+    )
+
+    quiet = group_activity(store, PROJECT, groups_seen_on("2026-10-05", None))
+
+    assert triage_listing(store, PROJECT, quiet)[KEY] == {
+        "state": "resolved",
+        "regressed": False,
+        "taught_on": None,
+        "name": "",
+    }
+    assert group_activity(store, PROJECT, [{"key": "other", "cards": []}]) == {}

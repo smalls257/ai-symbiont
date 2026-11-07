@@ -10,10 +10,10 @@ const SOON={topics:"Topics are coming soon.",trends:"The view of whether it is g
 
 function soon(pane,view){pane.innerHTML='<p class="soon" role="status">'+SOON[view]+"</p>";}
 
-function drawTopics(pane,data){
+function drawTopics(pane,data,project){
   const topics=window.SymbiontTopics;
   if(!topics||!data.topicView)return soon(pane,"topics");
-  topics.render(pane,data.topicView,{compact:false});
+  topics.render(pane,data.topicView,{compact:false,project});
 }
 function drawTrends(pane,data){
   const trends=window.SymbiontTrends;
@@ -31,7 +31,7 @@ function mount(data,project,s1,warn){
   const subnav=s1.querySelector("#subnav"),drawn=new Set();
   const draw={
     inbox:()=>drawInbox(s1.querySelector("#vInbox"),data,project),
-    topics:()=>drawTopics(s1.querySelector("#vTopics"),data),
+    topics:()=>drawTopics(s1.querySelector("#vTopics"),data,project),
     trends:()=>drawTrends(s1.querySelector("#vTrends"),data)
   };
   let current=asked in OTHER_STAGES?"inbox":asked;

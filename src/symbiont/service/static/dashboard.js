@@ -82,14 +82,14 @@ const tip=$("tip");
 document.addEventListener("mousemove",e=>{
   const t=e.target.closest&&e.target.closest("[data-tip]");
   if(!t){tip.style.display="none";return;}
-  tip.innerHTML=t.dataset.tip;tip.style.display="block";
+  tip.innerHTML=window.SymbiontTip.safe(t.dataset.tip);tip.style.display="block";
   tip.style.left=Math.min(e.clientX+16,innerWidth-tip.offsetWidth-8)+"px";tip.style.top=Math.min(e.clientY+16,innerHeight-tip.offsetHeight-8)+"px";
 });
 
 /* A control reached by keyboard shows the same tip a pointer does. */
 document.addEventListener("focusin",e=>{
   const t=e.target.closest&&e.target.closest("[data-tip]");if(!t)return;
-  const b=t.getBoundingClientRect();tip.innerHTML=t.dataset.tip;tip.style.display="block";
+  const b=t.getBoundingClientRect();tip.innerHTML=window.SymbiontTip.safe(t.dataset.tip);tip.style.display="block";
   tip.style.left=Math.max(8,Math.min(b.left,innerWidth-tip.offsetWidth-8))+"px";tip.style.top=Math.min(b.bottom+6,innerHeight-tip.offsetHeight-8)+"px";
 });
 document.addEventListener("focusout",()=>{tip.style.display="none";});
@@ -287,7 +287,7 @@ function drawStrip(upto){
   for(let d=WINDOW_START;DATED.length&&d<=LAST_DAY;d+=5)s+='<text x="'+RX(d)+'" y="172" text-anchor="middle" font-size="17" fill="#8c94ac">'+dateOf(d)+"</text>";
   const slot={};
   EVENTS.forEach((e,i)=>{slot[e.day]=(slot[e.day]||0);const y=112-slot[e.day]*26;slot[e.day]++;
-    if(i<upto)s+='<circle cx="'+RX(e.day)+'" cy="'+y+'" r="11" fill="#b28cff" stroke="#16112a" stroke-width="2" data-tip="'+dateOf(e.day)+": "+esc(e.p.title)+'"/>';});
+    if(i<upto)s+='<circle cx="'+RX(e.day)+'" cy="'+y+'" r="11" fill="#b28cff" stroke="#16112a" stroke-width="2" data-tip="'+dateOf(e.day)+": "+esc(esc(e.p.title))+'"/>';});
   if(upto<EVENTS.length&&upto>0){const d=EVENTS[upto-1].day;s+='<line x1="'+RX(d)+'" x2="'+RX(d)+'" y1="10" y2="136" stroke="#ff8c40" stroke-width="3"/>';}
   $("rsvg").innerHTML=s;
 }

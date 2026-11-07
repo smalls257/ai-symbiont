@@ -23,6 +23,10 @@ CREATE TABLE IF NOT EXISTS topics (
     project TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, description TEXT NOT NULL,
     members TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS topic_names (
+    project TEXT NOT NULL, topic TEXT NOT NULL, name TEXT NOT NULL,
+    PRIMARY KEY (project, topic)
+);
 """
 TOPIC, FRICTION, CORRECTION_GROUP = "topic", "friction", "correction_group"
 
@@ -74,6 +78,31 @@ class SessionSummaries:
         with self._db:
             self._db.execute("DELETE FROM topics WHERE project=?", (project,))
             self._db.executemany("INSERT INTO topics VALUES (?,?,?,?,?)", rows)
+            self._db.execute(
+                "DELETE FROM topic_names WHERE project=? AND topic NOT IN"
+                " (SELECT name FROM topics WHERE project=? AND kind=?)",
+                (project, project, TOPIC),
+            )
+
+    def rename_topic(self, project: str, topic: str, name: str) -> None:
+        """Keep the developer's name for the topic the model called `topic`; "" restores it.
+
+        Kept apart from the topic map, so a new map that keeps the topic keeps the name too.
+        """
+        with self._db:
+            if not name:
+                self._db.execute(
+                    "DELETE FROM topic_names WHERE project=? AND topic=?", (project, topic)
+                )
+                return
+            self._db.execute(
+                "INSERT OR REPLACE INTO topic_names VALUES (?,?,?)", (project, topic, name)
+            )
+
+    def topic_names(self, project: str) -> dict[str, str]:
+        """The developer's topic names by the model's topic name; unrenamed topics are absent."""
+        rows = self._db.execute("SELECT topic, name FROM topic_names WHERE project=?", (project,))
+        return dict(rows)
 
     def topics(self, project: str) -> TopicMap:
         """The saved topic map; empty when none was saved."""

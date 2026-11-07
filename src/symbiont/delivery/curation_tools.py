@@ -84,8 +84,9 @@ _DESCRIPTIONS = {
     ),
     "topcand": (
         "Every summarized session with its corrections, once enough are summarized (otherwise "
-        "it says how many more are needed). Group them, then call symbiont_save_topics. Pass "
-        "running_in if asked."
+        "it says how many more are needed). Group them, then call symbiont_save_topics. If the "
+        "answer has developer_names (was -> now), the developer renamed those topics or groups: "
+        "keep their names. Pass running_in if asked."
     ),
     "savetop": (
         "Save the grouping: {topics: [{name (2 to 4 words), description, session_ids}], "

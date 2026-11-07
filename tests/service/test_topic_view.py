@@ -132,3 +132,15 @@ def test_a_topic_whose_members_are_all_noise_is_dropped():
     topics = [Group("All", "d", ids), Group("Ghost", "d", ("junk",)), Group("Empty", "d", ())]
     shown = build(sessions, topics)
     assert [t["name"] for t in shown["topics"]] == ["All"]
+
+
+def test_a_topic_the_developer_renamed_shows_the_new_name_and_keeps_its_stored_name_as_key():
+    sessions = many(MIN_SUMMARIES)
+    group = Group("Parser work", "d", tuple(s.session_id for s in sessions))
+
+    shown = topic_view(
+        TopicMap((group,), (), ()), sessions, (), {}, {"Parser work": "My <b>parser</b> topic"}
+    )
+
+    assert shown["topics"][0]["name"] == "My <b>parser</b> topic"
+    assert shown["topics"][0]["key"] == "Parser work"

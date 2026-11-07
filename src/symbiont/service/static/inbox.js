@@ -10,7 +10,7 @@ const SORT_WORDS={sessions:"most sessions",last:"last seen",first:"newest group"
 const KIND_WORDS={all:"All",failure:"Agent failures",correction:"Your corrections"};
 const STATE_OF={reviewed:"reviewed",resolve:"resolved",reopen:"for_review"};
 const DONE_WORDS={
-  reviewed:"Marked reviewed. It moves to For review again if it gets worse.",
+  reviewed:"Marked reviewed. It stays in Reviewed.",
   resolve:"Resolved. It comes back as Regressed if it happens again.",
   reopen:"Back in For review."
 };
@@ -87,7 +87,7 @@ function onToggle(ui,e){
 
 function drawTopics(ui){
   const panel=ui.$("#inTopics"),topics=window.SymbiontTopics,view=ui.data.topicView;
-  if(topics&&view){panel.innerHTML='<div id="inTopicsBody"></div>';topics.render(panel.firstChild,view,{compact:true});return;}
+  if(topics&&view){panel.innerHTML='<div id="inTopicsBody"></div>';topics.render(panel.firstChild,view,{compact:true,project:ui.project});return;}
   panel.innerHTML='<h2>What was being worked on</h2><p class="sub">Topics are coming soon.</p>';
 }
 
@@ -125,21 +125,24 @@ async function post(path,body){
   return JSON.parse(text);
 }
 
-function remember(ui,g,reply){
-  const old=M.triageOf(ui.data.triage,g);
-  ui.data.triage[g.key]={...old,state:reply.state,taught_on:reply.taught_on,name:reply.name,regressed:false};
+/* Keep only what the click changed: a rename must not turn a Regressed group (shown For review, saved Resolved)
+   into a Resolved one on the page. */
+function remember(ui,g,patch){
+  ui.data.triage[g.key]={...M.triageOf(ui.data.triage,g),...patch};
 }
 
 async function saveState(ui,g,fields,message){
   const position=positionOf(ui,g.key);
-  remember(ui,g,await post("/triage",{project:ui.project,group_key:g.key,...fields}));
+  const reply=await post("/triage",{project:ui.project,group_key:g.key,...fields});
+  remember(ui,g,{state:reply.state,regressed:false});
   draw(ui);focusAfter(ui,g.key,position);
   window.SymbiontInboxDialogs.toast(ui.container,message);
 }
 
 async function saveName(ui,g,text){
   const name=M.cleanName(text);
-  remember(ui,g,await post("/triage",{project:ui.project,group_key:g.key,name}));
+  const reply=await post("/triage",{project:ui.project,group_key:g.key,name});
+  remember(ui,g,{name:reply.name});
   draw(ui);
   const own=ui.container.querySelector('.grp[data-key="'+CSS.escape(g.key)+'"] .sn');
   if(own)own.focus();
@@ -148,7 +151,8 @@ async function saveName(ui,g,text){
 
 async function afterTaught(ui,g,request){
   await post("/lessons/add",request);
-  remember(ui,g,await post("/triage",{project:ui.project,group_key:g.key,taught:true}));
+  const reply=await post("/triage",{project:ui.project,group_key:g.key,taught:true});
+  remember(ui,g,{taught_on:reply.taught_on});
   draw(ui);focusAfter(ui,g.key,positionOf(ui,g.key));
   window.SymbiontInboxDialogs.toast(ui.container,"Lesson saved. The agent hears it from the next session.");
 }

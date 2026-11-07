@@ -14,20 +14,25 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS triage (
     project TEXT NOT NULL, group_key TEXT NOT NULL, state TEXT NOT NULL,
     return_rule TEXT, after_sessions INTEGER, changed_on TEXT NOT NULL, taught_on TEXT,
+    name TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (project, group_key)
 );
 """
+
+
+def add_missing_name(db: sqlite3.Connection) -> None:
+    """Give a store from before group names the `name` column, once, when it is opened."""
+    if "name" not in {column[1] for column in db.execute("PRAGMA table_info(triage)")}:
+        with db:
+            db.execute("ALTER TABLE triage ADD COLUMN name TEXT NOT NULL DEFAULT ''")
 
 
 class GroupTriage:
     """Reads and writes the triage table of an open store connection."""
 
     def __init__(self, db: sqlite3.Connection) -> None:
-        """Use the store's connection; a store from before names gets the `name` column."""
+        """Use the store's connection."""
         self._db = db
-        if "name" not in {column[1] for column in db.execute("PRAGMA table_info(triage)")}:
-            with db:
-                db.execute("ALTER TABLE triage ADD COLUMN name TEXT NOT NULL DEFAULT ''")
 
     def rename(self, project: str, group_key: str, name: str, day: date) -> None:
         """Keep the developer's name for a group; "" restores the generated name.

@@ -18,7 +18,7 @@ from symbiont.service.request_shapes import percent_decoded
 from symbiont.service.session_dates import session_dates_of
 from symbiont.service.topic_view import topic_snapshot
 from symbiont.service.trend_view import trends_snapshot
-from symbiont.service.triage_route import triage_listing
+from symbiont.service.triage_route import group_activity, triage_listing
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import DEFAULT_MIN_SESSIONS
@@ -34,6 +34,8 @@ FILES = {
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
     "/dashboard/summary.js": ("summary.js", "text/javascript; charset=utf-8"),
     "/dashboard/ignored.js": ("ignored.js", "text/javascript; charset=utf-8"),
+    "/dashboard/tip.js": ("tip.js", JS),
+    "/dashboard/rename.js": ("rename.js", JS),
     "/dashboard/inbox_model.js": ("inbox_model.js", JS),
     "/dashboard/inbox_rows.js": ("inbox_rows.js", JS),
     "/dashboard/inbox_dialogs.js": ("inbox_dialogs.js", JS),
@@ -181,8 +183,9 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     )
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored
-    snapshot["triage"] = triage_listing(store, project)
     snapshot["incidents"] = incidents_snapshot(store, project)
+    seen = group_activity(store, project, snapshot["incidents"]["groups"])
+    snapshot["triage"] = triage_listing(store, project, seen)
     snapshot["topicView"] = topic_snapshot(store, project)
     snapshot["trends"] = trends_snapshot(store, project, snapshot["incidents"])
     return _page_filled_with(snapshot)

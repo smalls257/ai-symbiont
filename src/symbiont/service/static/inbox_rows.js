@@ -52,7 +52,7 @@ function rowHtml(shown){
   const kind=g.kind==="failure"?"agent failure":"your correction";
   const stat=stateNote(g,tri);
   return '<article class="grp" data-key="'+esc(g.key)+'" aria-label="'+esc(name)+'">'
-    +'<span class="kmark '+g.kind+'" role="img" aria-label="'+kind+'" title="'+kind+'">'+(g.kind==="failure"?"!":"you")+"</span>"
+    +'<span class="kmark '+esc(g.kind)+'" role="img" aria-label="'+kind+'" title="'+kind+'">'+(g.kind==="failure"?"!":"you")+"</span>"
     +'<div><button class="sn" data-a="rename" title="Click to rename" aria-label="Rename group: '+esc(name)+'">'+esc(name)+"</button>"
     +'<div class="ttl'+(g.kind==="failure"?" mono":"")+'">'+esc(g.title)+"</div>"
     +'<div class="why">'+(tri.regressed?BADGES.regressed:"")+(tab!=="review"?'<span class="pill '+tab+'">'+M.TAB_WORDS[tab]+"</span> ":"")+"Grouped because: "+esc(g.groupedBecause)+"</div></div>"

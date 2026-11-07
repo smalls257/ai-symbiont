@@ -151,3 +151,21 @@ def consented_project(registry: RepoRegistry | None, request: dict[str, Any]) ->
     if registry is not None and registry.stance(project) is not RepoStance.GIVEN:
         raise BadRequestError(f"run `symbiont repo allow` for {project} first")
     return project
+
+
+MAX_DISPLAY_NAME = 80  # a group or topic name is a one-line heading in the dashboard
+
+
+def display_name(value: object) -> str:
+    """The trimmed name a developer typed; "" means "restore the generated name".
+
+    Raises BadRequestError for non-text or a name longer than MAX_DISPLAY_NAME.
+    """
+    if not isinstance(value, str):
+        raise BadRequestError("name must be text")
+    name = value.strip()
+    if len(name) > MAX_DISPLAY_NAME:
+        raise BadRequestError(
+            f"name must be at most {MAX_DISPLAY_NAME} characters; this one has {len(name)}"
+        )
+    return name

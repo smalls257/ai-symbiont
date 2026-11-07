@@ -31,6 +31,8 @@ VERDICT_WORDS = {
     Outcome.DEVELOPER_STEPPED_IN: "you stepped in",
 }
 FIXED_OUTCOMES = frozenset({Outcome.FIXED_IN_CODE, Outcome.ENVIRONMENT_FIXED})
+# Outcomes where something really changed the result, so there is a fix a lesson can teach.
+TEACHABLE_OUTCOMES = FIXED_OUTCOMES | {Outcome.CORRECTED_COMMAND}
 MIN_RECURRING_SESSIONS = 2
 NAME_CHARS = 80  # the most a group name may hold (POST /triage refuses longer)
 SINGLE_CORRECTION = "One correction, on its own."
@@ -95,6 +97,7 @@ def _card(card: Incident, days: SessionDays, context: IncidentContext) -> dict[s
         "noiseWords": noise_words(card.noise) if card.noise else "",
         "date": days.get(card.session_id),
         "files": list(card.files),
+        "sessionId": card.session_id,
         "firstWrong": card.first_wrong,
         "costSteps": card.cost_steps,
         "session": context.titles.get(card.session_id, ""),
@@ -136,13 +139,14 @@ def _group_json(
     weeks, undated = _weekly(group.cards, days)
     return {
         "key": group.key,
-        "name": _generated_name(group),
+        "name": _generated_name(group, context),
         "title": newest.example or newest.what_happened,
         "groupedBecause": _grouped_because(group, context),
         "kind": "correction" if group.signal is Signal.CORRECTION else "failure",
         "happened": newest.what_happened,
-        "fixed": newest.what_fixed_it,
-        "verdict": _verdict(group.cards),
+        "fixed": _fix_behind_verdict(group.cards),
+        "fixShown": _dominant_outcome(group.cards) in TEACHABLE_OUTCOMES,
+        "verdict": VERDICT_WORDS[_dominant_outcome(group.cards)],
         "noise": group.noise.value if group.noise else None,
         "noiseWords": noise_words(group.noise) if group.noise else "",
         "sessions": len({c.session_id for c in group.cards}),
@@ -156,20 +160,21 @@ def _group_json(
     }
 
 
-def _generated_name(group: IncidentGroup) -> str:
+def _generated_name(group: IncidentGroup, context: IncidentContext) -> str:
     """The heading a group has until the developer renames it, at most NAME_CHARS long.
 
-    A correction group is called what the session model named it; a failure group by its program
-    and what broke, so two groups of the same program do not read alike.
+    A correction group is called what the session model named it. A failure group is its program
+    and the command it failed on, so two groups of one program do not read alike.
     """
-    named = group.key.removeprefix("correction:")
+    newest = group.cards[0]
     if group.signal is Signal.CORRECTION:
-        known = named != group.key and ":" not in named
-        return _shortened(named if known else group.cards[0].what_happened)
-    _, program, broke = (group.key.split(":", 2) + ["", ""])[:3]
-    if program and broke:
-        return _shortened(f"{program} failing with {broke}")
-    return _shortened(group.cards[0].what_happened)
+        named = context.correction_names.get((newest.session_id, newest.step))
+        return _shortened(named or newest.what_happened)
+    program = group.trigger.program if group.trigger else newest.situation[1]
+    if not program:
+        return _shortened(newest.what_happened)
+    command = newest.example.removeprefix(program).strip()
+    return _shortened(f"{program} failing: {command}" if command else f"{program} failing")
 
 
 def _shortened(text: str) -> str:
@@ -183,8 +188,14 @@ def _recurring(cards: Sequence[Incident]) -> bool:
     return fixed or len({c.session_id for c in cards}) >= MIN_RECURRING_SESSIONS
 
 
-def _verdict(cards: Sequence[Incident]) -> str:
-    return VERDICT_WORDS[Counter(c.outcome for c in cards).most_common(1)[0][0]]
+def _dominant_outcome(cards: Sequence[Incident]) -> Outcome:
+    return Counter(c.outcome for c in cards).most_common(1)[0][0]
+
+
+def _fix_behind_verdict(cards: Sequence[Incident]) -> str:
+    """What fixed it, told by the newest card whose outcome is the verdict's, so they agree."""
+    outcome = _dominant_outcome(cards)
+    return next(c.what_fixed_it for c in cards if c.outcome is outcome)
 
 
 def _first_and_last(cards: Sequence[Incident], days: SessionDays) -> dict[str, str | None]:

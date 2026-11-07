@@ -15,25 +15,8 @@ function toast(container,message){
   clearTimeout(toast.timer);toast.timer=setTimeout(()=>node.classList.remove("on"),4000);
 }
 
-/* Enter saves, Escape cancels; leaving the box cancels too, so nothing is written without an Enter. */
 function renameInPlace(ui,g,button,save){
-  const input=document.createElement("input");
-  input.className="sn-edit";input.value=button.textContent;input.maxLength=M.MAX_NAME;
-  input.setAttribute("aria-label","Group name (Enter saves, Escape cancels; empty restores the generated name)");
-  let finished=false;
-  const cancel=refocus=>{
-    if(finished)return;
-    finished=true;input.replaceWith(button);
-    if(refocus)button.focus();
-  };
-  input.onkeydown=e=>{
-    if(e.key==="Escape"){e.preventDefault();cancel(true);}
-    if(e.key!=="Enter")return;
-    e.preventDefault();finished=true;
-    save(ui,g,input.value).catch(err=>{finished=false;toast(ui.container,"symbiont could not rename: "+err.message);});
-  };
-  input.onblur=()=>cancel(false);
-  button.replaceWith(input);input.focus();input.select();
+  window.SymbiontRename.inPlace(button,text=>save(ui,g,text),message=>toast(ui.container,message));
 }
 
 function archiveMenu(ui,g,button,pick){
@@ -51,7 +34,10 @@ function archiveMenu(ui,g,button,pick){
     const item=e.target.closest("button[data-i]");
     if(!item)return;
     close(false);
-    pick(M.ARCHIVE_CHOICES[+item.dataset.i]).catch(err=>toast(ui.container,"symbiont could not archive: "+err.message));
+    pick(M.ARCHIVE_CHOICES[+item.dataset.i]).catch(err=>{
+      toast(ui.container,"symbiont could not archive: "+err.message);
+      button.focus();
+    });
   };
   setTimeout(()=>document.addEventListener("click",outside),0);
   menu.querySelector("button").focus();

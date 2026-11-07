@@ -5,7 +5,7 @@ Archived, a return rule; a shape that does not fit is a 400 naming the field, ne
 `group_key` is the group's opaque fingerprint and is kept as text. Dates come from the service.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from datetime import date
 from typing import TYPE_CHECKING, Any
 
@@ -15,11 +15,17 @@ from symbiont.core.triage import (
     ReturnRule,
     TriageRow,
     TriageShapeError,
+    activity_since,
     state_now,
     triage_row,
 )
 from symbiont.service.events import Call, write_event
-from symbiont.service.request_shapes import BadRequestError, consented_project, require_keys
+from symbiont.service.request_shapes import (
+    BadRequestError,
+    consented_project,
+    display_name,
+    require_keys,
+)
 from symbiont.store.local import Store
 
 if TYPE_CHECKING:
@@ -29,7 +35,6 @@ TRIAGE_KEYS = frozenset(
     {"project", "group_key", "state", "return_rule", "after_sessions", "taught", "name"}
 )
 TRIAGE_REQUIRED = frozenset({"project", "group_key"})
-MAX_NAME = 80  # a group name is a one-line heading in the inbox
 NO_ACTIVITY = GroupActivity(0, seen_in_new_session=False)
 
 
@@ -49,7 +54,7 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     named = "name" in request
     if taught is not True and (taught is not False or ("state" not in request and not named)):
         raise BadRequestError("send a state, a name, or taught: true")
-    name = _name_of(request["name"]) if named else ""
+    name = display_name(request["name"]) if named else ""
     row = _row_of(request, today) if "state" in request else None
     if named:
         store.review.triage.rename(project, key, name, today)
@@ -94,16 +99,27 @@ def triage_listing(
     return listing
 
 
-def _name_of(value: object) -> str:
-    """The trimmed name; "" restores the generated one. Longer than MAX_NAME is refused."""
-    if not isinstance(value, str):
-        raise BadRequestError("name must be text")
-    name = value.strip()
-    if len(name) > MAX_NAME:
-        raise BadRequestError(
-            f"name must be at most {MAX_NAME} characters; this one has {len(name)}"
+def group_activity(
+    store: Store, project: str, groups: Sequence[Mapping[str, Any]]
+) -> dict[str, GroupActivity]:
+    """For each triaged group, the sessions that showed it after its state was set.
+
+    `groups` are the incident groups of the page's data (each with `key` and `cards`, a card
+    being a `sessionId` and an ISO `date` or None). Groups nobody triaged have no entry.
+    """
+    rows = store.review.triage.all(project)
+    return {
+        group["key"]: activity_since(
+            rows[group["key"]].changed_on,
+            [(c["sessionId"], _date_of(c["date"])) for c in group["cards"]],
         )
-    return name
+        for group in groups
+        if group["key"] in rows
+    }
+
+
+def _date_of(text: str | None) -> date | None:
+    return None if text is None else date.fromisoformat(text)
 
 
 def _day(day: date | None) -> str | None:

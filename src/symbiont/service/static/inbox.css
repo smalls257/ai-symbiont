@@ -120,3 +120,5 @@ dialog.teach input:focus,dialog.teach textarea:focus{outline:2px solid var(--or)
 dialog.teach #teachNote{margin-top:.8rem;font-size:.95rem}
 dialog.teach #teachErr{color:var(--rd);font-size:.95rem}
 @media (max-width:1100px){#vInbox{grid-template-columns:minmax(0,1fr)}.sumline{grid-template-columns:repeat(2,1fr)}.side{position:static}}
+.edit-name{background:none;border:0;padding:0;text-align:left;color:inherit;font:inherit;cursor:text;border-bottom:1px dashed transparent}
+.edit-name:hover{border-bottom-color:var(--mu)}
