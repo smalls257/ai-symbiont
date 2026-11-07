@@ -10,7 +10,7 @@ const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
 const fmt = n => Math.round(n).toLocaleString("en-US");
 const pct = (a, b) => b ? Math.round(100 * a / b) : 0;
-const HB = window.SymbiontHeldBack, PL = window.SymbiontPainList;
+const HB = window.SymbiontHeldBack, PL = window.SymbiontPainList, HEAT = window.SymbiontHeat;
 const CODE_FIX = "code_fix", CORRECTED = "corrected_command";
 
 if (!S) {
@@ -85,28 +85,33 @@ function renderKpis(s, lessons) {
   ].map(k => '<div class="panel kpi"><div class="num" style="color:' + k[3] + '">' + k[0] + '</div><div class="lbl">' + k[1] + k[2] + "</div></div>").join("");
 }
 
+const shareHtml = (count, n) => { const l = HEAT.shareLabel(count, n); return l.endsWith("%") ? l.slice(0, -1) + "<small>%</small>" : l; };
 function renderPatterns(s) {
-  const rows = PIDS.map(p => ({p, share: s.pats[p] / Math.max(1, s.n), all: ALLS.pats[p] / ALLS.n})).sort((a, b) => b.share - a.share);
+  const rows = PIDS.map(p => ({p, count: s.pats[p], share: s.pats[p] / Math.max(1, s.n), all: ALLS.pats[p] / ALLS.n, allCount: ALLS.pats[p]})).sort((a, b) => b.share - a.share);
   const mx = Math.max(...rows.map(r => Math.max(r.share, r.all)), 0.01);
   $("pats").innerHTML = rows.map(r => {
-    const P = PAT[r.p], lines = [P.name, P.means].concat(sel.theme ? ["all sessions: " + Math.round(r.all * 100) + "%"] : []);
+    const P = PAT[r.p], lines = [P.name, P.means].concat(sel.theme ? ["all sessions: " + HEAT.shareLabel(r.allCount, ALLS.n)] : []);
     return '<div class="ptn' + (P.teachable ? "" : " quiet") + (sel.pattern === r.p ? " sel" : "") + '" data-p="' + r.p + '" aria-pressed="' + (sel.pattern === r.p) + '"' + tipAttrs(lines) + ">"
-      + '<div class="nm">' + esc(P.name) + '</div><div class="v">' + Math.round(r.share * 100) + "<small>%</small></div>"
+      + '<div class="nm">' + esc(P.name) + '</div><div class="v">' + shareHtml(r.count, s.n) + "</div>"
       + '<div class="tr"><i style="width:' + (100 * r.share / mx) + '%"></i>' + (sel.theme ? '<b style="left:' + (100 * r.all / mx) + '%"></b>' : "") + "</div>"
       + '<div class="act">→ <em>' + esc(P.help) + "</em></div></div>";
   }).join("");
   $("pats").querySelectorAll(".ptn").forEach(d => press(d, () => toggle("pattern", d.dataset.p)));
 }
 
+/* The midpoint color under faint hatching: a cell with nothing honest to compare says so rather than looking "usual". */
+const NO_COMPARISON = "repeating-linear-gradient(135deg, rgba(236,240,248,.14) 0 2px, transparent 2px 6px), #3a3550";
 function divergingColor(r) {
   if (r >= 1.8) return "#ff8c40"; if (r >= 1.35) return "#b96a3e"; if (r >= 1.12) return "#6e4f4a";
   if (r <= 0.55) return "#3f86b8"; if (r <= 0.75) return "#35617f"; if (r <= 0.9) return "#33475a"; return "#3a3550";
 }
 function themeCell(r, p) {
-  const v = r.s.pats[p] / r.s.n, all = ALLS.pats[p] / ALLS.n, ratio = all ? v / all : 1;
+  const v = r.s.pats[p] / r.s.n, all = ALLS.pats[p] / ALLS.n;
+  const cmp = HEAT.compareCell({theme: r.w, themeSessions: r.s.n, themePattern: r.s.pats[p], allSessions: ALLS.n, allPattern: ALLS.pats[p]});
+  const ratio = cmp.ratio;
   const on = sel.theme === r.w, isSel = on && sel.pattern === p, dim = (sel.theme && !on) || (sel.pattern && sel.pattern !== p);
-  const lines = [Math.round(v * 100) + "% of " + r.w + " sessions", PAT[p].short + " (usual: " + Math.round(all * 100) + "%)", ratio >= 1 ? ratio.toFixed(1) + "× the usual rate" : "less common than usual"];
-  return '<div class="c' + (isSel ? " sel" : "") + (dim && !isSel ? " dim" : "") + '" data-t="' + esc(r.w) + '" data-p="' + p + '" style="background:' + divergingColor(ratio) + '"' + tipAttrs(lines) + "></div>";
+  const lines = [HEAT.shareLabel(r.s.pats[p], r.s.n) + " of " + r.w + " sessions", PAT[p].short + " (usual: " + HEAT.shareLabel(ALLS.pats[p], ALLS.n) + ")", cmp.compared ? (ratio >= 1 ? ratio.toFixed(1) + "× the usual rate" : "less common than usual") : cmp.reason];
+  return '<div class="c' + (isSel ? " sel" : "") + (dim && !isSel ? " dim" : "") + '" data-t="' + esc(r.w) + '" data-p="' + p + '" style="background:' + (cmp.compared ? divergingColor(ratio) : NO_COMPARISON) + '"' + tipAttrs(lines) + "></div>";
 }
 function renderThemes() {
   $("mapTitle").textContent = "What was being worked on";
@@ -127,7 +132,7 @@ function renderThemes() {
   $("hm").querySelectorAll(".ch.p").forEach(e => press(e, () => toggle("pattern", e.dataset.p)));
   $("hm").querySelectorAll(".c[data-t]").forEach(e => press(e, () => toggleCell(e.dataset.t, e.dataset.p)));
   const sw = c => '<span style="background:' + c + '"></span>';
-  $("hmLegend").innerHTML = "<span>Pattern, compared with all sessions:</span><span>less" + '<span class="ramp">' + ["#3f86b8", "#35617f", "#33475a", "#3a3550", "#6e4f4a", "#b96a3e", "#ff8c40"].map(sw).join("") + '</span>more</span><span><span class="dot" style="background:var(--rd)"></span>struggles more than average</span><span><span class="dot" style="background:var(--cy)"></span>less</span>';
+  $("hmLegend").innerHTML = "<span>Pattern, compared with all sessions:</span><span>less" + '<span class="ramp">' + ["#3f86b8", "#35617f", "#33475a", "#3a3550", "#6e4f4a", "#b96a3e", "#ff8c40"].map(sw).join("") + '</span>more</span><span><span class="ramp"><span style="background:' + NO_COMPARISON + '"></span></span>too rare to compare</span><span><span class="dot" style="background:var(--rd)"></span>struggles more than average</span><span><span class="dot" style="background:var(--cy)"></span>less</span>';
 }
 
 /* Files: of the sessions in scope, the share of each month's that edited the file. */
