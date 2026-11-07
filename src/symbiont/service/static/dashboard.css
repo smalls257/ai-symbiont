@@ -243,3 +243,9 @@ body.demo #caption{display:block}
 .held-list .hb{display:flex;flex-direction:column;gap:.1rem;padding:.4rem .2rem;border-top:1px dashed var(--line)}
 .held-list .hb .t{overflow-wrap:anywhere}
 .held-list .hb .m{color:var(--mu);font-size:.85rem}
+/* detail views: only their pane shows, under the Inbox tab; crumb and meta sit in the sub-nav row */
+#s1[data-view=group]>:not(.subnav):not(#vGroup),#s1[data-view=session]>:not(.subnav):not(#vSession),#s1[data-view=notfound]>:not(.subnav):not(#vNotFound){display:none}
+#s1[data-view=group]>#vGroup,#s1[data-view=session]>#vSession,#s1[data-view=notfound]>#vNotFound{display:block}
+.crumb{color:var(--mu);font-size:1rem;margin-left:.6rem}
+.crumb::before{content:"/";margin-right:.6rem;opacity:.5}
+.subnav .meta{margin-left:auto;color:var(--mu);font:400 .9rem var(--mono);white-space:nowrap}
