@@ -191,3 +191,9 @@ def test_a_hostile_found_group_stays_text(drawn):
     html = drawn["foundHostile"]
 
     assert HOSTILE not in html and "&lt;img src=x onerror" in html
+
+
+def test_a_triage_change_made_elsewhere_redraws_the_inbox_once_on_return(drawn):
+    routing = drawn["routing"]
+
+    assert routing["refreshedAfterChange"] == 1 and routing["refreshedAfterQuietReturn"] == 1
