@@ -126,9 +126,23 @@ def test_an_empty_what_falls_back_to_what_happened_so_a_lesson_is_never_only_a_t
 def test_archive_asks_for_a_return_condition_the_service_knows(decided):
     assert decided["archive"] == [
         {"return_rule": "after_sessions", "after_sessions": 3},
-        {"return_rule": "new_session"},
+        {"return_rule": "until_worse"},
+        {"return_rule": "on_date"},
         {"return_rule": "never"},
     ]
+
+
+def test_the_four_archive_choices_read_as_the_mockup_says_in_its_order(decided):
+    assert decided["archiveLabels"] == [
+        "Until it happens in 3 more sessions",
+        "Until it gets worse",
+        "For 30 days",
+        "Forever",
+    ]
+
+
+def test_for_30_days_names_the_day_computed_from_the_given_today(decided):
+    assert decided["archiveOn"][2] == "Comes back on Dec 7."
 
 
 def test_the_view_parameter_picks_the_view_and_an_unknown_one_opens_the_inbox_with_one_warning(

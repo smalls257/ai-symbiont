@@ -188,8 +188,9 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     snapshot["ignored"] = ignored
     snapshot["incidents"] = incidents_snapshot(store, project, ScreenRules(live.min_sessions))
     groups = snapshot["incidents"]["groups"] if snapshot["incidents"] else []
-    seen = group_activity(store, project, groups)
-    snapshot["triage"] = triage_listing(store, project, seen)
+    session_days = list(session_dates_of(store.mined.session_facts(project)).values())
+    seen = group_activity(store, project, groups, (today, session_days))
+    snapshot["triage"] = triage_listing(store, project, today, seen)
     snapshot["topicView"] = topic_snapshot(store, project)
     snapshot["trends"] = trends_snapshot(store, project, snapshot["incidents"])
     return _page_filled_with(snapshot)

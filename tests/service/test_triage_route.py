@@ -7,7 +7,7 @@ the page never shows.
 
 import json
 import re
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -21,6 +21,9 @@ from symbiont.store.repos import RepoRegistry, RepoStance
 pytestmark = pytest.mark.periphery
 PROJECT = "demo"
 KEY = "group-made-up-1"
+TODAY = date(2026, 11, 7)
+DAY = date(2026, 10, 10)
+WHEN = (TODAY, [])
 
 
 def rig(tmp_path, *, allow=True):
@@ -145,7 +148,9 @@ def test_a_resolved_group_seen_again_is_listed_for_review_and_regressed(tmp_path
         PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date.today())
     )
 
-    listing = triage_listing(store, PROJECT, {KEY: GroupActivity(1, seen_in_new_session=True)})
+    listing = triage_listing(
+        store, PROJECT, date.today(), {KEY: GroupActivity(1, seen_in_new_session=True)}
+    )
 
     assert listing[KEY] == {
         "state": "for_review",
@@ -207,8 +212,8 @@ def test_a_resolved_group_seen_in_a_later_session_is_regressed_on_the_page_data(
         PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
     )
 
-    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20", None))
-    listing = triage_listing(store, PROJECT, seen)
+    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20", None), WHEN)
+    listing = triage_listing(store, PROJECT, TODAY, seen)
 
     assert listing[KEY]["state"] == "for_review" and listing[KEY]["regressed"] is True
 
@@ -219,15 +224,15 @@ def test_a_resolved_group_not_seen_since_stays_resolved_and_an_untriaged_one_has
         PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
     )
 
-    quiet = group_activity(store, PROJECT, groups_seen_on("2026-10-05", None))
+    quiet = group_activity(store, PROJECT, groups_seen_on("2026-10-05", None), WHEN)
 
-    assert triage_listing(store, PROJECT, quiet)[KEY] == {
+    assert triage_listing(store, PROJECT, TODAY, quiet)[KEY] == {
         "state": "resolved",
         "regressed": False,
         "taught_on": None,
         "name": "",
     }
-    assert group_activity(store, PROJECT, [{"key": "other", "cards": []}]) == {}
+    assert group_activity(store, PROJECT, [{"key": "other", "cards": []}], WHEN) == {}
 
 
 def test_renaming_a_regressed_group_keeps_it_regressed(tmp_path):
@@ -235,12 +240,76 @@ def test_renaming_a_regressed_group_keeps_it_regressed(tmp_path):
     store.review.triage.save(
         PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
     )
-    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20"))
-    assert triage_listing(store, PROJECT, seen)[KEY]["regressed"] is True
+    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20"), WHEN)
+    assert triage_listing(store, PROJECT, TODAY, seen)[KEY]["regressed"] is True
 
     store.review.triage.rename(PROJECT, KEY, "Docker build", date(2026, 10, 25))
 
-    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20"))
-    listing = triage_listing(store, PROJECT, seen)[KEY]
+    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20"), WHEN)
+    listing = triage_listing(store, PROJECT, TODAY, seen)[KEY]
     assert listing["regressed"] is True and listing["name"] == "Docker build"
     assert listing["state"] == "for_review"
+
+
+def test_archiving_until_worse_saves_the_rule_and_no_count_or_day(tmp_path):
+    reply = rig(tmp_path).respond("/triage", body(state="archived", return_rule="until_worse"))
+
+    assert reply.status == 200
+    assert saved(tmp_path)[KEY] == triage_row(
+        GroupState.ARCHIVED, ReturnRule.UNTIL_WORSE, None, date.today()
+    )
+
+
+def test_archiving_for_30_days_saves_the_day_thirty_days_from_the_service_clock(tmp_path):
+    reply = rig(tmp_path).respond("/triage", body(state="archived", return_rule="on_date"))
+
+    assert reply.status == 200
+    assert saved(tmp_path)[KEY].until == date.today() + timedelta(days=30)
+
+
+@pytest.mark.parametrize(
+    "fields",
+    [
+        {"state": "archived", "return_rule": "until_worse", "after_sessions": 2},
+        {"state": "archived", "return_rule": "on_date", "after_sessions": 2},
+        {"state": "archived", "return_rule": "on_date", "until": "2026-12-06"},
+        {"state": "resolved", "return_rule": "on_date"},
+    ],
+)
+def test_the_new_rules_refuse_a_body_that_does_not_fit_and_save_nothing(tmp_path, fields):
+    reply = rig(tmp_path).respond("/triage", body(**fields))
+
+    assert reply.status == 400
+    assert saved(tmp_path) == {}
+
+
+def test_an_on_date_group_comes_back_on_its_day_and_not_before(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    store.review.triage.save(
+        PROJECT,
+        KEY,
+        triage_row(GroupState.ARCHIVED, ReturnRule.ON_DATE, None, DAY, date(2026, 12, 6)),
+    )
+
+    before = triage_listing(store, PROJECT, date(2026, 12, 5))[KEY]
+    on_day = triage_listing(store, PROJECT, date(2026, 12, 6))[KEY]
+
+    assert (before["state"], before["regressed"]) == ("archived", False)
+    assert (on_day["state"], on_day["regressed"]) == ("for_review", True)
+
+
+def test_an_until_worse_group_comes_back_when_its_recent_rate_jumps(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    store.review.triage.save(
+        PROJECT,
+        KEY,
+        triage_row(GroupState.ARCHIVED, ReturnRule.UNTIL_WORSE, None, date(2026, 10, 1)),
+    )
+    cards = [{"sessionId": f"s{n}", "date": f"2026-11-{n + 1:02d}"} for n in range(6)]
+    groups = [{"key": KEY, "cards": cards}]
+    session_days = [date(2026, 11, n + 1) for n in range(12)] + [date(2026, 9, 20)]
+
+    seen = group_activity(store, PROJECT, groups, (date(2026, 11, 12), session_days))
+
+    listing = triage_listing(store, PROJECT, date(2026, 11, 12), seen)[KEY]
+    assert (listing["state"], listing["regressed"]) == ("for_review", True)

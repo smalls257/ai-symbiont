@@ -17,6 +17,7 @@ from symbiont.core.triage import (
     TriageShapeError,
     activity_since,
     state_now,
+    thirty_days_on,
     triage_row,
 )
 from symbiont.service.events import Call, write_event
@@ -75,9 +76,9 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
 
 
 def triage_listing(
-    store: Store, project: str, activity: Mapping[str, GroupActivity] | None = None
+    store: Store, project: str, today: date, activity: Mapping[str, GroupActivity] | None = None
 ) -> dict[str, dict[str, Any]]:
-    """The snapshot's `triage`: group key -> state now, regressed, taught_on, name ("" if unnamed).
+    """The snapshot's `triage` on `today`: group key -> state, regressed, taught_on, name.
 
     `activity` is what the caller measured per group since its saved day; a group it does not
     mention counts as not seen again.
@@ -87,9 +88,7 @@ def triage_listing(
     listing: dict[str, dict[str, Any]] = {}
     for key, row in store.review.triage.all(project).items():
         now = seen.get(key, NO_ACTIVITY)
-        state, regressed = state_now(
-            row, now.sessions_since, seen_in_new_session=now.seen_in_new_session
-        )
+        state, regressed = state_now(row, now, today)
         listing[key] = {
             "state": state.value,
             "regressed": regressed,
@@ -100,18 +99,25 @@ def triage_listing(
 
 
 def group_activity(
-    store: Store, project: str, groups: Sequence[Mapping[str, Any]]
+    store: Store,
+    project: str,
+    groups: Sequence[Mapping[str, Any]],
+    when: tuple[date, Sequence[date]],
 ) -> dict[str, GroupActivity]:
     """For each triaged group, the sessions that showed it after its state was set.
 
     `groups` are the incident groups of the page's data (each with `key` and `cards`, a card
-    being a `sessionId` and an ISO `date` or None). Groups nobody triaged have no entry.
+    being a `sessionId` and an ISO `date` or None). `when` is today and one day per session of
+    the project (the rates' denominator). Groups nobody triaged have no entry.
     """
+    today, session_days = when
     rows = store.review.triage.all(project)
     return {
         group["key"]: activity_since(
             rows[group["key"]].changed_on,
             [(c["sessionId"], _date_of(c["date"])) for c in group["cards"]],
+            today,
+            session_days,
         )
         for group in groups
         if group["key"] in rows
@@ -134,10 +140,10 @@ def _row_of(request: dict[str, Any], today: date) -> TriageRow:
     after = request.get("after_sessions")
     if after is not None and (isinstance(after, bool) or not isinstance(after, int)):
         raise BadRequestError("after_sessions must be a whole number")
+    rule = None if rule is None else _enum(ReturnRule, "return_rule", rule)
+    until = thirty_days_on(today) if rule is ReturnRule.ON_DATE else None
     try:
-        return triage_row(
-            state, None if rule is None else _enum(ReturnRule, "return_rule", rule), after, today
-        )
+        return triage_row(state, rule, after, today, until)
     except TriageShapeError as exc:
         raise BadRequestError(str(exc)) from exc
 
