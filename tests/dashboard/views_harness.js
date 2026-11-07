@@ -14,7 +14,7 @@ const document = {
 };
 const sandbox = { window: {}, document, innerWidth: 1280, innerHeight: 800, URL, URLSearchParams, console };
 sandbox.window.addEventListener = () => {};
-for (const file of ["tip.js", "rename.js", "inbox_model.js", "topics.js", "trends.js", "views.js"]) {
+for (const file of ["tip.js", "rename.js", "inbox_model.js", "topics_parts.js", "topics.js", "trends.js", "views.js"]) {
   vm.runInNewContext(fs.readFileSync(path.join(process.argv[2], file), "utf8"), sandbox);
 }
 const container = () => ({ innerHTML: "", classList: { add() {} }, addEventListener() {}, onclick: null });
