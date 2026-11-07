@@ -3,8 +3,8 @@
    A raw count per month tracks how much the developer worked, so every cell is
    a rate and every number carries its unit (a column header, a legend, a tooltip with the raw counts). Sessions
    with no date are left out of the rates and counted in one sentence, never read as a zero month.
-   Contract: window.SymbiontTrends.render(container, trends); `trends` is the page data's `trends` key
-   (src/symbiont/service/trend_view.py). Tooltips are the page's delegated [data-tip] tooltip. */
+   Contract: window.SymbiontTrends.render(container, trends, project); `trends` is the page data's `trends` key
+   (src/symbiont/service/trend_view.py); the side column is trends_side.js. Tooltips are the page's delegated [data-tip] tooltip. */
 (function () {
 "use strict";
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -37,6 +37,8 @@ const STYLE = `
 .trn .h b{display:block;color:var(--tx);font-weight:600}
 .trn .h small{display:block;font-size:.8rem}
 .trn .l{font-size:.93rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-right:.6rem}
+.trn .l a{display:block;color:inherit;text-decoration:none;overflow:hidden;text-overflow:ellipsis}
+.trn .l a:hover{color:var(--vi)}
 .trn .l .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.45rem}
 .trn .l .dot.failure{background:var(--or)}
 .trn .l .dot.correction{background:var(--cy)}
@@ -55,16 +57,6 @@ const STYLE = `
 .trn .lg i.thin{background-image:repeating-linear-gradient(45deg,color-mix(in srgb,var(--tx) 35%,transparent) 0 2px,transparent 2px 5px)}
 .trn summary{cursor:pointer;color:var(--vi);margin-top:.7rem}
 .trn .note{color:var(--mu);font-size:.9rem;margin-top:.7rem}
-.trn .taught-one{border-top:1px solid var(--line);padding:.8rem 0}
-.trn .taught-one .t{font-weight:650}
-.trn .bars{display:grid;grid-template-columns:9rem minmax(8rem,1fr) minmax(16rem,22rem);gap:.35rem .7rem;align-items:center;margin-top:.5rem}
-.trn .bars .lab{font-size:.9rem;color:var(--mu)}
-.trn .bars .track{height:1.1rem;background:color-mix(in srgb,var(--tx) 5%,transparent);border-radius:.3rem}
-.trn .bars .fill{height:100%;border-radius:.3rem;min-width:2px}
-.trn .bars .fill.before{background:var(--or)}
-.trn .bars .fill.after{background:var(--gr)}
-.trn .bars .val{font-size:.9rem;font-variant-numeric:tabular-nums}
-.trn .marker{grid-column:1/-1;color:var(--vi);font-size:.9rem;border-top:2px solid var(--vi);padding-top:.15rem;margin:.1rem 0}
 `;
 
 /* One row's trend: a pill with a word; gone says since when. */
@@ -101,10 +93,10 @@ function cellHtml(group, month, cell, maxRate) {
     + esc(cellTip(group, month, cell)) + '">' + (cell.times ? cell.per10.toFixed(1) : "0") + "</span>";
 }
 
-function rowHtml(group, months, maxRate) {
+function rowHtml(group, months, maxRate, fmt) {
   const cells = group.cells.map((cell, i) => cellHtml(group, months[i], cell, maxRate)).join("");
-  return '<span class="l" title="' + esc(group.title) + '"><span class="dot ' + esc(group.kind) + '"></span>'
-    + esc(group.title) + "</span>" + cells + '<span class="w">' + trendHtml(group) + "</span>";
+  return '<span class="l"><a data-route href="' + esc(fmt.groupHref(group.key)) + '" title="' + esc(group.title)
+    + '"><span class="dot ' + esc(group.kind) + '"></span>' + esc(group.title) + "</a></span>" + cells + '<span class="w">' + trendHtml(group) + "</span>";
 }
 
 function headerHtml(months) {
@@ -126,18 +118,18 @@ function maxRateOf(groups) {
   return Math.max(0.1, ...rates);
 }
 
-function gridHtml(groups, trends, maxRate) {
+function gridHtml(groups, trends, maxRate, fmt) {
   const columns = "minmax(14rem,1.8fr) repeat(" + trends.months.length + ",minmax(4.6rem,1fr)) 13rem";
   return '<div class="mt" style="grid-template-columns:' + columns + '">' + headerHtml(trends.months)
-    + groups.map(g => rowHtml(g, trends.months, maxRate)).join("") + "</div>";
+    + groups.map(g => rowHtml(g, trends.months, maxRate, fmt)).join("") + "</div>";
 }
 
-function tableHtml(trends) {
+function tableHtml(trends, fmt) {
   const groups = byAttention(trends.groups), maxRate = maxRateOf(groups);
   const folded = groups.slice(MAX_ROWS);
   const more = folded.length ? "<details><summary>Show " + counted(folded.length, "more group") + "</summary>"
-    + gridHtml(folded, trends, maxRate) + "</details>" : "";
-  return gridHtml(groups.slice(0, MAX_ROWS), trends, maxRate) + more;
+    + gridHtml(folded, trends, maxRate, fmt) + "</details>" : "";
+  return gridHtml(groups.slice(0, MAX_ROWS), trends, maxRate, fmt) + more;
 }
 
 function legendHtml(anyTaught) {
@@ -174,41 +166,10 @@ function noDatesHtml(trends) {
   return '<p class="note" role="status">' + counted(trends.undatedSessions, "session") + ". " + why + "</p>";
 }
 
-function barRow(label, name, window, scale) {
-  const width = window.per10 === null ? 0 : Math.round(100 * window.per10 / scale);
-  const tip = esc("<b>" + esc(label) + "</b>: " + counted(window.times, "time") + " in " + counted(window.sessions, "session")
-    + "<br>" + perTen(window.per10));
-  return '<span class="lab">' + esc(label) + '</span><span class="track" data-tip="' + tip + '"><span class="fill ' + name
-    + '" style="display:block;width:' + width + '%"></span></span><span class="val">' + perTen(window.per10) + " ("
-    + counted(window.times, "time") + " in " + counted(window.sessions, "session") + ")</span>";
-}
-
-function afterNote(taught) {
-  if (taught.enough) return "";
-  const need = THIN_SESSIONS - taught.after.sessions;
-  return '<div class="note" style="grid-column:1/-1;margin:0">Too early to say: ' + counted(taught.after.sessions, "session")
-    + " have run since the lesson; the after-rate counts once " + (need > 0 ? counted(need, "more session") + " have" : "10 sessions have") + " run.</div>";
-}
-
-function taughtHtml(group) {
-  const taught = group.taught, on = dayLabel(taught.on);
-  const scale = Math.max(0.1, taught.before.per10 || 0, taught.after.per10 || 0);
-  return '<div class="taught-one"><div class="t">' + esc(group.title) + '</div><div class="bars">'
-    + barRow("Before " + on, "before", taught.before, scale)
-    + '<div class="marker">Lesson added ' + esc(on) + "</div>"
-    + barRow("After " + on, "after", taught.after, scale) + afterNote(taught) + "</div></div>";
-}
-
-function lessonsHtml(trends) {
-  const taught = trends.groups.filter(g => g.taught);
-  const intro = '<h2 style="margin-top:1.4rem">Lessons you added</h2><p class="sub">The same rate, before and after the day you taught the agent. '
-    + "Both bars share one scale: times per 10 sessions. The day itself counts as before.</p>";
-  if (!taught.length) return intro + '<p class="mu">None yet. Use "Teach the agent" on a group in the inbox; it appears here with its before-rate.</p>';
-  return intro + taught.map(taughtHtml).join("");
-}
-
-function render(container, trends) {
-  const style = '<style>' + STYLE + "</style>";
+function render(container, trends, project) {
+  const M = window.SymbiontInboxModel;
+  const fmt = {esc, counted, perTen, dayLabel, groupHref: key => M.hrefFor(project, {view: "group", key})};
+  const style = "<style>" + STYLE + window.SymbiontTrendsSide.style + "</style>";
   const head = "<h2>Is it getting better?</h2>"
     + '<p class="sub">Each group per month, as a rate: times per 10 sessions that month. Session counts swing, so raw counts would mislead.</p>';
   if (!trends.months.length && trends.undatedSessions) {
@@ -220,7 +181,8 @@ function render(container, trends) {
     return;
   }
   const anyTaught = trends.groups.some(g => g.taught);
-  container.innerHTML = style + '<div class="trn">' + head + tableHtml(trends) + legendHtml(anyTaught) + undatedHtml(trends) + lessonsHtml(trends) + "</div>";
+  const grid = '<div class="panel">' + head + tableHtml(trends, fmt) + legendHtml(anyTaught) + undatedHtml(trends) + "</div>";
+  container.innerHTML = style + '<div class="trn"><div class="pg">' + grid + window.SymbiontTrendsSide.html(trends, fmt) + "</div></div>";
 }
 
 window.SymbiontTrends = {render};

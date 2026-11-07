@@ -161,7 +161,7 @@ async function saveName(ui,g,text){
 
 async function afterTaught(ui,g,request){
   await post("/lessons/add",request);
-  const reply=await post("/triage",{project:ui.project,group_key:g.key,taught:true});
+  const reply=await post("/triage",M.taughtRequest(ui.project,g,request));
   remember(ui,g,{taught_on:reply.taught_on});
   draw(ui);focusAfter(ui,g.key,positionOf(ui,g.key));
   window.SymbiontInboxDialogs.toast(ui.container,"Lesson saved. The agent hears it from the next session.");

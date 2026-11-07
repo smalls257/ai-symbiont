@@ -138,3 +138,49 @@ def test_only_a_plain_left_click_on_a_route_link_navigates(drawn):
 
 def test_the_header_meta_line_gives_scale_and_privacy(drawn):
     assert drawn["routing"]["meta"] == "3 sessions · Jan 5, 2026 – Apr 2, 2026 · local only"
+
+
+def test_a_row_name_links_to_its_group_page_with_the_key_encoded(drawn):
+    html = drawn["linked"]
+
+    assert '<a data-route href="?project=my%20proj&amp;view=group&amp;key=a%26b%20c"' in html
+
+
+def test_the_grid_and_a_sticky_side_column_share_one_row(drawn):
+    html = drawn["found"]
+
+    assert 'class="pg"' in html and '<aside class="side">' in html
+    assert "30rem" in html and "position:sticky" in html
+
+
+def test_lessons_show_their_words_a_link_and_the_after_wait_or_rate(drawn):
+    html = drawn["lessons"]
+
+    assert "Unset the token first." in html and "added 5 Mar 2026" in html
+    assert "after: waiting for 6 more sessions" in html
+    assert "after: 0.8 per 10 sessions" in html
+    assert HOSTILE not in html and "&lt;img src=x onerror" in html
+
+
+def test_no_lessons_says_how_to_add_one(drawn):
+    assert 'Use "Teach the agent"' in drawn["noLessons"]
+
+
+def test_a_found_before_and_after_carries_the_caveat_and_a_link_to_its_group(drawn):
+    html = drawn["found"]
+
+    assert "A before and after you already have" in html and "Not taught through symbiont" in html
+    assert "can also make a group go quiet" in html and "at least 10 sessions" in html
+    assert "5 failures in 2 sessions" in html
+    assert "0 failures in 14 sessions after 2 Mar 2026" in html
+    assert 'href="?project=my%20proj&amp;view=group&amp;key=n1"' in html
+
+
+def test_no_found_before_and_after_leaves_the_panel_out(drawn):
+    assert "A before and after you already have" not in drawn["noLessons"]
+
+
+def test_a_hostile_found_group_stays_text(drawn):
+    html = drawn["foundHostile"]
+
+    assert HOSTILE not in html and "&lt;img src=x onerror" in html

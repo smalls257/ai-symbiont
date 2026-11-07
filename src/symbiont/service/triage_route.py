@@ -20,6 +20,7 @@ from symbiont.core.triage import (
     thirty_days_on,
     triage_row,
 )
+from symbiont.miner.credential_patterns import scrub
 from symbiont.service.events import Call, write_event
 from symbiont.service.request_shapes import (
     BadRequestError,
@@ -33,9 +34,11 @@ if TYPE_CHECKING:
     from symbiont.service.app import ServiceParts
 
 TRIAGE_KEYS = frozenset(
-    {"project", "group_key", "state", "return_rule", "after_sessions", "taught", "name"}
+    {"project", "group_key", "state", "return_rule", "after_sessions", "taught", "name", "lesson"}
 )
 TRIAGE_REQUIRED = frozenset({"project", "group_key"})
+# The Trends panel shows the words in one line of a side column; a longer lesson is cut.
+MAX_LESSON_CHARS = 600
 NO_ACTIVITY = GroupActivity(0, seen_in_new_session=False)
 
 
@@ -62,7 +65,7 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     if row is not None:
         store.review.triage.save(project, key, row)
     if taught:
-        store.review.triage.mark_taught(project, key, today)
+        store.review.triage.mark_taught(project, key, today, _lesson_words(request))
     saved = store.review.triage.all(project)[key]
     reply = {
         "group_key": key,
@@ -73,6 +76,14 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     events = parts.events
     write_event(events.path, events.filler, Call("triage", "triage", project), {"triage": reply})
     return reply
+
+
+def _lesson_words(request: dict[str, Any]) -> str:
+    """The lesson text sent with `taught`, scrubbed and capped; "" when none was sent."""
+    words = request.get("lesson", "")
+    if not isinstance(words, str):
+        raise BadRequestError("lesson must be text")
+    return scrub(words.strip())[:MAX_LESSON_CHARS]
 
 
 def triage_listing(

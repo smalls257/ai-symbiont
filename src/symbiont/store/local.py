@@ -34,7 +34,12 @@ from symbiont.store.session_summaries import SessionSummaries
 from symbiont.store.struggle_rows import SCHEMA as STRUGGLE_SCHEMA
 from symbiont.store.struggle_rows import add_missing_started
 from symbiont.store.triage import SCHEMA as TRIAGE_SCHEMA
-from symbiont.store.triage import GroupTriage, add_missing_name, add_missing_until
+from symbiont.store.triage import (
+    GroupTriage,
+    add_missing_lesson,
+    add_missing_name,
+    add_missing_until,
+)
 
 log = logging.getLogger("symbiont.store")
 
@@ -182,6 +187,7 @@ class Store:
         db.executescript(TRIAGE_SCHEMA)
         add_missing_name(db)
         add_missing_until(db)
+        add_missing_lesson(db)
         db.executescript(SUMMARIES_SCHEMA)
         _add_missing_authored_columns(db)
         _add_missing_review_summary(db)

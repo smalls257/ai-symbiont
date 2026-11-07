@@ -47,6 +47,7 @@ FILES = {
     "/dashboard/views.js": ("views.js", JS),
     "/dashboard/topics.js": ("topics.js", JS),
     "/dashboard/trends.js": ("trends.js", JS),
+    "/dashboard/trends_side.js": ("trends_side.js", JS),
     "/dashboard/inbox.css": ("inbox.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),

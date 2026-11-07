@@ -157,3 +157,10 @@ def test_a_store_from_before_for_30_days_gains_the_until_column(tmp_path):
     store = Store.open(path)
 
     assert store.review.triage.all("demo")["k"].until is None
+
+
+def test_the_lesson_a_group_was_taught_is_kept_with_its_day_and_empty_when_none_was_sent(store):
+    store.review.triage.mark_taught("demo", "key-a", DAY, "Unset the token first.")
+    store.review.triage.mark_taught("demo", "key-b", DAY)
+
+    assert store.review.triage.lessons("demo") == {"key-a": "Unset the token first."}

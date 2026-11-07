@@ -14,7 +14,7 @@ SCHEMA = """
 CREATE TABLE IF NOT EXISTS triage (
     project TEXT NOT NULL, group_key TEXT NOT NULL, state TEXT NOT NULL,
     return_rule TEXT, after_sessions INTEGER, changed_on TEXT NOT NULL, taught_on TEXT,
-    name TEXT NOT NULL DEFAULT '', until TEXT,
+    name TEXT NOT NULL DEFAULT '', until TEXT, lesson TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (project, group_key)
 );
 """
@@ -32,6 +32,13 @@ def add_missing_until(db: sqlite3.Connection) -> None:
     if "until" not in {column[1] for column in db.execute("PRAGMA table_info(triage)")}:
         with db:
             db.execute("ALTER TABLE triage ADD COLUMN until TEXT")
+
+
+def add_missing_lesson(db: sqlite3.Connection) -> None:
+    """Give a store from before lesson text was kept the `lesson` column, once, when opened."""
+    if "lesson" not in {column[1] for column in db.execute("PRAGMA table_info(triage)")}:
+        with db:
+            db.execute("ALTER TABLE triage ADD COLUMN lesson TEXT NOT NULL DEFAULT ''")
 
 
 class GroupTriage:
@@ -84,15 +91,32 @@ class GroupTriage:
                 ),
             )
 
-    def mark_taught(self, project: str, group_key: str, day: date) -> None:
-        """Record the day "Teach the agent" was used; a group not yet triaged stays For review."""
+    def mark_taught(self, project: str, group_key: str, day: date, lesson: str = "") -> None:
+        """Record the day "Teach the agent" was used, and the lesson's words when sent.
+
+        A group not yet triaged stays For review.
+        """
         with self._db:
             self._db.execute(
-                "INSERT INTO triage (project, group_key, state, changed_on, taught_on)"
-                " VALUES (?, ?, ?, ?, ?) ON CONFLICT (project, group_key) DO UPDATE"
-                " SET taught_on=excluded.taught_on",
-                (project, group_key, GroupState.FOR_REVIEW.value, day.isoformat(), day.isoformat()),
+                "INSERT INTO triage (project, group_key, state, changed_on, taught_on, lesson)"
+                " VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (project, group_key) DO UPDATE"
+                " SET taught_on=excluded.taught_on, lesson=excluded.lesson",
+                (
+                    project,
+                    group_key,
+                    GroupState.FOR_REVIEW.value,
+                    day.isoformat(),
+                    day.isoformat(),
+                    lesson,
+                ),
             )
+
+    def lessons(self, project: str) -> dict[str, str]:
+        """The words taught to the agent per group key; groups taught with no words are absent."""
+        rows = self._db.execute(
+            "SELECT group_key, lesson FROM triage WHERE project=? AND lesson != ''", (project,)
+        )
+        return dict(rows)
 
     def all(self, project: str) -> dict[str, TriageRow]:
         """Every saved group of `project`, by group key."""

@@ -14,7 +14,7 @@ const document = {
 };
 const sandbox = { window: {}, document, innerWidth: 1280, innerHeight: 800, URL, URLSearchParams, console };
 sandbox.window.addEventListener = () => {};
-for (const file of ["tip.js", "rename.js", "inbox_model.js", "topics.js", "trends.js", "views.js"]) {
+for (const file of ["tip.js", "rename.js", "inbox_model.js", "topics.js", "trends_side.js", "trends.js", "views.js"]) {
   vm.runInNewContext(fs.readFileSync(path.join(process.argv[2], file), "utf8"), sandbox);
 }
 const container = () => ({ innerHTML: "", classList: { add() {} }, addEventListener() {}, onclick: null });
@@ -24,7 +24,7 @@ const draw = (render, ...args) => {
   return box.innerHTML;
 };
 const T = sandbox.window.SymbiontTopics.render;
-const R = sandbox.window.SymbiontTrends.render;
+const R = (box, data) => sandbox.window.SymbiontTrends.render(box, data, "my proj");
 const HOSTILE = "<img src=x onerror=window.__x=1>";
 
 const sessionsByDate = [
@@ -45,6 +45,13 @@ const row = (over) => ({
 });
 const trends = (over) => ({ months: [{ month: "2026-03", sessions: 10 }], undatedSessions: 0, undatedReason: "no_timestamps", groups: [row()], ...over });
 
+const taughtOf = (over) => ({
+  on: "2026-03-05", month: "2026-03", lesson: "Unset the token first.", before: cell(3, 6), after: cell(0, 4), enough: false, ...over,
+});
+const natural = (over) => ({
+  key: "n1", title: "gh fails on token", kind: "failure", first: "2026-03-01", last: "2026-03-02", sessionsWithGroup: 2,
+  before: { times: 5, sessions: 3, per10: 16.7 }, after: { times: 0, sessions: 14, per10: 0 }, ...over,
+});
 const dayLabelEvil = trends({ groups: [row({ title: HOSTILE, trend: "gone", last: null })] });
 const attr = (title) => {
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -67,4 +74,9 @@ console.log(JSON.stringify({
   goneNoLast: draw(R, dayLabelEvil),
   tooFew: draw(R, trends({ groups: [row({ trend: "too_few" })] })),
   replayTip: attr(HOSTILE),
+  linked: draw(R, trends({ groups: [row({ key: "a&b c" })] })),
+  lessons: draw(R, trends({ groups: [row({ taught: taughtOf() }), row({ key: "k2", title: "Other", taught: taughtOf({ lesson: HOSTILE, enough: true, after: cell(1, 12) }) })] })),
+  noLessons: draw(R, trends()),
+  found: draw(R, trends({ natural: natural() })),
+  foundHostile: draw(R, trends({ natural: natural({ title: HOSTILE, key: "x\"y" }) })),
 }));

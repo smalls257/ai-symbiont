@@ -10,8 +10,18 @@ from datetime import date
 from typing import Any
 
 from symbiont.core.trends import Window, before_after, rate_per_10, trend_of
+from symbiont.service.natural_before_after import natural_before_after
 from symbiont.service.session_dates import session_dates_of
 from symbiont.store.local import Store
+
+
+@dataclass(frozen=True)
+class Taught:
+    """The day a group was taught to the agent and the words ("" when none were kept)."""
+
+    on: date
+    lesson: str = ""
+
 
 # A year of columns is as many as the table can show without squeezing the numbers.
 SHOWN_MONTHS = 12
@@ -35,10 +45,13 @@ def trends_snapshot(
     """
     facts = store.mined.session_facts(project)
     session_days = list(session_dates_of(facts).values())
-    taught = {
-        key: row.taught_on for key, row in store.review.triage.all(project).items() if row.taught_on
-    }
     triage = store.review.triage
+    words = triage.lessons(project)
+    taught = {
+        key: Taught(row.taught_on, words.get(key, ""))
+        for key, row in triage.all(project).items()
+        if row.taught_on
+    }
     groups = incidents["groups"] if incidents else []
     shown = trends_of(
         groups, session_days, len(facts) - len(session_days), taught, triage.names(project)
@@ -50,7 +63,7 @@ def trends_of(
     groups: Sequence[Mapping[str, Any]],
     session_days: Sequence[date],
     undated_sessions: int,
-    taught: Mapping[str, date],
+    taught: Mapping[str, Taught],
     names: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     """Trends for the recurring, non-noise groups, each named as the Inbox names it."""
@@ -67,6 +80,7 @@ def trends_of(
         "months": [{"month": m, "sessions": per_month[m]} for m in shown],
         "undatedSessions": undated_sessions,
         "groups": rows,
+        "natural": natural_before_after(groups, rows, session_days),
     }
 
 
@@ -78,7 +92,7 @@ def _group_row(
     group: Mapping[str, Any],
     calendar: Calendar,
     session_days: Sequence[date],
-    taught_on: date | None,
+    taught: Taught | None,
     chosen_name: str | None,
 ) -> dict[str, Any]:
     seen = [date.fromisoformat(c["date"]) for c in group["cards"] if c["date"]]
@@ -92,7 +106,7 @@ def _group_row(
         "undatedTimes": len(group["cards"]) - len(seen),
         "outsideTimes": sum(n for month, n in times.items() if month not in calendar.shown),
         "cells": [_cell(times[m], calendar.per_month[m]) for m in calendar.shown],
-        "taught": _taught(seen, session_days, taught_on),
+        "taught": _taught(seen, session_days, taught),
     }
 
 
@@ -107,14 +121,15 @@ def _cell(times: int, sessions: int) -> dict[str, Any]:
 
 
 def _taught(
-    seen: Sequence[date], session_days: Sequence[date], taught_on: date | None
+    seen: Sequence[date], session_days: Sequence[date], taught: Taught | None
 ) -> dict[str, Any] | None:
-    if taught_on is None:
+    if taught is None:
         return None
-    split = before_after(seen, session_days, taught_on)
+    split = before_after(seen, session_days, taught.on)
     return {
-        "on": taught_on.isoformat(),
-        "month": _month(taught_on),
+        "on": taught.on.isoformat(),
+        "month": _month(taught.on),
+        "lesson": taught.lesson,
         "before": _window(split.before),
         "after": _window(split.after),
         "enough": split.after_is_enough,
