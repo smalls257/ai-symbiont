@@ -24,6 +24,7 @@ from symbiont.store.settings import DEFAULT_MIN_SESSIONS
 STATIC = Path(__file__).parent / "static"
 PLACEHOLDER = "__SYMBIONT_DATA__"
 WATCHING_MINE = "mining"
+JS = "text/javascript; charset=utf-8"
 FILES = {
     "/dashboard/mining.js": ("mining.js", "text/javascript; charset=utf-8"),
     "/dashboard/struggle.js": ("struggle.js", "text/javascript; charset=utf-8"),
@@ -31,6 +32,14 @@ FILES = {
     "/dashboard/painlist.js": ("painlist.js", "text/javascript; charset=utf-8"),
     "/dashboard/summary.js": ("summary.js", "text/javascript; charset=utf-8"),
     "/dashboard/ignored.js": ("ignored.js", "text/javascript; charset=utf-8"),
+    "/dashboard/inbox_model.js": ("inbox_model.js", JS),
+    "/dashboard/inbox_rows.js": ("inbox_rows.js", JS),
+    "/dashboard/inbox_dialogs.js": ("inbox_dialogs.js", JS),
+    "/dashboard/inbox.js": ("inbox.js", JS),
+    "/dashboard/views.js": ("views.js", JS),
+    "/dashboard/topics.js": ("topics.js", JS),
+    "/dashboard/trends.js": ("trends.js", JS),
+    "/dashboard/inbox.css": ("inbox.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.css": ("dashboard.css", "text/css; charset=utf-8"),
     "/dashboard/dashboard.js": ("dashboard.js", "text/javascript; charset=utf-8"),
 }
@@ -74,12 +83,19 @@ def dashboard_page(
     path, _, query = target.partition("?")
     if path in FILES:
         name, content_type = FILES[path]
-        return Page(200, content_type, (STATIC / name).read_bytes())
+        return _static_file(STATIC / name, content_type)
     if path.rstrip("/") == "/ignored":
         return _ignored_page(store, registry, _query(query).get("project", ""))
     if path.rstrip("/") != "/dashboard":
         return Page(404, TEXT, f"no such page: {path}".encode())
     return _project_page(store, registry, query, today, live or Live())
+
+
+def _static_file(file: Path, content_type: str) -> Page:
+    """The asset, or a 404 naming it: topics.js and trends.js ship in their own changes."""
+    if not file.is_file():
+        return Page(404, TEXT, f"no such asset: {file.name}".encode())
+    return Page(200, content_type, file.read_bytes())
 
 
 def _ignored_page(store: Store, registry: RepoRegistry | None, project: str) -> Page:

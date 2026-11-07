@@ -94,6 +94,8 @@ def _card(card: Incident, days: SessionDays, context: IncidentContext) -> dict[s
         "noiseWords": noise_words(card.noise) if card.noise else "",
         "date": days.get(card.session_id),
         "files": list(card.files),
+        "firstWrong": card.first_wrong,
+        "costSteps": card.cost_steps,
         "session": context.titles.get(card.session_id, ""),
     }
 
@@ -133,6 +135,7 @@ def _group_json(
     weeks, undated = _weekly(group.cards, days)
     return {
         "key": group.key,
+        "name": _generated_name(group),
         "title": newest.example or newest.what_happened,
         "groupedBecause": _grouped_because(group, context),
         "kind": "correction" if group.signal is Signal.CORRECTION else "failure",
@@ -150,6 +153,14 @@ def _group_json(
         "cards": [_card(c, days, context) for c in group.cards],
         "trigger": _trigger_json(group.trigger),
     }
+
+
+def _generated_name(group: IncidentGroup) -> str:
+    """The heading a group has until the developer renames it: its model name or newest sentence."""
+    named = group.key.removeprefix("correction:")
+    if group.signal is Signal.CORRECTION and named != group.key and ":" not in named:
+        return named
+    return group.cards[0].what_happened
 
 
 def _recurring(cards: Sequence[Incident]) -> bool:

@@ -99,12 +99,13 @@ let token=0;const CANCEL=Symbol("cancel");
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
 async function pause(t,ms){await wait(ms);if(t!==token)throw CANCEL;}
 const STAGES=["Mine","Pain points","Add context","30-day replay"];
-let mined=false;
+let mined=false,views=null;
 function go(n){
   document.querySelectorAll(".stage").forEach((s,i)=>s.classList.toggle("on",i===n));
   [...$("nav").children].forEach((b,i)=>{b.setAttribute("aria-current",i===n);b.classList.toggle("done",i<n);});
   if(n===0&&!mined)resetMining();
   if(n===0&&mined)finishMiningUI();
+  if(n===1&&views)views.show();
   if(n===3&&!replayRunning)renderReplay(1e9);
 }
 const nav=$("nav");
@@ -354,6 +355,6 @@ if(DATA.replay.undated>0){const n=DATA.replay.undated;$("estnote").textContent+=
 if(P.length){renderList();showPain(1);}
 else{ignOpen=true;renderEmptyList();$("edit").innerHTML='<h2>No lessons yet</h2><p class="mu">'+esc(DATA.noLessons)+' There is nothing to add context to yet. The Pain points stage shows where the agent struggled and what was held back.</p>';}
 mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();
-go(1);
+views=window.SymbiontViews.mount(DATA,PROJECT,$("s1"),console.warn);go(views.stage);
 window.__symbiont={go,mine:()=>$("startBtn").click(),selectPain,setPrio,setIntent,ST,P,EVENTS,renderReplay,finishAll:()=>{mined=true;[...sg.children].forEach((c,i)=>mineStep(i));finishMiningUI();}};
 })();

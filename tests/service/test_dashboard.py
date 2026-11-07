@@ -160,13 +160,19 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
     assert "http://" not in get(f"{base}/dashboard/dashboard.js")[1].replace("http://127", "")
 
 
+# topics.js and trends.js come in their own changes; the page names them and shows a "coming soon"
+# line until they are served (a missing asset is a 404, not a crash).
+SHIPPED_BY_OTHER_TASKS = {"/dashboard/topics.js", "/dashboard/trends.js"}
+
+
 def test_every_script_and_stylesheet_the_page_names_is_served(served):
     base, _ = served
     html = get(f"{base}/dashboard")[1]
     named = re.findall(r'<(?:script src|link rel="stylesheet" href)="(/dashboard/[^"]+)"', html)
 
-    assert "/dashboard/struggle.js" in named
-    assert [path for path in named if get(base + path)[0] != 200] == []
+    assert "/dashboard/struggle.js" in named and "/dashboard/inbox.js" in named
+    unserved = [path for path in named if get(base + path)[0] != 200]
+    assert set(unserved) <= SHIPPED_BY_OTHER_TASKS
 
 
 def test_several_repositories_need_a_choice_and_an_unknown_path_is_a_404(served):
@@ -367,3 +373,44 @@ def test_a_pain_point_without_a_review_gets_a_rule_built_summary_from_the_reques
     assert point["summary"] == ""
     assert "You asked: make the parser tests pass" in point["ruleSummary"]
     assert "ImportError" in point["ruleSummary"] and "fixed" in point["ruleSummary"]
+
+
+def test_the_inbox_assets_are_served_and_the_pain_points_tab_has_its_sub_navigation(served):
+    base, _ = served
+    html = get(f"{base}/dashboard")[1]
+
+    for asset in ("inbox.js", "inbox_model.js", "inbox_rows.js", "inbox_dialogs.js", "views.js"):
+        status, body, kind = get(f"{base}/dashboard/{asset}")
+        assert status == 200 and kind.startswith("text/javascript") and body.strip()
+    assert get(f"{base}/dashboard/inbox.css")[2].startswith("text/css")
+    assert 'id="subnav"' in html and 'id="vInbox"' in html
+    assert html.index("/dashboard/inbox.js") < html.index("/dashboard/views.js")
+    assert html.index("/dashboard/views.js") < html.index("/dashboard/dashboard.js")
+
+
+def test_a_missing_asset_is_a_404_naming_it_not_a_crash(served, tmp_path, monkeypatch):
+    _, store = served
+    monkeypatch.setattr("symbiont.service.dashboard_page.STATIC", tmp_path)
+
+    page = dashboard_page(store, None, "/dashboard/topics.js", TODAY)
+
+    assert page.status == 404 and b"topics.js" in page.body
+
+
+@pytest.mark.parametrize(
+    "view", ["inbox", "topics", "trends", "struggle", "context", "replay", "nonsense"]
+)
+def test_the_page_answers_every_view_link_with_the_same_page(served, view):
+    base, _ = served
+
+    status, html, _ = get(f"{base}/dashboard?view={view}")
+
+    assert status == 200 and 'id="subnav"' in html
+
+
+def test_the_page_script_honors_the_view_parameter_and_boots_into_the_chosen_stage():
+    script = (STATIC / "dashboard.js").read_text(encoding="utf-8")
+    views = (STATIC / "views.js").read_text(encoding="utf-8")
+
+    assert "go(views.stage)" in script and "viewFrom(location.search" in views
+    assert "coming soon" in views and "SymbiontTopics" in views and "SymbiontTrends" in views

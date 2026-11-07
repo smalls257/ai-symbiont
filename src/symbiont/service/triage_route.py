@@ -26,9 +26,10 @@ if TYPE_CHECKING:
     from symbiont.service.app import ServiceParts
 
 TRIAGE_KEYS = frozenset(
-    {"project", "group_key", "state", "return_rule", "after_sessions", "taught"}
+    {"project", "group_key", "state", "return_rule", "after_sessions", "taught", "name"}
 )
 TRIAGE_REQUIRED = frozenset({"project", "group_key"})
+MAX_NAME = 80  # a group name is a one-line heading in the inbox
 NO_ACTIVITY = GroupActivity(0, seen_in_new_session=False)
 
 
@@ -45,14 +46,24 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     if not isinstance(key, str) or not key:
         raise BadRequestError("group_key must be text")
     taught = request.get("taught", False)
-    if taught is not True and (taught is not False or "state" not in request):
-        raise BadRequestError("send a state, or taught: true")
-    if "state" in request:
-        store.review.triage.save(project, key, _row_of(request, today))
+    named = "name" in request
+    if taught is not True and (taught is not False or ("state" not in request and not named)):
+        raise BadRequestError("send a state, a name, or taught: true")
+    name = _name_of(request["name"]) if named else ""
+    row = _row_of(request, today) if "state" in request else None
+    if named:
+        store.review.triage.rename(project, key, name, today)
+    if row is not None:
+        store.review.triage.save(project, key, row)
     if taught:
         store.review.triage.mark_taught(project, key, today)
     saved = store.review.triage.all(project)[key]
-    reply = {"group_key": key, "state": saved.state.value, "taught_on": _day(saved.taught_on)}
+    reply = {
+        "group_key": key,
+        "state": saved.state.value,
+        "taught_on": _day(saved.taught_on),
+        "name": store.review.triage.names(project).get(key, ""),
+    }
     events = parts.events
     write_event(events.path, events.filler, Call("triage", "triage", project), {"triage": reply})
     return reply
@@ -61,12 +72,13 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
 def triage_listing(
     store: Store, project: str, activity: Mapping[str, GroupActivity] | None = None
 ) -> dict[str, dict[str, Any]]:
-    """The snapshot's `triage`: group key -> state now, regressed, taught_on.
+    """The snapshot's `triage`: group key -> state now, regressed, taught_on, name ("" if unnamed).
 
     `activity` is what the caller measured per group since its saved day; a group it does not
     mention counts as not seen again.
     """
     seen = activity or {}
+    names = store.review.triage.names(project)
     listing: dict[str, dict[str, Any]] = {}
     for key, row in store.review.triage.all(project).items():
         now = seen.get(key, NO_ACTIVITY)
@@ -77,8 +89,21 @@ def triage_listing(
             "state": state.value,
             "regressed": regressed,
             "taught_on": _day(row.taught_on),
+            "name": names.get(key, ""),
         }
     return listing
+
+
+def _name_of(value: object) -> str:
+    """The trimmed name; "" restores the generated one. Longer than MAX_NAME is refused."""
+    if not isinstance(value, str):
+        raise BadRequestError("name must be text")
+    name = value.strip()
+    if len(name) > MAX_NAME:
+        raise BadRequestError(
+            f"name must be at most {MAX_NAME} characters; this one has {len(name)}"
+        )
+    return name
 
 
 def _day(day: date | None) -> str | None:
