@@ -33,7 +33,9 @@ from symbiont.service.nightly_backend import (
 from symbiont.service.nightly_kit import JudgeKit, open_kit, read_rows
 from symbiont.service.nightly_peft import mlx_to_peft
 from symbiont.service.nightly_rows import night_rows, trainable_lessons
+from symbiont.service.stale_lessons import screened_now
 from symbiont.store.local import Store
+from symbiont.store.mining import screen_rules_from
 
 EXIT_FAILED = 1
 EXIT_NO_LESSONS = 2
@@ -165,11 +167,22 @@ def _train_and_record(plan: NightPlan, tools: NightTools, timeline: Timeline) ->
 
 
 def _stored_lessons(plan: NightPlan) -> list[Lesson]:
-    """The project's lessons with twins merged; NoLessonsError when there are none."""
+    """The lessons today's screen keeps, twins merged (an older store's held ones are noise).
+
+    Raises NoLessonsError when none are left.
+    """
     path = plan.data_dir / "store.db"
     if not path.is_file():
         raise NoLessonsError(f"no symbiont data at {path}; mine this repository's history first")
-    lessons = merge_twins(Store.open(path).lessons(plan.project))
+    store = Store.open(path)
+    stored = store.lessons(plan.project)
+    kept = screened_now(store, plan.project, stored, screen_rules_from(plan.data_dir))
+    lessons = merge_twins(kept)
+    if not lessons and stored:
+        raise NoLessonsError(
+            f"{plan.project} has {len(stored)} stored lessons, none that today's screen keeps; "
+            "run `symbiont repo mine` to refresh them"
+        )
     if not lessons:
         raise NoLessonsError(
             f"{plan.project} has no stored lessons to train on; run `symbiont repo mine` first"

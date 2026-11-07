@@ -31,7 +31,17 @@ def test_a_correction_joins_its_model_group_else_stands_alone():
     named = card("a", 4, Signal.CORRECTION)
     alone = card("b", 9, Signal.CORRECTION)
     groups = group_incidents([named, alone], {}, {("a", 4): "Use pnpm"})
-    assert sorted(g.key for g in groups) == ["correction:Use pnpm", "correction:b:9"]
+    assert sorted(g.key for g in groups) == ["correction:a:4", "correction:b:9"]
+    assert sorted(g.model_name for g in groups) == ["", "Use pnpm"]
+
+
+def test_a_correction_group_is_keyed_on_its_smallest_card_so_a_new_topic_map_keeps_the_key():
+    cards = [card("b", 2, Signal.CORRECTION), card("a", 7, Signal.CORRECTION)]
+    first = group_incidents(cards, {}, {("a", 7): "Use pnpm", ("b", 2): "Use pnpm"})
+    renamed = group_incidents(cards, {}, {("a", 7): "Package manager", ("b", 2): "Package manager"})
+    split = group_incidents(cards, {}, {("a", 7): "Package manager"})
+    assert [g.key for g in first] == ["correction:a:7"] == [g.key for g in renamed]
+    assert [g.key for g in split] == ["correction:a:7", "correction:b:2"]
 
 
 def test_the_key_does_not_depend_on_the_order_cards_were_mined():

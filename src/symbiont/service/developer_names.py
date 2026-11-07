@@ -24,7 +24,8 @@ def developer_names(store: Store, project: str) -> list[dict[str, str]]:
     chosen = store.review.triage.names(project)
     if not chosen:
         return told
-    groups: list[dict[str, Any]] = incidents_snapshot(store, project)["groups"]
+    shown = incidents_snapshot(store, project)
+    groups: list[dict[str, Any]] = shown["groups"] if shown else []
     told += [
         {"was": g["name"], "now": chosen[g["key"]], "of": f"{g['kind']} group"}
         for g in groups

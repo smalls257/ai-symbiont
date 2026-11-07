@@ -81,25 +81,27 @@ def screen(lessons: Sequence[Lesson], rules: ScreenRules) -> Screened:
     return Screened(kept, held, struggle)
 
 
-def taught_since_the_fix_rule(lessons: Sequence[Lesson]) -> list[Lesson]:
-    """`lessons` without what only an older mining kept: rework, unfixed and inline failures.
-
-    Screening judges a failed command's whole group, so one lesson without a fix stays when a
-    sibling shows one. Delivery skips the rest until the store is mined again.
-    """
-    fixed = {lesson.pain_point.signature for lesson in lessons if lesson.fix is not None}
-    return [
-        lesson
-        for lesson in lessons
-        if lesson.pain_point.signature.signal is not Signal.REWORKED_EDIT
-        and (
-            lesson.pain_point.signature.signal is not Signal.FAILED_COMMAND
-            or (
-                lesson.pain_point.signature in fixed
-                and lesson.pain_point.signature.key[1] != INLINE_TARGET
-            )
-        )
+def taught_since_the_fix_rule(lessons: Sequence[Lesson], rules: ScreenRules) -> list[Lesson]:
+    """`lessons` as today's screen keeps them: older rework and held failures drop out."""
+    groups: dict[Signature, list[tuple[int, Lesson]]] = defaultdict(list)
+    for position, lesson in enumerate(lessons):
+        groups[lesson.pain_point.signature].append((position, lesson))
+    kept = [
+        pair for signature, group in groups.items() for pair in _still_kept(signature, group, rules)
     ]
+    return [lesson for _, lesson in sorted(kept, key=lambda pair: pair[0])]
+
+
+def _still_kept(
+    signature: Signature, group: list[tuple[int, Lesson]], rules: ScreenRules
+) -> list[tuple[int, Lesson]]:
+    if signature.signal is Signal.REWORKED_EDIT:
+        return []
+    if signature.signal is not Signal.FAILED_COMMAND:
+        return group
+    if _failed_command_reason(signature, [lesson for _, lesson in group], rules) is not None:
+        return []
+    return [(position, lesson) for position, lesson in group if lesson.fix is not None]
 
 
 def hold_reason(

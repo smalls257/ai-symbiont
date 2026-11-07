@@ -154,4 +154,22 @@ def test_delivery_filter_drops_inline_failed_command_lessons():
     """Failure guarded against: an older mining's `python -c` lessons reaching a note."""
     inline = lesson(INLINE)
     kept = lesson(MANAGE)
-    assert taught_since_the_fix_rule([inline, kept]) == [kept]
+    rules = ScreenRules(min_sessions=1)
+    assert taught_since_the_fix_rule([inline, kept], rules) == [kept]
+
+
+def test_delivery_filter_applies_the_fix_in_min_sessions_rule_to_an_older_store():
+    """Failure guarded against: a trap fixed in one session reaching a note or the adapter."""
+    one_fix = [lesson(MANAGE, "s1"), lesson(MANAGE, "s2", fix=None)]
+    two_fixes = [lesson(TRAP, "s1"), lesson(TRAP, "s2"), lesson(TRAP, "s3", fix=None)]
+    assert taught_since_the_fix_rule(one_fix, ScreenRules()) == []
+    assert taught_since_the_fix_rule(one_fix, ScreenRules(min_sessions=1)) == [one_fix[0]]
+    assert taught_since_the_fix_rule(two_fixes, ScreenRules()) == two_fixes[:2]
+
+
+def test_delivery_filter_drops_probes_and_scratch_scripts_but_keeps_what_people_said():
+    probe = Signature(Signal.FAILED_COMMAND, ("ls", "src", "exit 2 No such file"))
+    said = Signature(Signal.CORRECTION, ("use uv",))
+    lessons = [lesson(probe, "s1"), lesson(probe, "s2"), lesson(said, "s1")]
+    lessons += [lesson(SCRATCH, s, target_created=True) for s in ("s1", "s2")]
+    assert taught_since_the_fix_rule(lessons, ScreenRules()) == [lessons[2]]

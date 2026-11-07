@@ -95,18 +95,21 @@ function weekAxis(groups){
 }
 const seriesOf=(g,axis)=>{const by=new Map(g.weekly);return axis.map(w=>by.get(w.key)||0);};
 
-/* "Teach the agent" opens with what symbiont would teach, already filled in. Nothing is required: the text falls
-   back to the group's name so the route (which needs some words) still gets a sentence. */
-/* g.fixed is the server's one answer; it is taught only when the verdict says something really fixed it. */
-function teachDraft(g,name){
+/* "Teach the agent" opens with what symbiont would teach, already filled in. Nothing is required: an empty What
+   falls back to the group's "What happened" sentence, so a saved lesson is never only a trigger.
+   g.fixed is the server's one answer; it is taught only when the verdict says something really fixed it.
+   g.trains is the server's: the mined lesson behind the group is one nightly training reads.
+   A correction's text is quoted as "You said" only when the history is the developer's own (ownHistory). */
+function teachDraft(g,name,ownHistory){
   const when=g.trigger?g.trigger.words:"";
-  const first=g.kind==="correction"&&g.title?"You said: “"+g.title+"”. ":"";
-  const fix=g.fixShown?g.fixed:"",trains=g.kind==="failure"&&g.fixShown;
-  return {when,what:(first+fix).trim(),trains,name,hasTrigger:Boolean(g.trigger)};
+  const first=g.kind==="correction"&&g.title&&ownHistory?"You said: “"+g.title+"”. ":"";
+  const fix=g.fixShown?g.fixed:"";
+  return {when,what:(first+fix).trim(),trains:Boolean(g.trains),name,hasTrigger:Boolean(g.trigger)};
 }
 const capital=s=>s.charAt(0).toUpperCase()+s.slice(1);
 function lessonRequest(project,g,when,what,name){
-  const text=[when.trim()?capital(when.trim()):"",what.trim()].filter(Boolean).join(": ")||name;
+  const body=what.trim()||g.happened||"";
+  const text=[when.trim()?capital(when.trim()):"",body].filter(Boolean).join(": ")||name;
   const lesson={text_in_plain_words:text,kind:g.kind==="correction"?"correction":"mistake",source_label:"From the inbox"};
   const applies=appliesTo(g.trigger);
   if(applies)lesson.applies_to=applies;
@@ -118,8 +121,8 @@ function appliesTo(trigger){
   return terms.length||areas.length?{terms,areas}:null;
 }
 const TEACH_NOTES={
-  trains:"This feeds nightly training (a failed command with a fix) and is delivered as a note.",
-  noteOnly:"This is delivered as a note only; nightly training learns from failed commands that have a fix.",
+  trains:"The mined lesson behind this group feeds nightly training; your note is delivered to the agent.",
+  noteOnly:"Delivered to the agent as a note; it does not feed nightly training.",
   noSituation:"symbiont has not seen a shared situation yet; it will speak when this exact failure recurs."
 };
 const teachNote=draft=>[draft.hasTrigger?"":TEACH_NOTES.noSituation,draft.trains?TEACH_NOTES.trains:TEACH_NOTES.noteOnly].filter(Boolean).join(" ");

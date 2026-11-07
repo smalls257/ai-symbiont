@@ -9,6 +9,7 @@ from datetime import date
 import pytest
 
 from symbiont.core.trends import (
+    MIN_TREND_OCCURRENCES,
     QUIET_MONTHS,
     Trend,
     before_after,
@@ -93,3 +94,9 @@ def test_the_after_rate_is_unproven_until_ten_sessions_have_run():
 def test_no_sessions_after_the_lesson_has_no_after_rate():
     split = before_after([d(10, 1)], [d(10, 1)], taught_on=d(10, 5))
     assert split.after.per_10 is None
+
+
+def test_too_few_occurrences_are_not_called_rising_or_fading():
+    assert MIN_TREND_OCCURRENCES == 3
+    assert trend_of([(0, 10), (0, 10), (1, 10), (1, 10)]) is Trend.TOO_FEW
+    assert trend_of([(0, 10), (0, 10), (1, 10), (2, 10)]) is Trend.RISING

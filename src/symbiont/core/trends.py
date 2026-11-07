@@ -20,6 +20,9 @@ RISING_FACTOR = 1.5
 RISING_FLOOR_PER_10 = 0.5
 # Below this fraction of the earlier rate it is fading.
 FADING_FACTOR = 0.6
+# Fewer occurrences than this in all months say nothing about direction: two sightings one month
+# apart look like a rise or a fade whichever way they fall, so the word would be a guess.
+MIN_TREND_OCCURRENCES = 3
 # After a lesson, fewer than this many sessions cannot show whether it worked (mockup v3 text).
 MIN_AFTER_SESSIONS = 10
 
@@ -31,6 +34,7 @@ class Trend(StrEnum):
     STEADY = "steady"
     FADING = "fading"
     GONE = "gone"
+    TOO_FEW = "too_few"
 
 
 @dataclass(frozen=True)
@@ -77,7 +81,15 @@ def trend_of(per_month: Sequence[tuple[int, int]]) -> Trend:
     earlier = months[:-RECENT_MONTHS]
     if not earlier:
         return Trend.STEADY
-    return _compared(_pooled(months[-RECENT_MONTHS:]), _pooled(earlier))
+    word = _compared(_pooled(months[-RECENT_MONTHS:]), _pooled(earlier))
+    return _gated(word, sum(times for times, _ in months))
+
+
+def _gated(word: Trend, seen: int) -> Trend:
+    """Rising and fading need MIN_TREND_OCCURRENCES behind them; fewer is "too few to tell"."""
+    if word in (Trend.RISING, Trend.FADING) and seen < MIN_TREND_OCCURRENCES:
+        return Trend.TOO_FEW
+    return word
 
 
 def _pooled(months: Sequence[tuple[int, int]]) -> float:

@@ -56,6 +56,12 @@ def screen_rules_from(data_dir: Path) -> ScreenRules:
     return ScreenRules(min_sessions=read_mining_settings(data_dir).min_sessions)
 
 
+def screening_of(store: Store, project: str, current: ScreenRules) -> ScreenRules:
+    """The rules `project`'s lessons were screened with, else `current` (a store mined before)."""
+    used = store.mined.min_sessions_used(project)
+    return current if used is None else replace(current, min_sessions=used)
+
+
 def with_ignored(rules: MiningRules, store: Store, project: str) -> MiningRules:
     """`rules` plus the patterns the developer set aside in `project`, so mining holds them back."""
     ignored = rules.screen.ignored | store.ignored.signatures(project)

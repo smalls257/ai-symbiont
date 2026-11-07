@@ -54,7 +54,7 @@ function teachHtml(){
 }
 
 function teach(ui,g,button,done){
-  const draft=M.teachDraft(g,M.displayName(ui.data.triage,g));
+  const draft=M.teachDraft(g,M.displayName(ui.data.triage,g),ui.data.incidents.ownHistory===true);
   const dialog=document.createElement("dialog");dialog.className="teach";dialog.setAttribute("aria-labelledby","teachTitle");
   dialog.innerHTML=teachHtml();
   const $=sel=>dialog.querySelector(sel);

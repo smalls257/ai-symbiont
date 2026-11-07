@@ -2,7 +2,7 @@
 
 Triage (the developer's review status per failure group) and session summaries (written by the
 developer's session model) share one accessor on `Store` because both are developer-owned state
-that a re-mine keeps,, and one accessor keeps `Store` within its public-method cap.
+that a re-mine keeps, and one accessor keeps `Store` within its public-method cap.
 """
 
 from dataclasses import dataclass

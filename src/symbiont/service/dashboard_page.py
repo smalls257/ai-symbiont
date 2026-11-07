@@ -9,6 +9,7 @@ from typing import Any
 
 from symbiont.core.rule_relevance import situation_terms
 from symbiont.miner.lessons import Lesson
+from symbiont.miner.screen import ScreenRules
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
 from symbiont.service.effective_context import effective_contexts
 from symbiont.service.ignore_route import ignored_listing
@@ -16,6 +17,7 @@ from symbiont.service.incident_view import incidents_snapshot
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.service.session_dates import session_dates_of
+from symbiont.service.stale_lessons import screened_now
 from symbiont.service.topic_view import topic_snapshot
 from symbiont.service.trend_view import trends_snapshot
 from symbiont.service.triage_route import group_activity, triage_listing
@@ -162,6 +164,7 @@ def _query(query: str) -> dict[str, str]:
 def _html(store: Store, project: str, today: date, focus: frozenset[str], live: Live) -> bytes:
     """The page with the repository's data injected where the contract says."""
     lessons = store.lessons(project)
+    taught = screened_now(store, project, lessons, ScreenRules(live.min_sessions))
     ignored = ignored_listing(store, project)
     view = RepoView(
         project,
@@ -172,7 +175,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
         store.curation.authored(project),
         focus,
         frozenset(store.contexts.all(project)) - frozenset(store.contexts.overrides(project)),
-        live.nightly(project, lessons),
+        live.nightly(project, taught),
         store.mined.counts(project),
         store.mined.struggle(project),
         store.mined.churn(project),
@@ -183,8 +186,9 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     )
     snapshot = dashboard_snapshot(view, today)
     snapshot["ignored"] = ignored
-    snapshot["incidents"] = incidents_snapshot(store, project)
-    seen = group_activity(store, project, snapshot["incidents"]["groups"])
+    snapshot["incidents"] = incidents_snapshot(store, project, ScreenRules(live.min_sessions))
+    groups = snapshot["incidents"]["groups"] if snapshot["incidents"] else []
+    seen = group_activity(store, project, groups)
     snapshot["triage"] = triage_listing(store, project, seen)
     snapshot["topicView"] = topic_snapshot(store, project)
     snapshot["trends"] = trends_snapshot(store, project, snapshot["incidents"])

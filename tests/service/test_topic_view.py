@@ -2,11 +2,14 @@
 
 from datetime import date
 
+from quiet_store import mine_a_session_without_failures
 from symbiont.miner.incident_types import Incident, Outcome
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.session_summary import SessionSummary, SummaryOutcome
+from symbiont.miner.struggle import SessionFacts
 from symbiont.miner.topics import Group, TopicMap
-from symbiont.service.topic_view import MIN_SUMMARIES, topic_view
+from symbiont.service.topic_view import MIN_SUMMARIES, sessions_by_date, topic_snapshot, topic_view
+from symbiont.store.local import Store
 
 DONE, PARTLY, STUCK = SummaryOutcome.DONE, SummaryOutcome.PARTLY, SummaryOutcome.STUCK
 
@@ -75,14 +78,27 @@ def test_noise_sessions_are_not_in_any_topic_and_are_counted():
     assert shown["noiseSessions"] == 1
 
 
-def test_below_the_threshold_topics_are_not_ready_and_sessions_are_listed_by_date():
-    sessions = [summary("a"), summary("b")]
-    dates = {"a": date(2026, 3, 1), "b": date(2026, 3, 9)}
-    shown = build(sessions, [], dates=dates)
+def test_below_the_threshold_topics_are_not_ready():
+    shown = build([summary("a"), summary("b")], [])
     assert shown["ready"] is False
     assert shown["topics"] == []
-    assert [s["id"] for s in shown["sessionsByDate"]] == ["b", "a"]
     assert shown["needed"] == MIN_SUMMARIES - 2
+
+
+def fact(sid, title, started):
+    return SessionFacts(sid, title, frozenset(), frozenset(), 0, {}, False, started)
+
+
+def test_sessions_by_date_come_from_session_facts_so_unsummarized_sessions_are_listed():
+    facts = [fact("a", "Fix parser", "2026-03-01"), fact("b", "Add flag", "2026-03-09"),
+             fact("u", "Old session", None)]  # fmt: skip
+    shown = sessions_by_date(facts, [summary("a", STUCK)])
+    assert [(s["id"], s["goal"], s["date"]) for s in shown] == [
+        ("b", "Add flag", "2026-03-09"),
+        ("a", "Fix parser", "2026-03-01"),
+        ("u", "Old session", None),
+    ]
+    assert [s["outcome"] for s in shown] == [None, "stuck", None]
 
 
 def test_each_topic_counts_its_incident_cards_without_noise():
@@ -97,7 +113,6 @@ def test_enough_summaries_but_no_topic_map_is_not_ready():
     shown = build(many(MIN_SUMMARIES + 5), [])
     assert shown["ready"] is False
     assert shown["needed"] == 0
-    assert len(shown["sessionsByDate"]) == MIN_SUMMARIES + 5
 
 
 def test_all_undated_history_has_no_months_and_counts_the_undated():
@@ -144,3 +159,12 @@ def test_a_topic_the_developer_renamed_shows_the_new_name_and_keeps_its_stored_n
 
     assert shown["topics"][0]["name"] == "My <b>parser</b> topic"
     assert shown["topics"][0]["key"] == "Parser work"
+
+
+def test_the_dataset_readers_whose_history_no_session_model_sees_are_named(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    mine_a_session_without_failures(tmp_path, store, reader="swe-chat")
+    assert topic_snapshot(store, "demo")["datasetReaders"] == ["swe-chat"]
+    own = Store.open(tmp_path / "o.db")
+    mine_a_session_without_failures(tmp_path, own, reader="claude-code")
+    assert topic_snapshot(own, "demo")["datasetReaders"] == []

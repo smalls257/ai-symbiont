@@ -144,8 +144,10 @@ def _row_of(request: dict[str, Any], today: date) -> TriageRow:
 
 def _enum[E: (GroupState, ReturnRule)](kind: type[E], field: str, value: object) -> E:
     """The member of `kind` that `value` names, or BadRequestError listing the choices."""
+    choices = ", ".join(member.value for member in kind)
+    if not isinstance(value, str):
+        raise BadRequestError(f"{field} must be text; choose one of {choices}")
     try:
         return kind(value)
     except ValueError as exc:
-        choices = ", ".join(member.value for member in kind)
         raise BadRequestError(f"unknown {field} {value!r}; choose one of {choices}") from exc

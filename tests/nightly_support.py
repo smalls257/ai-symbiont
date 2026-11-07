@@ -7,6 +7,7 @@ from pathlib import Path
 
 from store_builders import save_lessons
 from symbiont.core.judge_format import JUDGE_SYSTEM
+from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.service.nightly_rows import ChatRow
@@ -21,7 +22,9 @@ def failed_command_lesson(index, fix=None, error=None, files=("app/mod.py",)):
     pain = PainPoint(signature, f"s{index}", 1, ((f"s{index}", 1),))
     quote = f"$ pytest tests/test_{index}.py\n{error or f'Oops{index}: broken'}"
     steps = (f"ran `{fix or f'pytest tests/test_{index}.py -q'}`",)
-    return Lesson(pain, quote, steps, None, True, pain.record_refs, files=files)
+    return Lesson(
+        pain, quote, steps, None, True, pain.record_refs, files=files, fix=FixKind.CODE_FIX
+    )
 
 
 def chat(system, user, answer) -> ChatRow:

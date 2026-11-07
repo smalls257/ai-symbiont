@@ -84,9 +84,17 @@ def quoted_words(text: str) -> str:
     return flat if len(flat) <= QUOTE_CHARS else flat[: QUOTE_CHARS - 3] + "..."
 
 
+_LEADING_CD = re.compile(r"^\s*cd\s+\S+\s*&&\s*")
+
+
+def without_cd(command: str) -> str:
+    """`command` without the `cd <dir> &&` an agent puts before it: the program is the point."""
+    return _LEADING_CD.sub("", command) if _LEADING_CD.match(command) else command
+
+
 def command_example(command: str | None) -> str:
     """A failing command line as a group title; empty when the record is gone."""
-    return quoted_words(command or "")
+    return quoted_words(without_cd(command or ""))
 
 
 def correction_sentence(text: str) -> str:
