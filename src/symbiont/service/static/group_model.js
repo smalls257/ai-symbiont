@@ -115,6 +115,12 @@ function noteText(kind,lesson){
   return REPO_LEAD+(text.length>MAX_NOTE_CHARS?cutAtBoundary(text):text+".");
 }
 
+/* The lead of a note (which the agent's harness adds) apart from the lesson text after it. */
+function noteParts(note){
+  const lead=[HOUSE_LEAD,REPO_LEAD].find(l=>note.startsWith(l))||"";
+  return {lead,lesson:note.slice(lead.length)};
+}
+
 /* The week a day falls in on the shared axis: its index, or before/after when it is outside the axis. */
 function weekPosition(axis,iso){
   const day=Date.parse(iso+"T00:00:00Z");
@@ -132,5 +138,5 @@ function weekBars(g,axis,perWeek){
   return {bars,top:niceMax(Math.max(1,...bars.map(b=>b.times)))};
 }
 
-window.SymbiontGroupModel={PER_PAGE,sessionById,noun,chronological,clearest,pagesOf,pageOfIndex,pageSlice,topicShares,otherGroups,statusWord,inReview,statusNote,activityRows,noteText,weekPosition,weekBars,fixed};
+window.SymbiontGroupModel={PER_PAGE,sessionById,noun,chronological,clearest,pagesOf,pageOfIndex,pageSlice,topicShares,otherGroups,statusWord,inReview,statusNote,activityRows,noteText,noteParts,weekPosition,weekBars,fixed};
 })();

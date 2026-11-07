@@ -59,7 +59,7 @@ function drawTeach(ctx){
 const lessonOf=ctx=>M.lessonRequest(ctx.project,ctx.g,ctx.$("#gWhen").value,ctx.$("#gWhat").value,ctx.draft.name);
 function drawPreview(ctx){
   const lesson=lessonOf(ctx).lessons[0];
-  ctx.$("#gPreview").innerHTML=P.previewHtml(G.noteText(lesson.kind==="correction"?"correction":"mistake",lesson.text_in_plain_words));
+  ctx.$("#gPreview").innerHTML=P.previewHtml(G.noteParts(G.noteText(lesson.kind==="correction"?"correction":"mistake",lesson.text_in_plain_words)));
 }
 function drawOccurrences(ctx){
   const {list,g,data,project}=ctx,pages=G.pagesOf(list.length);

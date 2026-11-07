@@ -87,7 +87,8 @@ function teachPanelHtml(draft,taught){
     +'<p class="mu" id="gTeachErr" role="alert"></p></div>'
     +'<div class="agentbox"><div class="mu">What the agent receives</div><div class="notebox sm" id="gPreview"></div><div class="cap">Plain sentences only: no scores, counts or labels reach the agent.</div></div></div>';
 }
-const previewHtml=text=>'<span class="user">'+esc(text)+"</span>";
+/* Only the developer's lesson is highlighted; the lead the harness adds is plain. */
+const previewHtml=parts=>esc(parts.lead)+'<span class="user">'+esc(parts.lesson)+"</span>";
 
 function outcomeChip(summary){
   return summary&&summary.outcome?' <span class="outc"><i class="o-'+esc(summary.outcome)+'"></i>'+esc(summary.outcome)+"</span>":"";

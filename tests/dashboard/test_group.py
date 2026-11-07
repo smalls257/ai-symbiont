@@ -198,7 +198,9 @@ def test_three_lines_say_what_happened_what_fixed_it_and_the_verdict(page):
 def test_the_teach_panel_is_prefilled_and_shows_the_note_the_agent_receives(page):
     assert 'value="when running pytest' in page["teach"] or "when running" in page["teach"]
     assert "Plain sentences only" in page["teach"]
-    assert page["preview"].startswith('<span class="user">[symbiont] In this repo: ')
+    assert '<span class="user">[symbiont]' not in page["preview"]
+    assert page["preview"].startswith("[symbiont] In this repo: ")
+    assert page["preview"].count('<span class="user">') == 1
 
 
 def test_the_preview_uses_the_real_note_wording_by_kind(page):
