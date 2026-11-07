@@ -22,5 +22,6 @@ def relevant_lessons(
 
 def _lesson_words(lesson: Lesson) -> set[str]:
     """Lowercase words of a lesson's trouble, quote and fix."""
-    text = " ".join([*lesson.pain_point.signature.key, lesson.quote, *lesson.resolution])
+    trouble = [*lesson.pain_point.signature.key, lesson.quote]
+    text = " ".join([*trouble, *lesson.resolution, *lesson.fix_commands, *lesson.files])
     return set(_WORD.findall(text.lower()))

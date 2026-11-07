@@ -1,34 +1,47 @@
 """A summary of a pain point built from rules, for when the session's model has not written one.
 
-A candidate listed with only a title makes the developer open
-the transcript to learn what it was about; this states the request, the failure and the ending
-in a sentence or two. Plain prose; nothing here calls a model.
+A candidate listed with only a title makes the developer open the transcript to learn what it was
+about; this states the failure and the ending in two short sentences. Plain prose, no quoted
+request (the session page shows it), no code, no path beyond a file name; nothing here calls a
+model.
 """
 
-from symbiont.core.failure_signature import failure_detail
 from symbiont.core.notes import happened
+from symbiont.miner.failure_keys import broke_in_words
 from symbiont.miner.lessons import Lesson
+from symbiont.miner.painpoint import Signal
 from symbiont.miner.secrets import scrub
 
-SHOWN_CHARS = 160
+# Two sentences a developer reads at a glance in the Inbox (owner: "word vomit").
+SUMMARY_CHARS = 200
+FAILURE_CHARS = 100
+_CUT = "…"
 
 
 def rule_summary(lesson: Lesson) -> str:
-    """What was asked, what failed and how it ended, scrubbed, in at most three sentences."""
-    failure = failure_detail(lesson.quote) or happened(lesson.pain_point.signature)
-    parts = []
-    if lesson.asked:
-        parts.append(f"You asked: {_short(lesson.asked)}")
-    parts.append(f"What failed: {_short(failure)}")
-    parts.append(outcome_sentence(lesson))
-    return scrub(" ".join(parts))
+    """What failed and how it ended, scrubbed, in at most two sentences of SUMMARY_CHARS."""
+    text = f"{_sentence(_failure_words(lesson))} {outcome_sentence(lesson)}"
+    return _capped(scrub(text), SUMMARY_CHARS)
 
 
-def _short(text: str) -> str:
-    """The first line of the text, ended with a full stop and cut to SHOWN_CHARS."""
-    line = text.strip().splitlines()[0] if text.strip() else ""
-    line = line[: SHOWN_CHARS - 1] + "…" if len(line) > SHOWN_CHARS else line
-    return line if line.endswith((".", "!", "?", "…")) else line + "."
+def _failure_words(lesson: Lesson) -> str:
+    """What failed in plain words: the program and what broke, never the raw error output."""
+    signature = lesson.pain_point.signature
+    if signature.signal is Signal.FAILED_COMMAND:
+        program, _, broke = signature.key
+        return f"{program} failed with {broke_in_words(broke)}"
+    return happened(signature)
+
+
+def _sentence(text: str) -> str:
+    """The first line of the text, cut to FAILURE_CHARS and ended with a full stop."""
+    line = " ".join(text.split())
+    line = _capped(line, FAILURE_CHARS)
+    return line if line.endswith((".", "!", "?", _CUT)) else line + "."
+
+
+def _capped(text: str, limit: int) -> str:
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + _CUT
 
 
 def outcome_sentence(lesson: Lesson) -> str:

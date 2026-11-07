@@ -11,7 +11,7 @@ from datetime import date
 from typing import Any
 
 from symbiont.core.failure_signature import failure_detail
-from symbiont.core.notes import happened, render_lesson, resolution_clause
+from symbiont.core.notes import happened, render_lesson, resolution_clause, title_of
 from symbiont.core.rule_relevance import situation_terms
 from symbiont.miner.churn import FileChurn
 from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review, Verdict
@@ -202,7 +202,7 @@ def row_title(group: Sequence[Lesson], reviews: Mapping[str, Review]) -> str:
     review = next(
         (reviews[lesson_id(item)] for item in reversed(group) if lesson_id(item) in reviews), None
     )
-    title = review.title if review and review.title else happened(group[-1].pain_point.signature)
+    title = review.title if review and review.title else title_of(group[-1].pain_point.signature)
     return title[:TITLE_CHARS]
 
 
@@ -247,8 +247,8 @@ def _point(
 ) -> dict[str, Any]:
     """The pain point's fields."""
     signature = latest.pain_point.signature
-    turns = 1 + len(latest.resolution)
-    title = review.title if review and review.title else happened(signature)
+    turns = 1 + latest.fix_steps
+    title = review.title if review and review.title else title_of(signature)
     return {
         "id": number,
         "kind": KIND_OF_SIGNAL[signature.signal],

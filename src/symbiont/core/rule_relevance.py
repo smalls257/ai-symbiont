@@ -44,7 +44,6 @@ MIN_WEAK_SCORE = 3
 GENERIC_DIRS = frozenset({"", ".", "src", "lib", "tests", "test", "app", "pkg"})
 _ANY_WORD = re.compile(r"[A-Za-z0-9]+")
 _PATH = re.compile(r"[\w.\-]+(?:/[\w.\-]+)+|\b[\w\-]+\.(?:py|js|ts|tsx|go|rs|java|rb|c|h|cpp|md)\b")
-_TICKED = re.compile(r"`([^`]+)`")
 _RANK = {Priority.HIGH: 0, Priority.NORMAL: 1, Priority.LOW: 2}
 
 
@@ -94,8 +93,7 @@ def paths_in(text: str) -> tuple[str, ...]:
 def lesson_files(lesson: Lesson) -> tuple[str, ...]:
     """The files a lesson is about: signature, fix, and the edits between failure and pass."""
     found = [part for part in lesson.pain_point.signature.key if _looks_like_path(part)]
-    for step in (*lesson.resolution, *lesson.changed_alongside):
-        found += [part for part in _TICKED.findall(step) if _looks_like_path(part)]
+    found += [path for path in lesson.files if _looks_like_path(path)]
     return tuple(dict.fromkeys(found))
 
 

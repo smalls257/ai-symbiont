@@ -3,8 +3,8 @@
 import re
 
 from symbiont.miner.commands import Stage, command_stages
+from symbiont.miner.probes import PROBES
 from symbiont.miner.resolutions import bare_arguments
-from symbiont.miner.screen import PROBES
 
 # Each Bash call starts a fresh shell, so these leave no state behind for the next call.
 SHELL_PLUMBING = frozenset(

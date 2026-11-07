@@ -374,8 +374,9 @@ def test_a_pain_point_without_a_review_gets_a_rule_built_summary_from_the_reques
     point = dashboard_snapshot(view(lessons), TODAY)["painPoints"][0]
 
     assert point["summary"] == ""
-    assert "You asked: make the parser tests pass" in point["ruleSummary"]
-    assert "ImportError" in point["ruleSummary"] and "fixed" in point["ruleSummary"]
+    summary = point["ruleSummary"]
+    assert "You asked" not in summary and "def parse" not in summary and len(summary) <= 200
+    assert "ImportError" in summary and "edited parser.py" in summary
 
 
 def test_the_inbox_assets_are_served_and_the_pain_points_tab_has_its_sub_navigation(served):

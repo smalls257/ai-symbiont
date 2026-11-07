@@ -17,17 +17,18 @@ URL = "http://127.0.0.1:8791"
 QUESTION = "tool7 module7 failed with Oops7 again, what now?"
 
 
-def lesson(index, fix):
+def lesson(index, command):
     signature = Signature(Signal.FAILED_COMMAND, (f"tool{index}", f"module{index}", f"Oops{index}"))
     pain = PainPoint(signature, f"s{index}", 1, ((f"s{index}", 1),))
     return Lesson(
         pain,
         f"$ tool{index} module{index}\nOops{index}",
-        (fix,),
+        (f"ran {command}",),
         None,
         True,
         pain.record_refs,
         fix=FixKind.CODE_FIX,
+        fix_commands=(command,),
     )
 
 
@@ -40,7 +41,7 @@ def judge_saying(p_yes):
 
 def service_with(tmp_path, judge):
     store = Store.open(tmp_path / "store.db")
-    lessons = [lesson(index, "ran `a`") for index in range(40)] + [lesson(7, "ran `b`")]
+    lessons = [lesson(index, "a") for index in range(40)] + [lesson(7, "b")]
     save_lessons(
         store, PROJECT, [Source(PROJECT, "claude_code", "x")], lessons, held_out_tasks=frozenset()
     )

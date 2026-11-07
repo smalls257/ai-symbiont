@@ -14,11 +14,8 @@ from enum import StrEnum
 from symbiont.miner.failure_keys import is_bare_exit
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
+from symbiont.miner.probes import PROBES
 
-# Read-only look-around programs: a failure of one is the agent feeling its way, not a trap.
-PROBES = frozenset(
-    {"ls", "cat", "head", "tail", "find", "stat", "file", "which", "pwd", "wc", "grep", "rg"}
-)
 # A correction or a reviewer's flag is a person speaking: one is enough, and it is never held.
 # A loop is the agent repeating itself inside one session: once is already the finding.
 EXEMPT_SIGNALS = frozenset({Signal.CORRECTION, Signal.REVIEW_FLAG, Signal.LOOP})

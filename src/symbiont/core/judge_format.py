@@ -5,7 +5,6 @@ situation_of`, `lessons.Lesson.text`); any other wording moves its P(yes) off th
 thresholds. tests/core/test_judge_format.py pins the bytes against that builder's output.
 """
 
-import re
 from dataclasses import dataclass
 
 from symbiont.miner.lessons import Lesson
@@ -18,7 +17,6 @@ JUDGE_SYSTEM = (
 )
 # How round 3 (and the nightly rows) wrote a situation whose file is unknown.
 NO_FILE = "-"
-_RAN_COMMAND = re.compile(r"ran `([^`]+)`")
 
 
 @dataclass(frozen=True)
@@ -72,9 +70,7 @@ def judgeable(lesson: Lesson, project: str) -> JudgeableLesson | None:
     if lesson.pain_point.signature.signal is not Signal.FAILED_COMMAND:
         return None
     lines = lesson.quote.splitlines()
-    fix = next(
-        (found.group(1) for step in lesson.resolution if (found := _RAN_COMMAND.search(step))), None
-    )
+    fix = next(iter(lesson.fix_commands), None)
     if len(lines) < 2 or not lines[0].startswith("$ ") or fix is None:
         return None
     return JudgeableLesson(project.replace("__", "/", 1), lines[0][2:], lines[-1], fix)
@@ -82,5 +78,4 @@ def judgeable(lesson: Lesson, project: str) -> JudgeableLesson | None:
 
 def fix_commands(lesson: Lesson) -> tuple[str, ...]:
     """Every command the lesson's resolution ran (twins pool several), in order."""
-    found = (_RAN_COMMAND.search(step) for step in lesson.resolution)
-    return tuple(match.group(1) for match in found if match)
+    return lesson.fix_commands

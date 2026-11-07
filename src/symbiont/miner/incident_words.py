@@ -7,41 +7,15 @@ agent did and what came of it, never an exit code, a grouping key or a threshold
 import re
 
 from symbiont.miner.failure_keys import EXIT_MEANINGS, broke_in_words, is_bare_exit
+from symbiont.miner.fix_words import command_name
 from symbiont.miner.resolutions import NOTHING_CHANGED, ONLY_UNRELATED_CHANGED, PASSED_RESPELLED
 from symbiont.miner.screen import INLINE_TARGET
 from symbiont.miner.secrets import scrub
+from symbiont.miner.working_command import working_command
 
-# The most common openers of SWE-chat corrections that carry no instruction (cipher-box: 275 of
-# 1,396 started with "ok") [measured], plus the words that go with them.
-ACKNOWLEDGMENTS = frozenset(
-    [
-        "ok",
-        "okay",
-        "yes",
-        "yeah",
-        "yep",
-        "sure",
-        "thanks",
-        "thank",
-        "please",
-        "go",
-        "ahead",
-        "continue",
-        "proceed",
-        "cool",
-        "great",
-        "nice",
-        "perfect",
-    ]
-)
-# Fewer real words than this after the acknowledgments and markup, and nobody was corrected.
-MIN_REAL_WORDS = 3
 QUOTE_CHARS = 160
 DETAIL_LIMIT = 90
 COMMAND_CHARS = 60
-_MARKUP = re.compile(r"<(command-[\w-]+)[^>]*>.*?</\1>|<[^>]+>", re.S)
-_SLASH_COMMAND = re.compile(r"(?<!\S)/[\w:-]+(?=\s|$)")
-_WORD = re.compile(r"[A-Za-z']+")
 _BAD_PATH = EXIT_MEANINGS[("pytest", 4)]
 _NO_TESTS = EXIT_MEANINGS[("pytest", 5)]
 _NO_RETRY_FIX = {
@@ -49,13 +23,6 @@ _NO_RETRY_FIX = {
     PASSED_RESPELLED: "Nothing: it passed when run again.",
     ONLY_UNRELATED_CHANGED: "Unclear: it passed later, but only unrelated changes came between.",
 }
-
-
-def is_empty_correction(text: str) -> bool:
-    """True when `text` holds no instruction: acknowledgments, slash commands and markup only."""
-    bare = _SLASH_COMMAND.sub(" ", _MARKUP.sub(" ", text))
-    words = [word.lower().strip("'") for word in _WORD.findall(bare)]
-    return sum(word not in ACKNOWLEDGMENTS for word in words) < MIN_REAL_WORDS
 
 
 def failure_sentence(program: str, target: str, broke: str, detail: str) -> str:
@@ -93,8 +60,8 @@ def without_cd(command: str) -> str:
 
 
 def command_example(command: str | None) -> str:
-    """A failing command line as a group title; empty when the record is gone."""
-    return quoted_words(without_cd(command or ""))
+    """The working command of a failing command line, on one line; empty when it is gone."""
+    return working_command(command or "")
 
 
 def correction_sentence(text: str) -> str:
@@ -102,19 +69,19 @@ def correction_sentence(text: str) -> str:
     return f'You corrected the agent: "{quoted_words(text)}"'
 
 
-def edited_then_passed(path: str, *, script: bool) -> str:
+def edited_then_passed(names: str, *, script: bool) -> str:
     """The fix when an edit to the codebase came between the failure and the pass."""
-    return f"Edited {path}, then the {'script' if script else 'command'} passed."
+    return f"{'Passed after' if script else 'Fixed by'} editing {names}."
 
 
 def corrected_command_sentence(command: str) -> str:
     """The fix when the same program was run correctly after a wrong invocation."""
-    return f"Ran the corrected command instead: {command}."
+    return f"Ran the corrected command instead: {working_command(command)}."
 
 
 def setup_sentence(command: str) -> str:
     """The fix when the session ran a setup command before the pass."""
-    return f"Fixed the setup: ran `{command}`, then it passed."
+    return f"Fixed the setup: ran {command_name(command)}."
 
 
 def passed_later_sentence(steps: str) -> str:

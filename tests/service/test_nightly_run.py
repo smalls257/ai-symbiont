@@ -175,7 +175,7 @@ def test_lessons_without_a_fix_command_fail_loudly_instead_of_training_on_nothin
     plan = setup(tmp_path, lessons=0)
     store = Store.open(plan.data_dir / "store.db")
     lesson = failed_command_lesson(1)
-    unfit = replace(lesson, resolution=(), unresolved_because="no fix command")
+    unfit = replace(lesson, resolution=(), fix_commands=(), unresolved_because="no fix command")
     save_lessons(
         store, PROJECT, [Source(PROJECT, "claude_code", "x")], [unfit], held_out_tasks=frozenset()
     )

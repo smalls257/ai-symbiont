@@ -274,7 +274,7 @@ def test_a_warning_says_how_it_was_resolved_and_what_to_check(tmp_path):
         tmp_path, make_store(tmp_path, retried, failing_session("b"), failing_session("c"))
     )
     (note,) = service.respond("/observe", observe_body()).body["notes"]
-    assert "sqlglot/parser.py" in note and f"Check: run `{COMMAND}`" in note
+    assert "edited parser.py" in note and f"Check: run `{COMMAND}`" in note
     assert "pip install pyyaml" not in note
 
 

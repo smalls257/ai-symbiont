@@ -1,12 +1,23 @@
 """Reading a lesson back from the JSON the lessons table stores."""
 
 import json
+import re
 from dataclasses import asdict
 from typing import Any
 
 from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+
+_OLD_RAN_STEP = re.compile(r"ran `([^`]+)`")
+
+
+def _fix_commands_of(data: dict[str, Any]) -> tuple[str, ...]:
+    """The commands the fix ran; rows from before the field read them off the old step wording."""
+    if "fix_commands" in data:
+        return tuple(data["fix_commands"])
+    found = (_OLD_RAN_STEP.search(step) for step in data["resolution"])
+    return tuple(match.group(1) for match in found if match)
 
 
 def _remote_safe_of(data: dict[str, Any]) -> bool:
@@ -51,6 +62,9 @@ def lesson_from_json(body: str) -> Lesson:
         # Rows written before these fields existed carry no turns around the failure.
         asked=data.get("asked", ""),
         agent_intent=data.get("agent_intent", ""),
+        fix_commands=_fix_commands_of(data),
+        # Rows written before this field existed counted one step per old-style resolution item.
+        fix_steps=data.get("fix_steps", len(data["resolution"])),
     )
 
 

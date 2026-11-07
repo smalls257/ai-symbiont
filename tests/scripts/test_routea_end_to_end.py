@@ -158,7 +158,7 @@ def test_a_failing_step_gets_the_trained_note_through_the_hook_and_mcp(
         code, reply = run_hook(monkeypatch, capsys, port)
         note = reply["hookSpecificOutput"]["additionalContext"]
         assert code == 0 and note.startswith("Happened: `pytest tests/test_cart.py` failed")
-        assert "Resolved: you ran `pip install -e .`" in note
+        assert "Resolved: you ran pip install" in note
         question = "What went wrong last time with `pytest tests/test_cart.py`?"
         requests = [
             {"jsonrpc": "2.0", "id": 1, "method": "initialize", "params": {}},

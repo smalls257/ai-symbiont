@@ -15,6 +15,7 @@ from symbiont.records.schema import Record
 
 DEFAULT_MAX_NOTES = 2
 NO_PATH = "-"
+TITLE_QUOTE_CHARS = 60
 
 
 class NoteKind(StrEnum):
@@ -51,6 +52,20 @@ def render_lesson(lesson: Lesson) -> str:
 def happened(signature: Signature) -> str:
     """What the trouble was, as a clause: "`pytest x` failed with ImportError"."""
     return _HAPPENED[signature.signal](signature)
+
+
+def title_of(signature: Signature, group_name: str = "") -> str:
+    """The heading a page gives the trouble; a correction is named, not quoted as "corrected on".
+
+    `group_name` is the session model's name for the correction group, when one exists.
+    """
+    if signature.signal is not Signal.CORRECTION:
+        return happened(signature)
+    if group_name:
+        return group_name
+    quoted = signature.key[1]
+    short = quoted if len(quoted) <= TITLE_QUOTE_CHARS else quoted[: TITLE_QUOTE_CHARS - 1] + "…"
+    return f'You corrected the agent: "{short}"'
 
 
 def check_to_run(signature: Signature) -> str:
@@ -94,11 +109,11 @@ def _resolved(lesson: Lesson) -> str:
     """How a lesson was resolved, and what else changed between the failure and the pass."""
     meanwhile = ""
     if lesson.changed_alongside:
-        changed = ", ".join(lesson.changed_alongside)
-        meanwhile = f" Between the failure and the pass you also {changed}."
+        changed = ", then ".join(lesson.changed_alongside)
+        meanwhile = f" Before it passed you also {changed}."
     if not lesson.resolution:
         return "No fix was found in the history." + meanwhile
-    return f"Last time it was resolved when you {', then '.join(lesson.resolution)}.{meanwhile}"
+    return f"Last time: {', then '.join(lesson.resolution)}.{meanwhile}"
 
 
 def _times(count: int) -> str:

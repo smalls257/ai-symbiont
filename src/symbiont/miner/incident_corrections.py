@@ -7,6 +7,7 @@ from symbiont.miner import incident_words as words
 from symbiont.miner.codebase import repo_relative
 from symbiont.miner.commands import normalise_command, program_words
 from symbiont.miner.correction_episode import NO_EPISODE, episode_of
+from symbiont.miner.empty_correction import is_empty_correction
 from symbiont.miner.incident_types import (
     NO_SITUATION,
     Incident,
@@ -31,7 +32,7 @@ def correction_card(
     pain = lesson.pain_point
     turn = record_at(records, pain.step)
     text = turn.raw if turn is not None else lesson.quote
-    empty = words.is_empty_correction(text)
+    empty = is_empty_correction(text)
     episode = episode_of(turn, records) if turn is not None and not empty else NO_EPISODE
     return Incident(
         session_id=pain.session_id,

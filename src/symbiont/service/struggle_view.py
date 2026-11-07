@@ -11,7 +11,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from symbiont.core.notes import happened, resolution_clause
+from symbiont.core.notes import resolution_clause, title_of
 from symbiont.miner.churn import FileChurn
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.patterns import HELP, NOTHING_TO_TEACH, StrugglePattern
@@ -188,7 +188,7 @@ def _ready(group: Sequence[Lesson], index: Mapping[str, int]) -> dict[str, Any]:
     )
     return {
         "id": lesson_id(latest),
-        "title": scrub(happened(latest.pain_point.signature))[:TITLE_CHARS],
+        "title": scrub(title_of(latest.pain_point.signature))[:TITLE_CHARS],
         "fix": scrub(resolution_clause(latest)) if latest.resolution else "",
         "sessions": sessions,
         "occurrences": len(group),
