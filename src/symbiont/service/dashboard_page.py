@@ -2,7 +2,7 @@
 
 import json
 from collections.abc import Callable, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -10,6 +10,7 @@ from typing import Any
 from symbiont.core.rule_relevance import situation_terms
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.screen import ScreenRules
+from symbiont.readers import Reader
 from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
 from symbiont.service.effective_context import effective_contexts
 from symbiont.service.ignore_route import ignored_listing
@@ -17,6 +18,7 @@ from symbiont.service.incident_view import incidents_snapshot
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.service.session_dates import session_dates_of
+from symbiont.service.session_view import session_answer
 from symbiont.service.stale_lessons import screened_now
 from symbiont.service.topic_view import topic_snapshot
 from symbiont.service.trend_view import trends_snapshot
@@ -63,6 +65,9 @@ class Live:
     nightly: NightlyOf = lambda project, lessons: None
     # The developer's setting now; the page prefers the value the lessons were screened with.
     min_sessions: int = DEFAULT_MIN_SESSIONS
+    # The logs the session page reads on demand, and where its one sensor line goes.
+    readers: Mapping[str, Reader] = field(default_factory=dict)
+    session_sensor: Callable[[str, str], None] = lambda project, line: None
 
 
 @dataclass(frozen=True)
@@ -90,6 +95,8 @@ def dashboard_page(
     if path in FILES:
         name, content_type = FILES[path]
         return _static_file(STATIC / name, content_type)
+    if path.rstrip("/") == "/dashboard/session":
+        return _session_page(store, registry, _query(query), live or Live())
     if path.rstrip("/") == "/ignored":
         return _ignored_page(store, registry, _query(query).get("project", ""))
     if path.rstrip("/") != "/dashboard":
@@ -111,6 +118,14 @@ def _ignored_page(store: Store, registry: RepoRegistry | None, project: str) -> 
     if registry is not None and registry.stance(project) is not RepoStance.GIVEN:
         return Page(400, TEXT, f"run `symbiont repo allow` for {project} first".encode())
     return Page(200, JSON, json.dumps({"ignored": ignored_listing(store, project)}).encode())
+
+
+def _session_page(
+    store: Store, registry: RepoRegistry | None, asked: dict[str, str], live: Live
+) -> Page:
+    """GET /dashboard/session?project=&id=: one session's detail as JSON."""
+    status, body = session_answer(store, registry, live.readers, asked, live.session_sensor)
+    return Page(status, JSON, json.dumps(body).encode())
 
 
 def _project_page(

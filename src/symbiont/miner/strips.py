@@ -67,22 +67,24 @@ def strip_of(session: Sequence[Record], codebase: Codebase) -> tuple[StripStep, 
     return tuple(step for step in steps if step is not None)
 
 
-def densest_window(steps: Sequence[StripStep]) -> tuple[int, tuple[StripStep, ...]]:
-    """The MAX_STRIP_STEPS steps holding the most failures, and how many steps precede them.
+def densest_window(
+    steps: Sequence[StripStep], limit: int = MAX_STRIP_STEPS
+) -> tuple[int, tuple[StripStep, ...]]:
+    """The `limit` steps holding the most failures, and how many steps precede them.
 
     A long session cut at its start would draw its quiet opening, not its worst stretch; the
     earliest window wins a tie.
     """
-    if len(steps) <= MAX_STRIP_STEPS:
+    if len(steps) <= limit:
         return 0, tuple(steps)
     failing = [int(step.lane is Lane.FAILED) for step in steps]
-    inside = sum(failing[:MAX_STRIP_STEPS])
+    inside = sum(failing[:limit])
     best, best_start = inside, 0
-    for start in range(1, len(steps) - MAX_STRIP_STEPS + 1):
-        inside += failing[start + MAX_STRIP_STEPS - 1] - failing[start - 1]
+    for start in range(1, len(steps) - limit + 1):
+        inside += failing[start + limit - 1] - failing[start - 1]
         if inside > best:
             best, best_start = inside, start
-    return best_start, tuple(steps[best_start : best_start + MAX_STRIP_STEPS])
+    return best_start, tuple(steps[best_start : best_start + limit])
 
 
 def _step(record: Record, codebase: Codebase) -> StripStep | None:
