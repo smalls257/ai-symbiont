@@ -7,7 +7,7 @@
 const TAB_OF_STATE={for_review:"review",reviewed:"reviewed",resolved:"resolved",archived:"archived"};
 const TABS=["review","reviewed","resolved","archived"];
 const TAB_WORDS={review:"For review",reviewed:"Reviewed",resolved:"Resolved",archived:"Archived"};
-const VIEWS=["inbox","topics","trends","struggle","context","replay"];
+const VIEWS=["inbox","topics","trends","struggle","context","replay","group","session"];
 const DAY_MS=864e5;
 
 const triageOf=(triage,g)=>(triage||{})[g.key]||{};
@@ -153,7 +153,43 @@ function viewFrom(search,warn){
   warn("symbiont: unknown view "+JSON.stringify(asked)+"; showing the inbox. Known views: "+VIEWS.join(", "));
   return "inbox";
 }
+/* Detail views need what names them; without it the page says what is missing instead of opening another item. */
+const ROUTE_PARTS=["key","id","step","t"];
+const NEEDS={group:"key",session:"id"};
+const enc=encodeURIComponent;
+function hrefFor(project,route){
+  let out="?project="+enc(project)+"&view="+enc(route.view);
+  for(const part of ROUTE_PARTS)if(route[part]!==undefined&&route[part]!==null&&route[part]!=="")out+="&"+part+"="+enc(route[part]);
+  return route.hash?out+"#"+enc(route.hash):out;
+}
+/* A hash that is not valid percent-encoding was typed by hand; it stays as typed. */
+function hashFrom(hash){
+  const raw=String(hash||"").replace(/^#/,"");
+  try{return decodeURIComponent(raw);}catch(_){return raw;}
+}
+function routeFrom(search,hash,warn){
+  const view=viewFrom(search,warn||console.warn),q=new URLSearchParams(search);
+  const route={view};
+  for(const part of ROUTE_PARTS){const v=q.get(part);if(v)route[part]=v;}
+  if(route.step!==undefined&&!/^\d+$/.test(route.step))delete route.step;
+  else if(route.step!==undefined)route.step=Number(route.step);
+  const missing=NEEDS[view];
+  if(missing&&!route[missing])return {view:"notfound",what:view};
+  const h=hashFrom(hash);
+  if(h)route.hash=h;
+  return route;
+}
+
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const dayWord=iso=>{const m=/^(\d{4})-(\d{2})-(\d{2})/.exec(iso||"");return m?MONTHS[Number(m[2])-1]+" "+Number(m[3])+", "+m[1]:null;};
+/* The header's one line of scale: how many sessions, over which days, and that nothing left the machine. */
+function metaLine(sessions,groups){
+  const firsts=groups.map(g=>g.first).filter(Boolean).sort(),lasts=groups.map(g=>g.last).filter(Boolean).sort();
+  const first=dayWord(firsts[0]),last=dayWord(lasts[lasts.length-1]);
+  const span=first&&last?" \u00b7 "+first+" \u2013 "+last:"";
+  return sessions+(sessions===1?" session":" sessions")+span+" \u00b7 local only";
+}
 const cleanName=text=>window.SymbiontRename.clean(text);
 
-window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,cleanName,plural,triageOf};
+window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
 })();

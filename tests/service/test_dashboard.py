@@ -409,7 +409,7 @@ def test_the_page_script_honors_the_view_parameter_and_boots_into_the_chosen_sta
     script = (STATIC / "dashboard.js").read_text(encoding="utf-8")
     views = (STATIC / "views.js").read_text(encoding="utf-8")
 
-    assert "go(views.stage)" in script and "viewFrom(location.search" in views
+    assert "go(views.stage)" in script and "routeFrom(location.search" in views
     assert "coming soon" in views and "SymbiontTopics" in views and "SymbiontTrends" in views
 
 
