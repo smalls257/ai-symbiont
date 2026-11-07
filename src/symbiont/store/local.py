@@ -23,6 +23,8 @@ from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.store.catalog import LessonCatalog
 from symbiont.store.contexts import LessonContexts
 from symbiont.store.curation import Curation
+from symbiont.store.group_verdicts import SCHEMA as VERDICTS_SCHEMA
+from symbiont.store.group_verdicts import GroupVerdicts
 from symbiont.store.held_back import SCHEMA as HELD_BACK_SCHEMA
 from symbiont.store.held_back import MiningLedger
 from symbiont.store.ignored import SCHEMA as IGNORED_SCHEMA
@@ -182,6 +184,7 @@ class Store:
         db.executescript(TRIAGE_SCHEMA)
         add_missing_name(db)
         db.executescript(SUMMARIES_SCHEMA)
+        db.executescript(VERDICTS_SCHEMA)
         _add_missing_authored_columns(db)
         _add_missing_review_summary(db)
         add_missing_started(db)
@@ -252,7 +255,9 @@ class Store:
     @property
     def review(self) -> ReviewState:
         """The developer's triage of failure groups and their session model's summaries."""
-        return ReviewState(GroupTriage(self._db), SessionSummaries(self._db))
+        return ReviewState(
+            GroupTriage(self._db), SessionSummaries(self._db), GroupVerdicts(self._db)
+        )
 
     @property
     def contexts(self) -> LessonContexts:

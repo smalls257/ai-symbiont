@@ -7,8 +7,10 @@ routes do, and readable history follows their harness setting.
 """
 
 from collections.abc import Callable
+from datetime import date
 from typing import Any
 
+from symbiont.miner.group_verdicts import VerdictError, verdict_from
 from symbiont.miner.mine import sessions_of
 from symbiont.miner.session_digest import SessionDigest, digest_of, session_corrections
 from symbiont.miner.session_summary import SessionSummary, SummaryError, summary_from
@@ -18,6 +20,7 @@ from symbiont.readers.harnesses import harness_for_reader
 from symbiont.records.schema import Record
 from symbiont.service.curation_routes import BATCH, CurationRoutes, items_of, running_harness
 from symbiont.service.developer_names import KEEP_NAMES, developer_names
+from symbiont.service.group_verdict_candidates import group_candidates, known_group_keys
 from symbiont.service.request_shapes import BadRequestError, display_name
 from symbiont.store.local import Store
 from symbiont.store.mining import read_source
@@ -38,11 +41,25 @@ TOPICS_RESEND = (
 )
 
 
+VERDICTS_RESEND = (
+    "Expected per verdict: key (from the candidates), sentence (one line, at most 220 "
+    "characters, starting 'Worth a look: ', 'Fixed in practice: ' or 'Noise: '). Fix it and "
+    "resend the SAME verdicts."
+)
+
+
 class SummaryRoutes:
     """Digests out, summaries in; summaries out, topic map in. Each method is one route."""
 
-    def __init__(self, curation: CurationRoutes, store: Store, readers: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        curation: CurationRoutes,
+        store: Store,
+        readers: dict[str, Any],
+        today: Callable[[], date] = date.today,
+    ) -> None:
         """Share `curation`'s consent gate and readable-history rule; work on `store`."""
+        self._today = today
         self._curation = curation
         self._store = store
         self._readers = readers
@@ -55,6 +72,8 @@ class SummaryRoutes:
             "topics/candidates": self.topic_candidates,
             "topics/save": self.save_topics,
             "topics/rename": self.rename_topic,
+            "verdicts/candidates": self.verdict_candidates,
+            "verdicts/save": self.save_verdicts,
         }
 
     def session_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
@@ -151,6 +170,29 @@ class SummaryRoutes:
             "frictions": len(topic_map.frictions),
             "correction_groups": len(topic_map.correction_groups),
         }
+
+    def verdict_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Up to 40 recurring groups without a verdict sentence; dataset history is refused."""
+        project = self._curation.allowed_project(request, {"project"})
+        withheld = self._withheld_datasets(project)
+        if withheld:
+            raise BadRequestError("; ".join(withheld))
+        candidates, remaining = group_candidates(self._store, project)
+        return {"candidates": candidates, "remaining": remaining}
+
+    def save_verdicts(self, request: dict[str, Any]) -> dict[str, Any]:
+        """Keep one sentence per group; an unknown key or a malformed sentence refuses the call."""
+        project = self._curation.allowed_project(request, {"project", "verdicts"})
+        items = items_of(request.get("verdicts"), "verdicts")
+        try:
+            sentences = dict(verdict_from(item) for item in items)
+        except VerdictError as error:
+            raise BadRequestError(f"{error}. {VERDICTS_RESEND}") from error
+        unknown = sorted(set(sentences) - known_group_keys(self._store, project))
+        if unknown:
+            raise BadRequestError(f"no group {', '.join(unknown)} in {project}")
+        self._store.review.verdicts.save(project, sentences, self._today())
+        return {"saved": len(sentences)}
 
     def _sessions(self, project: str, running_in: str) -> tuple[list[list[Record]], list[str]]:
         """The sessions of the sources this session may read, and why the others are not shown."""

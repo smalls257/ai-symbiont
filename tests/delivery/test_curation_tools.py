@@ -129,3 +129,13 @@ def test_a_bad_summary_through_the_tool_is_an_error_that_says_what_to_resend(ser
 
     assert reply["result"]["isError"] is True
     assert "outcome must be one of" in reply["result"]["content"][0]["text"]
+
+
+def test_the_group_verdict_tools_are_listed_and_each_is_one_route():
+    names = {
+        "symbiont_group_candidates": "verdicts/candidates",
+        "symbiont_save_group_verdicts": "verdicts/save",
+    }
+    for name, route in names.items():
+        assert route_and_body(name, {"project": "demo"}, {})[0] == route
+    assert "running_in" not in route_and_body("symbiont_group_candidates", {}, {})[1]
