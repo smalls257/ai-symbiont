@@ -173,19 +173,25 @@ class SummaryRoutes:
 
     def verdict_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
         """Up to 40 recurring groups without a verdict sentence; dataset history is refused."""
-        project = self._curation.allowed_project(request, {"project"})
+        project = self._curation.allowed_project(request, {"project", "running_in"})
         withheld = self._withheld_datasets(project)
         if withheld:
             raise BadRequestError("; ".join(withheld))
-        candidates, remaining = group_candidates(self._store, project)
-        return {"candidates": candidates, "remaining": remaining}
+        sessions, blocked = self._sessions(project, running_harness(request))
+        readable = frozenset(s[0].session_id for s in sessions)
+        candidates, remaining = group_candidates(self._store, project, readable)
+        return {"candidates": candidates, "remaining": remaining, "not_shown": blocked}
 
     def save_verdicts(self, request: dict[str, Any]) -> dict[str, Any]:
         """Keep one sentence per group; an unknown key or a malformed sentence refuses the call."""
         project = self._curation.allowed_project(request, {"project", "verdicts"})
         items = items_of(request.get("verdicts"), "verdicts")
         try:
-            sentences = dict(verdict_from(item) for item in items)
+            pairs = [verdict_from(item) for item in items]
+            repeated = sorted({k for k, _ in pairs if [p[0] for p in pairs].count(k) > 1})
+            if repeated:
+                raise VerdictError(f"more than one sentence for {', '.join(repeated)}")
+            sentences = dict(pairs)
         except VerdictError as error:
             raise BadRequestError(f"{error}. {VERDICTS_RESEND}") from error
         unknown = sorted(set(sentences) - known_group_keys(self._store, project))

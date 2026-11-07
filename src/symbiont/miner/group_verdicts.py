@@ -28,11 +28,11 @@ def verdict_from(item: Mapping[str, Any]) -> tuple[str, str]:
     sentence = item.get("sentence")
     if not isinstance(sentence, str) or not sentence.strip():
         raise VerdictError(f"sentence for {key!r} must be text")
-    sentence = sentence.strip()
-    if "\n" in sentence or "\r" in sentence:
+    sentence = scrub(sentence.strip())
+    if len(sentence.splitlines()) != 1:
         raise VerdictError(f"sentence for {key!r} must be one line")
     if len(sentence) > MAX_SENTENCE_CHARS:
         raise VerdictError(f"sentence for {key!r} is over {MAX_SENTENCE_CHARS} characters")
     if not sentence.startswith(LEADS):
         raise VerdictError(f"sentence for {key!r} must start with one of: {', '.join(LEADS)}")
-    return key, scrub(sentence)
+    return key, sentence

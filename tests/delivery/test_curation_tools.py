@@ -137,5 +137,8 @@ def test_the_group_verdict_tools_are_listed_and_each_is_one_route():
         "symbiont_save_group_verdicts": "verdicts/save",
     }
     for name, route in names.items():
-        assert route_and_body(name, {"project": "demo"}, {})[0] == route
-    assert "running_in" not in route_and_body("symbiont_group_candidates", {}, {})[1]
+        assert (
+            route_and_body(name, {"project": "demo", "running_in": "claude_code"}, {})[0] == route
+        )
+    body = route_and_body("symbiont_group_candidates", {}, {"CLAUDECODE": "1"})[1]
+    assert body["running_in"] == "claude_code"

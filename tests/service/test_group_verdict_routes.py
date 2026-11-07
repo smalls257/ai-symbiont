@@ -24,7 +24,7 @@ from symbiont.store.settings import CorrectionSettings
 
 pytestmark = pytest.mark.periphery
 PROJECT = "demo"
-REQUEST = {"project": PROJECT}
+REQUEST = {"project": PROJECT, "running_in": "muse_code"}
 TODAY = date(2026, 11, 7)
 WORTH = "Worth a look: two git calls ran in parallel; stop the race, not the lock."
 
@@ -39,25 +39,35 @@ def card(session_id, program="pytest", noise=None):
     )  # fmt: skip
 
 
-def read_jsonl(path, project):
+def read_jsonl(path, project):  # the project is in the records already
     with open(path, encoding="utf-8") as fh:
         return iter(list(load_jsonl(fh)))
 
 
-def rig(tmp_path, cards, extra_sources=()):
+def _log_source(tmp_path, reader, session_ids):
+    ids = session_ids or ("w1",)
+    records = [
+        replace(r, project=PROJECT, session_id=ident)
+        for ident in ids
+        for r in session(user("hi"), say("ok"))
+    ]
+    path = tmp_path / f"{reader}.jsonl"
+    with path.open("w") as fh:
+        dump_jsonl(records, fh)
+    return Source(PROJECT, reader, str(path))
+
+
+def rig(tmp_path, cards, extra_sources=(), logs=None):
     store = Store.open(tmp_path / "s.db")
     registry = RepoRegistry(tmp_path)
     registry.record_stance(PROJECT, RepoStance.GIVEN)
-    sources = []
-    for reader in extra_sources:
-        path = tmp_path / f"{reader}.jsonl"
-        with path.open("w") as fh:
-            dump_jsonl([replace(r, project=PROJECT) for r in session(user("hi"), say("ok"))], fh)
-        sources.append(Source(PROJECT, reader, str(path)))
+    logs = dict(logs or {}) | {reader: () for reader in extra_sources}
+    logs.setdefault("muse-code", sorted({c.session_id for c in cards}))
+    sources = [_log_source(tmp_path, reader, ids) for reader, ids in logs.items()]
     store.mined.save(
         PROJECT, sources, MiningOutcome([], incidents=cards), held_out_tasks=frozenset()
     )
-    readers = {"swe-chat": read_jsonl}
+    readers = {"swe-chat": read_jsonl, "muse-code": read_jsonl, "claude-code": read_jsonl}
     curation = CurationRoutes(store, registry, lambda: CorrectionSettings(), readers)
     return SummaryRoutes(curation, store, readers, lambda: TODAY), store
 
@@ -67,7 +77,7 @@ def recurring_cards():
 
 
 def test_candidates_offer_only_recurring_non_noise_groups_without_a_sentence(tmp_path):
-    routes, store = rig(tmp_path, recurring_cards())
+    routes, _ = rig(tmp_path, recurring_cards())
 
     answer = routes.verdict_candidates(REQUEST)
 
@@ -146,3 +156,40 @@ def test_a_sentence_outlives_a_remine_and_a_credential_in_it_is_scrubbed(tmp_pat
 
     kept = store.review.verdicts.sentences(PROJECT)[key]
     assert secret not in kept and kept.startswith("Worth a look: ")
+
+
+def split_cards():
+    """Group `pytest` in sessions a, b (muse code) and c, d (claude code)."""
+    return [card("a"), card("b"), card("c"), card("d")]
+
+
+def test_cards_of_a_barred_harness_are_not_offered_but_an_allowed_ones_are(tmp_path):
+    logs = {"muse-code": ["a", "b"], "claude-code": ["c", "d"]}
+    routes, _ = rig(tmp_path, split_cards(), logs=logs)
+
+    answer = routes.verdict_candidates(REQUEST)
+
+    (group,) = answer["candidates"]
+    assert group["sessions"] == 2 and group["times"] == 2
+    assert "claude_code history is not shown to a muse_code session" in answer["not_shown"][0]
+    assert {a["happened"] for a in group["examples"]} == {"The agent ran pytest and it failed."}
+
+
+def test_a_group_whose_readable_part_is_one_session_is_not_offered(tmp_path):
+    logs = {"muse-code": ["a"], "claude-code": ["b", "c", "d"]}
+    routes, _ = rig(tmp_path, split_cards(), logs=logs)
+
+    answer = routes.verdict_candidates(REQUEST)
+
+    assert answer["candidates"] == [] and answer["not_shown"]
+
+
+def test_one_sentence_per_group_in_a_batch_and_running_in_is_required(tmp_path):
+    routes, _ = rig(tmp_path, recurring_cards())
+    key = routes.verdict_candidates(REQUEST)["candidates"][0]["key"]
+    twice = [{"key": key, "sentence": WORTH}] * 2
+
+    with pytest.raises(BadRequestError, match="more than one sentence"):
+        routes.save_verdicts({"project": PROJECT, "verdicts": twice})
+    with pytest.raises(BadRequestError, match="running_in must be"):
+        routes.verdict_candidates({"project": PROJECT})

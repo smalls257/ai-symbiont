@@ -6,18 +6,24 @@ examples are cards the page already holds (scrubbed), never raw history.
 
 from typing import Any
 
-from symbiont.service.incident_view import incidents_snapshot
+from symbiont.service.incident_view import MIN_RECURRING_SESSIONS, incidents_snapshot
 from symbiont.store.local import Store
 
 MAX_GROUP_CANDIDATES = 40
 EXAMPLES_PER_GROUP = 3
 
 
-def group_candidates(store: Store, project: str) -> tuple[list[dict[str, Any]], int]:
-    """Up to 40 candidate groups of `project` and how many more wait; groups come largest first."""
+def group_candidates(
+    store: Store, project: str, readable: frozenset[str]
+) -> tuple[list[dict[str, Any]], int]:
+    """Up to 40 candidate groups and how many more wait, largest first.
+
+    Only cards of `readable` sessions count, so history the developer barred from this session's
+    model never reaches it; a group left with under two readable sessions is not offered.
+    """
     shown = incidents_snapshot(store, project)
     written = store.review.verdicts.sentences(project)
-    groups = [] if shown is None else shown["groups"]
+    groups = [] if shown is None else [_readable_part(row, readable) for row in shown["groups"]]
     waiting = [row for row in groups if _needs_verdict(row, written)]
     waiting.sort(key=lambda row: (-row["sessions"], row["key"]))
     batch = waiting[:MAX_GROUP_CANDIDATES]
@@ -28,6 +34,17 @@ def known_group_keys(store: Store, project: str) -> frozenset[str]:
     """The keys of every group on the Inbox, which a verdict may be written for."""
     shown = incidents_snapshot(store, project)
     return frozenset() if shown is None else frozenset(row["key"] for row in shown["groups"])
+
+
+def _readable_part(group: dict[str, Any], readable: frozenset[str]) -> dict[str, Any]:
+    cards = [card for card in group["cards"] if card["sessionId"] in readable]
+    sessions = len({card["sessionId"] for card in cards})
+    return group | {
+        "cards": cards,
+        "sessions": sessions,
+        "times": len(cards),
+        "recurring": sessions >= MIN_RECURRING_SESSIONS,
+    }
 
 
 def _needs_verdict(group: dict[str, Any], written: dict[str, str]) -> bool:
