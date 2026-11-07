@@ -22,8 +22,9 @@ function renameInPlace(ui,g,button,save){
 function archiveMenu(ui,g,button,pick){
   const old=ui.container.querySelector(".archmenu");
   if(old)old.remove();
+  const choices=M.archiveChoices(new Date());
   const menu=document.createElement("div");menu.className="archmenu";menu.setAttribute("role","menu");
-  menu.innerHTML='<div class="h">Archive, and bring it back…</div>'+M.ARCHIVE_CHOICES.map((c,i)=>'<button role="menuitem" data-i="'+i+'">'+c.label+"<small>"+c.detail+"</small></button>").join("");
+  menu.innerHTML='<div class="h">Archive, and bring it back…</div>'+choices.map((c,i)=>'<button role="menuitem" data-i="'+i+'">'+c.label+"<small>"+c.detail+"</small></button>").join("");
   const bar=button.parentElement;
   bar.appendChild(menu);
   menu.style.left=button.offsetLeft+"px";menu.style.top=(button.offsetTop+button.offsetHeight+4)+"px";
@@ -34,7 +35,7 @@ function archiveMenu(ui,g,button,pick){
     const item=e.target.closest("button[data-i]");
     if(!item)return;
     close(false);
-    pick(M.ARCHIVE_CHOICES[+item.dataset.i]).catch(err=>{
+    pick(choices[+item.dataset.i]).catch(err=>{
       toast(ui.container,"symbiont could not archive: "+err.message);
       button.focus();
     });

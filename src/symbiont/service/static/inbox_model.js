@@ -138,12 +138,21 @@ const TEACH_NOTES={
 };
 const teachNote=draft=>[draft.hasTrigger?"":TEACH_NOTES.noSituation,draft.trains?TEACH_NOTES.trains:TEACH_NOTES.noteOnly].filter(Boolean).join(" ");
 
-/* The ways back for an archived group; each maps to a rule POST /triage understands. */
+/* The ways back for an archived group, the mockup's four in its order; each body is a rule POST /triage
+   understands. "For 30 days" says its day only once `archiveChoices(today)` knows today. */
+const ARCHIVE_DAYS=30;
 const ARCHIVE_CHOICES=[
   {label:"Until it happens in 3 more sessions",detail:"Comes back after 3 more sessions show it.",body:{return_rule:"after_sessions",after_sessions:3}},
-  {label:"The next time it shows up",detail:"Comes back in the next session that has it.",body:{return_rule:"new_session"}},
+  {label:"Until it gets worse",detail:"Comes back if it shows up clearly more often than before.",body:{return_rule:"until_worse"}},
+  {label:"For 30 days",detail:"Comes back 30 days from now.",body:{return_rule:"on_date"}},
   {label:"Forever",detail:"Still counted; never comes back on its own.",body:{return_rule:"never"}}
 ];
+const MONTH_NAMES=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+function archiveChoices(today){
+  const back=new Date(today.getFullYear(),today.getMonth(),today.getDate()+ARCHIVE_DAYS);
+  const day=MONTH_NAMES[back.getMonth()]+" "+back.getDate();
+  return ARCHIVE_CHOICES.map(c=>c.body.return_rule==="on_date"?{...c,detail:"Comes back on "+day+"."}:c);
+}
 
 /* ?view= picks the sub-view; an unknown value opens the inbox and says so once in the console. */
 function viewFrom(search,warn){
@@ -191,5 +200,5 @@ function metaLine(sessions,groups){
 }
 const cleanName=text=>window.SymbiontRename.clean(text);
 
-window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
+window.SymbiontInboxModel={TABS,TAB_WORDS,KIND_FILTERS,SORTS,REVIEW_PAGE,pageOf,scopeVisible,focusAfterExpand,SORT_WORDS,DEFAULT_SORT,tabOf,displayName,sectionsOf,noiseReasons,tilesOf,weekAxis,seriesOf,teachDraft,teachNote,lessonRequest,ARCHIVE_CHOICES,archiveChoices,viewFrom,hrefFor,routeFrom,metaLine,cleanName,plural,triageOf};
 })();
