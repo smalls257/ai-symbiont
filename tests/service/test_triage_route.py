@@ -135,7 +135,14 @@ def test_the_page_carries_the_triage_of_each_group(tmp_path):
 
     data = json.loads(re.search(r'id="symbiont-data">(.*?)</script>', page.body.decode(), re.S)[1])
     assert data["triage"] == {
-        KEY: {"state": "resolved", "regressed": False, "taught_on": None, "name": ""}
+        KEY: {
+            "state": "resolved",
+            "regressed": False,
+            "taught_on": None,
+            "name": "",
+            "changed_on": date.today().isoformat(),
+            "return_rule": None,
+        }
     }
 
 
@@ -152,6 +159,8 @@ def test_a_resolved_group_seen_again_is_listed_for_review_and_regressed(tmp_path
         "regressed": True,
         "taught_on": None,
         "name": "",
+        "changed_on": date.today().isoformat(),
+        "return_rule": None,
     }
 
 
@@ -226,6 +235,8 @@ def test_a_resolved_group_not_seen_since_stays_resolved_and_an_untriaged_one_has
         "regressed": False,
         "taught_on": None,
         "name": "",
+        "changed_on": "2026-10-10",
+        "return_rule": None,
     }
     assert group_activity(store, PROJECT, [{"key": "other", "cards": []}]) == {}
 
@@ -244,3 +255,20 @@ def test_renaming_a_regressed_group_keeps_it_regressed(tmp_path):
     listing = triage_listing(store, PROJECT, seen)[KEY]
     assert listing["regressed"] is True and listing["name"] == "Docker build"
     assert listing["state"] == "for_review"
+
+
+def test_the_listing_tells_when_the_state_was_set_and_when_an_archived_group_returns(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    row = triage_row(GroupState.ARCHIVED, ReturnRule.AFTER_SESSIONS, 5, date(2026, 10, 10))
+    store.review.triage.save(PROJECT, KEY, row)
+    store.review.triage.save(
+        PROJECT, "other", triage_row(GroupState.ARCHIVED, ReturnRule.NEVER, None, date(2026, 9, 1))
+    )
+
+    listing = triage_listing(store, PROJECT)
+
+    assert listing[KEY]["changed_on"] == "2026-10-10"
+    assert listing[KEY]["return_rule"] == "after_sessions"
+    assert listing[KEY]["after_sessions"] == 5
+    assert listing["other"]["return_rule"] == "never"
+    assert "after_sessions" not in listing["other"]

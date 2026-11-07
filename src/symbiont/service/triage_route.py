@@ -77,10 +77,10 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
 def triage_listing(
     store: Store, project: str, activity: Mapping[str, GroupActivity] | None = None
 ) -> dict[str, dict[str, Any]]:
-    """The snapshot's `triage`: group key -> state now, regressed, taught_on, name ("" if unnamed).
+    """The snapshot's `triage`: per group key, its state now and the saved dates and rule.
 
-    `activity` is what the caller measured per group since its saved day; a group it does not
-    mention counts as not seen again.
+    Keys: state, regressed, taught_on, name, changed_on, return_rule, after_sessions (if set).
+    `activity` is measured per group since its saved day; a group it omits was not seen again.
     """
     seen = activity or {}
     names = store.review.triage.names(project)
@@ -95,6 +95,9 @@ def triage_listing(
             "regressed": regressed,
             "taught_on": _day(row.taught_on),
             "name": names.get(key, ""),
+            "changed_on": _day(row.changed_on),
+            "return_rule": None if row.return_rule is None else row.return_rule.value,
+            **({} if row.after_sessions is None else {"after_sessions": row.after_sessions}),
         }
     return listing
 

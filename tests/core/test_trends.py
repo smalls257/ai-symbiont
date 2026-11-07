@@ -4,7 +4,7 @@ Failure guarded against: a month with few sessions or none reading as a swing (o
 rate) in the trend, and a lesson judged on counts that ignore how many sessions ran.
 """
 
-from datetime import date
+from datetime import date, timedelta
 
 import pytest
 
@@ -12,6 +12,7 @@ from symbiont.core.trends import (
     MIN_TREND_OCCURRENCES,
     QUIET_MONTHS,
     Trend,
+    badge_of,
     before_after,
     rate_per_10,
     trend_of,
@@ -100,3 +101,44 @@ def test_too_few_occurrences_are_not_called_rising_or_fading():
     assert MIN_TREND_OCCURRENCES == 3
     assert trend_of([(0, 10), (0, 10), (1, 10), (1, 10)]) is Trend.TOO_FEW
     assert trend_of([(0, 10), (0, 10), (1, 10), (2, 10)]) is Trend.RISING
+
+
+LATEST = date(2026, 8, 31)  # ISO week 2026-W36
+
+
+def weeks_before_latest(counts):
+    """Per-week counts, oldest first, ending at LATEST's week, as [week, n] rows."""
+    rows = []
+    for back, n in zip(range(len(counts) - 1, -1, -1), counts, strict=True):
+        year, week, _ = (LATEST - timedelta(weeks=back)).isocalendar()
+        rows.append([f"{year}-W{week:02d}", n])
+    return rows
+
+
+def badge(group, sessions, first=date(2026, 2, 1)):
+    return badge_of(weeks_before_latest(group), weeks_before_latest(sessions), first, LATEST)
+
+
+def test_a_group_first_seen_within_31_days_of_the_newest_session_is_new():
+    assert badge([0] * 15 + [1], [5] * 16, first=date(2026, 8, 1)) == "new"
+    assert badge([0] * 15 + [1], [5] * 16, first=date(2026, 7, 31)) == "new"
+    assert badge([0] * 15 + [1], [5] * 16, first=date(2026, 7, 29)) is None
+
+
+def test_more_per_session_in_the_last_8_weeks_than_the_8_before_is_rising():
+    assert badge([0] * 6 + [1, 1] + [0] * 6 + [1, 8], [4] * 16) == "rising"
+
+
+def test_a_rise_below_three_occurrences_or_without_the_factor_is_not_rising():
+    assert badge([1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1], [4] * 16) is None
+    assert badge([2, 2, 2, 2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 0, 0, 0], [4] * 16) is None
+
+
+def test_the_same_count_over_fewer_sessions_is_rising_per_session():
+    earlier, recent = [3] + [0] * 7, [3] + [0] * 7
+    assert badge(earlier + recent, [10] * 8 + [2] * 8) == "rising"
+
+
+def test_a_group_quiet_for_16_weeks_has_no_badge():
+    assert badge([0] * 16, [4] * 16) is None
+    assert badge_of([], [], None, LATEST) is None
