@@ -7,10 +7,11 @@ that are not noise. Pure: a payload and the summaries in, a checked map or `Topi
 """
 
 from collections import Counter
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from symbiont.miner.secrets import scrub
 from symbiont.miner.session_summary import SessionSummary
 
 # Word ranges from the failure-cards plan (Task 8). "Other" is the one allowed single word:
@@ -53,8 +54,15 @@ class TopicMap:
     correction_groups: tuple[CorrectionGroup, ...]
 
 
-def topic_map_from(payload: Mapping[str, Any], summaries: Sequence[SessionSummary]) -> TopicMap:
-    """The checked map; raises TopicMapError when a session is missing, doubled or unknown."""
+def topic_map_from(
+    payload: Mapping[str, Any],
+    summaries: Sequence[SessionSummary],
+    offered_refs: Collection[tuple[str, int]],
+) -> TopicMap:
+    """The checked, scrubbed map; `offered_refs` are the (session, step) corrections shown.
+
+    Raises TopicMapError when a session is missing, doubled or unknown, or a ref was not offered.
+    """
     extra = set(payload) - MAP_KEYS
     if extra or "topics" not in payload:
         raise TopicMapError(
@@ -63,7 +71,7 @@ def topic_map_from(payload: Mapping[str, Any], summaries: Sequence[SessionSummar
     known = {item.session_id for item in summaries}
     topics = _groups(payload["topics"], "topics", TOPIC_WORDS, known, allow_catch_all=True)
     frictions = _groups(payload.get("frictions", []), "frictions", GROUP_WORDS, known)
-    groups = _correction_groups(payload.get("correction_groups", []), known)
+    groups = _correction_groups(payload.get("correction_groups", []), known, set(offered_refs))
     _require_partition(topics, {item.session_id for item in summaries if not item.noise})
     return TopicMap(topics, frictions, groups)
 
@@ -85,12 +93,15 @@ def _groups(
     return tuple(result)
 
 
-def _correction_groups(value: Any, known: set[str]) -> tuple[CorrectionGroup, ...]:
+def _correction_groups(
+    value: Any, known: set[str], offered: set[tuple[str, int]]
+) -> tuple[CorrectionGroup, ...]:
     result = []
     for item in _objects(value, "correction_groups"):
         name = _name(item, "correction_groups", GROUP_WORDS, allow_catch_all=False)
         refs = tuple(_ref(ref) for ref in _objects_or_lists(item.get("refs")))
         _require_known(tuple(session for session, _ in refs), known)
+        _require_offered(refs, offered)
         result.append(CorrectionGroup(name, _description(item, "correction_groups"), refs))
     return tuple(result)
 
@@ -132,14 +143,20 @@ def _name(
     low, high = words
     if not low <= len(name.split()) <= high:
         raise TopicMapError(f"a name in {field} must be {low} to {high} words: {name!r}")
-    return name
+    return scrub(name)
 
 
 def _description(item: Mapping[str, Any], field: str) -> str:
     text = item.get("description", "")
     if not isinstance(text, str) or not text.strip():
         raise TopicMapError(f"each of {field} needs a description")
-    return text.strip()[:MAX_DESCRIPTION_CHARS]
+    return scrub(text.strip())[:MAX_DESCRIPTION_CHARS]
+
+
+def _require_offered(refs: Sequence[tuple[str, int]], offered: set[tuple[str, int]]) -> None:
+    unknown = sorted(f"{session}:{step}" for session, step in set(refs) - offered)
+    if unknown:
+        raise TopicMapError(f"unknown corrections (not offered): {', '.join(unknown)}")
 
 
 def _require_known(ids: Sequence[str], known: set[str]) -> None:

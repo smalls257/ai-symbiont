@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from enum import StrEnum
 from typing import Any
 
+from symbiont.miner.secrets import scrub
+
 # Word caps from the failure-cards plan (Task 8): a goal is a headline, a friction a short phrase.
 MAX_GOAL_WORDS = 12
 MAX_FRICTION_WORDS = 10
@@ -47,9 +49,9 @@ def summary_from(item: Mapping[str, Any]) -> SessionSummary:
         raise SummaryError("noise must be true or false")
     return SessionSummary(
         ident,
-        _words(item, "goal", MAX_GOAL_WORDS),
+        scrub(_words(item, "goal", MAX_GOAL_WORDS)),
         _outcome(item.get("outcome")),
-        _words(item, "friction", MAX_FRICTION_WORDS, required=False),
+        scrub(_words(item, "friction", MAX_FRICTION_WORDS, required=False)),
         noise,
     )
 

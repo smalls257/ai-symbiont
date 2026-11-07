@@ -37,7 +37,12 @@ _ITEMS = {"type": "array", "items": {"type": "object"}}
 _HARNESS = {"running_in": {"type": "string", "enum": [entry.id for entry in HARNESSES]}}
 # Tools whose route reads history, so the service must know which harness the session runs in.
 _READS_HISTORY = frozenset(
-    {"symbiont_correction_candidates", "symbiont_session_candidates", "symbiont_topic_candidates"}
+    {
+        "symbiont_correction_candidates",
+        "symbiont_session_candidates",
+        "symbiont_topic_candidates",
+        "symbiont_save_topics",
+    }
 )
 _DESCRIPTIONS = {
     "add": (
@@ -87,7 +92,8 @@ _DESCRIPTIONS = {
         "frictions: [{name (2 to 5 words), description, session_ids}], correction_groups: "
         "[{name (2 to 5 words, like 'Back to main and pull'), description, refs: "
         "[[session_id, step]]}]}. Every session must be in exactly one topic; an 'Other' topic is "
-        "allowed. Split a topic that holds more than a quarter of the sessions."
+        "allowed. Split a topic that holds more than a quarter of the sessions. Pass running_in "
+        "if asked."
     ),
     "focus": ("Save what the developer said symbiont should pay attention to in this repository."),
 }
@@ -136,7 +142,7 @@ TOOLS = [
         "symbiont_save_topics",
         "topics/save",
         _DESCRIPTIONS["savetop"],
-        {"topics": _ITEMS, "frictions": _ITEMS, "correction_groups": _ITEMS},
+        {"topics": _ITEMS, "frictions": _ITEMS, "correction_groups": _ITEMS} | _HARNESS,
         ["topics"],
     ),
     _tool(

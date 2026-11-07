@@ -9,6 +9,8 @@ import pytest
 from symbiont.miner.session_summary import SessionSummary, SummaryError, summary_from
 from symbiont.miner.topics import TopicMapError, topic_map_from
 
+OFFERED = {("a", 3)}
+
 
 def summary(ident, noise=False):
     return SessionSummary(ident, "goal", "done", "", noise)
@@ -31,7 +33,7 @@ def request(**changes):
 def test_a_complete_map_is_accepted_and_noise_sessions_need_no_topic():
     known = [summary("a"), summary("b"), summary("c"), summary("n", noise=True)]
 
-    result = topic_map_from(request(), known)
+    result = topic_map_from(request(), known, OFFERED)
 
     assert [t.name for t in result.topics] == ["Auth and MFA", "Other"]
     assert result.correction_groups[0].refs == (("a", 3),)
@@ -47,7 +49,7 @@ def test_a_missing_session_and_a_doubled_session_are_named():
     )
 
     with pytest.raises(TopicMapError, match="missing: d") as missing:
-        topic_map_from(doubled, known)
+        topic_map_from(doubled, known, OFFERED)
     assert "twice: c" in str(missing.value)
 
 
@@ -59,10 +61,11 @@ def test_an_unknown_id_and_a_long_name_are_refused():
                 frictions=[{"name": "Friction name", "description": "d", "session_ids": ["zzz"]}]
             ),
             known,
+            OFFERED,
         )
     long = {"name": "One two three four five", "description": "d", "session_ids": ["a", "b", "c"]}
     with pytest.raises(TopicMapError, match="name"):
-        topic_map_from(request(topics=[long]), known)
+        topic_map_from(request(topics=[long]), known, OFFERED)
 
 
 def test_summaries_are_validated_field_by_field():

@@ -82,3 +82,30 @@ def test_the_summary_goal_becomes_the_session_title_on_the_facts(tmp_path):
     store.summaries.save(PROJECT, [summary("a", "Speed up the parser")])
 
     assert store.mined.session_facts(PROJECT)[0].title == "Speed up the parser"
+
+
+def test_a_store_made_before_summaries_existed_still_reads_its_facts(tmp_path):
+    import sqlite3
+    from dataclasses import replace
+
+    from symbiont.miner.struggle import facts_of
+    from symbiont.miner.themes import Codebase
+    from symbiont.store.held_back import MiningOutcome
+
+    path = tmp_path / "old.db"
+    steps = [
+        replace(r, session_id="a")
+        for r in session(user("make the parser faster please"), run("ls"))
+    ]
+    facts = facts_of([steps], [], Codebase(frozenset({"demo"})), frozenset())
+    Store.open(path).mined.save(
+        PROJECT, [], MiningOutcome([], facts=facts), held_out_tasks=frozenset()
+    )
+    with sqlite3.connect(path) as db:
+        db.execute("DROP TABLE session_summaries")
+        db.execute("DROP TABLE topics")
+
+    reopened = Store.open(path)
+
+    assert reopened.mined.session_facts(PROJECT)[0].title == "make the parser faster please"
+    assert reopened.mined.session_strips(PROJECT) == []
