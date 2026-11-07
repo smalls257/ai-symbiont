@@ -89,5 +89,5 @@ def _strip(session: Sequence[Record], facts: SessionFacts, codebase: Codebase) -
     steps = strip_of(session, codebase)
     offset, window = densest_window(steps)
     return SessionStrip(
-        facts.session_id, facts.task_label, burstiness(session), window, len(steps), offset
+        facts.session_id, facts.title, burstiness(session), window, len(steps), offset
     )

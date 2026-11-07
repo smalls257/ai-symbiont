@@ -28,6 +28,9 @@ from symbiont.store.held_back import MiningLedger
 from symbiont.store.ignored import SCHEMA as IGNORED_SCHEMA
 from symbiont.store.ignored import IgnoredPatterns
 from symbiont.store.lesson_rows import lesson_from_json
+from symbiont.store.review_state import ReviewState
+from symbiont.store.session_summaries import SCHEMA as SUMMARIES_SCHEMA
+from symbiont.store.session_summaries import SessionSummaries
 from symbiont.store.struggle_rows import SCHEMA as STRUGGLE_SCHEMA
 from symbiont.store.struggle_rows import add_missing_started
 from symbiont.store.triage import SCHEMA as TRIAGE_SCHEMA
@@ -177,6 +180,7 @@ class Store:
         db.executescript(STRUGGLE_SCHEMA)
         db.executescript(IGNORED_SCHEMA)
         db.executescript(TRIAGE_SCHEMA)
+        db.executescript(SUMMARIES_SCHEMA)
         _add_missing_authored_columns(db)
         _add_missing_review_summary(db)
         add_missing_started(db)
@@ -245,9 +249,9 @@ class Store:
         return IgnoredPatterns(self._db)
 
     @property
-    def triage(self) -> GroupTriage:
-        """The developer's review status of each failure group, in the same database."""
-        return GroupTriage(self._db)
+    def review(self) -> ReviewState:
+        """The developer's triage of failure groups and their session model's summaries."""
+        return ReviewState(GroupTriage(self._db), SessionSummaries(self._db))
 
     @property
     def contexts(self) -> LessonContexts:

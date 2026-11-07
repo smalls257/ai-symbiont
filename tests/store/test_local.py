@@ -88,6 +88,8 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
         "struggle",
         "churn",
         "session_facts",
+        "session_summaries",
+        "topics",
         "session_strips",
         "ignored",
         "triage",

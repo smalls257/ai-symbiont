@@ -48,10 +48,10 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     if taught is not True and (taught is not False or "state" not in request):
         raise BadRequestError("send a state, or taught: true")
     if "state" in request:
-        store.triage.save(project, key, _row_of(request, today))
+        store.review.triage.save(project, key, _row_of(request, today))
     if taught:
-        store.triage.mark_taught(project, key, today)
-    saved = store.triage.all(project)[key]
+        store.review.triage.mark_taught(project, key, today)
+    saved = store.review.triage.all(project)[key]
     reply = {"group_key": key, "state": saved.state.value, "taught_on": _day(saved.taught_on)}
     events = parts.events
     write_event(events.path, events.filler, Call("triage", "triage", project), {"triage": reply})
@@ -68,7 +68,7 @@ def triage_listing(
     """
     seen = activity or {}
     listing: dict[str, dict[str, Any]] = {}
-    for key, row in store.triage.all(project).items():
+    for key, row in store.review.triage.all(project).items():
         now = seen.get(key, NO_ACTIVITY)
         state, regressed = state_now(
             row, now.sessions_since, seen_in_new_session=now.seen_in_new_session

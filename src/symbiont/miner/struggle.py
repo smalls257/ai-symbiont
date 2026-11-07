@@ -53,7 +53,9 @@ class SessionFacts:
     """What one session was about, how it struggled and what the failures came to."""
 
     session_id: str
-    task_label: str
+    # The summary's goal when the session model wrote one (the store applies it on read), else
+    # the title the reader found: ai-title, or the first typed non-command turn.
+    title: str
     themes: frozenset[str]
     patterns: frozenset[StrugglePattern]
     turns_lost: int
@@ -154,7 +156,7 @@ def _facts(
     """The facts of one session."""
     return SessionFacts(
         session_id=session[0].session_id,
-        task_label=task_label(session),
+        title=task_label(session),
         themes=themes_of(task_text(session), vocabulary),
         patterns=patterns_of(session, codebase),
         turns_lost=turns_lost(session),

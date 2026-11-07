@@ -64,7 +64,7 @@ def test_facts_carry_themes_label_turns_and_outcomes_of_each_session():
         run("ls nope", 2, "No such file"),
     )
     assert isinstance(facts, SessionFacts)
-    assert facts.themes == {"parser"} and facts.task_label == "Fix parser crash"
+    assert facts.themes == {"parser"} and facts.title == "Fix parser crash"
     assert facts.turns_lost > 0 and facts.session_id == "s1"
     assert facts.outcomes[Outcome.CODE_FIX] == 1 and facts.outcomes[Outcome.PROBE] == 1
 

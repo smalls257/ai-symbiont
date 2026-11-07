@@ -35,7 +35,7 @@ def body(**fields):
 
 
 def saved(tmp_path):
-    return Store.open(tmp_path / "store.db").triage.all(PROJECT)
+    return Store.open(tmp_path / "store.db").review.triage.all(PROJECT)
 
 
 def test_resolving_a_group_saves_it_dated_today(tmp_path):
@@ -136,7 +136,9 @@ def test_the_page_carries_the_triage_of_each_group(tmp_path):
 
 def test_a_resolved_group_seen_again_is_listed_for_review_and_regressed(tmp_path):
     store = Store.open(tmp_path / "store.db")
-    store.triage.save(PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date.today()))
+    store.review.triage.save(
+        PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date.today())
+    )
 
     listing = triage_listing(store, PROJECT, {KEY: GroupActivity(1, seen_in_new_session=True)})
 

@@ -89,8 +89,8 @@ class CurationRoutes:
 
     def add_lessons(self, request: dict[str, Any]) -> dict[str, Any]:
         """Store lessons the model wrote from what the developer pointed it to."""
-        project = self._allowed_project(request, {"project", "lessons"})
-        items = _items(request.get("lessons"), "lessons")
+        project = self.allowed_project(request, {"project", "lessons"})
+        items = items_of(request.get("lessons"), "lessons")
         _refuse_oversized_pr_batch(items)
         try:
             added = [self._authored(project, item) for item in items]
@@ -100,12 +100,8 @@ class CurationRoutes:
 
     def correction_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
         """A batch of user turns that may be corrections, from histories this session may read."""
-        project = self._allowed_project(request, {"project", "running_in"})
-        running = request.get("running_in")
-        if running not in {entry.id for entry in HARNESSES}:
-            ids = " or ".join(entry.id for entry in HARNESSES)
-            raise BadRequestError(f"running_in must be {ids}")
-        allowed, blocked = self._readable(project, running)
+        project = self.allowed_project(request, {"project", "running_in"})
+        allowed, blocked = self.readable_sources(project, running_harness(request))
         decided = self._store.curation.decided(project)
         found = [
             c
@@ -130,8 +126,8 @@ class CurationRoutes:
 
     def save_corrections(self, request: dict[str, Any]) -> dict[str, Any]:
         """Keep the model's judgments; each confirmed correction becomes a lesson."""
-        project = self._allowed_project(request, {"project", "corrections"})
-        items = _items(request.get("corrections"), "corrections")
+        project = self.allowed_project(request, {"project", "corrections"})
+        items = items_of(request.get("corrections"), "corrections")
         kept = 0
         for item in items:
             ident, rule = (
@@ -151,7 +147,7 @@ class CurationRoutes:
 
     def review_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
         """A capped batch of mined pain points that have no verdict yet."""
-        project = self._allowed_project(request, {"project"})
+        project = self.allowed_project(request, {"project"})
         reviewed, words = self._store.curation.reviews(project), self._store.contexts.all(project)
         stored = self._store.lessons(project)
         waiting = [item for item in stored if lesson_id(item) not in reviewed]
@@ -165,9 +161,9 @@ class CurationRoutes:
 
     def save_reviews(self, request: dict[str, Any]) -> dict[str, Any]:
         """Keep the model's verdicts; expected and noise silence a note, mistake adds its rule."""
-        project = self._allowed_project(request, {"project", "reviews"})
+        project = self.allowed_project(request, {"project", "reviews"})
         known = {lesson_id(item) for item in self._store.lessons(project)}
-        items = _items(request.get("reviews"), "reviews")
+        items = items_of(request.get("reviews"), "reviews")
         for item in items:
             ident = _text(item, "id")
             if ident not in known:
@@ -177,7 +173,7 @@ class CurationRoutes:
 
     def set_focus(self, request: dict[str, Any]) -> dict[str, Any]:
         """Remember what the developer said symbiont should pay attention to."""
-        project = self._allowed_project(request, {"project", "text", "keywords", "sources"})
+        project = self.allowed_project(request, {"project", "text", "keywords", "sources"})
         focus = {
             "text": str(request.get("text", ""))[:MAX_TEXT],
             "keywords": _strings(request.get("keywords", []), "keywords"),
@@ -187,7 +183,7 @@ class CurationRoutes:
             self._registry.record_focus(project, focus)
         return {"saved": True}
 
-    def _allowed_project(self, request: dict[str, Any], fields: set[str]) -> str:
+    def allowed_project(self, request: dict[str, Any], fields: set[str]) -> str:
         """The request's project, when its fields are right and the developer allowed it."""
         require_keys(request, frozenset(fields), frozenset({"project"}))
         project = request["project"]
@@ -219,7 +215,7 @@ class CurationRoutes:
         self._store.curation.add_authored(project, lesson)
         return lesson.ident
 
-    def _readable(self, project: str, running_in: str) -> tuple[list[Any], list[str]]:
+    def readable_sources(self, project: str, running_in: str) -> tuple[list[Any], list[str]]:
         """The project's sources this session may read, and why the others are not shown."""
         settings, allowed, blocked = self._settings(), [], []
         for source in self._store.sources(project):
@@ -295,7 +291,16 @@ def _review(item: dict[str, Any]) -> Review:
     )
 
 
-def _items(value: Any, name: str) -> list[dict[str, Any]]:
+def running_harness(request: dict[str, Any]) -> str:
+    """The harness the session runs in, as the request names it; anything else is a 400."""
+    running = request.get("running_in")
+    if running not in {entry.id for entry in HARNESSES}:
+        ids = " or ".join(entry.id for entry in HARNESSES)
+        raise BadRequestError(f"running_in must be {ids}")
+    return str(running)
+
+
+def items_of(value: Any, name: str) -> list[dict[str, Any]]:
     """A non-empty, capped list of objects."""
     ok = isinstance(value, list) and 0 < len(value) <= MAX_ITEMS
     if not ok or not all(isinstance(item, dict) for item in value):
