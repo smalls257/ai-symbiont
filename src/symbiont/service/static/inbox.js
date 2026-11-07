@@ -5,7 +5,7 @@
    markup in inbox_rows.js, dialogs in inbox_dialogs.js. */
 (function () {
 "use strict";
-const M=window.SymbiontInboxModel,R=window.SymbiontInboxRows;
+const M=window.SymbiontInboxModel,R=window.SymbiontInboxRows,N=window.SymbiontInboxNoise;
 const SORT_WORDS=M.SORT_WORDS;
 const KIND_WORDS={all:"All",failure:"Agent failures",correction:"Your corrections"};
 const STATE_OF={reviewed:"reviewed",resolve:"resolved",reopen:"for_review"};
@@ -23,7 +23,8 @@ function skeleton(){
     +'<div class="seg2" role="group" aria-label="Kind" id="inKinds"></div>'
     +'<label class="mu sortl">Sort <select class="sel" id="inSort">'+Object.keys(SORT_WORDS).map(k=>'<option value="'+k+'">'+SORT_WORDS[k]+"</option>").join("")+"</select></label></div>"
     +'<div class="glist" id="inList"></div><div id="inFolds"></div></section>'
-    +'<aside class="side"><section class="panel" id="inTopics" aria-label="What was being worked on"></section></aside>';
+    +'<aside class="side"><section class="panel" id="inTopics" aria-label="What was being worked on"></section>'
+    +'<section class="panel" id="inFriction" aria-label="Where sessions got stuck"></section></aside>';
 }
 
 function start(container,data,project){
@@ -33,8 +34,10 @@ function start(container,data,project){
   ui.$=$;
   $("#inSort").onchange=e=>{ui.sort=e.target.value;draw(ui);};
   container.addEventListener("click",e=>onClick(ui,e));
+  container.addEventListener("keydown",e=>onKey(ui,e));
   container.addEventListener("toggle",e=>onToggle(ui,e),true);
   drawTopics(ui);
+  drawFriction(ui);
   draw(ui);
 }
 
@@ -55,7 +58,7 @@ const moreHtml=n=>n?'<button class="btn more" data-more="review">Show '+M.plural
 
 function shownOf(ui,g,axis){
   const tri=M.triageOf(ui.data.triage,g);
-  return {g,name:M.displayName(ui.data.triage,g),tab:M.tabOf(ui.data.triage,g),tri,series:M.seriesOf(g,axis),weeks:axis};
+  return {g,project:ui.project,name:M.displayName(ui.data.triage,g),tab:M.tabOf(ui.data.triage,g),tri,series:M.seriesOf(g,axis),weeks:axis};
 }
 
 function emptyHtml(ui,found){
@@ -76,8 +79,17 @@ function foldsHtml(ui,found,axis){
   const body=(id,list)=>ui.open.has(id)?rows(list):"";
   const count=list=>M.plural(list.length,"group");
   const once=found.once.length?R.foldHtml("inOnce","Seen once",count(found.once),"each happened in one session",body("inOnce",found.once)):"";
-  const noise=found.noise.length?R.foldHtml("inNoise","Noise",count(found.noise),R.noiseLead(M.noiseReasons(found.noise)),body("inNoise",found.noise)):"";
-  return once+noise;
+  return once+noiseHtml(ui,found);
+}
+
+/* The rules say why items are folded; the Archived tab shows them open, the other tabs behind the fold. */
+function noiseHtml(ui,found){
+  const incidents=ui.data.incidents,rules=N.rulesOf(incidents.noise.byReason,incidents.groups,ui.kind);
+  const body=N.rulesHtml(rules,M.seenOnceLine(found.once),ui.project);
+  if(ui.tab==="archived")return '<div class="rules">'+body+"</div>";
+  if(!incidents.noise.total)return "";
+  const lead=rules.map(r=>R.esc(r.reason)+" ("+M.plural(r.count,"item")+")").join(" · ");
+  return R.foldHtml("inNoise","Folded as noise",M.plural(incidents.noise.total,"item"),lead,ui.open.has("inNoise")?body:"");
 }
 
 function onToggle(ui,e){
@@ -94,6 +106,12 @@ function drawTopics(ui){
   panel.innerHTML='<h2>What was being worked on</h2><p class="sub">Topics are coming soon.</p>';
 }
 
+function drawFriction(ui){
+  const view=ui.data.topicView,panel=ui.$("#inFriction");
+  if(!view){panel.hidden=true;return;}
+  panel.innerHTML=R.frictionHtml(M.frictionRows(view));
+}
+
 /* Redrawing replaces the clicked button, so focus goes to the same row's next button, the row now at that place,
    or the status tab, never to the page body. */
 function focusAfter(ui,key,position){
@@ -104,7 +122,20 @@ function focusAfter(ui,key,position){
 }
 const positionOf=(ui,key)=>[...ui.container.querySelectorAll("#inList .grp")].findIndex(r=>r.dataset.key===key);
 
+const INNER_CONTROL="button,a,select,input,summary,.archmenu";
+const groupOf=(ui,row)=>ui.data.incidents.groups.find(x=>x.key===row.dataset.key);
+function openGroup(ui,row){
+  window.SymbiontViews.navigate({view:"group",key:groupOf(ui,row).key});
+}
+/* Enter on the row itself opens the group; Enter on a button or link inside keeps that control's own action. */
+function onKey(ui,e){
+  if(e.key!=="Enter"||!e.target.classList||!e.target.classList.contains("grp"))return;
+  openGroup(ui,e.target);
+}
+
 function onClick(ui,e){
+  const clicked=e.target.closest(".grp");
+  if(clicked&&!e.target.closest(INNER_CONTROL)){openGroup(ui,clicked);return;}
   const tab=e.target.closest("[data-tab]"),kind=e.target.closest("[data-kind]"),act=e.target.closest("button[data-a]");
   if(tab){ui.tab=tab.dataset.tab;draw(ui);ui.$('#inTabs button[aria-pressed="true"]').focus();return;}
   if(kind){ui.kind=kind.dataset.kind;draw(ui);ui.$('#inKinds button[aria-pressed="true"]').focus();return;}

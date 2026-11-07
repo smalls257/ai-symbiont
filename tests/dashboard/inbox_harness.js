@@ -5,12 +5,13 @@ const vm = require("vm");
 const path = require("path");
 
 const sandbox = { window: {}, URLSearchParams };
-for (const file of ["rename.js", "inbox_model.js", "inbox_rows.js", "tip.js"]) {
+for (const file of ["rename.js", "inbox_model.js", "inbox_rows.js", "inbox_noise.js", "tip.js"]) {
   vm.runInNewContext(fs.readFileSync(path.join(process.argv[2], file), "utf8"), sandbox);
 }
 const M = sandbox.window.SymbiontInboxModel;
 const R = sandbox.window.SymbiontInboxRows;
 const T = sandbox.window.SymbiontTip;
+const N = sandbox.window.SymbiontInboxNoise;
 
 const group = (key, over) => ({
   key, name: "Name of " + key, title: "pytest tests", groupedBecause: "Every card is pytest failing the same way.",
@@ -61,7 +62,31 @@ try { orphan = M.sectionsOf(groups, { "failure:gone:exit 1": { state: "resolved"
 const unmarked = group("unmarked", { sessions: 99 });
 delete unmarked.fixShown;
 
+const noiseCard = (value, words, sid, cmd) => ({ noise: value, noiseWords: words, sessionId: sid, step: 7, date: "2026-10-05", command: cmd, happened: "It exited 1." });
+const noisy3 = [
+  group("n1", { cards: [noiseCard("plain_retry", "passed when run again", "s1", "npm test <b>"), noiseCard("plain_retry", "passed when run again", "s1", "x".repeat(300))] }),
+  group("n2", { kind: "correction", cards: [noiseCard("empty_correction", "an acknowledgment", "s2", "ok")] }),
+];
+const byReason = [{ reason: "passed when run again", count: 9 }, { reason: "an acknowledgment", count: 4 }, { reason: "mystery", count: 1 }];
+let unknownReason = "";
+try { N.rulesOf(byReason, [group("bad", { cards: [noiseCard("brand_new", "w", "s", "c")] })], "all"); } catch (e) { unknownReason = e.message; }
+const rules = N.rulesOf(byReason, noisy3, "all");
+const frictionView = { sessions: 40, frictions: [{ name: "Slow <i>CI</i>", description: "CI took ages", sessions: 4 }, { name: "Flaky", description: "Retries", sessions: 10 }] };
+let badBadge = "";
+try { M.badgeLabel("hot"); } catch (e) { badBadge = e.message; }
+
 console.log(JSON.stringify({
+  badges: [M.badgeLabel("new"), M.badgeLabel("rising"), M.badgeLabel(null)], badBadge,
+  verdicts: [M.verdictText({ verdict: "fixed in the code", verdictSentence: "Worth a look: it costs time." }), M.verdictText({ verdict: "fixed in the code", verdictSentence: null })],
+  rules, unknownReason,
+  rulesFailureOnly: N.rulesOf(byReason, noisy3, "failure").map((r) => r.reason),
+  rulesHtml: N.rulesHtml(rules, M.seenOnceLine([group("a", { times: 2 }), group("b", { kind: "correction", times: 5 })]), "demo"),
+  rulesEmpty: N.rulesHtml([], "", "demo"),
+  seenOnce: [M.seenOnceLine([group("a", { times: 2 }), group("b", { times: 1 })]), M.seenOnceLine([])],
+  frictions: M.frictionRows(frictionView), frictionsEmpty: M.frictionRows({ sessions: 0, frictions: [] }),
+  frictionHtml: R.frictionHtml(M.frictionRows(frictionView)),
+  tilesWithRequests: M.tilesOf({ ...data, topicView: { requests: 12 } }).map((t) => t.sub),
+  rowOpen: R.rowHtml({ g: { ...groups[1], badge: "rising", verdictSentence: "Worth a look: slow." }, project: "my proj", name: "n", tab: "review", tri: {}, series: [], weeks: axis }),
   worth: M.sectionsOf(worthy, {}, "all", "worth").review.map((g) => g.key),
   pages: { twenty: M.pageOf(rows(20), false), expanded: M.pageOf(rows(20), true), three: M.pageOf(rows(3), false), pageSize: M.REVIEW_PAGE },
   scope: ["struggle", "inbox", "topics", "trends", "context", "replay"].map((v) => M.scopeVisible(v, 1)),
