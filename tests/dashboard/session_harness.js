@@ -19,18 +19,17 @@ for (const file of ["tip.js", "inbox_model.js", "session_model.js", "session_par
 const W = sandbox.window;
 const Model = W.SymbiontSessionModel;
 
-const card = (sessionId, step) => ({ sessionId, step, date: "2026-03-09" });
-const groups = [
-  { key: "g1", name: "pytest ImportError", noise: false, noiseWords: "", cards: [card("s1", 3), card("s1", 5), card("s2", 1), { sessionId: "s2" }] },
-  { key: "n1", name: "ls missing", noise: true, noiseWords: "Ran only to look around", cards: [card("s1", 7)] },
-  { key: "g2", name: HOSTILE, noise: false, noiseWords: "", cards: [card("s3", 9)] },
-];
-const topicView = { sessionsByDate: [{ id: "s1", date: "2026-03-09", goal: "Fix parser", outcome: "done" }], topics: [{ key: "t1", name: "Parser work", sessionList: [{ id: "s1" }] }] };
-const data = { incidents: { groups }, topicView };
+// The snapshot is built by the real emitters (incident_groups, topic_view._session); see test_session.py.
+const snapshot = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
+const groups = snapshot.incidents.groups;
+const data = snapshot;
+const realCard = groups[0].cards[0];
+const cardCount = groups.reduce((n, g) => n + g.cards.length, 0);
 const table = Model.joinOf(groups);
 const tags = [["s1", 3], ["s1", 7], ["s1", 4], ["s2", 1], ["s2", 2]].map(([id, step]) => Model.tagOf(table, id, step));
-const noStepData = { incidents: { groups: [{ key: "g", name: "x", cards: [{ sessionId: "s1" }] }] } };
-const many = { incidents: { groups: [{ key: "g", name: "g", cards: Array.from({ length: 60 }, (_, i) => card("s" + i, 1)) }] } };
+const withoutStep = groups.map((g) => ({ ...g, cards: g.cards.map(({ step, ...rest }) => rest) }));
+const noStepData = { incidents: { groups: withoutStep } };
+const many = { incidents: { groups: [{ key: "g", name: "g", cards: Array.from({ length: 60 }, (_, i) => ({ ...realCard, sessionId: "s" + i })) }] } };
 const tagFor = (step) => Model.tagOf(table, "s1", step);
 const failed = [{ step: 3 }, { step: 4 }, { step: 7 }];
 const messages = [{ step: 3 }, { step: 4 }];
@@ -68,15 +67,18 @@ async function drawn(route, answer) {
   const down = await drawn({ view: "session", id: "s1" }, () => { throw new Error("connection refused"); });
   const capped = ok.html;
   const small = await drawn({ view: "session", id: "s1" }, reply(200, body({ total: 6, shown: 6 })));
+  const unsummarized = await drawn({ view: "session", id: "s2" }, reply(200, body()));
+  const plainNotFound = await drawn({ view: "session", id: "s1" }, { ok: false, status: 404, json: async () => { throw new Error("not json"); } });
+  const oddLane = await drawn({ view: "session", id: "s1" }, reply(200, body({ steps: [[0, "weird", "x"], [3, "failed", "pytest"]], minutes: "41" })));
   const outside = await drawn({ view: "session", id: "s1", step: 4000 }, reply(200, body()));
   console.log(JSON.stringify({
     registered: sandbox.registered && sandbox.registered[0], tags, ids: ["s1\u0000x"].length,
-    stepless: Model.tagOf(Model.joinOf(noStepData.incidents.groups), "s1", 0).kind,
+    stepless: Model.joinOf(noStepData.incidents.groups).size, joined: table.size, cardCount,
     picker: Model.pickerOf(data, "s1"), pickerOther: Model.pickerOf(data, "nope").currentListed, capped40: Model.pickerOf(many, "s0").rows.length,
     keptMessages: Model.keptMessages(messages, tagFor, "group").map((m) => m.step), keptAll: Model.keptMessages(messages, tagFor, "all").length,
     keptFailed: Model.keptFailed(failed, tagFor, "quiet").map((f) => f.step), noise: Model.noiseCount(failed, tagFor),
     capText: Model.capText(600, 5000), capNone: Model.capText(6, 6), wall: [Model.wallClock(41), Model.wallClock(120), Model.wallClock(null)],
-    loading: ok.loading, url: ok.url, html: capped, small: small.html, outside: outside.html,
+    loading: ok.loading, url: ok.url, html: capped, unsummarized: unsummarized.html, plainNotFound: plainNotFound.html, oddLane: oddLane.html, small: small.html, outside: outside.html,
     afterGroupFilter, afterQuiet, navigated, crumbs, missing: missing.html, gone: gone.html, refused: refused.html, down: down.html,
   }));
 })();

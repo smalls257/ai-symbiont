@@ -34,7 +34,7 @@ function stripSvg(steps,details,tagFor,focus){
   [["you","you"],["edits","edit"],["failed","failed"]].forEach(([name,lane])=>{
     h+='<text x="'+(X0-14)+'" y="'+(LANE_Y[lane]+4)+'" text-anchor="end">'+name+'</text><line x1="'+X0+'" x2="'+X1+'" y1="'+LANE_Y[lane]+'" y2="'+LANE_Y[lane]+'" class="lane"/>';
   });
-  steps.forEach(([n,lane,label])=>{
+  steps.filter(s=>s[2]!==undefined&&s[1] in LANE_Y).forEach(([n,lane,label])=>{
     h+=markSvg(xs(n),LANE_Y[lane],lane,tagFor(n),tipOf(n,lane,{label,error:(details[n]||{}).error},tagFor(n)));
   });
   if(focus!==null&&nums.includes(focus))h+='<line x1="'+xs(focus)+'" x2="'+xs(focus)+'" y1="10" y2="'+(H-18)+'" class="focus"/>';

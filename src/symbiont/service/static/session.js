@@ -5,6 +5,7 @@
 "use strict";
 const SM=window.SymbiontSessionModel,P=window.SymbiontSessionParts,esc=P.esc,M=window.SymbiontInboxModel;
 const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const UNREADABLE_WORD="this session's log is no longer readable";
 const NOT_FOUND="No such session.",UNREADABLE="This session's log is no longer readable.";
 let opened=0;
 
@@ -18,7 +19,7 @@ function say(pane,text,project){pane.innerHTML='<p class="soon" role="status">'+
 function failure(pane,project,status,body){
   const word=body&&body.error;
   if(status===404&&word==="no such session")return say(pane,NOT_FOUND,project);
-  if(status===404)return say(pane,UNREADABLE,project);
+  if(status===404&&word===UNREADABLE_WORD)return say(pane,UNREADABLE,project);
   return say(pane,"Could not load this session: "+(word||("the service answered "+status)),project);
 }
 function topicOf(data,id){
@@ -35,17 +36,17 @@ function tilesHtml(body,noise){
   const c=body.counts||{},tile=(n,w)=>"<div><b>"+num(n)+"</b>"+w+"</div>";
   return '<div class="cnts">'+tile(body.total,"steps in all")+tile(c.failed,"failed commands ("+noise+" noise)")+tile(c.edits,"code edits")+tile(c.scratch,"doc or scratch edits")+tile(c.messages,"messages from you")+tile(c.passed,"passed commands, hidden")+"</div>";
 }
-function metaHtml(body){
+function metaHtml(body,summary){
   const bits=["<span><b>"+esc(dayWord(body.date)||"undated")+"</b></span>"],wall=SM.wallClock(body.minutes);
   if(wall)bits.push("<span><b>"+wall+"</b> wall clock</span>");
-  if(body.outcome)bits.push('<span>ended <span class="pill">'+esc(body.outcome)+"</span></span>");
+  if(summary.outcome)bits.push('<span>ended <span class="pill">'+esc(summary.outcome)+"</span></span>");
   return '<div class="meta">'+bits.join("")+"</div>";
 }
 function headerHtml(ctx){
-  const {body,data,id,project,noise}=ctx,topic=topicOf(data,id);
+  const {body,data,id,project,noise}=ctx,topic=topicOf(data,id),summary=SM.summaryOf(data,id);
   const button=topic?'<a class="btn" data-route href="'+esc(M.hrefFor(project,{view:"topics",t:topic.key}))+'">Topic: '+esc(topic.name)+"</a>":"";
-  return '<div class="shd"><h1>'+esc(body.goal||"(no summary)")+'</h1><div class="pick">'+pickerHtml(data,id)+button+"</div>"+metaHtml(body)+
-    (body.friction?'<div class="fr">'+esc(body.friction)+"</div>":"")+tilesHtml(body,noise)+"</div>";
+  return '<div class="shd"><h1>'+esc(body.goal||summary.goal||"(no summary)")+'</h1><div class="pick">'+pickerHtml(data,id)+button+"</div>"+metaHtml(body,summary)+
+    (summary.friction?'<div class="fr">'+esc(summary.friction)+"</div>":"")+tilesHtml(body,noise)+"</div>";
 }
 function stripHtml(ctx){
   const {body,focus}=ctx,cap=SM.capText(body.shown,body.total);

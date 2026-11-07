@@ -29,6 +29,12 @@ function groupedCardCount(groups){
   }));
   return per;
 }
+/* The summary the snapshot holds for one session: outcome, friction and goal, each null when unsummarized. */
+function summaryOf(data,id){
+  const found=describedSessions(data).get(id)||{};
+  const pick=v=>(v===undefined||v===""?null:v);
+  return {outcome:pick(found.outcome),friction:pick(found.friction),goal:pick(found.goal)};
+}
 function describedSessions(data){
   const known=new Map();
   const tv=data.topicView||{};
@@ -50,7 +56,7 @@ function pickerOf(data,current){
 }
 function capText(shown,total){
   if(shown>=total)return "";
-  return "Showing the first "+shown.toLocaleString("en-US")+" of "+total.toLocaleString("en-US")+" steps, the stretch with the most trouble.";
+  return "Showing "+shown.toLocaleString("en-US")+" of "+total.toLocaleString("en-US")+" steps, the stretch with the most trouble.";
 }
 function markClass(lane,tag){
   if(lane==="edit"||lane==="scratch")return lane;
@@ -66,8 +72,8 @@ function keptFailed(failed,tagFor,filter){
 function noiseCount(failed,tagFor){return failed.filter(f=>tagFor(f.step).kind==="noise").length;}
 /* Header facts: "41 min", "2 h" past 90 minutes, null when the log has no clock. */
 function wallClock(minutes){
-  if(minutes===null||minutes===undefined)return null;
+  if(!Number.isFinite(minutes))return null;
   return minutes>=90?Math.round(minutes/60)+" h":minutes+" min";
 }
-window.SymbiontSessionModel={PICKER_SIZE,joinOf,tagOf,pickerOf,capText,markClass,MESSAGE_FILTERS,FAILED_FILTERS,keptMessages,keptFailed,noiseCount,wallClock};
+window.SymbiontSessionModel={PICKER_SIZE,joinOf,tagOf,pickerOf,summaryOf,capText,markClass,MESSAGE_FILTERS,FAILED_FILTERS,keptMessages,keptFailed,noiseCount,wallClock};
 })();
