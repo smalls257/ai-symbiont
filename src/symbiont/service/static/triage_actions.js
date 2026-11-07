@@ -24,6 +24,7 @@ async function post(path,body){
    into a Resolved one on the page. */
 function remember(ui,g,patch){
   ui.data.triage[g.key]={...M.triageOf(ui.data.triage,g),...patch};
+  if(window.SymbiontViews&&window.SymbiontViews.dataChanged)window.SymbiontViews.dataChanged();
 }
 
 async function saveState(ui,g,fields,message){

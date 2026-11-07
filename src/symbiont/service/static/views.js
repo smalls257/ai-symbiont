@@ -28,6 +28,15 @@ function drawInbox(pane,data,project){
   window.SymbiontInbox.start(pane,data,project);
 }
 
+/* A triage click made on another page (the group page) leaves the drawn Inbox out of date; it redraws on next show. */
+let inboxStale=false;
+const dataChanged=()=>{inboxStale=true;};
+function refreshInbox(){
+  if(!inboxStale)return;
+  inboxStale=false;
+  if(window.SymbiontInbox.refresh)window.SymbiontInbox.refresh();
+}
+
 const DETAIL_VIEWS=["group","session"];
 const DETAILS={};
 let nav=null;
@@ -85,7 +94,8 @@ function mount(data,project,s1,warn){
     const view=route.view;current=route;s1.dataset.view=view;setCrumb("");
     document.getElementById("scope").hidden=!M.scopeVisible(view,1);
     subnav.querySelectorAll("button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.view===tabOf(view))));
-    if(view in draw&&!drawn.has(view)){drawn.add(view);draw[view](route);}
+    if(view in draw&&!drawn.has(view)){drawn.add(view);draw[view](route);if(view==="inbox")inboxStale=false;}
+    else if(view==="inbox")refreshInbox();
     else if(view==="topics"&&topicsPage&&route.t)topicsPage.select(route.t);
     if(view==="notfound")drawNotFound(s1.querySelector(paneOf.notfound),route,project);
     else if(DETAIL_VIEWS.includes(view))drawDetail(s1.querySelector(paneOf[view]),route,data,project);
@@ -103,5 +113,5 @@ function mount(data,project,s1,warn){
   return {stage:OTHER_STAGES[first.view]||1,show:()=>show(current),syncScope:stage=>{document.getElementById("scope").hidden=!M.scopeVisible(current.view,stage);}};
 }
 
-window.SymbiontViews={mount,navigate,registerDetail,setCrumb};
+window.SymbiontViews={mount,navigate,registerDetail,setCrumb,dataChanged};
 })();

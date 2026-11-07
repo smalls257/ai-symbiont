@@ -22,11 +22,14 @@ function skeleton(){
     +'<section class="panel" id="inFriction" aria-label="Where sessions got stuck"></section></aside>';
 }
 
+let current=null;
+
 function start(container,data,project){
   const ui={container,data,project,tab:"review",kind:"all",sort:M.DEFAULT_SORT,open:new Set()};
   container.innerHTML=skeleton();
   const $=sel=>container.querySelector(sel);
   ui.$=$;
+  current=ui;
   ui.positionOf=key=>positionOf(ui,key);
   ui.redraw=(g,position)=>{draw(ui);focusAfter(ui,g.key,position);};
   $("#inSort").onchange=e=>{ui.sort=e.target.value;draw(ui);};
@@ -164,5 +167,8 @@ async function saveName(ui,g,text){
   window.SymbiontInboxDialogs.toast(ui.container,name?"Renamed.":"Name restored to the generated one.");
 }
 
-window.SymbiontInbox={start};
+/* Redraw from the data as it is now, after a triage click made on the group page. */
+function refresh(){if(current)draw(current);}
+
+window.SymbiontInbox={start,refresh};
 })();

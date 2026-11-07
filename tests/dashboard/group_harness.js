@@ -9,7 +9,7 @@ const calls = [];
 const sandbox = { setTimeout() {}, clearTimeout() {}, window: {}, document: { getElementById: () => null, addEventListener() {} }, URL, URLSearchParams, console, fetch: null };
 const crumbs = [];
 const navigated = [];
-sandbox.window.SymbiontViews = { registerDetail(view, fn) { sandbox.registered = view; }, setCrumb: (t) => crumbs.push(t), navigate: (r) => navigated.push(r) };
+sandbox.window.SymbiontViews = { registerDetail(view, fn) { sandbox.registered = view; }, setCrumb: (t) => crumbs.push(t), dataChanged: () => { sandbox.changed = (sandbox.changed || 0) + 1; }, navigate: (r) => navigated.push(r) };
 sandbox.fetch = async (url, init) => {
   calls.push([url, JSON.parse(init.body)]);
   if (url === "/lessons/add") return { ok: true, status: 200, text: async () => JSON.stringify({ added: 1, ids: ["lesson-9"] }) };
@@ -82,10 +82,14 @@ const triaged = (extra) => { const d = clone(base); d.triage = { [failureKey]: e
   const teachHash = show(clone(base), failureKey, "teach");
 
   // actions: mark reviewed, archive, taught
-  const act = show(clone(base), failureKey);
+  const actData = clone(base);
+  const reviewedBefore = W.SymbiontInboxModel.sectionsOf(actData.incidents.groups, actData.triage, "all", "sessions").reviewed.length;
+  const act = show(actData, failureKey);
   click(act, { "button[data-a]": { dataset: { a: "reviewed" } } });
   await flush();
   const reviewedCalls = calls.splice(0);
+  const inboxAfter = W.SymbiontInboxModel.sectionsOf(actData.incidents.groups, actData.triage, "all", "sessions");
+  const tilesAfter = W.SymbiontInboxModel.tilesOf(actData);
   act.onchange({ target: { matches: () => true, value: "0" } });
   await flush();
   const archiveCalls = calls.splice(0);
@@ -107,7 +111,7 @@ const triaged = (extra) => { const d = clone(base); d.triage = { [failureKey]: e
     hostile: all(hostile), hostileKey: hostileKey.html, missing: missing.html, crumbs: crumbsAfter, corr: all(corr), corrDataset: all(corrDataset),
     teachHash: [teachHash.nodes["#gTeach"].scrolled, teachHash.nodes["#gTeach"].classes, teachHash.focused],
     plainFocus: [reviewButton.nodes["#gTeach"].scrolled, reviewButton.focused],
-    reviewedCalls, archiveCalls, saveCalls, preview, savedLabel, actHead: text(act, "#gHead"),
+    inbox: { reviewedBefore, reviewedAfter: inboxAfter.reviewed.length, reviewAfter: inboxAfter.review.length, tilesReview: tilesAfter[3].value, changed: sandbox.changed }, reviewedCalls, archiveCalls, saveCalls, preview, savedLabel, actHead: text(act, "#gHead"),
     model: { pick: W.SymbiontGroupModel.clearest([{ fixed: "", command: "x" }, { fixed: "Edited a.py", command: "y".repeat(120) }, { fixed: "Edited b.py", command: "z" }, { fixed: "Edited c.py", command: "w" }]),
       pages: [1, 12, 13, 30].map(W.SymbiontGroupModel.pagesOf), pageOf: [0, 17, 18, 29].map((i) => W.SymbiontGroupModel.pageOfIndex(30, i)),
       cut: W.SymbiontGroupModel.noteText("mistake", "Word. ".repeat(200)).length,

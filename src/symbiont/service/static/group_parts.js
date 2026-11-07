@@ -27,10 +27,10 @@ function archiveSelect(){
   const options=M.archiveChoices(new Date()).map((c,i)=>'<option value="'+i+'">'+esc(c.label)+"</option>").join("");
   return '<label class="mu archl">Archive, and bring it back<select class="sel" data-archive><option value="">choose…</option>'+options+"</select></label>";
 }
-/* shown: {g, name, tri, topic, sessionsRead, ownHistory}. A correction's own words are shown only from the developer's own history. */
+/* shown: {g, name, tri, topic, sessionsRead}. A correction's words are shown whatever the history, as the Inbox shows them. */
 function headHtml(shown){
-  const {g,name,tri,topic,sessionsRead,ownHistory}=shown,cor=g.kind==="correction";
-  const example=cor&&!ownHistory?"":'<div class="ex1'+(cor?"":" mono")+'">e.g. '+esc(g.title)+"</div>";
+  const {g,name,tri,topic,sessionsRead}=shown,cor=g.kind==="correction";
+  const example='<div class="ex1'+(cor?"":" mono")+'">e.g. '+esc(g.title)+"</div>";
   const note=G.statusNote(g,tri,fd);
   return '<span class="kmark '+esc(g.kind)+'">'+(cor?"you":"!")+"</span>"
     +"<div><h1>"+esc(name)+"</h1>"+example+"</div>"
@@ -50,7 +50,7 @@ function gridHtml(top){
 }
 function barHtml(bar,i,width,top,g){
   const x=40+i*width,h=bar.times?Math.max(3,(bar.times/top)*140):0;
-  const rect=bar.times?'<rect class="bar" x="'+(x+2)+'" y="'+(150-h)+'" width="'+Math.max(1,width-4)+'" height="'+h+'" rx="3"/>':"";
+  const rect=bar.times?'<rect class="wk" x="'+(x+2)+'" y="'+(150-h)+'" width="'+Math.max(1,width-4)+'" height="'+h+'" rx="3"/>':"";
   const hit='<rect class="hit" x="'+x+'" y="0" width="'+width+'" height="150" data-tip="'+esc(tipOf(bar,g))+'"'+(bar.times?' tabindex="0"':"")+"/>";
   const label=i%4===0?'<text x="'+(x+width/2)+'" y="168" text-anchor="middle">'+dayOf(bar.monday)+"</text>":"";
   return rect+hit+label;
@@ -92,24 +92,24 @@ const previewHtml=text=>'<span class="user">'+esc(text)+"</span>";
 function outcomeChip(summary){
   return summary&&summary.outcome?' <span class="outc"><i class="o-'+esc(summary.outcome)+'"></i>'+esc(summary.outcome)+"</span>":"";
 }
-function whatHappenedHtml(card,cor,ownHistory){
+function whatHappenedHtml(card,cor){
   if(!cor)return '<span class="cmd">$ '+esc(clip(card.command))+'</span><span class="err">'+esc(clip(card.happened))+"</span>";
   const before=card.firstWrong?'<span class="ctx">Agent had just: '+code(clip(card.firstWrong))+"</span>":"";
-  const said=ownHistory&&card.command?'<span class="cmd you">You: “'+esc(clip(card.command))+"”</span>":'<span class="ctx">'+esc(clip(card.happened))+"</span>";
+  const said=card.command?'<span class="cmd you">You: “'+esc(clip(card.command))+"”</span>":'<span class="ctx">'+esc(clip(card.happened))+"</span>";
   return before+said;
 }
 function verdictHtml(card,cor){
   if(card.outcome==="never_fixed"&&!cor)return "<b>Unresolved here:</b> the session moved on without a fix.";
   return "<b>Same as the group:</b> "+(cor?"a correction worth teaching.":"a repeat with a known fix.");
 }
-/* shown: {card, summary, project, cor, ownHistory, clearest}. */
+/* shown: {card, summary, project, cor, clearest}. */
 function occurrenceHtml(shown){
-  const {card,summary,project,cor,ownHistory}=shown;
+  const {card,summary,project,cor}=shown;
   const open=card.sessionId?'<a data-route href="'+esc(M.hrefFor(project,{view:"session",id:card.sessionId,step:card.step}))+'">open session →</a>':"";
   const goal=(summary&&summary.goal)||card.session||"(no summary)";
   return '<div class="occ2'+(shown.clearest?" rec":"")+'"><div class="d">'+esc(fd(card.date))+open+"</div><div>"
     +'<div class="g">'+esc(goal)+outcomeChip(summary)+(shown.clearest?' <span class="pill reviewed">clearest example</span>':"")+"</div>"
-    +'<dl class="three"><dt>What happened</dt><dd>'+whatHappenedHtml(card,cor,ownHistory)+"</dd><dt>What fixed it</dt><dd>"
+    +'<dl class="three"><dt>What happened</dt><dd>'+whatHappenedHtml(card,cor)+"</dd><dt>What fixed it</dt><dd>"
     +(card.fixed?code(card.fixed):"Nothing fixed it here.")+"</dd><dt>Verdict</dt><dd>"+verdictHtml(card,cor)+"</dd></dl></div></div>";
 }
 function pagerHtml(page,pages){

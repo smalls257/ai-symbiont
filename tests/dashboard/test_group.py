@@ -299,12 +299,24 @@ def test_the_crumb_names_the_kind_and_group(page):
     assert page["crumbs"][0].startswith("Agent failure: ")
 
 
-def test_a_correction_shows_what_the_agent_had_done_and_your_words_only_from_your_history(page):
-    assert (
-        page["crumbs"]
-        and "You: “no, use uv”" in page["corr"]
-        and "Agent had just: " in page["corr"]
-    )
-    assert "Your correction" in page["corr"] or "you</span>" in page["corr"]
-    assert "You: “" not in page["corrDataset"] and "no, use uv" not in page["corrDataset"]
+def test_a_correction_shows_what_the_agent_had_done_and_your_words_for_any_history(page):
+    for key in ("corr", "corrDataset"):
+        assert "You: “no, use uv”" in page[key] and "Agent had just: " in page[key]
+        assert "e.g. no, use uv" in page[key]
     assert "House rules for this repo" in page["corr"]
+
+
+def test_a_triage_click_on_the_group_page_reaches_the_inbox_counts(page):
+    inbox = page["inbox"]
+
+    assert inbox["reviewedBefore"] == 0 and inbox["reviewedAfter"] == 1
+    assert inbox["changed"] >= 1  # the shared action told the views to redraw the Inbox
+
+
+def test_weeks_are_bars_rising_from_the_axis_not_the_dashboard_progress_bar(page):
+    chart = page["timeline"]
+
+    assert 'class="wk"' in chart and 'class="bar"' not in chart
+    assert (
+        'y="150"' not in chart.split('class="wk"')[1].split(">")[0]
+    )  # a bar's top is above the baseline

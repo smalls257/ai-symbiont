@@ -35,7 +35,7 @@ function context(pane,route,data,project,g){
 
 function drawHead(ctx){
   const {g,data}=ctx,shares=G.topicShares(g,data),facts=(data.stage||{}).facts;
-  ctx.$("#gHead").innerHTML=P.headHtml({g,name:ctx.name(),tri:ctx.tri(),topic:shares.length?shares[0].name:"",sessionsRead:facts?facts.length:0,ownHistory:ctx.ownHistory});
+  ctx.$("#gHead").innerHTML=P.headHtml({g,name:ctx.name(),tri:ctx.tri(),topic:shares.length?shares[0].name:"",sessionsRead:facts?facts.length:0});
 }
 function markerOf(ctx,axis){
   const taught=ctx.tri().taught_on,position=taught&&G.weekPosition(axis,taught);
@@ -66,7 +66,7 @@ function drawOccurrences(ctx){
   ctx.$("#gOccN").textContent=M.plural(list.length,"occurrence");
   ctx.$("#gNav").innerHTML=P.pagerHtml(ctx.page,pages);
   ctx.$("#gList").innerHTML=G.pageSlice(list,ctx.page).map(({card,index})=>P.occurrenceHtml({
-    card,summary:G.sessionById(data,card.sessionId),project,cor:g.kind==="correction",ownHistory:ctx.ownHistory,clearest:index===ctx.rec})).join("");
+    card,summary:G.sessionById(data,card.sessionId),project,cor:g.kind==="correction",clearest:index===ctx.rec})).join("");
 }
 function drawSide(ctx){
   const {g,data,project}=ctx;

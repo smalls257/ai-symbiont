@@ -26,7 +26,7 @@ const fixed=c=>Boolean(c.fixed)&&c.outcome!=="never_fixed";
 function clearest(list){
   let best=0,score=-1;
   list.forEach((c,i)=>{
-    const s=(fixed(c)?2:0)+((c.command||"").length<SHORT_COMMAND?1:0)+i/1000;
+    const s=(fixed(c)?2:0)+((c.command||"").length<SHORT_COMMAND?1:0)+i/(list.length+1);
     if(s>score){score=s;best=i;}
   });
   return best;

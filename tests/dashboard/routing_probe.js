@@ -24,7 +24,7 @@ function fakePage(sandbox) {
   sandbox.window.addEventListener = (name, fn) => { handlers[name] = fn; };
   sandbox.document.getElementById = el;
   sandbox.document.addEventListener = (name, fn) => { handlers[name] = fn; };
-  sandbox.window.SymbiontInbox = { start() {} };
+  sandbox.window.SymbiontInbox = { start() {}, refresh() { sandbox.refreshed = (sandbox.refreshed || 0) + 1; } };
   return { els, s1, handlers, pushed, setLocation };
 }
 
@@ -65,8 +65,15 @@ module.exports = function probe(sandbox) {
   const afterPop = { view: s1.dataset.view, crumb: els.crumb.textContent, crumbHidden: els.crumb.hidden };
   setLocation("?project=p&view=group");
   handlers.popstate();
+  const visit = (search) => { setLocation(search); handlers.popstate(); };
+  visit("?project=p&view=inbox"); visit("?project=p&view=topics");
+  V.dataChanged(); visit("?project=p&view=inbox");
+  const refreshedAfterChange = sandbox.refreshed || 0;
+  visit("?project=p&view=topics"); visit("?project=p&view=inbox");
+  const refreshedQuiet = sandbox.refreshed || 0;
+  visit("?project=p&view=group");
   return {
-    roundTrip: roundTrips(M), hostile: HOSTILE_KEYS, unknown, steps, warnings, unbuilt, afterNavigate, crumbA, plain, ctrl, middle,
+    refreshedAfterChange, refreshedAfterQuietReturn: refreshedQuiet, roundTrip: roundTrips(M), hostile: HOSTILE_KEYS, unknown, steps, warnings, unbuilt, afterNavigate, crumbA, plain, ctrl, middle,
     pushedBeforePop, afterPop, calls, groupPane: els["#vGroup"].innerHTML, missing: els["#vNotFound"].innerHTML,
     notFoundView: s1.dataset.view, meta: els.meta.textContent, stage: mounted.stage,
   };
