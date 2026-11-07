@@ -1,0 +1,71 @@
+/* The group page (view=group). Ported from the approved mockup; colors come from dashboard.css and inbox.css. */
+.gp{display:grid;grid-template-columns:minmax(0,1fr) 22rem;gap:1.2rem;align-items:start}
+.gp .gmain{display:flex;flex-direction:column;gap:1.2rem;min-width:0}
+.gp .hd{grid-column:1/-1;display:grid;grid-template-columns:auto 1fr auto;gap:.3rem 1rem;align-items:start;align-content:start}
+.gp .hd .kmark{width:2.4rem;height:2.4rem;font-size:1rem}
+.gp .hd h1{font-size:1.75rem;line-height:1.25;font-weight:650;overflow-wrap:anywhere}
+.gp .hd .ex1{color:#d8d2ec;margin-top:.3rem;font-size:1.05rem;overflow-wrap:anywhere}
+.gp .hd .ex1.mono{font:500 1rem/1.4 var(--mono)}
+.gp .hd .why,.gp .hd .facts,.gp .hd .stn{grid-column:2}
+.gp .hd .why{color:var(--mu)}
+.gp .hd .facts{display:flex;gap:1.6rem;flex-wrap:wrap;margin-top:.5rem}
+.gp .hd .facts div{font-size:.95rem;color:var(--mu)}
+.gp .hd .facts b{display:block;color:var(--tx);font-size:1.5rem;font-variant-numeric:tabular-nums;line-height:1.1;overflow-wrap:anywhere}
+.gp .hd .acts{grid-column:3;grid-row:1/span 6;display:flex;flex-direction:column;gap:.5rem;align-items:stretch;min-width:15rem}
+.gp .hd .acts .pill{align-self:flex-end;font-size:.95rem;padding:.2rem .8rem}
+.gp .hd .acts select{width:100%}
+.gp .hd .archl{font-size:.85rem}
+.gp .hd .stn{font-size:.9rem;color:var(--mu)}
+.gp .chart svg{width:100%;height:11rem;display:block}
+.gp .chart .ax{stroke:rgba(236,240,248,.18)}
+.gp .chart text{fill:var(--mu);font-size:12px}
+.gp .chart .bar{fill:var(--or)}
+.gp .chart .hit{fill:transparent}
+.gp .chart .hit:focus{outline:2px solid var(--vi)}
+.gp .chart .mark{stroke:var(--vi);stroke-width:2;stroke-dasharray:5 4}
+.gp .chart .marktx{fill:var(--vi)}
+.gp .legend2{display:flex;gap:1rem;flex-wrap:wrap;color:var(--mu);font-size:.88rem;margin-top:.4rem}
+.gp .legend2 i{display:inline-block;width:.75rem;height:.75rem;border-radius:.2rem;margin-right:.35rem;background:var(--or)}
+.gp .legend2 i.correction{background:var(--cy)}
+.gp .legend2 i.lesson{background:var(--vi);height:2px;vertical-align:middle}
+.gp .teachbox{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.gp .teachbox .h{display:block;color:var(--mu);font-size:.92rem;margin:.6rem 0 .25rem}
+.gp .teachbox input,.gp .teachbox textarea{width:100%;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:.5rem;color:var(--tx);font:inherit;padding:.5rem .7rem}
+.gp .teachbox input:focus,.gp .teachbox textarea:focus{outline:2px solid var(--or)}
+.gp .teachbox .row{display:flex;gap:.8rem;align-items:center;margin-top:.6rem;flex-wrap:wrap}
+.gp #gTeachErr{color:var(--rd);font-size:.95rem}
+.gp #gTeach{scroll-margin-top:6rem}
+.gp .agentbox{background:rgba(8,8,18,.55);border:1px solid rgba(178,140,255,.35);border-radius:.8rem;padding:.8rem 1rem}
+.gp .agentbox .cap{color:var(--mu);font-size:.9rem;margin-top:.5rem}
+.gp .agentbox .notebox{min-height:5rem;font-size:1rem}
+.gp .occnav{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-bottom:.4rem}
+.gp .occnav .grow{flex:1}
+.gp .occ2{display:grid;grid-template-columns:6.5rem 1fr;gap:.2rem 1rem;padding:.85rem 0;border-top:1px solid var(--line)}
+.gp .occ2:first-child{border-top:0}
+.gp .occ2 .d{font:600 .95rem var(--mono);color:var(--mu)}
+.gp .occ2 .d a{color:var(--vi);text-decoration:none;display:block;font:500 .85rem var(--ui);margin-top:.2rem}
+.gp .occ2 .g{font-weight:600;margin-bottom:.3rem}
+.gp .occ2 .outc{display:inline-flex;align-items:center;gap:.3rem;margin-left:.5rem;font-size:.85rem;font-weight:500}
+.gp .occ2 .outc i{width:.6rem;height:.6rem;border-radius:.15rem;background:#6e7591}
+.gp .occ2 .outc i.o-done{background:var(--gr)}.gp .occ2 .outc i.o-partly{background:var(--go)}.gp .occ2 .outc i.o-stuck{background:var(--rd)}
+.gp .occ2 .three{margin-top:.1rem;grid-template-columns:7.2rem 1fr}
+.gp .occ2 .cmd{font:500 .9rem var(--mono);color:#e6d9ff;overflow-wrap:anywhere;display:block}
+.gp .occ2 .cmd.you{color:var(--cy)}
+.gp .occ2 .err{font:500 .88rem var(--mono);color:var(--rd);overflow-wrap:anywhere;display:block}
+.gp .occ2 .ctx{color:var(--mu);font-size:.93rem;display:block}
+.gp .occ2.rec{background:rgba(178,140,255,.07);border-radius:.6rem;padding-left:.6rem;padding-right:.6rem;box-shadow:inset .25rem 0 0 var(--vi)}
+.gp .side{display:flex;flex-direction:column;gap:1.2rem}
+.gp .act ul{list-style:none;padding:0;margin:0}
+.gp .act li{display:grid;grid-template-columns:.9rem 1fr;gap:.6rem;font-size:.93rem;padding:.35rem 0}
+.gp .act li i{width:.6rem;height:.6rem;border-radius:50%;background:var(--vi);margin-top:.4rem}
+.gp .act li i.g{background:var(--mu)}
+.gp .act li small{display:block;color:var(--mu)}
+.gp .tdist .r{display:grid;grid-template-columns:1fr 2.5rem;gap:.1rem .6rem;padding:.3rem 0;font-size:.93rem}
+.gp .tdist .r a{text-decoration:none}
+.gp .tdist .tr{grid-column:1/-1;height:.4rem;border-radius:.3rem;background:rgba(236,240,248,.06)}
+.gp .tdist .tr i{display:block;height:100%;border-radius:.3rem;background:var(--vi)}
+.gp .tdist .r b{text-align:right;font-variant-numeric:tabular-nums}
+.gp .sim a{display:block;text-decoration:none;padding:.4rem 0;border-top:1px solid var(--line);font-size:.93rem}
+.gp .sim a:hover{color:var(--vi)}
+.gp .sim a small{display:block;color:var(--mu)}
+@media (max-width:60rem){.gp{grid-template-columns:1fr}.gp .teachbox{grid-template-columns:1fr}}

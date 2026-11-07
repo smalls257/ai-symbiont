@@ -8,12 +8,7 @@
 const M=window.SymbiontInboxModel,R=window.SymbiontInboxRows,N=window.SymbiontInboxNoise;
 const SORT_WORDS=M.SORT_WORDS;
 const KIND_WORDS={all:"All",failure:"Agent failures",correction:"Your corrections"};
-const STATE_OF={reviewed:"reviewed",resolve:"resolved",reopen:"for_review"};
-const DONE_WORDS={
-  reviewed:"Marked reviewed. It stays in Reviewed.",
-  resolve:"Resolved. It comes back as Regressed if it happens again.",
-  reopen:"Back in For review."
-};
+const A=()=>window.SymbiontTriageActions;
 
 function skeleton(){
   return '<div class="sumline" id="inSum"></div>'
@@ -32,6 +27,8 @@ function start(container,data,project){
   container.innerHTML=skeleton();
   const $=sel=>container.querySelector(sel);
   ui.$=$;
+  ui.positionOf=key=>positionOf(ui,key);
+  ui.redraw=(g,position)=>{draw(ui);focusAfter(ui,g.key,position);};
   $("#inSort").onchange=e=>{ui.sort=e.target.value;draw(ui);};
   container.addEventListener("click",e=>onClick(ui,e));
   container.addEventListener("keydown",e=>onKey(ui,e));
@@ -148,54 +145,23 @@ function onClick(ui,e){
   }
   if(!act)return;
   const row=act.closest(".grp"),g=ui.data.incidents.groups.find(x=>x.key===row.dataset.key);
-  runAction(ui,g,act).catch(err=>window.SymbiontInboxDialogs.toast(ui.container,"symbiont could not do that: "+err.message));
+  inboxAction(ui,g,act).catch(err=>window.SymbiontInboxDialogs.toast(ui.container,"symbiont could not do that: "+err.message));
 }
 
-async function runAction(ui,g,button){
-  const a=button.dataset.a,D=window.SymbiontInboxDialogs;
-  if(a==="rename")return D.renameInPlace(ui,g,button,saveName);
-  if(a==="teach")return D.teach(ui,g,button,afterTaught);
-  if(a==="archive")return D.archiveMenu(ui,g,button,choice=>saveState(ui,g,{state:"archived",...choice.body},"Archived. "+choice.detail));
-  return saveState(ui,g,{state:STATE_OF[a]},DONE_WORDS[a]);
-}
-
-async function post(path,body){
-  const reply=await fetch(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
-  const text=await reply.text();
-  if(!reply.ok)throw new Error(text||"status "+reply.status);
-  return JSON.parse(text);
-}
-
-/* Keep only what the click changed: a rename must not turn a Regressed group (shown For review, saved Resolved)
-   into a Resolved one on the page. */
-function remember(ui,g,patch){
-  ui.data.triage[g.key]={...M.triageOf(ui.data.triage,g),...patch};
-}
-
-async function saveState(ui,g,fields,message){
-  const position=positionOf(ui,g.key);
-  const reply=await post("/triage",{project:ui.project,group_key:g.key,...fields});
-  remember(ui,g,{state:reply.state,regressed:false});
-  draw(ui);focusAfter(ui,g.key,position);
-  window.SymbiontInboxDialogs.toast(ui.container,message);
+/* Rename edits the row in place and is the Inbox's own; every other click is the shared triage action. */
+async function inboxAction(ui,g,button){
+  if(button.dataset.a==="rename")return window.SymbiontInboxDialogs.renameInPlace(ui,g,button,saveName);
+  return A().runAction(ui,g,button);
 }
 
 async function saveName(ui,g,text){
   const name=M.cleanName(text);
-  const reply=await post("/triage",{project:ui.project,group_key:g.key,name});
-  remember(ui,g,{name:reply.name});
+  const reply=await A().post("/triage",{project:ui.project,group_key:g.key,name});
+  A().remember(ui,g,{name:reply.name});
   draw(ui);
   const own=ui.container.querySelector('.grp[data-key="'+CSS.escape(g.key)+'"] .sn');
   if(own)own.focus();
   window.SymbiontInboxDialogs.toast(ui.container,name?"Renamed.":"Name restored to the generated one.");
-}
-
-async function afterTaught(ui,g,request){
-  const added=await post("/lessons/add",request);
-  const reply=await post("/triage",M.taughtRequest(ui.project,g,added));
-  remember(ui,g,{taught_on:reply.taught_on});
-  draw(ui);focusAfter(ui,g.key,positionOf(ui,g.key));
-  window.SymbiontInboxDialogs.toast(ui.container,"Lesson saved. The agent hears it from the next session.");
 }
 
 window.SymbiontInbox={start};
