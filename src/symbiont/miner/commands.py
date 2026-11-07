@@ -21,7 +21,7 @@ _SHELL_KEYWORDS = {"do", "then", "else", "elif", "if", "while", "until", "!", "{
 # A segment starting with one is loop or case syntax; its words are not a command.
 _SHELL_HEADERS = {"for", "select", "case", "done", "fi", "esac", "in"}
 # Banners and pauses around the real work; they never carry the failure.
-_PASSIVE_PROGRAMS = {"echo", "printf", "sleep", "true", ":", "wait"}
+_PASSIVE_PROGRAMS = {"echo", "printf", "sleep", "true", ":", "wait", "[", "[["}
 # Wrappers whose own arguments come before the real program.
 _WRAPPERS = {"timeout", "time", "env", "nohup"}
 _PYTHONS = re.compile(r"^python(\d+(\.\d+)?)?$")
@@ -46,6 +46,20 @@ def program_words(command: str) -> tuple[str, tuple[str, ...]]:
         return (NO_PATH, ())
     program, args = _program_and_args(segment)
     return (program, tuple(args))
+
+
+def final_program_words(command: str) -> tuple[str, tuple[str, ...]]:
+    """Like `program_words`, but of the last `;`/newline list that does work.
+
+    Every list runs and the exit status, usually the printed error too, comes from the last one.
+    """
+    tokens = _tokens(command)
+    for each in reversed(_semicolon_lists(tokens)):
+        segment = _working_segment(each)
+        if segment and _does_work(segment):
+            program, args = _program_and_args(segment)
+            return (program, tuple(args))
+    return program_words(command)
 
 
 def inline_script_program(command: str) -> str | None:
@@ -125,6 +139,17 @@ def _tokens(command: str) -> list[str]:
         # An unbalanced quote (the shell would reject it too); plain
         # whitespace still yields the program and its targets.
         return line.split()
+
+
+def _semicolon_lists(tokens: list[str]) -> list[list[str]]:
+    """The tokens cut at each `;` (newlines are already `;`)."""
+    lists: list[list[str]] = [[]]
+    for token in tokens:
+        if set(token) == {";"}:
+            lists.append([])
+        else:
+            lists[-1].append(token)
+    return lists
 
 
 def _segments(tokens: list[str]) -> list[list[str]]:

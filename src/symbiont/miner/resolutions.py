@@ -34,6 +34,7 @@ _SCRIPT_TOOLS = (
     "npm",
     "yarn",
     "pnpm",
+    "uv",
 )  # `<tool> run <script>`: the script is part of the subcommand
 _SCRIPT_RUNNERS = ("run", "run-script")
 _BARE_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
@@ -182,7 +183,11 @@ def subcommand_of(command: str) -> str:
 
     Paths and node ids are left to `normalise_command`, which already compares the target.
     """
-    program, args = program_words(command)
+    return subcommand_after(*program_words(command))
+
+
+def subcommand_after(program: str, args: tuple[str, ...]) -> str:
+    """`subcommand_of` for a program and arguments already picked out of a command."""
     words = _bare_arguments(args) or ["-"]
     if not _BARE_WORD.match(words[0]):
         return "-"

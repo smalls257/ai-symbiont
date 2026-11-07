@@ -156,14 +156,14 @@ def test_the_same_npm_script_passing_later_still_matches():
     assert resolve(records) == NOTHING_CHANGED
 
 
-@pytest.mark.parametrize("tool", ["uv run", "docker run", "cargo run"])
+@pytest.mark.parametrize("tool", ["docker run", "cargo run"])
 def test_other_run_commands_compare_as_before(tool):
     records = session(run(f"{tool} app", 1, BROKE), run(f"{tool} other", 0, "ok"))
     assert steps_of(resolve(records)) == [f"{tool} other"]
 
 
-@pytest.mark.parametrize("tool", ["npm", "yarn", "pnpm"])
-def test_the_script_is_part_of_the_subcommand_for_js_tools(tool):
+@pytest.mark.parametrize("tool", ["npm", "yarn", "pnpm", "uv"])
+def test_the_script_is_part_of_the_subcommand_for_script_runners(tool):
     records = session(run(f"{tool} run build", 1, BROKE), run(f"{tool} run lint", 0, "ok"))
     assert resolve(records) == NO_LATER_SUCCESS
 

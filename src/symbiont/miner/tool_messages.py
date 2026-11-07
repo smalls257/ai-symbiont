@@ -6,6 +6,8 @@ Pure: text in, text out. Numbers, paths, URLs, hashes and quoted names become pl
 
 import re
 
+from symbiont.miner.credential_patterns import scrub
+
 # Long enough for the longest TypeScript message seen (about 99 characters once normalized).
 MESSAGE_CHARS = 120
 _ANSI = re.compile(r"\x1b\[[0-9;?]*[A-Za-z]")
@@ -44,8 +46,11 @@ _NUMBER = re.compile(r"(?<!HTTP )\b\d+(?:\.\d+)?\b")
 
 
 def tool_message(output: str) -> str | None:
-    """The normalized last complaint line of a tool's output, or None when it printed none."""
-    text = _ANSI.sub("", output)
+    """The normalized last complaint line of a tool's output, or None when it printed none.
+
+    Credentials are scrubbed first: the line becomes part of a group name.
+    """
+    text = scrub(_ANSI.sub("", output))
     typescript = _TYPESCRIPT_ERROR.findall(text)
     if typescript:
         return _normalized(typescript[-1])

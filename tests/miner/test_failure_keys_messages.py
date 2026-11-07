@@ -53,3 +53,16 @@ def test_a_signature_cut_inside_a_placeholder_leaves_no_fragment():
 def test_error_and_hint_labels_are_dropped():
     assert broke_in_words("error: no such thing") == "no such thing"
     assert broke_in_words("hint: try again") == "try again"
+
+
+def test_no_credential_reaches_a_message_or_a_key():
+    password = "ghp_" + "a" * 36
+    bearer = "t0k3n" + "Z" * 24
+    cases = (
+        (password, f"fatal: Authentication failed for 'https://user:{password}@github.com/o/r'"),
+        (bearer, f"Error: request rejected, Authorization: Bearer {bearer}"),
+    )
+    for secret, output in cases:
+        assert tool_message(output) and secret not in tool_message(output)
+        broke = what_broke(run("git push", 1, output), "git", inline=False)
+        assert secret not in broke
