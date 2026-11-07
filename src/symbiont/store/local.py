@@ -28,6 +28,8 @@ from symbiont.store.held_back import MiningLedger
 from symbiont.store.ignored import SCHEMA as IGNORED_SCHEMA
 from symbiont.store.ignored import IgnoredPatterns
 from symbiont.store.lesson_rows import lesson_from_json
+from symbiont.store.session_summaries import SCHEMA as SUMMARIES_SCHEMA
+from symbiont.store.session_summaries import SessionSummaries
 from symbiont.store.struggle_rows import SCHEMA as STRUGGLE_SCHEMA
 from symbiont.store.struggle_rows import add_missing_started
 
@@ -174,6 +176,7 @@ class Store:
         db.executescript(HELD_BACK_SCHEMA)
         db.executescript(STRUGGLE_SCHEMA)
         db.executescript(IGNORED_SCHEMA)
+        db.executescript(SUMMARIES_SCHEMA)
         _add_missing_authored_columns(db)
         _add_missing_review_summary(db)
         add_missing_started(db)
@@ -240,6 +243,11 @@ class Store:
     def ignored(self) -> IgnoredPatterns:
         """Patterns the developer set aside, in the same database."""
         return IgnoredPatterns(self._db)
+
+    @property
+    def summaries(self) -> SessionSummaries:
+        """Session summaries and the topic map the session's model wrote, in the same database."""
+        return SessionSummaries(self._db)
 
     @property
     def contexts(self) -> LessonContexts:

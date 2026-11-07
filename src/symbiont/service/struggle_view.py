@@ -169,7 +169,7 @@ def _titles(facts: Sequence[SessionFacts]) -> dict[str, list[str]]:
     for fact in facts:
         for word in fact.themes:
             if len(titles[word]) < TITLES_PER_THEME:
-                titles[word].append(scrub(fact.task_label))
+                titles[word].append(scrub(fact.title))
     return dict(titles)
 
 

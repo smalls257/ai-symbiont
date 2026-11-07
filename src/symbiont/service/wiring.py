@@ -21,6 +21,7 @@ from symbiont.service.nightly import NightlyJudges, RecallJudges
 from symbiont.service.onboarding import Lookups
 from symbiont.service.reflection import ReflectionDesk, ReflectionSensors
 from symbiont.service.repo_gate import RepoGate
+from symbiont.service.summary_routes import SummaryRoutes
 from symbiont.store.consent import read_consent
 from symbiont.store.local import Store
 from symbiont.store.mining import screen_rules_from
@@ -77,6 +78,8 @@ def open_service(
     )
     events = EventLog(run_dir, filler.name)
     desk = _reflection_desk(guards, data_dir, gate, store, events)
+    for route, handler in SummaryRoutes(curation, store, dict(READERS)).routes().items():
+        curation.also_serving(route, handler)
     curation.also_serving("reflect", desk.ask)
     curation.also_serving("reflect/finished", desk.finished)
     parts = ServiceParts(

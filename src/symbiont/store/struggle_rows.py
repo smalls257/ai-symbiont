@@ -73,7 +73,7 @@ def _fact_row(project: str, fact: SessionFacts) -> _FactRow:
     return (
         project,
         fact.session_id,
-        fact.task_label,
+        fact.title,
         json.dumps(sorted(fact.themes)),
         json.dumps(sorted(fact.patterns)),
         fact.turns_lost,
@@ -98,8 +98,10 @@ def _strip_row(project: str, strip: SessionStrip) -> tuple[str, str, str, int, s
 def read_facts(db: sqlite3.Connection, project: str) -> list[SessionFacts]:
     """The facts of the last mining, in the order the sessions were mined."""
     rows = db.execute(
-        "SELECT session_id, task_label, themes, patterns, turns_lost, outcomes, struggled, started "
-        "FROM session_facts WHERE project=? ORDER BY rowid",
+        "SELECT f.session_id, COALESCE(NULLIF(s.goal, ''), f.task_label), f.themes, f.patterns, "
+        "f.turns_lost, f.outcomes, f.struggled, f.started FROM session_facts f "
+        "LEFT JOIN session_summaries s ON s.project=f.project AND s.session_id=f.session_id "
+        "WHERE f.project=? ORDER BY f.rowid",
         (project,),
     ).fetchall()
     return [
@@ -120,8 +122,10 @@ def read_facts(db: sqlite3.Connection, project: str) -> list[SessionFacts]:
 def read_strips(db: sqlite3.Connection, project: str) -> list[SessionStrip]:
     """The strips of the last mining."""
     rows = db.execute(
-        "SELECT session_id, task_label, burst, steps, total_steps FROM session_strips "
-        "WHERE project=? ORDER BY rowid",
+        "SELECT t.session_id, COALESCE(NULLIF(s.goal, ''), t.task_label), t.burst, t.steps, "
+        "t.total_steps FROM session_strips t "
+        "LEFT JOIN session_summaries s ON s.project=t.project AND s.session_id=t.session_id "
+        "WHERE t.project=? ORDER BY t.rowid",
         (project,),
     ).fetchall()
     return [

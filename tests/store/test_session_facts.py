@@ -54,7 +54,7 @@ def test_mining_saves_one_facts_row_per_session(tmp_path, store):
 
     assert [f.session_id for f in facts] == ["s1", "s2", "s3"]
     first = facts[0]
-    assert first.task_label == "the parser fails" and first.turns_lost > 0
+    assert first.title == "the parser fails" and first.turns_lost > 0
     assert StrugglePattern.TESTS_NOT_FOUND in first.patterns
     assert first.outcomes == {"code_fix": 1, "never": 1}
 

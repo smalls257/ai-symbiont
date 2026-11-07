@@ -34,6 +34,11 @@ def _tool(
 
 
 _ITEMS = {"type": "array", "items": {"type": "object"}}
+_HARNESS = {"running_in": {"type": "string", "enum": [entry.id for entry in HARNESSES]}}
+# Tools whose route reads history, so the service must know which harness the session runs in.
+_READS_HISTORY = frozenset(
+    {"symbiont_correction_candidates", "symbiont_session_candidates", "symbiont_topic_candidates"}
+)
 _DESCRIPTIONS = {
     "add": (
         "Store lessons you wrote, in plain words, from notes, reports or docs the developer "
@@ -60,6 +65,30 @@ _DESCRIPTIONS = {
         "sentences: what the agent was trying to do, what went wrong, whether it was fixed, and "
         "whether this is worth keeping as a lesson. Expected and noise silence the note."
     ),
+    "sess": (
+        "A batch of digests of past sessions that have no summary yet, oldest first: what the "
+        "developer asked, the files edited, failed commands, corrections and how the session "
+        "ended (last_turns). Summarize each with your own judgment, not keyword rules, then "
+        "call symbiont_save_session_summaries. Pass running_in if asked."
+    ),
+    "savesum": (
+        "Save your summaries: [{session_id, goal (at most 12 words), outcome: "
+        "done|partly|stuck|unclear (judge it from last_turns), friction (at most 10 words, or "
+        "empty), noise (true for a session that was no real work)}]. Repeat the candidates and "
+        "saves until none are left."
+    ),
+    "topcand": (
+        "Every summarized session with its corrections, once enough are summarized (otherwise "
+        "it says how many more are needed). Group them, then call symbiont_save_topics. Pass "
+        "running_in if asked."
+    ),
+    "savetop": (
+        "Save the grouping: {topics: [{name (2 to 4 words), description, session_ids}], "
+        "frictions: [{name (2 to 5 words), description, session_ids}], correction_groups: "
+        "[{name (2 to 5 words, like 'Back to main and pull'), description, refs: "
+        "[[session_id, step]]}]}. Every session must be in exactly one topic; an 'Other' topic is "
+        "allowed. Split a topic that holds more than a quarter of the sessions."
+    ),
     "focus": ("Save what the developer said symbiont should pay attention to in this repository."),
 }
 TOOLS = [
@@ -74,7 +103,7 @@ TOOLS = [
         "symbiont_correction_candidates",
         "corrections/candidates",
         _DESCRIPTIONS["cand"],
-        {"running_in": {"type": "string", "enum": [entry.id for entry in HARNESSES]}},
+        _HARNESS,
         [],
     ),
     _tool(
@@ -91,6 +120,24 @@ TOOLS = [
         _DESCRIPTIONS["saver"],
         {"reviews": _ITEMS},
         ["reviews"],
+    ),
+    _tool(
+        "symbiont_session_candidates", "summaries/candidates", _DESCRIPTIONS["sess"], _HARNESS, []
+    ),
+    _tool(
+        "symbiont_save_session_summaries",
+        "summaries/save",
+        _DESCRIPTIONS["savesum"],
+        {"summaries": _ITEMS},
+        ["summaries"],
+    ),
+    _tool("symbiont_topic_candidates", "topics/candidates", _DESCRIPTIONS["topcand"], _HARNESS, []),
+    _tool(
+        "symbiont_save_topics",
+        "topics/save",
+        _DESCRIPTIONS["savetop"],
+        {"topics": _ITEMS, "frictions": _ITEMS, "correction_groups": _ITEMS},
+        ["topics"],
     ),
     _tool(
         "symbiont_set_focus",
@@ -120,7 +167,7 @@ def route_and_body(
 ) -> tuple[str, dict[str, Any]]:
     """The service route and request body for a tool call; the harness is read from the host."""
     body = dict(arguments)
-    if name == "symbiont_correction_candidates":
+    if name in _READS_HISTORY:
         body["running_in"] = _running_in(arguments, environ, known)
     return BY_NAME[name]["route"], body
 
