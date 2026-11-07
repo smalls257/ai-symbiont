@@ -106,6 +106,7 @@ function go(n){
   if(n===0&&!mined)resetMining();
   if(n===0&&mined)finishMiningUI();
   if(n===1&&views)views.show();
+  if(n!==1&&views)views.syncScope(n);
   if(n===3&&!replayRunning)renderReplay(1e9);
 }
 const nav=$("nav");
