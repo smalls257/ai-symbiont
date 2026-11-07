@@ -102,9 +102,8 @@ def incident_groups(
         "groups": _named_apart(groups, [_group_json(g, days, context) for g in groups]),
         "topics": _topics(incidents, days, context),
         "noise": _noise_totals(incidents),
-        "noTopic": [_card(c, days, context) for c in newest_first(_worth(incidents, ""), days)],
+        "noTopic": [_ref(c, days) for c in newest_first(_worth(incidents, ""), days)],
         "sessionsPerWeek": [list(row) for row in context.sessions_per_week],
-        "ungrouped": _ungrouped(incidents, groups),
     }
 
 
@@ -140,6 +139,11 @@ def _card(card: Incident, days: SessionDays, context: IncidentContext) -> dict[s
     }
 
 
+def _ref(card: Incident, days: SessionDays) -> dict[str, Any]:
+    """Where a card is listed (in its group); topics point at cards, never copy them."""
+    return {"sessionId": card.session_id, "step": card.step, "date": days.get(card.session_id)}
+
+
 def _topics(
     incidents: Sequence[Incident], days: SessionDays, context: IncidentContext
 ) -> list[dict[str, Any]]:
@@ -157,7 +161,7 @@ def _topic_entry(
         "topic": name,
         "description": context.topic_descriptions.get(name, ""),
         "sessions": len({c.session_id for c in mine}),
-        "worth": [_card(c, days, context) for c in newest_first(_worth(incidents, name), days)],
+        "worth": [_ref(c, days) for c in newest_first(_worth(incidents, name), days)],
         "noise": dict(noise),
     }
 
@@ -270,14 +274,3 @@ def _badge(
         date.fromisoformat(first) if first else None,
         context.latest_day,
     )
-
-
-def _ungrouped(incidents: Sequence[Incident], groups: Sequence[IncidentGroup]) -> int:
-    """Failed commands the "failed commands" tile counts that no failure group holds, never < 0.
-
-    The tile sums `times` over failure groups; every failure card is in one, so a nonzero value
-    means a card was dropped between mining and grouping.
-    """
-    failed = sum(1 for c in incidents if c.signal is not Signal.CORRECTION)
-    held = sum(len(g.cards) for g in groups if g.signal is not Signal.CORRECTION)
-    return max(0, failed - held)

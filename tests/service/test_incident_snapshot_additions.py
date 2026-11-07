@@ -48,11 +48,6 @@ def test_sessions_per_week_covers_every_week_of_a_groups_weekly_series():
     assert sum(axis.values()) == 4  # the undated session is on no week
 
 
-def test_ungrouped_is_failed_commands_left_out_of_every_group_and_never_negative():
-    shown = incident_groups([card("a"), card("u")], DAYS)
-    assert shown["ungrouped"] == 0
-
-
 def test_a_group_first_seen_within_a_month_of_the_newest_session_is_badged_new():
     shown = incident_groups([card("c"), card("a")], DAYS)
     assert shown["groups"][0]["badge"] == "new"
@@ -60,10 +55,7 @@ def test_a_group_first_seen_within_a_month_of_the_newest_session_is_badged_new()
     assert old["groups"][0]["badge"] is None
 
 
-def test_the_additions_grow_the_incidents_block_by_a_measured_bounded_share():
-    # Measured 2026-11-07 on this realistic fixture: +33 percent of the incidents block, because
-    # every card is listed under its group and under its topic. The brief's 15 percent budget is
-    # for the whole page, where lessons, strips and facts are most of the bytes; see the report.
+def test_the_additions_grow_the_incidents_block_by_less_than_15_percent():
     cards = [
         replace(
             card(f"s{i}", step=i, topic="Parser and build work", example=LONG_COMMAND), files=FILES
@@ -73,23 +65,33 @@ def test_the_additions_grow_the_incidents_block_by_a_measured_bounded_share():
     days = {f"s{i}": f"2026-{1 + i // 30:02d}-{1 + i % 28:02d}" for i in range(300)}
     context = IncidentContext(titles={c.session_id: SESSION_TITLE for c in cards})
     after = incident_groups(cards, days, context)
-    assert len(json.dumps(after)) < 1.40 * len(json.dumps(_without_additions(after)))
+    assert len(json.dumps(after)) < 1.15 * len(json.dumps(_without_additions(after)))
+
+
+def test_no_card_is_listed_twice_topics_and_no_topic_only_point_at_cards():
+    cards = [card("a", topic="Parser"), card("c"), card("b", topic="Parser")]
+    shown = incident_groups(cards, DAYS)
+    refs = shown["topics"][0]["worth"] + shown["noTopic"]
+    assert [(r["sessionId"], r["step"]) for r in refs] == [("b", 1), ("a", 1), ("c", 1)]
+    assert all("happened" not in r and "command" not in r for r in refs)
+    listed = [(c["sessionId"], c["step"]) for g in shown["groups"] for c in g["cards"]]
+    assert sorted(listed) == sorted((r["sessionId"], r["step"]) for r in refs)
 
 
 def _without_additions(shown):
-    stripped = json.loads(json.dumps(shown))
-    for key in ("sessionsPerWeek", "ungrouped"):
-        del stripped[key]
-    for group in stripped["groups"]:
+    """The snapshot as it was before this task: no new fields, topics holding card copies."""
+    before = json.loads(json.dumps(shown))
+    del before["sessionsPerWeek"]
+    copies = {}
+    for group in before["groups"]:
         del group["badge"]
-    for cards in _all_card_lists(stripped):
-        for each in cards:
+        for each in group["cards"]:
+            copies[(each["sessionId"], each["step"])] = {
+                k: v for k, v in each.items() if k not in ("step", "command", "topic")
+            }
             for key in ("step", "command", "topic"):
                 del each[key]
-    return stripped
-
-
-def _all_card_lists(shown):
-    yield from (g["cards"] for g in shown["groups"])
-    yield from (t["worth"] for t in shown["topics"])
-    yield shown["noTopic"]
+    for topic in before["topics"]:
+        topic["worth"] = [copies[(r["sessionId"], r["step"])] for r in topic["worth"]]
+    before["noTopic"] = [copies[(r["sessionId"], r["step"])] for r in before["noTopic"]]
+    return before

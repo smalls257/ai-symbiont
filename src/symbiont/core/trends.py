@@ -136,10 +136,9 @@ def badge_of(
     first: date | None,
     latest_day: date | None,
 ) -> str | None:
-    """The badge word (new or rising) or None; `latest_day` is the newest session day, no clock.
+    """The badge (new or rising) or None.
 
-    Rows are [ISO week, count]. Rising: the last 8 weeks' rate per session beats 1.5 times the
-    8 before, with at least MIN_TREND_OCCURRENCES in the last 8 (the mockup's `trendOf`).
+    Rising: the last 8 weeks' rate per session beats 1.5x the 8 before, with 3+ occurrences.
     """
     if first is None or latest_day is None:
         return None
