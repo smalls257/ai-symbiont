@@ -43,3 +43,16 @@ def test_status_program_is_unclear_after_a_loop():
 )
 def test_subcommand_skips_flag_values(command, subcommand):
     assert subcommand_of(command) == subcommand
+
+
+def test_env_unset_forms_are_peeled():
+    assert program_words("env --unset NAME make")[0] == "make"
+    assert program_words("env --unset=NAME make")[0] == "make"
+
+
+def test_a_lone_setup_command_is_still_that_program():
+    assert program_words("export PYTHONPATH=src")[0] == "export"
+
+
+def test_a_conditional_names_its_working_command():
+    assert program_words("if [ -f x ]; then make; fi")[0] == "make"
