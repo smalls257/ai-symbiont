@@ -16,6 +16,8 @@ from symbiont.service.incident_view import incidents_snapshot
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
 from symbiont.service.session_dates import session_dates_of
+from symbiont.service.topic_view import topic_snapshot
+from symbiont.service.trend_view import trends_snapshot
 from symbiont.service.triage_route import triage_listing
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
@@ -92,7 +94,7 @@ def dashboard_page(
 
 
 def _static_file(file: Path, content_type: str) -> Page:
-    """The asset, or a 404 naming it: topics.js and trends.js ship in their own changes."""
+    """The asset, or a 404 naming it (a listed asset missing from the install is not a crash)."""
     if not file.is_file():
         return Page(404, TEXT, f"no such asset: {file.name}".encode())
     return Page(200, content_type, file.read_bytes())
@@ -181,6 +183,8 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     snapshot["ignored"] = ignored
     snapshot["triage"] = triage_listing(store, project)
     snapshot["incidents"] = incidents_snapshot(store, project)
+    snapshot["topicView"] = topic_snapshot(store, project)
+    snapshot["trends"] = trends_snapshot(store, project, snapshot["incidents"])
     return _page_filled_with(snapshot)
 
 

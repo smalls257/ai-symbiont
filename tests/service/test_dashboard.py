@@ -151,6 +151,8 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
 
     assert status == 200 and kind.startswith("text/html")
     assert data["repo"]["name"] == "demo" and len(data["painPoints"]) == 1
+    assert set(data["trends"]) == {"months", "undatedSessions", "groups"}
+    assert get(f"{base}/dashboard/trends.js")[2].startswith("text/javascript")
     assert "501" not in html and "measured results" not in html
     assert "Every note it showed" not in html and "mockup" not in html.lower()
     assert get(f"{base}/dashboard/dashboard.js")[2].startswith("text/javascript")
@@ -160,11 +162,6 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
     assert "http://" not in get(f"{base}/dashboard/dashboard.js")[1].replace("http://127", "")
 
 
-# topics.js and trends.js come in their own changes; the page names them and shows a "coming soon"
-# line until they are served (a missing asset is a 404, not a crash).
-SHIPPED_BY_OTHER_TASKS = {"/dashboard/topics.js", "/dashboard/trends.js"}
-
-
 def test_every_script_and_stylesheet_the_page_names_is_served(served):
     base, _ = served
     html = get(f"{base}/dashboard")[1]
@@ -172,7 +169,7 @@ def test_every_script_and_stylesheet_the_page_names_is_served(served):
 
     assert "/dashboard/struggle.js" in named and "/dashboard/inbox.js" in named
     unserved = [path for path in named if get(base + path)[0] != 200]
-    assert set(unserved) <= SHIPPED_BY_OTHER_TASKS
+    assert unserved == []
 
 
 def test_several_repositories_need_a_choice_and_an_unknown_path_is_a_404(served):
