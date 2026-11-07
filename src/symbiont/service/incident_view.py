@@ -10,6 +10,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any
 
+from symbiont.miner.group_names import distinct, generated_name
 from symbiont.miner.incident_groups import (
     IncidentGroup,
     SessionDays,
@@ -17,9 +18,15 @@ from symbiont.miner.incident_groups import (
     newest_first,
 )
 from symbiont.miner.incident_types import Incident, Outcome, Trigger
+from symbiont.miner.incident_words import without_cd
 from symbiont.miner.incidents import noise_words
 from symbiont.miner.painpoint import Signal
+from symbiont.miner.screen import ScreenRules
+from symbiont.miner.struggle import SessionFacts
+from symbiont.miner.topics import TopicMap
+from symbiont.service.dataset_history import dataset_readers
 from symbiont.service.session_dates import session_dates_of
+from symbiont.service.training_groups import trained_fingerprints
 from symbiont.store.local import Store
 
 VERDICT_WORDS = {
@@ -34,7 +41,6 @@ FIXED_OUTCOMES = frozenset({Outcome.FIXED_IN_CODE, Outcome.ENVIRONMENT_FIXED})
 # Outcomes where something really changed the result, so there is a fix a lesson can teach.
 TEACHABLE_OUTCOMES = FIXED_OUTCOMES | {Outcome.CORRECTED_COMMAND}
 MIN_RECURRING_SESSIONS = 2
-NAME_CHARS = 80  # the most a group name may hold (POST /triage refuses longer)
 SINGLE_CORRECTION = "One correction, on its own."
 
 
@@ -46,26 +52,39 @@ class IncidentContext:
     topic_descriptions: Mapping[str, str] = field(default_factory=dict)
     correction_names: Mapping[tuple[str, int], str] = field(default_factory=dict)
     correction_descriptions: Mapping[str, str] = field(default_factory=dict)
+    # Group keys whose mined lesson nightly training reads; see `training_groups`.
+    trained: frozenset[str] = frozenset()
 
 
-def incidents_snapshot(store: Store, project: str) -> dict[str, Any]:
-    """The `incidents` data of `project`, with today's topic names and session titles."""
+def incidents_snapshot(
+    store: Store, project: str, rules: ScreenRules | None = None
+) -> dict[str, Any] | None:
+    """The `incidents` data of `project`; None when sessions have no incident rows."""
     facts = store.mined.session_facts(project)
+    mined = store.mined.incidents(project)
+    if facts and not mined:
+        return None
     topic_map = store.review.summaries.topics(project)
     topic_of = {sid: g.name for g in topic_map.topics for sid in g.session_ids}
-    cards = [
-        replace(card, topic=topic_of.get(card.session_id, ""))
-        for card in store.mined.incidents(project)
-    ]
+    cards = [replace(card, topic=topic_of.get(card.session_id, "")) for card in mined]
+    trained = trained_fingerprints(store, project, rules or ScreenRules())
+    days = {sid: when.isoformat() for sid, when in session_dates_of(facts).items()}
+    shown = incident_groups(cards, days, _context_of(facts, topic_map, trained))
+    shown["ownHistory"] = not dataset_readers(store, project)
+    return shown
+
+
+def _context_of(
+    facts: Sequence[SessionFacts], topic_map: TopicMap, trained: frozenset[str]
+) -> IncidentContext:
     groups = topic_map.correction_groups
-    context = IncidentContext(
+    return IncidentContext(
         {f.session_id: f.title for f in facts},
         {g.name: g.description for g in topic_map.topics},
         {ref: g.name for g in groups for ref in g.refs},
         {g.name: g.description for g in groups},
+        trained,
     )
-    days = {sid: when.isoformat() for sid, when in session_dates_of(facts).items()}
-    return incident_groups(cards, days, context)
 
 
 def incident_groups(
@@ -73,15 +92,22 @@ def incident_groups(
 ) -> dict[str, Any]:
     """Groups for the Inbox, cards by topic, and the noise with its reasons."""
     context = context or IncidentContext()
+    groups = group_incidents(incidents, days, context.correction_names)
     return {
-        "groups": [
-            _group_json(g, days, context)
-            for g in group_incidents(incidents, days, context.correction_names)
-        ],
+        "groups": _named_apart(groups, [_group_json(g, days, context) for g in groups]),
         "topics": _topics(incidents, days, context),
         "noise": _noise_totals(incidents),
         "noTopic": [_card(c, days, context) for c in newest_first(_worth(incidents, ""), days)],
     }
+
+
+def _named_apart(
+    groups: Sequence[IncidentGroup], shown: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    """`shown` with no two groups called the same: a repeat is told apart by where it happened."""
+    places = [g.trigger.path if g.trigger else "" for g in groups]
+    names = distinct([row["name"] for row in shown], places)
+    return [{**row, "name": name} for row, name in zip(shown, names, strict=True)]
 
 
 def _worth(incidents: Sequence[Incident], topic: str) -> list[Incident]:
@@ -139,13 +165,14 @@ def _group_json(
     weeks, undated = _weekly(group.cards, days)
     return {
         "key": group.key,
-        "name": _generated_name(group, context),
-        "title": newest.example or newest.what_happened,
+        "name": generated_name(group),
+        "title": without_cd(newest.example) or newest.what_happened,
         "groupedBecause": _grouped_because(group, context),
         "kind": "correction" if group.signal is Signal.CORRECTION else "failure",
         "happened": newest.what_happened,
         "fixed": _fix_behind_verdict(group.cards),
         "fixShown": _dominant_outcome(group.cards) in TEACHABLE_OUTCOMES,
+        "trains": group.signal is not Signal.CORRECTION and group.key in context.trained,
         "verdict": VERDICT_WORDS[_dominant_outcome(group.cards)],
         "noise": group.noise.value if group.noise else None,
         "noiseWords": noise_words(group.noise) if group.noise else "",
@@ -154,32 +181,11 @@ def _group_json(
         "recurring": _recurring(group.cards),
         "weekly": weeks,
         "undated": undated,
+        "undatedSessions": len({c.session_id for c in group.cards if not days.get(c.session_id)}),
         **_first_and_last(group.cards, days),
         "cards": [_card(c, days, context) for c in group.cards],
         "trigger": _trigger_json(group.trigger),
     }
-
-
-def _generated_name(group: IncidentGroup, context: IncidentContext) -> str:
-    """The heading a group has until the developer renames it, at most NAME_CHARS long.
-
-    A correction group is called what the session model named it. A failure group is its program
-    and the command it failed on, so two groups of one program do not read alike.
-    """
-    newest = group.cards[0]
-    if group.signal is Signal.CORRECTION:
-        named = context.correction_names.get((newest.session_id, newest.step))
-        return _shortened(named or newest.what_happened)
-    program = group.trigger.program if group.trigger else newest.situation[1]
-    if not program:
-        return _shortened(newest.what_happened)
-    command = newest.example.removeprefix(program).strip()
-    return _shortened(f"{program} failing: {command}" if command else f"{program} failing")
-
-
-def _shortened(text: str) -> str:
-    one_line = " ".join(text.split())
-    return one_line if len(one_line) <= NAME_CHARS else one_line[: NAME_CHARS - 1] + "\u2026"
 
 
 def _recurring(cards: Sequence[Incident]) -> bool:
@@ -219,8 +225,7 @@ def _grouped_because(group: IncidentGroup, context: IncidentContext) -> str:
     if group.signal is not Signal.CORRECTION:
         program = newest.situation[1]
         return f"Every card is {program} failing the same way."
-    name = group.key.removeprefix("correction:")
-    return context.correction_descriptions.get(name) or (
+    return context.correction_descriptions.get(group.model_name) or (
         SINGLE_CORRECTION if len(group.cards) == 1 else "Corrections the developer repeats."
     )
 

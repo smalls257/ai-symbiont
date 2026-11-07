@@ -59,6 +59,8 @@ def test_archiving_after_sessions_saves_the_rule_and_count(tmp_path):
     ("fields", "named"),
     [
         ({"state": "bogus"}, "bogus"),
+        ({"state": ["resolved"]}, "state"),
+        ({"state": "archived", "return_rule": ["never"]}, "return_rule"),
         ({"state": "archived"}, "return_rule"),
         ({"state": "archived", "return_rule": "after_sessions"}, "after_sessions"),
         (
@@ -226,3 +228,19 @@ def test_a_resolved_group_not_seen_since_stays_resolved_and_an_untriaged_one_has
         "name": "",
     }
     assert group_activity(store, PROJECT, [{"key": "other", "cards": []}]) == {}
+
+
+def test_renaming_a_regressed_group_keeps_it_regressed(tmp_path):
+    store = Store.open(tmp_path / "store.db")
+    store.review.triage.save(
+        PROJECT, KEY, triage_row(GroupState.RESOLVED, None, None, date(2026, 10, 10))
+    )
+    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20"))
+    assert triage_listing(store, PROJECT, seen)[KEY]["regressed"] is True
+
+    store.review.triage.rename(PROJECT, KEY, "Docker build", date(2026, 10, 25))
+
+    seen = group_activity(store, PROJECT, groups_seen_on("2026-10-05", "2026-10-20"))
+    listing = triage_listing(store, PROJECT, seen)[KEY]
+    assert listing["regressed"] is True and listing["name"] == "Docker build"
+    assert listing["state"] == "for_review"

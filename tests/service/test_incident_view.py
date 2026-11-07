@@ -4,9 +4,11 @@ from dataclasses import replace
 
 import pytest
 
+from quiet_store import mine_a_session_without_failures
 from record_builders import edit, run, session, user
 from symbiont.miner.incident_types import Incident, NoiseReason, Outcome
 from symbiont.miner.painpoint import Signal
+from symbiont.miner.screen import ScreenRules
 from symbiont.miner.topics import Group, TopicMap
 from symbiont.records.schema import dump_jsonl, load_jsonl
 from symbiont.service.incident_view import IncidentContext, incident_groups, incidents_snapshot
@@ -25,6 +27,7 @@ def card(session, step=1, topic="", noise=None, program="pytest", example="pytes
 
 
 pytestmark = pytest.mark.periphery
+IMPORT = "File \"app/parser.py\", line 1\nImportError: cannot import name 'parse'"
 DAYS = {"a": "2026-10-05", "b": "2026-10-06", "c": "2026-10-20", "u": None}
 
 
@@ -95,16 +98,22 @@ def test_the_snapshot_of_a_mined_store_reads_topics_and_titles_from_the_review_s
     assert shown["groups"][0]["key"].startswith("failure:pytest:")
 
 
-def mine_one_failure(tmp_path, store):
+def mine_one_failure(tmp_path, store, reader="jsonl", min_sessions=2):
     steps = session(
-        user("fix"), run("pytest t.py", 1, "a.py:1\nImportError: x"), edit("a.py"),
-        run("pytest t.py", 0, "ok"),
-    )  # fmt: skip
+        user("fix"),
+        run("pytest tests/test_parser.py", 1, IMPORT),
+        edit("app/parser.py", diff="-a\n+def parse(text):\n"),
+        run("pytest tests/test_parser.py", 0, "1 passed"),
+    )
     path = tmp_path / "log.jsonl"
     with path.open("w") as fh:
         dump_jsonl([replace(r, session_id="s1") for r in steps], fh)
-    rules = MiningRules({"jsonl": lambda p, project: iter(list(load_jsonl(p.open())))}, frozenset())
-    remine(store, "demo", rules, adding=[Source("demo", "jsonl", str(path))])
+    rules = MiningRules(
+        {reader: lambda p, project: iter(list(load_jsonl(p.open())))},
+        frozenset(),
+        screen=ScreenRules(min_sessions=min_sessions),
+    )
+    remine(store, "demo", rules, adding=[Source("demo", reader, str(path))])
 
 
 def fixed_card(session, outcome):
@@ -142,7 +151,7 @@ def test_a_session_dropped_from_the_topic_map_loses_its_topic(tmp_path):
 
 def test_a_group_has_a_generated_name_and_a_correction_card_carries_its_episode():
     failure = incident_groups([card("a")], DAYS)["groups"][0]
-    assert failure["name"] == "pytest failing: tests"
+    assert failure["name"] == "pytest failing with boom"
     stepped_in = Incident(
         **{**card("a").__dict__, "signal": Signal.CORRECTION, "fingerprint": "",
            "first_wrong": "Edited the wrong config", "cost_steps": 4}
@@ -159,17 +168,49 @@ def test_a_group_has_a_generated_name_and_a_correction_card_carries_its_episode(
 
 
 def test_a_long_generated_name_is_cut_to_what_a_renamed_group_may_hold():
-    long = replace(card("a"), example="pytest " + "x" * 200)
+    long = replace(card("a"), fingerprint="failure:pytest:" + "x" * 200)
 
     name = incident_groups([long], DAYS)["groups"][0]["name"]
 
-    assert len(name) == 80 and name.endswith("\u2026") and name.startswith("pytest failing: xx")
+    assert len(name) == 80 and name.endswith("\u2026") and name.startswith("pytest failing with xx")
 
 
-def test_the_generated_name_does_not_depend_on_the_shape_of_the_key():
+def test_a_fingerprint_that_says_nothing_about_what_broke_falls_back_to_the_command():
     odd = replace(card("a"), fingerprint="anything at all")
 
     assert incident_groups([odd], DAYS)["groups"][0]["name"] == "pytest failing: tests"
+
+
+def test_two_groups_of_one_program_with_different_errors_get_different_names():
+    cards = [
+        replace(card("a"), fingerprint="failure:pytest:ImportError"),
+        replace(card("b"), fingerprint="failure:pytest:KeyError"),
+    ]
+    names = [g["name"] for g in incident_groups(cards, DAYS)["groups"]]
+    assert sorted(names) == ["pytest failing with ImportError", "pytest failing with KeyError"]
+
+
+def test_a_placeholder_message_is_told_in_plain_words_and_stays_distinct_by_path():
+    cards = [
+        replace(
+            card("a"),
+            fingerprint="failure:make:exit <n> at <path>",
+            situation=("running", "make", "api"),
+        ),
+        replace(
+            card("b"), fingerprint="failure:make:value <n>", situation=("running", "make", "web")
+        ),
+    ]
+    names = [g["name"] for g in incident_groups(cards, DAYS)["groups"]]
+    assert len(set(names)) == 2 and all(
+        n.startswith("make failing with an unexpected result") for n in names
+    )
+
+
+def test_a_leading_cd_is_dropped_from_the_command_a_group_shows():
+    moved = replace(card("a"), example="cd /work/app && pytest tests/test_x.py")
+    group = incident_groups([moved], DAYS)["groups"][0]
+    assert group["title"] == "pytest tests/test_x.py"
 
 
 def test_what_fixed_it_comes_from_a_card_with_the_groups_verdict_not_the_newest_card():
@@ -203,3 +244,53 @@ def test_the_names_the_developer_gave_groups_are_told_with_the_generated_name_th
     told = developer_names(store, "demo")
 
     assert told == [{"was": group["name"], "now": "Flaky import", "of": "failure group"}]
+
+
+def test_a_store_with_sessions_but_no_incident_rows_sends_null_so_the_page_says_mine_again(
+    tmp_path,
+):
+    store = Store.open(tmp_path / "s.db")
+    mine_a_session_without_failures(tmp_path, store)
+    assert store.mined.session_facts("demo")
+    assert incidents_snapshot(store, "demo") is None
+
+
+def test_a_project_never_mined_has_an_empty_inbox_not_null(tmp_path):
+    shown = incidents_snapshot(Store.open(tmp_path / "s.db"), "demo")
+    assert shown is not None and shown["groups"] == []
+
+
+def test_history_that_is_not_the_developers_own_says_so_for_the_teach_prefill(tmp_path):
+    dataset = Store.open(tmp_path / "d.db")
+    mine_one_failure(tmp_path, dataset, reader="swe-chat")
+    assert incidents_snapshot(dataset, "demo")["ownHistory"] is False
+    own = Store.open(tmp_path / "o.db")
+    mine_one_failure(tmp_path, own, reader="claude-code")
+    assert incidents_snapshot(own, "demo")["ownHistory"] is True
+
+
+def test_a_correction_groups_key_survives_a_new_topic_map_so_triage_and_names_stay_attached():
+    said = Incident(**{**card("a", 4).__dict__, "signal": Signal.CORRECTION, "fingerprint": ""})
+    before = IncidentContext(correction_names={("a", 4): "Use pnpm"})
+    after = IncidentContext(correction_names={("a", 4): "Package manager"})
+    old = incident_groups([said], DAYS, before)["groups"][0]
+    new = incident_groups([said], DAYS, after)["groups"][0]
+    assert old["key"] == new["key"] == "correction:a:4"
+    assert (old["name"], new["name"]) == ("Use pnpm", "Package manager")
+
+
+def test_a_group_trains_only_when_its_lesson_is_among_the_screens_kept_ones(tmp_path):
+    held = Store.open(tmp_path / "h.db")
+    mine_one_failure(tmp_path, held, min_sessions=2)
+    assert incidents_snapshot(held, "demo")["groups"][0]["trains"] is False
+    kept = Store.open(tmp_path / "k.db")
+    mine_one_failure(tmp_path, kept, min_sessions=1)
+    assert incidents_snapshot(kept, "demo")["groups"][0]["trains"] is True
+
+
+def test_a_correction_group_never_trains():
+    said = Incident(**{**card("a", 4).__dict__, "signal": Signal.CORRECTION, "fingerprint": ""})
+    shown = incident_groups(
+        [said], DAYS, IncidentContext(trained=frozenset({"failure:pytest:boom"}))
+    )
+    assert shown["groups"][0]["trains"] is False
