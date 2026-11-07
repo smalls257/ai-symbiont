@@ -294,3 +294,9 @@ def test_a_correction_group_never_trains():
         [said], DAYS, IncidentContext(trained=frozenset({"failure:pytest:boom"}))
     )
     assert shown["groups"][0]["trains"] is False
+
+
+def test_a_failure_with_no_program_is_named_by_what_happened_not_by_a_dash():
+    unnamed = replace(card("a"), situation=("running", "-", ""), fingerprint="failure:-:exit 1")
+    name = incident_groups([unnamed], DAYS)["groups"][0]["name"]
+    assert name == "The agent ran pytest and it failed."

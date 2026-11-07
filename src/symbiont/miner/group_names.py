@@ -14,6 +14,7 @@ from symbiont.miner.incident_types import Incident
 from symbiont.miner.incident_words import without_cd
 from symbiont.miner.painpoint import Signal
 
+NO_PROGRAM = ("", "-")  # a failure whose command line named no program is keyed "-"
 NAME_CHARS = 80  # the most a group name may hold (POST /triage refuses longer)
 
 
@@ -23,7 +24,7 @@ def generated_name(group: IncidentGroup) -> str:
     if group.signal is Signal.CORRECTION:
         return shortened(group.model_name or newest.what_happened)
     program = group.trigger.program if group.trigger else newest.situation[1]
-    if not program:
+    if program in NO_PROGRAM:
         return shortened(newest.what_happened)
     broke = _broke_of(newest)
     if broke:
@@ -42,8 +43,7 @@ def distinct(names: Sequence[str], places: Sequence[str]) -> list[str]:
             out.append(name)
             continue
         seen[name] += 1
-        suffix = f" on {place}" if place else f" ({seen[name]})"
-        out.append(shortened(name + suffix))
+        out.append(_suffixed(name, f" on {place}" if place else f" ({seen[name]})"))
     return out if len(set(out)) == len(out) else _numbered(out)
 
 
@@ -52,8 +52,15 @@ def _numbered(names: Sequence[str]) -> list[str]:
     out = []
     for name in names:
         seen[name] += 1
-        out.append(name if seen[name] == 1 else shortened(f"{name} ({seen[name]})"))
+        out.append(name if seen[name] == 1 else _suffixed(name, f" ({seen[name]})"))
     return out
+
+
+def _suffixed(name: str, suffix: str) -> str:
+    """`name` + `suffix` within NAME_CHARS: the name gives way, so the suffix is never cut off."""
+    room = NAME_CHARS - len(suffix)
+    stem = name if len(name) <= room else name[: room - 1] + "\u2026"
+    return stem + suffix
 
 
 def shortened(text: str) -> str:
