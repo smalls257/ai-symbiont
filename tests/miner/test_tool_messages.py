@@ -47,3 +47,15 @@ def test_husky_hook_failure():
 def test_no_complaint():
     assert tool_message("Exit code 1\n") is None
     assert tool_message("") is None
+
+
+def test_prose_with_a_slash_is_not_a_path():
+    assert tool_message("error: expected and/or here") == "error: expected and/or here"
+    assert tool_message("error: read/write true/false") == "error: read/write true/false"
+
+
+def test_real_paths_still_become_a_placeholder():
+    assert tool_message("error: cannot open /etc/x/y.conf") == "error: cannot open <path>"
+    assert tool_message("error: bad ./run and ~/x and a/b/c and a/b.py") == (
+        "error: bad <path> and <path> and <path> and <path>"
+    )

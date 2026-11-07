@@ -48,6 +48,18 @@ def program_words(command: str) -> tuple[str, tuple[str, ...]]:
     return (program, tuple(args))
 
 
+def segment_program_words(command: str) -> list[tuple[str, tuple[str, ...]]]:
+    """(program, arguments) of every segment that runs something, in order.
+
+    Loop headers and bare assignments run nothing; `("-", ())` when no segment does.
+    """
+    segments = [_without_keywords(segment) for segment in _segments(_tokens(command))]
+    runs = [s for s in segments if s and s[0] not in _SHELL_HEADERS and not _only_assignments(s)]
+    if not runs:
+        return [(NO_PATH, ())]
+    return [(program, tuple(args)) for program, args in map(_program_and_args, runs)]
+
+
 def final_program_words(command: str) -> tuple[str, tuple[str, ...]]:
     """Like `program_words`, but of the last `;`/newline list that does work.
 
@@ -221,13 +233,21 @@ def _only_assignments(segment: list[str]) -> bool:
 
 def _program_and_args(segment: list[str]) -> tuple[str, list[str]]:
     """The program and its arguments, after env assignments and wrappers."""
-    rest = _without_wrappers([token for token in segment if not _ENV_ASSIGNMENT.match(token)])
+    rest = _without_leading_assignments(_without_wrappers(_without_leading_assignments(segment)))
     if not rest:
         return (NO_PATH, [])
     program, args = os.path.basename(rest[0]), rest[1:]
     if _PYTHONS.match(program) and len(args) >= 2 and args[0] == "-m":
         return (args[1], args[2:])
     return (program, args)
+
+
+def _without_leading_assignments(words: list[str]) -> list[str]:
+    """Drop `NAME=value` words before the program; one after it is an argument (`-f title=x`)."""
+    start = 0
+    while start < len(words) and _ENV_ASSIGNMENT.match(words[start]):
+        start += 1
+    return words[start:]
 
 
 def _without_wrappers(words: list[str]) -> list[str]:

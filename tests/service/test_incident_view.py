@@ -133,9 +133,11 @@ def test_a_group_in_two_sessions_is_recurring():
     assert recurring_of(cards) is True
 
 
-def test_a_single_session_group_is_not_recurring_whatever_fixed_it():
-    for outcome in (Outcome.FIXED_IN_CODE, Outcome.ENVIRONMENT_FIXED, Outcome.PASSED_ON_RETRY):
-        assert recurring_of([fixed_card("a", outcome)]) is False
+@pytest.mark.parametrize(
+    "outcome", [Outcome.FIXED_IN_CODE, Outcome.ENVIRONMENT_FIXED, Outcome.PASSED_ON_RETRY]
+)
+def test_a_single_session_group_is_not_recurring_whatever_fixed_it(outcome):
+    assert recurring_of([fixed_card("a", outcome)]) is False
 
 
 def test_a_session_dropped_from_the_topic_map_loses_its_topic(tmp_path):

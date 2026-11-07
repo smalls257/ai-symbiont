@@ -16,6 +16,7 @@ from symbiont.miner.incident_types import (
 )
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
+from symbiont.miner.resolutions import bare_arguments
 from symbiont.miner.screen import INLINE_TARGET
 from symbiont.records.schema import Kind, Record
 
@@ -73,8 +74,8 @@ def situation_of(action: Record | None, repo_names: frozenset[str]) -> tuple[str
 
 def _step_of(command: str, program: str) -> str:
     """`program subcommand` when the first argument is a bare word, else the program."""
-    args = program_words(command)[1]
-    first = next((arg for arg in args if not arg.startswith("-")), "")
+    words = bare_arguments(program_words(command)[1])
+    first = words[0] if words else ""
     return f"{program} {first}" if re.fullmatch(r"[a-z][a-z-]*", first) else program
 
 

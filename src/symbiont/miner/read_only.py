@@ -1,6 +1,8 @@
 """Commands that change nothing: they cannot be what made a failed command pass."""
 
-from symbiont.miner.commands import program_words
+import re
+
+from symbiont.miner.commands import segment_program_words
 from symbiont.miner.resolutions import bare_arguments
 from symbiont.miner.screen import PROBES
 
@@ -12,7 +14,7 @@ SHELL_PLUMBING = frozenset(
 # They only report; the pass that follows cannot be owed to them.
 READ_ONLY_PROGRAMS = PROBES | {"jq", "tree", "env", "ps", "lsof", "pgrep"}
 READ_ONLY_GIT = frozenset(
-    {"status", "log", "diff", "show", "blame", "rev-parse", "ls-files", "remote", "add"}
+    {"status", "log", "diff", "show", "blame", "rev-parse", "ls-files", "add"}
 )
 READ_ONLY_GH = {
     "pr": {"view", "list", "checks", "status", "diff"},
@@ -20,17 +22,22 @@ READ_ONLY_GH = {
     "issue": {"view", "list", "status"},
 }
 _GH_WRITE_FLAGS = {"-f", "-F", "--field", "--raw-field"}
+_GIT_REMOTE_READS = {"show", "get-url"}
 _INFO_FLAGS = {"--version", "--help"}
+_SED_IN_PLACE = re.compile(r"-[A-Za-z]*i|--in-place")
 
 
 def is_read_only(command: str) -> bool:
-    """True when the command's working segment is plumbing, a look-around or a report."""
-    program, args = program_words(command)
+    """True when every working segment is plumbing, a look-around or a report."""
+    return all(_segment_reads(program, args) for program, args in segment_program_words(command))
+
+
+def _segment_reads(program: str, args: tuple[str, ...]) -> bool:
     if _INFO_FLAGS & set(args) or program in SHELL_PLUMBING | READ_ONLY_PROGRAMS:
         return True
     words = bare_arguments(args)
     if program == "sed":
-        return "-n" in args
+        return "-n" in args and not any(_SED_IN_PLACE.match(arg) for arg in args)
     if program == "git":
         return _git_only_reads(words)
     return program == "gh" and _gh_only_reads(words, args)
@@ -41,6 +48,8 @@ def _git_only_reads(words: list[str]) -> bool:
         return False
     if words[0] == "branch":
         return len(words) == 1
+    if words[0] == "remote":
+        return len(words) == 1 or words[1] in _GIT_REMOTE_READS
     if words[0] == "stash":
         return words[1:2] == ["list"]
     return words[0] in READ_ONLY_GIT

@@ -160,7 +160,8 @@ def _same_attempt(failed: Record, later: Record) -> bool:
     )
 
 
-# These flags take the next word as their value, so it is not a subcommand.
+# Shared by `subcommand_of` and `read_only`; `-c` is skipped as a flag with a value for every
+# program. These flags take the next word as their value, so it is not a subcommand.
 _FLAGS_WITH_VALUES = {"--filter", "-F", "-C", "--dir", "--prefix", "--repo", "-R", "-c"}
 
 

@@ -33,3 +33,28 @@ def test_unbalanced_multiline_falls_back_to_first_line():
 
 def test_herestring_does_not_arm_a_heredoc():
     assert _flat("grep x <<< foo\nls") == "grep x <<< foo ; ls"
+
+
+def test_an_arithmetic_shift_does_not_arm_a_heredoc():
+    from symbiont.miner.commands import program_words, status_program
+
+    command = "x=$((1<<2))\nls tests"
+    assert program_words(command)[0] == "ls"
+    assert status_program(command) == "ls"
+    assert program_words("((x<<=1))\nls")[0] == "ls"
+    assert "<<" not in shell_text("x=$((1<<2))\nls tests")
+
+
+def test_a_mid_line_comment_ends_the_line_for_quote_tracking():
+    assert _flat("ls # it's here\ngit status") == "ls ; git status"
+
+
+def test_a_hash_inside_a_word_is_not_a_comment():
+    assert _flat("echo a#b 'x\ny'") == "echo a#b 'x y'"
+    assert _flat("echo ${#x} 'it\ns'\nls") == "echo ${#x} 'it s' ; ls"
+
+
+def test_a_line_ending_in_an_operator_continues_on_the_next():
+    assert _flat("make &&\nmake test") == "make && make test"
+    assert _flat("a ||\nb") == "a || b"
+    assert _flat("cat x |\ngrep y") == "cat x | grep y"
