@@ -10,6 +10,7 @@ from dataclasses import dataclass, field, replace
 from datetime import date
 from typing import Any
 
+from symbiont.core.trends import badge_of
 from symbiont.miner.group_names import distinct, generated_name
 from symbiont.miner.incident_groups import (
     IncidentGroup,
@@ -27,6 +28,7 @@ from symbiont.miner.topics import TopicMap
 from symbiont.service.dataset_history import dataset_readers
 from symbiont.service.session_dates import session_dates_of
 from symbiont.service.training_groups import trained_fingerprints
+from symbiont.service.week_axis import sessions_per_week
 from symbiont.store.local import Store
 
 VERDICT_WORDS = {
@@ -56,6 +58,9 @@ class IncidentContext:
     trained: frozenset[str] = frozenset()
     # The session model's one-sentence verdict per group key; see `store.group_verdicts`.
     verdicts: Mapping[str, str] = field(default_factory=dict)
+    # Sessions per ISO week over the whole project and its newest session day, for the badges.
+    sessions_per_week: Sequence[Sequence[Any]] = ()
+    latest_day: date | None = None
 
 
 def incidents_snapshot(
@@ -101,13 +106,14 @@ def incident_groups(
     incidents: Sequence[Incident], days: SessionDays, context: IncidentContext | None = None
 ) -> dict[str, Any]:
     """Groups for the Inbox, cards by topic, and the noise with its reasons."""
-    context = context or IncidentContext()
+    context = _with_session_axis(context or IncidentContext(), days)
     groups = group_incidents(incidents, days, context.correction_names)
     return {
         "groups": _named_apart(groups, [_group_json(g, days, context) for g in groups]),
         "topics": _topics(incidents, days, context),
         "noise": _noise_totals(incidents),
-        "noTopic": [_card(c, days, context) for c in newest_first(_worth(incidents, ""), days)],
+        "noTopic": [_ref(c, days) for c in newest_first(_worth(incidents, ""), days)],
+        "sessionsPerWeek": [list(row) for row in context.sessions_per_week],
     }
 
 
@@ -136,8 +142,16 @@ def _card(card: Incident, days: SessionDays, context: IncidentContext) -> dict[s
         "sessionId": card.session_id,
         "firstWrong": card.first_wrong,
         "costSteps": card.cost_steps,
+        "step": card.step,
+        "command": card.example,
+        "topic": card.topic,
         "session": context.titles.get(card.session_id, ""),
     }
+
+
+def _ref(card: Incident, days: SessionDays) -> dict[str, Any]:
+    """Where a card is listed (in its group); topics point at cards, never copy them."""
+    return {"sessionId": card.session_id, "step": card.step, "date": days.get(card.session_id)}
 
 
 def _topics(
@@ -157,7 +171,7 @@ def _topic_entry(
         "topic": name,
         "description": context.topic_descriptions.get(name, ""),
         "sessions": len({c.session_id for c in mine}),
-        "worth": [_card(c, days, context) for c in newest_first(_worth(incidents, name), days)],
+        "worth": [_ref(c, days) for c in newest_first(_worth(incidents, name), days)],
         "noise": dict(noise),
     }
 
@@ -191,6 +205,7 @@ def _group_json(
         "times": len(group.cards),
         "recurring": _recurring(group.cards),
         "weekly": weeks,
+        "badge": _badge(group, weeks, days, context),
         "undated": undated,
         "undatedSessions": len({c.session_id for c in group.cards if not days.get(c.session_id)}),
         **_first_and_last(group.cards, days),
@@ -249,4 +264,24 @@ def _weekly(cards: Sequence[Incident], days: SessionDays) -> tuple[list[list[Any
             weeks[f"{year}-W{week:02d}"] += 1
     return [[week, n] for week, n in sorted(weeks.items())], sum(
         1 for c in cards if not days.get(c.session_id)
+    )
+
+
+def _with_session_axis(context: IncidentContext, days: SessionDays) -> IncidentContext:
+    """`context` plus the sessions per week and newest session day that `days` imply."""
+    known = [date.fromisoformat(day) for day in days.values() if day]
+    return replace(
+        context, sessions_per_week=sessions_per_week(known), latest_day=max(known, default=None)
+    )
+
+
+def _badge(
+    group: IncidentGroup, weeks: list[list[Any]], days: SessionDays, context: IncidentContext
+) -> str | None:
+    first = _first_and_last(group.cards, days)["first"]
+    return badge_of(
+        weeks,
+        context.sessions_per_week,
+        date.fromisoformat(first) if first else None,
+        context.latest_day,
     )
