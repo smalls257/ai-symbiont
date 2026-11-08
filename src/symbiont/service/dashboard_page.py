@@ -17,6 +17,7 @@ from symbiont.service.ignore_route import ignored_listing
 from symbiont.service.incident_view import incidents_snapshot
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
+from symbiont.service.rule_view import rules_listing
 from symbiont.service.session_dates import session_dates_of
 from symbiont.service.session_view import session_answer
 from symbiont.service.stale_lessons import screened_now
@@ -217,9 +218,11 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     snapshot["ignored"] = ignored
     snapshot["incidents"] = incidents_snapshot(store, project, ScreenRules(live.min_sessions))
     groups = snapshot["incidents"]["groups"] if snapshot["incidents"] else []
-    session_days = list(session_dates_of(store.mined.session_facts(project)).values())
+    dates_by_session = session_dates_of(store.mined.session_facts(project))
+    session_days = list(dates_by_session.values())
     seen = group_activity(store, project, groups, (today, session_days))
     snapshot["triage"] = triage_listing(store, project, today, seen)
+    snapshot["rules"] = rules_listing(store, project, dates_by_session)
     snapshot["topicView"] = topic_snapshot(store, project)
     snapshot["trends"] = trends_snapshot(store, project, snapshot["incidents"])
     return _page_filled_with(snapshot)

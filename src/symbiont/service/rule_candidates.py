@@ -8,6 +8,8 @@ that a saved rule or a drop already covers.
 from collections.abc import Collection, Mapping, Sequence
 from typing import Any, Protocol
 
+from symbiont.miner.credential_patterns import scrub
+
 MAX_RULE_CANDIDATES = 80
 
 
@@ -26,7 +28,7 @@ class CandidateLike(Protocol):
 
     @property
     def text(self) -> str:
-        """The message, already scrubbed and capped."""
+        """The message, scrubbed and capped when mined; scrubbed again when offered."""
         ...
 
 
@@ -49,7 +51,7 @@ def offered(
     shown = [
         {
             "ref": [c.session_id, c.step],
-            "text": c.text,
+            "text": scrub(c.text),
             "date": dates.get(c.session_id) or "date unknown",
         }
         for c in batch

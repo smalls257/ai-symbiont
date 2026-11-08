@@ -12,6 +12,7 @@ from datetime import date, timedelta
 import pytest
 
 from symbiont.core.triage import GroupActivity, GroupState, ReturnRule, triage_row
+from symbiont.miner.stated_rule import RuleScope, StatedRule
 from symbiont.service.app import ServiceMode
 from symbiont.service.triage_route import group_activity, triage_listing
 from symbiont.service.wiring import Guards, open_service
@@ -386,3 +387,22 @@ def test_the_listing_carries_the_until_day_only_when_the_row_has_one(tmp_path):
     listing = triage_listing(store, PROJECT, date(2026, 12, 1))
 
     assert listing[KEY]["until"] == "2026-12-06" and "until" not in listing["n"]
+
+
+def test_dismissing_a_stated_rule_remembers_its_messages_for_a_later_rename(tmp_path):
+    service = rig(tmp_path)
+    Store.open(tmp_path / "store.db").review.rules.save(
+        PROJECT,
+        [StatedRule("Use pnpm.", RuleScope.REPO, "", (("a", 1), ("b", 2)))],
+        [],
+        date.today(),
+    )
+
+    reply = service.respond(
+        "/triage",
+        {"project": PROJECT, "group_key": "rule:a:1", "state": "archived", "return_rule": "never"},
+    )
+
+    assert reply.status == 200
+    members = Store.open(tmp_path / "store.db").review.rules.members_by_key(PROJECT)
+    assert members == {"rule:a:1": frozenset({("a", 1), ("b", 2)})}

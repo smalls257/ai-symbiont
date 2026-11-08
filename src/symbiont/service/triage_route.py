@@ -27,6 +27,7 @@ from symbiont.service.request_shapes import (
     display_name,
     require_keys,
 )
+from symbiont.service.rule_view import member_refs
 from symbiont.store.local import Store
 
 if TYPE_CHECKING:
@@ -70,6 +71,7 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
         store.review.triage.rename(project, key, name, today)
     if row is not None:
         store.review.triage.save(project, key, row)
+    _remember_rule_members(store, project, key)
     if taught:
         store.review.triage.mark_taught(
             project, key, today, _taught_lesson_id(store, project, request)
@@ -84,6 +86,12 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     events = parts.events
     write_event(events.path, events.filler, Call("triage", "triage", project), {"triage": reply})
     return reply
+
+
+def _remember_rule_members(store: Store, project: str, key: str) -> None:
+    """For a stated rule, keep the messages it stands for: its key may change on a re-mine."""
+    if key.startswith("rule:"):
+        store.review.rules.remember_members(project, key, member_refs(store, project, key))
 
 
 def _taught_lesson_id(store: Store, project: str, request: dict[str, Any]) -> str:

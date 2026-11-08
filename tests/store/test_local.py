@@ -92,6 +92,7 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
         "group_verdicts",
         "stated_rules",
         "dropped_rule_candidates",
+        "rule_triage_members",
         "topics",
         "topic_names",
         "session_strips",
