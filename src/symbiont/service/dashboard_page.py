@@ -47,6 +47,7 @@ FILES = {
     "/dashboard/inbox_noise.js": ("inbox_noise.js", JS),
     "/dashboard/inbox_dialogs.js": ("inbox_dialogs.js", JS),
     "/dashboard/triage_actions.js": ("triage_actions.js", JS),
+    "/dashboard/inbox_rules.js": ("inbox_rules.js", JS),
     "/dashboard/inbox.js": ("inbox.js", JS),
     "/dashboard/views.js": ("views.js", JS),
     "/dashboard/topics_parts.js": ("topics_parts.js", JS),

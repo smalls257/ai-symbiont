@@ -12,12 +12,13 @@ const A=()=>window.SymbiontTriageActions;
 
 function skeleton(){
   return '<div class="sumline" id="inSum"></div>'
+    +'<div class="mainc"><section class="panel" id="inRules" aria-label="Rules you have stated"></section>'
     +'<section class="panel" id="inMain" aria-label="Pain points inbox"><h2 id="inTitle" tabindex="-1">What keeps going wrong <span class="n" id="inCount"></span></h2>'
     +'<p class="sub">Agent failures and your corrections that came back across sessions, grouped by what they share. Each one says what happened, what fixed it, and whether it is worth your time.</p>'
     +'<div class="tbar"><div class="seg2" role="group" aria-label="Status" id="inTabs"></div><span class="sp"></span>'
     +'<div class="seg2" role="group" aria-label="Kind" id="inKinds"></div>'
     +'<label class="mu sortl">Sort <select class="sel" id="inSort">'+Object.keys(SORT_WORDS).map(k=>'<option value="'+k+'">'+SORT_WORDS[k]+"</option>").join("")+"</select></label></div>"
-    +'<div class="glist" id="inList"></div><div id="inFolds"></div></section>'
+    +'<div class="glist" id="inList"></div><div id="inFolds"></div></section></div>'
     +'<aside class="side"><section class="panel" id="inTopics" aria-label="What was being worked on"></section>'
     +'<section class="panel" id="inFriction" aria-label="Where sessions got stuck"></section></aside>';
 }
@@ -39,6 +40,7 @@ function start(container,data,project){
   drawTopics(ui);
   drawFriction(ui);
   draw(ui);
+  if(window.SymbiontInboxRules)window.SymbiontInboxRules.mount(ui);
 }
 
 function sections(ui){return M.sectionsOf(ui.data.incidents.groups,ui.data.triage,ui.kind,ui.sort);}
