@@ -204,3 +204,9 @@ def test_a_piped_test_run_repeated_is_still_a_loop():
 def test_sleep_before_a_command_that_changes_things_is_still_a_loop():
     command = "sleep 5 && pnpm install"
     assert len(find_loops(session(*[run(command, 1, "ERR") for _ in range(3)]))) == 1
+
+
+def test_a_watch_followed_by_a_changing_command_is_still_a_loop():
+    for command in ("gh run watch 7 && pnpm test", "gh run watch 7 --exit-status; gh run rerun 7"):
+        assert len(find_loops(session(*[run(command, 1, "ERR") for _ in range(3)]))) == 1
+    assert find_loops(session(*[run("gh run watch 7 | tail -5", 0, "ok") for _ in range(3)])) == []

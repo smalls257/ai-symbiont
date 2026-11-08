@@ -28,7 +28,7 @@ _CLAUSE_END = re.compile(r"[.!?;:\n]+|,\s|\s-\s")
 # test so "never mind, always use pnpm" still counts. "never moved" is a past participle (a
 # description of what happened); "should be able to" and "should have" are hedges.
 NOT_A_RULE = re.compile(
-    r"\bnever mind\b|\bi (?:do not|don'?t) (?:know|think)\b|\bnot sure\b"
+    r"\bnever mind\b|\bdon'?t worry\b|\bi (?:do not|don'?t) (?:know|think)\b|\bnot sure\b"
     r"|\bnever (?:\w*[^e\W]ed|been|done|seen|gone|made|taken|given|written|shown|found)\b"
     r"|\bshould be able to\b|\bshould have\b",
     re.IGNORECASE,

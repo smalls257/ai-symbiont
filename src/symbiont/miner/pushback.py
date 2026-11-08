@@ -7,21 +7,24 @@ Reuses the rule wording of `rule_language`. Pure: text in, verdict out.
 
 import re
 
-from symbiont.miner.rule_language import QUOTES, instructs
+from symbiont.miner.rule_language import NOT_A_RULE, QUOTES, instructs
 
 # Past this, a pasted log or file is talking, not the developer.
 INSPECTED_CHARS = 300
+# "No problem" and "wait for the build" acknowledge; "no," "noooo" and "wait a second" refuse.
 _OPENER = re.compile(
-    r"^\W*(?:no+|nope|wait|revert|undo|wrong|not (?:that|this|the)"
-    r"|why (?:did|are|would) you|that'?s (?:wrong|not))\b",
+    r"^\W*(?:no{2,}\b|no(?=\s*[,.!])(?!,?\s+(?:problem|worries|thanks|thank you|need)\b)"
+    r"|nope\b|wait(?:\s*,|\s+(?:a (?:second|sec|minute|moment)|what|that|why)\b)"
+    r"|revert\b|undo\b|wrong\b|not (?:that|this|the)\b"
+    r"|why (?:did|are|would) you\b|that'?s (?:wrong|not)\b)",
     re.IGNORECASE,
 )
 _PHRASE = re.compile(
-    r"\byou (?:forgot|missed|broke|didn'?t|did not|failed to)\b"
+    r"\b(?:you|that|this) (?:forgot|missed|broke|didn'?t|did not|failed to)\b"
     r"|\bnot what i\b|\bi (?:said|asked|told you)\b"
     r"|\b(?:still|is|are) (?:failing|broken|not working)\b"
     r"|\b(?:does|did)n'?t work\b|\bplease (?:revert|undo)\b"
-    r"|\bshould (?:always|never) \w+|\bstop\b",
+    r"|\bshould (?:always|never) \w+|\bstop (?:it|that|this|the|\w+ing)\b",
     re.IGNORECASE,
 )
 
@@ -29,4 +32,6 @@ _PHRASE = re.compile(
 def pushes_back(text: str) -> bool:
     """True when the first lines refuse, undo, restate or report a failure; a request is not."""
     head = text[:INSPECTED_CHARS].translate(QUOTES)
-    return bool(_OPENER.match(head) or _PHRASE.search(head) or instructs(head))
+    if _OPENER.match(head) or _PHRASE.search(head):
+        return True
+    return instructs(NOT_A_RULE.sub(" ", head))

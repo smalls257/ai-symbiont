@@ -17,6 +17,8 @@ PUSHBACK = [
     "it's still failing on CI",
     "the checkbox should always be displayed",
     "never commit scratch files",
+    "that broke the build",
+    "stop doing that",
 ]
 REQUESTS = [
     "please push and open a pr",
@@ -25,6 +27,13 @@ REQUESTS = [
     "how much work remains in the todo",
     "ok lets split 1021 into a separate pr",
     "yeah lets do it",
+    "No problem, go ahead",
+    "no worries",
+    "no thanks, looks great",
+    "wait for the build then push",
+    "never mind",
+    "Don't worry about it",
+    "please stop by the docs later",
     "I'm AFK, just commit",
 ]
 
