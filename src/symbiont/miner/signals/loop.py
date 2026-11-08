@@ -2,7 +2,8 @@
 
 The same command (as typed; only temp paths and spacing evened out) with the same exit code and
 output, or the same view of the same lines of a file, repeated within `window` steps with no
-applied edit in between. Waiting (`sleep 60 && gh run view`, `gh run watch`) is not looping.
+applied edit in between. Waiting (`sleep 60 && gh run view`, `gh run watch`, a task's output, a
+check after the agent says "still running") is not looping.
 One pain point per streak, at the step where it reaches `min_repeats`, citing every repeat.
 """
 
@@ -11,11 +12,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal, Signature
-from symbiont.miner.waiting import is_waiting
+from symbiont.miner.waiting import is_task_output, is_waiting, says_waiting
 from symbiont.records.schema import Kind, Record
 
 MAX_KEY_CHARS = 120
-_TEMP_PATH = re.compile(r"(?:/private)?(?:/tmp|/var/folders)/[^\s'\"]*")
+_TEMP_PATH = re.compile(r"(?<![\w./~-])(?:/private)?(?:/tmp|/var/folders)/[^\s'\"]*")
 _DURATION = re.compile(r"\b\d+(?:\.\d+)?\s?(?:ms|s|sec|seconds)\b")
 _ADDRESS = re.compile(r"\b0x[0-9a-fA-F]+\b")
 
@@ -35,25 +36,32 @@ def find_loops(
     """Find an action repeated `min_repeats` times with the same result inside `window` steps."""
     streaks: dict[tuple[str, ...], _Streak] = {}
     found = []
+    waiting = False
     for record in session:
+        if record.kind in (Kind.AGENT_TURN, Kind.USER_TURN):
+            waiting = record.kind == Kind.AGENT_TURN and says_waiting(record.raw)
+            continue
         if _changed_files(record):
             _end_streaks_touched_by(streaks, record)
             continue
-        key = _repeat_key(record)
+        key = None if waiting else _repeat_key(record)
         if key is None:
             continue
         streak = streaks.get(key)
         result = _result(record)
-        if (
-            streak is None
-            or streak.result != result
-            or record.step - streak.repeats[-1].step > window
-        ):
+        if not _continues(streak, result, record.step, window):
             streak = streaks[key] = _Streak(result)
         streak.repeats.append(record)
         if len(streak.repeats) == min_repeats:
             found.append(_pain_point(key, streak.repeats))
     return found
+
+
+def _continues(streak: _Streak | None, result: _Result, step: int, window: int) -> bool:
+    """The same result again, close enough to the last repeat to be the same streak."""
+    if streak is None or streak.result != result:
+        return False
+    return step - streak.repeats[-1].step <= window
 
 
 def _changed_files(record: Record) -> bool:
@@ -73,6 +81,8 @@ def _repeat_key(record: Record) -> tuple[str, ...] | None:
             return None
         return ("command", _even_out(record.command))
     if record.kind == Kind.READ and len(record.files) == 1 and record.exit_code != 1:
+        if is_task_output(record.files[0]):
+            return None
         return ("read", record.files[0], _lines_shown(record.line_range))
     return None
 
