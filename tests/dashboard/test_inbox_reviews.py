@@ -34,7 +34,7 @@ def shown():
 def test_repeated_groups_are_rows_with_gist_reviewers_files_fix_and_a_link_to_the_step(shown):
     first = shown["afterClosed"]
     assert first["hidden"] is False
-    assert first["title"] == "What reviewers flagged 22 groups 2 dismissed"
+    assert first["title"] == "What reviewers flagged 23 groups 2 dismissed"
     assert "came up 3 times in 2 sessions" in first["rowTexts"][0]
     row = first["rowTexts"][1]
     assert row.startswith("“Possible null dereference”")
@@ -45,13 +45,13 @@ def test_repeated_groups_are_rows_with_gist_reviewers_files_fix_and_a_link_to_th
 
 def test_single_comments_wait_in_a_collapsed_fold_that_shows_no_rows(shown):
     first = shown["afterClosed"]
-    assert first["summary"] == "Flagged once (20)"
+    assert first["summary"] == "Came up in one session (21)"
     assert first["foldOpen"] is False and len(first["rowTexts"]) == 2
 
 
 def test_an_open_fold_pages_fifteen_then_shows_the_rest(shown):
     assert shown["firstPage"] == {"rows": 17, "more": 1}
-    assert shown["secondPage"] == {"rows": 22, "more": 0}
+    assert shown["secondPage"] == {"rows": 23, "more": 0}
 
 
 def test_gist_text_stays_text_never_markup(shown):
@@ -86,4 +86,4 @@ def test_the_section_hides_when_nothing_is_left_or_nothing_was_found(shown):
 
 
 def test_a_single_comment_alone_has_only_the_fold(shown):
-    assert shown["onlySingles"] == {"fold": "Flagged once (1)", "rows": 0}
+    assert shown["onlySingles"] == {"fold": "Came up in one session (1)", "rows": 0}

@@ -43,10 +43,35 @@ def test_examples_link_back_to_the_session_step_newest_first():
     assert first["date"] == "2026-02-01" and "null dereference" in first["gist"]
 
 
-def test_groups_are_listed_most_repeated_first_and_a_single_comment_is_its_own_group():
-    groups = snapshot([OTHER, *NULLS])["groups"]
-    assert [g["count"] for g in groups] == [2, 1]
-    assert groups[1]["gist"] == "Rename the retry timeout constant"
+def test_groups_are_listed_by_sessions_then_count_and_a_single_comment_is_its_own_group():
+    same_session = [
+        flag("s3", 7, "Unchecked cache eviction race", path="src/c1.ts"),
+        flag("s3", 8, "Cache eviction race is unchecked", path="src/c2.ts"),
+        flag("s3", 9, "Race in cache eviction unchecked", path="src/c3.ts"),
+    ]
+    groups = snapshot([OTHER, *same_session, *NULLS])["groups"]
+    assert [(g["sessions"], g["count"]) for g in groups] == [(2, 2), (1, 3), (1, 1)]
+    assert groups[2]["gist"] == "Rename the retry timeout constant"
+
+
+def test_the_headline_gist_prefers_a_complete_sentence_over_a_dangling_fragment():
+    fragment = flag("s1", 1, "Possible null dereference (`| 22", path="src/a.ts")
+    whole = flag(
+        "s2", 2, "A null dereference is possible when the batch is empty.", path="src/b.ts"
+    )
+    (group,) = snapshot([fragment, whole])["groups"]
+    assert group["gist"] == "A null dereference is possible when the batch is empty."
+
+
+def test_without_a_complete_sentence_the_shortest_gist_is_the_headline():
+    (group,) = snapshot(NULLS)["groups"]
+    assert group["gist"] == "Empty batch causes a null dereference"
+
+
+def test_a_dismissed_rule_with_the_same_message_refs_does_not_hide_a_review_group():
+    rule_members = {"rule:s1:3": frozenset({("s1", 3), ("s2", 4)})}
+    shown = snapshot(NULLS, Triaged(dismissed=["rule:s1:3"], members=rule_members))
+    assert [g["count"] for g in shown["groups"]] == [2]
 
 
 def test_a_dismissed_group_is_left_out_and_counted():

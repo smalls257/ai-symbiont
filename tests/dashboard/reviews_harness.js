@@ -63,6 +63,7 @@ function fixture(reviews, triage = {}, open = []) {
 
 (async () => {
   const mixed = [group("review:a", { gist: HOSTILE, examples: [example({ gist: HOSTILE })] }), group("review:b", { count: 2, sessions: 2 }),
+    group("review:c", { count: 3, sessions: 1, gist: "One session only" }),
     ...Array.from({ length: 20 }, (_, i) => single(i))];
   const closed = fixture({ groups: mixed, dismissed: 2 });
   const afterClosed = {
@@ -73,8 +74,8 @@ function fixture(reviews, triage = {}, open = []) {
     hostileRowLabel: closed.rows()[0].attributes["aria-label"],
   };
   const opened = fixture({ groups: mixed }, {}, ["inReviewsOnce"]);
-  const firstPage = { rows: opened.rows().length, more: opened.buttons("Show 5 more comments").length };
-  await opened.click(opened.buttons("Show 5 more comments")[0]);
+  const firstPage = { rows: opened.rows().length, more: opened.buttons("Show 6 more comments").length };
+  await opened.click(opened.buttons("Show 6 more comments")[0]);
   const secondPage = { rows: opened.rows().length, more: opened.find((n) => n.className === "btn more").length };
 
   const one = fixture({ groups: [group("review:a"), group("review:b", { count: 2 })] });

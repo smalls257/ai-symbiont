@@ -20,15 +20,16 @@ from symbiont.miner.rule_candidates import RuleCandidate
 from symbiont.miner.rule_groups import group_by_terms
 from symbiont.miner.rule_terms import salient_terms
 from symbiont.miner.trained import lesson_id
-from symbiont.service.rule_view import RuleEntry, Triaged, triage_outcome
+from symbiont.service.rule_view import REVIEW_KEY_PREFIX, RuleEntry, Triaged, triage_outcome
 from symbiont.store.local import Store
 
-KEY_PREFIX = "review:"
+KEY_PREFIX = REVIEW_KEY_PREFIX
 MAX_GIST_CHARS = 160
 MAX_EXAMPLES = 3
 # Lists on one row stay short; the group's count still says how many comments stand behind it.
 MAX_LISTED = 5
 SOURCE = "review_flag"
+SENTENCE_END = (".", "!", "?")
 Ref = tuple[str, int]
 
 
@@ -74,17 +75,19 @@ def review_groups(lessons: Sequence[Lesson]) -> list[ReviewGroup]:
 def reviews_snapshot(
     lessons: Sequence[Lesson], dates: Mapping[str, date], triaged: Triaged
 ) -> dict[str, Any]:
-    """Groups most-repeated first; dismissed groups are counted and left out."""
+    """Groups seen in most sessions first; dismissed groups are counted and left out."""
+    own = triaged.of_prefix(KEY_PREFIX)
     shown: list[dict[str, Any]] = []
     dismissed = 0
     for group in review_groups(lessons):
-        if triage_outcome(RuleEntry(group.key, "", "repo", "", group.refs), triaged) is None:
+        if triage_outcome(RuleEntry(group.key, "", "repo", "", group.refs), own) is None:
             dismissed += 1
         else:
             shown.append(_item(group, dates))
     shown.sort(key=lambda item: item["key"])
     shown.sort(key=lambda item: item["last"] or "", reverse=True)
     shown.sort(key=lambda item: item["count"], reverse=True)
+    shown.sort(key=lambda item: item["sessions"], reverse=True)
     return {"groups": shown, "dismissed": dismissed}
 
 
@@ -118,7 +121,7 @@ def _item(group: ReviewGroup, dates: Mapping[str, date]) -> dict[str, Any]:
     days = sorted(dates[sid] for sid, _ in group.refs if sid in dates)
     return {
         "key": group.key,
-        "gist": _quote(min((k[2] for k in keys), key=lambda gist: (len(gist), gist))),
+        "gist": _quote(_headline([k[2] for k in keys])),
         "count": len(group.members),
         "sessions": len({sid for sid, _ in group.refs}),
         "reviewers": sorted({k[1] for k in keys}),
@@ -128,6 +131,12 @@ def _item(group: ReviewGroup, dates: Mapping[str, date]) -> dict[str, Any]:
         "lessonIds": [lesson_id(m) for m in group.members],
         "last": days[-1].isoformat() if days else None,
     }
+
+
+def _headline(gists: Sequence[str]) -> str:
+    """The shortest gist that ends in sentence punctuation, else the shortest: no dangling cut."""
+    whole = [gist for gist in gists if gist.rstrip().endswith(SENTENCE_END)]
+    return min(whole or gists, key=lambda gist: (len(gist), gist))
 
 
 def _distinct(names: Iterable[str]) -> list[str]:

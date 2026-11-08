@@ -1,5 +1,5 @@
 /* "What reviewers flagged" below the failure groups: comments reviewers made that a later edit answered, grouped by
-   what they said. Groups that came up twice or more are listed first; single comments wait in a collapsed fold,
+   what they said. Groups seen in two or more sessions are listed first; the rest wait in a collapsed fold,
    paged, so hundreds of them cost one line. Violation prevented: Paper Tiger (a wall of near-identical rows) and
    Distributed Monolith (Dismiss is the shared triage action on the group key, not a second path). Every string from
    the history is put in the page with textContent, never as markup. */
@@ -7,11 +7,13 @@
 "use strict";
 const M=window.SymbiontInboxModel,R=window.SymbiontInboxRows,A=()=>window.SymbiontTriageActions,D=()=>window.SymbiontInboxDialogs;
 const TITLE="What reviewers flagged";
-const SUB="Comments from reviewers that a later edit answered. Groups that came up again are first.";
+const SUB="Comments from reviewers that a later edit answered. Comments that came up in more than one session are first.";
 const ONCE_ID="inReviewsOnce";
 const MORE_KEY="reviews:more";
 const DISMISSED_WORDS="Dismissed. It stays counted but is never shown again.";
 const MAX_QUOTE=160;
+/* Came up again means in another session, the same bar as the Inbox's For review. */
+const MIN_SESSIONS=2;
 
 const allGroups=data=>(data.reviews&&data.reviews.groups)||[];
 const isDismissed=(triage,group)=>((triage||{})[group.key]||{}).state==="archived";
@@ -81,7 +83,7 @@ function onceFold(singles,ui){
   fold.open=open;
   const summary=el("summary");
   summary.appendChild(el("span","chev"));
-  summary.appendChild(el("span","","Flagged once ("+singles.length.toLocaleString("en-US")+")"));
+  summary.appendChild(el("span","","Came up in one session ("+singles.length.toLocaleString("en-US")+")"));
   fold.appendChild(summary);
   if(!open)return fold;
   const page=M.pageOf(singles,ui.open.has(MORE_KEY));
@@ -109,7 +111,7 @@ function draw(ui){
   section.hidden=!groups.length;
   const nodes=[];
   if(groups.length){
-    const repeated=groups.filter(g=>g.count>=2),singles=groups.filter(g=>g.count<2);
+    const repeated=groups.filter(g=>g.sessions>=MIN_SESSIONS),singles=groups.filter(g=>g.sessions<MIN_SESSIONS);
     nodes.push(...head(groups,ui.data));
     if(repeated.length)nodes.push(rowsOf(repeated,ui.project));
     if(singles.length)nodes.push(onceFold(singles,ui));

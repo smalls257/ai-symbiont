@@ -7,7 +7,7 @@ majority of them), not only its key, because grouping can rename a group when an
 is mined. Quotes are scrubbed here again.
 """
 
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
@@ -24,6 +24,8 @@ MAX_EXAMPLES = 3
 # A group of one message is a single remark, not something said more than once [hypothesis].
 MIN_GROUP_MEMBERS = 2
 NEW, TAUGHT = "new", "taught"
+# Review groups share the triage table with rules; their message refs must never decide a rule.
+REVIEW_KEY_PREFIX = "review:"
 
 
 @dataclass(frozen=True)
@@ -46,6 +48,21 @@ class Triaged:
     taught: Collection[str] = ()
     members: Mapping[str, frozenset[Ref]] = field(default_factory=dict)
 
+    def of_prefix(self, prefix: str) -> "Triaged":
+        """Only the choices made on keys that start with `prefix`."""
+        return self._filtered(lambda key: key.startswith(prefix))
+
+    def without_prefix(self, prefix: str) -> "Triaged":
+        """The choices made on every key that does not start with `prefix`."""
+        return self._filtered(lambda key: not key.startswith(prefix))
+
+    def _filtered(self, wanted: Callable[[str], bool]) -> "Triaged":
+        return Triaged(
+            [key for key in self.dismissed if wanted(key)],
+            [key for key in self.taught if wanted(key)],
+            {key: refs for key, refs in self.members.items() if wanted(key)},
+        )
+
 
 def rules_listing(store: Store, project: str, dates: Mapping[str, date]) -> dict[str, Any]:
     """The snapshot's `rules` for `project`."""
@@ -54,7 +71,7 @@ def rules_listing(store: Store, project: str, dates: Mapping[str, date]) -> dict
         [key for key, row in triage.items() if row.state is GroupState.ARCHIVED],
         [key for key, row in triage.items() if row.taught_on is not None],
         store.review.triage.members_by_key(project),
-    )
+    ).without_prefix(REVIEW_KEY_PREFIX)
     candidates = store.mined.rule_candidates(project)
     return rules_snapshot(_current(store, project, candidates), candidates, dates, triaged)
 
