@@ -7,6 +7,7 @@ an unsafe link, so a PR lesson is traceable or rejected, never kept without prov
 
 import re
 
+from symbiont.miner.review_gist import PERSON
 from symbiont.miner.review_quote import (
     MAX_QUOTE_CHARS,
     ReviewerRole,
@@ -63,9 +64,6 @@ you save.
    keeping" and save nothing when nothing qualifies.
 """
 
-# A handle or an address in a quote would name a person, which the instructions forbid storing.
-_PERSON = re.compile(r"(?<![\w`])@[A-Za-z0-9][\w-]*|[\w.+-]+@[\w-]+\.[\w.]+")
-
 
 class UnsafeSourceUrlError(ValueError):
     """A lesson's source_url is not a plain https web address."""
@@ -107,7 +105,8 @@ def checked_quote(quote: object, role: object, source_url: str) -> tuple[str, st
     text = " ".join(quote.split())
     if pull_number(source_url) is None:
         raise UnusableQuoteError("a quote needs a source_url that is a pull request address")
-    if _PERSON.search(text) or scrub(text) != text:
+    # A handle or an address in a quote names a person, which the instructions forbid storing.
+    if PERSON.search(text) or scrub(text) != text:
         raise UnusableQuoteError(
             "quote names a person or holds a credential; quote another sentence of the comment"
         )

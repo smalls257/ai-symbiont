@@ -48,7 +48,7 @@ def test_an_unresolved_lesson_says_no_fix_was_found_rather_than_inventing_one():
     assert "No fix was found in the history." in note and "Last time" not in note
 
 
-def test_every_signal_renders_as_prose_with_a_check():
+def test_every_signal_renders_as_prose_and_a_check_only_when_specific():
     keys = {
         Signal.FAILED_COMMAND: FAILED.key,
         Signal.REWORKED_EDIT: ("a.py",),
@@ -62,7 +62,8 @@ def test_every_signal_renders_as_prose_with_a_check():
         if signal is Signal.FAILED_COMMAND:
             assert note.startswith("`pytest") and "Last time" in note
         else:
-            assert note.startswith("What happened: ") and "Check: " in note
+            assert note.startswith("What happened: ") == (signal is not Signal.REVIEW_FLAG)
+            assert ("Check: " in note) == (signal in (Signal.REWORKED_EDIT, Signal.BLAST_RADIUS))
         assert not FORBIDDEN.search(note), note
 
 
@@ -94,3 +95,38 @@ def test_changes_alongside_are_said_to_have_happened_not_claimed_as_the_fix():
 
     note = render_lesson(replace(lesson(), changed_alongside=("edited notes.md",)))
     assert "notes.md" not in note and "Last time: " in note
+
+
+def test_correction_and_loop_notes_end_at_the_resolution_sentence():
+    said = render_lesson(lesson(Signature(Signal.CORRECTION, ("-", "use the fixture"))))
+    assert said.endswith("Last time: ran pip install, then re-ran pytest.")
+    assert "Check:" not in said
+    looped = render_lesson(lesson(Signature(Signal.LOOP, ("command", "pytest")), ()))
+    assert looped.endswith("No fix was found in the history.")
+    assert "Check:" not in looped
+
+
+def test_a_review_flag_note_names_the_reviewer_the_point_and_the_fix_without_a_check_line():
+    key = ("src/batch.ts", "CodeRabbit", "Batch delete publishes once per item — batch it.")
+    note = render_lesson(
+        lesson(Signature(Signal.REVIEW_FLAG, key), resolution=("edited batch.ts",))
+    )
+    assert note == (
+        "CodeRabbit flagged `src/batch.ts`: Batch delete publishes once per item — batch it. "
+        "Last time: fixed by editing batch.ts."
+    )
+
+
+def test_a_review_flag_with_no_shown_fix_says_so():
+    key = ("src/batch.ts", "a teammate", "Rename it.")
+    note = render_lesson(lesson(Signature(Signal.REVIEW_FLAG, key), resolution=()))
+    assert note == "A teammate flagged `src/batch.ts`: Rename it. No fix was found in the history."
+
+
+def test_a_long_review_note_cuts_the_point_never_the_fix():
+    key = ("src/" + "deep/" * 30 + "batch.ts", "CodeRabbit", ("word " * 32).strip())
+    note = render_lesson(
+        lesson(Signature(Signal.REVIEW_FLAG, key), resolution=("edited batch.ts",))
+    )
+    assert len(note) <= 300
+    assert note.endswith("Last time: fixed by editing batch.ts.") and "…" in note

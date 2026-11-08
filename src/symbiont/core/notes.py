@@ -7,6 +7,8 @@ run. Domain prose only: no scores, feature names or thresholds.
 from collections.abc import Callable, Collection, Sequence
 from enum import StrEnum
 
+from symbiont.core.note_words import MIN_WHILE_CHARS, NOTE_CHARS, times
+from symbiont.core.review_note import flagged, review_note, review_warning
 from symbiont.core.slot import Decision
 from symbiont.miner.failure_keys import broke_in_words
 from symbiont.miner.fix_words import resolution_phrase
@@ -18,9 +20,6 @@ from symbiont.records.schema import Record
 DEFAULT_MAX_NOTES = 2
 NO_PATH = "-"
 TITLE_QUOTE_CHARS = 60
-# A note is read in passing by the agent; owner: "word vomit" is the failure to avoid.
-NOTE_CHARS = 300
-MIN_WHILE_CHARS = 30
 
 
 class NoteKind(StrEnum):
@@ -52,8 +51,10 @@ def render_lesson(lesson: Lesson) -> str:
     signature = lesson.pain_point.signature
     if signature.signal is Signal.FAILED_COMMAND:
         return story_note(lesson)
+    if signature.signal is Signal.REVIEW_FLAG:
+        return review_note(lesson)
     happened = _HAPPENED[signature.signal](signature)
-    return f"What happened: {happened}. {_resolved(lesson)} {_check(signature)}"
+    return _joined(f"What happened: {happened}.", _resolved(lesson), _check(signature))
 
 
 def story_note(lesson: Lesson) -> str:
@@ -102,9 +103,19 @@ def title_of(signature: Signature, group_name: str = "") -> str:
     return f'You corrected the agent: "{short}"'
 
 
+def _joined(*sentences: str) -> str:
+    """The non-empty sentences, one space apart."""
+    return " ".join(sentence for sentence in sentences if sentence)
+
+
+def specific_check(signature: Signature) -> str:
+    """The check history supports as a clause without the "Check:" label; "" when none."""
+    return _check(signature).removeprefix("Check: ").rstrip(".")
+
+
 def check_to_run(signature: Signature) -> str:
     """The check for this kind of trouble, as a clause without the "Check:" label."""
-    return _check(signature).removeprefix("Check: ").rstrip(".")
+    return specific_check(signature) or _FIXED_FORMAT_CHECKS[signature.signal].rstrip(".")
 
 
 def resolution_clause(lesson: Lesson) -> str:
@@ -127,7 +138,7 @@ def _warning(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
     backing = _backing_lesson(decision, lessons)
     if backing is None:
         return [said]
-    return [f"{said} {_resolved(backing)} {_check(decision.trouble)}"]
+    return [_joined(said, _resolved(backing), _check(decision.trouble))]
 
 
 def _backing_lesson(decision: Decision, lessons: Sequence[Lesson]) -> Lesson | None:
@@ -150,41 +161,31 @@ def _resolved(lesson: Lesson) -> str:
     return f"Last time: {resolution_phrase(lesson.resolution)}.{meanwhile}"
 
 
-def _times(count: int) -> str:
-    """`once` or `N times`, for prose."""
-    return "once" if count == 1 else f"{count} times"
-
-
 def _failed_command(signature: Signature, count: int) -> str:
     """Note for a command that failed the same way before."""
     *target, error = signature.key
     command = " ".join(part for part in target if part != NO_PATH)
     broke = "a non-zero exit" if error.startswith("exit ") else broke_in_words(error)
-    return f"This command has failed {_times(count)} before: `{command}` -> {broke}."
+    return f"This command has failed {times(count)} before: `{command}` -> {broke}."
 
 
 def _reworked_edit(signature: Signature, count: int) -> str:
     """Note for a file whose edits were redone before."""
-    return f"You have redone your edits to `{signature.key[0]}` {_times(count)} before."
-
-
-def _review_flag(signature: Signature, count: int) -> str:
-    """Note for a file a reviewer flagged before."""
-    return f"A reviewer flagged `{signature.key[0]}` {_times(count)} before."
+    return f"You have redone your edits to `{signature.key[0]}` {times(count)} before."
 
 
 def _correction(signature: Signature, count: int) -> str:
     """Note for an earlier user correction."""
     path, words = signature.key
     where = "" if path == NO_PATH else f" about `{path}`"
-    return f"You were corrected{where} {_times(count)} before, on: {words}."
+    return f"You were corrected{where} {times(count)} before, on: {words}."
 
 
 def _loop(signature: Signature, count: int) -> str:
     """Note for an earlier session that went in circles."""
     kind, target = signature.key[0], signature.key[1]
     what = f"the command `{target}`" if kind == "command" else f"`{target}`"
-    return f"You went in circles over {what} in an earlier session ({_times(count)})."
+    return f"You went in circles over {what} in an earlier session ({times(count)})."
 
 
 def _blast_radius(signature: Signature, count: int) -> str:
@@ -221,7 +222,7 @@ _HAPPENED: dict[Signal, Callable[[Signature], str]] = {
         f"`{_command_of(sig)}` failed with {broke_in_words(sig.key[-1])}"
     ),
     Signal.REWORKED_EDIT: lambda sig: f"your edits to `{sig.key[0]}` were redone",
-    Signal.REVIEW_FLAG: lambda sig: f"a reviewer flagged `{sig.key[0]}`",
+    Signal.REVIEW_FLAG: flagged,
     Signal.CORRECTION: lambda sig: f"you were corrected{_where(sig.key[0])} on: {sig.key[1]}",
     Signal.LOOP: lambda sig: f"you went in circles over `{sig.key[1]}`",
     Signal.BLAST_RADIUS: lambda sig: (
@@ -234,26 +235,31 @@ _CHECKS: dict[Signal, Callable[[Signature], str]] = {
         f"Check: run `{_command_of(sig)}` and confirm it passes before moving on."
     ),
     Signal.REWORKED_EDIT: lambda sig: f"Check: read the current `{sig.key[0]}` before editing it.",
-    Signal.REVIEW_FLAG: lambda sig: (
-        f"Check: compare `{sig.key[0]}` with the reviewer's comment before submitting."
-    ),
-    Signal.CORRECTION: lambda sig: "Check: confirm your next step does what the developer asked.",
-    Signal.LOOP: lambda sig: "Check: if you are about to repeat it, stop and try another approach.",
     Signal.BLAST_RADIUS: lambda sig: (
         f"Check: read `{sig.key[1]}` and run its tests before changing `{sig.key[0]}`."
     ),
 }
 
 
+# Only for the fixed three-part memory line and training rows, which need a clause in every slot.
+# A note to the agent leaves the check out instead of saying something generic.
+_FIXED_FORMAT_CHECKS = {
+    Signal.REVIEW_FLAG: "confirm your change answers the reviewer's comment.",
+    Signal.CORRECTION: "confirm your next step does what the developer asked.",
+    Signal.LOOP: "if you are about to repeat it, stop and try another approach.",
+}
+
+
 def _check(signature: Signature) -> str:
-    """The check to run for a signature."""
-    return _CHECKS[signature.signal](signature)
+    """The check to run for a signature, or "" when the history says nothing specific."""
+    make = _CHECKS.get(signature.signal)
+    return make(signature) if make else ""
 
 
 _TEMPLATES: dict[Signal, Callable[[Signature, int], str]] = {
     Signal.FAILED_COMMAND: _failed_command,
     Signal.REWORKED_EDIT: _reworked_edit,
-    Signal.REVIEW_FLAG: _review_flag,
+    Signal.REVIEW_FLAG: review_warning,
     Signal.CORRECTION: _correction,
     Signal.LOOP: _loop,
     Signal.BLAST_RADIUS: _blast_radius,

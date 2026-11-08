@@ -81,3 +81,13 @@ def test_a_rendered_failure_note_never_shows_matching_tokens():
     assert texts[1:], "the repeat note was rendered"
     for text in texts:
         assert "<n>" not in text and "<path>" not in text
+
+
+def test_a_review_warning_names_the_reviewers_point():
+    from symbiont.core.slot import Decision
+    from symbiont.miner.painpoint import PainPoint, Signal, Signature
+
+    sig = Signature(Signal.REVIEW_FLAG, ("src/batch.ts", "CodeRabbit", "Batch the deletes."))
+    why = tuple(PainPoint(sig, f"s{n}", 1, ((f"s{n}", 1),)) for n in range(2))
+    (note,) = render(Decision(sig, why, (), None, 2.0), kinds=[NoteKind.WARN])
+    assert note == "CodeRabbit flagged `src/batch.ts` 2 times before: Batch the deletes."

@@ -23,7 +23,10 @@ def test_review_comment_then_rework():
     )
     assert find_review_flags(s) == [
         PainPoint(
-            signature=Signature(Signal.REVIEW_FLAG, (DIALECT,)),
+            signature=Signature(
+                Signal.REVIEW_FLAG,
+                (DIALECT, "a teammate", "This changes every dialect; move it to DuckDB."),
+            ),
             session_id="s1",
             step=0,
             record_refs=(("s1", 0), ("s1", 1)),

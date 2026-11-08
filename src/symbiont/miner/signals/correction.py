@@ -1,9 +1,10 @@
 """Signal: the developer correcting the agent.
 
-A user turn is a correction when the dataset tagged it (`correction`, `rejection`) or a test run
-failed since the last turn and the turn names a file the agent edited. "ok" and "/compact" never
-are. Key `(file, first 8 words)`: the file is one the turn names, else "-"; the words are
-lowercased with punctuation dropped, so the note can quote how the developer put it.
+A user turn is a correction when the dataset tagged it (`correction`, `rejection`) and the
+words push back (`pushes_back`: "please push and open a pr" is a request, not a correction), or a
+test run failed since the last turn and the turn names a file the agent edited. "ok" and
+"/compact" never are. Key `(file, first 8 words)`: the file is one the turn names, else "-";
+the words are lowercased with punctuation dropped, so the note can quote how the developer put it.
 """
 
 import re
@@ -12,6 +13,7 @@ from collections.abc import Sequence
 from symbiont.miner.empty_correction import is_bare_acknowledgment
 from symbiont.miner.failing_tests import failing_test_files
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.pushback import pushes_back
 from symbiont.records.schema import Kind, Record
 
 CORRECTION_TAGS = frozenset({"correction", "rejection"})
@@ -48,7 +50,7 @@ def _turn_correction(
     """The correction a user turn is, or None; "ok" and "/compact" teach nothing."""
     if is_bare_acknowledgment(turn.raw):
         return None
-    if CORRECTION_TAGS & set(turn.tags):
+    if CORRECTION_TAGS & set(turn.tags) and pushes_back(turn.raw):
         return _pain_point(turn, _named_file(turn.raw, edited_ever))
     named = _named_file(turn.raw, edited_after_failure)
     return _pain_point(turn, named) if named else None

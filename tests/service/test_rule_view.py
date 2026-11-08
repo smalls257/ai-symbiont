@@ -155,3 +155,11 @@ def test_dismiss_then_an_earlier_session_changes_the_key_and_it_stays_dismissed(
     assert after["items"] == [] and after["dismissedPossible"] == 1
     renamed = {e.key for e in rule_entries([], store.mined.rule_candidates(PROJECT))}
     assert before["key"] not in renamed
+
+
+def test_a_dismissed_review_group_never_decides_a_rule():
+    review_only = Triaged(
+        dismissed=["review:x"], members={"review:x": frozenset({("s1", 1), ("s2", 2)})}
+    )
+    for kept in (review_only.without_prefix("review:"), review_only.of_prefix("rule:")):
+        assert (list(kept.dismissed), dict(kept.members)) == ([], {})

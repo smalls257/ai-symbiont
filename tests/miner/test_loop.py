@@ -179,3 +179,34 @@ def test_long_commands_sharing_a_prefix_are_different_commands():
     prefix = 'python -c "' + "x = 1; " * 40
     s = session(*[run(prefix + f'print({n})"', 0, "ok") for n in (1, 2, 3)])
     assert find_loops(s) == []
+
+
+def test_polling_ci_with_sleep_is_waiting_not_a_loop():
+    poll = "sleep 60 && gh run view 1 --json status"
+    assert find_loops(session(*[run(poll, 0, "in_progress") for _ in range(4)])) == []
+    check = "sleep 30; gh pr checks 5"
+    assert find_loops(session(*[run(check, 0, "pending") for _ in range(3)])) == []
+
+
+def test_a_blocking_watch_is_waiting_not_a_loop():
+    watch = "gh run watch 7"
+    assert find_loops(session(*[run(watch, 0, "queued") for _ in range(3)])) == []
+    checks = "gh pr checks 5 --watch"
+    assert find_loops(session(*[run(checks, 0, "pending") for _ in range(3)])) == []
+
+
+def test_a_piped_test_run_repeated_is_still_a_loop():
+    command = "pnpm test 2>&1 | tail -30"
+    (pain,) = find_loops(session(*[run(command, 1, "1 failed") for _ in range(3)]))
+    assert pain.signature.signal == Signal.LOOP
+
+
+def test_sleep_before_a_command_that_changes_things_is_still_a_loop():
+    command = "sleep 5 && pnpm install"
+    assert len(find_loops(session(*[run(command, 1, "ERR") for _ in range(3)]))) == 1
+
+
+def test_a_watch_followed_by_a_changing_command_is_still_a_loop():
+    for command in ("gh run watch 7 && pnpm test", "gh run watch 7 --exit-status; gh run rerun 7"):
+        assert len(find_loops(session(*[run(command, 1, "ERR") for _ in range(3)]))) == 1
+    assert find_loops(session(*[run("gh run watch 7 | tail -5", 0, "ok") for _ in range(3)])) == []

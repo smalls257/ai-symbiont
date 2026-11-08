@@ -3,6 +3,7 @@
 const KINDS={
   repeat:{label:"Repeated failure",color:"#f45454"},
   rework:{label:"File reworked",color:"#ff8c40"},
+  review:{label:"A reviewer flagged",color:"#b48cff"},
   correction:{label:"You corrected the agent",color:"#5cc8ff"},
   loop:{label:"Stuck in a loop",color:"#e879c8"},
   tdd:{label:"Planned red test",color:"#8c94ac"},
@@ -275,7 +276,7 @@ function renderNote(){
   box.innerHTML=h+((reveal??null)!==null||document.activeElement===$("ctx")?'<span class="caret"></span>':"")+(st.ctx.trim()?"":'<div class="mu" style="margin-top:.8rem;font-size:1rem">Your context appears here as you type.</div>');
   $("cap").innerHTML=({high:"<b>Shown first</b>, right before the agent repeats this.",normal:"Shown <b>right before</b> the agent repeats this.",low:"Shown <b>only if</b> the agent has already tried once."})[st.prio]+" Plain sentences, nothing else.";
 }
-function trigger(p){return p.kind==="rework"?"before editing "+p.file.split("/").pop()+" again":p.kind==="correction"?"before the agent picks an approach":"before the next retry";}
+function trigger(p){return p.kind==="review"?"before changing "+p.file.split("/").pop()+" again":p.kind==="rework"?"before editing "+p.file.split("/").pop()+" again":p.kind==="correction"?"before the agent picks an approach":"before the next retry";}
 
 /* ===== stage 3: 30-day replay ===== */
 const EVENTS=DATA.replay.items.map(r=>{const p=byId(r.painPointId);return {p,k:p.s.indexOf(r.sessionIndex),day:r.day,saved:r.turnsSaved,mins:r.minutesSaved};});

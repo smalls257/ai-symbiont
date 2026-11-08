@@ -8,7 +8,7 @@ same task are not a chain: pass each alone.
 
 from collections.abc import Iterable, Mapping, Sequence
 
-from symbiont.miner.painpoint import PainPoint
+from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.signals.blast_radius import find_blast_radius
 from symbiont.miner.signals.correction import find_corrections
 from symbiont.miner.signals.failed_command import find_failed_commands
@@ -25,7 +25,21 @@ def mine_chain(sessions: Sequence[Sequence[Record]], references: References) -> 
     `references[path]` = files that import or name `path` (see blast_radius); `{}`
     when there is no repo checkout, and blast radius then finds nothing.
     """
-    return [p for session in sessions for p in _within_session(session, references)]
+    found = [p for session in sessions for p in _within_session(session, references)]
+    return _first_review_flag_per_signature(found)
+
+
+def _first_review_flag_per_signature(found: list[PainPoint]) -> list[PainPoint]:
+    """A comment fetched in many sessions (and again under another id) teaches once."""
+    seen: set[Signature] = set()
+    kept = []
+    for pain in found:
+        if pain.signature.signal is Signal.REVIEW_FLAG:
+            if pain.signature in seen:
+                continue
+            seen.add(pain.signature)
+        kept.append(pain)
+    return kept
 
 
 def mine_session(session: Sequence[Record], references: References) -> list[PainPoint]:
