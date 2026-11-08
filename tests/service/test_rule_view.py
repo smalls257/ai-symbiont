@@ -42,14 +42,17 @@ def snapshot(entries, candidates, triaged=NONE, dates=DATES):
     return rules_snapshot(entries, candidates, dates, triaged)
 
 
-def test_confirmed_rules_replace_the_grouped_fallback():
+def test_confirmed_rules_list_first_and_covered_messages_form_no_second_group():
     rule = StatedRule("Use pnpm.", RuleScope.AREA, "web/", (("s1", 1), ("s2", 2)))
-    shown = snapshot(rule_entries([rule], PAIR), PAIR)
+    covered = {("s1", 1), ("s2", 2)}
+    other = [cand("s3", 1, "never rm", ("rm",)), cand("s3", 2, "never rm -rf", ("rm",))]
+    shown = snapshot(rule_entries([rule], PAIR + other, covered), PAIR + other)
     assert shown["confirmed"] is True
-    (item,) = shown["items"]
-    assert (item["text"], item["confirmed"], item["scope"], item["area"]) == (
+    first, second = shown["items"]
+    assert (first["text"], first["confirmed"], first["scope"], first["area"]) == (
         "Use pnpm.", True, "area", "web/",
     )  # fmt: skip
+    assert second["confirmed"] is False
 
 
 def test_groups_of_one_message_are_hidden_and_groups_of_two_are_unconfirmed():
@@ -84,7 +87,7 @@ def test_quotes_are_scrubbed_one_line_and_capped():
     secret_line = f"always use pnpm\ntoken={SECRET} " + "x" * 300
     pair = [cand("s1", 1, secret_line), cand("s2", 2, secret_line)]
     rule = StatedRule(f"Use pnpm token={SECRET}", RuleScope.REPO, "", (("s1", 1), ("s2", 2)))
-    (item,) = snapshot(rule_entries([rule], pair), pair)["items"]
+    (item,) = snapshot(rule_entries([rule], pair, set(rule.refs)), pair)["items"]
     for text in (item["text"], item["examples"][0]["text"]):
         assert SECRET not in text and "\n" not in text and len(text) <= 120
 
@@ -98,11 +101,20 @@ def test_a_dismissed_rule_is_counted_not_listed_and_a_taught_one_is_marked():
     assert [(i["key"], i["state"]) for i in shown["items"]] == [(second.key, "taught")]
 
 
-def test_a_rule_whose_member_was_dismissed_under_another_key_stays_dismissed():
-    moved = StatedRule("Use pnpm.", RuleScope.REPO, "", (("s0", 1), ("s1", 1)))
+def test_a_rule_mostly_made_of_a_dismissed_rules_messages_stays_dismissed():
+    moved = StatedRule("Use pnpm.", RuleScope.REPO, "", (("s0", 1), ("s1", 1), ("s2", 2)))
+    triaged = Triaged(
+        dismissed=["rule:s1:1"], members={"rule:s1:1": frozenset({("s1", 1), ("s2", 2)})}
+    )
+    shown = snapshot(rule_entries([moved], PAIR, set(moved.refs)), PAIR, triaged)
+    assert shown["items"] == [] and shown["dismissed"] == 1 and shown["dismissedPossible"] == 0
+
+
+def test_one_shared_message_does_not_hide_a_whole_confirmed_rule():
+    wide = StatedRule("Use pnpm.", RuleScope.REPO, "", (("s0", 1), ("s1", 1), ("s2", 2)))
     triaged = Triaged(dismissed=["rule:s1:1"], members={"rule:s1:1": frozenset({("s1", 1)})})
-    shown = snapshot(rule_entries([moved], PAIR), PAIR, triaged)
-    assert shown["items"] == [] and shown["dismissed"] == 1
+    shown = snapshot(rule_entries([wide], PAIR, set(wide.refs)), PAIR, triaged)
+    assert [i["key"] for i in shown["items"]] == [wide.key] and shown["dismissed"] == 0
 
 
 # --- through the store: dismiss, add an earlier session, re-mine ---
@@ -125,9 +137,8 @@ def mine(tmp_path, store, name, *turns):
 
 
 def dismiss(store, key, day=date(2026, 11, 7)):
-    store.review.rules.remember_members(PROJECT, key, member_refs(store, PROJECT, key))
     row = TriageRow(GroupState.ARCHIVED, None, None, day, None)
-    store.review.triage.save(PROJECT, key, row)
+    store.review.triage.save(PROJECT, key, row, member_refs(store, PROJECT, key))
 
 
 @pytest.mark.periphery
@@ -135,12 +146,12 @@ def test_dismiss_then_an_earlier_session_changes_the_key_and_it_stays_dismissed(
     store = Store.open(tmp_path / "s.db")
     mine(tmp_path, store, "m-b.jsonl", "always use pnpm, never npm")
     mine(tmp_path, store, "m-c.jsonl", "use pnpm instead of npm")
-    (before,) = rules_listing(store, PROJECT, {})["items"]
+    (before, *_) = rules_listing(store, PROJECT, {})["items"]
     dismiss(store, before["key"])
 
     mine(tmp_path, store, "m-a.jsonl", "always use pnpm, never npm here")
     after = rules_listing(store, PROJECT, {})
 
-    assert after["items"] == [] and after["dismissed"] == 1
+    assert after["items"] == [] and after["dismissedPossible"] == 1
     renamed = {e.key for e in rule_entries([], store.mined.rule_candidates(PROJECT))}
     assert before["key"] not in renamed

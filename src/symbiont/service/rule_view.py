@@ -1,13 +1,14 @@
 """The `rules` key of the dashboard data: what the developer told the agent more than once.
 
-A confirmed rule (the session model merged what was said) is shown as the model wrote it. Until
-one exists, groups of two or more messages that share distinctive words are shown instead, marked
-unconfirmed. A dismissal or a teach follows the rule's member messages, not only its key, because
-grouping can rename a group when an earlier session is mined. Quotes are scrubbed here again.
+A confirmed rule (the session model merged what was said) is shown as the model wrote it. Groups
+of two or more messages that share distinctive words, and that no confirmed rule or drop covers,
+are listed too, marked unconfirmed. A dismissal or a teach follows the rule's member messages (a
+majority of them), not only its key, because grouping can rename a group when an earlier session
+is mined. Quotes are scrubbed here again.
 """
 
 from collections.abc import Collection, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import Any
 
@@ -43,7 +44,7 @@ class Triaged:
 
     dismissed: Collection[str] = ()
     taught: Collection[str] = ()
-    members: Mapping[str, frozenset[Ref]] | None = None
+    members: Mapping[str, frozenset[Ref]] = field(default_factory=dict)
 
 
 def rules_listing(store: Store, project: str, dates: Mapping[str, date]) -> dict[str, Any]:
@@ -52,33 +53,40 @@ def rules_listing(store: Store, project: str, dates: Mapping[str, date]) -> dict
     triaged = Triaged(
         [key for key, row in triage.items() if row.state is GroupState.ARCHIVED],
         [key for key, row in triage.items() if row.taught_on is not None],
-        store.review.rules.members_by_key(project),
+        store.review.triage.members_by_key(project),
     )
     candidates = store.mined.rule_candidates(project)
-    entries = rule_entries(store.review.rules.rules(project), candidates)
-    return rules_snapshot(entries, candidates, dates, triaged)
+    return rules_snapshot(_current(store, project, candidates), candidates, dates, triaged)
 
 
 def member_refs(store: Store, project: str, key: str) -> tuple[Ref, ...]:
     """The messages the rule `key` stands for now; () when no rule has that key any more."""
-    entries = rule_entries(store.review.rules.rules(project), store.mined.rule_candidates(project))
+    entries = _current(store, project, store.mined.rule_candidates(project))
     return next((entry.refs for entry in entries if entry.key == key), ())
 
 
+def _current(store: Store, project: str, candidates: Sequence[RuleCandidate]) -> list[RuleEntry]:
+    rules = store.review.rules
+    return rule_entries(rules.rules(project), candidates, rules.covered(project))
+
+
 def rule_entries(
-    rules: Sequence[StatedRule], candidates: Sequence[RuleCandidate]
+    rules: Sequence[StatedRule],
+    candidates: Sequence[RuleCandidate],
+    covered: Collection[Ref] = (),
 ) -> list[RuleEntry]:
-    """The confirmed rules when any exist, else the term groups with two or more messages."""
-    if rules:
-        return [
-            RuleEntry(r.key, r.rule, r.scope.value, r.area, tuple(sorted(r.refs)), confirmed=True)
-            for r in rules
-        ]
-    groups = [g for g in group_by_terms(candidates) if len(g.members) >= MIN_GROUP_MEMBERS]
-    return [
+    """The confirmed rules, then term groups of two or more messages no rule or drop covers."""
+    confirmed = [
+        RuleEntry(r.key, r.rule, r.scope.value, r.area, tuple(sorted(r.refs)), confirmed=True)
+        for r in rules
+    ]
+    open_candidates = [c for c in candidates if (c.session_id, c.step) not in covered]
+    groups = [g for g in group_by_terms(open_candidates) if len(g.members) >= MIN_GROUP_MEMBERS]
+    guesses = [
         RuleEntry(g.key, _clearest(g.members), "repo", "", _refs(g.members), confirmed=False)
         for g in groups
     ]
+    return confirmed + guesses
 
 
 def rules_snapshot(
@@ -89,11 +97,12 @@ def rules_snapshot(
 ) -> dict[str, Any]:
     """Items most-repeated first, dismissed rules counted and left out, taught ones marked."""
     said = {(c.session_id, c.step): c for c in candidates}
-    items, dismissed = [], 0
+    items: list[dict[str, Any]] = []
+    dismissed = {True: 0, False: 0}
     for entry in entries:
         state = _state(entry, triaged)
         if state is None:
-            dismissed += 1
+            dismissed[entry.confirmed] += 1
         else:
             items.append(_item(entry, state, said, dates))
     items.sort(key=lambda item: item["key"])
@@ -102,19 +111,28 @@ def rules_snapshot(
     return {
         "confirmed": any(entry.confirmed for entry in entries),
         "items": items,
-        "dismissed": dismissed,
+        "dismissed": dismissed[True],
+        "dismissedPossible": dismissed[False],
     }
 
 
 def _state(entry: RuleEntry, triaged: Triaged) -> str | None:
-    """None when dismissed (by key or by any member message), TAUGHT, else NEW."""
-    refs = set(entry.refs)
-    members = triaged.members or {}
+    """None when dismissed, TAUGHT when taught, else NEW; dismissal outranks a teach.
+
+    A rule matches a triaged one by key, or when most of its messages were that rule's, so a
+    group renamed by an earlier session is the same rule but one shared message is not.
+    """
     for keys, outcome in ((triaged.dismissed, None), (triaged.taught, TAUGHT)):
-        hit = entry.key in keys or any(refs & members.get(key, frozenset()) for key in keys)
-        if hit:
+        if entry.key in keys or _mostly_from(entry, keys, triaged.members):
             return outcome
     return NEW
+
+
+def _mostly_from(
+    entry: RuleEntry, keys: Collection[str], members: Mapping[str, frozenset[Ref]]
+) -> bool:
+    earlier = frozenset().union(*(members.get(key, frozenset()) for key in keys))
+    return 2 * len(earlier & set(entry.refs)) > len(entry.refs)
 
 
 def _item(

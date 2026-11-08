@@ -29,6 +29,7 @@ from symbiont.service.request_shapes import (
 )
 from symbiont.service.rule_view import member_refs
 from symbiont.store.local import Store
+from symbiont.store.triage import RuleTeach
 
 if TYPE_CHECKING:
     from symbiont.service.app import ServiceParts
@@ -69,13 +70,12 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     row = _row_of(request, today) if "state" in request else None
     if named:
         store.review.triage.rename(project, key, name, today)
+    members = _rule_members(store, project, key)
     if row is not None:
-        store.review.triage.save(project, key, row)
-    _remember_rule_members(store, project, key)
+        store.review.triage.save(project, key, row, members)
     if taught:
-        store.review.triage.mark_taught(
-            project, key, today, _taught_lesson_id(store, project, request)
-        )
+        lesson = _taught_lesson_id(store, project, request)
+        store.review.triage.mark_rule_taught(project, key, RuleTeach(today, lesson, members))
     saved = store.review.triage.all(project)[key]
     reply = {
         "group_key": key,
@@ -88,10 +88,9 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
     return reply
 
 
-def _remember_rule_members(store: Store, project: str, key: str) -> None:
-    """For a stated rule, keep the messages it stands for: its key may change on a re-mine."""
-    if key.startswith("rule:"):
-        store.review.rules.remember_members(project, key, member_refs(store, project, key))
+def _rule_members(store: Store, project: str, key: str) -> tuple[tuple[str, int], ...]:
+    """For a stated rule, the messages it stands for now (its key may change on a re-mine)."""
+    return member_refs(store, project, key) if key.startswith("rule:") else ()
 
 
 def _taught_lesson_id(store: Store, project: str, request: dict[str, Any]) -> str:

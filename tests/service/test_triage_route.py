@@ -404,5 +404,5 @@ def test_dismissing_a_stated_rule_remembers_its_messages_for_a_later_rename(tmp_
     )
 
     assert reply.status == 200
-    members = Store.open(tmp_path / "store.db").review.rules.members_by_key(PROJECT)
+    members = Store.open(tmp_path / "store.db").review.triage.members_by_key(PROJECT)
     assert members == {"rule:a:1": frozenset({("a", 1), ("b", 2)})}
