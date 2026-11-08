@@ -6,7 +6,6 @@ Truncated or non-JSON output yields nothing, never a guess; the agent's own post
 """
 
 import json
-import re
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
@@ -16,9 +15,10 @@ from symbiont.miner.credential_patterns import scrub
 from symbiont.miner.review_gist import Severity, gist_of, reviewer_name, severity_of
 from symbiont.records.schema import Kind, Record
 
-_POSTS_A_BODY = re.compile(
-    r"(?:--field|--raw-field|--input|-[fF])\s+(?:body=|-)|--method\s+POST|-X\s+POST"
-)
+_FIELD_FLAGS = ("-f", "-F", "--field", "--raw-field")
+_BODY_FLAGS = ("--body", "-b", "--body-file", "-F", "--input")
+# `gh pr comment` and friends post what the agent typed; their output is never a review.
+_POSTING_COMMANDS = {("pr", "comment"), ("pr", "review"), ("issue", "comment")}
 NOT_DECODED = -1
 CUT_OFF: tuple[Any, int] = (None, NOT_DECODED)
 _REPLY_KEYS = ("in_reply_to_id", "in_reply_to")
@@ -57,8 +57,46 @@ def _runs_gh(command: str) -> bool:
 
 
 def _writes(command: str) -> bool:
-    """A post, a body field, a piped-in body or a GraphQL mutation: the agent's own words."""
-    return bool(_POSTS_A_BODY.search(command)) or "mutation" in command
+    """True when a `gh` stage posts, sends a body, uses a non-GET method or runs a mutation."""
+    return any(_stage_writes(s.args) for s in command_stages(command) if s.program == "gh")
+
+
+def _stage_writes(args: tuple[str, ...]) -> bool:
+    fields = list(_field_values(args))
+    if tuple(args[:2]) in _POSTING_COMMANDS or _method(args) not in ("", "GET"):
+        return True
+    if any(arg.split("=", 1)[0] in _BODY_FLAGS for arg in args if arg.startswith("-")):
+        return True
+    if any(field.startswith(("body=", "body@")) for field in fields):
+        return True
+    return any(_is_mutation(field) for field in fields)
+
+
+def _field_values(args: tuple[str, ...]) -> Iterator[str]:
+    """The value of every -f/-F/--field/--raw-field, spaced, attached or `=`-joined."""
+    for index, arg in enumerate(args):
+        if arg in _FIELD_FLAGS:
+            yield args[index + 1] if index + 1 < len(args) else ""
+        elif arg.startswith(("--field=", "--raw-field=")):
+            yield arg.split("=", 1)[1]
+        elif arg[:2] in ("-f", "-F") and len(arg) > 2 and arg[1] != "-":
+            yield arg[2:]
+
+
+def _method(args: tuple[str, ...]) -> str:
+    """The upper-cased -X/--method value, "" when none is given."""
+    for index, arg in enumerate(args):
+        if arg in ("-X", "--method"):
+            return args[index + 1].upper() if index + 1 < len(args) else ""
+        if arg.startswith("--method="):
+            return arg.split("=", 1)[1].upper()
+        if arg.startswith("-X") and len(arg) > 2:
+            return arg[2:].upper()
+    return ""
+
+
+def _is_mutation(field: str) -> bool:
+    return field.startswith("query=") and field[6:].lstrip().lower().startswith("mutation")
 
 
 def _json_documents(raw: str) -> list[Any]:

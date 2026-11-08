@@ -11,6 +11,8 @@ from symbiont.miner.credential_patterns import scrub
 from symbiont.miner.tool_messages import cut_whole
 
 GIST_CHARS = 160
+# Bounds the work on a hostile or pasted-log paragraph; the gist only needs its opening.
+_PARAGRAPH_CHARS = 4000
 TEAMMATE = "a teammate"
 # Longest-first is irrelevant: logins match one product each. Order only decides ties.
 _PRODUCTS = (
@@ -20,20 +22,28 @@ _PRODUCTS = (
     ("codex", "Codex"),
     ("claude", "Claude"),
 )
-_COMMENT_OR_FENCE = re.compile(r"<!--.*?-->|```.*?(?:```|\Z)", re.DOTALL)
+_COMMENT_OR_FENCE = re.compile(r"<!--.*?(?:-->|\Z)|```.*?(?:```|\Z)", re.DOTALL)
 _INNER_DETAILS = re.compile(r"<details\b(?:(?!<details\b).)*?</details>", re.DOTALL | re.I)
 _OPEN_DETAILS = re.compile(r"<details\b.*\Z", re.DOTALL | re.I)
 # Only real HTML: a generic such as `parse::<u64>` is not a tag.
 _HTML_TAG = re.compile(
     r"</?(?:details|summary|sub|sup|img|a|br|p|div|span|b|i|em|strong|code|pre|blockquote|table"
-    r"|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|hr|picture|source)\b[^>]*>",
+    r"|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|hr|picture|source)\b[^>]{0,300}>",
     re.I,
 )
-_MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_MARKDOWN_IMAGE = re.compile(r"!\[[^\]]{0,200}\]\([^)]{0,500}\)")
 _CODE_SPAN = re.compile(r"(`[^`\n]*`)")
-_LEADING_BADGE = re.compile(r"^\W*\**P\d\b\**[:\s-]*")
+_LEADING_BADGE = re.compile(r"^\s*(?:\*\*P\d\*\*|\[P\d\]|P\d\s*[:\-\u2013\u2014])\s*")
+# A P0-P3 badge: Codex's image alt, Greptile's `<img alt>` or a leading `**P1**` / `[P1]` / `P1:`.
 _P_BADGE = re.compile(
-    r"""(?:\bP([0-3])\s+Badge|badge/P([0-3])\b|alt=["']P([0-3])["']|^\W*\**P([0-3])\b)""", re.I
+    r"""\bP([0-3])\s+Badge|badge/P([0-3])\b|alt=["']P([0-3])["']"""
+    r"""|^\s*(?:\*\*P([0-3])\*\*|\[P([0-3])\]|P([0-3])\s*[:\-\u2013\u2014])""",
+    re.I,
+)
+# A CodeRabbit marker: the word sits alone inside a `_..._` segment that starts a word.
+_MARKER = re.compile(
+    r"(?<![\w`])_[^_|\n]{0,40}?(?<![A-Za-z])(nitpick|minor|major|critical)(?![A-Za-z])[^_|\n]{0,40}_",
+    re.I,
 )
 _BADGE_SEVERITY = {"0": "critical", "1": "major", "2": "minor", "3": "nitpick"}
 _BOLD_TITLE = re.compile(r"^\*\*(.+?)\*\*")
@@ -63,11 +73,9 @@ def reviewer_name(login: str) -> str:
 def severity_of(body: str) -> Severity:
     """The severity a marker states: CodeRabbit's `_🟠 Major_` or a P0-P3 badge in the opening."""
     opening = body.lstrip()[:300]
-    first_line = opening.split("\n", 1)[0].lower()
-    if "|" in first_line or "_" in first_line:
-        marked = next((s for s in Severity if s is not Severity.UNSTATED and s in first_line), None)
-        if marked is not None:
-            return marked
+    marker = _MARKER.search(opening.split("\n", 1)[0])
+    if marker is not None:
+        return Severity(marker.group(1).lower())
     badge = _P_BADGE.search(opening)
     if badge is None:
         return Severity.UNSTATED
@@ -109,7 +117,7 @@ def _shortened(text: str) -> str:
 
 
 def _paragraph_gist(paragraph: str) -> str:
-    text = _without_markup(paragraph).strip()
+    text = _without_markup(paragraph[:_PARAGRAPH_CHARS]).strip()
     if _is_badge(text):
         return ""
     text = _LEADING_BADGE.sub("", text)
@@ -126,5 +134,6 @@ def _is_badge(text: str) -> bool:
 
 
 def _plain(text: str) -> str:
+    text = text[: 4 * GIST_CHARS]
     unemphasized = _EMPHASIS.sub(lambda match: match.group(2) or match.group(3), text)
     return " ".join(unemphasized.split())

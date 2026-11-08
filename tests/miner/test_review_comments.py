@@ -1,8 +1,9 @@
 import json
+import time
 
 from record_builders import run
 from symbiont.miner.review_comments import ReviewComment, review_comments_in
-from symbiont.miner.review_gist import Severity
+from symbiont.miner.review_gist import Severity, gist_of, severity_of
 
 GH = "gh api repos/o/r/pulls/3/comments"
 
@@ -238,3 +239,56 @@ def test_bold_title_after_a_nested_details_block():
         "</details>\n\n**Guard the empty batch.**\n\nBody."
     )
     assert _one(json.dumps([_rest("coderabbitai", body)])).gist == "Guard the empty batch."
+
+
+def _elapsed(call, argument) -> float:
+    started = time.perf_counter()
+    call(argument)
+    return time.perf_counter() - started
+
+
+def test_posting_forms_are_never_read_back():
+    out = json.dumps(_rest("someone", "Thanks."))
+    for tail in (
+        "-f 'body=thanks'",
+        '--field "body=hi"',
+        "-fbody=x",
+        "--raw-field=body=x",
+        "-F body=@reply.txt",
+        "--method=post",
+        "-XPOST",
+        "--input reply.json",
+    ):
+        assert review_comments_in(run(f"{GH} {tail}", output=out)) == (), tail
+    for command in (
+        "gh pr comment 5 --body x",
+        "gh pr review 5 --comment -b x",
+        "gh issue comment 2 -b x",
+    ):
+        assert review_comments_in(run(command, output=out)) == (), command
+
+
+def test_reads_with_query_or_get_stay_readable():
+    out = json.dumps([_rest("someone", "Fix it.")])
+    assert len(review_comments_in(run(f"{GH} -X GET -f per_page=100", output=out))) == 1
+    assert len(review_comments_in(run(f"{GH} -f 'query=query {{ x }}'", output=out))) == 1
+    assert (
+        len(review_comments_in(run("gh api repos/o/r/contents/src/mutation.ts", output=out))) == 1
+    )
+    mutation = "gh api graphql -f 'query=  mutation { addComment }'"
+    assert review_comments_in(run(mutation, output=out)) == ()
+
+
+def test_pathological_bodies_are_linear():
+    for body in ("*a " * 50000, "<!--" * 30000, "<a " * 100000, "![" * 50000):
+        assert _elapsed(gist_of, body) < 1.0, body[:6]
+
+
+def test_severity_needs_a_marker_not_a_word():
+    for body in (
+        "rename `is_critical_path` to something",
+        "_x_ the major version bump",
+        "P1 is the plan",
+    ):
+        assert severity_of(body) is Severity.UNSTATED, body
+    assert severity_of("**P1** Guard it.") is Severity.MAJOR
