@@ -27,11 +27,11 @@ CONTRAST = re.compile(
     re.IGNORECASE,
 )
 _CLAUSE_END = re.compile(r"[.!?;:\n]+|,\s|\s-\s")
-# A refusal: the openers that turn the agent away from what it did. "make sure", "remember to",
-# "always" and "don't forget" ask for more work, so a request that carries them is not pushback.
-# "(I) don't remember / know / have" describes the speaker, with the subject dropped.
+# A refusal turns the agent away; "make sure", "always" and "don't forget" ask for more work.
+# "(I) don't know / have" describes the speaker; "don't we need to…" and "don't you see…" ask.
 _SELF_STATE = (
-    r"(?! (?:forget|worry|remember|know|think|have|see|understand|mind|need|care|recall|get))"
+    r"(?! (?:forget|worry|remember|know|think|have|see|understand|mind|need|care|recall|get"
+    r"|we|you|they|i)\b)"
 )
 _REFUSALS = (
     rf"(?:never|don'?t{_SELF_STATE}|do not{_SELF_STATE}|stop (?:it|that|this|the|\w+ing)"
@@ -73,7 +73,12 @@ def instructs(text: str) -> bool:
     return any(OPENER.match(clause) for clause in clauses) or bool(CONTRAST.search(text))
 
 
+# A refusal opens its sentence: "commit, don't push yet" and "go ahead, but do not add X" are
+# requests that carry a limit, and "a PR, instead of #28" describes.
+_SENTENCE_BREAK = re.compile(r"[.!?;:\n]+")
+
+
 def refuses(text: str) -> bool:
-    """A clause that opens by turning the agent away ("don't", "never", "stop", "use X, not Y")."""
-    clauses = (clause.strip() for clause in _CLAUSE_END.split(text))
-    return any(REFUSAL.match(clause) for clause in clauses) or bool(USE_CONTRAST.search(text))
+    """A sentence that opens by turning the agent away: "don't", "never", "stop", "use X, not Y"."""
+    sentences = (sentence.strip() for sentence in _SENTENCE_BREAK.split(text))
+    return any(REFUSAL.match(sentence) for sentence in sentences) or bool(USE_CONTRAST.search(text))

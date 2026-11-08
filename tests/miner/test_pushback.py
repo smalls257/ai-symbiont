@@ -23,6 +23,8 @@ PUSHBACK = [
     "stop doing that",
     "instead of guessing, read the error first",
     "ok the tests are still failing",
+    "ok, don't push yet",
+    "the post is too long. don't use jargon",
 ]
 REQUESTS = [
     "please push and open a pr",
@@ -53,6 +55,14 @@ REQUESTS = [
     "ok the node is on local docker, not the remote host",
     "ok this is interesting, i saw it before but dont remember the details",
     "ok so finishing phase 6 needs a staging wipe and the deploy job is failing",
+    # A limit that rides on a request opens no sentence; a negative question asks.
+    "commit the changes, don't push yet",
+    "go ahead, but do not add the beta tool to the list",
+    "issue 625 points at the old repo as a pr, instead of the new one",
+    "dont we need to revert the migration too?",
+    "Don't you see any security issue with these tools?",
+    # A pasted document's ground rules are not the developer pushing back.
+    "# Agent Instructions\n\nYou run headless.\n\n## Ground rules\n\n1. Never use plan mode.",
 ]
 
 

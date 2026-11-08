@@ -81,3 +81,24 @@ def test_failure_before_an_earlier_user_turn_does_not_carry_over():
         user("dialect.py looks fine now"),
     )
     assert find_corrections(s) == []
+
+
+def test_a_file_named_only_deep_in_a_pasted_prompt_is_not_a_correction():
+    pasted = "# Agent Instructions\n\nRun the tests before you start. " + "x " * 200 + DIALECT
+    s = session(
+        user("Fix TRY_CAST for duckdb"),
+        edit(DIALECT),
+        run("pytest tests/dialects/test_duckdb.py", 1, FAILED),
+        user(pasted),
+    )
+    assert find_corrections(s) == []
+
+
+def test_a_question_after_a_failure_naming_an_edited_file_is_not_a_correction():
+    s = session(
+        user("Fix TRY_CAST for duckdb"),
+        edit(DIALECT),
+        run("pytest tests/dialects/test_duckdb.py", 1, FAILED),
+        user("What is the best way to handle the cast in dialect.py?"),
+    )
+    assert find_corrections(s) == []

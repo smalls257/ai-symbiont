@@ -28,6 +28,9 @@ _ASSENT = re.compile(
     r"|i haven'?t|nothing|worries|problem|all set|we'?re good)\b",
     re.IGNORECASE,
 )
+# A turn that opens with a markdown heading is a pasted document (an orchestrator's prompt, a
+# plan); its "Never use interactive commands" is a ground rule, not the developer pushing back.
+_PASTED_DOCUMENT = re.compile(r"^\s*#{1,6}\s")
 _PHRASE = re.compile(
     r"\b(?:you|that|this) (?:forgot|missed|broke|didn'?t|did not|failed to)\b"
     r"|\bnot what i\b|\bi (?:said|asked|told you)\b"
@@ -39,6 +42,8 @@ _PHRASE = re.compile(
 
 def pushes_back(text: str) -> bool:
     """True when the first lines refuse, undo, restate or report a failure; a request is not."""
+    if _PASTED_DOCUMENT.match(text):
+        return False
     head = _after_assenting_opener(text[:INSPECTED_CHARS].translate(QUOTES))
     if _OPENER.match(head) or _PHRASE.search(head):
         return True
