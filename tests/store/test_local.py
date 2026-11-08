@@ -98,6 +98,7 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
         "ignored",
         "triage",
         "incidents",
+        "rule_candidates",
     }
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
     # The user's request survives only as the bounded `asked` field (CONTEXT_CHARS).

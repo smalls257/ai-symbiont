@@ -14,6 +14,7 @@ from symbiont.miner.incidents import incidents_from
 from symbiont.miner.lessons import Lesson, lessons_from, resolution_coverage
 from symbiont.miner.mine import mine_history, sessions_of
 from symbiont.miner.representatives import representative_strips
+from symbiont.miner.rule_candidates import find_rule_candidates
 from symbiont.miner.screen import ScreenRules, screen
 from symbiont.miner.struggle import facts_of
 from symbiont.miner.themes import Codebase, codebase_vocabulary
@@ -95,6 +96,7 @@ def mined_outcome(records: Sequence[Record], rules: MiningRules, project: str) -
         strips,
         rules.screen.min_sessions,
         cards,
+        [c for session in sessions for c in find_rule_candidates(session)],
     )
 
 

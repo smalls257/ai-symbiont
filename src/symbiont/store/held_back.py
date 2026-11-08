@@ -16,6 +16,7 @@ from symbiont.miner.churn import FileChurn
 from symbiont.miner.incident_types import Incident
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.rule_candidates import RuleCandidate
 from symbiont.miner.screen import HoldReason
 from symbiont.miner.strips import SessionStrip
 from symbiont.miner.struggle import SessionFacts
@@ -23,6 +24,9 @@ from symbiont.miner.trained import refuse_held_out_lessons
 from symbiont.store.incident_rows import SCHEMA as INCIDENT_SCHEMA
 from symbiont.store.incident_rows import incident_from_json, incident_row
 from symbiont.store.lesson_rows import lesson_row
+from symbiont.store.rule_rows import SCHEMA as RULE_SCHEMA
+from symbiont.store.rule_rows import TABLES as RULE_TABLES
+from symbiont.store.rule_rows import insert_rule_candidates, read_rule_candidates
 from symbiont.store.struggle_rows import TABLES as STRUGGLE_TABLES
 from symbiont.store.struggle_rows import insert_struggle, read_facts, read_strips
 
@@ -47,6 +51,7 @@ CREATE TABLE IF NOT EXISTS churn (
 );
 """
     + INCIDENT_SCHEMA
+    + RULE_SCHEMA
 )
 # Every table a mining run replaces for its project, in one transaction.
 REPLACED_TABLES = (
@@ -57,6 +62,7 @@ REPLACED_TABLES = (
     "churn",
     "incidents",
     *STRUGGLE_TABLES,
+    *RULE_TABLES,
 )
 # Plain words for the terminal and the dashboard; the reason's value is for storage only.
 REASON_WORDS = {
@@ -93,6 +99,8 @@ class MiningOutcome:
     min_sessions: int | None = None
     # A plain-language card per failed command or correction (kept, held and struggle alike).
     incidents: list[Incident] = field(default_factory=list)
+    # User turns that may state a standing rule, grouped on read by shared terms.
+    rule_candidates: list[RuleCandidate] = field(default_factory=list)
 
 
 def struggle_groups(struggle: Sequence[Lesson]) -> list[StruggleGroup]:
@@ -181,6 +189,7 @@ class MiningLedger:
                 [incident_row(project, card) for card in outcome.incidents],
             )
             insert_struggle(db, project, outcome.facts, outcome.strips)
+            insert_rule_candidates(db, project, outcome.rule_candidates)
             if outcome.min_sessions is not None:
                 db.execute(
                     "INSERT INTO mining_settings VALUES (?, ?)", (project, outcome.min_sessions)
@@ -210,6 +219,10 @@ class MiningLedger:
             StruggleGroup(Signature(Signal(signal), tuple(json.loads(key))), sessions, occurrences)
             for signal, key, sessions, occurrences in rows
         ]
+
+    def rule_candidates(self, project: str) -> list[RuleCandidate]:
+        """The turns of the last mining that may state a standing rule."""
+        return read_rule_candidates(self._db, project)
 
     def churn(self, project: str) -> list[FileChurn]:
         """Edits per file per session, from the last mining."""
