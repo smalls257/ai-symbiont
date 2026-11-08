@@ -15,10 +15,14 @@ PUSHBACK = [
     "that's not what I asked",
     "I said use the staging branch",
     "it's still failing on CI",
-    "the checkbox should always be displayed",
+    "you should never push straight to main",
+    "use pnpm, not npm",
+    "ok please stop the dev server, you started it twice",
     "never commit scratch files",
     "that broke the build",
     "stop doing that",
+    "instead of guessing, read the error first",
+    "ok the tests are still failing",
 ]
 REQUESTS = [
     "please push and open a pr",
@@ -35,6 +39,20 @@ REQUESTS = [
     "Don't worry about it",
     "please stop by the docs later",
     "I'm AFK, just commit",
+    # A request that carries a reminder is still a request: reminders are not refusals.
+    "please update the docs with the container details. make sure to list the ports",
+    "yeah lets remove the old stores. dont forget about the branch being merged",
+    "yes please implement this change, don't forget to run the tests",
+    "please remember to revert when we are done",
+    "the checkbox should always be displayed, not only when selection is active",
+    "ok i think its safe to stop the api now",
+    "you can stop the various review scripts",
+    "always run the linter before you commit",
+    # A contrast or a "don't" that describes, and a status report, are not refusals.
+    "i want to discuss the scope, we could ship auth instead of search first",
+    "ok the node is on local docker, not the remote host",
+    "ok this is interesting, i saw it before but dont remember the details",
+    "ok so finishing phase 6 needs a staging wipe and the deploy job is failing",
 ]
 
 

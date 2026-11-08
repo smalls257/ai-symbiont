@@ -2,12 +2,13 @@
 
 The SWE-chat dataset labels a third of typed messages "correction" ("please push and open a
 pr"); only wording that refuses, undoes, restates or reports a failure is a real correction.
-Reuses the rule wording of `rule_language`. Pure: text in, verdict out.
+A rule-shaped clause counts only when it refuses ("don't", "never", "stop"); a reminder
+("make sure", "don't forget") rides along with a request. Pure: text in, verdict out.
 """
 
 import re
 
-from symbiont.miner.rule_language import NOT_A_RULE, QUOTES, instructs
+from symbiont.miner.rule_language import NOT_A_RULE, QUOTES, refuses
 
 # Past this, a pasted log or file is talking, not the developer.
 INSPECTED_CHARS = 300
@@ -30,9 +31,8 @@ _ASSENT = re.compile(
 _PHRASE = re.compile(
     r"\b(?:you|that|this) (?:forgot|missed|broke|didn'?t|did not|failed to)\b"
     r"|\bnot what i\b|\bi (?:said|asked|told you)\b"
-    r"|\b(?:still|is|are) (?:failing|broken|not working)\b"
-    r"|\b(?:does|did)n'?t work\b|\bplease (?:revert|undo)\b"
-    r"|\bshould (?:always|never) \w+|\bstop (?:it|that|this|the|\w+ing)\b",
+    r"|\bstill (?:failing|broken|not working)\b|\b(?:is|are) not working\b"
+    r"|\b(?:does|did)n'?t work\b|\bplease (?:revert|undo)\b",
     re.IGNORECASE,
 )
 
@@ -42,7 +42,7 @@ def pushes_back(text: str) -> bool:
     head = _after_assenting_opener(text[:INSPECTED_CHARS].translate(QUOTES))
     if _OPENER.match(head) or _PHRASE.search(head):
         return True
-    return instructs(NOT_A_RULE.sub(" ", head))
+    return refuses(NOT_A_RULE.sub(" ", head))
 
 
 def _after_assenting_opener(head: str) -> str:

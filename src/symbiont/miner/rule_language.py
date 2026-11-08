@@ -19,11 +19,29 @@ _OPENERS = (
 )
 _LEAD_IN = r"(?:(?:please|also|and|but|so|then|ok|okay|now|just|yeah|oh)\b[,\s]*)*"
 OPENER = re.compile(rf"^{_LEAD_IN}{_OPENERS}\b", re.IGNORECASE)
+# "not only", "not just", "not yet" widen or delay; they do not name the thing to avoid.
+_NOT_A_CONTRAST = r"(?!(?:only|just|yet|sure|really|necessarily|always)\b)"
 CONTRAST = re.compile(
-    rf"\binstead of\b|\buse {ITEM},? not {ITEM}|{ITEM}, not {ITEM}",
+    rf"\binstead of\b|\buse {ITEM},? not {_NOT_A_CONTRAST}{ITEM}"
+    rf"|{ITEM}, not {_NOT_A_CONTRAST}{ITEM}",
     re.IGNORECASE,
 )
 _CLAUSE_END = re.compile(r"[.!?;:\n]+|,\s|\s-\s")
+# A refusal: the openers that turn the agent away from what it did. "make sure", "remember to",
+# "always" and "don't forget" ask for more work, so a request that carries them is not pushback.
+# "(I) don't remember / know / have" describes the speaker, with the subject dropped.
+_SELF_STATE = (
+    r"(?! (?:forget|worry|remember|know|think|have|see|understand|mind|need|care|recall|get))"
+)
+_REFUSALS = (
+    rf"(?:never|don'?t{_SELF_STATE}|do not{_SELF_STATE}|stop (?:it|that|this|the|\w+ing)"
+    r"|no more|avoid|you (?:should|must)(?:n'?t| not| never) \w+|instead\b)"
+)
+REFUSAL = re.compile(rf"^{_LEAD_IN}{_REFUSALS}\b", re.IGNORECASE)
+# The one contrast that is itself an instruction; "docker, not the host" mid-sentence describes.
+USE_CONTRAST = re.compile(
+    rf"(?:^|[.!?;\n]\s*){_LEAD_IN}use {ITEM},? not {_NOT_A_CONTRAST}{ITEM}", re.IGNORECASE
+)
 # Phrases that contain a directive word without stating a rule; blanked before the directive
 # test so "never mind, always use pnpm" still counts. "never moved" is a past participle (a
 # description of what happened); "should be able to" and "should have" are hedges.
@@ -53,3 +71,9 @@ def instructs(text: str) -> bool:
     """A clause that opens with directive wording, or a contrast such as "use X, not Y"."""
     clauses = (clause.strip() for clause in _CLAUSE_END.split(text))
     return any(OPENER.match(clause) for clause in clauses) or bool(CONTRAST.search(text))
+
+
+def refuses(text: str) -> bool:
+    """A clause that opens by turning the agent away ("don't", "never", "stop", "use X, not Y")."""
+    clauses = (clause.strip() for clause in _CLAUSE_END.split(text))
+    return any(REFUSAL.match(clause) for clause in clauses) or bool(USE_CONTRAST.search(text))
