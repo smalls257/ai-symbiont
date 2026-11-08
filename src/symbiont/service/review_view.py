@@ -6,6 +6,7 @@ follows the group's member comments, not only its key, because a re-mine can ren
 Gists are scrubbed here again.
 """
 
+import hashlib
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import date
@@ -31,6 +32,8 @@ MAX_LISTED = 5
 SOURCE = "review_flag"
 SENTENCE_END = (".", "!", "?")
 Ref = tuple[str, int]
+# One fetch shows many comments at one step, so a comment's ref also carries a digest of its key.
+_KEY_DIGEST_CHARS = 12
 
 
 @dataclass(frozen=True)
@@ -41,9 +44,14 @@ class ReviewGroup:
     members: tuple[Lesson, ...]
 
     @property
-    def refs(self) -> tuple[Ref, ...]:
-        """The (session, step) of each distinct comment."""
+    def places(self) -> tuple[Ref, ...]:
+        """The (session, step) each comment was seen at; one fetch is one place for many."""
         return tuple(sorted({_ref(m) for m in self.members}))
+
+    @property
+    def refs(self) -> tuple[Ref, ...]:
+        """One ref per comment, `(session#key digest, step)`: what a dismissal remembers."""
+        return tuple(sorted({_comment_ref(m) for m in self.members}))
 
 
 def reviews_listing(store: Store, project: str, dates: Mapping[str, date]) -> dict[str, Any]:
@@ -60,7 +68,7 @@ def stored_review_refs(store: Store, project: str, key: str) -> tuple[Ref, ...]:
 
 
 def review_member_refs(lessons: Sequence[Lesson], key: str) -> tuple[Ref, ...]:
-    """The (session, step) of each comment in the group `key`; () for an unknown key."""
+    """The ref of each comment in the group `key` (`ReviewGroup.refs`); () for an unknown key."""
     return next((g.refs for g in review_groups(lessons) if g.key == key), ())
 
 
@@ -95,6 +103,11 @@ def _ref(lesson: Lesson) -> Ref:
     return (lesson.pain_point.session_id, lesson.pain_point.step)
 
 
+def _comment_ref(lesson: Lesson) -> Ref:
+    digest = hashlib.sha256("|".join(_key_tuple(lesson)).encode("utf-8")).hexdigest()
+    return (f"{lesson.pain_point.session_id}#{digest[:_KEY_DIGEST_CHARS]}", lesson.pain_point.step)
+
+
 def _key_tuple(lesson: Lesson) -> tuple[str, ...]:
     return lesson.pain_point.signature.key
 
@@ -118,12 +131,12 @@ def _key_of(members: Sequence[Lesson]) -> str:
 
 def _item(group: ReviewGroup, dates: Mapping[str, date]) -> dict[str, Any]:
     keys = [_key_tuple(m) for m in group.members]
-    days = sorted(dates[sid] for sid, _ in group.refs if sid in dates)
+    days = sorted(dates[sid] for sid, _ in group.places if sid in dates)
     return {
         "key": group.key,
         "gist": _quote(_headline([k[2] for k in keys])),
         "count": len(group.members),
-        "sessions": len({sid for sid, _ in group.refs}),
+        "sessions": len({sid for sid, _ in group.places}),
         "reviewers": sorted({k[1] for k in keys}),
         "files": _distinct(sorted(k[0] for k in keys)),
         "fixedBy": _distinct(_edited(m) for m in group.members),

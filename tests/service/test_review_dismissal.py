@@ -61,3 +61,18 @@ def test_a_dismissed_group_stays_dismissed_after_a_re_mine_adds_an_older_member(
     store_lessons(tmp_path, [older, *NULLS])
     shown = reviews_on_page(service)
     assert shown["groups"] == [] and shown["dismissed"] == 1
+
+
+def test_dismissing_one_group_leaves_another_from_the_same_fetch_shown(tmp_path):
+    nulls = flag("s1", 5, "Possible null dereference when the batch is empty")
+    rename = flag("s1", 5, "Rename the retry timeout constant", path="src/retry.ts")
+    store_lessons(tmp_path, [nulls, rename])
+    service = rig(tmp_path)
+    groups = reviews_on_page(service)["groups"]
+    target = next(g for g in groups if "null" in g["gist"])
+    body = {"project": PROJECT, "group_key": target["key"], "state": "archived"}
+    reply = service.respond("/triage", body | {"return_rule": "never"})
+    assert reply.status == 200
+    shown = reviews_on_page(service)
+    assert [g["gist"] for g in shown["groups"]] == ["Rename the retry timeout constant"]
+    assert shown["dismissed"] == 1

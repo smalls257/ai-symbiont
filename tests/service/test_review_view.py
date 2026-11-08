@@ -82,13 +82,15 @@ def test_a_dismissed_group_is_left_out_and_counted():
 
 
 def test_a_dismissal_survives_a_re_mine_that_renames_the_group():
-    earlier = {"review:old-key": frozenset({("s1", 3), ("s2", 4)})}
+    key = snapshot(NULLS)["groups"][0]["key"]
+    earlier = {"review:old-key": frozenset(review_member_refs(NULLS, key))}
     shown = snapshot(NULLS, Triaged(dismissed=["review:old-key"], members=earlier))
     assert shown["groups"] == [] and shown["dismissed"] == 1
 
 
 def test_one_shared_member_does_not_carry_a_dismissal_to_an_unrelated_group():
-    earlier = {"review:old-key": frozenset({("s3", 1)})}
+    other_key = snapshot([OTHER])["groups"][0]["key"]
+    earlier = {"review:old-key": frozenset(review_member_refs([OTHER], other_key))}
     shown = snapshot([OTHER, *NULLS], Triaged(dismissed=["review:old-key"], members=earlier))
     assert [g["count"] for g in shown["groups"]] == [2]
 
@@ -113,8 +115,18 @@ def test_a_credential_in_a_gist_never_reaches_the_snapshot():
 
 def test_member_refs_name_the_comments_a_group_stands_for_and_nothing_for_an_unknown_key():
     key = snapshot(NULLS)["groups"][0]["key"]
-    assert review_member_refs(NULLS, key) == (("s1", 3), ("s2", 4))
+    refs = review_member_refs(NULLS, key)
+    assert [(sid.split("#")[0], step) for sid, step in refs] == [("s1", 3), ("s2", 4)]
+    assert all("#" in sid for sid, _ in refs)
     assert review_member_refs(NULLS, "review:none") == ()
+
+
+def test_two_comments_of_one_fetch_have_different_refs():
+    nulls = flag("s1", 5, "Possible null dereference when the batch is empty")
+    rename = flag("s1", 5, "Rename the retry timeout constant", path="src/retry.ts")
+    keys = [g["key"] for g in snapshot([nulls, rename])["groups"]]
+    refs = [review_member_refs([nulls, rename], key) for key in keys]
+    assert len(refs) == 2 and not set(refs[0]) & set(refs[1])
 
 
 def test_six_hundred_comments_group_well_under_a_second():
