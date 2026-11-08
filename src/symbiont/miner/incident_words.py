@@ -11,6 +11,7 @@ from symbiont.miner.fix_words import command_name
 from symbiont.miner.resolutions import NOTHING_CHANGED, ONLY_UNRELATED_CHANGED, PASSED_RESPELLED
 from symbiont.miner.screen import INLINE_TARGET
 from symbiont.miner.secrets import scrub
+from symbiont.miner.shown_paths import plain_paths
 from symbiont.miner.working_command import working_command
 
 QUOTE_CHARS = 160
@@ -54,8 +55,8 @@ def quoted_words(text: str) -> str:
 
 
 def said_line(text: str, limit: int) -> str:
-    """The developer's own words on one line: reminders cut out, scrubbed, cut on a word."""
-    flat = scrub(" ".join(REMINDER.sub(" ", text).split()))
+    """The developer's own words on one line: no reminders, secrets or home paths; cut on a word."""
+    flat = plain_paths(scrub(" ".join(REMINDER.sub(" ", text).split())))
     if len(flat) <= limit:
         return flat
     return flat[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,(") + "…"

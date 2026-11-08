@@ -19,7 +19,9 @@ def review_note(lesson: Lesson) -> str:
     ended = story_of(lesson).ended
     ending = f"Last time: {ended}." if ended else "No fix was found in the history."
     room = NOTE_CHARS - len(ending) - len(flagged(signature, "")) - len(": . ")
-    return f"{flagged(signature, _cut_point(_point(signature), room))}. {ending}"
+    said = flagged(signature, _cut_point(_point(signature), room))
+    # A long path and a long fix can overflow with no point left to cut: the fix gives way last.
+    return f"{said}. {_cut_point(ending, NOTE_CHARS - len(said) - len('. '))}"
 
 
 def review_warning(signature: Signature, count: int) -> str:

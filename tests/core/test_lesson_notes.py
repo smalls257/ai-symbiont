@@ -209,3 +209,60 @@ def test_a_command_after_a_correction_never_shows_a_home_directory():
     )
     note = render_lesson(told)
     assert "/home/" not in note and "dev/" not in note and "git checkout -- a.md" in note
+
+
+def test_a_reply_or_a_status_report_is_never_the_work_a_correction_interrupted():
+    for asked in (
+        "yes, Option A",
+        "yes, proceed",
+        "yes, proceed. then run the full review loop on it",
+        "1",
+        "1. Go ahead",
+        "all good, i am logged in now",
+        "✓ 309 [auth] › e2e/specs/auth.spec.js:748 › Login page redirects",
+        'receiving: { "status": "unsupported" } whats happening',
+    ):
+        note = render_lesson(_correction("no, keep cents", asked=asked))
+        assert note.startswith("The developer"), asked
+
+
+def test_an_ok_before_the_request_is_dropped_from_the_while_clause():
+    note = render_lesson(_correction("no, keep cents", asked="ok can we get back to main"))
+    assert note.startswith("While can we get back to main: the developer pushed back")
+
+
+def test_a_request_said_again_as_the_pushback_is_not_repeated():
+    said = "ok please revert the config flag change, push this and create a PR"
+    asked = "ok please revert the config flag change, push this to remote"
+    assert render_lesson(_correction(said, asked=asked)).startswith("The developer")
+
+
+def test_a_short_pushback_is_told_as_a_story_too():
+    note = render_lesson(_correction("still failing", asked="Fix the login e2e test"))
+    assert note == (
+        "While Fix the login e2e test: the developer pushed back: “still failing”. "
+        "Then the agent edited release.yml."
+    )
+
+
+def test_a_multi_line_command_after_a_correction_reads_as_one_line():
+    loop = "cd app\nfor f in \\\n  a.md \\\n  b.md; do git mv $f done/; done"
+    heredoc = "python3 << 'EOF'\nimport os\nprint(os.getcwd())\nEOF"
+    for command, shown in (
+        (loop, "`cd app; for f in a.md b.md; do git mv $f done/; done`"),
+        (heredoc, "`python3 << 'EOF' …`"),
+        ("gh api graphql -f query='\n{ repository { id } }\n'", "`gh api graphql -f query=' …`"),
+    ):
+        told = replace(
+            _correction("no, move them by hand", resolution=("ran git mv",)),
+            fix_commands=(command,),
+        )
+        assert render_lesson(told).endswith(f"Then the agent ran {shown}.")
+
+
+def test_a_long_path_and_a_long_fix_still_fit_the_note_cap():
+    path = ".planning/todos/pending/" + "-".join(["upload"] * 18) + ".md"
+    key = (path, "Copilot", "x")
+    fix = ("edited " + "-".join(["upload"] * 18) + ".md (added `un-skip the badge test`)",)
+    note = render_lesson(lesson(Signature(Signal.REVIEW_FLAG, key), resolution=fix))
+    assert len(note) <= 300 and note.startswith(f"Copilot flagged `{path}`")
