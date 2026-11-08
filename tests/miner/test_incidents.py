@@ -277,7 +277,7 @@ def test_an_install_between_failure_and_pass_is_an_environment_fix():
         fix=FixKind.CORRECTED_COMMAND, reason=None,
     )  # fmt: skip
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
-    assert card.noise is None
+    assert card.noise is NoiseReason.FIXED_RIGHT_AWAY  # one step: the agent knew the fix
     assert card.what_fixed_it == "Fixed the setup: ran `pip install requests`."
 
 
@@ -300,7 +300,7 @@ def test_an_unrecognized_setup_command_still_counts_as_the_setup():
         [command(2, "docker compose up -d", exit_code=0)], key=("python", "app.py", "OSError")
     )
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
-    assert card.noise is None
+    assert card.noise is NoiseReason.FIXED_RIGHT_AWAY
     assert card.what_fixed_it == "Fixed the setup: ran `docker compose up -d`."
 
 
@@ -354,3 +354,50 @@ def test_a_setup_step_keeps_its_repo_relative_path():
 
     sentence = setup_sentence("rm /home/dev/Code/app/.git/index.lock", frozenset({"app"}))
     assert sentence == "Fixed the setup: ran `rm .git/index.lock`."
+
+
+def test_a_setup_that_took_the_agent_more_than_one_step_is_worth_a_look():
+    card = _passing_after([command(2, "pip install requests", 0), command(3, "pip install x", 0)])
+    assert card.outcome is Outcome.ENVIRONMENT_FIXED and card.noise is None
+
+
+def test_a_fix_chained_into_the_passing_run_was_fixed_right_away():
+    records = [command(1, "python app.py"), command(2, "rm -f x.lock && python app.py", 0)]
+    lesson = failure(("python", "app.py", "OSError"), unresolved_because=NOTHING_CHANGED)
+    (card,) = cards([lesson], records)
+    assert card.noise is NoiseReason.FIXED_RIGHT_AWAY
+
+
+def test_a_one_edit_code_fix_is_never_called_fixed_right_away():
+    records = [command(1, "python app.py"), edit(2, "app.py"), command(3, "python app.py", 0)]
+    lesson = failure(
+        ("python", "app.py", "OSError"), resolution=("edited app.py",), fix=FixKind.CODE_FIX,
+        unresolved_because=None,
+    )  # fmt: skip
+    (card,) = cards([lesson], records)
+    assert card.noise is not NoiseReason.FIXED_RIGHT_AWAY
+
+
+def test_a_setup_taken_first_counts_as_right_away_when_the_retry_broke_another_way():
+    records = [
+        command(1, "python app.py", raw="OSError: x.lock exists"),
+        command(2, "rm -f x.lock", 0),
+        command(3, "python app.py", raw="ValueError: bad config"),
+        command(4, "python app.py", 0),
+    ]
+    lesson = failure(("python", "app.py", "OSError"), unresolved_because=None)
+    (card,) = cards([lesson], records)
+    assert card.noise is NoiseReason.FIXED_RIGHT_AWAY
+
+
+def test_a_first_step_that_did_not_take_is_not_right_away():
+    records = [
+        command(1, "python app.py", raw="OSError: x.lock exists"),
+        command(2, "rm -f y.lock", 0),
+        command(3, "python app.py", raw="OSError: x.lock exists"),
+        command(4, "rm -f x.lock", 0),
+        command(5, "python app.py", 0),
+    ]
+    lesson = failure(("python", "app.py", "OSError"), unresolved_because=None)
+    (card,) = cards([lesson], records)
+    assert card.noise is not NoiseReason.FIXED_RIGHT_AWAY

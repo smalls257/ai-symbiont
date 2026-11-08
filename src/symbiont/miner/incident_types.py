@@ -18,6 +18,7 @@ class NoiseReason(StrEnum):
         "deliberate_repro"  # a throwaway script failed, the code was edited, it passed
     )
     PLAIN_RETRY = "plain_retry"  # passed when run again with nothing changed
+    FIXED_RIGHT_AWAY = "fixed_right_away"  # the agent's next step fixed it: nothing to teach
     EMPTY_CORRECTION = "empty_correction"
 
 

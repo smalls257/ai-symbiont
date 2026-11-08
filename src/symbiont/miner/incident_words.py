@@ -148,5 +148,6 @@ NOISE_PHRASES = {  # keyed by NoiseReason value; the enum lives in incidents.py
     "throwaway_script": "the agent's own throwaway script: its name repeats, its problem does not",
     "deliberate_repro": "the agent wrote a script to reproduce a bug, then fixed the code",
     "plain_retry": "it passed when run again with nothing worth learning changed",
+    "fixed_right_away": "the agent fixed it with its next step",
     "empty_correction": "an acknowledgment or a slash command, not a correction",
 }

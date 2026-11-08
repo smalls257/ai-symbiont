@@ -13,6 +13,7 @@ const RULES={
   look_around:{kind:"failure",unit:"failure",why:"A search or listing that found nothing (exit 1). Finding nothing is an answer, not a mistake.",returns:"Comes back if a look-around fails in 5 sessions within a week and blocks an edit."},
   empty_correction:{kind:"correction",unit:"message",why:"“ok”, “please continue”, “1”, “/compact”: a nudge with nothing to learn from.",returns:"Never returns."},
   plain_retry:{kind:"failure",unit:"failure",why:"The same command passed when run again with no edit in between (network blips, rate limits, a race).",returns:"Comes back if a retry stops passing."},
+  fixed_right_away:{kind:"failure",unit:"failure",why:"The agent fixed it with its very next step (removed a stale lock, installed a package, fixed a path). It already knows the fix; a lesson would save one step.",returns:"Comes back if the fix takes the agent more than one step."},
   throwaway_script:{kind:"failure",unit:"failure",why:"An inline script the agent wrote and fixed itself. It never touched your code.",returns:"Comes back if a script inside the repo fails, not an inline one."},
   deliberate_repro:{kind:"failure",unit:"failure",why:"The agent ran a test or script it expected to fail, to prove the bug before fixing it.",returns:"Comes back if it is still failing after the fix."}
 };

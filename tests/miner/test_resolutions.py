@@ -224,3 +224,13 @@ def test_a_name_value_argument_is_not_the_subcommand():
     from symbiont.miner.resolutions import subcommand_of
 
     assert subcommand_of("make CC=gcc test") == "test"
+
+
+def test_a_pass_chained_after_a_fix_step_is_the_same_attempt():
+    from symbiont.miner.resolutions import later_success_of
+
+    failed = run("git add a.ts", 128, "fatal: Unable to create '.git/index.lock': File exists.")
+    s = session(failed, run("rm -f .git/index.lock && git add a.ts", 0, ""))
+    assert later_success_of(s[0], s) is s[1]
+    other = session(failed, run("rm -f .git/index.lock && git commit -m x", 0, ""))
+    assert later_success_of(other[0], other) is None

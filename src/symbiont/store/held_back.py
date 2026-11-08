@@ -71,6 +71,7 @@ REASON_WORDS = {
     HoldReason.THROWAWAY_SCRIPT: "a throwaway script (its name repeats, its problem does not)",
     HoldReason.NO_MESSAGE: "no message to tell them apart",
     HoldReason.PROBE_COMMAND: "look-around commands",
+    HoldReason.FIXED_RIGHT_AWAY: "fixed by the agent's next step",
     HoldReason.TOO_FEW_SESSIONS: "seen in too few sessions",
 }
 

@@ -12,6 +12,7 @@ from dataclasses import dataclass
 from enum import StrEnum
 
 from symbiont.miner.failure_keys import is_bare_exit
+from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.probes import PROBES
@@ -19,6 +20,10 @@ from symbiont.miner.probes import PROBES
 # A correction or a reviewer's flag is a person speaking: one is enough, and it is never held.
 # A loop is the agent repeating itself inside one session: once is already the finding.
 EXEMPT_SIGNALS = frozenset({Signal.CORRECTION, Signal.REVIEW_FLAG, Signal.LOOP})
+# One fixing step and the re-run that passed: the agent already knew the fix, so there is nothing
+# to teach. 0 means a store from before steps were counted, never "instant". Only a fix that left
+# the code alone counts: an edit to the codebase may carry what the code needs.
+QUICK_FIX_STEPS = 2
 # The target a script typed into the command shares (`python -c`, `python - <<EOF`).
 INLINE_TARGET = "<inline>"
 
@@ -31,6 +36,7 @@ class HoldReason(StrEnum):
     NO_MESSAGE = "no_message"
     PROBE_COMMAND = "probe_command"
     THROWAWAY_SCRIPT = "throwaway_script"
+    FIXED_RIGHT_AWAY = "fixed_right_away"
     TOO_FEW_SESSIONS = "too_few_sessions"
 
 
@@ -132,7 +138,13 @@ def _failed_command_reason(
         return HoldReason.PROBE_COMMAND
     if signature.key[1] == INLINE_TARGET or all(lesson.target_created for lesson in fixed):
         return HoldReason.THROWAWAY_SCRIPT
+    if all(_fixed_right_away(lesson) for lesson in fixed):
+        return HoldReason.FIXED_RIGHT_AWAY
     return _too_few_sessions(fixed, rules)
+
+
+def _fixed_right_away(lesson: Lesson) -> bool:
+    return lesson.fix is FixKind.CORRECTED_COMMAND and 0 < lesson.fix_steps <= QUICK_FIX_STEPS
 
 
 def _taught(signature: Signature, group: Sequence[Lesson]) -> list[Lesson]:

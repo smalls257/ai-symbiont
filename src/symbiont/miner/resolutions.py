@@ -8,11 +8,12 @@ never names are reported alongside. A wrong invocation's fix is the corrected co
 """
 
 import re
+import shlex
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.changes import applied_edit, changes_workspace
-from symbiont.miner.commands import normalise_command, program_words
+from symbiont.miner.commands import command_stages, normalise_command, program_words
 from symbiont.miner.diffs import added_lines, removed_lines
 from symbiont.miner.failure_keys import is_invocation_failure
 from symbiont.miner.painpoint import PainPoint, Signal
@@ -152,13 +153,21 @@ def later_success_of(failed: Record, records: Sequence[Record]) -> Record | None
 
 
 def _same_attempt(failed: Record, later: Record) -> bool:
-    """A pass of the same program, subcommand and target."""
+    """A pass of the same program, subcommand and target, alone or chained after a fix step."""
     if later.exit_code != 0:
         return False
-    return (normalise_command(later.command or ""), subcommand_of(later.command or "")) == (
-        normalise_command(failed.command or ""),
-        subcommand_of(failed.command or ""),
-    )
+    wanted = _attempt_of(failed.command or "")
+    return any(_attempt_of(step) == wanted for step in _chained_steps(later.command or ""))
+
+
+def _attempt_of(command: str) -> tuple[str, str]:
+    return (normalise_command(command), subcommand_of(command))
+
+
+def _chained_steps(command: str) -> list[str]:
+    """The command, then each step it runs: `rm x.lock && git add a` holds `git add a`."""
+    stages = command_stages(command)
+    return [command, *(shlex.join((s.program, *s.args)) for s in stages if len(stages) > 1)]
 
 
 # Shared by `subcommand_of` and `read_only`; `-c` is skipped as a flag with a value for every
