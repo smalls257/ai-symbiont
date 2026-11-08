@@ -129,6 +129,6 @@ def test_an_old_stored_row_reads_plain_on_the_note_and_the_card():
 def test_short_real_corrections_stay_and_slash_commands_and_agreement_do_not():
     from symbiont.miner.signals.correction import find_corrections
 
-    texts = ["use pnpm", "wrong file", "/compact", "/clear now", "ok", "thanks", "go on", ""]
+    texts = ["no, use pnpm", "wrong file", "/compact", "/clear now", "ok", "thanks", "go on", ""]
     turns = session(*[user(text, tags=("correction",)) for text in texts])
     assert [pain.step for pain in find_corrections(turns)] == [0, 1]
