@@ -208,3 +208,7 @@ dialog.teach #teachErr{color:var(--rd);font-size:.95rem}
 .rrow .rquotes{margin:.45rem 0 0;padding-left:1.1rem;color:var(--mu);font-size:.92rem}
 .rrow .rquotes a{color:inherit}
 .rrow .stnote{grid-column:1/-1}
+.rrow .gacts{align-self:start;align-items:flex-start;margin-top:0}
+.rrow .why{margin-top:.15rem}
+#inRules[hidden]{display:none}
+#inPossible .sub{margin:.6rem 0 0}

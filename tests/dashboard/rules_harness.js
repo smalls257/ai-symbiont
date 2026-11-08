@@ -38,47 +38,57 @@ const item = (key, over) => ({
 });
 const items = (n) => Array.from({ length: n }, (_, i) => item("rule:s" + i + ":1", { text: "Rule " + i }));
 
-function fixture(rules, triage = {}) {
-  const holder = { innerHTML: "" };
-  let handler = null;
-  holder.addEventListener = (type, fn) => { if (type === "click") handler = fn; };
-  const container = { querySelector: (sel) => (sel === "#inRules" ? holder : null) };
-  const ui = { container, project: "my repo", data: { rules, triage }, $: (sel) => (sel === "#inRules" ? holder : null) };
+function fixture(rules, triage = {}, open = []) {
+  const top = { innerHTML: "", hidden: false, handler: null };
+  const box = { innerHTML: "", handler: null };
+  for (const holder of [top, box]) holder.addEventListener = (type, fn) => { if (type === "click") holder.handler = fn; };
+  const container = { querySelector: () => null };
+  const ids = { "#inRules": top, "#inPossibleBox": box };
+  const ui = { container, project: "my repo", data: { rules, triage }, open: new Set(open), $: (sel) => ids[sel] };
   Rules.mount(ui);
   const settle = () => new Promise((resolve) => setTimeout(resolve, 20));
-  const click = async (rule, kind) => { handler({ target: { closest: (sel) => (sel === "button[data-r]" ? {
-    dataset: { r: kind }, closest: () => ({ dataset: { rule } }) } : null) } }); await settle(); };
-  return { ui, holder, click };
+  const click = async (rule, kind, holder = top) => {
+    const button = { dataset: { r: kind }, closest: (sel) => (sel === "#inPossibleBox" ? (holder === box ? box : null) : { dataset: { rule } }) };
+    holder.handler({ target: { closest: (sel) => (sel === "button[data-r]" ? button : null) } });
+    await settle();
+  };
+  return { ui, top, box, click, redraw: () => Rules.draw(ui) };
 }
 
 (async () => {
-  const one = fixture({ confirmed: true, items: [item("rule:s2:3")] });
-  const guess = fixture({ confirmed: false, items: [item("rule:g:1", { confirmed: false, text: "use pnpm" })] });
+  const guessItem = (key, over) => item(key, { confirmed: false, text: "use pnpm", ...over });
+  const one = fixture({ confirmed: true, items: [item("rule:s2:3")], dismissed: 2 });
   const area = fixture({ confirmed: true, items: [item("rule:a:1", { scope: "area", area: "web/" })] });
   const hostile = fixture({ confirmed: true, items: [item("rule:h:1", {
     text: HOSTILE, area: HOSTILE, scope: "area", examples: [{ text: HOSTILE, sessionId: HOSTILE, step: 1, date: null }] })] });
+  const noConfirmed = fixture({ confirmed: false, items: [guessItem("rule:g:1")], dismissedPossible: 3 }, {}, ["inPossible"]);
+  const closed = fixture({ confirmed: false, items: [guessItem("rule:g:1")] });
+  const long = fixture({ confirmed: false, items: [guessItem("rule:l:1", { text: "x".repeat(200), examples: [] })] }, {}, ["inPossible"]);
   const empty = fixture({ confirmed: false, items: [] });
   const missing = fixture(undefined);
   const seven = fixture({ confirmed: true, items: items(7) });
-  const initial = { html: one.holder.innerHTML, guess: guess.holder.innerHTML };
-  const foldedRows = (seven.holder.innerHTML.match(/class="rrow"/g) || []).length;
-  const foldedButton = /Show 2 more rules/.test(seven.holder.innerHTML);
+  const initial = { html: one.top.innerHTML, guess: noConfirmed.box.innerHTML };
+  const foldedRows = (seven.top.innerHTML.match(/class="rrow"/g) || []).length;
+  const foldedButton = /Show 2 more rules/.test(seven.top.innerHTML);
   await seven.click("rule:s0:1", "more");
-  const openRows = (seven.holder.innerHTML.match(/class="rrow"/g) || []).length;
+  const openRows = (seven.top.innerHTML.match(/class="rrow"/g) || []).length;
 
   await one.click("rule:s2:3", "teach");
-  const afterTeach = one.holder.innerHTML;
-  await area.click("rule:a:1", "teach");
+  const afterTeach = one.top.innerHTML;
   const teachPosts = posts.splice(0, 2);
   posts.splice(0);
-  await guess.click("rule:g:1", "dismiss");
+  await area.click("rule:a:1", "teach");
+  posts.splice(0);
+  await noConfirmed.click("rule:g:1", "teach", noConfirmed.box);
+  const guessTeachPosts = posts.splice(0);
+  await noConfirmed.click("rule:g:1", "dismiss", noConfirmed.box);
   const dismissPosts = posts.splice(0);
 
   console.log(JSON.stringify({
-    html: initial.html, guess: initial.guess, hostile: hostile.holder.innerHTML,
-    empty: empty.holder.innerHTML, missing: missing.holder.innerHTML,
-    foldedRows, foldedButton, openRows, drafts, teachPosts, dismissPosts, afterTeach, toasts,
-    afterDismiss: guess.holder.innerHTML, triage: guess.ui.data.triage,
-    examples: Rules.sectionHtml({ items: [item("k")] }, "my repo", {}, false),
+    html: initial.html, guess: initial.guess, hostile: hostile.top.innerHTML, long: long.box.innerHTML,
+    topWithoutConfirmed: [noConfirmed.top.innerHTML, noConfirmed.top.hidden], closed: closed.box.innerHTML,
+    empty: [empty.top.innerHTML, empty.top.hidden, empty.box.innerHTML], missing: [missing.top.innerHTML, missing.box.innerHTML],
+    foldedRows, foldedButton, openRows, drafts, teachPosts, guessTeachPosts, dismissPosts, afterTeach, toasts,
+    afterDismiss: noConfirmed.box.innerHTML, triage: noConfirmed.ui.data.triage,
   }));
 })();

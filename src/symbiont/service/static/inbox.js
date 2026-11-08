@@ -18,7 +18,7 @@ function skeleton(){
     +'<div class="tbar"><div class="seg2" role="group" aria-label="Status" id="inTabs"></div><span class="sp"></span>'
     +'<div class="seg2" role="group" aria-label="Kind" id="inKinds"></div>'
     +'<label class="mu sortl">Sort <select class="sel" id="inSort">'+Object.keys(SORT_WORDS).map(k=>'<option value="'+k+'">'+SORT_WORDS[k]+"</option>").join("")+"</select></label></div>"
-    +'<div class="glist" id="inList"></div><div id="inFolds"></div></section></div>'
+    +'<div class="glist" id="inList"></div><div id="inFolds"></div></section><div id="inPossibleBox"></div></div>'
     +'<aside class="side"><section class="panel" id="inTopics" aria-label="What was being worked on"></section>'
     +'<section class="panel" id="inFriction" aria-label="Where sessions got stuck"></section></aside>';
 }
@@ -54,6 +54,7 @@ function draw(ui){
   const page=ui.tab==="review"?M.pageOf(list,ui.open.has("review:more")):{rows:list,more:0};
   ui.$("#inList").innerHTML=(list.length?page.rows.map(g=>R.rowHtml(shownOf(ui,g,axis))).join(""):emptyHtml(ui,found))+moreHtml(page.more);
   ui.$("#inFolds").innerHTML=foldsHtml(ui,found,axis);
+  if(ui.rulesOpen!==undefined)window.SymbiontInboxRules.draw(ui);
 }
 
 const moreHtml=n=>n?'<button class="btn more" data-more="review">Show '+M.plural(n,"more group","more groups")+"</button>":"";
