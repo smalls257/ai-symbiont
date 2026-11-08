@@ -62,8 +62,8 @@ def test_every_signal_renders_as_prose_and_a_check_only_when_specific():
         if signal is Signal.FAILED_COMMAND:
             assert note.startswith("`pytest") and "Last time" in note
         else:
-            assert note.startswith("What happened: ")
-            assert ("Check: " in note) == (signal not in (Signal.CORRECTION, Signal.LOOP))
+            assert note.startswith("What happened: ") == (signal is not Signal.REVIEW_FLAG)
+            assert ("Check: " in note) == (signal in (Signal.REWORKED_EDIT, Signal.BLAST_RADIUS))
         assert not FORBIDDEN.search(note), note
 
 
@@ -104,3 +104,20 @@ def test_correction_and_loop_notes_end_at_the_resolution_sentence():
     looped = render_lesson(lesson(Signature(Signal.LOOP, ("command", "pytest")), ()))
     assert looped.endswith("No fix was found in the history.")
     assert "Check:" not in looped
+
+
+def test_a_review_flag_note_names_the_reviewer_the_point_and_the_fix_without_a_check_line():
+    key = ("src/batch.ts", "CodeRabbit", "Batch delete publishes once per item — batch it.")
+    note = render_lesson(
+        lesson(Signature(Signal.REVIEW_FLAG, key), resolution=("edited batch.ts",))
+    )
+    assert note == (
+        "CodeRabbit flagged `src/batch.ts`: Batch delete publishes once per item — batch it. "
+        "Last time: fixed by editing batch.ts."
+    )
+
+
+def test_a_review_flag_with_no_shown_fix_says_so():
+    key = ("src/batch.ts", "a teammate", "Rename it.")
+    note = render_lesson(lesson(Signature(Signal.REVIEW_FLAG, key), resolution=()))
+    assert note == "a teammate flagged `src/batch.ts`: Rename it. No fix was found in the history."

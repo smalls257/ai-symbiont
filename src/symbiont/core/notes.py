@@ -52,8 +52,32 @@ def render_lesson(lesson: Lesson) -> str:
     signature = lesson.pain_point.signature
     if signature.signal is Signal.FAILED_COMMAND:
         return story_note(lesson)
+    if signature.signal is Signal.REVIEW_FLAG:
+        return review_note(lesson)
     happened = _HAPPENED[signature.signal](signature)
     return _joined(f"What happened: {happened}.", _resolved(lesson), _check(signature))
+
+
+def review_note(lesson: Lesson) -> str:
+    """`CodeRabbit flagged `a.ts`: <point>. Last time: fixed by editing a.ts.`; no check line."""
+    ended = story_of(lesson).ended
+    return _clipped(_joined(f"{_flagged(lesson.pain_point.signature)}.", _ended_sentence(ended)))
+
+
+def _ended_sentence(ended: str) -> str:
+    return f"Last time: {ended}." if ended else "No fix was found in the history."
+
+
+def _reviewer(signature: Signature) -> str:
+    """The reviewer's product name, or "A reviewer" for a key from before reviewers were named."""
+    return signature.key[1] if len(signature.key) > 1 else "A reviewer"
+
+
+def _flagged(signature: Signature) -> str:
+    """`CodeRabbit flagged `a.ts`: <point>`, the point left out when the key has none."""
+    point = signature.key[2] if len(signature.key) > 2 else ""
+    said = f"{_reviewer(signature)} flagged `{signature.key[0]}`"
+    return f"{said}: {point.rstrip('.')}" if point else said
 
 
 def story_note(lesson: Lesson) -> str:
@@ -180,7 +204,7 @@ def _reworked_edit(signature: Signature, count: int) -> str:
 
 def _review_flag(signature: Signature, count: int) -> str:
     """Note for a file a reviewer flagged before."""
-    return f"A reviewer flagged `{signature.key[0]}` {_times(count)} before."
+    return f"{_reviewer(signature)} flagged `{signature.key[0]}` {_times(count)} before."
 
 
 def _correction(signature: Signature, count: int) -> str:
@@ -231,7 +255,7 @@ _HAPPENED: dict[Signal, Callable[[Signature], str]] = {
         f"`{_command_of(sig)}` failed with {broke_in_words(sig.key[-1])}"
     ),
     Signal.REWORKED_EDIT: lambda sig: f"your edits to `{sig.key[0]}` were redone",
-    Signal.REVIEW_FLAG: lambda sig: f"a reviewer flagged `{sig.key[0]}`",
+    Signal.REVIEW_FLAG: _flagged,
     Signal.CORRECTION: lambda sig: f"you were corrected{_where(sig.key[0])} on: {sig.key[1]}",
     Signal.LOOP: lambda sig: f"you went in circles over `{sig.key[1]}`",
     Signal.BLAST_RADIUS: lambda sig: (
@@ -244,9 +268,6 @@ _CHECKS: dict[Signal, Callable[[Signature], str]] = {
         f"Check: run `{_command_of(sig)}` and confirm it passes before moving on."
     ),
     Signal.REWORKED_EDIT: lambda sig: f"Check: read the current `{sig.key[0]}` before editing it.",
-    Signal.REVIEW_FLAG: lambda sig: (
-        f"Check: compare `{sig.key[0]}` with the reviewer's comment before submitting."
-    ),
     Signal.BLAST_RADIUS: lambda sig: (
         f"Check: read `{sig.key[1]}` and run its tests before changing `{sig.key[0]}`."
     ),
@@ -256,6 +277,7 @@ _CHECKS: dict[Signal, Callable[[Signature], str]] = {
 # Only for the fixed three-part memory line and training rows, which need a clause in every slot.
 # A note to the agent leaves the check out instead of saying something generic.
 _FIXED_FORMAT_CHECKS = {
+    Signal.REVIEW_FLAG: "confirm your change answers the reviewer's comment.",
     Signal.CORRECTION: "confirm your next step does what the developer asked.",
     Signal.LOOP: "if you are about to repeat it, stop and try another approach.",
 }

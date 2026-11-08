@@ -41,7 +41,7 @@ KIND_OF_SIGNAL = {
     Signal.FAILED_COMMAND: "repeat",
     Signal.BLAST_RADIUS: "repeat",
     Signal.REWORKED_EDIT: "rework",
-    Signal.REVIEW_FLAG: "rework",
+    Signal.REVIEW_FLAG: "review",
     Signal.CORRECTION: "correction",
     Signal.LOOP: "loop",
 }
