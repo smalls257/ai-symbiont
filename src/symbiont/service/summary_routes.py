@@ -79,7 +79,7 @@ class SummaryRoutes:
     def session_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
         """Up to SUMMARY_BATCH digests of mined sessions without a summary, oldest first."""
         project = self._curation.allowed_project(request, {"project", "running_in"})
-        sessions, blocked = self._sessions(project, running_harness(request))
+        sessions, blocked = self.readable_sessions(project, running_harness(request))
         mined = {fact.session_id for fact in self._store.mined.session_facts(project)}
         done = self._store.review.summaries.summarized(project)
         codebase = Codebase(frozenset({project}))
@@ -93,7 +93,7 @@ class SummaryRoutes:
         answer: dict[str, Any] = {
             "candidates": [_digest_json(digest) for digest in batch],
             "remaining": len(waiting) - len(batch),
-            "not_shown": blocked + self._withheld_datasets(project),
+            "not_shown": blocked + self.withheld_datasets(project),
         }
         unmined = sum(1 for s in sessions if s[0].session_id not in mined)
         if unmined:
@@ -115,7 +115,7 @@ class SummaryRoutes:
     def topic_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
         """Every readable summary to group, with its corrections; or how many more are needed."""
         project = self._curation.allowed_project(request, {"project", "running_in"})
-        sessions, blocked = self._sessions(project, running_harness(request))
+        sessions, blocked = self.readable_sessions(project, running_harness(request))
         kept = [s for s in self._offered_summaries(project, sessions) if not s.noise]
         if len(kept) < MIN_TOPIC_SESSIONS:
             short = MIN_TOPIC_SESSIONS - len(kept)
@@ -123,7 +123,7 @@ class SummaryRoutes:
                 "candidates": [],
                 "summaries_still_needed": short,
                 "message": f"{short} more summarized sessions are needed to name topics.",
-                "not_shown": blocked + self._withheld_datasets(project),
+                "not_shown": blocked + self.withheld_datasets(project),
             }
         found = {s[0].session_id: session_corrections(s) for s in sessions}
         started = {
@@ -131,7 +131,7 @@ class SummaryRoutes:
         }
         answer: dict[str, Any] = {
             "candidates": [_summary_json(s, started.get(s.session_id), found) for s in kept],
-            "not_shown": blocked + self._withheld_datasets(project),
+            "not_shown": blocked + self.withheld_datasets(project),
         }
         chosen = developer_names(self._store, project)
         if chosen:
@@ -155,7 +155,7 @@ class SummaryRoutes:
         project = self._curation.allowed_project(
             request, {"project", "running_in", "topics", "frictions", "correction_groups"}
         )
-        sessions, _ = self._sessions(project, running_harness(request))
+        sessions, _ = self.readable_sessions(project, running_harness(request))
         body = {
             key: value for key, value in request.items() if key not in {"project", "running_in"}
         }
@@ -174,10 +174,10 @@ class SummaryRoutes:
     def verdict_candidates(self, request: dict[str, Any]) -> dict[str, Any]:
         """Up to 40 recurring groups without a verdict sentence; dataset history is refused."""
         project = self._curation.allowed_project(request, {"project", "running_in"})
-        withheld = self._withheld_datasets(project)
+        withheld = self.withheld_datasets(project)
         if withheld:
             raise BadRequestError("; ".join(withheld))
-        sessions, blocked = self._sessions(project, running_harness(request))
+        sessions, blocked = self.readable_sessions(project, running_harness(request))
         readable = frozenset(s[0].session_id for s in sessions)
         candidates, remaining = group_candidates(self._store, project, readable)
         return {"candidates": candidates, "remaining": remaining, "not_shown": blocked}
@@ -200,7 +200,9 @@ class SummaryRoutes:
         self._store.review.verdicts.save(project, sentences, self._today())
         return {"saved": len(sentences)}
 
-    def _sessions(self, project: str, running_in: str) -> tuple[list[list[Record]], list[str]]:
+    def readable_sessions(
+        self, project: str, running_in: str
+    ) -> tuple[list[list[Record]], list[str]]:
         """The sessions of the sources this session may read, and why the others are not shown."""
         allowed, blocked = self._curation.readable_sources(project, running_in)
         records = [r for source in allowed for r in read_source(source, self._readers)]
@@ -213,7 +215,7 @@ class SummaryRoutes:
         readable = {s[0].session_id for s in sessions}
         return [s for s in self._store.review.summaries.all(project) if s.session_id in readable]
 
-    def _withheld_datasets(self, project: str) -> list[str]:
+    def withheld_datasets(self, project: str) -> list[str]:
         """One line per dataset reader whose history is never shown, with its session count."""
         datasets: dict[str, list[Record]] = {}
         for source in self._store.sources(project):

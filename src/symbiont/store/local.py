@@ -33,6 +33,8 @@ from symbiont.store.lesson_rows import lesson_from_json
 from symbiont.store.review_state import ReviewState
 from symbiont.store.session_summaries import SCHEMA as SUMMARIES_SCHEMA
 from symbiont.store.session_summaries import SessionSummaries
+from symbiont.store.stated_rules import SCHEMA as STATED_RULES_SCHEMA
+from symbiont.store.stated_rules import StatedRules
 from symbiont.store.struggle_rows import SCHEMA as STRUGGLE_SCHEMA
 from symbiont.store.struggle_rows import add_missing_started
 from symbiont.store.triage import SCHEMA as TRIAGE_SCHEMA
@@ -192,6 +194,7 @@ class Store:
         add_missing_lesson_id(db)
         db.executescript(SUMMARIES_SCHEMA)
         db.executescript(VERDICTS_SCHEMA)
+        db.executescript(STATED_RULES_SCHEMA)
         _add_missing_authored_columns(db)
         _add_missing_review_summary(db)
         add_missing_started(db)
@@ -263,7 +266,10 @@ class Store:
     def review(self) -> ReviewState:
         """The developer's triage of failure groups and their session model's summaries."""
         return ReviewState(
-            GroupTriage(self._db), SessionSummaries(self._db), GroupVerdicts(self._db)
+            GroupTriage(self._db),
+            SessionSummaries(self._db),
+            GroupVerdicts(self._db),
+            StatedRules(self._db),
         )
 
     @property

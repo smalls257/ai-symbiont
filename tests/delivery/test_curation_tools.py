@@ -142,3 +142,10 @@ def test_the_group_verdict_tools_are_listed_and_each_is_one_route():
         )
     body = route_and_body("symbiont_group_candidates", {}, {"CLAUDECODE": "1"})[1]
     assert body["running_in"] == "claude_code"
+
+
+def test_the_rule_tools_are_listed_and_each_is_one_route():
+    names = {"symbiont_rule_candidates": "rules/candidates", "symbiont_save_rules": "rules/save"}
+    for name, route in names.items():
+        assert route_and_body(name, {"running_in": "claude_code"}, {})[0] == route
+        assert route_and_body(name, {}, {"CLAUDECODE": "1"})[1]["running_in"] == "claude_code"
