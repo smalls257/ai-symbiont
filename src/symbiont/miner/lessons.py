@@ -9,7 +9,7 @@ it.
 
 from collections import Counter
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from symbiont.miner.added_line import telling_added_line
 from symbiont.miner.complaint_line import complaint_of
@@ -25,6 +25,7 @@ from symbiont.miner.resolutions import (
     reason_of,
     resolution_of,
 )
+from symbiont.miner.review_comments import flagged_comment_text
 from symbiont.miner.turns_before import CONTEXT_CHARS, last_turn_before
 from symbiont.records.privacy import OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Kind, Record
@@ -117,7 +118,7 @@ def lessons_from(
     for pain in pain_points:
         cited = _cited(pain, by_ref)
         own = sessions[(cited[-1].harness, pain.session_id)]
-        lessons.append(_lesson(pain, cited, own, repo_names))
+        lessons.append(_comment_as_evidence(_lesson(pain, cited, own, repo_names), cited[0]))
     return lessons
 
 
@@ -168,6 +169,21 @@ def _lesson(
         fix_added=telling_added_line(steps),
         failed_command=_clip_start(cited[0].command or "", FAILED_COMMAND_CHARS),
         complaint=complaint_of(cited[0].raw),
+    )
+
+
+def _comment_as_evidence(lesson: Lesson, cited_first: Record) -> Lesson:
+    """A fetched review comment quotes itself; the fetch output holds other comments and logins."""
+    signature = lesson.pain_point.signature
+    if signature.signal is not Signal.REVIEW_FLAG or cited_first.kind != Kind.COMMAND:
+        return lesson
+    text = flagged_comment_text(cited_first, signature.key)
+    return replace(
+        lesson,
+        quote=_clip_start(text, QUOTE_CHARS),
+        error_lines=(),
+        complaint="",
+        failed_command="",
     )
 
 

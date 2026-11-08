@@ -55,6 +55,18 @@ def review_comments_in(record: Record) -> tuple[ReviewComment, ...]:
     return tuple(found.values())
 
 
+def flagged_comment_text(fetch: Record, key: tuple[str, ...]) -> str:
+    """`<reviewer> on <path>: <gist>` and the body of the fetched comment whose key is `key`.
+
+    Raises LookupError when `fetch` shows no comment with that (path, reviewer, gist).
+    """
+    wanted = tuple(key[:3])
+    for comment in review_comments_in(fetch):
+        if (comment.path, comment.reviewer, comment.gist) == wanted:
+            return f"{comment.reviewer} on {comment.path}: {comment.gist}\n{comment.body}"
+    raise LookupError(f"{fetch.session_id}:{fetch.step} shows no review comment on {key[0]}")
+
+
 def _may_show_comments(record: Record) -> bool:
     """A successful, read-only `gh` command; the substring checks skip tokenizing the rest."""
     command = record.command or ""

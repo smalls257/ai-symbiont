@@ -1,8 +1,10 @@
 import json
 import time
 
+import pytest
+
 from record_builders import run
-from symbiont.miner.review_comments import ReviewComment, review_comments_in
+from symbiont.miner.review_comments import ReviewComment, flagged_comment_text, review_comments_in
 from symbiont.miner.review_gist import Severity, gist_of, severity_of
 
 GH = "gh api repos/o/r/pulls/3/comments"
@@ -367,3 +369,11 @@ def test_a_human_login_containing_a_product_word_is_a_teammate():
         ("claude[bot]", "Claude"),
     ):
         assert _one(json.dumps([_rest(login, "Check this.")])).reviewer == name
+
+
+def test_flagged_comment_text_is_that_comment_or_a_lookup_error():
+    fetch = run(GH, output=json.dumps([_rest("coderabbitai", CODERABBIT)]))
+    key = ("a.yml", "CodeRabbit", "Batch delete publishes once per item — batch it.")
+    assert flagged_comment_text(fetch, key).startswith(f"CodeRabbit on a.yml: {key[2]}\n")
+    with pytest.raises(LookupError):
+        flagged_comment_text(fetch, ("a.yml", "CodeRabbit", "Another point."))
