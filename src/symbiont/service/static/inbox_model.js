@@ -113,9 +113,12 @@ const seriesOf=(g,axis)=>{const by=new Map(g.weekly);return axis.map(w=>by.get(w
 function teachDraft(g,name,ownHistory){
   const when=g.trigger?g.trigger.words:"";
   const first=g.kind==="correction"&&g.title&&ownHistory?"You said: “"+g.title+"”. ":"";
+  /* A fix with no failure tells the agent nothing it can match: what broke comes first. */
+  const broke=g.kind!=="correction"&&g.fixShown?sentence(g.broke||g.happened||"")+" ":"";
   const fix=g.fixShown?g.fixed:"";
-  return {when,what:(first+fix).trim(),trains:Boolean(g.trains),name,hasTrigger:Boolean(g.trigger)};
+  return {when,what:(first+broke+fix).trim(),trains:Boolean(g.trains),name,hasTrigger:Boolean(g.trigger)};
 }
+const sentence=s=>!s||/[.!?…]$/.test(s)?s:s+".";
 const capital=s=>s.charAt(0).toUpperCase()+s.slice(1);
 function lessonRequest(project,g,when,what,name){
   const body=what.trim()||g.happened||"";

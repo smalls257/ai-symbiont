@@ -46,6 +46,10 @@ const neverFixed = M.teachDraft(groups[0], "n", true);
 const corrDraft = M.teachDraft(groups[4], "n", false);
 const corrDraftOwn = M.teachDraft(groups[4], "n", true);
 const heldBack = M.teachDraft(group("held", { trains: false }), "n", true);
+const brokeDraft = M.teachDraft(group("lock", {
+  broke: "`git add a.ts` failed: Unable to create '.git/index.lock': File exists",
+  fixed: "Fixed the setup: ran `rm .git/index.lock`.",
+}), "n", true);
 const emptyWhat = M.lessonRequest("demo", group("e", { happened: "The agent ran pytest and it failed." }), "when running pytest", "", "n");
 const request = M.lessonRequest("demo", groups[1], draft.when, draft.what, "n");
 const bare = M.lessonRequest("demo", groups[4], "", "", "Corrections group");
@@ -122,7 +126,7 @@ console.log(JSON.stringify({
   axisKeys: axis.map((w) => w.key),
   series: M.seriesOf(groups[1], axis),
   taughtBody: M.taughtRequest("demo", groups[1], { added: 1, ids: ["lesson-9"] }),
-  draft, neverFixed, corrDraft, corrDraftOwn, request, bare, emptyWhat,
+  draft, neverFixed, corrDraft, corrDraftOwn, request, bare, emptyWhat, brokeDraft,
   teachNotes: { trains: M.teachNote(draft), held: M.teachNote(heldBack) },
   archive: M.ARCHIVE_CHOICES.map((c) => c.body),
   archiveLabels: M.ARCHIVE_CHOICES.map((c) => c.label),

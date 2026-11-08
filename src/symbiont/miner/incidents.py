@@ -129,7 +129,7 @@ def _failure_card(
         what_happened=words.failure_sentence(program, target, broke, detail),
         first_wrong="",
         cost_steps=0,
-        what_fixed_it=_failure_fix(lesson, outcome, setup, failed),
+        what_fixed_it=_failure_fix(lesson, outcome, setup, failed, repo_names),
         outcome=outcome,
         noise=_failure_noise(lesson, failed, outcome),
         topic=topic,
@@ -180,11 +180,17 @@ def _failure_outcome(lesson: Lesson, setup: str | None) -> Outcome:
     return Outcome.NEVER_FIXED
 
 
-def _failure_fix(lesson: Lesson, outcome: Outcome, setup: str | None, failed: Record | None) -> str:
+def _failure_fix(
+    lesson: Lesson,
+    outcome: Outcome,
+    setup: str | None,
+    failed: Record | None,
+    repo_names: frozenset[str],
+) -> str:
     if outcome is Outcome.FIXED_IN_CODE:
         return words.edited_then_passed(_edited_names(lesson), script=lesson.target_created)
     if outcome is Outcome.ENVIRONMENT_FIXED and setup is not None:
-        return words.setup_sentence(setup)
+        return words.setup_sentence(setup, repo_names)
     if outcome is Outcome.CORRECTED_COMMAND:
         return words.corrected_command_sentence(_ran_command(lesson, failed))
     if lesson.resolution:

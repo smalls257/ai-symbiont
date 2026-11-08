@@ -278,7 +278,7 @@ def test_an_install_between_failure_and_pass_is_an_environment_fix():
     )  # fmt: skip
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
     assert card.noise is None
-    assert card.what_fixed_it == "Fixed the setup: ran pip install."
+    assert card.what_fixed_it == "Fixed the setup: ran `pip install requests`."
 
 
 def test_npm_install_then_pass_is_an_environment_fix():
@@ -292,7 +292,7 @@ def test_npm_install_then_pass_is_an_environment_fix():
     )  # fmt: skip
     (card,) = cards([lesson], records)
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
-    assert card.what_fixed_it == "Fixed the setup: ran npm install."
+    assert card.what_fixed_it == "Fixed the setup: ran `npm install`."
 
 
 def test_an_unrecognized_setup_command_still_counts_as_the_setup():
@@ -301,7 +301,7 @@ def test_an_unrecognized_setup_command_still_counts_as_the_setup():
     )
     assert card.outcome is Outcome.ENVIRONMENT_FIXED
     assert card.noise is None
-    assert card.what_fixed_it == "Fixed the setup: ran docker compose."
+    assert card.what_fixed_it == "Fixed the setup: ran `docker compose up -d`."
 
 
 def test_a_look_around_between_failure_and_pass_is_not_a_setup():
@@ -347,3 +347,10 @@ def test_a_failed_install_before_the_pass_did_not_fix_the_setup():
     )
     assert card.outcome is not Outcome.ENVIRONMENT_FIXED
     assert card.noise is NoiseReason.PLAIN_RETRY
+
+
+def test_a_setup_step_keeps_its_repo_relative_path():
+    from symbiont.miner.incident_words import setup_sentence
+
+    sentence = setup_sentence("rm /home/dev/Code/app/.git/index.lock", frozenset({"app"}))
+    assert sentence == "Fixed the setup: ran `rm .git/index.lock`."

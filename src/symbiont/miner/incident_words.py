@@ -7,7 +7,6 @@ agent did and what came of it, never an exit code, a grouping key or a threshold
 import re
 
 from symbiont.miner.failure_keys import EXIT_MEANINGS, broke_in_words, is_bare_exit
-from symbiont.miner.fix_words import command_name
 from symbiont.miner.resolutions import NOTHING_CHANGED, ONLY_UNRELATED_CHANGED, PASSED_RESPELLED
 from symbiont.miner.screen import INLINE_TARGET
 from symbiont.miner.secrets import scrub
@@ -90,9 +89,9 @@ def corrected_command_sentence(command: str) -> str:
     return f"Ran the corrected command instead: {working_command(command)}."
 
 
-def setup_sentence(command: str) -> str:
-    """The fix when the session ran a setup command before the pass."""
-    return f"Fixed the setup: ran {command_name(command)}."
+def setup_sentence(command: str, repo_names: frozenset[str] = frozenset()) -> str:
+    """The fix when the session ran a setup command before the pass: the whole step, not `rm`."""
+    return f"Fixed the setup: ran `{working_command(command, repo_names)}`."
 
 
 def passed_later_sentence(steps: str) -> str:

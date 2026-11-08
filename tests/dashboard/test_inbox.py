@@ -79,8 +79,9 @@ def test_teach_the_agent_is_prefilled_from_the_trigger_and_the_fix_and_sends_app
     draft, request = decided["draft"], decided["request"]
     lesson = request["lessons"][0]
 
-    assert draft["when"] == "when running pytest on tests/e2e" and draft["what"] == "Edited app.py."
-    assert lesson["text_in_plain_words"] == "When running pytest on tests/e2e: Edited app.py."
+    said = "The agent ran pytest and it failed. Edited app.py."
+    assert draft["when"] == "when running pytest on tests/e2e" and draft["what"] == said
+    assert lesson["text_in_plain_words"] == f"When running pytest on tests/e2e: {said}"
     assert lesson["applies_to"] == {"terms": ["pytest"], "areas": ["tests/e2e"]}
     assert lesson["kind"] == "mistake" and request["project"] == "demo"
 
@@ -332,4 +333,11 @@ def test_story_lines_are_escaped_and_backticks_become_code(decided):
         "<img" not in hostile
         and "&lt;img src=x onerror=1&gt;" in hostile
         and "<b>x</b>" not in hostile
+    )
+
+
+def test_a_teach_draft_says_what_broke_before_the_fix(decided):
+    assert decided["brokeDraft"]["what"] == (
+        "`git add a.ts` failed: Unable to create '.git/index.lock': File exists. "
+        "Fixed the setup: ran `rm .git/index.lock`."
     )
