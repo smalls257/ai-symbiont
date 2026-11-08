@@ -1,21 +1,9 @@
 """Signal: the agent going round in circles.
 
-A loop is the same action repeated close together with nothing learned and
-nothing changed:
-
-- the same command (whole text; only temp paths and spacing are evened out,
-  so `python -c` one-liners, heredocs, sed ranges and grep patterns stay
-  distinct), each time with the same exit code and the same output, or
-- the same view of the same lines of a file (paging through a file is
-  reading, not looping), each time successful.
-
-Repeats must be within `window` steps of the previous one. An applied edit
-ends every command streak (any change can alter a command's result) and the
-read streaks of the files it changed. One pain point per streak, at the step
-where it reaches `min_repeats`, citing every repeat.
-
-The command key is the command as the agent typed it (shortened if long), not
-the lossy `normalise_command` used to group failures across sessions.
+The same command (as typed; only temp paths and spacing evened out) with the same exit code and
+output, or the same view of the same lines of a file, repeated within `window` steps with no
+applied edit in between. Waiting (`sleep 60 && gh run view`, `gh run watch`) is not looping.
+One pain point per streak, at the step where it reaches `min_repeats`, citing every repeat.
 """
 
 import re
@@ -23,6 +11,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal, Signature
+from symbiont.miner.waiting import is_waiting
 from symbiont.records.schema import Kind, Record
 
 MAX_KEY_CHARS = 120
@@ -80,6 +69,8 @@ def _end_streaks_touched_by(streaks: dict[tuple[str, ...], _Streak], edit: Recor
 
 def _repeat_key(record: Record) -> tuple[str, ...] | None:
     if record.kind == Kind.COMMAND and record.command and record.command.strip():
+        if is_waiting(record.command):
+            return None
         return ("command", _even_out(record.command))
     if record.kind == Kind.READ and len(record.files) == 1 and record.exit_code != 1:
         return ("read", record.files[0], _lines_shown(record.line_range))

@@ -53,7 +53,7 @@ def render_lesson(lesson: Lesson) -> str:
     if signature.signal is Signal.FAILED_COMMAND:
         return story_note(lesson)
     happened = _HAPPENED[signature.signal](signature)
-    return f"What happened: {happened}. {_resolved(lesson)} {_check(signature)}"
+    return _joined(f"What happened: {happened}.", _resolved(lesson), _check(signature))
 
 
 def story_note(lesson: Lesson) -> str:
@@ -102,9 +102,19 @@ def title_of(signature: Signature, group_name: str = "") -> str:
     return f'You corrected the agent: "{short}"'
 
 
+def _joined(*sentences: str) -> str:
+    """The non-empty sentences, one space apart."""
+    return " ".join(sentence for sentence in sentences if sentence)
+
+
+def specific_check(signature: Signature) -> str:
+    """The check history supports as a clause without the "Check:" label; "" when none."""
+    return _check(signature).removeprefix("Check: ").rstrip(".")
+
+
 def check_to_run(signature: Signature) -> str:
     """The check for this kind of trouble, as a clause without the "Check:" label."""
-    return _check(signature).removeprefix("Check: ").rstrip(".")
+    return specific_check(signature) or _FIXED_FORMAT_CHECKS[signature.signal].rstrip(".")
 
 
 def resolution_clause(lesson: Lesson) -> str:
@@ -127,7 +137,7 @@ def _warning(decision: Decision, lessons: Sequence[Lesson]) -> list[str]:
     backing = _backing_lesson(decision, lessons)
     if backing is None:
         return [said]
-    return [f"{said} {_resolved(backing)} {_check(decision.trouble)}"]
+    return [_joined(said, _resolved(backing), _check(decision.trouble))]
 
 
 def _backing_lesson(decision: Decision, lessons: Sequence[Lesson]) -> Lesson | None:
@@ -237,17 +247,24 @@ _CHECKS: dict[Signal, Callable[[Signature], str]] = {
     Signal.REVIEW_FLAG: lambda sig: (
         f"Check: compare `{sig.key[0]}` with the reviewer's comment before submitting."
     ),
-    Signal.CORRECTION: lambda sig: "Check: confirm your next step does what the developer asked.",
-    Signal.LOOP: lambda sig: "Check: if you are about to repeat it, stop and try another approach.",
     Signal.BLAST_RADIUS: lambda sig: (
         f"Check: read `{sig.key[1]}` and run its tests before changing `{sig.key[0]}`."
     ),
 }
 
 
+# Only for the fixed three-part memory line and training rows, which need a clause in every slot.
+# A note to the agent leaves the check out instead of saying something generic.
+_FIXED_FORMAT_CHECKS = {
+    Signal.CORRECTION: "confirm your next step does what the developer asked.",
+    Signal.LOOP: "if you are about to repeat it, stop and try another approach.",
+}
+
+
 def _check(signature: Signature) -> str:
-    """The check to run for a signature."""
-    return _CHECKS[signature.signal](signature)
+    """The check to run for a signature, or "" when the history says nothing specific."""
+    make = _CHECKS.get(signature.signal)
+    return make(signature) if make else ""
 
 
 _TEMPLATES: dict[Signal, Callable[[Signature, int], str]] = {
