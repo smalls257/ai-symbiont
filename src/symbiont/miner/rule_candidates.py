@@ -21,21 +21,31 @@ RULE_WORDS = "rule_words"
 CORRECTION = "correction"
 _ITEM = r"[\w./-]+"
 
-# Directive language, one way each to state a standing rule: always, never, don't / do not, stop
-# (only "stop committing"; "stop the dev server" is a one-off), from now on, make sure, must,
-# should(n't) be, instead of, prefer, avoid, no more, every time, remember to, we use, "X, not Y".
-DIRECTIVE = re.compile(
-    r"\b(?:always|never|don'?t|do not|stop \w+ing|from now on|make sure|must|should(?:n'?t)? be"
-    r"|instead of|prefer|avoid|no more|every time|remember to|we use)\b"
-    rf"|\buse {_ITEM},? not {_ITEM}|{_ITEM}, not {_ITEM}",
+# An instruction: one of these opens a clause ("always use pnpm", "please never commit", "you
+# should never push", "stop committing"). Mid-clause directive words ("it was never moved", "I
+# always do") describe, so only the openers and the two contrast forms below count.
+_OPENERS = (
+    r"(?:always|never|don'?t|do not|stop \w+ing|make sure|remember to|from now on|every time"
+    r"|avoid|prefer|no more|we use|you(?: should(?:n'?t)?| must(?:n'?t)?) (?:always |never )?\w+)"
+)
+_LEAD_IN = r"(?:(?:please|also|and|but|so|then|ok|okay|now|just|yeah|oh)\b[,\s]*)*"
+OPENER = re.compile(rf"^{_LEAD_IN}{_OPENERS}\b", re.IGNORECASE)
+CONTRAST = re.compile(
+    rf"\binstead of\b|\buse {_ITEM},? not {_ITEM}|{_ITEM}, not {_ITEM}",
     re.IGNORECASE,
 )
+_CLAUSE_END = re.compile(r"[.!?;:\n]+|,\s|\s-\s")
 # Phrases that contain a directive word without stating a rule; blanked before the directive
-# test so "never mind, always use pnpm" still counts.
+# test so "never mind, always use pnpm" still counts. "never moved" is a past participle (a
+# description of what happened); "should be able to" and "should have" are hedges.
 NOT_A_RULE = re.compile(
-    r"\bnever mind\b|\bi (?:do not|don'?t) (?:know|think)\b|\bnot sure\b",
+    r"\bnever mind\b|\bi (?:do not|don'?t) (?:know|think)\b|\bnot sure\b"
+    r"|\bnever (?:\w*[^e\W]ed|been|done|seen|gone|made|taken|given|written|shown|found)\b"
+    r"|\bshould be able to\b|\bshould have\b",
     re.IGNORECASE,
 )
+# A hedged turn guesses or describes; it does not instruct.
+HEDGES = re.compile(r"\b(?:would|could|might|likely)\b|\bit seems\b|\bseems to\b", re.IGNORECASE)
 # Words that say "rule" and nothing about its subject; kept out of the terms that group rules.
 DIRECTIVE_WORDS = frozenset(
     {"prefer", "avoid", "instead", "remember", "stop", "make", "sure", "every", "time", "must"}
@@ -130,9 +140,18 @@ def rule_terms(text: str) -> frozenset[str]:
 
 
 def _states_rule(text: str) -> bool:
-    """Directive wording that is not a question (unless an earlier clause is imperative)."""
-    blanked = NOT_A_RULE.sub(" ", text.translate(_QUOTES))
+    """An instruction, not a hedge or a question (unless an earlier clause is imperative)."""
+    plain = text.translate(_QUOTES)
+    if HEDGES.search(plain):
+        return False
+    blanked = NOT_A_RULE.sub(" ", plain)
     if not text.rstrip().endswith("?"):
-        return bool(DIRECTIVE.search(blanked))
+        return _instructs(blanked)
     earlier = _SENTENCE_END.split(blanked.rstrip())[:-1]
-    return any(DIRECTIVE.search(sentence) for sentence in earlier)
+    return any(_instructs(sentence) for sentence in earlier)
+
+
+def _instructs(text: str) -> bool:
+    """A clause that opens with directive wording, or a contrast such as "use X, not Y"."""
+    clauses = (clause.strip() for clause in _CLAUSE_END.split(text))
+    return any(OPENER.match(clause) for clause in clauses) or bool(CONTRAST.search(text))
