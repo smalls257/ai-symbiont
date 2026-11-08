@@ -1,6 +1,6 @@
 """Words too common to say what a text is about: shared by rule matching and themes.
 
-They sit in `miner` (the lower layer) so `core.rule_terms` and `miner.themes` read one list
+They sit in `miner` (the lower layer) so `miner.rule_terms` and `miner.themes` read one list
 instead of keeping two that drift apart.
 """
 

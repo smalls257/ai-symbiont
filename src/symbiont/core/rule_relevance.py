@@ -9,13 +9,6 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from symbiont.core.rule_terms import (
-    common_terms,
-    identifiers_in,
-    plain_terms,
-    salient_terms,
-    stem,
-)
 from symbiont.miner.lesson_context import (
     AuthoredLesson,
     LessonContext,
@@ -24,6 +17,13 @@ from symbiont.miner.lesson_context import (
     Severity,
 )
 from symbiont.miner.lessons import Lesson
+from symbiont.miner.rule_terms import (
+    common_terms,
+    identifiers_in,
+    plain_terms,
+    salient_terms,
+    stem,
+)
 from symbiont.miner.trained import lesson_id
 
 STRONG_WEIGHT = 3
