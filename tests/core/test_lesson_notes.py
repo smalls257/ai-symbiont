@@ -120,4 +120,13 @@ def test_a_review_flag_note_names_the_reviewer_the_point_and_the_fix_without_a_c
 def test_a_review_flag_with_no_shown_fix_says_so():
     key = ("src/batch.ts", "a teammate", "Rename it.")
     note = render_lesson(lesson(Signature(Signal.REVIEW_FLAG, key), resolution=()))
-    assert note == "a teammate flagged `src/batch.ts`: Rename it. No fix was found in the history."
+    assert note == "A teammate flagged `src/batch.ts`: Rename it. No fix was found in the history."
+
+
+def test_a_long_review_note_cuts_the_point_never_the_fix():
+    key = ("src/" + "deep/" * 30 + "batch.ts", "CodeRabbit", ("word " * 32).strip())
+    note = render_lesson(
+        lesson(Signature(Signal.REVIEW_FLAG, key), resolution=("edited batch.ts",))
+    )
+    assert len(note) <= 300
+    assert note.endswith("Last time: fixed by editing batch.ts.") and "…" in note

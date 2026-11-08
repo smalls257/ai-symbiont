@@ -292,3 +292,10 @@ def test_severity_needs_a_marker_not_a_word():
     ):
         assert severity_of(body) is Severity.UNSTATED, body
     assert severity_of("**P1** Guard it.") is Severity.MAJOR
+
+
+def test_graphql_comment_with_a_reply_to_is_a_reply():
+    reply = {"id": "PRRC_y", "author": {"login": "coderabbitai"}, "body": "Thanks.", "path": "a.ts"}
+    raw = json.dumps([{**reply, "replyTo": {"id": "PRRC_x"}}, {**reply, "replyTo": None}])
+    found = review_comments_in(run(GH, output=raw))
+    assert [c.comment_id for c in found] == ["PRRC_y"]

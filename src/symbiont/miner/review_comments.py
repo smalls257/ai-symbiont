@@ -21,7 +21,7 @@ _BODY_FLAGS = ("--body", "-b", "--body-file", "-F", "--input")
 _POSTING_COMMANDS = {("pr", "comment"), ("pr", "review"), ("issue", "comment")}
 NOT_DECODED = -1
 CUT_OFF: tuple[Any, int] = (None, NOT_DECODED)
-_REPLY_KEYS = ("in_reply_to_id", "in_reply_to")
+_REPLY_KEYS = ("in_reply_to_id", "in_reply_to", "replyTo")
 
 
 @dataclass(frozen=True)
@@ -38,10 +38,7 @@ class ReviewComment:
 
 def review_comments_in(record: Record) -> tuple[ReviewComment, ...]:
     """The review comments a `gh` command's output shows, replies and the agent's posts excluded."""
-    command = record.command or ""
-    if record.kind != Kind.COMMAND or record.exit_code not in (0, None):
-        return ()
-    if not _runs_gh(command) or _writes(command):
+    if not _may_show_comments(record):
         return ()
     found: dict[str, ReviewComment] = {}
     for document in _json_documents(record.raw):
@@ -50,6 +47,16 @@ def review_comments_in(record: Record) -> tuple[ReviewComment, ...]:
             if comment is not None:
                 found.setdefault(comment.comment_id, comment)
     return tuple(found.values())
+
+
+def _may_show_comments(record: Record) -> bool:
+    """A successful, read-only `gh` command; the substring checks skip tokenizing the rest."""
+    command = record.command or ""
+    if record.kind != Kind.COMMAND or record.exit_code not in (0, None):
+        return False
+    if '"body"' not in record.raw or "gh" not in command:
+        return False
+    return _runs_gh(command) and not _writes(command)
 
 
 def _runs_gh(command: str) -> bool:

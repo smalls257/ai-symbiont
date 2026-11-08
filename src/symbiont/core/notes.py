@@ -59,9 +59,23 @@ def render_lesson(lesson: Lesson) -> str:
 
 
 def review_note(lesson: Lesson) -> str:
-    """`CodeRabbit flagged `a.ts`: <point>. Last time: fixed by editing a.ts.`; no check line."""
-    ended = story_of(lesson).ended
-    return _clipped(_joined(f"{_flagged(lesson.pain_point.signature)}.", _ended_sentence(ended)))
+    """`CodeRabbit flagged `a.ts`: <point>. Last time: fixed by editing a.ts.`; no check line.
+
+    The fix is the useful half, so a long point is cut to make the whole note fit.
+    """
+    signature = lesson.pain_point.signature
+    ending = _ended_sentence(story_of(lesson).ended)
+    room = NOTE_CHARS - len(ending) - len(_flagged(signature, "")) - len(": . ")
+    return _joined(f"{_flagged(signature, _cut_point(_point(signature), room))}.", ending)
+
+
+def _cut_point(point: str, room: int) -> str:
+    """The point, cut at a word with an ellipsis to fit `room`; "" when almost nothing would fit."""
+    if len(point) <= room:
+        return point
+    if room < MIN_WHILE_CHARS:
+        return ""
+    return point[: room - 1].rsplit(" ", 1)[0].rstrip(" ,(") + "…"
 
 
 def _ended_sentence(ended: str) -> str:
@@ -69,15 +83,20 @@ def _ended_sentence(ended: str) -> str:
 
 
 def _reviewer(signature: Signature) -> str:
-    """The reviewer's product name, or "A reviewer" for a key from before reviewers were named."""
-    return signature.key[1] if len(signature.key) > 1 else "A reviewer"
+    """The reviewer's product name or "A teammate"; "A reviewer" for a key from before names."""
+    name = signature.key[1] if len(signature.key) > 1 else "A reviewer"
+    return name[0].upper() + name[1:]
 
 
-def _flagged(signature: Signature) -> str:
-    """`CodeRabbit flagged `a.ts`: <point>`, the point left out when the key has none."""
-    point = signature.key[2] if len(signature.key) > 2 else ""
+def _point(signature: Signature) -> str:
+    return signature.key[2].rstrip(".") if len(signature.key) > 2 else ""
+
+
+def _flagged(signature: Signature, point: str | None = None) -> str:
+    """`CodeRabbit flagged `a.ts`: <point>`, the point left out when there is none."""
     said = f"{_reviewer(signature)} flagged `{signature.key[0]}`"
-    return f"{said}: {point.rstrip('.')}" if point else said
+    point = _point(signature) if point is None else point
+    return f"{said}: {point}" if point else said
 
 
 def story_note(lesson: Lesson) -> str:

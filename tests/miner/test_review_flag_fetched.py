@@ -74,3 +74,53 @@ def test_chain_keeps_the_first_sighting_of_a_signature():
     found = mine_chain([one, two], {})
     flags = [p for p in found if p.signature.signal is Signal.REVIEW_FLAG]
     assert [p.session_id for p in flags] == ["s1"]
+
+
+def _flags_for(comment_path, *edited):
+    s = session(_fetch(path=comment_path), *[edit(f) for f in edited])
+    return find_review_flags(s)
+
+
+def test_a_path_matches_only_on_a_directory_boundary():
+    assert _flags_for("a/b.ts", "xa/b.ts") == []
+    assert _flags_for("b.ts", "a/xb.ts") == []
+    assert len(_flags_for("a/b.ts", "/work/repo/a/b.ts")) == 1
+    assert len(_flags_for("a/b.ts", "a/b.ts")) == 1
+
+
+def test_a_bare_file_name_matches_only_the_one_edited_file_of_that_name():
+    assert len(_flags_for("index.ts", "index.ts")) == 1
+    assert len(_flags_for("index.ts", "src/web/index.ts")) == 1
+    assert _flags_for("index.ts", "src/web/index.ts", "src/api/index.ts") == []
+
+
+def test_a_short_body_is_never_taken_for_the_agents_own_text():
+    short = "Rename it."
+    s = session(run(f"echo {short}"), _fetch(body=short), edit("src/batch.ts"))
+    assert len(find_review_flags(s)) == 1
+
+
+def test_finding_flags_among_megabytes_of_earlier_commands_is_fast():
+    import time
+
+    filler = [run("echo " + "x " * 500) for _ in range(4000)]
+    fetches = [_fetch(comment_id=i, body=MAJOR + f" {i}") for i in range(200)]
+    s = session(*filler, *fetches, edit("src/batch.ts"))
+    started = time.perf_counter()
+    assert len(find_review_flags(s)) == 200
+    assert time.perf_counter() - started < 0.5
+
+
+def test_hunk_flags_dedupe_by_signature_across_a_chain():
+    from record_builders import replace_text, review
+
+    hunk = "@@ -1,1 +1,2 @@\n+return None\n"
+    one = session(review("a.py", hunk, "Do not swallow."), replace_text("a.py", "return None", ""))
+    two = [
+        r.__class__(**{**r.__dict__, "session_id": "s2"})
+        for r in session(
+            review("a.py", hunk, "Do not swallow."), replace_text("a.py", "return None", "")
+        )
+    ]
+    flags = [p for p in mine_chain([one, two], {}) if p.signature.signal is Signal.REVIEW_FLAG]
+    assert [p.session_id for p in flags] == ["s1"]
