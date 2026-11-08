@@ -17,6 +17,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.read_only import changing_command
 from symbiont.miner.shown_paths import plain_paths
+from symbiont.miner.slash_command import typed_text
 from symbiont.miner.working_command import working_command
 
 WORKING_ON_CHARS = 120
@@ -81,7 +82,7 @@ def story_of(
 
 def working_on_line(goal: str, asked: str, intent: str) -> str:
     """The goal, else the first sentence of the request, else the agent's stated intent."""
-    for text in (goal, asked, intent):
+    for text in (goal, typed_text(asked), intent):
         flat = " ".join(text.split())
         if flat:
             return _cut(scrub(_SENTENCE_END.split(flat)[0]), WORKING_ON_CHARS)

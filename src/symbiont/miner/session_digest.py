@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from symbiont.miner.attempts import failed
 from symbiont.miner.secrets import scrub
 from symbiont.miner.signals.correction import CORRECTION_TAGS
+from symbiont.miner.slash_command import typed_text
 from symbiont.miner.struggle import started_day
 from symbiont.miner.themes import Codebase
 from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG
@@ -39,8 +40,6 @@ _CHAT = re.compile(
     r"^(ok|okay|yes|yeah|yep|sure|thanks|great|cool|nice|continue|go ahead)\b", re.IGNORECASE
 )
 _INJECTED = ("This session is being continued", "[Request interrupted", "Caveat:")
-_COMMAND_NAME = re.compile(r"<command-name>\s*([^<\s]+)\s*</command-name>")
-_COMMAND_ARGS = re.compile(r"<command-args>(.*?)</command-args>", re.DOTALL)
 _PLAN = "Implement the following plan"
 _PLAN_HEADING = re.compile(r"^#+\s*(?:Plan:\s*)?(.+)$", re.MULTILINE)
 
@@ -91,10 +90,9 @@ def typed_message(record: Record) -> str | None:
     """
     if record.kind != Kind.USER_TURN or OUR_OUTPUT_RECORD_TAG in record.tags:
         return None
-    named = _COMMAND_NAME.search(record.raw)
-    if named:
-        args = _COMMAND_ARGS.search(record.raw)
-        return " ".join((named.group(1), *(args.group(1).split() if args else ())))
+    typed = typed_text(record.raw)
+    if typed != record.raw:
+        return typed
     return None if _is_injected(_clean(record.raw)) else record.raw
 
 
