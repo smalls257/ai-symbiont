@@ -27,6 +27,7 @@ from symbiont.service.request_shapes import (
     display_name,
     require_keys,
 )
+from symbiont.service.review_view import KEY_PREFIX, stored_review_refs
 from symbiont.service.rule_view import member_refs
 from symbiont.store.local import Store
 from symbiont.store.triage import RuleTeach
@@ -89,7 +90,9 @@ def save_triage(parts: "ServiceParts", request: dict[str, Any], today: date) -> 
 
 
 def _rule_members(store: Store, project: str, key: str) -> tuple[tuple[str, int], ...]:
-    """For a stated rule, the messages it stands for now (its key may change on a re-mine)."""
+    """For a stated rule or review group, the messages it stands for now (a re-mine renames it)."""
+    if key.startswith(KEY_PREFIX):
+        return stored_review_refs(store, project, key)
     return member_refs(store, project, key) if key.startswith("rule:") else ()
 
 

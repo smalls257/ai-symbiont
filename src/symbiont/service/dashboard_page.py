@@ -17,6 +17,7 @@ from symbiont.service.ignore_route import ignored_listing
 from symbiont.service.incident_view import incidents_snapshot
 from symbiont.service.mining_jobs import MiningProgress, MiningState
 from symbiont.service.request_shapes import percent_decoded
+from symbiont.service.review_view import reviews_listing
 from symbiont.service.rule_view import rules_listing
 from symbiont.service.session_dates import session_dates_of
 from symbiont.service.session_view import session_answer
@@ -48,6 +49,7 @@ FILES = {
     "/dashboard/inbox_dialogs.js": ("inbox_dialogs.js", JS),
     "/dashboard/triage_actions.js": ("triage_actions.js", JS),
     "/dashboard/inbox_rules.js": ("inbox_rules.js", JS),
+    "/dashboard/inbox_reviews.js": ("inbox_reviews.js", JS),
     "/dashboard/inbox.js": ("inbox.js", JS),
     "/dashboard/views.js": ("views.js", JS),
     "/dashboard/topics_parts.js": ("topics_parts.js", JS),
@@ -224,6 +226,7 @@ def _html(store: Store, project: str, today: date, focus: frozenset[str], live: 
     seen = group_activity(store, project, groups, (today, session_days))
     snapshot["triage"] = triage_listing(store, project, today, seen)
     snapshot["rules"] = rules_listing(store, project, dates_by_session)
+    snapshot["reviews"] = reviews_listing(store, project, dates_by_session)
     snapshot["topicView"] = topic_snapshot(store, project)
     snapshot["trends"] = trends_snapshot(store, project, snapshot["incidents"])
     return _page_filled_with(snapshot)

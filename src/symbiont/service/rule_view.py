@@ -100,7 +100,7 @@ def rules_snapshot(
     items: list[dict[str, Any]] = []
     dismissed = {True: 0, False: 0}
     for entry in entries:
-        state = _state(entry, triaged)
+        state = triage_outcome(entry, triaged)
         if state is None:
             dismissed[entry.confirmed] += 1
         else:
@@ -116,7 +116,7 @@ def rules_snapshot(
     }
 
 
-def _state(entry: RuleEntry, triaged: Triaged) -> str | None:
+def triage_outcome(entry: RuleEntry, triaged: Triaged) -> str | None:
     """None when dismissed, TAUGHT when taught, else NEW; dismissal outranks a teach.
 
     A rule matches a triaged one by key, or when most of its messages were that rule's, so a
