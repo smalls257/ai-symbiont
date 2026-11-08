@@ -41,6 +41,8 @@ _READS_HISTORY = frozenset(
         "symbiont_correction_candidates",
         "symbiont_session_candidates",
         "symbiont_group_candidates",
+        "symbiont_rule_candidates",
+        "symbiont_save_rules",
         "symbiont_topic_candidates",
         "symbiont_save_topics",
     }
@@ -109,6 +111,19 @@ _DESCRIPTIONS = {
         "characters, starting 'Worth a look: ' (what is going on and what would stop it), "
         "'Fixed in practice: ' or 'Noise: '. Say only what the examples show."
     ),
+    "rulecand": (
+        "Up to 80 of the developer's own messages that may state a standing rule, each {ref: "
+        "[session_id, step], text, date}, not yet judged. Dataset history is refused; history "
+        "the developer barred from this session is left out (see not_shown). Merge messages "
+        "that say the same thing in different words, drop questions and one-off requests, then "
+        "call symbiont_save_rules. Pass running_in if asked."
+    ),
+    "saverule": (
+        "Save: [{rule (one line, at most 120 characters, an instruction in plain words), scope: "
+        "repo|area, area? (a path, when scope is area), refs: [[session_id, step]] of the "
+        "candidates it merges, dropped: [[session_id, step]] of candidates that are not "
+        "rules}]. Repeat while remaining is above zero."
+    ),
     "focus": ("Save what the developer said symbiont should pay attention to in this repository."),
 }
 TOOLS = [
@@ -168,6 +183,14 @@ TOOLS = [
         _DESCRIPTIONS["savegroup"],
         {"verdicts": _ITEMS},
         ["verdicts"],
+    ),
+    _tool("symbiont_rule_candidates", "rules/candidates", _DESCRIPTIONS["rulecand"], _HARNESS, []),
+    _tool(
+        "symbiont_save_rules",
+        "rules/save",
+        _DESCRIPTIONS["saverule"],
+        {"rules": _ITEMS} | _HARNESS,
+        ["rules"],
     ),
     _tool(
         "symbiont_set_focus",
