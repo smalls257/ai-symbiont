@@ -11,6 +11,7 @@ from dataclasses import dataclass, replace
 
 from symbiont.miner.credential_patterns import scrub
 from symbiont.miner.empty_correction import is_bare_acknowledgment
+from symbiont.miner.incident_words import REMINDER
 from symbiont.miner.rule_language import ITEM, QUOTES, states_rule
 from symbiont.miner.rule_terms import salient_terms
 from symbiont.miner.session_digest import typed_message
@@ -34,8 +35,7 @@ FILLER_WORDS = frozenset(
         *("cant", "wont", "theres", "able", "already", "seems", "looks"),
     ]
 )
-# Harness text that is not the developer's: the reminder block is cut out and the rest judged.
-_REMINDER = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
+# Harness turns that are not the developer's; injected reminder blocks are cut out (REMINDER).
 _HARNESS_TURN = ("<task-notification", "<local-command", "<command-stdout")
 _URL = re.compile(r"https?://\S+")
 _HAS_DIGIT = re.compile(r"\d")
@@ -97,7 +97,7 @@ def find_rule_candidates(session: Sequence[Record]) -> list[RuleCandidate]:
 
 def _developer_text(record: Record) -> str | None:
     """What the developer typed, with injected reminder blocks and harness turns left out."""
-    stripped = _REMINDER.sub(" ", record.raw).strip()
+    stripped = REMINDER.sub(" ", record.raw).strip()
     if stripped.startswith(_HARNESS_TURN):
         return None
     return typed_message(replace(record, raw=stripped)) if stripped else None

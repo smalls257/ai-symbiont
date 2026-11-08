@@ -6,6 +6,7 @@ fix the history does not show).
 """
 
 import re
+from dataclasses import replace
 
 from symbiont.core.notes import NoteKind, render, render_lesson
 from symbiont.core.recall import relevant_lessons
@@ -62,7 +63,8 @@ def test_every_signal_renders_as_prose_and_a_check_only_when_specific():
         if signal is Signal.FAILED_COMMAND:
             assert note.startswith("`pytest") and "Last time" in note
         else:
-            assert note.startswith("What happened: ") == (signal is not Signal.REVIEW_FLAG)
+            told = signal in (Signal.REVIEW_FLAG, Signal.CORRECTION)
+            assert note.startswith("What happened: ") == (not told)
             assert ("Check: " in note) == (signal in (Signal.REWORKED_EDIT, Signal.BLAST_RADIUS))
         assert not FORBIDDEN.search(note), note
 
@@ -99,7 +101,7 @@ def test_changes_alongside_are_said_to_have_happened_not_claimed_as_the_fix():
 
 def test_correction_and_loop_notes_end_at_the_resolution_sentence():
     said = render_lesson(lesson(Signature(Signal.CORRECTION, ("-", "use the fixture"))))
-    assert said.endswith("Last time: ran pip install, then re-ran pytest.")
+    assert said.endswith("Then the agent ran pip install, then re-ran pytest.")
     assert "Check:" not in said
     looped = render_lesson(lesson(Signature(Signal.LOOP, ("command", "pytest")), ()))
     assert looped.endswith("No fix was found in the history.")
@@ -130,3 +132,80 @@ def test_a_long_review_note_cuts_the_point_never_the_fix():
     )
     assert len(note) <= 300
     assert note.endswith("Last time: fixed by editing batch.ts.") and "…" in note
+
+
+def _correction(quote, asked="", resolution=("edited release.yml",)):
+    sig = Signature(Signal.CORRECTION, ("-", "dont create the tag manually this caused all"))
+    return replace(lesson(sig, resolution), quote=quote, asked=asked)
+
+
+def test_a_correction_note_tells_the_story_in_the_developers_own_words():
+    note = render_lesson(
+        _correction(
+            "dont create the tag manually, this caused all the issues last time",
+            asked="Ship the 1.4 release. Then update the changelog.",
+        )
+    )
+    assert note == (
+        "While Ship the 1.4 release: the developer pushed back: “dont create the tag manually, "
+        "this caused all the issues last time”. Then the agent edited release.yml."
+    )
+    assert "corrected on" not in note and "Check:" not in note
+
+
+def test_a_correction_note_without_a_known_request_or_fix_still_quotes_the_words():
+    note = render_lesson(_correction("no, keep amounts in integer cents", resolution=()))
+    assert note == (
+        "The developer pushed back: “no, keep amounts in integer cents”. "
+        "No fix was found in the history."
+    )
+
+
+def test_a_long_correction_is_cut_on_a_word_and_the_note_stays_within_its_cap():
+    from symbiont.core.note_words import NOTE_CHARS
+
+    long_said = "please never touch the global install " * 20
+    note = render_lesson(_correction(long_said, asked="x" * 200))
+    assert len(note) <= NOTE_CHARS and "Then the agent edited release.yml." in note
+    assert "please never touch the global install" in note
+
+
+def test_a_correction_note_scrubs_secrets_and_drops_injected_reminders():
+    token = "ghp_" + "a1B2c3D4e5F6g7H8i9J0k1L2m3N4o5P6q7R8"
+    quote = f"<system-reminder>be brief</system-reminder>dont use {token}, use the deploy key"
+    note = render_lesson(_correction(quote))
+    assert token not in note and "be brief" not in note and "use the deploy key" in note
+
+
+def test_a_correction_note_names_the_next_command_and_never_calls_the_message_a_command():
+    told = replace(
+        _correction("thats not the branch, its called feat/mfa", resolution=("ran git checkout",)),
+        fix_commands=("git checkout feat/mfa",),
+    )
+    note = render_lesson(told)
+    assert note.endswith("Then the agent ran `git checkout feat/mfa`.")
+    assert "passed" not in note
+
+
+def test_harness_text_is_never_the_work_a_correction_interrupted():
+    for asked in (
+        "[Request interrupted by user]",
+        "<command-message>gsd:debug</command-message>",
+        "https://example.com/runs/1",
+        "ok",
+    ):
+        assert render_lesson(_correction("no, keep cents", asked=asked)).startswith("The developer")
+
+
+def test_a_quote_that_ends_a_sentence_is_not_followed_by_a_second_period():
+    note = render_lesson(_correction("no, #228 has already been merged.", resolution=()))
+    assert "merged.”" in note and "merged.”." not in note
+
+
+def test_a_command_after_a_correction_never_shows_a_home_directory():
+    told = replace(
+        _correction("why are you editing the global install?", resolution=("ran git checkout",)),
+        fix_commands=("cd /home/dev/.tool/install && git checkout -- a.md",),
+    )
+    note = render_lesson(told)
+    assert "/home/" not in note and "dev/" not in note and "git checkout -- a.md" in note

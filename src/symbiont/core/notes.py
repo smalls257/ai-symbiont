@@ -7,6 +7,7 @@ run. Domain prose only: no scores, feature names or thresholds.
 from collections.abc import Callable, Collection, Sequence
 from enum import StrEnum
 
+from symbiont.core.correction_note import correction_note
 from symbiont.core.note_words import MIN_WHILE_CHARS, NOTE_CHARS, times
 from symbiont.core.review_note import flagged, review_note, review_warning
 from symbiont.core.slot import Decision
@@ -53,6 +54,8 @@ def render_lesson(lesson: Lesson) -> str:
         return story_note(lesson)
     if signature.signal is Signal.REVIEW_FLAG:
         return review_note(lesson)
+    if signature.signal is Signal.CORRECTION and (told := correction_note(lesson)):
+        return told
     happened = _HAPPENED[signature.signal](signature)
     return _joined(f"What happened: {happened}.", _resolved(lesson), _check(signature))
 

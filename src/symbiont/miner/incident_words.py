@@ -14,6 +14,8 @@ from symbiont.miner.secrets import scrub
 from symbiont.miner.working_command import working_command
 
 QUOTE_CHARS = 160
+# Harness text inside a user turn that the developer did not type.
+REMINDER = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
 DETAIL_LIMIT = 90
 COMMAND_CHARS = 60
 _BAD_PATH = EXIT_MEANINGS[("pytest", 4)]
@@ -49,6 +51,14 @@ def quoted_words(text: str) -> str:
     """`text` on one line, secrets scrubbed, cut to at most QUOTE_CHARS characters."""
     flat = scrub(" ".join(text.split()))
     return flat if len(flat) <= QUOTE_CHARS else flat[: QUOTE_CHARS - 3] + "..."
+
+
+def said_line(text: str, limit: int) -> str:
+    """The developer's own words on one line: reminders cut out, scrubbed, cut on a word."""
+    flat = scrub(" ".join(REMINDER.sub(" ", text).split()))
+    if len(flat) <= limit:
+        return flat
+    return flat[: limit - 1].rsplit(" ", 1)[0].rstrip(" ,(") + "…"
 
 
 _LEADING_CD = re.compile(r"^\s*cd\s+\S+\s*&&\s*")
