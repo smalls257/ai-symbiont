@@ -11,6 +11,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Any
 
+from symbiont.miner.commands import command_stages
 from symbiont.miner.credential_patterns import scrub
 from symbiont.miner.review_gist import Severity, gist_of, reviewer_name, severity_of
 from symbiont.records.schema import Kind, Record
@@ -37,10 +38,10 @@ class ReviewComment:
 
 def review_comments_in(record: Record) -> tuple[ReviewComment, ...]:
     """The review comments a `gh` command's output shows, replies and the agent's posts excluded."""
-    command = (record.command or "").lstrip()
-    if record.kind != Kind.COMMAND or not command.startswith("gh"):
+    command = record.command or ""
+    if record.kind != Kind.COMMAND or record.exit_code not in (0, None):
         return ()
-    if record.exit_code not in (0, None) or _POSTS_A_BODY.search(command):
+    if not _runs_gh(command) or _writes(command):
         return ()
     found: dict[str, ReviewComment] = {}
     for document in _json_documents(record.raw):
@@ -49,6 +50,15 @@ def review_comments_in(record: Record) -> tuple[ReviewComment, ...]:
             if comment is not None:
                 found.setdefault(comment.comment_id, comment)
     return tuple(found.values())
+
+
+def _runs_gh(command: str) -> bool:
+    return any(stage.program == "gh" for stage in command_stages(command))
+
+
+def _writes(command: str) -> bool:
+    """A post, a body field, a piped-in body or a GraphQL mutation: the agent's own words."""
+    return bool(_POSTS_A_BODY.search(command)) or "mutation" in command
 
 
 def _json_documents(raw: str) -> list[Any]:
@@ -101,6 +111,8 @@ def _looks_like_comment(node: dict[str, Any]) -> bool:
 def _login(node: dict[str, Any]) -> str | None:
     for key in ("author", "user"):
         actor = node.get(key)
+        if isinstance(actor, str):
+            return actor
         if isinstance(actor, dict) and isinstance(actor.get("login"), str):
             return actor["login"]
     return None

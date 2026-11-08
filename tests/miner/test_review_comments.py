@@ -119,7 +119,7 @@ def test_gist_skips_badges_html_details_and_code():
 def test_gist_is_cut_on_a_whole_word():
     gist = _one(json.dumps([_rest("someone", "word " * 80)])).gist
     assert len(gist) <= 160
-    assert gist.endswith("word")
+    assert gist.endswith("word…")
 
 
 def test_secret_is_scrubbed_from_gist_and_body():
@@ -163,3 +163,78 @@ def test_agents_own_post_is_skipped():
         review_comments_in(run(f"{GH} --method POST --field body='Thanks, fixed.'", output=out))
         == ()
     )
+
+
+QUERY = (
+    'gh api graphql -f query="{ repository { pullRequest { reviewThreads { nodes { id } } } } }"'
+)
+
+
+def test_gh_in_a_later_stage_qualifies():
+    out = json.dumps([_rest("someone", "Fix it.")])
+    owner = (
+        "REPO_OWNER=$(gh repo view --json owner --jq '.owner.login')\nREPO_NAME=$(gh repo view)\n\n"
+    )
+    for command in (
+        owner + QUERY,
+        f'O=$(x) && N=$(y) && echo "$O/$N" && {QUERY}',
+        "cd /x\nenv -u GITHUB_TOKEN gh api repos/o/r/pulls/1/comments",
+    ):
+        assert len(review_comments_in(run(command, output="o/n\n" + out))) == 1
+
+
+def test_graphql_mutation_is_a_write():
+    command = 'gh api graphql -f query="mutation { resolveReviewThread(input: {}) { id } }"'
+    assert review_comments_in(run(command, output=json.dumps([_rest("someone", "Fix.")]))) == ()
+
+
+def test_jq_ndjson_with_string_author():
+    lines = [
+        {"id": i, "path": "a.rs", "body": "Hold the lock.", "author": "coderabbitai[bot]"}
+        for i in (1, 2)
+    ]
+    raw = "\n".join(json.dumps(line) for line in lines)
+    found = review_comments_in(run(f"{GH} --paginate --jq '.[] | {{id: .id}}'", output=raw))
+    assert [c.reviewer for c in found] == ["CodeRabbit", "CodeRabbit"]
+
+
+CODEX = (
+    "**<sub><sub>![P1 Badge](https://img.shields.io/badge/P1-orange?style=flat)</sub></sub>"
+    "  Load main identity from agent workspace before partial save**\n\nDetails follow."
+)
+
+
+def test_codex_image_badge_is_not_the_gist_and_sets_severity():
+    comment = _one(json.dumps([_rest("chatgpt-codex-connector[bot]", CODEX)]))
+    assert comment.gist == "Load main identity from agent workspace before partial save"
+    assert comment.severity is Severity.MAJOR
+
+
+def test_p_badges_map_to_severity():
+    for badge, severity in (
+        ("P0", Severity.CRITICAL),
+        ("P2", Severity.MINOR),
+        ("P3", Severity.NITPICK),
+    ):
+        body = f'<a href="#"><img alt="{badge}" src="x.svg"></a> Check the bound.'
+        assert _one(json.dumps([_rest("greptile-apps[bot]", body)])).severity is severity
+
+
+def test_generics_inside_backticks_survive():
+    body = "`n.parse::<u64>().unwrap_or(0)` silently converts any failure to 0."
+    assert _one(json.dumps([_rest("someone", body)])).gist.startswith("`n.parse::<u64>()")
+
+
+def test_long_gist_ends_with_ellipsis_on_a_word():
+    gist = _one(json.dumps([_rest("someone", "alpha " * 60)])).gist
+    assert len(gist) <= 160
+    assert gist.endswith("alpha…")
+
+
+def test_bold_title_after_a_nested_details_block():
+    body = (
+        "_⚠️ Potential issue_ | _🟠 Major_\n\n<details>\n<summary>🧩 Analysis chain</summary>\n\n"
+        "<details><summary>inner</summary>\ninner words.\n</details>\n\nscript output words.\n"
+        "</details>\n\n**Guard the empty batch.**\n\nBody."
+    )
+    assert _one(json.dumps([_rest("coderabbitai", body)])).gist == "Guard the empty batch."

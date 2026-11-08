@@ -20,11 +20,22 @@ _PRODUCTS = (
     ("codex", "Codex"),
     ("claude", "Claude"),
 )
-_HIDDEN = re.compile(
-    r"<!--.*?-->|<details\b.*?</details>|<details\b.*\Z|```.*?(?:```|\Z)", re.DOTALL | re.IGNORECASE
+_COMMENT_OR_FENCE = re.compile(r"<!--.*?-->|```.*?(?:```|\Z)", re.DOTALL)
+_INNER_DETAILS = re.compile(r"<details\b(?:(?!<details\b).)*?</details>", re.DOTALL | re.I)
+_OPEN_DETAILS = re.compile(r"<details\b.*\Z", re.DOTALL | re.I)
+# Only real HTML: a generic such as `parse::<u64>` is not a tag.
+_HTML_TAG = re.compile(
+    r"</?(?:details|summary|sub|sup|img|a|br|p|div|span|b|i|em|strong|code|pre|blockquote|table"
+    r"|thead|tbody|tr|td|th|ul|ol|li|h[1-6]|hr|picture|source)\b[^>]*>",
+    re.I,
 )
-_TAG = re.compile(r"<[^>]+>")
+_MARKDOWN_IMAGE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_CODE_SPAN = re.compile(r"(`[^`\n]*`)")
 _LEADING_BADGE = re.compile(r"^\W*\**P\d\b\**[:\s-]*")
+_P_BADGE = re.compile(
+    r"""(?:\bP([0-3])\s+Badge|badge/P([0-3])\b|alt=["']P([0-3])["']|^\W*\**P([0-3])\b)""", re.I
+)
+_BADGE_SEVERITY = {"0": "critical", "1": "major", "2": "minor", "3": "nitpick"}
 _BOLD_TITLE = re.compile(r"^\*\*(.+?)\*\*")
 _EMPHASIS = re.compile(r"(\*\*|__)(.+?)\1|(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])")
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s")
@@ -50,26 +61,55 @@ def reviewer_name(login: str) -> str:
 
 
 def severity_of(body: str) -> Severity:
-    """The severity a CodeRabbit-style marker (`_🟠 Major_`) states in the opening line."""
-    opening = body.lstrip().split("\n", 1)[0].lower()
-    if "|" not in opening and "_" not in opening:
+    """The severity a marker states: CodeRabbit's `_🟠 Major_` or a P0-P3 badge in the opening."""
+    opening = body.lstrip()[:300]
+    first_line = opening.split("\n", 1)[0].lower()
+    if "|" in first_line or "_" in first_line:
+        marked = next((s for s in Severity if s is not Severity.UNSTATED and s in first_line), None)
+        if marked is not None:
+            return marked
+    badge = _P_BADGE.search(opening)
+    if badge is None:
         return Severity.UNSTATED
-    return next(
-        (s for s in Severity if s is not Severity.UNSTATED and s in opening), Severity.UNSTATED
-    )
+    return Severity(_BADGE_SEVERITY[next(g for g in badge.groups() if g)])
 
 
 def gist_of(body: str) -> str:
     """One scrubbed line, at most GIST_CHARS, cut on a whole word: the comment's real point."""
-    for paragraph in _HIDDEN.sub("", body).split("\n\n"):
+    for paragraph in _visible(body).split("\n\n"):
         text = _paragraph_gist(paragraph)
         if text:
-            return cut_whole(scrub(text), GIST_CHARS)
+            return _shortened(scrub(text))
     return ""
 
 
+def _visible(body: str) -> str:
+    """The body without comments, code fences and details blocks (nested ones included)."""
+    text = _COMMENT_OR_FENCE.sub("", body)
+    while (stripped := _INNER_DETAILS.sub("", text)) != text:
+        text = stripped
+    return _OPEN_DETAILS.sub("", text)
+
+
+def _without_markup(text: str) -> str:
+    """Images and HTML tags removed everywhere except inside backtick code spans."""
+    parts = _CODE_SPAN.split(text)
+    for index in range(0, len(parts), 2):
+        parts[index] = _HTML_TAG.sub("", _MARKDOWN_IMAGE.sub("", parts[index]))
+    return "".join(parts)
+
+
+def _shortened(text: str) -> str:
+    if len(text) <= GIST_CHARS:
+        return text
+    cut = cut_whole(text, GIST_CHARS - 1)
+    if text[len(cut)] != " ":
+        cut = cut.rsplit(" ", 1)[0]
+    return cut.rstrip(" ,;:-") + "…"
+
+
 def _paragraph_gist(paragraph: str) -> str:
-    text = _TAG.sub("", paragraph).strip()
+    text = _without_markup(paragraph).strip()
     if _is_badge(text):
         return ""
     text = _LEADING_BADGE.sub("", text)
