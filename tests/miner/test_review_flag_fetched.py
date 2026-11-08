@@ -124,3 +124,15 @@ def test_hunk_flags_dedupe_by_signature_across_a_chain():
     ]
     flags = [p for p in mine_chain([one, two], {}) if p.signature.signal is Signal.REVIEW_FLAG]
     assert [p.session_id for p in flags] == ["s1"]
+
+
+def test_the_agents_own_post_with_a_handle_is_still_its_own():
+    body = "@coderabbitai thanks, the batching now happens once per request in the handler"
+    posted = run(f"gh pr comment 3 --body '{body}'")
+    fetch = run(
+        FETCH,
+        output=json.dumps(
+            [{"id": 21, "user": {"login": "me"}, "body": body, "path": "src/batch.ts"}]
+        ),
+    )
+    assert find_review_flags(session(posted, fetch, edit("src/batch.ts"))) == []

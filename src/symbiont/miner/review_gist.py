@@ -14,14 +14,23 @@ GIST_CHARS = 160
 # Bounds the work on a hostile or pasted-log paragraph; the gist only needs its opening.
 _PARAGRAPH_CHARS = 4000
 TEAMMATE = "a teammate"
-# Longest-first is irrelevant: logins match one product each. Order only decides ties.
-_PRODUCTS = (
-    ("coderabbit", "CodeRabbit"),
-    ("copilot", "Copilot"),
-    ("greptile", "Greptile"),
-    ("codex", "Codex"),
-    ("claude", "Claude"),
-)
+# Exact bot logins, "[bot]" dropped: a human whose login merely contains "claude" stays a teammate.
+_BOT_LOGINS = {
+    "coderabbitai": "CodeRabbit",
+    "copilot": "Copilot",
+    "copilot-pull-request-reviewer": "Copilot",
+    "github-copilot": "Copilot",
+    "greptile-apps": "Greptile",
+    "greptileai": "Greptile",
+    "chatgpt-codex-connector": "Codex",
+    "claude": "Claude",
+}
+# A handle or an address names a person; a handle inside a backtick code span is code.
+PERSON = re.compile(r"(?<![\w`])@([A-Za-z0-9][\w-]*(?:\[bot\])?)|[\w.+-]+@[\w-]+\.[\w.]+")
+# A paragraph made only of `_..._` badges ("_⚠️ Potential issue_ | _🟠 Major_") says no point.
+_BADGES_ONLY = re.compile(r"^(?:_[^_\n]{1,60}_\s*\|?\s*)+$")
+_APPROVAL = re.compile(r"^(?:lgtm|looks good(?: to me)?)\W*$", re.I)
+_NIT_OPENER = re.compile(r"^\W{0,4}nit(?:pick)?\W{0,4}\s*[:\-\u2013\u2014]", re.I)
 _COMMENT_OR_FENCE = re.compile(r"<!--.*?(?:-->|\Z)|```.*?(?:```|\Z)", re.DOTALL)
 _INNER_DETAILS = re.compile(r"<details\b(?:(?!<details\b).)*?</details>", re.DOTALL | re.I)
 _OPEN_DETAILS = re.compile(r"<details\b.*\Z", re.DOTALL | re.I)
@@ -65,14 +74,20 @@ class Severity(StrEnum):
 
 
 def reviewer_name(login: str) -> str:
-    """The product behind a bot login, or "a teammate": a human login is never kept."""
-    lowered = login.lower()
-    return next((name for key, name in _PRODUCTS if key in lowered), TEAMMATE)
+    """The product behind a known bot login, or "a teammate": a human login is never kept."""
+    return _BOT_LOGINS.get(login.lower().removesuffix("[bot]"), TEAMMATE)
+
+
+def without_people(text: str) -> str:
+    """Text with each @handle and e-mail address replaced: a bot by its product, else a teammate."""
+    return PERSON.sub(lambda match: reviewer_name(match.group(1) or ""), text)
 
 
 def severity_of(body: str) -> Severity:
     """The severity a marker states: CodeRabbit's `_🟠 Major_` or a P0-P3 badge in the opening."""
     opening = body.lstrip()[:300]
+    if _NIT_OPENER.match(opening):
+        return Severity.NITPICK
     marker = _MARKER.search(opening.split("\n", 1)[0])
     if marker is not None:
         return Severity(marker.group(1).lower())
@@ -87,7 +102,7 @@ def gist_of(body: str) -> str:
     for paragraph in _visible(body).split("\n\n"):
         text = _paragraph_gist(paragraph)
         if text:
-            return _shortened(scrub(text))
+            return _shortened(without_people(scrub(text)))
     return ""
 
 
@@ -118,7 +133,7 @@ def _shortened(text: str) -> str:
 
 def _paragraph_gist(paragraph: str) -> str:
     text = _without_markup(paragraph[:_PARAGRAPH_CHARS]).strip()
-    if _is_badge(text):
+    if _is_badge(text) or _APPROVAL.match(text):
         return ""
     text = _LEADING_BADGE.sub("", text)
     title = _BOLD_TITLE.match(text)
@@ -128,7 +143,7 @@ def _paragraph_gist(paragraph: str) -> str:
 
 
 def _is_badge(text: str) -> bool:
-    if not re.search(r"[A-Za-z]", text):
+    if not re.search(r"[A-Za-z]", text) or _BADGES_ONLY.match(text):
         return True
     return "|" in text and len(text) < 80 and bool(_SEVERITY_WORD.search(text))
 

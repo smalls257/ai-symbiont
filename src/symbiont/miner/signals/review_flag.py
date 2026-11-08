@@ -12,7 +12,7 @@ from symbiont.miner.changes import applied_edit
 from symbiont.miner.diffs import added_lines, removed_lines
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.review_comments import ReviewComment, review_comments_in
-from symbiont.miner.review_gist import TEAMMATE, Severity, gist_of
+from symbiont.miner.review_gist import TEAMMATE, Severity, gist_of, without_people
 from symbiont.records.schema import Kind, Record
 
 OWN_TEXT_CHARS = 80
@@ -67,7 +67,8 @@ class _EarlierCommands:
 
     def add(self, command: str | None) -> None:
         if command:
-            self._parts.append(_flat(command))
+            # Fetched bodies have their handles replaced; the posted text must match them.
+            self._parts.append(_flat(without_people(command)))
             self._joined = None
 
     def contain(self, body: str) -> bool:

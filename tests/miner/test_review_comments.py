@@ -299,3 +299,71 @@ def test_graphql_comment_with_a_reply_to_is_a_reply():
     raw = json.dumps([{**reply, "replyTo": {"id": "PRRC_x"}}, {**reply, "replyTo": None}])
     found = review_comments_in(run(GH, output=raw))
     assert [c.comment_id for c in found] == ["PRRC_y"]
+
+
+def test_mentioned_handles_and_addresses_are_blanked_in_gist_and_body():
+    body = "@dev-person please fix the cache key. cc @other-dev and dev@example.com"
+    comment = _one(json.dumps([_rest("someone", body)]))
+    assert "@" not in comment.gist and "@" not in comment.body
+    assert "dev-person" not in repr(comment) and "other-dev" not in repr(comment)
+    assert comment.gist.startswith("a teammate please fix the cache key")
+
+
+def test_a_handle_inside_backticks_is_code_and_stays():
+    comment = _one(json.dumps([_rest("someone", "Pin `@types/node` to the lockfile version.")]))
+    assert comment.gist == "Pin `@types/node` to the lockfile version."
+
+
+def _thread_with(**state):
+    document = _thread("coderabbitai", CODERABBIT)
+    thread = document["data"]["repository"]["pullRequest"]["reviewThreads"]["nodes"][0]
+    thread.update(state)
+    return json.dumps(document)
+
+
+def test_resolved_or_outdated_threads_are_not_feedback():
+    assert review_comments_in(run(GH, output=_thread_with(isResolved=True))) == ()
+    assert review_comments_in(run(GH, output=_thread_with(isOutdated=True))) == ()
+    assert len(review_comments_in(run(GH, output=_thread_with(isOutdated=False)))) == 1
+
+
+def test_an_outdated_rest_comment_is_not_feedback():
+    outdated = _rest("someone", "Rename this flag.", position=None, original_position=7)
+    current = _rest("someone", "Rename this flag.", id=12, position=3, original_position=3)
+    assert review_comments_in(run(GH, output=json.dumps([outdated]))) == ()
+    assert len(review_comments_in(run(GH, output=json.dumps([current])))) == 1
+
+
+def test_a_badge_line_without_a_bar_is_never_the_gist():
+    for badges in (
+        "_⚠️ Potential issue_",
+        "_🛠️ Refactor suggestion_",
+        "_💡 Verification agent_",
+        "_🟠 Major_",
+        "_:warning: Potential issue_",
+        "_⚠️ Potential issue_ | _🟠 Major_",
+    ):
+        assert gist_of(f"{badges}\n\n**Title two.**\n\nMore.") == "Title two."
+
+
+def test_a_human_nit_is_a_nitpick():
+    assert severity_of("Nit: rename this local.") is Severity.NITPICK
+    assert severity_of("nitpick: trailing space") is Severity.NITPICK
+    assert severity_of("This is not a nit: the cache is wrong.") is Severity.UNSTATED
+
+
+def test_a_bare_approval_has_no_gist():
+    for body in ("LGTM", "lgtm!", "Looks good to me.", "Looks good"):
+        assert gist_of(body) == ""
+
+
+def test_a_human_login_containing_a_product_word_is_a_teammate():
+    for login in ("claude-fan", "codexmaster", "my-copilot-fork", "coderabbit-lover"):
+        assert _one(json.dumps([_rest(login, "Check this.")])).reviewer == "a teammate"
+    for login, name in (
+        ("coderabbitai[bot]", "CodeRabbit"),
+        ("Copilot", "Copilot"),
+        ("copilot-pull-request-reviewer[bot]", "Copilot"),
+        ("claude[bot]", "Claude"),
+    ):
+        assert _one(json.dumps([_rest(login, "Check this.")])).reviewer == name

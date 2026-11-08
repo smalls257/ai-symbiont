@@ -12,7 +12,13 @@ from typing import Any
 
 from symbiont.miner.commands import command_stages
 from symbiont.miner.credential_patterns import scrub
-from symbiont.miner.review_gist import Severity, gist_of, reviewer_name, severity_of
+from symbiont.miner.review_gist import (
+    Severity,
+    gist_of,
+    reviewer_name,
+    severity_of,
+    without_people,
+)
 from symbiont.records.schema import Kind, Record
 
 _FIELD_FLAGS = ("-f", "-F", "--field", "--raw-field")
@@ -143,10 +149,22 @@ def _comment_nodes(value: Any) -> Iterator[dict[str, Any]]:
             return
         thread = value.get("comments")
         if isinstance(thread, dict) and isinstance(thread.get("nodes"), list):
-            yield from _comment_nodes(thread["nodes"][:1])
+            yield from _comment_nodes(_opening_comment(value, thread["nodes"]))
             return
         for child in value.values():
             yield from _comment_nodes(child)
+
+
+def _opening_comment(thread: dict[str, Any], nodes: list[Any]) -> list[Any]:
+    """The thread's first comment; none when it was resolved or outdated at the fetch."""
+    return [] if thread.get("isResolved") or thread.get("isOutdated") else nodes[:1]
+
+
+def _is_stale(node: dict[str, Any]) -> bool:
+    """Outdated: GraphQL's `outdated`, or REST's null `position` with an `original_position`."""
+    if node.get("outdated") is True:
+        return True
+    return "position" in node and node["position"] is None and bool(node.get("original_position"))
 
 
 def _looks_like_comment(node: dict[str, Any]) -> bool:
@@ -158,16 +176,17 @@ def _login(node: dict[str, Any]) -> str | None:
         actor = node.get(key)
         if isinstance(actor, str):
             return actor
-        if isinstance(actor, dict) and isinstance(actor.get("login"), str):
-            return actor["login"]
+        login = actor.get("login") if isinstance(actor, dict) else None
+        if isinstance(login, str):
+            return login
     return None
 
 
 def _comment_from(node: dict[str, Any]) -> ReviewComment | None:
     login = _login(node)
-    if login is None or any(node.get(key) for key in _REPLY_KEYS):
+    if login is None or _is_stale(node) or any(node.get(key) for key in _REPLY_KEYS):
         return None
-    body = scrub(node["body"])
+    body = without_people(scrub(node["body"]))
     gist = gist_of(node["body"])
     if not gist:
         return None
