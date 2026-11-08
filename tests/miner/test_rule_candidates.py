@@ -94,3 +94,28 @@ def test_terms_hold_tool_names_and_files():
     )
     assert {"pnpm", "npm", "pyproject.toml"} <= candidate.terms
     assert "always" not in candidate.terms
+
+
+def test_real_descriptions_and_hedges_are_not_rules():
+    assert not texts(
+        "it is likely that #10 was jsut never moved to @.planning/todos/completed/x",
+        "the branch was never merged",
+        "it seems to me like you should be able to execute the headed browser session",
+        "you should be able to check the date with the GH api",
+        "that should have worked",
+        "I would never use npm",
+    )
+
+
+def test_instructions_stay_rules_whatever_their_wording():
+    kept = texts(
+        "dont create the tag manually",
+        "please always use playwright-verify before you say a UI change works",
+        "you should never push to main",
+        "ok, and never commit generated files",
+        "use pnpm, not npm",
+        "you must run ruff before committing",
+        "never run rm -rf here",
+        "never need to restart the service",
+    )
+    assert len(kept) == 8

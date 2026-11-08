@@ -13,6 +13,7 @@ from store_builders import save_lessons
 from symbiont.core.triage import GroupState, ReturnRule, TriageRow, triage_row
 from symbiont.store.held_back import REPLACED_TABLES
 from symbiont.store.local import Store
+from symbiont.store.triage import RuleTeach
 
 pytestmark = pytest.mark.periphery
 
@@ -196,3 +197,12 @@ def test_a_store_from_before_lesson_ids_opens_reads_none_and_takes_a_teach(tmp_p
     assert store.review.triage.lesson_ids("demo") == {"k": "lesson-1"}
     columns = {c[1] for c in sqlite3.connect(path).execute("PRAGMA table_info(triage)")}
     assert "lesson" not in columns
+
+
+def test_a_rule_teach_keeps_its_messages_with_the_taught_day(tmp_path):
+    store = Store.open(tmp_path / "s.db")
+    store.review.triage.mark_rule_taught(
+        "demo", "rule:a:1", RuleTeach(DAY, "l1", (("a", 1), ("b", 2)))
+    )
+    assert store.review.triage.members_by_key("demo") == {"rule:a:1": {("a", 1), ("b", 2)}}
+    assert store.review.triage.lesson_ids("demo") == {"rule:a:1": "l1"}

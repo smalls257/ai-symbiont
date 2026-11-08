@@ -6,6 +6,8 @@ NOT in `REPLACED_TABLES`: a re-mine rebuilds the groups but never forgets which 
 """
 
 import sqlite3
+from collections.abc import Iterable
+from dataclasses import dataclass
 from datetime import date
 
 from symbiont.core.triage import GroupState, ReturnRule, TriageRow
@@ -17,7 +19,32 @@ CREATE TABLE IF NOT EXISTS triage (
     name TEXT NOT NULL DEFAULT '', until TEXT, lesson_id TEXT NOT NULL DEFAULT '',
     PRIMARY KEY (project, group_key)
 );
+CREATE TABLE IF NOT EXISTS rule_triage_members (
+    project TEXT NOT NULL, key TEXT NOT NULL, session_id TEXT NOT NULL, step INTEGER NOT NULL,
+    PRIMARY KEY (project, key, session_id, step)
+);
 """
+Ref = tuple[str, int]
+
+
+@dataclass(frozen=True)
+class RuleTeach:
+    """A teach: its day, the lesson it stored, and the rule messages it stands for."""
+
+    day: date
+    lesson_id: str = ""
+    members: tuple[Ref, ...] = ()
+
+
+def _remember_members(db: sqlite3.Connection, project: str, key: str, refs: Iterable[Ref]) -> None:
+    """Keep the messages a triaged rule stood for, inside the caller's transaction.
+
+    Grouping can rename a rule when an earlier session is mined; the dismissal follows the words.
+    """
+    db.executemany(
+        "INSERT OR IGNORE INTO rule_triage_members VALUES (?,?,?,?)",
+        [(project, key, session_id, step) for session_id, step in refs],
+    )
 
 
 def add_missing_name(db: sqlite3.Connection) -> None:
@@ -69,10 +96,13 @@ class GroupTriage:
         )
         return dict(rows)
 
-    def save(self, project: str, group_key: str, row: TriageRow) -> None:
-        """Set the group's state; the day "Teach the agent" was used is kept."""
+    def save(
+        self, project: str, group_key: str, row: TriageRow, members: Iterable[Ref] = ()
+    ) -> None:
+        """Set the group's state, with the rule messages it stands for; the taught day is kept."""
         rule = None if row.return_rule is None else row.return_rule.value
         with self._db:
+            _remember_members(self._db, project, group_key, members)
             self._db.execute(
                 "INSERT INTO triage (project, group_key, state, return_rule, after_sessions,"
                 " changed_on, until) VALUES (?, ?, ?, ?, ?, ?, ?)"
@@ -96,7 +126,12 @@ class GroupTriage:
 
         A teach with no id keeps the id already there. A group not yet triaged stays For review.
         """
+        self.mark_rule_taught(project, group_key, RuleTeach(day, lesson_id))
+
+    def mark_rule_taught(self, project: str, group_key: str, teach: "RuleTeach") -> None:
+        """`mark_taught` plus the rule messages it stands for, in one transaction."""
         with self._db:
+            _remember_members(self._db, project, group_key, teach.members)
             self._db.execute(
                 "INSERT INTO triage (project, group_key, state, changed_on, taught_on, lesson_id)"
                 " VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (project, group_key) DO UPDATE"
@@ -106,9 +141,9 @@ class GroupTriage:
                     project,
                     group_key,
                     GroupState.FOR_REVIEW.value,
-                    day.isoformat(),
-                    day.isoformat(),
-                    lesson_id,
+                    teach.day.isoformat(),
+                    teach.day.isoformat(),
+                    teach.lesson_id,
                 ),
             )
 
@@ -119,6 +154,16 @@ class GroupTriage:
             (project,),
         )
         return dict(rows)
+
+    def members_by_key(self, project: str) -> dict[str, frozenset[Ref]]:
+        """The remembered rule messages of each triaged rule key."""
+        found: dict[str, set[Ref]] = {}
+        rows = self._db.execute(
+            "SELECT key, session_id, step FROM rule_triage_members WHERE project=?", (project,)
+        )
+        for key, session_id, step in rows:
+            found.setdefault(key, set()).add((session_id, step))
+        return {key: frozenset(refs) for key, refs in found.items()}
 
     def all(self, project: str) -> dict[str, TriageRow]:
         """Every saved group of `project`, by group key."""
