@@ -7,6 +7,8 @@ run. Domain prose only: no scores, feature names or thresholds.
 from collections.abc import Callable, Collection, Sequence
 from enum import StrEnum
 
+from symbiont.core.note_words import MIN_WHILE_CHARS, NOTE_CHARS, times
+from symbiont.core.review_note import flagged, review_note, review_warning
 from symbiont.core.slot import Decision
 from symbiont.miner.failure_keys import broke_in_words
 from symbiont.miner.fix_words import resolution_phrase
@@ -18,9 +20,6 @@ from symbiont.records.schema import Record
 DEFAULT_MAX_NOTES = 2
 NO_PATH = "-"
 TITLE_QUOTE_CHARS = 60
-# A note is read in passing by the agent; owner: "word vomit" is the failure to avoid.
-NOTE_CHARS = 300
-MIN_WHILE_CHARS = 30
 
 
 class NoteKind(StrEnum):
@@ -56,47 +55,6 @@ def render_lesson(lesson: Lesson) -> str:
         return review_note(lesson)
     happened = _HAPPENED[signature.signal](signature)
     return _joined(f"What happened: {happened}.", _resolved(lesson), _check(signature))
-
-
-def review_note(lesson: Lesson) -> str:
-    """`CodeRabbit flagged `a.ts`: <point>. Last time: fixed by editing a.ts.`; no check line.
-
-    The fix is the useful half, so a long point is cut to make the whole note fit.
-    """
-    signature = lesson.pain_point.signature
-    ending = _ended_sentence(story_of(lesson).ended)
-    room = NOTE_CHARS - len(ending) - len(_flagged(signature, "")) - len(": . ")
-    return _joined(f"{_flagged(signature, _cut_point(_point(signature), room))}.", ending)
-
-
-def _cut_point(point: str, room: int) -> str:
-    """The point, cut at a word with an ellipsis to fit `room`; "" when almost nothing would fit."""
-    if len(point) <= room:
-        return point
-    if room < MIN_WHILE_CHARS:
-        return ""
-    return point[: room - 1].rsplit(" ", 1)[0].rstrip(" ,(") + "…"
-
-
-def _ended_sentence(ended: str) -> str:
-    return f"Last time: {ended}." if ended else "No fix was found in the history."
-
-
-def _reviewer(signature: Signature) -> str:
-    """The reviewer's product name or "A teammate"; "A reviewer" for a key from before names."""
-    name = signature.key[1] if len(signature.key) > 1 else "A reviewer"
-    return name[0].upper() + name[1:]
-
-
-def _point(signature: Signature) -> str:
-    return signature.key[2].rstrip(".") if len(signature.key) > 2 else ""
-
-
-def _flagged(signature: Signature, point: str | None = None) -> str:
-    """`CodeRabbit flagged `a.ts`: <point>`, the point left out when there is none."""
-    said = f"{_reviewer(signature)} flagged `{signature.key[0]}`"
-    point = _point(signature) if point is None else point
-    return f"{said}: {point}" if point else said
 
 
 def story_note(lesson: Lesson) -> str:
@@ -203,41 +161,31 @@ def _resolved(lesson: Lesson) -> str:
     return f"Last time: {resolution_phrase(lesson.resolution)}.{meanwhile}"
 
 
-def _times(count: int) -> str:
-    """`once` or `N times`, for prose."""
-    return "once" if count == 1 else f"{count} times"
-
-
 def _failed_command(signature: Signature, count: int) -> str:
     """Note for a command that failed the same way before."""
     *target, error = signature.key
     command = " ".join(part for part in target if part != NO_PATH)
     broke = "a non-zero exit" if error.startswith("exit ") else broke_in_words(error)
-    return f"This command has failed {_times(count)} before: `{command}` -> {broke}."
+    return f"This command has failed {times(count)} before: `{command}` -> {broke}."
 
 
 def _reworked_edit(signature: Signature, count: int) -> str:
     """Note for a file whose edits were redone before."""
-    return f"You have redone your edits to `{signature.key[0]}` {_times(count)} before."
-
-
-def _review_flag(signature: Signature, count: int) -> str:
-    """Note for a file a reviewer flagged before."""
-    return f"{_reviewer(signature)} flagged `{signature.key[0]}` {_times(count)} before."
+    return f"You have redone your edits to `{signature.key[0]}` {times(count)} before."
 
 
 def _correction(signature: Signature, count: int) -> str:
     """Note for an earlier user correction."""
     path, words = signature.key
     where = "" if path == NO_PATH else f" about `{path}`"
-    return f"You were corrected{where} {_times(count)} before, on: {words}."
+    return f"You were corrected{where} {times(count)} before, on: {words}."
 
 
 def _loop(signature: Signature, count: int) -> str:
     """Note for an earlier session that went in circles."""
     kind, target = signature.key[0], signature.key[1]
     what = f"the command `{target}`" if kind == "command" else f"`{target}`"
-    return f"You went in circles over {what} in an earlier session ({_times(count)})."
+    return f"You went in circles over {what} in an earlier session ({times(count)})."
 
 
 def _blast_radius(signature: Signature, count: int) -> str:
@@ -274,7 +222,7 @@ _HAPPENED: dict[Signal, Callable[[Signature], str]] = {
         f"`{_command_of(sig)}` failed with {broke_in_words(sig.key[-1])}"
     ),
     Signal.REWORKED_EDIT: lambda sig: f"your edits to `{sig.key[0]}` were redone",
-    Signal.REVIEW_FLAG: _flagged,
+    Signal.REVIEW_FLAG: flagged,
     Signal.CORRECTION: lambda sig: f"you were corrected{_where(sig.key[0])} on: {sig.key[1]}",
     Signal.LOOP: lambda sig: f"you went in circles over `{sig.key[1]}`",
     Signal.BLAST_RADIUS: lambda sig: (
@@ -311,7 +259,7 @@ def _check(signature: Signature) -> str:
 _TEMPLATES: dict[Signal, Callable[[Signature, int], str]] = {
     Signal.FAILED_COMMAND: _failed_command,
     Signal.REWORKED_EDIT: _reworked_edit,
-    Signal.REVIEW_FLAG: _review_flag,
+    Signal.REVIEW_FLAG: review_warning,
     Signal.CORRECTION: _correction,
     Signal.LOOP: _loop,
     Signal.BLAST_RADIUS: _blast_radius,
