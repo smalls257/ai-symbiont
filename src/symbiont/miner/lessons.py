@@ -10,6 +10,7 @@ it.
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, replace
+from typing import TypedDict
 
 from symbiont.miner.added_line import telling_added_line
 from symbiont.miner.complaint_line import complaint_of
@@ -18,6 +19,7 @@ from symbiont.miner.error_lines import key_error_lines
 from symbiont.miner.fix_words import fix_phrase
 from symbiont.miner.fixes import FixKind, fix_kind
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
+from symbiont.miner.quick_fix import fixed_right_away
 from symbiont.miner.resolutions import (
     NoResolution,
     Resolution,
@@ -90,6 +92,9 @@ class Lesson:
     failed_command: str = ""
     # The tool's own complaint line from the whole output (`complaint_line`); "" when it said none.
     complaint: str = ""
+    # A failed command the agent's first step fixed (`quick_fix`): it knew the fix, so nothing to
+    # teach. False for other signals and for rows stored before the field.
+    first_step_fixed: bool = False
 
 
 @dataclass(frozen=True)
@@ -168,7 +173,7 @@ def _lesson(
         fix_steps=len(steps),
         fix_added=telling_added_line(steps),
         failed_command=_clip_start(cited[0].command or "", FAILED_COMMAND_CHARS),
-        complaint=complaint_of(cited[0].raw),
+        **_failure_fields(pain, cited[0], records),
     )
 
 
@@ -194,6 +199,17 @@ def _phrase_of(steps: Sequence[Record], pain: PainPoint | None = None) -> tuple[
     )
     phrase = fix_phrase(steps, failing)
     return (phrase,) if phrase else ()
+
+
+class _FailureFields(TypedDict):
+    complaint: str
+    first_step_fixed: bool
+
+
+def _failure_fields(pain: PainPoint, failed: Record, records: Sequence[Record]) -> _FailureFields:
+    """The tool's complaint line, and whether the agent's first step fixed the failure."""
+    quick = pain.signature.signal is Signal.FAILED_COMMAND and fixed_right_away(failed, records)
+    return {"complaint": complaint_of(failed.raw), "first_step_fixed": quick}
 
 
 def _commands_of(steps: Sequence[Record]) -> tuple[str, ...]:

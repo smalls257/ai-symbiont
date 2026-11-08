@@ -10,8 +10,6 @@ from collections.abc import Mapping, Sequence
 from pathlib import PurePosixPath
 
 from symbiont.miner import incident_words as words
-from symbiont.miner.commands import command_stages, program_words
-from symbiont.miner.complaint_line import complaint_of
 from symbiont.miner.environment_fix import setup_command
 from symbiont.miner.failure_keys import INTERRUPTS, is_interrupt
 from symbiont.miner.failure_signature import failure_detail
@@ -27,17 +25,14 @@ from symbiont.miner.incident_types import (
 )
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
-from symbiont.miner.read_only import is_read_only
 from symbiont.miner.resolutions import (
     NOTHING_CHANGED,
     ONLY_UNRELATED_CHANGED,
     PASSED_RESPELLED,
-    later_success_of,
-    subcommand_of,
 )
 from symbiont.miner.screen import INLINE_TARGET, PROBES
 from symbiont.miner.story import story_of
-from symbiont.records.schema import Kind, Record
+from symbiont.records.schema import Record
 
 __all__ = [
     "Incident",
@@ -54,8 +49,6 @@ __all__ = [
 # and was chosen by hand, not tuned [hypothesis].
 TRIGGER_SHARE = 0.6
 _RETRIES = (NOTHING_CHANGED, PASSED_RESPELLED)
-# What counts as the agent doing something between a failure and its pass.
-_ACTIONS = frozenset({Kind.COMMAND, Kind.EDIT, Kind.READ})
 
 
 def noise_words(reason: NoiseReason) -> str:
@@ -142,7 +135,7 @@ def _failure_card(
         cost_steps=0,
         what_fixed_it=_failure_fix(lesson, outcome, setup, failed, repo_names),
         outcome=outcome,
-        noise=_failure_noise(lesson, failed, outcome, records),
+        noise=_failure_noise(lesson, failed, outcome),
         topic=topic,
         files=lesson.files,
         situation=(TriggerKind.RUNNING.value, program, path_of(target, repo_names)),
@@ -160,13 +153,9 @@ def _story_fields(lesson: Lesson, repo_names: frozenset[str], setup: str | None)
     return {"working_on": story.working_on, "broke": story.broke, "ended": story.ended}
 
 
-def _failure_noise(
-    lesson: Lesson, failed: Record | None, outcome: Outcome, records: Sequence[Record]
-) -> NoiseReason | None:
+def _failure_noise(lesson: Lesson, failed: Record | None, outcome: Outcome) -> NoiseReason | None:
     """The verdict, in order: interrupt, look-around, repro, throwaway, fixed right away, retry."""
-    return _noise_in_what_ran(lesson, failed) or _noise_in_how_it_ended(
-        lesson, failed, outcome, records
-    )
+    return _noise_in_what_ran(lesson, failed) or _noise_in_how_it_ended(lesson, outcome)
 
 
 def _noise_in_what_ran(lesson: Lesson, failed: Record | None) -> NoiseReason | None:
@@ -182,58 +171,11 @@ def _noise_in_what_ran(lesson: Lesson, failed: Record | None) -> NoiseReason | N
     return None
 
 
-def _noise_in_how_it_ended(
-    lesson: Lesson, failed: Record | None, outcome: Outcome, records: Sequence[Record]
-) -> NoiseReason | None:
-    if outcome is not Outcome.FIXED_IN_CODE and failed and _fixed_right_away(failed, records):
+def _noise_in_how_it_ended(lesson: Lesson, outcome: Outcome) -> NoiseReason | None:
+    if outcome is not Outcome.FIXED_IN_CODE and lesson.first_step_fixed:
         return NoiseReason.FIXED_RIGHT_AWAY
     retried = lesson.unresolved_because in _RETRIES and outcome is not Outcome.ENVIRONMENT_FIXED
     return NoiseReason.PLAIN_RETRY if retried else None
-
-
-def _fixed_right_away(failed: Record, records: Sequence[Record]) -> bool:
-    """The agent's first step fixed it: alone before the pass, the setup, or chained into the pass.
-
-    Asked only of fixes that left the code alone: a one-edit code fix may carry what the code needs.
-    A first step counts even when the retry then broke some other way, never when it did not take.
-    """
-    success = later_success_of(failed, records)
-    if success is None:
-        return False
-    between = [r for r in records if failed.step < r.step < success.step and r.kind in _ACTIONS]
-    if not between:
-        return len(command_stages(success.command or "")) > 1
-    if not _changed_something(between[0]):
-        return False
-    return len(between) == 1 or _retried_past_it(failed, between[1:])
-
-
-def _retried_past_it(failed: Record, after: Sequence[Record]) -> bool:
-    """The next try of the same command no longer printed the failure's error line."""
-    wanted = _program_of(failed.command or "")
-    retry = next(
-        (r for r in after if r.kind is Kind.COMMAND and _program_of(r.command or "") == wanted),
-        None,
-    )
-    error = _error_line(failed.raw)
-    return retry is not None and bool(error) and _error_line(retry.raw) != error
-
-
-def _error_line(output: str) -> str:
-    return complaint_of(output) or failure_detail(output)
-
-
-def _program_of(command: str) -> tuple[str, str]:
-    return (program_words(command)[0], subcommand_of(command))
-
-
-def _changed_something(action: Record) -> bool:
-    """A step that worked and changed things: a look-around or a failed install fixed nothing."""
-    if action.exit_code not in (0, None):
-        return False
-    return action.kind is Kind.EDIT or (
-        action.kind is Kind.COMMAND and not is_read_only(action.command or "")
-    )
 
 
 def _interrupted(program: str, failed: Record | None) -> bool:

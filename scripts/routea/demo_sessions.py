@@ -1,8 +1,9 @@
 """Write the Route A demo's synthetic history: hand-written OpenHands trajectories, no real data.
 
 Three past sessions in a made-up project, each with a failure and the change that fixed it, so
-mining finds lessons with known resolutions. Synthetic and public by construction; the files go
-to the demo's work directory, never into the repo.
+mining finds lessons with known resolutions. The install took the agent two tries: a failure it
+fixed with its next step teaches nothing and is not a lesson. Synthetic and public by
+construction; the files go to the demo's work directory, never into the repo.
 
     uv run python scripts/routea/demo_sessions.py OUT_DIR
 """
@@ -23,6 +24,12 @@ SESSIONS: dict[str, list[Step]] = {
             "bash",
             "python -m pytest tests/test_cart.py -q",
             "E   ModuleNotFoundError: No module named 'shop'",
+            "1",
+        ),
+        (
+            "bash",
+            "pip install shop",
+            "ERROR: No matching distribution found for shop",
             "1",
         ),
         ("bash", "pip install -e .", "Successfully installed demo-shop-0.1", "0"),

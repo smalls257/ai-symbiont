@@ -82,6 +82,8 @@ def lesson_from_json(body: str) -> Lesson:
         complaint=data.get("complaint", ""),
         # Rows written before this field existed counted one step per old-style resolution item.
         fix_steps=data.get("fix_steps", len(data["resolution"])),
+        # Rows written before this field existed read as False: nothing is held back unseen.
+        first_step_fixed=data.get("first_step_fixed", False),
     )
 
 

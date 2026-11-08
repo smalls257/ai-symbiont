@@ -8,7 +8,7 @@ from symbiont.miner.screen import HoldReason, ScreenRules, screen, taught_since_
 TRAP = Signature(Signal.FAILED_COMMAND, ("pytest", "tests/test_x.py", "ImportError"))
 
 
-def lesson(signature=TRAP, session="s1", fix=FixKind.CODE_FIX, target_created=False, steps=0):
+def lesson(signature=TRAP, session="s1", fix=FixKind.CODE_FIX, target_created=False, quick=False):
     pain = PainPoint(signature, session, 1, ((session, 1),))
     return Lesson(
         pain_point=pain,
@@ -19,7 +19,7 @@ def lesson(signature=TRAP, session="s1", fix=FixKind.CODE_FIX, target_created=Fa
         sources=((session, 1),),
         fix=fix,
         target_created=target_created,
-        fix_steps=steps,
+        first_step_fixed=quick,
     )
 
 
@@ -177,14 +177,11 @@ def test_delivery_filter_drops_probes_and_scratch_scripts_but_keeps_what_people_
 
 
 def test_a_command_the_agent_corrected_on_its_next_try_is_held_as_fixed_right_away():
-    quick = [lesson(session=s, fix=FixKind.CORRECTED_COMMAND, steps=1) for s in ("s1", "s2")]
+    quick = [lesson(session=s, fix=FixKind.CORRECTED_COMMAND, quick=True) for s in ("s1", "s2")]
     result = screen(quick, ScreenRules())
     assert result.kept == [] and result.held == {HoldReason.FIXED_RIGHT_AWAY: 1}
 
 
-def test_a_one_edit_code_fix_and_an_uncounted_old_store_are_still_lessons():
-    for group in (
-        [lesson(session=s, steps=2) for s in ("s1", "s2")],
-        [lesson(session=s, fix=FixKind.CORRECTED_COMMAND, steps=0) for s in ("s1", "s2")],
-    ):
-        assert len(screen(group, ScreenRules()).kept) == 2
+def test_a_code_fix_the_first_step_made_is_still_a_lesson():
+    group = [lesson(session=s, quick=True) for s in ("s1", "s2")]
+    assert len(screen(group, ScreenRules()).kept) == 2

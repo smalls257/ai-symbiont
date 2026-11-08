@@ -20,10 +20,6 @@ from symbiont.miner.probes import PROBES
 # A correction or a reviewer's flag is a person speaking: one is enough, and it is never held.
 # A loop is the agent repeating itself inside one session: once is already the finding.
 EXEMPT_SIGNALS = frozenset({Signal.CORRECTION, Signal.REVIEW_FLAG, Signal.LOOP})
-# One fixing step and the re-run that passed: the agent already knew the fix, so there is nothing
-# to teach. 0 means a store from before steps were counted, never "instant". Only a fix that left
-# the code alone counts: an edit to the codebase may carry what the code needs.
-QUICK_FIX_STEPS = 2
 # The target a script typed into the command shares (`python -c`, `python - <<EOF`).
 INLINE_TARGET = "<inline>"
 
@@ -144,7 +140,8 @@ def _failed_command_reason(
 
 
 def _fixed_right_away(lesson: Lesson) -> bool:
-    return lesson.fix is FixKind.CORRECTED_COMMAND and 0 < lesson.fix_steps <= QUICK_FIX_STEPS
+    """A corrected command right on the next try; a code fix may carry what the code needs."""
+    return lesson.fix is FixKind.CORRECTED_COMMAND and lesson.first_step_fixed
 
 
 def _taught(signature: Signature, group: Sequence[Lesson]) -> list[Lesson]:
