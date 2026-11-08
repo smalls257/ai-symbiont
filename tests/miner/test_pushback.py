@@ -50,3 +50,35 @@ def test_a_plain_request_is_not_a_correction(text):
 
 def test_only_the_first_300_characters_count():
     assert not pushes_back("please push the branch\n" + "x " * 150 + "you forgot the docs")
+
+
+# "No," answering the agent's question and then agreeing is assent, not pushback (review I6).
+ASSENT_AFTER_OPENER = [
+    "no, that all checks out, could you do the next one",
+    "No, that's fine. go ahead and merge",
+    "no that's fine",
+    "no, go ahead",
+    "no, not yet",
+    "no, looks good",
+    "no worries",
+    "no, all good",
+    "No, I haven't run it yet",
+    "wait, that's fine actually",
+]
+OPENER_THEN_REFUSAL = [
+    "no, use pnpm",
+    "no, don't push to main",
+    "noooo why did you delete the branch",
+    "no, that's wrong",
+    "wait, why did you skip the tests",
+]
+
+
+@pytest.mark.parametrize("text", ASSENT_AFTER_OPENER)
+def test_an_opener_followed_by_assent_is_not_pushback(text):
+    assert not pushes_back(text)
+
+
+@pytest.mark.parametrize("text", OPENER_THEN_REFUSAL)
+def test_an_opener_followed_by_a_refusal_is_pushback(text):
+    assert pushes_back(text)

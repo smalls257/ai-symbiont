@@ -19,6 +19,14 @@ _OPENER = re.compile(
     r"|why (?:did|are|would) you\b|that'?s (?:wrong|not)\b)",
     re.IGNORECASE,
 )
+# What follows "no," or "wait," when the developer is answering the agent's question and agreeing:
+# "no, go ahead", "no, that all checks out". The opener then refuses nothing.
+_ASSENT = re.compile(
+    r"^\W*(?:that'?s (?:fine|good|ok(?:ay)?|it|all)|that all|it'?s (?:fine|ok(?:ay)?)"
+    r"|(?:looks|sounds|all) (?:good|great|fine)|go ahead|not yet|let'?s|move on"
+    r"|i haven'?t|nothing|worries|problem|all set|we'?re good)\b",
+    re.IGNORECASE,
+)
 _PHRASE = re.compile(
     r"\b(?:you|that|this) (?:forgot|missed|broke|didn'?t|did not|failed to)\b"
     r"|\bnot what i\b|\bi (?:said|asked|told you)\b"
@@ -31,7 +39,15 @@ _PHRASE = re.compile(
 
 def pushes_back(text: str) -> bool:
     """True when the first lines refuse, undo, restate or report a failure; a request is not."""
-    head = text[:INSPECTED_CHARS].translate(QUOTES)
+    head = _after_assenting_opener(text[:INSPECTED_CHARS].translate(QUOTES))
     if _OPENER.match(head) or _PHRASE.search(head):
         return True
     return instructs(NOT_A_RULE.sub(" ", head))
+
+
+def _after_assenting_opener(head: str) -> str:
+    """The text after "no," or "wait," when assent follows it ("no, not yet"), else all of it."""
+    opener = _OPENER.match(head)
+    if opener is None or not _ASSENT.match(head[opener.end() :]):
+        return head
+    return head[opener.end() :]
