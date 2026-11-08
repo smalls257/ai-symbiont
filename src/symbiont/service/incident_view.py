@@ -23,6 +23,8 @@ from symbiont.miner.incident_words import without_cd
 from symbiont.miner.incidents import noise_words
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.screen import ScreenRules
+from symbiont.miner.secrets import scrub
+from symbiont.miner.shown_paths import plain_paths
 from symbiont.miner.story import working_on_line
 from symbiont.miner.struggle import SessionFacts
 from symbiont.miner.topics import TopicMap
@@ -149,27 +151,33 @@ def _worth(incidents: Sequence[Incident], topic: str) -> list[Incident]:
     return [c for c in incidents if c.topic == topic and c.noise is None]
 
 
+def _shown(text: str) -> str:
+    """Card text as the page shows it: no secrets, no home directory, paths cut short."""
+    return plain_paths(scrub(text))
+
+
 def _story(card: Incident, context: IncidentContext) -> dict[str, str]:
     """The card's story lines: the goal leads; cards stored before the lines fall back."""
-    return {
+    lines = {
         "workingOn": working_on_line(context.goals.get(card.session_id, ""), card.working_on, ""),
         "broke": card.broke or card.what_happened,
         "ended": card.ended or card.what_fixed_it,
     }
+    return {name: _shown(line) for name, line in lines.items()}
 
 
 def _card(card: Incident, days: SessionDays, context: IncidentContext) -> dict[str, Any]:
     return {
         **_story(card, context),
-        "happened": card.what_happened,
-        "fixed": card.what_fixed_it,
+        "happened": _shown(card.what_happened),
+        "fixed": _shown(card.what_fixed_it),
         "outcome": card.outcome.value,
         "noise": card.noise.value if card.noise else None,
         "noiseWords": noise_words(card.noise) if card.noise else "",
         "date": days.get(card.session_id),
-        "files": list(card.files),
+        "files": [_shown(path) for path in card.files],
         "sessionId": card.session_id,
-        "firstWrong": card.first_wrong,
+        "firstWrong": _shown(card.first_wrong),
         "costSteps": card.cost_steps,
         "step": card.step,
         "command": card.example,
@@ -219,12 +227,12 @@ def _group_json(
     return {
         "key": group.key,
         "name": generated_name(group),
-        "title": without_cd(newest.example) or newest.what_happened,
+        "title": without_cd(newest.example) or _shown(newest.what_happened),
         "groupedBecause": _grouped_because(group, context),
         "kind": "correction" if group.signal is Signal.CORRECTION else "failure",
         **_story(_card_behind_verdict(group.cards), context),
-        "happened": newest.what_happened,
-        "fixed": _fix_behind_verdict(group.cards),
+        "happened": _shown(newest.what_happened),
+        "fixed": _shown(_fix_behind_verdict(group.cards)),
         "fixShown": _dominant_outcome(group.cards) in TEACHABLE_OUTCOMES,
         "trains": group.signal is not Signal.CORRECTION and group.key in context.trained,
         "verdict": VERDICT_WORDS[_dominant_outcome(group.cards)],

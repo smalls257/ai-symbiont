@@ -1,6 +1,7 @@
 """The credential shapes and the one function that replaces them: a leaf, so any module may scrub.
 
-The patterns mirror `.gitleaks.toml` plus common provider token shapes. Pure: text in, text out.
+The patterns mirror `.gitleaks.toml` plus common provider token shapes. A home directory names
+its user, which gitleaks flags too, so it becomes `~`. Pure: text in, text out.
 """
 
 import re
@@ -23,10 +24,14 @@ _PATTERNS = tuple(
         r"(?i)(?:api[_-]?key|token|secret|passw(?:or)?d)[\"']?\s*[=:]\s*[\"']?[^\s\"']{8,}",
     )
 )
+HOME = "~"
+_HOME_DIR = re.compile(r"(?<![\w.~/-])/(?:Users|home)/[A-Za-z0-9._-]+")
+# Claude Code spells a project's path with dashes: `~/.claude/projects/-Users-<name>-Code-app`.
+_DASHED_HOME_DIR = re.compile(r"(?<=/)-(?:Users|home)-[A-Za-z0-9_.]+(?=[-/]|$)")
 
 
 def scrub(text: str) -> str:
-    """`text` with every credential-shaped span replaced by REDACTED."""
+    """`text` with every credential-shaped span replaced by REDACTED and home directories by ~."""
     for pattern in _PATTERNS:
         text = pattern.sub(REDACTED, text)
-    return text
+    return _DASHED_HOME_DIR.sub(f"-{HOME}", _HOME_DIR.sub(HOME, text))

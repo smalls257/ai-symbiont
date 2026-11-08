@@ -15,6 +15,7 @@ from symbiont.miner.failure_keys import broke_in_words
 from symbiont.miner.fix_words import resolution_phrase
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
+from symbiont.miner.shown_paths import plain_paths
 from symbiont.miner.story import story_of
 from symbiont.records.schema import Record
 
@@ -186,7 +187,7 @@ def _correction(signature: Signature, count: int) -> str:
 
 def _loop(signature: Signature, count: int) -> str:
     """Note for an earlier session that went in circles."""
-    kind, target = signature.key[0], signature.key[1]
+    kind, target = signature.key[0], plain_paths(signature.key[1])
     what = f"the command `{target}`" if kind == "command" else f"`{target}`"
     return f"You went in circles over {what} in an earlier session ({times(count)})."
 
@@ -227,7 +228,7 @@ _HAPPENED: dict[Signal, Callable[[Signature], str]] = {
     Signal.REWORKED_EDIT: lambda sig: f"your edits to `{sig.key[0]}` were redone",
     Signal.REVIEW_FLAG: flagged,
     Signal.CORRECTION: lambda sig: f"you were corrected{_where(sig.key[0])} on: {sig.key[1]}",
-    Signal.LOOP: lambda sig: f"you went in circles over `{sig.key[1]}`",
+    Signal.LOOP: lambda sig: f"you went in circles over `{plain_paths(sig.key[1])}`",
     Signal.BLAST_RADIUS: lambda sig: (
         f"editing `{sig.key[0]}` without reading `{sig.key[1]}` broke the tests that cover it"
     ),

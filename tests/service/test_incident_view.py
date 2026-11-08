@@ -299,3 +299,27 @@ def test_a_failure_with_no_program_is_named_by_what_happened_not_by_a_dash():
     unnamed = replace(card("a"), situation=("running", "-", ""), fingerprint="failure:-:exit 1")
     name = incident_groups([unnamed], DAYS)["groups"][0]["name"]
     assert name == "The agent ran pytest and it failed."
+
+
+def test_a_card_never_shows_a_home_directory():
+    home = "/home/dev/.tool/projects/memory/review-notes.md"
+    leaky = replace(
+        card("a"),
+        what_happened=f"The agent ran gh pr on {home} and it failed.",
+        what_fixed_it=f"Edited {home}, then the command passed.",
+        first_wrong=f"The agent edited {home}.",
+        files=(home, "app.py"),
+    )
+    group = incident_groups([leaky], DAYS)["groups"][0]
+    shown = group["cards"][0]
+    texts = [group["happened"], group["fixed"], group["broke"], shown["happened"], shown["fixed"]]
+    texts += [shown["firstWrong"], *shown["files"]]
+    assert all("/home/" not in text and "dev/" not in text for text in texts)
+    assert shown["files"] == ["review-notes.md", "app.py"]
+
+
+def test_a_trigger_outside_the_repo_names_no_home_directory():
+    from symbiont.miner.incident_corrections import path_of
+
+    shown = path_of("/home/dev/.tool/projects/-home-dev-app/memory/x.md", frozenset({"app"}))
+    assert "dev" not in shown and shown.startswith("~/")

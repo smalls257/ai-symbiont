@@ -19,6 +19,7 @@ from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal
 from symbiont.miner.resolutions import bare_arguments
 from symbiont.miner.screen import INLINE_TARGET
+from symbiont.miner.secrets import scrub
 from symbiont.records.schema import Kind, Record
 
 # Steps worth warning about before they happen: they are hard to take back.
@@ -85,10 +86,10 @@ def _step_of(command: str, program: str) -> str:
 
 
 def path_of(target: str, repo_names: frozenset[str]) -> str:
-    """A target as a repo-relative path; "" when there is none."""
+    """A target as a repo-relative path, else scrubbed (no home directory); "" when none."""
     if target in ("", "-", INLINE_TARGET):
         return ""
-    return repo_relative(target, repo_names) or target.removeprefix("./")
+    return repo_relative(target, repo_names) or scrub(target.removeprefix("./"))
 
 
 def first_file(record: Record | None) -> str | None:

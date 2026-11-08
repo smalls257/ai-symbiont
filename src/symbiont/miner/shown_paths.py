@@ -7,7 +7,7 @@ The user name in a home path is private, and the prefix is noise. Pure: text in,
 import re
 
 # An absolute path of two or more parts, not the tail of a URL or a longer word.
-_ABSOLUTE = re.compile(r"(?<![\w:/.~-])(?:~|/)(?:[\w.@+-]+/)*[\w.@+-]+")
+_ABSOLUTE = re.compile(r"(?<![\w:/.~-])(?:~/|/)(?:[\w.@+-]+/)*[\w.@+-]+")
 # Device paths name no user and mean something whole: `2>/dev/null` cut to `null` misleads.
 _DEVICE = "/dev/"
 

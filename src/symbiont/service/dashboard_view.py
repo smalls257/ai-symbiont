@@ -265,13 +265,13 @@ def _point(
     return {
         "id": number,
         "kind": KIND_OF_SIGNAL[signature.signal],
-        "title": title[:TITLE_CHARS],
+        "title": scrub(title)[:TITLE_CHARS],
         "file": _file_of(signature),
         "command": command_of_signature(signature),
         "sessions": sessions,
         "turnsPerOccurrence": turns,
         "minutesPerOccurrence": round(turns * MINUTES_PER_TURN, 1),
-        "failure": failure_detail(latest.quote) or happened(signature),
+        "failure": scrub(failure_detail(latest.quote) or happened(signature)),
         "fix": resolution_clause(latest) if latest.resolution else None,
         "lessonId": lesson_id(latest),
         # Raw text: the page escapes it when drawing. The model's summary leads; the rule-built one

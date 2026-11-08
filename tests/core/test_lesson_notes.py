@@ -266,3 +266,9 @@ def test_a_long_path_and_a_long_fix_still_fit_the_note_cap():
     fix = ("edited " + "-".join(["upload"] * 18) + ".md (added `un-skip the badge test`)",)
     note = render_lesson(lesson(Signature(Signal.REVIEW_FLAG, key), resolution=fix))
     assert len(note) <= 300 and note.startswith(f"Copilot flagged `{path}`")
+
+
+def test_a_loop_note_never_shows_a_home_directory():
+    key = ("command", "git -C /home/dev/worktrees/app/green push -u origin green")
+    note = render_lesson(lesson(Signature(Signal.LOOP, key), ()))
+    assert "/home/" not in note and "git -C green push -u origin green" in note
