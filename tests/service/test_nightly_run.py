@@ -5,6 +5,7 @@ night loudly and non-zero, and none of them replaces the older adapter or record
 """
 
 import json
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -16,6 +17,7 @@ from nightly_support import (
     general_rows,
     habit_rows,
 )
+from store_builders import save_lessons
 from symbiont.miner.twins import merge_twins
 from symbiont.service.nightly import NightlyJudges, NightlyState, lessons_digest
 from symbiont.service.nightly_backend import Backend
@@ -25,6 +27,7 @@ from symbiont.service.nightly_run import (
     NightPlan,
     run_night,
 )
+from symbiont.store.held_back import MiningOutcome
 from symbiont.store.local import Source, Store
 
 pytestmark = pytest.mark.periphery
@@ -42,7 +45,8 @@ def setup(tmp_path, lessons=6):
     data = tmp_path / "data"
     data.mkdir()
     store = Store.open(data / "store.db")
-    store.save_mining(
+    save_lessons(
+        store,
         PROJECT,
         [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(lessons)],
@@ -82,7 +86,7 @@ def test_the_record_matches_the_stores_lessons_so_status_reads_trained_then_stal
     judges = NightlyJudges(plan.nightly_dir)
     report = judges.report(PROJECT, store.lessons(PROJECT))
     assert (report.state, report.lessons) == (NightlyState.TRAINED, 6)
-    store.save_mining(
+    save_lessons(store,
         PROJECT, [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(7)], held_out_tasks=frozenset(),
     )  # fmt: skip
@@ -141,7 +145,7 @@ def test_a_failed_night_leaves_the_older_record_which_then_reads_as_stale(tmp_pa
     plan = setup(tmp_path, lessons=4)
     run_night(plan, FakeNight(Backend.MLX).tools())
     store = Store.open(plan.data_dir / "store.db")
-    store.save_mining(
+    save_lessons(store,
         PROJECT, [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(5)], held_out_tasks=frozenset(),
     )  # fmt: skip
@@ -171,13 +175,25 @@ def test_lessons_without_a_fix_command_fail_loudly_instead_of_training_on_nothin
     plan = setup(tmp_path, lessons=0)
     store = Store.open(plan.data_dir / "store.db")
     lesson = failed_command_lesson(1)
-    unfit = type(lesson)(lesson.pain_point, lesson.quote, (), "no fix", True, lesson.sources)
-    store.save_mining(
-        PROJECT, [Source(PROJECT, "claude_code", "x")], [unfit], held_out_tasks=frozenset()
+    unfit = replace(lesson, resolution=(), fix_commands=(), unresolved_because="no fix command")
+    save_lessons(
+        store, PROJECT, [Source(PROJECT, "claude_code", "x")], [unfit], held_out_tasks=frozenset()
     )
     night = FakeNight(Backend.MLX)
     assert run_night(plan, night.tools()) == EXIT_FAILED
     assert any("failed command and a fix" in line for line in night.said)
+
+
+def test_an_older_store_trains_only_on_what_todays_screen_keeps(tmp_path):
+    plan = setup(tmp_path, lessons=0)
+    store = Store.open(plan.data_dir / "store.db")
+    store.mined.save(  # no min_sessions recorded: mined before the known-fix rule
+        PROJECT, [], MiningOutcome([failed_command_lesson(1)]), held_out_tasks=frozenset()
+    )
+    night = FakeNight(Backend.MLX)
+    assert run_night(plan, night.tools()) == EXIT_NO_LESSONS
+    assert any("none that today's screen keeps" in line for line in night.said)
+    assert night.commands == []
 
 
 def test_the_digest_in_the_record_is_the_one_the_service_computes(tmp_path):

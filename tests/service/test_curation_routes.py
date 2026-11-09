@@ -7,6 +7,7 @@ to another's session model, and a verdict that does not change what the note say
 import pytest
 
 from record_builders import edit, run, session, user
+from store_builders import save_lessons
 from symbiont.miner.lesson_context import LessonContext, Priority
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -48,9 +49,9 @@ def rig(tmp_path, harness="muse-code", settings=None, *, allow=True):
     with log.open("w") as fh:
         dump_jsonl(records, fh)
     store = Store.open(tmp_path / "s.db")
-    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
-    store.save_mining(
-        PROJECT, [Source(PROJECT, harness, str(log))], lessons, held_out_tasks=frozenset()
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
+    save_lessons(
+        store, PROJECT, [Source(PROJECT, harness, str(log))], lessons, held_out_tasks=frozenset()
     )
     registry = RepoRegistry(tmp_path)
     if allow:
@@ -128,7 +129,9 @@ def test_another_harness_history_is_withheld_unless_cross_harness_is_switched_on
 
 
 def test_the_muse_switch_turns_muse_correction_finding_off(tmp_path):
-    routes, _, _ = rig(tmp_path, settings=CorrectionSettings(muse_code=False))
+    routes, _, _ = rig(
+        tmp_path, settings=CorrectionSettings(enabled={"claude_code": True, "muse_code": False})
+    )
 
     result = routes.correction_candidates({"project": PROJECT, "running_in": "muse_code"})
 
@@ -262,3 +265,48 @@ def test_a_bad_lesson_error_names_the_fields_and_asks_for_the_same_content_again
 
     message = str(caught.value)
     assert "text_in_plain_words" in message and "kind" in message and "SAME" in message
+
+
+def test_a_review_summary_is_saved_and_one_longer_than_the_cap_is_cut_not_refused(tmp_path):
+    from symbiont.service.curation_routes import MAX_TEXT
+
+    routes, store, lessons = rig(tmp_path)
+    ident = lesson_id(lessons[0])
+
+    routes.save_reviews(
+        {
+            "project": PROJECT,
+            "reviews": [{"id": ident, "verdict": "mistake", "summary": "  " + "s" * 5000}],
+        }
+    )
+
+    assert store.curation.reviews(PROJECT)[ident].summary == "s" * MAX_TEXT
+
+
+def test_the_review_candidate_route_offers_the_asked_turn(tmp_path):
+    routes, _store, _lessons = rig(tmp_path)
+
+    (candidate,) = routes.review_candidates({"project": PROJECT})["candidates"]
+
+    assert candidate["asked"] == "No, don't touch refund.py, use the ledger instead"
+    assert candidate["times_it_happened"] == 1 and candidate["outcome"]
+
+
+def test_a_summary_that_is_not_text_is_refused_naming_the_field(tmp_path):
+    routes, _store, lessons = rig(tmp_path)
+    item = {"id": lesson_id(lessons[0]), "verdict": "mistake", "summary": 42}
+
+    with pytest.raises(BadRequestError, match="summary must be text"):
+        routes.save_reviews({"project": PROJECT, "reviews": [item]})
+
+
+def test_a_null_summary_is_an_absent_one_not_a_refusal_of_the_whole_batch(tmp_path):
+    """Failure guarded against: one review with `summary: null` rejecting every review sent."""
+    routes, store, lessons = rig(tmp_path)
+    ident = lesson_id(lessons[0])
+
+    routes.save_reviews(
+        {"project": PROJECT, "reviews": [{"id": ident, "verdict": "mistake", "summary": None}]}
+    )
+
+    assert store.curation.reviews(PROJECT)[ident].summary == ""

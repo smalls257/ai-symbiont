@@ -8,7 +8,8 @@ that part off and tag the record, so the miner never learns from what we said.
 OUR_OUTPUT_TAG = "[symbiont]"
 OUR_OUTPUT_RECORD_TAG = "symbiont-output"
 # The MCP tool through which the model asks us a question; its whole result is our output.
-RECALL_TOOL_NAME = "mcp__symbiont__recall"
+# The second name is how Claude Code names it when the symbiont plugin provides the server.
+RECALL_TOOL_NAMES = frozenset({"mcp__symbiont__recall", "mcp__plugin_symbiont_symbiont__recall"})
 
 
 def is_our_output(text: str) -> bool:

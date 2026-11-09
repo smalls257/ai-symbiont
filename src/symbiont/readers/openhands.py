@@ -8,6 +8,7 @@ match across sessions, and command text is kept verbatim.
 
 import difflib
 import json
+import logging
 import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
@@ -16,12 +17,15 @@ from typing import Any
 
 from symbiont.readers.errors import ReadError
 from symbiont.records.schema import Kind, Provenance, Record
+from symbiont.records.session_tags import CREATED_TAG, REFUSED_TAG
+
+logger = logging.getLogger(__name__)
 
 HARNESS = "openhands"
 PROVENANCE = Provenance(
     dataset="nebius/SWE-rebench-openhands-trajectories",
     license="CC-BY-4.0",
-    spark_safe=True,
+    remote_safe=True,
 )
 
 _WORKSPACE = re.compile(r"<uploaded_files>\s*(\S+?)/?\s*</uploaded_files>")
@@ -36,6 +40,10 @@ _EDITOR_ERROR = "ERROR:"
 
 class _MalformedError(Exception):
     """Internal: a row is not in the shape this reader knows. Becomes a ReadError."""
+
+
+class _RefusedEditError(Exception):
+    """Internal: the editor tool would refuse this call (the agent's mistake, not a bad file)."""
 
 
 def read(path: Path, project: str) -> Iterator[Record]:
@@ -53,15 +61,23 @@ def _caused_by(cause: Exception, error: ReadError) -> ReadError:
 
 
 def read_each_row(path: Path, project: str) -> Iterator[list[Record] | ReadError]:
-    """One item per line: its records, or the ReadError naming it (`read` raises)."""
+    """One item per line: its records, or the ReadError naming it (`read` raises).
+
+    Malformed editor calls are kept as refused edits; one warning counts them per file.
+    """
+    refused = 0
     with Path(path).open(encoding="utf-8") as fh:
         for line_no, line in enumerate(fh, start=1):
             try:
-                yield _session_records(json.loads(line), project)
+                session = _session_of(json.loads(line), project)
+                refused += session.refused_edits
+                yield session.records
             except json.JSONDecodeError as exc:
                 yield _caused_by(exc, ReadError(path, line_no, f"not valid JSON ({exc.msg})"))
             except _MalformedError as exc:
                 yield _caused_by(exc, ReadError(path, line_no, str(exc)))
+    if refused:
+        logger.warning("%s: kept %d malformed editor calls as refused edits", path, refused)
 
 
 @dataclass
@@ -73,6 +89,7 @@ class _Session:
     task_id: str
     workspace: str | None
     records: list[Record] = field(default_factory=list)
+    refused_edits: int = 0
 
     def add(self, kind: Kind, raw: str, **fields: Any) -> None:
         """Append a record of the given kind with the session's shared fields."""
@@ -99,8 +116,8 @@ class _Session:
         return path
 
 
-def _session_records(row: Any, project: str) -> list[Record]:
-    """All records of one dataset row; a malformed row raises _MalformedError."""
+def _session_of(row: Any, project: str) -> _Session:
+    """The session built from one dataset row; a malformed row raises _MalformedError."""
     if not isinstance(row, dict):
         raise _MalformedError("a line must hold one trajectory object")
     messages = _require(row, "trajectory")
@@ -115,7 +132,7 @@ def _session_records(row: Any, project: str) -> list[Record]:
     observations = _observations_by_call(messages)
     for message in messages:
         _add_message(session, message, observations)
-    return session.records
+    return session
 
 
 def _require(mapping: Any, key: str) -> Any:
@@ -230,16 +247,49 @@ def _add_file_editor_action(
             line_range=_view_range(args),
         )
         return
+    try:
+        diff = _edit_diff(command, path, args)
+    except _RefusedEditError as exc:
+        _add_refused_edit(session, path, observation, str(exc))
+        return
+    made_file = command == "create" and exit_code != 1
+    tags = (CREATED_TAG,) if made_file else ()
+    session.add(
+        Kind.EDIT, observation or "", files=(path,), diff=diff, exit_code=exit_code, tags=tags
+    )
+
+
+def _edit_diff(command: str, path: str, args: dict[str, Any]) -> str | None:
+    """The diff of an edit command; a call the editor would refuse raises _RefusedEditError."""
     make_diff = _EDIT_DIFFS.get(command)
     if make_diff is None:
-        raise _MalformedError(f"unknown str_replace_editor command {command!r}")
+        raise _RefusedEditError(f"unknown str_replace_editor command {command!r}")
+    return make_diff(path, args)
+
+
+def _add_refused_edit(
+    session: _Session, path: str, observation: str | None, description: str
+) -> None:
+    """An editor call the tool itself refused: a failed edit, never a fix or churn.
+
+    Anchor: exit 1 and no diff are how the miner (`applied_edit`) knows nothing changed.
+    """
+    session.refused_edits += 1
     session.add(
         Kind.EDIT,
-        observation or "",
+        observation or description,
         files=(path,),
-        diff=make_diff(path, args),
-        exit_code=exit_code,
+        diff=None,
+        exit_code=1,
+        tags=(REFUSED_TAG,),
     )
+
+
+def _needed(args: dict[str, Any], key: str) -> Any:
+    """An argument the editor command needs; its absence is a call the editor refuses."""
+    if args.get(key) is None:
+        raise _RefusedEditError(f"editor call without {key!r}")
+    return args[key]
 
 
 def _view_range(args: dict[str, Any]) -> tuple[int, int] | None:
@@ -296,21 +346,21 @@ def _replace_diff(path: str, args: dict[str, Any]) -> str:
     # An omitted new_str is the editor's documented way to delete old_str.
     new = args.get("new_str") or ""
     diff = difflib.unified_diff(
-        _lines(_require(args, "old_str")), _lines(new), f"a/{path}", f"b/{path}"
+        _lines(_needed(args, "old_str")), _lines(new), f"a/{path}", f"b/{path}"
     )
     return "".join(diff)
 
 
 def _create_diff(path: str, args: dict[str, Any]) -> str:
     """A diff that creates the file from /dev/null."""
-    diff = difflib.unified_diff([], _lines(_require(args, "file_text")), "/dev/null", f"b/{path}")
+    diff = difflib.unified_diff([], _lines(_needed(args, "file_text")), "/dev/null", f"b/{path}")
     return "".join(diff)
 
 
 def _insert_diff(path: str, args: dict[str, Any]) -> str:
     """A diff that inserts the new lines after the given line."""
-    after = int(_require(args, "insert_line"))
-    added = _lines(_require(args, "new_str"))
+    after = int(_needed(args, "insert_line"))
+    added = _lines(_needed(args, "new_str"))
     header = f"--- a/{path}\n+++ b/{path}\n@@ -{after},0 +{after + 1},{len(added)} @@\n"
     return header + "".join("+" + line for line in added)
 

@@ -1,7 +1,7 @@
 """Lessons: a pain point that carries its own evidence, so no raw history needs keeping.
 
 A lesson holds a short verbatim quote, the steps that resolved it in plain words, whether every
-record it came from may reach Spark, and the (session, step) ids it came from. The flag is
+record it came from may reach a remote model, and the (session, step) ids it came from. The flag is
 computed here from the source records and never defaulted: an unknown flag must not read as
 shareable. A lesson is training data for the personal model, deleted once training has consumed
 it.
@@ -9,10 +9,17 @@ it.
 
 from collections import Counter
 from collections.abc import Iterable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
+from typing import TypedDict
 
+from symbiont.miner.added_line import telling_added_line
+from symbiont.miner.complaint_line import complaint_of
+from symbiont.miner.created import target_created_before
 from symbiont.miner.error_lines import key_error_lines
+from symbiont.miner.fix_words import fix_phrase
+from symbiont.miner.fixes import FixKind, fix_kind
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal
+from symbiont.miner.quick_fix import fixed_right_away
 from symbiont.miner.resolutions import (
     NoResolution,
     Resolution,
@@ -20,14 +27,18 @@ from symbiont.miner.resolutions import (
     reason_of,
     resolution_of,
 )
+from symbiont.miner.review_comments import flagged_comment_text
+from symbiont.miner.turns_before import CONTEXT_CHARS, last_turn_before
 from symbiont.records.privacy import OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Kind, Record
 
 # Long enough for a command and the error line it ended on, short enough that a
 # lesson is a citation, not a copy of the transcript.
 QUOTE_CHARS = 240
-# One resolution step names one command or one edited file and its first new line.
+# A command kept for the judge and the training rows is clipped to this many characters.
 STEP_CHARS = 120
+# The failed command is kept whole enough to find the working line below `cd dir` and heredocs.
+FAILED_COMMAND_CHARS = 400
 _CUT = "[...]"
 
 
@@ -37,20 +48,21 @@ class Lesson:
 
     pain_point: PainPoint
     quote: str
-    # What was done, step by step, in plain words; () when the history shows no fix.
+    # What fixed it as one short plain phrase (`fix_words.fix_phrase`) in a one-item tuple;
+    # () when the history shows no fix. Twins pool several phrases.
     resolution: tuple[str, ...]
     # Why there is no resolution; None when there is one.
     unresolved_because: str | None
-    spark_safe: bool
+    remote_safe: bool
     # Every record the lesson quotes: the cited ones, then the resolution's steps.
     sources: tuple[RecordRef, ...]
     # Benchmark task ids of those records (none for the developer's own sessions); kept so
     # the record of what trained a model can still be checked against the hold-out.
     task_ids: tuple[str, ...] = ()
-    # Changes made between a failure and its pass that the failure never pointed at,
-    # in plain words: said to have happened, never claimed as the fix.
+    # Changes made between a failure and its pass that the failure never pointed at, as one plain
+    # phrase in a one-item tuple: said to have happened, never claimed as the fix.
     changed_alongside: tuple[str, ...] = ()
-    # Datasets of the quoted records that are not Spark-safe; () when spark_safe. A private
+    # Datasets of the quoted records that are not remote-safe; () when remote_safe. A private
     # lesson with none named counts as third-party (unknown privacy is never shareable).
     private_datasets: tuple[str, ...] = ()
     # The failing tests and the assertion or exception line of the cited output, trimmed: the
@@ -58,6 +70,31 @@ class Lesson:
     error_lines: tuple[str, ...] = ()
     # Files the cited records and the fix touched, in order of appearance; () when none.
     files: tuple[str, ...] = ()
+    # The known fix the resolution shows: an edit to the codebase or a corrected command; None
+    # when it shows neither (the lesson is then struggle, counted but never taught).
+    fix: FixKind | None = None
+    # The last user message before the cited step, and the agent's text just before it, each
+    # trimmed; "" when the session has none. They are quoted records, so they join `sources`
+    # and the privacy flag.
+    asked: str = ""
+    agent_intent: str = ""
+    # A failed command's target file was created by an earlier edit of the same session: the
+    # agent's own throwaway script, whose name repeats across sessions while its problem does not.
+    target_created: bool = False
+    # The commands the resolution ran, as typed and clipped: what the judge and the training
+    # rows need and no reader should see. Twins pool several.
+    fix_commands: tuple[str, ...] = ()
+    # How many steps the resolution took; a cost estimate, since the phrase hides the count.
+    fix_steps: int = 0
+    # The one telling line the fix added (`added_line`); "" when it added none worth quoting.
+    fix_added: str = ""
+    # The failed command as typed, clipped; "" for other signals and for rows stored before it.
+    failed_command: str = ""
+    # The tool's own complaint line from the whole output (`complaint_line`); "" when it said none.
+    complaint: str = ""
+    # A failed command the agent's first step fixed (`quick_fix`): it knew the fix, so nothing to
+    # teach. False for other signals and for rows stored before the field.
+    first_step_fixed: bool = False
 
 
 @dataclass(frozen=True)
@@ -68,14 +105,26 @@ class Coverage:
     total: int
 
 
-def lessons_from(pain_points: Iterable[PainPoint], records: Sequence[Record]) -> list[Lesson]:
-    """Build one lesson per pain point; `records` is the chain the pain points were mined from.
+def lessons_from(
+    pain_points: Iterable[PainPoint],
+    records: Sequence[Record],
+    repo_names: frozenset[str],
+) -> list[Lesson]:
+    """One lesson per pain point; its fix is searched in its own session, in `repo_names` dirs.
 
     Raises LookupError naming the reference when a cited record is missing:
     a lesson without its evidence would be a quote of nothing.
     """
     by_ref = {(r.session_id, r.step): r for r in records}
-    return [_lesson(pain, _cited(pain, by_ref), records) for pain in pain_points]
+    sessions: dict[tuple[str, str], list[Record]] = {}
+    for record in records:
+        sessions.setdefault((record.harness, record.session_id), []).append(record)
+    lessons = []
+    for pain in pain_points:
+        cited = _cited(pain, by_ref)
+        own = sessions[(cited[-1].harness, pain.session_id)]
+        lessons.append(_comment_as_evidence(_lesson(pain, cited, own, repo_names), cited[0]))
+    return lessons
 
 
 def resolution_coverage(lessons: Iterable[Lesson]) -> dict[Signal, Coverage]:
@@ -95,24 +144,94 @@ def _cited(pain: PainPoint, by_ref: dict[RecordRef, Record]) -> list[Record]:
     return [by_ref[ref] for ref in pain.record_refs]
 
 
-def _lesson(pain: PainPoint, cited: list[Record], records: Sequence[Record]) -> Lesson:
+def _lesson(
+    pain: PainPoint, cited: list[Record], records: Sequence[Record], repo_names: frozenset[str]
+) -> Lesson:
     """One lesson: the pain point, its resolution and the quote it carries."""
     found = resolution_of(pain, cited, records)
     steps, alongside = _fix_parts(found)
-    used = [*cited, *alongside, *steps]
+    asking = last_turn_before(records, cited[0].step, Kind.USER_TURN)
+    meaning = last_turn_before(records, cited[0].step, Kind.AGENT_TURN)
+    used = [*cited, *alongside, *steps, *filter(None, (asking, meaning))]
     return Lesson(
         pain_point=pain,
         quote=excerpt(cited[0], QUOTE_CHARS),
-        resolution=tuple(_step_words(step) for step in steps),
+        resolution=_phrase_of(steps, pain),
         unresolved_because=reason_of(found),
-        spark_safe=all(r.provenance.spark_safe for r in used),
+        remote_safe=all(r.provenance.remote_safe for r in used),
         sources=tuple(dict.fromkeys((r.session_id, r.step) for r in used)),
         task_ids=tuple(dict.fromkeys(r.task_id for r in used if r.task_id is not None)),
-        changed_alongside=tuple(_step_words(step) for step in alongside),
+        changed_alongside=_phrase_of(alongside),
         private_datasets=_private_datasets(used),
         error_lines=key_error_lines(cited[0].raw),
         files=tuple(dict.fromkeys(name for r in used for name in r.files)),
+        fix=fix_kind(pain, steps, repo_names),
+        asked=_context_text(asking),
+        agent_intent=_context_text(meaning),
+        target_created=_target_created(pain, cited[0], records, repo_names),
+        fix_commands=_commands_of(steps),
+        fix_steps=len(steps),
+        fix_added=telling_added_line(steps),
+        failed_command=_clip_start(cited[0].command or "", FAILED_COMMAND_CHARS),
+        **_failure_fields(pain, cited[0], records),
     )
+
+
+def _comment_as_evidence(lesson: Lesson, cited_first: Record) -> Lesson:
+    """A fetched review comment quotes itself; the fetch output holds other comments and logins."""
+    signature = lesson.pain_point.signature
+    if signature.signal is not Signal.REVIEW_FLAG or cited_first.kind != Kind.COMMAND:
+        return lesson
+    text = flagged_comment_text(cited_first, signature.key)
+    return replace(
+        lesson,
+        quote=_clip_start(text, QUOTE_CHARS),
+        error_lines=(),
+        complaint="",
+        failed_command="",
+    )
+
+
+def _phrase_of(steps: Sequence[Record], pain: PainPoint | None = None) -> tuple[str, ...]:
+    """The one plain phrase for `steps` as a one-item tuple; () for no steps."""
+    failing = (
+        pain.signature.key[0] if pain and pain.signature.signal is Signal.FAILED_COMMAND else ""
+    )
+    phrase = fix_phrase(steps, failing)
+    return (phrase,) if phrase else ()
+
+
+class _FailureFields(TypedDict):
+    complaint: str
+    first_step_fixed: bool
+
+
+def _failure_fields(pain: PainPoint, failed: Record, records: Sequence[Record]) -> _FailureFields:
+    """The tool's complaint line, and whether the agent's first step fixed the failure."""
+    quick = pain.signature.signal is Signal.FAILED_COMMAND and fixed_right_away(failed, records)
+    return {"complaint": complaint_of(failed.raw), "first_step_fixed": quick}
+
+
+def _commands_of(steps: Sequence[Record]) -> tuple[str, ...]:
+    """Each command step as typed, clipped to STEP_CHARS."""
+    return tuple(
+        _clip_start(step.command or "", STEP_CHARS) for step in steps if step.kind == Kind.COMMAND
+    )
+
+
+def _target_created(
+    pain: PainPoint, failure: Record, records: Sequence[Record], repo_names: frozenset[str]
+) -> bool:
+    """Whether a failed command ran a file its own session created earlier."""
+    signature = pain.signature
+    if signature.signal is not Signal.FAILED_COMMAND:
+        return False
+    return target_created_before(signature.key[1], records, failure.step, repo_names)
+
+
+def _context_text(record: Record | None) -> str:
+    """The record's text trimmed to CONTEXT_CHARS; "" when there is no such turn."""
+    return _clip_start(record.raw.strip(), CONTEXT_CHARS) if record is not None else ""
 
 
 def _fix_parts(
@@ -125,17 +244,17 @@ def _fix_parts(
 
 
 def _private_datasets(used: Sequence[Record]) -> tuple[str, ...]:
-    """Names of the datasets among `used` that are not Spark-safe."""
-    return tuple(sorted({r.provenance.dataset for r in used if not r.provenance.spark_safe}))
+    """Names of the datasets among `used` that are not remote-safe."""
+    return tuple(sorted({r.provenance.dataset for r in used if not r.provenance.remote_safe}))
 
 
-def spark_allowed(lesson: Lesson, consent: OwnHistoryConsent) -> bool:
-    """Whether the lesson may back a Spark-bound answer.
+def remote_allowed(lesson: Lesson, consent: OwnHistoryConsent) -> bool:
+    """Whether the lesson may back a remote-bound answer.
 
-    Spark-safe lessons may. A private one may only with the user's consent and only when every
+    remote-safe lessons may. A private one may only with the user's consent and only when every
     private record it quotes is the user's own session; third-party data never may.
     """
-    if lesson.spark_safe:
+    if lesson.remote_safe:
         return True
     if consent is not OwnHistoryConsent.GIVEN or not lesson.private_datasets:
         return False
@@ -153,24 +272,6 @@ def excerpt(record: Record, limit: int) -> str:
     if record.kind == Kind.EDIT:
         return _clip_start(f"{', '.join(record.files)}\n{record.diff or record.raw}", limit)
     return _clip_start(record.raw, limit)
-
-
-def _step_words(step: Record) -> str:
-    """A resolving step in plain words."""
-    if step.kind == Kind.COMMAND:
-        return f"ran `{_clip_start(step.command or '', STEP_CHARS)}`"
-    if step.kind == Kind.EDIT:
-        return f"edited `{', '.join(step.files)}`{_first_new_line(step)}"
-    return _clip_start(step.raw, STEP_CHARS)
-
-
-def _first_new_line(edit: Record) -> str:
-    """` to add <first added line>` for an edit, empty when it adds nothing."""
-    for line in (edit.diff or "").splitlines():
-        text = line[1:].strip()
-        if line.startswith("+") and not line.startswith("+++") and text:
-            return f" to add `{_clip_start(text, STEP_CHARS)}`"
-    return ""
 
 
 def _clip_start(text: str, limit: int) -> str:

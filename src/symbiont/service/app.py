@@ -16,6 +16,7 @@ from symbiont.core.recall import relevant_lessons
 from symbiont.core.repeat import RepeatNote, failed_now
 from symbiont.core.slot import NO_HISTORY, Decider, Decision, Situation
 from symbiont.miner.lessons import Lesson
+from symbiont.miner.screen import ScreenRules
 from symbiont.miner.secrets import scrub
 from symbiont.readers import READERS, Reader
 from symbiont.readers.errors import ReadError
@@ -23,20 +24,22 @@ from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdEr
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.records.schema import Record
 from symbiont.service.agreed_recall import NOTHING_MATCHES, AgreedRecall, CheckerVerdict
-from symbiont.service.context_route import UnknownLessonError, context_target, save_context
+from symbiont.service.context_route import UnknownLessonError
 from symbiont.service.curation_routes import CurationRoutes
-from symbiont.service.dashboard_page import Live, Page, dashboard_page
-from symbiont.service.events import Call, EventLog, MemoryCost, checked_nightly
+from symbiont.service.dashboard_page import Page, dashboard_page
+from symbiont.service.events import Call, EventLog, MemoryCost
 from symbiont.service.follow_up import FollowUp
+from symbiont.service.ignore_route import developer_routes
 from symbiont.service.judge_model import JudgeModel
 from symbiont.service.learned_outcomes import replay_into_decider
+from symbiont.service.live_state import live_state
 from symbiont.service.memory_model import (
     MemoryModel,
     MemoryModelOfflineError,
     MemoryReply,
-    may_answer_spark,
+    may_answer_remote,
 )
-from symbiont.service.mine_route import MineRoutes, progress_path
+from symbiont.service.mine_route import MineRoutes, mining_rules, progress_path
 from symbiont.service.mining_jobs import MiningJobs, NoMiningJobError
 from symbiont.service.nightly import NightlyJudges
 from symbiont.service.repo_gate import Door, RepoGate
@@ -48,18 +51,20 @@ from symbiont.service.request_shapes import (
     observed,
     percent_decoded,
     project_of,
+    remote_bound,
     require_keys,
     source_of,
-    spark_bound,
 )
-from symbiont.store.local import SparkPrivacyViolationError, Store
-from symbiont.store.mining import MiningRules, UnknownReaderError, read_source, remine_with_read
+from symbiont.service.stale_lessons import StaleLessons
+from symbiont.store.checkouts import names_for
+from symbiont.store.local import RemotePrivacyViolationError, Store
+from symbiont.store.mining import UnknownReaderError, read_source, remine_with_read
 
 log = logging.getLogger("symbiont.service")
-SPARK_WITHHELD = "private history withheld from Spark"
-RECALL_KEYS = frozenset({"question", "project", "spark_bound"})
+REMOTE_WITHHELD = "private history withheld from the remote model"
+RECALL_KEYS = frozenset({"question", "project", "remote_bound"})
 OBSERVE_REQUIRED = frozenset({"harness", "session_id", "event", "payload"})
-OBSERVE_KEYS = OBSERVE_REQUIRED | {"spark_bound"}
+OBSERVE_KEYS = OBSERVE_REQUIRED | {"remote_bound"}
 LEARN_KEYS = frozenset({"reader", "session_log_path", "project"})
 NO_MATCHING_LESSON = "no stored lesson has this failure signature"
 SILENCED = "the developer silenced this kind of note"
@@ -107,16 +112,18 @@ class ServiceParts:
     judge: JudgeModel | None = None
     # The continuous loop: after a repository's first night its own adapter judges (bar 0.98).
     nightly: NightlyJudges | None = None
-    # The user's own-history setting (store.consent); what a Spark-bound call may rest on.
+    # The user's own-history setting (store.consent); what a remote-bound call may rest on.
     consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD
     # The per-repository answers; when set, a repository that did not say yes is not observed.
     gate: RepoGate = field(default_factory=RepoGate)
     # Routes the session's model calls to curate lessons (symbiont makes no model calls itself).
     curation: CurationRoutes | None = None
+    # The screening rules, read afresh for each mining so a changed setting applies at once.
+    screen_rules: Callable[[], ScreenRules] = ScreenRules
 
 
-class SparkWithheldError(PermissionError):
-    """A Spark-bound answer could not be shown to rest only on Spark-safe records."""
+class RemoteWithheldError(PermissionError):
+    """A remote-bound answer could not be shown to rest only on remote-safe records."""
 
 
 class Service:
@@ -133,6 +140,7 @@ class Service:
         self._agreed = AgreedRecall(parts, self._follow_up)
         self._jobs = MiningJobs()
         self._mining = MineRoutes(parts, self._jobs, self._one_call_at_a_time)
+        self._stale = StaleLessons(parts.store, parts.screen_rules)
 
     def page(self, target: str) -> Page:
         """Answer a GET: the dashboard and its files, and a mining job's progress."""
@@ -141,8 +149,7 @@ class Service:
             return self._mining.progress_page(percent_decoded(project))
         with self._one_call_at_a_time:
             parts = self._parts
-            nightly = checked_nightly(parts.gate.nightly_state, parts.events.path.parent.parent)
-            live = Live(self._jobs.progress, nightly)
+            live = live_state(parts.gate, parts.events, parts.readers, self._jobs)
             return dashboard_page(parts.store, parts.gate.registry, target, date.today(), live)
 
     def wait_for_mining(self, project: str, timeout_s: float) -> None:
@@ -169,11 +176,8 @@ class Service:
         if self._parts.curation is not None:
             for path, handler in self._parts.curation.routes().items():
                 routes[path] = _ok_route(handler)
-        lesson = context_target(name)
-        if lesson is not None:
-            routes[name] = lambda request, _: Response(
-                200, save_context(self._parts.store, lesson, request)
-            )
+        own = developer_routes(name, self._parts, date.today())
+        routes.update({path: _ok_route(handler) for path, handler in own.items()})
         if name not in routes:
             return self._refuse(call, 404, f"no such route: {route}")
         try:
@@ -182,8 +186,8 @@ class Service:
             return self._refuse(call, 400, str(exc))
         except (UnknownLessonError, NoMiningJobError) as exc:
             return self._refuse(call, 404, str(exc))
-        except (SparkPrivacyViolationError, SparkWithheldError):
-            return self._refuse(call, 409, SPARK_WITHHELD)
+        except (RemotePrivacyViolationError, RemoteWithheldError):
+            return self._refuse(call, 409, REMOTE_WITHHELD)
         except HoldOutViolationError as exc:
             return self._refuse(call, 409, str(exc))
         except UnrecognisedTaskIdError as exc:
@@ -226,7 +230,7 @@ class Service:
         history = tuple(lesson.pain_point for lesson in lessons)
         situation = Situation(project, tuple(prefix), history, ())
         decision = self._parts.decider.decide(featurise(situation), situation, self._state)
-        if spark_bound(request):
+        if remote_bound(request):
             _refuse_untraceable(decision, lessons)
         if gate.silenced(project, decision.trouble):
             self._parts.events.append_quiet(call, decision, SILENCED)
@@ -243,7 +247,7 @@ class Service:
         self, request: dict[str, Any], decision: Decision, memory: MemoryModel, call: Call
     ) -> Response:
         """Option A decides whether to speak; the memory model writes what is said."""
-        key, to_spark = (request["harness"], request["session_id"]), spark_bound(request)
+        key, to_remote = (request["harness"], request["session_id"]), remote_bound(request)
         position = len(self._prefixes[key]) - 1
         spoken = self._spoken.setdefault(key, [])
         trouble = decision.trouble
@@ -252,16 +256,16 @@ class Service:
             return Response(200, {"notes": []})
         reply = memory.write_line(note_request(self._prefixes[key][-1].project, trouble))
         spoken.append(position)
-        line = scrub(reply.line) if to_spark else reply.line
+        line = scrub(reply.line) if to_remote else reply.line
         self._parts.events.append_memory_note(call, decision, line, _cost(reply))
         return Response(200, {"notes": [line]})
 
     def _lessons(self, request: dict[str, Any], project: str) -> list[Lesson]:
-        """The project's lessons, through the Spark view when the request is Spark-bound."""
+        """The project's lessons, through the remote view when the request is remote-bound."""
         store = self._parts.store
-        if spark_bound(request):
-            return store.spark_view(self._parts.consent).lessons(project)
-        return store.lessons(project)
+        if remote_bound(request):
+            return self._stale.deliverable(store.remote_view(self._parts.consent), project)
+        return self._stale.deliverable(store, project)
 
     def _recall(self, request: dict[str, Any], call: Call) -> Response:
         """Answer a plain question from the project's sessions."""
@@ -276,7 +280,7 @@ class Service:
         memory = _memory_for(self._parts, request, project)
         if memory is not None:
             reply = memory.write_line(recall_request(project, question))
-            line = scrub(reply.line) if spark_bound(request) else reply.line
+            line = scrub(reply.line) if remote_bound(request) else reply.line
             self._parts.events.append_memory_note(call, None, line, _cost(reply))
             return Response(200, {"answer": line, "records": []})
         if not lessons:
@@ -305,13 +309,13 @@ class Service:
         require_keys(request, LEARN_KEYS, LEARN_KEYS)
         source = source_of(request)
         parts = self._parts
-        rules = MiningRules(parts.readers, parts.held_out_tasks)
+        rules = mining_rules(parts, source.project, names_for(parts.gate.registry, source.project))
         try:
             records = read_source(source, parts.readers)
             remine_with_read(parts.store, source.project, rules, {source: records})
         except (OSError, ReadError, UnknownReaderError) as exc:
             raise BadRequestError(f"cannot read the session log: {exc}") from exc
-        history = tuple(parts.store.pain_points(source.project))
+        history = tuple(lesson.pain_point for lesson in parts.store.lessons(source.project))
         learned, self._state = replay_into_decider(
             parts.decider, self._state, history, source.project, records
         )
@@ -320,12 +324,12 @@ class Service:
 
 
 def _memory_for(parts: ServiceParts, request: dict[str, Any], project: str) -> MemoryModel | None:
-    """The memory model that may answer for `project`, or None; Spark needs its own adapter."""
+    """The memory model that may answer for `project`, or None; remote calls need their own."""
     memory = parts.memory
     if memory is None or not memory.knows(project):
         return None
-    if spark_bound(request) and not may_answer_spark(memory.provenance, parts.consent):
-        raise SparkWithheldError
+    if remote_bound(request) and not may_answer_remote(memory.provenance, parts.consent):
+        raise RemoteWithheldError
     return memory
 
 
@@ -382,13 +386,13 @@ def _cost(reply: MemoryReply) -> MemoryCost:
 
 
 def _refuse_untraceable(decision: Decision, lessons: Sequence[Lesson]) -> None:
-    """A Spark-bound note must rest only on lessons the Spark view returned.
+    """A remote-bound note must rest only on lessons the remote view returned.
 
     A trouble with no cited pain point, a pain point no such lesson backs (learned
-    from another project), or a recalled record cannot be shown to be Spark-safe.
+    from another project), or a recalled record cannot be shown to be remote-safe.
     """
     backed = {lesson.pain_point for lesson in lessons}
     if decision.trouble is not None and not decision.why:
-        raise SparkWithheldError
+        raise RemoteWithheldError
     if decision.recall or any(pain not in backed for pain in decision.why):
-        raise SparkWithheldError
+        raise RemoteWithheldError

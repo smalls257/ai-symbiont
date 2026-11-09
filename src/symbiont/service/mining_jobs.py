@@ -8,13 +8,14 @@ one-line description of a kind of trouble.
 
 import logging
 import threading
-from collections.abc import Callable
-from dataclasses import dataclass, replace
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass, field, replace
 from enum import StrEnum
 from typing import Any
 
 from symbiont.core.notes import happened
 from symbiont.miner.lessons import Lesson
+from symbiont.store.held_back import MiningOutcome
 
 log = logging.getLogger("symbiont.service")
 RECENT_TITLES = 8
@@ -45,6 +46,10 @@ class MiningProgress:
     lessons: int = 0
     recent: tuple[str, ...] = ()
     error: str | None = None
+    # Groups held back per reason (`HoldReason` value -> count) once the run is done.
+    held_back: Mapping[str, int] = field(default_factory=dict)
+    # Sessions whose facts the finished run will save: what the Pain points stage is drawn from.
+    session_facts: int = 0
 
     def as_json(self) -> dict[str, Any]:
         """The route's answer."""
@@ -57,12 +62,14 @@ class MiningProgress:
             "lessons": self.lessons,
             "recent": list(self.recent),
             "error": self.error,
+            "held_back": dict(self.held_back),
+            "session_facts": self.session_facts,
         }
 
 
 # A job body: it calls the given function after each log with that log's preview lessons and
-# returns the final lessons; it raises when it cannot finish.
-MiningWork = Callable[[Callable[[list[Lesson]], None]], list[Lesson]]
+# returns the final outcome (kept lessons and what was held back); it raises when it cannot finish.
+MiningWork = Callable[[Callable[[list[Lesson]], None]], MiningOutcome]
 Finished = Callable[[MiningProgress], None]
 
 
@@ -132,8 +139,12 @@ class MiningJobs:
             self._publish(project, tally(previews, MiningState.RUNNING, read, total))
 
         try:
-            lessons = work(after_log)
-            end = tally(lessons, MiningState.DONE, total, total)
+            outcome = work(after_log)
+            end = replace(
+                tally(outcome.kept, MiningState.DONE, total, total),
+                held_back={reason.value: count for reason, count in outcome.held.items()},
+                session_facts=len(outcome.facts),
+            )
         except Exception as failed:  # a thread must report any failure, not die quietly
             log.exception("mining %s failed", project)
             with self._lock:

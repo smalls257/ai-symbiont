@@ -1,4 +1,6 @@
-"""The one door out: every outbound HTTP call from src/ goes through `post_json`.
+"""The one door out: every outbound HTTP call from the published package goes through `post_json`.
+
+It reaches local servers only; research runs reach remote APIs through `remote_send`.
 
 Model files come in through `download_file`, the GET-only second door (Hugging Face only).
 """

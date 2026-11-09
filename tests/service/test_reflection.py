@@ -13,7 +13,11 @@ import pytest
 from record_builders import edit, run
 from symbiont.records.schema import Kind
 from symbiont.service.app import ServiceMode
-from symbiont.service.reflection import REFLECTION_LABEL, REFLECTION_QUESTION
+from symbiont.service.reflection import (
+    MID_SESSION_QUESTION,
+    REFLECTION_LABEL,
+    REFLECTION_QUESTION,
+)
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 from symbiont.store.reflections import ReflectionLedger
@@ -64,7 +68,7 @@ def test_a_session_with_an_edit_and_a_later_passing_check_is_asked_the_question(
 
     reply = rig.reflect()
 
-    assert reply.status == 200 and reply.body == {"ask": REFLECTION_QUESTION}
+    assert reply.status == 200 and reply.body == {"ask": MID_SESSION_QUESTION}
     assert "applies_to" in REFLECTION_QUESTION and "areas (directories" in REFLECTION_QUESTION
     assert "non-obvious" in REFLECTION_QUESTION and "symbiont_add_lessons" in REFLECTION_QUESTION
     assert f'"{REFLECTION_LABEL}"' in REFLECTION_QUESTION
@@ -279,3 +283,22 @@ def test_an_outcome_after_a_service_restart_says_unknown_not_zero(tmp_path):
     body = {"project": PROJECT, "session_id": "s1", "harness": "claude_code"}
 
     assert restarted.service.respond("/reflect/finished", body).body == {"saved": None}
+
+
+def test_claude_code_is_asked_without_end_of_session_wording_and_muse_keeps_it(tmp_path):
+    rig = Rig(tmp_path)
+    rig.observe(edit("a.py"), session_id="claude")
+    rig.observe(PASS, session_id="claude")
+    rig.observe(edit("a.py"), session_id="muse")
+    rig.observe(PASS, session_id="muse")
+
+    claude = rig.service.respond(
+        "/reflect", {"project": PROJECT, "session_id": "claude", "harness": "claude_code"}
+    )
+    muse = rig.service.respond(
+        "/reflect", {"project": PROJECT, "session_id": "muse", "harness": "muse_code"}
+    )
+
+    assert "end-of-session" not in claude.body["ask"] and "not over" in claude.body["ask"]
+    assert muse.body == {"ask": REFLECTION_QUESTION}
+    assert "end-of-session reflection" in REFLECTION_QUESTION

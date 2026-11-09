@@ -18,9 +18,9 @@ from symbiont.act1.rooms import RoomFinder
 from symbiont.act1.steplog import MoveRun
 from symbiont.records.schema import Kind, Provenance, Record
 
-# Spark-safe because the records are generated self-play on BSD-3 Freedoom levels and hold no
+# remote-safe because the records are generated self-play on BSD-3 Freedoom levels and hold no
 # user text or private content.
-PROVENANCE = Provenance(dataset="act1-freedoom2-selfplay", license="BSD-3-Clause", spark_safe=True)
+PROVENANCE = Provenance(dataset="act1-freedoom2-selfplay", license="BSD-3-Clause", remote_safe=True)
 
 
 @dataclass(frozen=True)

@@ -3,24 +3,27 @@
 import io
 import json
 import re
+from pathlib import Path
 from typing import Any
 
 from symbiont.miner.lesson_context import AppliesTo
 from symbiont.records.schema import Record, RecordFormatError, load_jsonl
 from symbiont.store.local import Source
+from symbiont.store.repos import RepoRegistry, RepoStance
 
-MINE_KEYS = frozenset({"project", "sources"})
+MINE_KEYS = frozenset({"project", "sources", "repo_dir"})
+MINE_REQUIRED = frozenset({"project", "sources"})
 
 
 class BadRequestError(ValueError):
     """A request that does not have the shape its route takes."""
 
 
-def spark_bound(request: dict[str, Any]) -> bool:
+def remote_bound(request: dict[str, Any]) -> bool:
     """Absent means local; anything but a real bool is refused, never guessed."""
-    value = request.get("spark_bound", False)
+    value = request.get("remote_bound", False)
     if not isinstance(value, bool):
-        raise BadRequestError("spark_bound must be true or false")
+        raise BadRequestError("remote_bound must be true or false")
     return value
 
 
@@ -78,13 +81,23 @@ def source_of(request: dict[str, Any]) -> Source:
 
 def mine_request_of(request: dict[str, Any]) -> tuple[str, list[Source]]:
     """The project and the logs a `/mine` request names (`sources`: [[reader, path], ...])."""
-    require_keys(request, MINE_KEYS, MINE_KEYS)
+    require_keys(request, MINE_KEYS, MINE_REQUIRED)
     project, listed = request["project"], request["sources"]
     if not (isinstance(project, str) and isinstance(listed, list) and listed):
         raise BadRequestError("mine takes a project and a non-empty list of [reader, path] pairs")
     if not all(_is_text_pair(pair) for pair in listed):
         raise BadRequestError("every source must be a [reader, path] pair of text")
     return project, [Source(project, reader, path) for reader, path in listed]
+
+
+def checkout_of(request: dict[str, Any]) -> Path | None:
+    """The checkout directory a `/mine` request names (`repo_dir`), or None when it names none."""
+    named = request.get("repo_dir")
+    if named is None:
+        return None
+    if not isinstance(named, str) or not named:
+        raise BadRequestError("repo_dir must be the path of the repository checkout")
+    return Path(named)
 
 
 def _is_text_pair(value: Any) -> bool:
@@ -128,3 +141,31 @@ def _tags(value: Any, name: str) -> tuple[str, ...]:
     if not ok or not all(isinstance(tag, str) and 0 < len(tag) <= MAX_TAG_CHARS for tag in value):
         raise BadRequestError(f"applies_to.{name} must be a list of up to {MAX_TAGS} short strings")
     return tuple(tag.strip() for tag in value)
+
+
+def consented_project(registry: RepoRegistry | None, request: dict[str, Any]) -> str:
+    """The request's project when it is text and the developer allowed the repository."""
+    project = request["project"]
+    if not isinstance(project, str) or not project:
+        raise BadRequestError("project must be text")
+    if registry is not None and registry.stance(project) is not RepoStance.GIVEN:
+        raise BadRequestError(f"run `symbiont repo allow` for {project} first")
+    return project
+
+
+MAX_DISPLAY_NAME = 80  # a group or topic name is a one-line heading in the dashboard
+
+
+def display_name(value: object) -> str:
+    """The trimmed name a developer typed; "" means "restore the generated name".
+
+    Raises BadRequestError for non-text or a name longer than MAX_DISPLAY_NAME.
+    """
+    if not isinstance(value, str):
+        raise BadRequestError("name must be text")
+    name = value.strip()
+    if len(name) > MAX_DISPLAY_NAME:
+        raise BadRequestError(
+            f"name must be at most {MAX_DISPLAY_NAME} characters; this one has {len(name)}"
+        )
+    return name

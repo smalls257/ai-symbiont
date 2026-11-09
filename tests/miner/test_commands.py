@@ -60,3 +60,54 @@ def test_status_program_follows_shell_rules():
     assert status_program("pytest && grep ok log.txt") is None
     assert status_program("grep -l x *.py | xargs wc -l") == "xargs"
     assert status_program("") is None
+
+
+# --- keys: what a failed command is counted as ------------------------------------------
+
+from record_builders import run, session  # noqa: E402
+from symbiont.miner.failure_keys import is_bare_exit  # noqa: E402
+from symbiont.miner.signals.failed_command import find_failed_commands  # noqa: E402
+
+
+def key_of(command, exit_code=1, output=""):
+    (pain,) = find_failed_commands(session(run(command, exit_code, output)))
+    return pain.signature.key
+
+
+def test_cd_and_env_prefixes_do_not_hide_the_program():
+    assert key_of(
+        "cd /repo && PYTHONPATH=src DEBUG=1 pytest tests/test_x.py", 1, "E   assert 1"
+    ) == (
+        "pytest",
+        "tests/test_x.py",
+        "assert <n>",
+    )
+
+
+def test_a_heredoc_script_keys_by_interpreter_and_error_class():
+    script = "cd /repo && python3 - <<'EOF'\nimport sqlglot\nsqlglot.nothing()\nEOF"
+    output = "Traceback\nAttributeError: module 'sqlglot' has no attribute 'nothing'"
+    assert key_of(script, 1, output) == ("python", "<inline>", "AttributeError")
+    assert key_of("python -c 'import nope'", 1, "ModuleNotFoundError: x") == (
+        "python",
+        "<inline>",
+        "ModuleNotFoundError",
+    )
+
+
+def test_pytest_exit_5_reads_as_no_tests_collected():
+    assert key_of("python -m pytest tests/test_x.py", 5, "no tests ran")[-1] == "no tests collected"
+    assert key_of("pytest tests/nope.py", 4, "ERROR: file not found")[-1] == (
+        "usage error or bad path"
+    )
+
+
+def test_a_bare_exit_code_marks_the_failure_not_comparable():
+    broke = key_of("make lint", 2, "make: *** [lint] Error 2")[-1]
+    assert broke == "exit 2" and is_bare_exit(broke)
+    assert not is_bare_exit("no tests collected") and not is_bare_exit("ImportError")
+
+
+def test_an_interrupt_is_not_a_failed_command():
+    records = session(run("C-c", 130, ""), run("C-c", 1, "^C"), run("sleep 60", 130, "^C"))
+    assert find_failed_commands(records) == []

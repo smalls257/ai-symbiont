@@ -1,20 +1,19 @@
 """Every pain-point signal, in one call.
 
 Callers use this rather than each signal, so a new signal is one line here. A chain is a
-developer's sessions on one repo in the order they ran; most signals look inside one session,
-reworked edits also look across the chain. Parallel attempts at the same task are not a chain:
-pass each alone.
+developer's sessions on one repo in the order they ran; every signal looks inside one session.
+Rework is no longer a signal: it is a churn measure (`miner.churn`). Parallel attempts at the
+same task are not a chain: pass each alone.
 """
 
 from collections.abc import Iterable, Mapping, Sequence
 
-from symbiont.miner.painpoint import PainPoint
+from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.signals.blast_radius import find_blast_radius
 from symbiont.miner.signals.correction import find_corrections
 from symbiont.miner.signals.failed_command import find_failed_commands
 from symbiont.miner.signals.loop import find_loops
 from symbiont.miner.signals.review_flag import find_review_flags
-from symbiont.miner.signals.reworked_edit import find_reworked_edits
 from symbiont.records.schema import Record
 
 References = Mapping[str, frozenset[str]]
@@ -27,8 +26,20 @@ def mine_chain(sessions: Sequence[Sequence[Record]], references: References) -> 
     when there is no repo checkout, and blast radius then finds nothing.
     """
     found = [p for session in sessions for p in _within_session(session, references)]
-    found += find_reworked_edits([record for session in sessions for record in session])
-    return found
+    return _first_review_flag_per_signature(found)
+
+
+def _first_review_flag_per_signature(found: list[PainPoint]) -> list[PainPoint]:
+    """A comment fetched in many sessions (and again under another id) teaches once."""
+    seen: set[Signature] = set()
+    kept = []
+    for pain in found:
+        if pain.signature.signal is Signal.REVIEW_FLAG:
+            if pain.signature in seen:
+                continue
+            seen.add(pain.signature)
+        kept.append(pain)
+    return kept
 
 
 def mine_session(session: Sequence[Record], references: References) -> list[PainPoint]:

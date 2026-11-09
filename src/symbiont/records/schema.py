@@ -31,13 +31,13 @@ class Kind(StrEnum):
 class Provenance:
     """Where a record came from.
 
-    `spark_safe` has no default on purpose: a record whose privacy is unknown must
+    `remote_safe` has no default on purpose: a record whose privacy is unknown must
     never be treated as shareable.
     """
 
     dataset: str
     license: str
-    spark_safe: bool
+    remote_safe: bool
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -119,8 +119,13 @@ def _line_range(value: Any) -> tuple[int, int]:
 
 
 def _provenance_from_dict(data: dict[str, Any]) -> Provenance:
-    """Provenance from JSON; spark_safe must be an actual boolean."""
-    spark_safe = data["spark_safe"]
-    if not isinstance(spark_safe, bool):
-        raise TypeError(f"spark_safe must be true or false, got {spark_safe!r}")
-    return Provenance(dataset=data["dataset"], license=data["license"], spark_safe=spark_safe)
+    """Provenance from JSON; remote_safe must be an actual boolean.
+
+    Records saved before the privacy vocabulary went provider-neutral carry `spark_safe`; it is
+    read as the same flag. With neither key the flag is unknown and KeyError names `remote_safe`.
+    """
+    key = "spark_safe" if "remote_safe" not in data and "spark_safe" in data else "remote_safe"
+    remote_safe = data[key]
+    if not isinstance(remote_safe, bool):
+        raise TypeError(f"remote_safe must be true or false, got {remote_safe!r}")
+    return Provenance(dataset=data["dataset"], license=data["license"], remote_safe=remote_safe)

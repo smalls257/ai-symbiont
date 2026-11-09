@@ -292,7 +292,8 @@ def scratch_rework_session(sid, task):
 
 def test_learners_do_not_learn_from_rework_of_a_files_own_scratch():
     past = scratch_rework_session("h0", "t0")
-    assert any(p.signature.signal.value == "reworked_edit" for p in mine_session(past, {})), "setup"
+    # Rework is a churn measure now, not a pain point, so there is nothing here to learn from.
+    assert not any(p.signature.signal.value == "reworked_edit" for p in mine_session(past, {}))
     history = History.from_sessions([past], fresh_ctx())
     visit = [replace(r, session_id="n0", task_id="u0") for r in session(view(SCRATCH), say("ok"))]
     scores = scored(Counters(min_count=1), [visit], history)

@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="icon" href="data:,">
+<title>symbiont dashboard: pain points (mockup)</title>
+<link rel="stylesheet" href="dashboard.css">
+<style>
+/* mockup additions, in the dashboard's own tokens */
+#s1{grid-template-rows:auto 1.35fr .8fr;grid-template-columns:1fr 1.6fr 1fr}
+.mocktag{font:500 .95rem var(--mono);color:var(--go);border:1px dashed rgba(255,204,64,.5);padding:.2rem .6rem;border-radius:.4rem}
+.kpi .seg{display:flex;gap:2px;height:.55rem;margin-top:.55rem}
+.kpi .seg i{border-radius:.3rem}
+.kpi .segl{display:flex;gap:.9rem;color:var(--mu);font-size:.85rem;margin-top:.35rem;flex-wrap:wrap}
+.kpi .segl b{display:inline-block;width:.6rem;height:.6rem;border-radius:.15rem;margin-right:.3rem;vertical-align:0}
+.panel.scroll{display:flex;flex-direction:column}
+.panel.scroll>.body{overflow:auto;min-height:0;flex:1;scrollbar-width:thin;scrollbar-color:#3a2f5a transparent}
+.ptn{display:grid;grid-template-columns:1fr auto;gap:.1rem .6rem;padding:.45rem 0;border-bottom:1px solid var(--line)}
+.ptn .nm{font-weight:600;font-size:1.05rem}
+.ptn .v{grid-row:1/3;grid-column:2;font-size:1.45rem;font-weight:700;font-variant-numeric:tabular-nums;align-self:center}
+.ptn .v small{font-size:.85rem;color:var(--mu);font-weight:400;margin-left:.2rem}
+.ptn .tr{height:.5rem;background:rgba(236,240,248,.06);border-radius:.3rem;margin-top:.2rem}
+.ptn .tr i{display:block;height:100%;border-radius:.3rem;background:var(--or)}
+.ptn .act{grid-column:1/-1;color:var(--mu);font-size:.9rem}
+.ptn .act em{font-style:normal;color:var(--vi)}
+.ptn.quiet .tr i{background:#8c94ac}
+.tabs{position:absolute;top:1rem;right:1.2rem;display:inline-flex;border:1px solid var(--line);border-radius:.6rem;overflow:hidden}
+.tabs button{background:none;border:0;padding:.3rem .9rem;color:var(--mu);font-weight:600;font-size:.95rem}
+.tabs button[aria-pressed=true]{background:var(--vi);color:#1a1020}
+.hm{display:grid;gap:3px;align-items:center}
+.hm .rl{font-weight:600;font-size:1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:.4rem}
+.hm .rl small{color:var(--mu);font-weight:400;margin-left:.35rem;font-size:.85rem}
+.hm .rl.mono{font:500 .9rem var(--mono)}
+.hm .ch{font-size:.8rem;color:var(--mu);line-height:1.1;align-self:end;padding-bottom:.2rem;text-align:center}
+.hm .c{height:1.55rem;border-radius:.3rem;background:rgba(236,240,248,.05)}
+.hm .c:hover,.hm .c:focus{outline:2px solid var(--tx);outline-offset:-1px}
+.rate{display:grid;grid-template-columns:1fr 1fr;align-items:center;height:1.55rem;position:relative}
+.rate::before{content:"";position:absolute;left:50%;top:.1rem;bottom:.1rem;width:1px;background:var(--mu);opacity:.6}
+.rate i{height:.7rem;border-radius:.3rem}
+.rate i.up{grid-column:2;background:var(--rd);border-radius:0 .3rem .3rem 0}
+.rate i.dn{grid-column:1;justify-self:end;background:var(--cy);border-radius:.3rem 0 0 .3rem}
+.legend{display:flex;gap:1.1rem;align-items:center;color:var(--mu);font-size:.85rem;margin-top:.6rem;flex-wrap:wrap}
+.legend .sw{display:inline-flex;gap:2px;vertical-align:middle;margin:0 .3rem}
+.legend .sw span{display:inline-block;width:1.3rem;height:.6rem;border-radius:.15rem}
+.legend .dot{display:inline-block;width:.7rem;height:.7rem;border-radius:50%;margin-right:.35rem;vertical-align:-.05rem}
+.les li button .why{grid-column:1/-1;font:.85rem var(--mono);color:var(--mu);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.held{color:var(--mu);font-size:.9rem;margin-top:.5rem;border-top:1px dashed var(--line);padding-top:.5rem}
+#stripsvg{width:100%;height:calc(100% - 4.6rem)}
+
+.scope{display:flex;gap:.5rem;align-items:center;font-size:.95rem;color:var(--mu)}
+.scope .chip{display:inline-flex;gap:.4rem;align-items:center;border:1px solid var(--vi);color:var(--tx);border-radius:2rem;padding:.15rem .4rem .15rem .75rem;background:rgba(178,140,255,.12)}
+.scope .chip button{background:none;border:0;color:var(--mu);font-size:1rem;padding:0 .3rem}
+.scope .chip button:hover{color:var(--tx)}
+.kpi .of{display:block;color:var(--mu);font-size:.9rem;margin-top:.15rem;min-height:1.2rem}
+.ptn{cursor:pointer;border-radius:.4rem;padding-left:.4rem;padding-right:.4rem}
+.ptn:hover{background:rgba(255,255,255,.04)}
+.ptn.sel{background:rgba(178,140,255,.14);box-shadow:inset .25rem 0 0 var(--vi)}
+.ptn .tr{position:relative}
+.ptn .tr b{position:absolute;top:-.2rem;bottom:-.2rem;width:2px;background:var(--tx);opacity:.7}
+.hm .rl,.hm .rate,.hm .c,.hm .ch.p{cursor:pointer}
+.hm .rl.sel{color:var(--vi)}
+.hm .c.sel{outline:2px solid var(--vi);outline-offset:-1px}
+.hm .c.dim{opacity:.35}
+.hm .ch.p.sel{color:var(--vi);font-weight:700}
+.empty{color:var(--mu);font-size:1rem;padding:1rem 0}
+.les .cnt{color:var(--mu)}
+</style>
+</head>
+<body>
+<header class="top">
+  __BRAND__
+  <div class="repo">tobymao/sqlglot</div>
+  <div class="scope" id="scope"></div>
+  <nav id="nav" aria-label="Stages"><button><b>1</b>Mine</button><button aria-current="true"><b>2</b>Pain points</button><button><b>3</b>Add context</button><button><b>4</b>30-day replay</button></nav>
+  <span class="mocktag" title="Real sqlglot agent traces; layout is a proposal">mockup · real data</span>
+</header>
+<main>
+<section class="stage on" id="s1" aria-label="Pain-point dashboard">
+  <div class="kpis" id="kpis"></div>
+  <div class="panel scroll" id="pPat"><h2>How the struggle looks</h2><p class="sub">Share of sessions showing each pattern. Click one to scope the page.</p><div class="body" id="pats"></div></div>
+  <div class="panel scroll" id="pMap">
+    <div class="tabs" role="group" aria-label="View"><button id="tThemes" aria-pressed="true">Themes</button><button id="tFiles" aria-pressed="false">Files</button></div>
+    <h2 id="mapTitle">What was being worked on</h2><p class="sub" id="mapSub"></p>
+    <div class="body"><div class="hm" id="hm"></div></div>
+    <div class="legend" id="hmLegend"></div>
+  </div>
+  <div class="panel scroll" id="pLes"><h2>Lessons ready</h2><p class="sub" id="lesSub"></p><div class="body"><ul class="les" id="les"></ul><div class="held" id="held"></div></div></div>
+  <div class="panel tl" id="pStrip"><h2>One session, step by step</h2><p class="sub" id="stripSub"></p><svg id="stripsvg" role="img" aria-label="Steps of one session"></svg></div>
+</section>
+</main>
+<div id="tip"></div>
+<script src="click.js"></script>
+</body>
+</html>

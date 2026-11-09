@@ -2,7 +2,7 @@
    A dashboard opened before the lessons exist must show the job
    (or why it stopped), never an empty page. The server injects {mining:{project,progress}} as the
    page's one data object; this file polls GET /mining/<project>/progress. When the job is done with
-   lessons it keeps the finished summary on screen (a Continue button, and an automatic move after
+   lessons, or with session facts to show, it keeps the finished summary on screen (a Continue button, and an automatic move after
    SUMMARY_MS) and only then loads the address without ?mining, which the server renders as the
    pain-point view from the stored lessons. A short job would otherwise finish before the page
    painted and the developer would never see what was read. Every number shown is the service's:
@@ -10,6 +10,7 @@
 (function () {
 "use strict";
 const POLL_MS=700, RETRY_MS=2000, SUMMARY_MS=3500, CLEAR="#ff8c40";
+const n=(k,w)=>k+" "+w+(k===1?"":"s");
 
 /* describe is pure: progress in, what the page says out. */
 function describe(p){
@@ -22,18 +23,20 @@ function describe(p){
       lede:p.error||"symbiont gave no reason; see the service log.",
       status:"failed after "+read+" of "+total+" sessions"};
   }
-  if(p.state==="done"&&p.lessons>0){
+  if(p.state==="done"&&(p.lessons>0||p.session_facts>0)){
+    /* No lesson yet can still leave struggle to see: where the agent lost turns, and in which sessions. */
     return {...base,percent:100,next:"summary",
-      headline:"Read "+total+" sessions · found "+p.pain_points+" pain points · learned "+p.lessons+" lessons",
-      lede:"Continue to see what it found, or wait a moment.",status:"done · "+p.lessons+" lessons ready to use"};
+      headline:"Read "+n(total,"session")+" · found "+n(p.pain_points,"pain point")+" · learned "+n(p.lessons,"lesson"),
+      lede:p.lessons>0?"Continue to see what it found, or wait a moment.":"No lesson yet, but there is struggle to see. Continue, or wait a moment.",
+      status:"done · "+n(p.lessons,"lesson")+" ready to use"};
   }
   if(p.state==="done"){
-    return {...base,percent:100,next:"stop",headline:"Read "+total+" sessions and found no pain points yet.",
+    return {...base,percent:100,next:"stop",headline:"Read "+n(total,"session")+" and found no pain points yet.",
       lede:"Nothing repeated enough to learn from. Mine again after more sessions.",status:"done · 0 lessons"};
   }
-  return {...base,headline:"Reading "+total+" sessions",
+  return {...base,headline:"Reading "+n(total,"session"),
     lede:"Looking for the same failure twice, files reworked, corrections and loops.",
-    status:"session "+read+" of "+total+" · "+p.pain_points+" pain points so far"};
+    status:"session "+read+" of "+total+" · "+n(p.pain_points,"pain point")+" so far"};
 }
 
 /* continueUrl is pure: the address the page moves to when the summary has been seen. */

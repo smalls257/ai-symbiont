@@ -40,7 +40,7 @@ def _in_session(records, session_id):
     return [replace(r, session_id=session_id) for r in records]
 
 
-def test_mine_chain_finds_rework_across_sessions():
+def test_mine_chain_no_longer_finds_rework_it_is_churn():
     from record_builders import replace_text
     from symbiont.miner.mine import mine_chain
 
@@ -50,13 +50,11 @@ def test_mine_chain_finds_rework_across_sessions():
     tuesday = _in_session(
         session(replace_text("sqlglot/parser.py", "x = compute_offset(node)", "x = 2")), "tue"
     )
-    rework = [
-        p for p in mine_chain([monday, tuesday], {}) if p.signature.signal == Signal.REWORKED_EDIT
-    ]
-    assert [(p.session_id, p.record_refs) for p in rework] == [("tue", (("mon", 0), ("tue", 0)))]
+    assert mine_chain([monday, tuesday], {}) == []
+    assert mine_chain([monday, tuesday], {}) == mine_session(monday, {}) + mine_session(tuesday, {})
 
 
-def test_mine_chain_counts_in_session_rework_once():
+def test_mine_chain_counts_no_in_session_rework_either():
     from record_builders import replace_text
     from symbiont.miner.mine import mine_chain
 
@@ -64,6 +62,5 @@ def test_mine_chain_counts_in_session_rework_once():
         replace_text("sqlglot/parser.py", "x = 1", "x = compute_offset(node)"),
         replace_text("sqlglot/parser.py", "x = compute_offset(node)", "x = 2"),
     )
-    found = mine_chain([monday], {})
-    assert [p.signature.signal for p in found] == [Signal.REWORKED_EDIT]
-    assert mine_session(monday, {}) == found
+    assert mine_chain([monday], {}) == []
+    assert mine_session(monday, {}) == []

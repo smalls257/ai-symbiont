@@ -12,19 +12,22 @@ from dataclasses import replace
 import pytest
 
 from record_builders import PUBLIC, edit, replace_text, run, session, user
+from store_builders import save_lessons
 from symbiont.eval.training_manifest import check_manifest_against_hold_out
 from symbiont.miner.painpoint import Signal, Signature
+from symbiont.miner.screen import ScreenRules
+from symbiont.miner.secrets import REDACTED
 from symbiont.miner.trained import export_id_of
 from symbiont.records.holdout import HoldOutViolationError, UnrecognisedTaskIdError
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
-from symbiont.store.local import Source, SparkPrivacyViolationError, Store
+from symbiont.store.local import RemotePrivacyViolationError, Source, Store
 from symbiont.store.mining import MiningRules, UnknownReaderError, remine
 from symbiont.store.training import lessons_for_memory_model, lessons_for_personal_model
 
 pytestmark = pytest.mark.periphery
 
 PROJECT = "tobymao/sqlglot"
-SWE_CHAT = Provenance(dataset="SWE-chat", license="ODC-BY", spark_safe=False)
+SWE_CHAT = Provenance(dataset="SWE-chat", license="ODC-BY", remote_safe=False)
 READER = "records-jsonl"
 SECRET_OUTPUT = "AssertionError: secret-looking output that must not be copied"
 
@@ -35,14 +38,17 @@ def read_records_jsonl(path, project):
 
 
 def rules(held_out=()):
-    return MiningRules({READER: read_records_jsonl}, frozenset(held_out))
+    return MiningRules(
+        {READER: read_records_jsonl}, frozenset(held_out), screen=ScreenRules(min_sessions=1)
+    )
 
 
 def failing_session(session_id="s1", task_id="tobymao__sqlglot-1000", provenance=PUBLIC):
     records = session(
         user("fix it"),
-        run("pytest tests/test_parser.py", 1, SECRET_OUTPUT),
+        run("pytest tests/test_parser.py", 1, f"sqlglot/parser.py:1\n{SECRET_OUTPUT}"),
         edit("sqlglot/parser.py"),
+        run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     return [
         replace(r, session_id=session_id, task_id=task_id, provenance=provenance) for r in records
@@ -71,21 +77,40 @@ def test_mining_keeps_lessons_and_pointers_but_no_raw_history(tmp_path, store):
     assert tables == {
         "sources",
         "lessons",
+        "mining_settings",
         "trained",
         "contexts",
         "authored",
         "reviews",
         "decided",
         "review_overrides",
+        "held_back",
+        "struggle",
+        "churn",
+        "session_facts",
+        "session_summaries",
+        "group_verdicts",
+        "stated_rules",
+        "dropped_rule_candidates",
+        "rule_triage_members",
+        "topics",
+        "topic_names",
+        "session_strips",
+        "ignored",
+        "triage",
+        "incidents",
+        "rule_candidates",
     }
     (body,) = db.execute("SELECT body FROM lessons").fetchone()
-    assert "fix it" not in body, "only the cited record's bounded quote is kept"
+    # The user's request survives only as the bounded `asked` field (CONTEXT_CHARS).
+    assert json.loads(body)["asked"] == "fix it" and body.count("fix it") == 1
+    assert "user_turn" not in body, "no whole record is kept"
 
 
 def test_mining_re_reads_the_logs_every_time(tmp_path, store):
     source = log_of(tmp_path, "a", failing_session())
     remine(store, PROJECT, rules(), adding=[source])
-    log_of(tmp_path, "a", failing_session() + [replace(failing_session()[1], step=3)])
+    log_of(tmp_path, "a", failing_session() + failing_session("s2"))
     assert len(remine(store, PROJECT, rules())) == 2
 
 
@@ -112,24 +137,24 @@ def test_an_unrecognised_task_id_is_refused_when_something_is_held_out(tmp_path,
         remine(store, PROJECT, rules({"tobymao/sqlglot#1"}), adding=[source])
 
 
-def test_spark_view_raises_on_a_private_lesson_and_never_filters(tmp_path, store):
+def test_remote_view_raises_on_a_private_lesson_and_never_filters(tmp_path, store):
     public = log_of(tmp_path, "a", failing_session())
     remine(store, PROJECT, rules(), adding=[public])
-    assert len(store.spark_view().lessons(PROJECT)) == 1
+    assert len(store.remote_view().lessons(PROJECT)) == 1
     private = log_of(tmp_path, "p", failing_session("chat-1", None, SWE_CHAT))
     remine(store, PROJECT, rules(), adding=[private])
-    with pytest.raises(SparkPrivacyViolationError):
-        store.spark_view().lessons(PROJECT)
-    with pytest.raises(SparkPrivacyViolationError):
-        store.spark_view().pain_points(PROJECT)
-    assert not hasattr(store.spark_view(), "save_mining")
+    with pytest.raises(RemotePrivacyViolationError):
+        store.remote_view().lessons(PROJECT)
+    with pytest.raises(RemotePrivacyViolationError):
+        store.remote_view().pain_points(PROJECT)
+    assert not hasattr(store.remote_view(), "save_mining")
 
 
 def test_the_two_training_exports_differ_only_in_the_privacy_guard(tmp_path, store):
     private = log_of(tmp_path, "p", failing_session("chat-1", None, SWE_CHAT))
     remine(store, PROJECT, rules(), adding=[private])
     assert len(lessons_for_personal_model(store, PROJECT)) == 1
-    with pytest.raises(SparkPrivacyViolationError):
+    with pytest.raises(RemotePrivacyViolationError):
         lessons_for_memory_model(store, PROJECT)
 
 
@@ -176,23 +201,31 @@ def _edit_session(session_id, old, new, ts):
 
 
 def _rework(store):
-    return [p for p in store.pain_points(PROJECT) if p.signature.signal == Signal.REWORKED_EDIT]
+    return [
+        p.pain_point
+        for p in store.lessons(PROJECT)
+        if p.pain_point.signature.signal == Signal.REWORKED_EDIT
+    ]
 
 
-def test_rework_is_found_across_logs_of_timed_sessions_in_time_order(tmp_path, store):
+def test_rework_is_counted_as_churn_per_session_never_stored_as_a_lesson(tmp_path, store):
     earlier = _edit_session("b-monday", "x = 1", "x = compute_offset(node)", "2026-10-26T09:00:00Z")
     later = _edit_session("a-tuesday", "x = compute_offset(node)", "x = 2", "2026-10-27T09:00:00Z")
     logs = [log_of(tmp_path, "tue", later), log_of(tmp_path, "mon", earlier)]
     remine(store, PROJECT, rules(), adding=logs)
-    (pain,) = _rework(store)
-    assert (pain.session_id, pain.record_refs) == ("a-tuesday", (("b-monday", 0), ("a-tuesday", 0)))
+    assert _rework(store) == []
+    churned = {(c.file, c.session_id, c.edits) for c in store.mined.churn(PROJECT)}
+    assert churned == {("sqlglot/parser.py", "b-monday", 1), ("sqlglot/parser.py", "a-tuesday", 1)}
 
 
 def test_untimed_sessions_are_mined_alone(tmp_path, store):
     first = _edit_session("t1", "x = 1", "x = compute_offset(node)", None)
     second = _edit_session("t2", "x = compute_offset(node)", "x = 2", None)
     remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "both", first + second)])
-    assert _rework(store) == []
+    assert {(c.session_id, c.edits) for c in store.mined.churn(PROJECT)} == {
+        ("t1", 1),
+        ("t2", 1),
+    }
 
 
 def test_forget_trained_deletes_only_the_exported_lessons(tmp_path, store):
@@ -200,7 +233,7 @@ def test_forget_trained_deletes_only_the_exported_lessons(tmp_path, store):
     (exported,) = store.lessons(PROJECT)
     remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "b", failing_session("s2"))])
     assert store.forget_trained(PROJECT, tmp_path / "m.json", exported=[exported]) == 1
-    assert [p.session_id for p in store.pain_points(PROJECT)] == ["s2"]
+    assert [x.pain_point.session_id for x in store.lessons(PROJECT)] == ["s2"]
 
 
 def test_the_memory_model_is_not_offered_lessons_it_was_trained_on(tmp_path, store):
@@ -215,7 +248,9 @@ def test_the_memory_model_is_not_offered_lessons_it_was_trained_on(tmp_path, sto
 def test_the_write_path_itself_refuses_a_held_out_lesson(tmp_path, store):
     (lesson,) = remine(store, PROJECT, rules(), adding=[log_of(tmp_path, "a", failing_session())])
     with pytest.raises(HoldOutViolationError):
-        store.save_mining(PROJECT, [], [lesson], held_out_tasks=frozenset({"tobymao/sqlglot#1000"}))
+        save_lessons(
+            store, PROJECT, [], [lesson], held_out_tasks=frozenset({"tobymao/sqlglot#1000"})
+        )
     assert store.lessons(PROJECT) == [lesson]
 
 
@@ -228,3 +263,69 @@ def test_forgetting_a_trouble_deletes_only_its_lessons(tmp_path, store):
     assert store.lessons(PROJECT) == [lesson]
     assert store.catalog.forget(PROJECT, lesson.pain_point.signature) == 1
     assert store.lessons(PROJECT) == []
+
+
+def test_a_saved_review_keeps_its_summary(store):
+    from symbiont.miner.lesson_context import Review, Verdict
+
+    store.curation.save_review(
+        "demo", "l1", Review(Verdict.MISTAKE, summary="It broke; it was fixed.")
+    )
+
+    assert store.curation.reviews("demo")["l1"].summary == "It broke; it was fixed."
+
+
+def test_an_old_store_without_a_summary_column_opens_and_reads_empty_summaries(tmp_path):
+    import sqlite3
+
+    path = tmp_path / "old.sqlite"
+    old = sqlite3.connect(path)
+    old.execute(
+        "CREATE TABLE reviews (lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, "
+        "verdict TEXT NOT NULL, rule TEXT NOT NULL, title TEXT NOT NULL, merge_with TEXT, "
+        "applies TEXT NOT NULL)"
+    )
+    old.execute(
+        "INSERT INTO reviews VALUES ('l1', 'demo', 'noise', '', '', NULL, "
+        '\'{"terms": [], "areas": []}\')'
+    )
+    old.commit()
+    old.close()
+
+    reopened = Store.open(path)
+
+    assert reopened.curation.reviews("demo")["l1"].summary == ""
+
+
+def test_a_lesson_row_from_before_the_turn_fields_reads_empty_context():
+    import json
+    from dataclasses import asdict
+
+    from symbiont.miner.lessons import lessons_from
+    from symbiont.miner.mine import mine_history, sessions_of
+    from symbiont.store.lesson_rows import lesson_from_json
+
+    records = failing_session()
+    (lesson,) = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
+    data = asdict(lesson)
+    del data["asked"], data["agent_intent"]
+
+    restored = lesson_from_json(json.dumps(data))
+
+    assert (restored.asked, restored.agent_intent) == ("", "")
+    assert lesson.asked == "fix it"
+
+
+def test_the_remote_view_redacts_a_credential_pasted_into_the_users_request(tmp_path, store):
+    pasted = "to" + "ken=Zq7Lm2Xv9Rt4Wp8K"
+    records = [
+        replace(r, task_id=None) if r.step else replace(r, raw=f"fix it, {pasted}", task_id=None)
+        for r in failing_session()
+    ]
+    source = log_of(tmp_path, "a", records)
+    (lesson,) = remine(store, PROJECT, rules(), adding=[source])
+    assert pasted in lesson.asked
+
+    (shown,) = store.remote_view().lessons(PROJECT)
+
+    assert "Zq7Lm2Xv9Rt4Wp8K" not in shown.asked and REDACTED in shown.asked

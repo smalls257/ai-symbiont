@@ -14,6 +14,7 @@ const cases = {
   running: describe({ ...base, state: "running", sessions_read: 12, pain_points: 3, fixes_paired: 2, lessons: 4, recent: ["`pytest x` failed with ImportError"] }),
   done: describe({ ...base, state: "done", sessions_read: 40, pain_points: 5, fixes_paired: 4, lessons: 9 }),
   doneEmpty: describe({ ...base, state: "done", sessions_read: 40 }),
+  doneStruggleOnly: describe({ ...base, state: "done", sessions_read: 40, pain_points: 5, session_facts: 40 }),
   failed: describe({ ...base, state: "failed", sessions_read: 7, error: "/logs/a.jsonl:3: not a JSON line" }),
   failedNoReason: describe({ ...base, state: "failed", sessions_read: 7 }),
 };

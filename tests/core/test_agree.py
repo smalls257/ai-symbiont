@@ -28,7 +28,13 @@ def lesson(index, fix="ran `pip install pyyaml`"):
     signature = Signature(Signal.FAILED_COMMAND, (f"tool{index}", f"module{index}", f"Oops{index}"))
     pain = PainPoint(signature, "s1", index, (("s1", index),))
     return Lesson(
-        pain, f"$ tool{index} module{index}\nOops{index}", (fix,), None, True, (("s1", 1),)
+        pain,
+        f"$ tool{index} module{index}\nOops{index}",
+        (fix,),
+        None,
+        True,
+        (("s1", 1),),
+        fix_commands=("pip install pyyaml",),
     )
 
 

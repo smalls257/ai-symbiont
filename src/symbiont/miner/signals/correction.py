@@ -1,22 +1,19 @@
 """Signal: the developer correcting the agent.
 
-Two ways to know a user turn is a correction:
-
-- the dataset labeled it (`correction` or `rejection` in the record's tags,
-  e.g. SWE-chat's pushback mark), or
-- unlabelled: since the previous user turn a test run failed, and the turn
-  names a file the agent edited in that stretch ("you broke dialect.py").
-
-Key `(file, first 8 words)`: the file is one the turn names and the agent had
-edited, else "-"; the words are lowercased with punctuation dropped, so the
-note can quote how the developer put it.
+A user turn is a correction when the dataset tagged it (`correction`, `rejection`) and the
+words push back (`pushes_back`: "please push and open a pr" is a request, not a correction), or
+a test run failed since the last turn and the turn pushes back naming a file the agent edited.
+"ok" and "/compact" never are. Key `(file, first 8 words)`: the file is one the turn names, else
+"-"; the words are lowercased with punctuation dropped, so the note can quote how it was put.
 """
 
 import re
 from collections.abc import Sequence
 
+from symbiont.miner.empty_correction import is_bare_acknowledgment
 from symbiont.miner.failing_tests import failing_test_files
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
+from symbiont.miner.pushback import INSPECTED_CHARS, pushes_back
 from symbiont.records.schema import Kind, Record
 
 CORRECTION_TAGS = frozenset({"correction", "rejection"})
@@ -33,10 +30,11 @@ def find_corrections(session: Sequence[Record]) -> list[PainPoint]:
     failed_since_turn = False
     for record in session:
         if record.kind == Kind.USER_TURN:
-            if CORRECTION_TAGS & set(record.tags):
-                found.append(_pain_point(record, _named_file(record.raw, edited_ever)))
-            elif failed_since_turn and (named := _named_file(record.raw, edited_since_turn)):
-                found.append(_pain_point(record, named))
+            pain = _turn_correction(
+                record, edited_ever, edited_since_turn if failed_since_turn else []
+            )
+            if pain is not None:
+                found.append(pain)
             edited_since_turn, failed_since_turn = [], False
         elif record.kind == Kind.EDIT and record.exit_code != 1:
             edited_ever += record.files
@@ -44,6 +42,19 @@ def find_corrections(session: Sequence[Record]) -> list[PainPoint]:
         elif failing_test_files(record):
             failed_since_turn = True
     return found
+
+
+def _turn_correction(
+    turn: Record, edited_ever: list[str], edited_after_failure: list[str]
+) -> PainPoint | None:
+    """The correction a user turn is, or None; "ok", "/compact" and requests teach nothing."""
+    if is_bare_acknowledgment(turn.raw) or not pushes_back(turn.raw):
+        return None
+    if CORRECTION_TAGS & set(turn.tags):
+        return _pain_point(turn, _named_file(turn.raw, edited_ever))
+    # Unlabelled, only a file named in the typed head counts: one deep in a pasted prompt is not.
+    named = _named_file(turn.raw[:INSPECTED_CHARS], edited_after_failure)
+    return _pain_point(turn, named) if named else None
 
 
 def _named_file(text: str, edited: list[str]) -> str | None:

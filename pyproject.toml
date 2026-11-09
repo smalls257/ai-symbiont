@@ -52,6 +52,41 @@ build-backend = "uv_build"
 
 [tool.uv.build-backend]
 module-name = "symbiont"
+# The published package is the product: readers, miner, core, store, service, delivery and the
+# local egress door. Research and hackathon code stays in the repo and never ships, so an install
+# carries no remote model client, no API key loader and no game code. tests/test_published_wheel.py
+# builds the wheel and fails if a shipped module imports anything listed here.
+source-exclude = [
+    "src/symbiont/act1",
+    "src/symbiont/eval",
+    "src/symbiont/routeb",
+    "src/symbiont/egress/lan_send.py",
+    "src/symbiont/egress/remote_send.py",
+    "src/symbiont/egress/remote_chat.py",
+    "src/symbiont/egress/spend.py",
+    "src/symbiont/egress/providers.py",
+    "src/symbiont/egress/credentials.py",
+    "src/symbiont/egress/messages.py",
+    "src/symbiont/egress/file_lock.py",
+    # Contributor notes describe the research side too; an install needs none of them.
+    "src/symbiont/**/AGENTS.md",
+    "src/symbiont/**/CLAUDE.md",
+]
+wheel-exclude = [
+    "symbiont/act1",
+    "symbiont/eval",
+    "symbiont/routeb",
+    "symbiont/egress/lan_send.py",
+    "symbiont/egress/remote_send.py",
+    "symbiont/egress/remote_chat.py",
+    "symbiont/egress/spend.py",
+    "symbiont/egress/providers.py",
+    "symbiont/egress/credentials.py",
+    "symbiont/egress/messages.py",
+    "symbiont/egress/file_lock.py",
+    "symbiont/**/AGENTS.md",
+    "symbiont/**/CLAUDE.md",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

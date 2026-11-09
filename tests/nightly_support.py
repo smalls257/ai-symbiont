@@ -5,7 +5,9 @@ import json
 import struct
 from pathlib import Path
 
+from store_builders import save_lessons
 from symbiont.core.judge_format import JUDGE_SYSTEM
+from symbiont.miner.fixes import FixKind
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.service.nightly_rows import ChatRow
@@ -19,8 +21,18 @@ def failed_command_lesson(index, fix=None, error=None, files=("app/mod.py",)):
     signature = Signature(Signal.FAILED_COMMAND, (f"tool{index}", f"module{index}", "Oops"))
     pain = PainPoint(signature, f"s{index}", 1, ((f"s{index}", 1),))
     quote = f"$ pytest tests/test_{index}.py\n{error or f'Oops{index}: broken'}"
-    steps = (f"ran `{fix or f'pytest tests/test_{index}.py -q'}`",)
-    return Lesson(pain, quote, steps, None, True, pain.record_refs, files=files)
+    command = fix or f"pytest tests/test_{index}.py -q"
+    return Lesson(
+        pain,
+        quote,
+        (f"ran {command.split()[0]}",),
+        None,
+        True,
+        pain.record_refs,
+        files=files,
+        fix=FixKind.CODE_FIX,
+        fix_commands=(command,),
+    )
 
 
 def chat(system, user, answer) -> ChatRow:
@@ -116,7 +128,8 @@ def night_plan(tmp_path, lessons=6, url="http://127.0.0.1:8861"):
 
     data = tmp_path / "data"
     data.mkdir()
-    Store.open(data / "store.db").save_mining(
+    save_lessons(
+        Store.open(data / "store.db"),
         PROJECT,
         [Source(PROJECT, "claude_code", "x")],
         [failed_command_lesson(i) for i in range(lessons)],

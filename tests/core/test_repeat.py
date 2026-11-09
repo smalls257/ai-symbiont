@@ -17,7 +17,7 @@ IMPORT = "File \"app/parser.py\", line 1\nImportError: cannot import name 'parse
 
 def stored_lessons(*steps):
     records = session(*steps)
-    return lessons_from(mine_history(sessions_of(records), {}), records)
+    return lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
 
 
 def fixed_import_error():
@@ -41,8 +41,8 @@ def test_the_same_command_failing_the_same_way_is_told_how_it_was_fixed():
     assert note is not None
     assert "Last time" in note.sentence
     assert "`pytest tests/test_parser.py` failed with ImportError" in note.sentence
-    assert "edited `app/parser.py`" in note.sentence
-    assert "def parse(text):" in note.sentence
+    assert "edited parser.py, then re-ran pytest" in note.sentence
+    assert "def parse(text)" not in note.sentence and "app/parser.py" not in note.sentence
 
 
 def test_a_different_error_is_not_a_repeat():

@@ -87,7 +87,7 @@ def test_a_consented_repository_gets_the_exact_repeat_note_on_day_one(rig):
 
     (note,) = body["notes"]
     assert note.startswith("Last time, `pytest tests/test_parser.py` failed with ImportError")
-    assert "def parse(text):" in note
+    assert "edited parser.py" in note and "def parse(text)" not in note
 
 
 def test_the_repeat_note_is_said_once_per_session_and_again_in_the_next(rig):

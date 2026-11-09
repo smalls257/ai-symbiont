@@ -3,17 +3,19 @@
 Shared by lessons (what a note says was done) and Route B (what a model is trained to do), so the
 two never disagree about the fix. Finding nothing is an answer with a stated reason, never a
 guess. A failed command's fix is what changed before the later pass of the same program,
-subcommand and target; re-running it unchanged fixes nothing, and edits to files it never names
-are reported alongside.
+subcommand and target; re-running it unchanged or re-spelled fixes nothing, and edits to files it
+never names are reported alongside. A wrong invocation's fix is the corrected command.
 """
 
 import re
+import shlex
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
 from symbiont.miner.changes import applied_edit, changes_workspace
-from symbiont.miner.commands import normalise_command, program_words
+from symbiont.miner.commands import command_stages, normalise_command, program_words
 from symbiont.miner.diffs import added_lines, removed_lines
+from symbiont.miner.failure_keys import is_invocation_failure
 from symbiont.miner.painpoint import PainPoint, Signal
 from symbiont.miner.same_check import reruns_same_check
 from symbiont.records.schema import Kind, Record
@@ -22,6 +24,9 @@ NO_LATER_SUCCESS = (
     "no later command with exit 0 on the same program and target followed the failure"
 )
 NOTHING_CHANGED = "the same command passed later with nothing changed in between"
+PASSED_RESPELLED = (
+    "it passed when run again with different arguments; nothing else changed in between"
+)
 ONLY_UNRELATED_CHANGED = (
     "the same command passed later; only changes to files it never names came between, "
     "so what made it pass is not known"
@@ -30,8 +35,10 @@ _SCRIPT_TOOLS = (
     "npm",
     "yarn",
     "pnpm",
+    "uv",
 )  # `<tool> run <script>`: the script is part of the subcommand
 _SCRIPT_RUNNERS = ("run", "run-script")
+_NAME_VALUE = re.compile(r"^\w+=")
 _BARE_WORD = re.compile(r"^[a-z][a-z0-9-]*$")
 
 
@@ -97,13 +104,26 @@ def _failed_command(
 ) -> Resolution | NoResolution:
     """What changed before the same command passed; a stated reason when nothing did."""
     (failed,) = cited
-    success = _later_success_of(failed, records)
+    success = later_success_of(failed, records)
     if success is None:
         return NO_LATER_SUCCESS
     fixes, others = _changes_between(failed, success, records)
-    if not fixes and (success.command == failed.command or not _same_attempt(failed, success)):
+    if fixes:
+        return Resolution((*fixes, success), others)
+    return _unchanged_pass(pain, failed, success, others)
+
+
+def _unchanged_pass(
+    pain: PainPoint, failed: Record, success: Record, others: tuple[Record, ...]
+) -> Resolution | NoResolution:
+    """A pass with no change that bears on the failure: a fix only for a corrected invocation."""
+    if success.command == failed.command:
         return Unresolved(ONLY_UNRELATED_CHANGED, others) if others else NOTHING_CHANGED
-    return Resolution((*fixes, success), others)
+    if is_invocation_failure(pain.signature.key[-1]):
+        return Resolution((success,), others)
+    if _same_attempt(failed, success):
+        return Unresolved(PASSED_RESPELLED, others)
+    return Unresolved(ONLY_UNRELATED_CHANGED, others) if others else NOTHING_CHANGED
 
 
 def _changes_between(
@@ -119,7 +139,7 @@ def _changes_between(
     return fixes, tuple(r for r in between if not _bears_on(r, failed))
 
 
-def _later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
+def later_success_of(failed: Record, records: Sequence[Record]) -> Record | None:
     """The first later pass of the same command, or of the same check spelled differently."""
     later_commands = [r for r in session_from(failed, records)[1:] if r.kind == Kind.COMMAND]
     return next(
@@ -133,22 +153,53 @@ def _later_success_of(failed: Record, records: Sequence[Record]) -> Record | Non
 
 
 def _same_attempt(failed: Record, later: Record) -> bool:
-    """A pass of the same program, subcommand and target."""
+    """A pass of the same program, subcommand and target, alone or chained after a fix step."""
     if later.exit_code != 0:
         return False
-    return (normalise_command(later.command or ""), _subcommand(later.command or "")) == (
-        normalise_command(failed.command or ""),
-        _subcommand(failed.command or ""),
-    )
+    wanted = _attempt_of(failed.command or "")
+    return any(_attempt_of(step) == wanted for step in _chained_steps(later.command or ""))
 
 
-def _subcommand(command: str) -> str:
+def _attempt_of(command: str) -> tuple[str, str]:
+    return (normalise_command(command), subcommand_of(command))
+
+
+def _chained_steps(command: str) -> list[str]:
+    """The command, then each step it runs: `rm x.lock && git add a` holds `git add a`."""
+    stages = command_stages(command)
+    return [command, *(shlex.join((s.program, *s.args)) for s in stages if len(stages) > 1)]
+
+
+# Shared by `subcommand_of` and `read_only`; `-c` is skipped as a flag with a value for every
+# program. These flags take the next word as their value, so it is not a subcommand.
+_FLAGS_WITH_VALUES = {"--filter", "-F", "-C", "--dir", "--prefix", "--repo", "-R", "-c"}
+
+
+def bare_arguments(args: tuple[str, ...]) -> list[str]:
+    """Arguments that are neither flags nor the value of a flag that takes one."""
+    words: list[str] = []
+    skip_next = False
+    for arg in args:
+        if skip_next:
+            skip_next = False
+        elif arg in _FLAGS_WITH_VALUES:
+            skip_next = True
+        elif not arg.startswith("-"):
+            words.append(arg)
+    return words
+
+
+def subcommand_of(command: str) -> str:
     """The first argument when it is a bare word (`push` in `git push origin`), else "-".
 
     Paths and node ids are left to `normalise_command`, which already compares the target.
     """
-    program, args = program_words(command)
-    words = [arg for arg in args if not arg.startswith("-")] or ["-"]
+    return subcommand_after(*program_words(command))
+
+
+def subcommand_after(program: str, args: tuple[str, ...]) -> str:
+    """`subcommand_of` for a program and arguments already picked out of a command."""
+    words = [w for w in bare_arguments(args) if not _NAME_VALUE.match(w)] or ["-"]
     if not _BARE_WORD.match(words[0]):
         return "-"
     if program in _SCRIPT_TOOLS and words[0] in _SCRIPT_RUNNERS and len(words) > 1:

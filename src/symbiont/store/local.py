@@ -2,27 +2,48 @@
 
 Kept: sources (project, reader, path pointers to the harness's logs, re-read on every mining) and
 lessons (each with its own quote, resolution, privacy flag and ids) until training consumes them.
-`spark_view(consent)` raises `SparkPrivacyViolationError` for a lesson Spark may not see and
-returns the rest scrubbed of credentials; hold-out is checked at mining time (`store.mining`).
+`remote_view(consent)` raises `RemotePrivacyViolationError` for a lesson a remote model may not
+see and returns the rest scrubbed of credentials; hold-out is checked at mining time
+(`store.mining`).
 """
 
 import json
 import logging
 import shlex
 import sqlite3
-from collections.abc import Iterable, Sequence
-from dataclasses import asdict, dataclass
+from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 
-from symbiont.miner.lessons import Lesson, spark_allowed
+from symbiont.miner.lessons import Lesson, remote_allowed
 from symbiont.miner.painpoint import PainPoint
 from symbiont.miner.secrets import scrubbed
-from symbiont.miner.trained import lesson_id, refuse_held_out_lessons, training_manifest
+from symbiont.miner.trained import lesson_id, training_manifest
 from symbiont.records.privacy import OwnHistoryConsent
 from symbiont.store.catalog import LessonCatalog
 from symbiont.store.contexts import LessonContexts
 from symbiont.store.curation import Curation
+from symbiont.store.group_verdicts import SCHEMA as VERDICTS_SCHEMA
+from symbiont.store.group_verdicts import GroupVerdicts
+from symbiont.store.held_back import SCHEMA as HELD_BACK_SCHEMA
+from symbiont.store.held_back import MiningLedger
+from symbiont.store.ignored import SCHEMA as IGNORED_SCHEMA
+from symbiont.store.ignored import IgnoredPatterns
 from symbiont.store.lesson_rows import lesson_from_json
+from symbiont.store.review_state import ReviewState
+from symbiont.store.session_summaries import SCHEMA as SUMMARIES_SCHEMA
+from symbiont.store.session_summaries import SessionSummaries
+from symbiont.store.stated_rules import SCHEMA as STATED_RULES_SCHEMA
+from symbiont.store.stated_rules import StatedRules
+from symbiont.store.struggle_rows import SCHEMA as STRUGGLE_SCHEMA
+from symbiont.store.struggle_rows import add_missing_started
+from symbiont.store.triage import SCHEMA as TRIAGE_SCHEMA
+from symbiont.store.triage import (
+    GroupTriage,
+    add_missing_lesson_id,
+    add_missing_name,
+    add_missing_until,
+)
 
 log = logging.getLogger("symbiont.store")
 
@@ -33,9 +54,9 @@ CREATE TABLE IF NOT EXISTS sources (
 );
 CREATE TABLE IF NOT EXISTS lessons (
     project TEXT NOT NULL, session_id TEXT NOT NULL, step INTEGER NOT NULL,
-    spark_safe INTEGER NOT NULL, body TEXT NOT NULL
+    remote_safe INTEGER NOT NULL, body TEXT NOT NULL
 );
-CREATE INDEX IF NOT EXISTS lessons_by_project ON lessons (project, spark_safe);
+CREATE INDEX IF NOT EXISTS lessons_by_project ON lessons (project, remote_safe);
 -- Ids (no text) of lessons a model was trained on, with the export that carried them.
 -- The developer's own words about a lesson (store.contexts); not record text.
 CREATE TABLE IF NOT EXISTS contexts (
@@ -55,7 +76,8 @@ CREATE TABLE IF NOT EXISTS authored (
 );
 CREATE TABLE IF NOT EXISTS reviews (
     lesson_id TEXT PRIMARY KEY, project TEXT NOT NULL, verdict TEXT NOT NULL,
-    rule TEXT NOT NULL, title TEXT NOT NULL, merge_with TEXT, applies TEXT NOT NULL
+    rule TEXT NOT NULL, title TEXT NOT NULL, merge_with TEXT, applies TEXT NOT NULL,
+    summary TEXT NOT NULL DEFAULT ''
 );
 CREATE TABLE IF NOT EXISTS decided (
     project TEXT NOT NULL, candidate_id TEXT NOT NULL, PRIMARY KEY (project, candidate_id)
@@ -84,14 +106,47 @@ def _add_missing_authored_columns(db: sqlite3.Connection) -> None:
                 db.execute(f"ALTER TABLE authored ADD COLUMN {name} TEXT NOT NULL DEFAULT ''")
 
 
-class SparkPrivacyViolationError(PermissionError):
-    """A read would hand a lesson that is not Spark-safe to a Spark-bound prompt."""
+def _rename_spark_safe_column(db: sqlite3.Connection) -> None:
+    """Stores written before the privacy vocabulary went provider-neutral keep `spark_safe`.
+
+    Runs before the schema script so the existing table and its index are renamed in place and
+    no flag is lost; the lessons table may not exist yet in a fresh store.
+    """
+    if not _needs_flag_rename(db):
+        return
+    db.execute("BEGIN IMMEDIATE")  # a second process opening the same old store waits here
+    try:
+        if _needs_flag_rename(db):  # re-checked inside the lock: the other process may have won
+            db.execute("ALTER TABLE lessons RENAME COLUMN spark_safe TO remote_safe")
+            log.info("store: renamed lessons.spark_safe to remote_safe")
+        db.commit()
+    except BaseException:
+        db.rollback()
+        raise
+
+
+def _needs_flag_rename(db: sqlite3.Connection) -> bool:
+    """True for a lessons table that still carries the pre-rename column."""
+    columns = {row[1] for row in db.execute("PRAGMA table_info(lessons)")}
+    return "spark_safe" in columns and "remote_safe" not in columns
+
+
+def _add_missing_review_summary(db: sqlite3.Connection) -> None:
+    """Add `reviews.summary` to stores from before the session's model could write one."""
+    columns = {row[1] for row in db.execute("PRAGMA table_info(reviews)")}
+    if "summary" not in columns:
+        with db:
+            db.execute("ALTER TABLE reviews ADD COLUMN summary TEXT NOT NULL DEFAULT ''")
+
+
+class RemotePrivacyViolationError(PermissionError):
+    """A read would hand a lesson that is not remote-safe to a remote-bound prompt."""
 
     def __init__(self, project: str, what: str):
         """Name the project and what is private."""
         super().__init__(
-            f"{what} in project {project!r} is not Spark-safe; "
-            "it must not reach a Spark-bound prompt"
+            f"{what} in project {project!r} is not remote-safe; "
+            "it must not reach a remote-bound prompt"
         )
         self.project = project
 
@@ -128,8 +183,21 @@ class Store:
         """Open (creating if needed) the store at `path`."""
         # The threaded service shares one store; it serializes every call under its own lock.
         db = sqlite3.connect(path, check_same_thread=False)
+        _rename_spark_safe_column(db)
         db.executescript(_SCHEMA)
+        db.executescript(HELD_BACK_SCHEMA)
+        db.executescript(STRUGGLE_SCHEMA)
+        db.executescript(IGNORED_SCHEMA)
+        db.executescript(TRIAGE_SCHEMA)
+        add_missing_name(db)
+        add_missing_until(db)
+        add_missing_lesson_id(db)
+        db.executescript(SUMMARIES_SCHEMA)
+        db.executescript(VERDICTS_SCHEMA)
+        db.executescript(STATED_RULES_SCHEMA)
         _add_missing_authored_columns(db)
+        _add_missing_review_summary(db)
+        add_missing_started(db)
         _warn_about_legacy_history(db, path)
         return cls(db)
 
@@ -140,40 +208,18 @@ class Store:
         ).fetchall()
         return [Source(project, reader, path) for reader, path in rows]
 
-    def save_mining(
-        self,
-        project: str,
-        new_sources: Iterable[Source],
-        lessons: Sequence[Lesson],
-        *,
-        held_out_tasks: frozenset[str],
-    ) -> None:
-        """Register `new_sources` and replace `project`'s lessons, in one transaction.
-
-        Raises HoldOutViolationError, writing nothing, when a lesson quotes a held-out task.
-        """
-        refuse_held_out_lessons(lessons, held_out_tasks)
-        with self._db:
-            self._db.executemany(
-                "INSERT OR IGNORE INTO sources VALUES (?, ?, ?)",
-                [(s.project, s.reader, s.path) for s in new_sources],
-            )
-            self._db.execute("DELETE FROM lessons WHERE project=?", (project,))
-            self._db.executemany(
-                "INSERT INTO lessons VALUES (?, ?, ?, ?, ?)",
-                [_lesson_row(project, lesson) for lesson in lessons],
-            )
-
     def lessons(self, project: str) -> list[Lesson]:
-        """The stored lessons of `project`, in the order they were mined."""
+        """The stored lessons of `project`, in the order they were mined, minus ignored patterns.
+
+        This is the one read every note, review and dashboard goes through, so an ignored
+        signature is left out everywhere at once; `ignored` lists what was left out.
+        """
         rows = self._db.execute(
             "SELECT body FROM lessons WHERE project=? ORDER BY rowid", (project,)
         ).fetchall()
-        return [lesson_from_json(body) for (body,) in rows]
-
-    def pain_points(self, project: str) -> list[PainPoint]:
-        """The pain points behind `project`'s lessons, in the order they were mined."""
-        return [lesson.pain_point for lesson in self.lessons(project)]
+        ignored = self.ignored.signatures(project)
+        lessons = [lesson_from_json(body) for (body,) in rows]
+        return [item for item in lessons if item.pain_point.signature not in ignored]
 
     def forget_trained(
         self, project: str, manifest_path: Path, *, exported: Sequence[Lesson]
@@ -206,12 +252,25 @@ class Store:
         rows = self._db.execute("SELECT lesson_id FROM trained WHERE project=?", (project,))
         return frozenset(row[0] for row in rows)
 
-    def has_private_lessons(self, project: str) -> bool:
-        """True when any lesson of `project` came from a record that is not Spark-safe."""
-        row = self._db.execute(
-            "SELECT 1 FROM lessons WHERE project=? AND spark_safe=0 LIMIT 1", (project,)
-        ).fetchone()
-        return row is not None
+    @property
+    def mined(self) -> MiningLedger:
+        """Saving a mining run, and reading what it held back, in the same database."""
+        return MiningLedger(self._db)
+
+    @property
+    def ignored(self) -> IgnoredPatterns:
+        """Patterns the developer set aside, in the same database."""
+        return IgnoredPatterns(self._db)
+
+    @property
+    def review(self) -> ReviewState:
+        """The developer's triage of failure groups and their session model's summaries."""
+        return ReviewState(
+            GroupTriage(self._db),
+            SessionSummaries(self._db),
+            GroupVerdicts(self._db),
+            StatedRules(self._db),
+        )
 
     @property
     def contexts(self) -> LessonContexts:
@@ -228,16 +287,16 @@ class Store:
         """Questions across projects: which projects exist, which project owns a lesson id."""
         return LessonCatalog(self._db)
 
-    def spark_view(self, consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD) -> "SparkView":
-        """A read-only view that raises rather than return anything Spark may not see.
+    def remote_view(self, consent: OwnHistoryConsent = OwnHistoryConsent.WITHHELD) -> "RemoteView":
+        """A read-only view that raises rather than return anything a remote model may not see.
 
         `consent` is the user's own-history setting (`store.consent`); withheld unless given.
         """
-        return SparkView(self, consent)
+        return RemoteView(self, consent)
 
 
-class SparkView:
-    """Read-only; every read raises rather than return a lesson Spark may not see."""
+class RemoteView:
+    """Read-only; every read raises rather than return a lesson a remote model may not see."""
 
     def __init__(self, store: Store, consent: OwnHistoryConsent):
         """Wrap the store with the user's consent setting."""
@@ -245,18 +304,18 @@ class SparkView:
         self._consent = consent
 
     def lessons(self, project: str) -> list[Lesson]:
-        """Scrubbed lessons of `project`, or SparkPrivacyViolationError if any is not allowed.
+        """Scrubbed lessons of `project`, or RemotePrivacyViolationError if any is not allowed.
 
         Without consent any private lesson raises; with it, only third-party ones do.
         Credentials are scrubbed from every lesson returned.
         """
         lessons = self._store.lessons(project)
-        if any(not spark_allowed(lesson, self._consent) for lesson in lessons):
-            raise SparkPrivacyViolationError(project, "a lesson")
+        if any(not remote_allowed(lesson, self._consent) for lesson in lessons):
+            raise RemotePrivacyViolationError(project, "a lesson")
         return [scrubbed(lesson) for lesson in lessons]
 
     def pain_points(self, project: str) -> list[PainPoint]:
-        """Pain points of `project`, or SparkPrivacyViolationError if any lesson is private."""
+        """Pain points of `project`, or RemotePrivacyViolationError if any lesson is private."""
         return [lesson.pain_point for lesson in self.lessons(project)]
 
 
@@ -273,17 +332,3 @@ def _warn_about_legacy_history(db: sqlite3.Connection, path: Path) -> None:
             shlex.quote(str(path)),
             shlex.quote(" ".join(f"DROP TABLE {name};" for name in legacy)),
         )
-
-
-# --- serialization -------------------------------------------------------------
-
-
-def _lesson_row(project: str, lesson: Lesson) -> tuple[str, str, int, bool, str]:
-    """The lessons-table row for a lesson."""
-    pain = lesson.pain_point
-    return (project, pain.session_id, pain.step, lesson.spark_safe, _lesson_json(lesson))
-
-
-def _lesson_json(lesson: Lesson) -> str:
-    """Serialize a lesson for the lessons table."""
-    return json.dumps(asdict(lesson))

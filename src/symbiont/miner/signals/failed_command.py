@@ -2,18 +2,20 @@
 
 Exit 1 from grep, diff, cmp, test and `[` is an answer ("no match"), not a failure; exit 2 and
 above still is. When the text cannot tell which program set the status, exit 1 counts.
-A planned failure (an assertion in a test edited this session) is not a mistake.
+A planned failure (an assertion in a test edited this session) is not a mistake, and neither is
+an interrupt: the user stopped the command, it did not break.
 """
 
-import re
 from collections.abc import Sequence
 
-from symbiont.miner.commands import normalise_command, status_program
+from symbiont.miner.commands import inline_script_program, normalise_command, status_program
+from symbiont.miner.failure_keys import is_interrupt, what_broke
+from symbiont.miner.failure_program import failing_program
 from symbiont.miner.painpoint import PainPoint, Signal, Signature
 from symbiont.miner.planned_failure import FailureKind, failure_kind
 from symbiont.records.schema import Kind, Record
+from symbiont.records.session_tags import REFUSED_TAG
 
-_ERROR_CLASS = re.compile(r"\b([A-Z]\w*Error)\b")
 EXIT_1_IS_AN_ANSWER = frozenset(
     {"grep", "egrep", "fgrep", "zgrep", "rg", "ag", "ack", "git grep", "diff", "cmp", "test", "["}
 )
@@ -33,7 +35,9 @@ def find_failed_commands(session: Sequence[Record]) -> list[PainPoint]:
 
 def _failed(record: Record) -> bool:
     # exit_code None means the harness never reported one: unknown, so not counted.
-    if record.kind != Kind.COMMAND or record.exit_code in (None, 0):
+    if record.kind != Kind.COMMAND or record.exit_code in (None, 0) or is_interrupt(record):
+        return False
+    if REFUSED_TAG in record.tags:  # the tool rejected the input; the command never ran
         return False
     return not (record.exit_code == 1 and _answered_no(record.command or ""))
 
@@ -43,16 +47,17 @@ def _answered_no(command: str) -> bool:
 
 
 def _pain_point(record: Record) -> PainPoint:
-    key = (*normalise_command(record.command or ""), _what_broke(record))
+    command = record.command or ""
+    inline = inline_script_program(command)
+    if inline:
+        program, target = "python", "<inline>"
+    else:
+        target = normalise_command(command)[1]
+        program = failing_program(command)
+    key = (program, target, what_broke(record, program, inline=inline is not None))
     return PainPoint(
         signature=Signature(Signal.FAILED_COMMAND, key),
         session_id=record.session_id,
         step=record.step,
         record_refs=((record.session_id, record.step),),
     )
-
-
-def _what_broke(record: Record) -> str:
-    """Name the last error class in the output (where the run ended), else the exit code."""
-    errors = _ERROR_CLASS.findall(record.raw)
-    return errors[-1] if errors else f"exit {record.exit_code}"

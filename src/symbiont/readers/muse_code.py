@@ -19,7 +19,7 @@ from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
 
 HARNESS = "muse-code"
-PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", spark_safe=False)
+PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", remote_safe=False)
 SESSIONS_PATTERN = "muse/sessions/*/*/*/*/session.jsonl"
 _SHELL_TOOLS = frozenset({"bash", "exec_command", "shell", "powershell"})  # Windows: powershell
 _EDIT_TOOLS = frozenset({"edit_file", "write_file", "apply_patch"})

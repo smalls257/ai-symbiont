@@ -14,6 +14,7 @@ import pytest
 from claude_logs import claude_log
 from live_service import serving
 from record_builders import edit, run, session
+from store_builders import save_lessons
 from symbiont import cli
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -23,6 +24,7 @@ from symbiont.service.events import Call, EventLog
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.settings import write_mining_setting
 
 pytestmark = pytest.mark.periphery
 
@@ -34,7 +36,11 @@ def command(*words, data_dir):
 
 
 def mine(repo, data_dir):
-    """`symbiont repo mine` against a real service of its own; the browser is never opened."""
+    """`symbiont repo mine` against a real service of its own; the browser is never opened.
+
+    The fixture is one session, so a trap is taught after one sighting (min_sessions 1).
+    """
+    write_mining_setting(data_dir, "min_sessions", 1)
     with serving(data_dir) as (_, port):
         return cli.main(
             ["repo", "mine", "--project", "demo", "--data-dir", str(data_dir)]
@@ -50,10 +56,10 @@ def mined_store(data_dir):
         run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     records = [replace(r, project="demo") for r in steps]
-    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
     data_dir.mkdir(parents=True, exist_ok=True)
     store = Store.open(data_dir / "store.db")
-    store.save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], lessons, held_out_tasks=frozenset())
     return store, lessons
 
 
@@ -103,7 +109,7 @@ def test_mining_reads_the_claude_code_sessions_of_the_repository(tmp_path, monke
     assert mine(repo, tmp_path / "data") == 0
 
     assert (
-        "learned 1 lessons from 1 claude-code sessions, 0 muse-code sessions"
+        "learned 1 lesson from 1 Claude Code session, 0 Muse Code sessions"
         in capsys.readouterr().out
     )
     assert len(Store.open(tmp_path / "data" / "store.db").lessons("demo")) == 1
@@ -250,7 +256,7 @@ def test_mining_reads_muse_code_sessions_of_the_repository_too(tmp_path, monkeyp
     assert mine(repo, tmp_path / "data") == 0
 
     assert (
-        "learned 1 lessons from 0 claude-code sessions, 1 muse-code sessions"
+        "learned 1 lesson from 0 Claude Code sessions, 1 Muse Code session"
         in capsys.readouterr().out
     )
 
@@ -309,11 +315,6 @@ def test_context_add_last_in_a_repository_with_no_lessons_fails_loudly(tmp_path,
     assert "has no stored lessons" in capsys.readouterr().err
 
 
-def test_dashboard_prints_the_local_address_for_the_repository(tmp_path, capsys):
-    assert command("dashboard", "--port", "7377", data_dir=tmp_path) == 0
-    assert capsys.readouterr().out.strip() == "http://127.0.0.1:7377/dashboard?project=demo"
-
-
 def test_settings_show_and_set_the_correction_switches(tmp_path, capsys):
     assert command("settings", "show", data_dir=tmp_path) == 0
     assert "muse_code=True" in capsys.readouterr().out
@@ -322,6 +323,16 @@ def test_settings_show_and_set_the_correction_switches(tmp_path, capsys):
     assert "muse_code=False" in capsys.readouterr().out
     assert command("settings", "set", "nope", "true", data_dir=tmp_path) == 1
     assert command("settings", "set", "muse_code", data_dir=tmp_path) == 1
+
+
+def test_settings_mining_sets_min_sessions_and_refuses_anything_below_one(tmp_path, capsys):
+    assert command("settings", "mining", "min_sessions", "3", data_dir=tmp_path) == 0
+    assert "min_sessions=3" in capsys.readouterr().out
+    for bad in ("0", "many"):
+        assert command("settings", "mining", "min_sessions", bad, data_dir=tmp_path) == 1
+        assert "min_sessions" in capsys.readouterr().err
+    assert command("settings", "show", data_dir=tmp_path) == 0
+    assert "min_sessions=3" in capsys.readouterr().out
 
 
 def test_status_still_reads_a_service_that_answers_nightly_with_yes_or_no():

@@ -9,6 +9,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from symbiont.readers.harnesses import StopCadence, UnknownHarnessError, harness
 from symbiont.service.events import Call, EventLog
 from symbiont.service.repo_gate import RepoGate
 from symbiont.service.request_shapes import BadRequestError, require_keys
@@ -30,6 +31,10 @@ REFLECTION_QUESTION = (
     f'per thing: {{text_in_plain_words, kind: "rule" (what to do) or "mistake" (a trap), files, '
     f'source_label: "{REFLECTION_LABEL}", applies_to: {{terms, areas}}}}. Then end your reply '
     "with one short line saying what you saved."
+)
+# Claude Code fires Stop after every turn, so the first milestone is mid-session, not the end.
+MID_SESSION_QUESTION = REFLECTION_QUESTION.replace(
+    "end-of-session reflection", "reflection on the work so far (the session is not over)"
 )
 
 
@@ -67,7 +72,7 @@ class ReflectionDesk:
     def ask(self, request: dict[str, Any]) -> dict[str, Any]:
         """`{"ask": question}`, or `{"ask": "", "why_not": reason}`; marks the session as asked."""
         project, session_id = _identified(request)
-        reply = self._decide(project, session_id)
+        reply = self._decide(project, session_id, _cadence(request))
         saved = self._saved_so_far(project)
         if reply["ask"]:
             self._count_at_ask[(project, session_id)] = saved
@@ -89,7 +94,7 @@ class ReflectionDesk:
         )
         return {"saved": saved}
 
-    def _decide(self, project: str, session_id: str) -> dict[str, Any]:
+    def _decide(self, project: str, session_id: str, cadence: StopCadence) -> dict[str, Any]:
         """The reply for one Stop: the question, or the reason there is none."""
         registry = self._registry
         if registry is None:
@@ -101,7 +106,11 @@ class ReflectionDesk:
         if not self._gate.reached_milestone(session_id):
             return _declined("no edit followed by a passing check yet, so no milestone")
         self._ledger.mark_asked(project, session_id)
-        return {"ask": REFLECTION_QUESTION}
+        return {
+            "ask": MID_SESSION_QUESTION
+            if cadence is StopCadence.EVERY_TURN
+            else REFLECTION_QUESTION
+        }
 
 
 def _identified(request: dict[str, Any]) -> tuple[str, str]:
@@ -111,6 +120,14 @@ def _identified(request: dict[str, Any]) -> tuple[str, str]:
     if not (isinstance(project, str) and isinstance(session_id, str) and session_id):
         raise BadRequestError("project and session_id must be text")
     return project, session_id
+
+
+def _cadence(request: dict[str, Any]) -> StopCadence:
+    """How often the requesting harness fires Stop; an unknown harness is a bad request."""
+    try:
+        return harness(str(request["harness"])).stop_cadence
+    except UnknownHarnessError as unknown:
+        raise BadRequestError(str(unknown)) from unknown
 
 
 def _declined(reason: str) -> dict[str, Any]:

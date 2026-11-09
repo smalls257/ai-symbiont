@@ -10,9 +10,9 @@ from typing import Any
 
 from symbiont.core.warner import WarnerWeightsError
 from symbiont.delivery.hook_main import add_hook_arguments, forward_hook, read_hook_input
-from symbiont.delivery.hooks import NoteStyle, offline_note
-from symbiont.delivery.install.claude_code import claude_code_install
-from symbiont.delivery.install.muse_code import muse_code_install
+from symbiont.delivery.hook_profiles import PROFILES
+from symbiont.delivery.hook_vocab import NoteStyle
+from symbiont.delivery.hooks import offline_note
 from symbiont.delivery.install.transaction import (
     HarnessInstall,
     InstallError,
@@ -30,6 +30,7 @@ from symbiont.delivery.recall import (
     call_service,
     recall_answer,
 )
+from symbiont.delivery.setup_command import add_setup_arguments, run_setup
 from symbiont.delivery.stdio import use_utf8_lf_stdio
 from symbiont.readers import READERS
 from symbiont.records.privacy import OwnHistoryConsent
@@ -55,11 +56,12 @@ from symbiont.service.wiring import (
     open_service,
 )
 from symbiont.store.consent import SETTING, ConsentFileError, read_consent, record_consent
+from symbiont.store.held_back import held_back_sentence
 from symbiont.store.local import Source, Store
-from symbiont.store.mining import MiningRules, coverage_lines, remine
+from symbiont.store.mining import MiningRules, coverage_lines, remine, screen_rules_from
 from symbiont.store.repos import RepoRegistry
 
-INSTALLERS = {"muse_code": muse_code_install, "claude_code": claude_code_install}
+INSTALLERS = {harness_id: entry.install for harness_id, entry in PROFILES.items()}
 HARNESSES = sorted(INSTALLERS)
 
 
@@ -83,6 +85,8 @@ def main(
         return _hook(args)
     if args.command in ("install", "uninstall"):
         return _installation(args)
+    if args.command == "setup":
+        return run_setup(args)
     if args.command == "mine":
         return _mine(args)
     if args.command == "consent":
@@ -122,17 +126,25 @@ def _parser() -> argparse.ArgumentParser:
     mcp.add_argument("--project", default=Path.cwd().name, help="defaults to this directory's name")
     mcp.add_argument("--port", type=int, default=SERVICE_PORT)
     _add_hook_commands(commands)
+    add_setup_arguments(
+        commands.add_parser("setup", help="register the plugin in the coding harnesses found")
+    )
     add_repo_commands(commands, Defaults(DEFAULT_DATA_DIR, SERVICE_PORT))
     _add_mine_command(commands)
     add_nightly_command(commands, DEFAULT_DATA_DIR)
+    _add_consent_command(commands)
+    return parser
+
+
+def _add_consent_command(commands: Any) -> None:
+    """Register `consent`: give, withdraw or show the own-history consent."""
     consent = commands.add_parser(
         "consent",
-        help="whether lessons from your OWN sessions may reach Spark (default: withheld); "
+        help="whether lessons from your OWN sessions may reach a remote model (default: withheld); "
         "third-party private data never may",
     )
     consent.add_argument("choice", choices=["give", "withdraw", "show"])
     consent.add_argument("--data-dir", type=Path, default=DEFAULT_DATA_DIR)
-    return parser
 
 
 def _add_mine_command(commands: Any) -> None:
@@ -163,13 +175,15 @@ def _mine(args: argparse.Namespace) -> int:
         sources.append(Source(args.project, reader, path))
     args.data_dir.mkdir(parents=True, exist_ok=True)
     store = Store.open(args.data_dir / "store.db")
-    rules = MiningRules(READERS, frozenset(args.held_out))
+    rules = MiningRules(READERS, frozenset(args.held_out), screen=screen_rules_from(args.data_dir))
     try:
         lessons = remine(store, args.project, rules, adding=sources)
     except (OSError, ValueError) as failed:  # unreadable log, unknown reader, held-out task
         print(f"symbiont mine: {failed}", file=sys.stderr)
         return 1
-    print(f"{len(lessons)} lessons from {len(store.sources(args.project))} logs")
+    held = held_back_sentence(store.mined.counts(args.project))
+    logs = len(store.sources(args.project))
+    print(f"{len(lessons)} lessons from {logs} logs" + (f"; {held}" if held else ""))
     print("\n".join(coverage_lines(lessons)))
     return 0
 

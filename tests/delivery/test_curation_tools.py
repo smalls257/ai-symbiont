@@ -93,3 +93,59 @@ def test_the_harness_comes_from_muse_s_environment_else_from_the_model():
     assert body["running_in"] == "claude_code"
     with pytest.raises(ValueError, match="running_in"):
         route_and_body("symbiont_correction_candidates", {}, {})
+
+
+@pytest.mark.parametrize("marker", ["CLAUDECODE", "CLAUDE_PLUGIN_ROOT"])
+def test_the_harness_is_claude_code_when_its_environment_says_so(marker):
+    _, body = route_and_body("symbiont_correction_candidates", {}, {marker: "1"})
+    assert body["running_in"] == "claude_code"
+
+
+def test_muse_wins_when_both_hosts_markers_are_present():
+    environ = {"MUSE_PLUGIN_ROOT": "/x", "CLAUDE_PLUGIN_ROOT": "/x"}
+    _, body = route_and_body("symbiont_correction_candidates", {}, environ)
+    assert body["running_in"] == "muse_code"
+
+
+def test_the_four_summary_and_topic_tools_are_listed_and_each_is_one_route():
+    names = {
+        "symbiont_session_candidates": "summaries/candidates",
+        "symbiont_save_session_summaries": "summaries/save",
+        "symbiont_topic_candidates": "topics/candidates",
+        "symbiont_save_topics": "topics/save",
+    }
+    for name, route in names.items():
+        assert route_and_body(name, {"running_in": "claude_code"}, {})[0] == route
+    reads_history = [n for n in names if n.endswith("candidates")]
+    for name in reads_history:
+        assert route_and_body(name, {}, {"CLAUDECODE": "1"})[1]["running_in"] == "claude_code"
+
+
+def test_a_bad_summary_through_the_tool_is_an_error_that_says_what_to_resend(service):
+    port, _ = service
+    bad = {"session_id": "x", "goal": "g", "outcome": "great", "noise": False}
+
+    (reply,) = converse([call("symbiont_save_session_summaries", {"summaries": [bad]})], port)
+
+    assert reply["result"]["isError"] is True
+    assert "outcome must be one of" in reply["result"]["content"][0]["text"]
+
+
+def test_the_group_verdict_tools_are_listed_and_each_is_one_route():
+    names = {
+        "symbiont_group_candidates": "verdicts/candidates",
+        "symbiont_save_group_verdicts": "verdicts/save",
+    }
+    for name, route in names.items():
+        assert (
+            route_and_body(name, {"project": "demo", "running_in": "claude_code"}, {})[0] == route
+        )
+    body = route_and_body("symbiont_group_candidates", {}, {"CLAUDECODE": "1"})[1]
+    assert body["running_in"] == "claude_code"
+
+
+def test_the_rule_tools_are_listed_and_each_is_one_route():
+    names = {"symbiont_rule_candidates": "rules/candidates", "symbiont_save_rules": "rules/save"}
+    for name, route in names.items():
+        assert route_and_body(name, {"running_in": "claude_code"}, {})[0] == route
+        assert route_and_body(name, {}, {"CLAUDECODE": "1"})[1]["running_in"] == "claude_code"

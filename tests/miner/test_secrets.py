@@ -27,3 +27,21 @@ def test_credentials_by_name_bearer_and_url_passwords_are_scrubbed():
 def test_ordinary_text_is_untouched():
     text = "pytest tests/test_tokens.py failed with ImportError; token count 12"
     assert scrub(text) == text
+
+
+def test_the_user_name_of_a_home_directory_is_scrubbed_in_every_spelling():
+    from symbiont.miner.credential_patterns import scrub as scrub_text
+
+    for text, kept in (
+        ("cat /Users/you/Code/app/notes.md", "cat ~/Code/app/notes.md"),
+        ("ls /home/somebody", "ls ~"),
+        (
+            "/tmp/claude-1000/-home-somebody-Projects-app/abc/tasks/b1.output",
+            "/tmp/claude-1000/-~-Projects-app/abc/tasks/b1.output",
+        ),
+        ("~/.claude/projects/-Users-somebody-Code-app/x.md", "~/.claude/projects/-~-Code-app/x.md"),
+    ):
+        assert scrub_text(text) == kept
+    assert scrub_text("see /usr/home/share and src/home/page.tsx") == (
+        "see /usr/home/share and src/home/page.tsx"
+    )

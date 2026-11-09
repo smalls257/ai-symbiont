@@ -76,7 +76,7 @@ def test_a_still_failing_or_piped_failing_run_does_not_match():
 
 def lesson_steps(records):
     pain = find_failed_commands(records)
-    (lesson,) = lessons_from(pain, records)
+    (lesson,) = lessons_from(pain, records, frozenset())
     return lesson
 
 

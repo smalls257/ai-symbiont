@@ -77,19 +77,19 @@ def test_read_only_command_has_no_files(records):
 def test_open_swe_traces_provenance(records):
     (provenance,) = {r.provenance for r in records}
     assert provenance.dataset == "open-swe-traces"
-    assert provenance.spark_safe is True
+    assert provenance.remote_safe is True
 
 
 def test_own_run_provenance():
     out = list(read_local_run(RUNS, PROJECT))
     (provenance,) = {r.provenance for r in out}
     assert provenance.dataset == "local-run"
-    assert provenance.spark_safe is True
+    assert provenance.remote_safe is True
 
 
-def test_default_read_is_never_spark_safe():
+def test_default_read_is_never_remote_safe():
     out = list(read(RUNS, PROJECT))
-    assert {r.provenance.spark_safe for r in out} == {False}
+    assert {r.provenance.remote_safe for r in out} == {False}
 
 
 def test_local_run_refuses_a_well_formed_id_from_another_repo(tmp_path):
