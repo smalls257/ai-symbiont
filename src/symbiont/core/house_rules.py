@@ -11,8 +11,8 @@ from symbiont.core.rule_relevance import (
     WORD_WEIGHT,
     Rule,
 )
-from symbiont.core.rule_terms import identifiers_in, plain_terms
 from symbiont.miner.lesson_context import LessonKind, Priority
+from symbiont.miner.rule_terms import identifiers_in, plain_terms
 
 # Three short house rules fit one note under MAX_NOTE_CHARS and still read as a list a person
 # keeps in mind; more turns the first prompt into a wall of text the agent skims.

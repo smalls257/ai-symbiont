@@ -1,13 +1,17 @@
-"""A redirect never carries the bearer key to another host: post_json refuses to follow one."""
+"""A redirect is never followed, so the bearer key the remote door sends cannot reach another host.
+
+The remote door and post_json share `open_without_redirects`; it is tested on loopback here.
+"""
 
 import http.server
 import threading
 import urllib.error
+import urllib.request
 
 import pytest
 
 from symbiont.egress import Destination, Endpoint, post_json
-from symbiont.egress.credentials import ApiKey
+from symbiont.egress.client import open_without_redirects
 
 SECRET = "test-token-value"
 
@@ -54,12 +58,13 @@ def test_a_redirect_is_an_error_and_the_key_never_reaches_the_target(status):
             return
 
     origin = serve(Redirector)
-    destination = Destination(
-        Endpoint.LOCAL_GLIMMER, f"http://127.0.0.1:{origin.server_port}/v1", ApiKey(SECRET)
-    )
+    url = f"http://127.0.0.1:{origin.server_port}/v1"
+    keyed = urllib.request.Request(url, data=b"{}", headers={"Authorization": f"Bearer {SECRET}"})
     with pytest.raises(urllib.error.HTTPError) as caught:
-        post_json(destination, {"p": 1})
+        open_without_redirects(keyed, 5.0)
     assert caught.value.code == status
+    with pytest.raises(urllib.error.HTTPError):
+        post_json(Destination(Endpoint.LOCAL_SERVICE, url), {"p": 1})
     assert Recorder.seen == []
     origin.shutdown()
     target.shutdown()

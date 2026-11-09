@@ -16,11 +16,14 @@ from symbiont.core.notes import happened
 from symbiont.miner.lesson_context import AppliesTo, LessonContext, Priority
 from symbiont.miner.painpoint import Signal, Signature
 from symbiont.miner.trained import lesson_id
+from symbiont.readers.harnesses import HARNESSES, labels_and
+from symbiont.records.dashboard_views import DashboardView
 from symbiont.service.asking import AskService
+from symbiont.service.dashboard_command import show_dashboard
 from symbiont.service.events import checker_sentences, last_note_event
 from symbiont.service.lesson_list import lesson_lines
 from symbiont.service.lesson_lookup import project_of_lesson
-from symbiont.service.mine_command import MineClient, dashboard_url, mine_past_sessions
+from symbiont.service.mine_command import MineClient, mine_past_sessions
 from symbiont.service.pr_learning import PR_INSTRUCTIONS
 from symbiont.service.status_report import status_report
 from symbiont.service.supersessions import superseded_sentences
@@ -29,8 +32,10 @@ from symbiont.store.repos import RepoRegistry, RepoStance
 from symbiont.store.settings import (
     read_correction_settings,
     read_dashboard_settings,
+    read_mining_settings,
     write_correction_setting,
     write_dashboard_setting,
+    write_mining_setting,
 )
 
 
@@ -72,6 +77,32 @@ def _add_repo_parser(commands: Any, defaults: Defaults) -> None:
     )
 
 
+def _add_settings_command(commands: Any) -> None:
+    """Register `settings show|set`, naming the harness switches from the registry."""
+    setting = commands.add_parser("settings", help="show or switch correction-finding settings")
+    setting.add_argument("action", choices=["show", "set", "mining"])
+    setting.add_argument(
+        "name",
+        nargs="?",
+        help=f"{', '.join(entry.id for entry in HARNESSES)}, cross_harness, {OPEN_DASHBOARD}, "
+        "or min_sessions after `mining`",
+    )
+    setting.add_argument("value", nargs="?", help="true or false; a whole number for min_sessions")
+
+
+def _add_dashboard_command(commands: Any, defaults: Defaults) -> None:
+    dashboard = commands.add_parser("dashboard", help="print this repository's dashboard address")
+    dashboard.add_argument(
+        "view",
+        nargs="?",
+        default=DashboardView.STRUGGLE.value,
+        choices=[view.value for view in DashboardView],
+        help="which page to open; overview when left out",
+    )
+    dashboard.add_argument("--open", action="store_true", help="also open it in the browser")
+    dashboard.add_argument("--port", type=int, default=defaults.port)
+
+
 def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     """Register `repo`, `status`, `why`, `mute`, `forget` and `lessons`."""
     _add_repo_parser(commands, defaults)
@@ -102,14 +133,8 @@ def add_repo_commands(commands: Any, defaults: Defaults) -> None:
     words.add_argument("--priority", choices=[p.value for p in Priority], default="normal")
     words.add_argument("--terms", default="", help="comma-separated words this applies to")
     words.add_argument("--areas", default="", help="comma-separated path prefixes it applies to")
-    dashboard = commands.add_parser("dashboard", help="print this repository's dashboard address")
-    dashboard.add_argument("--port", type=int, default=defaults.port)
-    setting = commands.add_parser("settings", help="show or switch correction-finding settings")
-    setting.add_argument("action", choices=["show", "set"])
-    setting.add_argument(
-        "name", nargs="?", help=f"claude_code, muse_code, cross_harness or {OPEN_DASHBOARD}"
-    )
-    setting.add_argument("value", nargs="?", choices=["true", "false"])
+    _add_dashboard_command(commands, defaults)
+    _add_settings_command(commands)
     for parser in (commands.choices[name] for name in COMMANDS):
         parser.add_argument("--project", default=Path.cwd().name, help="defaults to this directory")
         parser.add_argument("--data-dir", type=Path, default=defaults.data_dir)
@@ -123,6 +148,8 @@ def run_repo_command(args: argparse.Namespace, ask: AskService, client: MineClie
     try:
         if args.command == "status":
             return status_report(args, ask)
+        if args.command == "dashboard":
+            return show_dashboard(args, ask, client)
         if args.command == "repo" and args.action == "mine":
             return mine_past_sessions(args, RepoRegistry(args.data_dir), client)
         return _COMMANDS[args.command](args)
@@ -153,8 +180,8 @@ def _answer_message(project: str, stance: RepoStance) -> str:
         return f"{project}: symbiont stays off here; nothing from it is stored."
     return (
         f"{project}: symbiont is on. Everything stays on this computer. "
-        "Run `symbiont repo mine` to learn from this repository's past Claude Code "
-        "and Muse Code sessions. To find your past corrections, the model running your session "
+        f"Run `symbiont repo mine` to learn from this repository's past {labels_and()} "
+        "sessions. To find your past corrections, the model running your session "
         "reads short excerpts of past messages from the same tool's history."
     )
 
@@ -275,16 +302,12 @@ def _described(store: Store, ident: str) -> str:
     return "written lesson: " + (written[1].text[:60] if written else ident)
 
 
-def _dashboard(args: argparse.Namespace) -> int:
-    """Print the dashboard address for this repository."""
-    _say(dashboard_url(args.project, args.port))
-    return 0
-
-
 def _settings(args: argparse.Namespace) -> int:
     """Show, or switch, the correction-finding histories and whether mining opens the dashboard."""
+    if args.action == "mining":
+        _switch_mining(args)
     if args.action == "set":
-        if args.name is None or args.value is None:
+        if args.name is None or args.value not in ("true", "false"):
             raise ValueError("settings set needs a name and true or false")
         switched = args.value == "true"
         if args.name == OPEN_DASHBOARD:
@@ -292,12 +315,19 @@ def _settings(args: argparse.Namespace) -> int:
         else:
             write_correction_setting(args.data_dir, args.name, value=switched)
     current = read_correction_settings(args.data_dir)
-    _say(
-        f"corrections: claude_code={current.claude_code} muse_code={current.muse_code} "
-        f"cross_harness={current.cross_harness}"
-    )
+    shown = " ".join(f"{name}={on}" for name, on in current.as_saved().items())
+    _say(f"corrections: {shown}")
     _say(f"dashboard: open_dashboard_on_mine={read_dashboard_settings(args.data_dir).open_on_mine}")
+    _say(f"mining: min_sessions={read_mining_settings(args.data_dir).min_sessions}")
     return 0
+
+
+def _switch_mining(args: argparse.Namespace) -> None:
+    """`settings mining min_sessions N`: how many sessions a trap must appear in to be taught."""
+    if args.name is None or args.value is None:
+        raise ValueError("settings mining needs a name and a value, as in: mining min_sessions 2")
+    write_mining_setting(args.data_dir, args.name, args.value)
+    _say("mining settings take effect the next time you run `symbiont repo mine`")
 
 
 def _listed(commas: str) -> tuple[str, ...]:
@@ -362,6 +392,5 @@ _COMMANDS = {
     "lessons": _lessons,
     "learn-from-prs": _learn_from_prs,
     "context": _context,
-    "dashboard": _dashboard,
     "settings": _settings,
 }

@@ -34,7 +34,15 @@ RESEARCH_SYSTEM = (
 def product_lesson():
     signature = Signature(Signal.FAILED_COMMAND, ("pytest", "tests/test_units.py", "NameError"))
     pain = PainPoint(signature, "s", 1, (("s", 1),))
-    return Lesson(pain, f"$ {COMMAND}\n{ERROR}", (f"ran `{FIX}`",), None, True, (("s", 1),))
+    return Lesson(
+        pain,
+        f"$ {COMMAND}\n{ERROR}",
+        ("ran uv run",),
+        None,
+        True,
+        (("s", 1),),
+        fix_commands=(FIX,),
+    )
 
 
 def test_the_judge_input_is_byte_identical_to_the_research_builder():
@@ -47,7 +55,7 @@ def test_the_judge_input_is_byte_identical_to_the_research_builder():
 
 def test_a_lesson_the_judge_never_saw_the_shape_of_is_not_judgeable():
     lesson = product_lesson()
-    assert judgeable(Lesson(**{**lesson.__dict__, "resolution": ("edited `a.py`",)}), "p") is None
+    assert judgeable(Lesson(**{**lesson.__dict__, "fix_commands": ()}), "p") is None
     assert judgeable(Lesson(**{**lesson.__dict__, "quote": "no dollar line"}), "p") is None
 
 

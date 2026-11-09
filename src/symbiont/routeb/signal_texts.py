@@ -10,6 +10,7 @@ from collections.abc import Callable, Sequence
 
 from symbiont.miner.painpoint import PainPoint, Signal
 from symbiont.miner.resolutions import Resolution, is_action, reason_of, resolution_of
+from symbiont.miner.review_comments import flagged_comment_text
 from symbiont.records.schema import Kind, Record
 
 _OMITTED = "[...]\n"
@@ -70,7 +71,7 @@ def _recall_reworked_edit(pain: PainPoint, cited: list[Record], quote: Quote) ->
 
 def _recall_review_flag(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
     """Question and answer for a review flag."""
-    return f"What did the reviewer flag in {pain.signature.key[0]}?", quote(cited[0])
+    return f"What did the reviewer flag in {pain.signature.key[0]}?", _comment(pain, cited, quote)
 
 
 def _recall_correction(pain: PainPoint, cited: list[Record], quote: Quote) -> tuple[str, str]:
@@ -185,10 +186,17 @@ def _fix_review_flag(
     """The correction target for a review flag."""
     comment, answer = cited
     return (
-        f"A reviewer flagged this:\n{quote(comment)}\nWhat should the change be?",
+        f"A reviewer flagged this:\n{_comment(pain, cited, quote)}\nWhat should the change be?",
         _action_text(answer),
         [comment, answer],
     )
+
+
+def _comment(pain: PainPoint, cited: list[Record], quote: Quote) -> str:
+    """A review comment's own words; a fetch's output also holds other comments and logins."""
+    if cited[0].kind != Kind.COMMAND:
+        return quote(cited[0])
+    return flagged_comment_text(cited[0], pain.signature.key)
 
 
 def _no_fix_in_loop(

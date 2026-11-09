@@ -1,6 +1,6 @@
-"""Whose history a record is, and whether its owner consented to it reaching Spark.
+"""Whose history a record is, and whether its owner consented to it reaching a remote model.
 
-The owner may consent to their OWN sessions reaching Spark (owner decision 2026-10-28): an
+The owner may consent to their OWN sessions reaching a remote model (owner decision 2026-10-28): an
 explicit setting, default withheld, never covering someone else's private data. A dataset not
 named here as the user's own is third-party.
 """
@@ -14,7 +14,7 @@ OWN_HISTORY_DATASETS = frozenset({"private-sessions"})
 
 
 class OwnHistoryConsent(StrEnum):
-    """Whether the user lets lessons from their own sessions reach Spark."""
+    """Whether the user lets lessons from their own sessions reach a remote model."""
 
     WITHHELD = "withheld"
     GIVEN = "consent"

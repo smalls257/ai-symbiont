@@ -27,7 +27,9 @@ def test_a_marker_file_in_the_data_directory_switches_it_on(tmp_path):
 def test_a_hook_writes_what_arrived_before_it_says_what_it_did(tmp_path, monkeypatch):
     (tmp_path / hook_trace.TRACE_MARKER).write_text("")
     monkeypatch.setattr("sys.stdin", io.StringIO("not json"))
-    hook_main.main(["UserPromptSubmit", "--data-dir", str(tmp_path), "--port", "1"])
+    hook_main.main(
+        ["UserPromptSubmit", "--harness", "claude_code", "--data-dir", str(tmp_path), "--port", "1"]
+    )
     lines = [
         json.loads(x)
         for x in (tmp_path / hook_trace.TRACE_FILE).read_text(encoding="utf-8").splitlines()

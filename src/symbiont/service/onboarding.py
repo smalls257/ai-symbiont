@@ -9,6 +9,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 
 from symbiont.miner.lesson_context import AuthoredLesson, LessonContext
+from symbiont.readers.harnesses import labels_and
 from symbiont.service.nightly import NightlyJudges
 from symbiont.service.pr_learning import PR_QUESTION
 from symbiont.store.repos import Announced, RepoRegistry
@@ -20,7 +21,7 @@ ONBOARDING = (
     "history to warn you about mistakes you have made before, and everything stays on this "
     "computer. Until you answer, nothing from this repository is stored. "
     "To switch it on, say `/symbiont allow`; to also learn from this repository's past "
-    "Claude Code and Muse Code sessions, say `/symbiont mine` afterwards; it opens the "
+    f"{labels_and()} sessions, say `/symbiont mine` afterwards; it opens the "
     "dashboard so you can watch it learn. "
     "If you also want it to find your past corrections, the model running this session will "
     "read short excerpts of past messages from this same tool's history, and nothing leaves "

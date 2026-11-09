@@ -1,41 +1,17 @@
-"""Scrub credentials out of lesson text before any Spark-bound use.
+"""Scrub credentials out of lesson text before any remote-bound use.
 
-A lesson quotes real commands and output; a token pasted into a command must not reach a Spark-
-bound prompt or the weights of an adapter that answers Spark. The patterns mirror `.gitleaks.toml`
-plus common provider token shapes. Pure: text in, text out.
+A lesson quotes real commands and output; a token pasted into a command must not reach a
+remote-bound prompt or the weights of an adapter that answers a remote model. The patterns mirror
+`.gitleaks.toml` plus common provider token shapes. Pure: text in, text out.
 """
 
-import re
 from dataclasses import replace
 
+from symbiont.miner.credential_patterns import REDACTED, scrub
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import PainPoint, Signature
 
-REDACTED = "[secret]"
-_PATTERNS = tuple(
-    re.compile(pattern)
-    for pattern in (
-        r"-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?(?:-----END [A-Z ]*PRIVATE KEY-----|$)",
-        r"\bAKIA[0-9A-Z]{16}\b",  # AWS access key id
-        r"\bgh[pousr]_[A-Za-z0-9]{30,}\b",  # GitHub tokens
-        r"\bgithub_pat_[A-Za-z0-9_]{30,}\b",
-        r"\bhf_[A-Za-z0-9]{30,}\b",  # Hugging Face
-        r"\bsk-(?:ant-|proj-)?[A-Za-z0-9_-]{20,}\b",  # OpenAI / Anthropic style
-        r"\bxox[abprs]-[A-Za-z0-9-]{10,}\b",  # Slack
-        r"\bAIza[0-9A-Za-z_-]{35}\b",  # Google API key
-        r"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]{16,}",
-        r"(?i)(?<=://)[^/\s:@]+:[^/\s@]+(?=@)",  # user:password in a URL
-        # a value assigned to anything named like a credential (the Meta key rule, generalized)
-        r"(?i)(?:api[_-]?key|token|secret|passw(?:or)?d)[\"']?\s*[=:]\s*[\"']?[^\s\"']{8,}",
-    )
-)
-
-
-def scrub(text: str) -> str:
-    """`text` with every credential-shaped span replaced by REDACTED."""
-    for pattern in _PATTERNS:
-        text = pattern.sub(REDACTED, text)
-    return text
+__all__ = ["REDACTED", "scrub", "scrubbed"]
 
 
 def scrubbed(lesson: Lesson) -> Lesson:
@@ -52,5 +28,8 @@ def scrubbed(lesson: Lesson) -> Lesson:
         resolution=tuple(scrub(step) for step in lesson.resolution),
         unresolved_because=None if unresolved is None else scrub(unresolved),
         changed_alongside=tuple(scrub(step) for step in lesson.changed_alongside),
+        fix_commands=tuple(scrub(command) for command in lesson.fix_commands),
         error_lines=tuple(scrub(line) for line in lesson.error_lines),
+        asked=scrub(lesson.asked),
+        agent_intent=scrub(lesson.agent_intent),
     )

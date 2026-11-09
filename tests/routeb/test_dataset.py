@@ -46,18 +46,30 @@ def failed_then_fixed():
     )
 
 
+def wrong_path_then_corrected():
+    return session(
+        user("Make the duckdb tests pass"),
+        run("pytest tests/test_duckdb.py -q", 5, "collected 0 items\n\nno tests ran in 0.01s"),
+        run("python -m pytest tests/dialects/test_duckdb.py -q", 0, "12 passed"),
+    )
+
+
 def test_corrected_command_is_the_one_that_succeeded():
-    s = failed_then_fixed()
-    (pain,) = find_failed_commands(s)[:1]
+    s = wrong_path_then_corrected()
+    (pain,) = find_failed_commands(s)
     got = correction_pairs(pain, s)
     assert got.reason is None
     (example,) = got.examples
-    assert (
-        example.completion
-        == "python -m pytest tests/dialects/test_duckdb.py -q --import-mode=importlib"
-    )
-    assert example.sources == (("s1", 1), ("s1", 3))
-    assert "ImportError: cannot import name 'ArraySort'" in example.prompt
+    assert example.completion == "python -m pytest tests/dialects/test_duckdb.py -q"
+    assert example.sources == (("s1", 1), ("s1", 2))
+    assert "no tests ran" in example.prompt
+
+
+def test_a_respelled_pass_teaches_no_correction():
+    s = failed_then_fixed()
+    (pain,) = find_failed_commands(s)[:1]
+    got = correction_pairs(pain, s)
+    assert got.examples == () and "different arguments" in (got.reason or "")
 
 
 def test_failed_command_target_is_what_changed_before_it_passed():
@@ -234,15 +246,15 @@ def test_long_output_is_quoted_from_its_end_verbatim():
     assert len(example.completion) < 500
 
 
-def test_examples_carry_whether_every_source_is_spark_safe():
-    s = failed_then_fixed()
+def test_examples_carry_whether_every_source_is_remote_safe():
+    s = wrong_path_then_corrected()
     private = [
-        replace(r, provenance=replace(r.provenance, spark_safe=False)) if r.step == 3 else r
+        replace(r, provenance=replace(r.provenance, remote_safe=False)) if r.step == 2 else r
         for r in s
     ]
-    (pain,) = find_failed_commands(s)[:1]
-    assert recall_pairs(pain, s).examples[0].spark_safe is True
-    assert correction_pairs(pain, private).examples[0].spark_safe is False
+    (pain,) = find_failed_commands(s)
+    assert recall_pairs(pain, s).examples[0].remote_safe is True
+    assert correction_pairs(pain, private).examples[0].remote_safe is False
 
 
 # --- selection and hold-out ---------------------------------------------------

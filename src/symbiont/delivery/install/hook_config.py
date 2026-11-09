@@ -3,7 +3,7 @@
 import json
 from typing import Any
 
-from symbiont.delivery.hooks import HookEvent, NoteStyle
+from symbiont.delivery.hook_vocab import HookEvent, NoteStyle
 from symbiont.delivery.install.transaction import InstallError, Transform
 
 COMMAND_PREFIX = "symbiont hook "

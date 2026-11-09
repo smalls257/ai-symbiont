@@ -9,6 +9,7 @@ from symbiont.readers import READERS
 from symbiont.readers.claude_code import read, read_open_swe_traces, read_swe_chat
 from symbiont.readers.errors import ReadError
 from symbiont.records.schema import Kind
+from symbiont.records.session_tags import CREATED_TAG
 
 FIXTURES = Path(__file__).resolve().parents[1] / "fixtures" / "claude_code"
 SESSION = FIXTURES / "session.jsonl"
@@ -67,26 +68,26 @@ def test_turns_in_order_with_dense_steps_and_timestamps(records):
 
 def test_user_pushback_label_kept(records):
     first, last = of_kind(records, Kind.USER_TURN)
-    assert first.tags == ()
+    assert first.tags == ("ai-title:Fix the failing parser test.",)
     assert last.kind == Kind.USER_TURN
     assert last.tags == ("correction",)
     assert last.raw.startswith("No, that is wrong")
 
 
-def test_swe_chat_is_not_spark_safe():
+def test_swe_chat_is_not_remote_safe():
     out = list(read_swe_chat(SESSION, PROJECT))
-    assert {r.provenance.spark_safe for r in out} == {False}
+    assert {r.provenance.remote_safe for r in out} == {False}
     assert {r.provenance.dataset for r in out} == {"swe-chat"}
 
 
-def test_open_swe_traces_claudecode_is_spark_safe():
+def test_open_swe_traces_claudecode_is_remote_safe():
     out = list(read_open_swe_traces(SESSION, PROJECT))
-    assert {r.provenance.spark_safe for r in out} == {True}
+    assert {r.provenance.remote_safe for r in out} == {True}
     assert {r.provenance.dataset for r in out} == {"open-swe-traces"}
 
 
-def test_user_private_sessions_not_spark_safe(records):
-    assert {r.provenance.spark_safe for r in records} == {False}
+def test_user_private_sessions_not_remote_safe(records):
+    assert {r.provenance.remote_safe for r in records} == {False}
     assert {r.provenance.dataset for r in records} == {"private-sessions"}
 
 
@@ -225,14 +226,6 @@ NOT_STRING_CASES = {
     "tool_use id": ([_tool("Bash", {"command": "ls"}, id=5)], "id"),
     "tool_use_id": ([_result(tool_use_id=5)], "tool_use_id"),
     "tool name": ([_tool("Bash", {"command": "ls"}, name=5)], "name"),
-    "bash command": ([_tool("Bash", {"command": 5})], "command"),
-    "read file_path": ([_tool("Read", {"file_path": 5})], "file_path"),
-    "write file_path": ([_tool("Write", {"file_path": 5, "content": "x"})], "file_path"),
-    "edit old_string": ([_tool("Edit", {"file_path": "a", "old_string": 5})], "old_string"),
-    "edit new_string": (
-        [_tool("Edit", {"file_path": "a", "old_string": "x", "new_string": 5})],
-        "new_string",
-    ),
 }
 
 
@@ -293,3 +286,294 @@ def test_a_failing_test_run_piped_through_head_is_a_failed_command(tmp_path):
 def test_a_passing_test_run_piped_through_head_is_not_a_failure(tmp_path):
     record = piped_run(tmp_path, "pytest -q 2>&1 | head -n 200", "3 passed in 0.3s")
     assert record.exit_code == 0
+
+
+# --- content the reader does not know is skipped, counted and logged ---------
+
+
+def _read_events(tmp_path, *events):
+    path = write_lines(tmp_path, [json.dumps(e) for e in events])
+    return list(read(path, PROJECT))
+
+
+def test_unknown_assistant_blocks_are_skipped_counted_and_logged(tmp_path, caplog):
+    blocks = [
+        {"type": "redacted_thinking", "data": "x"},
+        {"type": "server_tool_use", "id": "s1", "name": "web_search", "input": {}},
+        {"type": "web_search_tool_result", "tool_use_id": "s1", "content": []},
+        {"type": "text", "text": "done"},
+    ]
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, _event("assistant", blocks))
+    assert [r.raw for r in records] == ["done"]
+    assert "unknown block type redacted_thinking" in caplog.text
+    assert "unknown block type web_search_tool_result" in caplog.text
+
+
+def test_edit_without_old_string_is_skipped_and_counted(tmp_path, caplog):
+    edit = _tool("Edit", {"file_path": "a.py", "new_string": "x"})
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, edit, _tool("Bash", {"command": "ls"}, id="t2"))
+    assert [r.kind for r in records] == [Kind.COMMAND]
+    assert "'Edit without old_string': 1" in caplog.text
+
+
+@pytest.mark.parametrize("flag", ["isCompactSummary", "isMeta", "isSidechain"])
+def test_harness_written_user_events_are_not_user_turns(tmp_path, caplog, flag):
+    typed = _event("user", "no, use pytest")
+    machine = _event("user", "Caveat: the messages below were generated", **{flag: True})
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, machine, typed)
+    assert [r.raw for r in records] == ["no, use pytest"]
+    assert "skipped" in caplog.text
+
+
+def test_malformed_known_block_still_raises_after_tolerance(tmp_path):
+    bad = _event("assistant", [{"type": "text", "text": 5}])
+    with pytest.raises(ReadError, match="text"):
+        _read_events(tmp_path, bad)
+
+
+def test_the_plugin_named_recall_tool_result_is_ours_entirely(tmp_path):
+    name = "mcp__plugin_symbiont_symbiont__recall"
+    call = _tool(name, {"question": "why?"})
+    answer = _result(content="This command failed twice in an earlier session.")
+    call_rec, answer_rec = _read_events(tmp_path, call, answer)
+    assert call_rec.raw == ""
+    assert answer_rec.tags == ("symbiont-output",)
+    assert answer_rec.raw.startswith("This command failed twice")
+
+
+# --- request-log events carry a message but are not turns ---------------------
+
+
+def test_api_request_blob_events_are_skipped_and_counted(tmp_path, caplog):
+    turn = _event("user", "first")
+    after = _event("user", "second")
+    logged = [
+        {"type": kind, "message": {"model": "m", "messages": []}}
+        for kind in ("api-request-blob", "api-request", "api-request-shape")
+    ]
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        with_blobs = _read_events(tmp_path, turn, *logged, after)
+    without = _read_events(tmp_path, turn, after)
+    assert [(r.kind, r.raw) for r in with_blobs] == [(r.kind, r.raw) for r in without]
+    assert "'api-request-blob': 1" in caplog.text
+
+
+def test_an_unknown_event_type_with_a_message_still_raises(tmp_path):
+    path = write_lines(
+        tmp_path, [json.dumps({"type": "api-request-new", "message": {"content": "x"}})]
+    )
+    with pytest.raises(ReadError, match="api-request-new") as err:
+        list(read(path, PROJECT))
+    assert err.value.line_no == 1
+
+
+# --- what the session was about: title and branch, kept as tags --------------
+
+
+def test_the_ai_title_becomes_a_tag_on_the_sessions_first_user_turn(tmp_path):
+    title = {"type": "ai-title", "aiTitle": "Fix tokenizer crash", "sessionId": "s"}
+    records = _read_events(tmp_path, _event("user", "first"), title, _event("user", "second"))
+    assert [r.tags for r in records] == [("ai-title:Fix tokenizer crash",), ()]
+
+
+def test_the_git_branch_of_each_event_is_a_tag_on_its_records(tmp_path):
+    records = _read_events(
+        tmp_path,
+        _event("user", "first", gitBranch="fix-window"),
+        _event("assistant", [{"type": "text", "text": "ok"}], gitBranch="main"),
+    )
+    assert [r.tags for r in records] == [
+        ("branch:fix-window", "ai-title:first"),
+        ("branch:main",),
+    ]
+
+
+def test_an_event_without_a_branch_or_an_ai_title_is_titled_by_its_first_turn(tmp_path):
+    (record,) = _read_events(tmp_path, _event("user", "first"))
+    assert record.tags == ("ai-title:first",)
+
+
+def slash_command(name="/clear"):
+    return _event("user", f"<command-name>{name}</command-name>")
+
+
+def test_a_slash_command_title_is_not_the_session_title(tmp_path):
+    work = _event("user", "port the parser to rust\nthen the tests")
+    first, _ = _read_events(tmp_path, slash_command(), work)
+    assert first.tags == ("ai-title:port the parser to rust",)
+
+
+def test_the_ai_title_beats_the_first_typed_turn(tmp_path):
+    title = {"type": "ai-title", "aiTitle": "Port parser", "sessionId": "s"}
+    first, _ = _read_events(tmp_path, slash_command(), title, _event("user", "go"))
+    assert first.tags == ("ai-title:Port parser",)
+
+
+def test_a_session_of_only_slash_commands_is_untitled(tmp_path):
+    (record,) = _read_events(tmp_path, slash_command())
+    assert record.tags == ("ai-title:untitled session",)
+
+
+def test_routine_skips_are_logged_at_debug(tmp_path, caplog):
+    meta = _event("user", "Caveat: generated", isMeta=True)
+    note = _injected("task-notification")
+    compact = _event("user", "summary", isCompactSummary=True)
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
+        _read_events(tmp_path, meta, note, compact, _event("user", "go"))
+    skipped = [r for r in caplog.records if "skipped" in r.getMessage()]
+    assert {r.levelname for r in skipped} == {"DEBUG"}
+
+
+def test_an_unusual_skip_is_logged_at_info_with_file_and_count(tmp_path, caplog):
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
+        _read_events(tmp_path, _injected("scheduled"), _event("user", "go"))
+    (skipped,) = [r for r in caplog.records if "skipped content" in r.getMessage()]
+    assert skipped.levelname == "INFO"
+    assert "session.jsonl" in skipped.getMessage() and "'scheduled': 1" in skipped.getMessage()
+
+
+@pytest.mark.parametrize(
+    "label, tags",
+    [
+        ("correction", ("correction",)),
+        ("rejection", ("correction",)),
+        (True, ("correction",)),
+        ("failure_report", ("failure_report",)),
+        ("non_pushback", ()),
+        (False, ()),
+        ("", ()),
+        (None, ()),
+    ],
+)
+def test_pushback_labels_map_to_tags(tmp_path, label, tags):
+    turn = {**_event("user", "go"), "prompt_pushback": label}
+    (record,) = _read_events(tmp_path, turn)
+    assert tuple(t for t in record.tags if not t.startswith("ai-title:")) == tags
+
+
+def test_an_unknown_pushback_label_raises_naming_it(tmp_path):
+    turn = {**_event("user", "go"), "prompt_pushback": "surprise"}
+    with pytest.raises(ReadError, match="surprise"):
+        _read_events(tmp_path, turn)
+
+
+def test_write_of_a_new_file_is_tagged_created_and_an_update_is_not(tmp_path):
+    new = _tool("Write", {"file_path": "a.py", "content": "x\n"}, id="n")
+    old = _tool("Write", {"file_path": "b.py", "content": "y\n"}, id="o")
+    made = _result(tool_use_id="n", content="File created successfully at: /w/a.py")
+    changed = _result(tool_use_id="o", content="The file /w/b.py has been updated successfully.")
+    created, updated = _read_events(tmp_path, new, old, made, changed)
+    assert CREATED_TAG in created.tags
+    assert CREATED_TAG not in updated.tags
+
+
+def test_a_title_that_is_not_text_raises_readerror(tmp_path):
+    title = {"type": "ai-title", "aiTitle": 7, "sessionId": "s"}
+    with pytest.raises(ReadError, match="aiTitle"):
+        _read_events(tmp_path, _event("user", "first"), title)
+
+
+def _injected(kind):
+    return _event("user", "<task-notification>done</task-notification>", origin={"kind": kind})
+
+
+def test_a_task_notification_is_not_a_user_turn_and_is_counted(tmp_path, caplog):
+    typed = _event("user", "no, use pytest")
+    with caplog.at_level("DEBUG", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, _injected("task-notification"), typed)
+    assert [r.raw for r in records] == ["no, use pytest"]
+    assert "'task notification': 1" in caplog.text
+
+
+def test_a_message_from_another_session_is_not_a_user_turn(tmp_path, caplog):
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        records = _read_events(tmp_path, _injected("peer"), _injected("scheduled"))
+    assert records == []
+    assert "'message from another session': 1" in caplog.text
+    assert "'scheduled': 1" in caplog.text
+
+
+def test_a_human_origin_is_a_user_turn(tmp_path):
+    typed = _event("user", "no, use pytest", origin={"kind": "human"})
+    assert [r.raw for r in _read_events(tmp_path, typed)] == ["no, use pytest"]
+
+
+def test_a_user_event_without_origin_is_still_a_user_turn(tmp_path):
+    assert [r.raw for r in _read_events(tmp_path, _event("user", "hello"))] == ["hello"]
+
+
+@pytest.mark.parametrize("origin", ["human", ["human"], {"kind": 3}, {}])
+def test_a_malformed_origin_raises_naming_the_line(tmp_path, origin):
+    path = write_lines(
+        tmp_path,
+        [json.dumps(_event("user", "ok")), json.dumps(_event("user", "x", origin=origin))],
+    )
+    with pytest.raises(ReadError, match=r":2\b|line 2"):
+        list(read(path, PROJECT))
+
+
+@pytest.mark.parametrize(
+    "markup",
+    [
+        "<command-message>clear</command-message><command-name>/clear</command-name>",
+        "<command-message>init</command-message>\n<command-name>/init</command-name>",
+        "<local-command-stdout>Set model to X</local-command-stdout>",
+        "/compact now",
+    ],
+)
+def test_command_markup_and_command_output_never_title_a_session(tmp_path, markup):
+    first, _ = _read_events(tmp_path, _event("user", markup), _event("user", "fix the lexer"))
+    assert first.tags == ("ai-title:fix the lexer",)
+
+
+def test_a_typed_path_is_a_title_not_a_slash_command(tmp_path):
+    (record,) = _read_events(tmp_path, _event("user", "/tmp/build/out.log has the crash"))
+    assert record.tags == ("ai-title:/tmp/build/out.log has the crash",)
+
+
+def test_the_title_pass_does_not_raise_pushback_errors_twice(tmp_path):
+    bad = {**_event("user", "go"), "prompt_pushback": "surprise"}
+    with pytest.raises(ReadError, match="surprise") as err:
+        _read_events(tmp_path, bad)
+    assert err.value.line_no == 1
+
+
+UNPARSED = {"_swe_chat_unparsed": "raw text the exporter could not parse"}
+
+
+def test_swe_chat_skips_and_counts_a_line_the_dataset_could_not_parse(tmp_path, caplog):
+    path = write_lines(tmp_path, [json.dumps(_event("user", "go")), json.dumps(UNPARSED)])
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        records = list(read_swe_chat(path, PROJECT))
+    assert [r.raw for r in records] == ["go"]
+    infos = [r.getMessage() for r in caplog.records if r.levelname == "INFO"]
+    assert any(
+        "line the dataset could not parse" in m and "1" in m and "session.jsonl" in m for m in infos
+    )
+
+
+def test_claude_code_own_logs_still_raise_for_a_line_without_type(tmp_path):
+    path = write_lines(tmp_path, [json.dumps(UNPARSED)])
+    with pytest.raises(ReadError, match="type"):
+        list(read(path, PROJECT))
+    with pytest.raises(ReadError, match="type"):
+        list(read_open_swe_traces(path, PROJECT))
+
+
+def test_swe_chat_skips_and_counts_a_json_line_that_is_not_an_object(tmp_path, caplog):
+    path = write_lines(tmp_path, [json.dumps(_event("user", "go")), json.dumps([1, 2])])
+    with caplog.at_level("INFO", logger="symbiont.readers.claude_code"):
+        records = list(read_swe_chat(path, PROJECT))
+    assert [r.raw for r in records] == ["go"]
+    infos = [r.getMessage() for r in caplog.records if r.levelname == "INFO"]
+    assert any("line the dataset could not parse': 1" in m and "session.jsonl" in m for m in infos)
+
+
+def test_claude_code_own_logs_still_raise_for_a_line_that_is_not_an_object(tmp_path):
+    path = write_lines(tmp_path, [json.dumps([1, 2])])
+    for reader in (read, read_open_swe_traces):
+        with pytest.raises(ReadError, match="event object"):
+            list(reader(path, PROJECT))

@@ -37,9 +37,9 @@ def muse_payload(event: HookEvent, tool: str, arguments: dict, result: str) -> d
     }
 
 
-def record_of(payload: dict) -> dict:
+def record_of(payload: dict, harness: str = "muse_code") -> dict:
     event = HookEvent(payload["hook_event_name"])
-    return hooks.observe_body(event, payload, "muse_code", "p")["payload"]["record"]
+    return hooks.observe_body(event, payload, harness, "p")["payload"]["record"]
 
 
 def test_a_muse_failure_keeps_its_real_exit_code_and_readable_output():
@@ -86,7 +86,7 @@ def test_a_plain_text_error_from_claude_code_stays_text_with_failure_code_one():
         "tool_input": {"command": "false"},
         "error": "Exit code 1",
     }
-    record = record_of(failure | {"hook_event_name": "PostToolUseFailure"})
+    record = record_of(failure | {"hook_event_name": "PostToolUseFailure"}, "claude_code")
     assert (record["raw"], record["exit_code"]) == ("Exit code 1", 1)
 
 

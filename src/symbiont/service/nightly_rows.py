@@ -2,8 +2,9 @@
 
 Each lesson is asked in several situations (yes) against another lesson of the repository (no),
 balanced; general judge rows make up 25% and habit rows 15% of the result. Unlike the measured arm
-[hypothesis], which had Spark invent 12 situations per lesson and label extra pairs, this makes no
-network call: situations are the fixed `PHRASINGS` rewordings and no teacher labels are added.
+[hypothesis], which had a remote model invent 12 situations per lesson and label extra pairs,
+this makes no network call: situations are the fixed `PHRASINGS` rewordings and no teacher
+labels are added.
 """
 
 import math

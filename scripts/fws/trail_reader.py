@@ -24,7 +24,7 @@ FRAMEWORK = "smolagents CodeAgent (OpenInference spans)"
 PROVENANCE = Provenance(
     dataset="patronus-ai/trail-benchmark",
     license="MIT; gated on Hugging Face, local use only",
-    spark_safe=False,
+    remote_safe=False,
 )
 # Trace directory, annotation directory, task kind; as laid out in the dataset repository.
 SPLITS = {

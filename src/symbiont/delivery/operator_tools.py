@@ -9,6 +9,9 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from symbiont.readers.harnesses import labels_and
+from symbiont.records.dashboard_views import DashboardView
+
 PRIORITIES = ["low", "normal", "high"]
 
 
@@ -66,7 +69,7 @@ OPERATOR_TOOLS = [
     ),
     OperatorTool(
         "symbiont_mine",
-        "Learn from this repository's past Claude Code and Muse Code sessions (needs "
+        f"Learn from this repository's past {labels_and()} sessions (needs "
         "symbiont_allow first). Opens the dashboard unless the developer turned that off, and "
         "returns its address with a progress summary; a long job keeps running in the service. "
         "When setting a repository up, next find the developer's past corrections "
@@ -90,9 +93,17 @@ OPERATOR_TOOLS = [
     ),
     OperatorTool(
         "symbiont_dashboard",
-        "The address of this repository's dashboard. Tell the developer the address.",
+        "The address of one view of this repository's dashboard (overview when no view is named). "
+        "Tell the developer the address.",
         ("dashboard",),
         takes_port=True,
+        properties={
+            "view": {
+                **_STRING,
+                "enum": [view.value for view in DashboardView],
+                "description": "which page to open; overview when left out",
+            }
+        },
     ),
     OperatorTool(
         "symbiont_why",
@@ -165,9 +176,21 @@ def operator_argv(name: str, arguments: dict[str, Any], project: str, port: int)
 
 def _positionals(name: str, arguments: dict[str, Any]) -> list[str]:
     """The arguments the subcommand takes by position."""
+    if name == "symbiont_dashboard":
+        return _view_of(arguments)
     if name == "symbiont_context":
         return [_text(arguments, "lesson"), _text(arguments, "words")]
     return []
+
+
+def _view_of(arguments: dict[str, Any]) -> list[str]:
+    """The dashboard view named in the call, if any; ValueError lists the views."""
+    if "view" not in arguments:
+        return []
+    views = [view.value for view in DashboardView]
+    if arguments["view"] not in views:
+        raise ValueError(f"view is one of {views}")
+    return [arguments["view"]]
 
 
 def _options(name: str, arguments: dict[str, Any]) -> list[str]:

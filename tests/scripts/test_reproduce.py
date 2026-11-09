@@ -167,7 +167,7 @@ def test_the_demo_ends_with_a_note_that_names_the_earlier_fix(capsys):
     assert see_it_work.main() == 0
     shown = capsys.readouterr().out
     assert "Last time, `pytest` failed with AssertionError" in shown
-    assert "currency_exponent" in shown
+    assert "edited invoices.py" in shown and "currency_exponent" not in shown
     assert "[symbiont] In this repo: Amounts are integers" in shown
     assert "PASS" in shown
 

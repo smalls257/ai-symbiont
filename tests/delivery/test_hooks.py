@@ -5,6 +5,7 @@ import threading
 
 import pytest
 
+from store_builders import save_lessons
 from symbiont import cli
 from symbiont.delivery import hooks, launch
 from symbiont.delivery.hooks import (
@@ -55,7 +56,7 @@ def unused_port():
 
 def run_cli(monkeypatch, capsys, event, payload, port):
     monkeypatch.setattr("sys.stdin", io.StringIO(json.dumps(payload)))
-    code = cli.main(["hook", event.value, "--harness", "muse_code", "--port", str(port)])
+    code = cli.main(["hook", event.value, "--harness", "claude_code", "--port", str(port)])
     captured = capsys.readouterr()
     return code, captured.out, captured.err
 
@@ -102,19 +103,17 @@ def test_each_event_maps_to_observe(service, monkeypatch, capsys, event):
     ],
 )
 def test_the_observed_record_carries_what_the_harness_reported(event, kind, expected):
-    body = hooks.observe_body(event, INPUTS[event], "muse_code", "fallback")
+    body = hooks.observe_body(event, INPUTS[event], "claude_code", "fallback")
     record = body["payload"]["record"]
-    assert (body["event"], body["harness"], record["kind"]) == (event.value, "muse_code", kind)
-    assert record["project"] == "demo" and record["provenance"]["spark_safe"] is False
+    assert (body["event"], body["harness"], record["kind"]) == (event.value, "claude_code", kind)
+    assert record["project"] == "demo" and record["provenance"]["remote_safe"] is False
     assert expected.items() <= record.items()
 
 
-def observed(data, tool=None):
+def observed(data, tool=None, harness="claude_code"):
     if tool:
         data = data | {"tool_name": tool}
-    return hooks.observe_body(HookEvent.POST_TOOL_USE, data, "claude_code", "p")["payload"][
-        "record"
-    ]
+    return hooks.observe_body(HookEvent.POST_TOOL_USE, data, harness, "p")["payload"]["record"]
 
 
 def test_a_shell_success_with_no_reported_code_is_not_assumed_zero():
@@ -122,7 +121,7 @@ def test_a_shell_success_with_no_reported_code_is_not_assumed_zero():
 
 
 def test_muse_codes_windows_shell_tool_is_a_command_like_bash():
-    record = observed(TOOL_INPUT | {"tool_response": {"exit_code": 3}}, "powershell")
+    record = observed(TOOL_INPUT | {"tool_response": {"exit_code": 3}}, "powershell", "muse_code")
     assert (record["kind"], record["command"], record["exit_code"]) == ("command", "pytest -q", 3)
 
 
@@ -252,13 +251,13 @@ def test_an_egress_refusal_is_a_refusal_not_offline(monkeypatch):
     ("chosen", "environ", "expected"),
     [
         ("auto", {"MUSE_PLUGIN_ROOT": "/x"}, "muse_code"),
-        ("auto", {}, "claude_code"),
+        ("auto", {"CLAUDECODE": "1"}, "claude_code"),
         ("claude_code", {"MUSE_PLUGIN_ROOT": "/x"}, "claude_code"),
         ("muse_code", {}, "muse_code"),
     ],
 )
 def test_the_harness_is_read_from_the_host_only_when_asked_to(chosen, environ, expected):
-    assert hooks.resolve_harness(chosen, environ) == expected
+    assert hooks.resolve_harness(chosen, environ).id == expected
 
 
 def test_an_announcement_reaches_the_developer_and_the_model(monkeypatch):
@@ -344,8 +343,8 @@ def test_a_failure_repeated_through_the_real_hook_gets_the_last_time_note(
         run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     records = [replace(r, project="demo") for r in steps]
-    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
-    Store.open(tmp_path / "store.db").save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
+    save_lessons(Store.open(tmp_path / "store.db"), "demo", [], lessons, held_out_tasks=frozenset())
     registry = RepoRegistry(tmp_path)
     registry.record_stance("demo", RepoStance.GIVEN)
     httpd = server.bind(
@@ -381,4 +380,7 @@ def test_the_dashboard_link_in_an_announcement_points_at_the_local_service(monke
     result = hooks.run_hook(HookEvent.SESSION_START, json.dumps(data), settings)
 
     shown = json.loads(result.context)["systemMessage"]
-    assert shown == "symbiont's dashboard: http://127.0.0.1:7377/dashboard?project=my%20repo"
+    assert (
+        shown
+        == "symbiont's dashboard: http://127.0.0.1:7377/dashboard?project=my%20repo&view=inbox"
+    )

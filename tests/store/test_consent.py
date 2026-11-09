@@ -1,4 +1,4 @@
-"""Own-history consent: explicit, default withheld; third-party data never reaches Spark."""
+"""Own-history consent: explicit, default withheld; third-party data never leaves."""
 
 from dataclasses import replace
 
@@ -6,11 +6,12 @@ import pytest
 
 from record_builders import PUBLIC, edit, run, session, user
 from symbiont.delivery.hooks import DATASET_PREFIX
-from symbiont.miner.lessons import spark_allowed
+from symbiont.miner.lessons import remote_allowed
+from symbiont.miner.screen import ScreenRules
 from symbiont.records.privacy import LIVE_DATASET_PREFIX, OwnHistoryConsent, is_own_history
 from symbiont.records.schema import Provenance, dump_jsonl, load_jsonl
 from symbiont.store.consent import ConsentFileError, read_consent, record_consent
-from symbiont.store.local import ForgetMismatchError, Source, SparkPrivacyViolationError, Store
+from symbiont.store.local import ForgetMismatchError, RemotePrivacyViolationError, Source, Store
 from symbiont.store.mining import MiningRules, remine
 from symbiont.store.training import lessons_for_memory_model
 
@@ -18,9 +19,9 @@ pytestmark = pytest.mark.periphery
 
 PROJECT = "demo"
 READER = "records-jsonl"
-OWN = Provenance(dataset="private-sessions", license="none", spark_safe=False)
-LIVE = Provenance(dataset="live-claude_code", license="local-session", spark_safe=False)
-SWE_CHAT = Provenance(dataset="swe-chat", license="see-dataset-card", spark_safe=False)
+OWN = Provenance(dataset="private-sessions", license="none", remote_safe=False)
+LIVE = Provenance(dataset="live-claude_code", license="local-session", remote_safe=False)
+SWE_CHAT = Provenance(dataset="swe-chat", license="see-dataset-card", remote_safe=False)
 GIVEN, WITHHELD = OwnHistoryConsent.GIVEN, OwnHistoryConsent.WITHHELD
 # Built by concatenation so no credential-shaped literal sits in the repo.
 TOKEN = "gh" + "p_" + "A1b2C3d4" * 5
@@ -32,7 +33,12 @@ def read_records_jsonl(path, project):
 
 
 def failing(session_id, provenance, command="pytest tests/test_cart.py"):
-    records = session(user("fix it"), run(command, 1, "ImportError: x"), edit("cart.py"))
+    records = session(
+        user("fix it"),
+        run(command, 1, "cart.py:1\nImportError: x"),
+        edit("app/cart.py"),
+        run(command, 0, "ok"),
+    )
     return [
         replace(r, project=PROJECT, session_id=session_id, provenance=provenance) for r in records
     ]
@@ -46,7 +52,10 @@ def store_with(tmp_path, *sessions):
         with path.open("w") as fh:
             dump_jsonl(records, fh)
         sources.append(Source(PROJECT, READER, str(path)))
-    remine(store, PROJECT, MiningRules({READER: read_records_jsonl}, frozenset()), adding=sources)
+    rules = MiningRules(
+        {READER: read_records_jsonl}, frozenset(), screen=ScreenRules(min_sessions=1)
+    )
+    remine(store, PROJECT, rules, adding=sources)
     return store
 
 
@@ -56,12 +65,12 @@ def test_hooks_label_live_records_as_the_users_own():
     assert not is_own_history("swe-chat") and not is_own_history("mini-swe-agent-unlabeled")
 
 
-def test_consent_off_refuses_own_lessons_for_spark(tmp_path):
+def test_consent_off_refuses_own_lessons_for_remote(tmp_path):
     store = store_with(tmp_path, failing("mine", OWN))
-    with pytest.raises(SparkPrivacyViolationError):
+    with pytest.raises(RemotePrivacyViolationError):
         lessons_for_memory_model(store, PROJECT, WITHHELD)
-    with pytest.raises(SparkPrivacyViolationError):
-        store.spark_view().lessons(PROJECT)
+    with pytest.raises(RemotePrivacyViolationError):
+        store.remote_view().lessons(PROJECT)
 
 
 def test_consent_on_allows_own_and_live_lessons(tmp_path):
@@ -71,23 +80,23 @@ def test_consent_on_allows_own_and_live_lessons(tmp_path):
 
 def test_a_third_party_lesson_is_refused_even_with_consent(tmp_path):
     store = store_with(tmp_path, failing("mine", OWN), failing("chat", SWE_CHAT))
-    with pytest.raises(SparkPrivacyViolationError):
+    with pytest.raises(RemotePrivacyViolationError):
         lessons_for_memory_model(store, PROJECT, GIVEN)
-    with pytest.raises(SparkPrivacyViolationError):
-        store.spark_view(GIVEN).lessons(PROJECT)
+    with pytest.raises(RemotePrivacyViolationError):
+        store.remote_view(GIVEN).lessons(PROJECT)
 
 
 def test_a_private_lesson_naming_no_dataset_stays_blocked(tmp_path):
     store = store_with(tmp_path, failing("mine", OWN))
     (lesson,) = store.lessons(PROJECT)
     assert lesson.private_datasets == ("private-sessions",)
-    assert not spark_allowed(replace(lesson, private_datasets=()), GIVEN)
+    assert not remote_allowed(replace(lesson, private_datasets=()), GIVEN)
 
 
-def test_spark_bound_lessons_are_scrubbed_of_credentials(tmp_path):
+def test_remote_bound_lessons_are_scrubbed_of_credentials(tmp_path):
     command = f"curl -H 'Authorization: token {TOKEN}' https://example.com"
     store = store_with(tmp_path, failing("mine", OWN, command=command))
-    (lesson,) = store.spark_view(GIVEN).lessons(PROJECT)
+    (lesson,) = store.remote_view(GIVEN).lessons(PROJECT)
     text = " ".join([lesson.quote, *lesson.pain_point.signature.key, *lesson.resolution])
     assert TOKEN not in text
     assert TOKEN in " ".join(

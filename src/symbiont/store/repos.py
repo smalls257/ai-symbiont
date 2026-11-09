@@ -88,6 +88,15 @@ class RepoRegistry:
         """Remember the developer's answer: {text, keywords, sources}."""
         self._update(project, "focus", focus)
 
+    def checkout(self, project: str) -> Path | None:
+        """The directory `symbiont repo mine` last mined `project` from, or None."""
+        raw = self._entry(project).get("checkout")
+        return None if raw is None else Path(raw)
+
+    def record_checkout(self, project: str, checkout: Path) -> None:
+        """Remember where `project`'s checkout lives, so every mining knows its worktrees."""
+        self._update(project, "checkout", str(checkout))
+
     def _entry(self, project: str) -> dict[str, Any]:
         """The stored fields of one project; empty when it was never mentioned."""
         entry = self._document()["projects"].get(project, {})

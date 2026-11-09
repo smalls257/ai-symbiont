@@ -6,6 +6,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any
 
 from symbiont.service.app import Service
+from symbiont.service.host_guard import refusal_reason
 
 # 7377 spells SYMB on a phone keypad; any free loopback port works for tests. The clients'
 # copy is egress.policy.LOCAL_SERVICE_PORT; this file may not import egress, so a test keeps both.
@@ -35,6 +36,20 @@ def _routes_for(service: Service) -> type[BaseHTTPRequestHandler]:
 
     class Routes(BaseHTTPRequestHandler):
         """Forwards each POST body to the service."""
+
+        def parse_request(self) -> bool:
+            """The one entry point of every request: refuse a foreign Host or Origin first."""
+            if not super().parse_request():
+                return False
+            port = self.server.server_address[1]
+            why = refusal_reason(
+                self.headers.get("Host"), self.headers.get("Origin"), self.command, port
+            )
+            if why is None:
+                return True
+            log.warning("request refused: %s (%s %s)", why, self.command, self.path[:80])
+            self.send_error(403, why)
+            return False
 
         def do_POST(self) -> None:  # http.server dispatches by this name
             """Answer one POST with the service's JSON response."""

@@ -15,6 +15,7 @@ from symbiont.delivery import open_page
 from symbiont.delivery.recall import call_service
 from symbiont.service.asking import ServiceUnavailableError
 from symbiont.store.repos import RepoRegistry, RepoStance
+from symbiont.store.settings import write_mining_setting
 
 pytestmark = pytest.mark.periphery
 
@@ -31,6 +32,7 @@ class Desk:
         monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path / "xdg"))
         install_claude_session(self.home, self.repo, claude_log())
         RepoRegistry(self.data).record_stance(project, RepoStance.GIVEN)
+        write_mining_setting(self.data, "min_sessions", 1)  # one fixture session
         self.opened: list[str] = []
         self.calls: list[str] = []
 
@@ -59,8 +61,8 @@ def test_mining_opens_the_dashboard_on_the_started_job_and_prints_the_address(de
     url = f"http://127.0.0.1:{port}/dashboard?project=demo&mining=1"
     assert desk.opened == [url]
     assert f"dashboard: {url}" in out
-    assert "reading sessions" in out or "learned 1 lessons" in out
-    assert "learned 1 lessons from 1 claude-code sessions, 0 muse-code sessions" in out
+    assert "reading sessions" in out or "learned 1 lesson" in out
+    assert "learned 1 lesson from 1 Claude Code session, 0 Muse Code sessions" in out
 
 
 def test_the_job_is_started_in_the_service_before_the_browser_opens(desk):
@@ -180,3 +182,21 @@ def test_windows_opens_the_page_with_explorer_detached_by_creation_flags(monkeyp
     assert command == ["explorer", "http://127.0.0.1:1/dashboard?project=a%20b"]
     assert options["creationflags"] == 0x08 | 0x200 | 0x01000000
     assert "start_new_session" not in options
+
+
+def test_the_end_line_is_one_line_and_never_reads_a_missing_report_as_nothing_held(capsys):
+    from symbiont.service.mine_command import _ended
+
+    done = {"state": "done", "lessons": 2}
+    assert _ended({**done, "held_back": {"no_fix_shown": 3}}, "1 Claude Code session") == 0
+    assert _ended({**done, "held_back": {}}, "1 Claude Code session") == 0
+    assert _ended(done, "1 Claude Code session") == 0
+    lines = capsys.readouterr().out.splitlines()
+    assert lines == [
+        "learned 2 lessons from 1 Claude Code session; held back 3: 3 no fix shown; "
+        "the lessons and counts stay on this computer",
+        "learned 2 lessons from 1 Claude Code session; "
+        "the lessons and counts stay on this computer",
+        "learned 2 lessons from 1 Claude Code session; the service did not report what it "
+        "held back; the lessons and counts stay on this computer",
+    ]

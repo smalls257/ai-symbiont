@@ -19,8 +19,8 @@ You corrected your coding agent last week. Today it makes the same mistake again
 
 - **In Muse Code, one command onboards a repository** (allow, learn from past sessions, find your corrections, download and train the checker):
   ```bash
-  uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
-  muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
+  uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
+  muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont-plugin
   muse plugins install symbiont@ai-symbiont && muse plugins approve symbiont
   muse            # then type: /symbiont onboard
   ```
@@ -65,23 +65,35 @@ Pre-registered evaluations, with the result file, prereg and research note behin
 
 ## Quickstart
 
-Install the command, then the plugin for your harness.
+One command installs the `symbiont` command and registers the plugin in every harness it finds on PATH (`--nightly` adds the trainer, `--harness <id>|all|none` picks, `--ref <git ref>` pins a version). It needs [uv](https://docs.astral.sh/uv/); when `uv` is missing it prints the install command and stops. Re-running upgrades.
 
 ```bash
-uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+curl -fsSL https://raw.githubusercontent.com/smalls257/ai-symbiont-plugin/main/install.sh | sh -s -- --nightly
+```
+
+Windows (PowerShell; `install.ps1` takes `-Nightly`, `-Ref` and `-Harness`; not yet tested on Windows):
+
+```powershell
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/smalls257/ai-symbiont-plugin/main/install.ps1))) -Nightly
+```
+
+Or by hand: install the command, then the plugin for your harness.
+
+```bash
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
 ```
 
 Claude Code:
 
 ```text
-/plugin marketplace add https://github.com/smalls257/ai-symbiont
+/plugin marketplace add https://github.com/smalls257/ai-symbiont-plugin
 /plugin install symbiont@ai-symbiont
 ```
 
 Muse Code:
 
 ```bash
-muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
+muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont-plugin
 muse plugins install symbiont@ai-symbiont
 muse plugins approve symbiont
 ```
@@ -93,6 +105,14 @@ or forgets its lessons. Its actions are MCP tools of the symbiont server (`symbi
 `symbiont_mine`, `symbiont_status` and the rest), so they work where the harness shell is sandboxed
 (Muse Code); the shell forms (`symbiont repo allow`, `symbiont repo mine`)
 remain for a harness without MCP.
+
+### Claude Code
+
+Install: the two `/plugin` lines above, plus `uv tool install` for the `symbiont` command. The plugin needs a Claude Code version with `PostToolUseFailure` hooks.
+
+Use: `/symbiont` shows status; `/symbiont allow` switches symbiont on for the repository; `/symbiont mine` learns from its past sessions.
+
+What works on this branch: the session hooks (start, prompt, tool use, tool failure) feed notes to the model, the miner reads Claude Code transcripts and skips content it does not know (it counts and logs each skip), the recall tool is recognized under its plugin name so symbiont's own answers are never mined, a user interrupt is not recorded as a failed command, and a hook fired from a subdirectory uses the repository root's name when that is the project you answered for. The end-of-work reflection is asked once per session and worded as mid-session. Not covered yet: a PreToolUse hook, and the shared `.mcp.json` PATH fix.
 
 Try it without a key: `docker build -t ai-symbiont . && docker run --rm ai-symbiont demo`. It replays a synthetic billing-ledger session offline (onboarding note, `symbiont repo allow` and `repo mine`, house rules, a recall note, `symbiont why`) and needs no API key and no network. Locally: `scripts/demo/run.sh`. The interactive demo on the landing page needs nothing installed: <https://smalls257.github.io/ai-symbiont/>. Only runs that call Muse Spark need `META_API_KEY` (see `env.example`).
 
@@ -166,7 +186,7 @@ torch, and `symbiont nightly` then says so and exits non-zero. One command insta
 nightly needs, with no repository checkout and no second Python:
 
 ```bash
-uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
 ```
 
 The `nightly` extra is mlx-lm on an Apple Silicon Mac (an environment marker), plus torch, peft and

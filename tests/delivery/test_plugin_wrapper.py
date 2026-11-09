@@ -55,7 +55,7 @@ def test_a_missing_install_says_so_once_at_session_start_and_exits_zero(tmp_path
     assert done.returncode == 0
     message = json.loads(done.stdout)["systemMessage"]
     assert "symbiont is not installed" in message
-    assert "ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont" in message
+    assert "ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin" in message
 
 
 def test_a_missing_install_is_silent_on_other_events_and_exits_zero(tmp_path):

@@ -6,7 +6,7 @@ history. Everything stays on your computer: the plugin only talks to a service o
 This folder is the plugin for Claude Code and Muse Code. It needs the `symbiont` command:
 
 ```bash
-uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
 ```
 
 It adds hooks for session start, prompt submit and tool use, a `recall` tool over MCP, and the
@@ -20,7 +20,7 @@ open a repository it tells you what symbiont does and asks before it stores anyt
 uploaded. It needs the training packages, which a plain install does not carry:
 
 ```bash
-uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
 ```
 
 Fastest path: run `/symbiont onboard`. It switches symbiont on, learns from your past sessions, finds your corrections, then downloads the Llama 3.2 1B base and the small judge kit (about 2.5 GB, once) and trains. Meta's license does not let me ship the weights, so symbiont fetches the public copy for you. If you already have the base and kit, `/symbiont nightly` also accepts their folders: `base` is the Llama 3.2 1B Instruct folder and `kit` is the `nightly-kit` folder. Later runs need no arguments. Without a kit the command stops
@@ -32,9 +32,9 @@ runs in symbiont's own process, outside Muse's sandbox.
 
 ## Install
 
-Claude Code: `/plugin marketplace add https://github.com/smalls257/ai-symbiont`, then `/plugin install symbiont@ai-symbiont`.
+Claude Code: `/plugin marketplace add https://github.com/smalls257/ai-symbiont-plugin`, then `/plugin install symbiont@ai-symbiont`.
 
-Muse Code: `muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont`, then
+Muse Code: `muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont-plugin`, then
 `muse plugins install symbiont@ai-symbiont`.
 
 ## Windows

@@ -11,20 +11,37 @@ from datetime import date
 from typing import Any
 
 from symbiont.core.failure_signature import failure_detail
-from symbiont.core.notes import happened, render_lesson, resolution_clause
+from symbiont.core.notes import happened, render_lesson, resolution_clause, title_of
 from symbiont.core.rule_relevance import situation_terms
+from symbiont.miner.churn import FileChurn
 from symbiont.miner.lesson_context import AuthoredLesson, LessonContext, Review, Verdict
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
+from symbiont.miner.screen import HoldReason
+from symbiont.miner.secrets import scrub
+from symbiont.miner.story import error_summary, story_of
+from symbiont.miner.strips import SessionStrip
+from symbiont.miner.struggle import MINUTES_PER_TURN, SessionFacts
 from symbiont.miner.trained import lesson_id
+from symbiont.service.no_lessons import no_lessons_sentence
+from symbiont.service.session_dates import (
+    day_offsets,
+    first_date,
+    order_sessions,
+    replay,
+    undated_count,
+)
+from symbiont.service.struggle_view import StageInput, struggle_stage
+from symbiont.store.held_back import REASON_WORDS, StruggleGroup
+from symbiont.store.settings import DEFAULT_MIN_SESSIONS
 
-REPLAY_DAYS = 30
-MINUTES_PER_TURN = 0.7
+STRUGGLE_SHOWN = 20
+CHURN_SHOWN = 20
 KIND_OF_SIGNAL = {
     Signal.FAILED_COMMAND: "repeat",
     Signal.BLAST_RADIUS: "repeat",
     Signal.REWORKED_EDIT: "rework",
-    Signal.REVIEW_FLAG: "rework",
+    Signal.REVIEW_FLAG: "review",
     Signal.CORRECTION: "correction",
     Signal.LOOP: "loop",
 }
@@ -45,22 +62,37 @@ class RepoView:
     annotated: frozenset[str] = frozenset()
     # The nightly state (`never`, `trained` or `stale` with its sentence), or None when unknown.
     nightly: Mapping[str, object] | None = None
+    # What the last mining counted instead of teaching: groups held back per reason, failures
+    # that never showed a fix, and edits per file (churn).
+    held_back: Mapping[HoldReason, int] = field(default_factory=dict)
+    struggle: Sequence[StruggleGroup] = ()
+    churn: Sequence[FileChurn] = ()
+    # The Pain points stage: one row of facts per session and the few sessions drawn step by step.
+    facts: Sequence[SessionFacts] = ()
+    strips: Sequence[SessionStrip] = ()
+    # Sessions a trouble must come back in to become a lesson; the page says it in words.
+    min_sessions: int = DEFAULT_MIN_SESSIONS
+    # Patterns the developer set aside; the empty state points at their Restore only when any exist.
+    ignored: int = 0
+    # The session model's goal per session id: the "Working on" line when one exists.
+    goals: Mapping[str, str] = field(default_factory=dict)
 
 
 def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
-    """The object the dashboard page reads; session ids missing from the dates use today."""
+    """The object the dashboard page reads; a session missing from the dates has `date: null`."""
     project, lessons = view.project, view.lessons
-    order = _session_order(lessons, view.session_dates, today)
+    ids = [lesson.pain_point.session_id for lesson in lessons]
+    order = order_sessions(ids, view.session_dates)
     if not order and view.written:
-        order = {"written": (0, today)}
+        order = {"written": (0, None)}
     groups = _grouped(lessons, view.reviews, view.focus)
     points = [_pain_point(n, group, order, view) for n, group in enumerate(groups, 1)]
     points += [
         _written_point(len(points) + n, item, order, view.contexts.get(item.ident))
         for n, item in enumerate(view.written, 1)
     ]
-    first = min((item[1] for item in order.values()), default=today)
-    days = {index: (when - first).days for index, when in order.values()}
+    first = first_date(order, today)
+    days = day_offsets(order, first)
     return {
         "schema": 1,
         "repo": {
@@ -71,23 +103,73 @@ def dashboard_snapshot(view: RepoView, today: date) -> dict[str, Any]:
             "demo": False,
         },
         "sessions": [
-            {"index": index, "day": days[index], "date": when.isoformat()}
-            for index, when in sorted(order.values())
+            {"index": index, "day": days[index], "date": when.isoformat() if when else None}
+            for index, when in sorted(order.values(), key=lambda item: item[0])
         ],
         "painPoints": [point for point, _ in points],
         "lessons": [lesson for _, lesson in points],
-        "replay": _replay([p for p, _ in points], days, (today - first).days),
+        "replay": replay([p for p, _ in points], days, (today - first).days, undated_count(order)),
         "nightly": dict(view.nightly) if view.nightly is not None else None,
+        "stage": struggle_stage(_stage_input(view, groups)),
+        **_counted_not_taught(view),
     }
 
 
-def _session_order(
-    lessons: Sequence[Lesson], dates: Mapping[str, date], today: date
-) -> dict[str, tuple[int, date]]:
-    """Session id -> (index, date), oldest first."""
-    ids = list(dict.fromkeys(lesson.pain_point.session_id for lesson in lessons))
-    ranked = sorted(ids, key=lambda sid: (dates.get(sid, today), ids.index(sid)))
-    return {sid: (index, dates.get(sid, today)) for index, sid in enumerate(ranked)}
+def _stage_input(view: RepoView, groups: Sequence[Sequence[Lesson]]) -> StageInput:
+    """What the Pain points stage is drawn from."""
+    return StageInput(
+        view.facts,
+        view.strips,
+        groups,
+        view.churn,
+        view.session_dates,
+        view.held_back,
+        view.min_sessions,
+    )
+
+
+def _counted_not_taught(view: RepoView) -> dict[str, Any]:
+    """What mining held back, the failures with no shown fix, and where files churned."""
+    return {
+        "heldBack": {reason.value: count for reason, count in view.held_back.items()},
+        "struggle": [_struggle_entry(group) for group in _by_cost(view.struggle)],
+        "noLessons": no_lessons_sentence(view.held_back, view.min_sessions, view.ignored),
+        "churn": _churn_entries(view.churn),
+    }
+
+
+def _by_cost(struggle: Sequence[StruggleGroup]) -> list[StruggleGroup]:
+    """The failure groups that cost the most first (every occurrence is at least one turn)."""
+    ranked = sorted(
+        struggle, key=lambda group: (-group.occurrences, -group.sessions, group.signature.key)
+    )
+    return ranked[:STRUGGLE_SHOWN]
+
+
+def _struggle_entry(group: StruggleGroup) -> dict[str, Any]:
+    """A failure that never showed a fix: counted with its cost, never turned into a note."""
+    return {
+        "what": scrub(happened(group.signature)),
+        "reason": REASON_WORDS[HoldReason.NO_FIX_SHOWN],
+        "sessions": group.sessions,
+        "occurrences": group.occurrences,
+        # One turn per failure is the least it cost: an estimate, not a measurement.
+        "minutes": round(group.occurrences * MINUTES_PER_TURN, 1),
+    }
+
+
+def _churn_entries(churn: Sequence[FileChurn]) -> list[dict[str, Any]]:
+    """The files edited most across sessions: where agents struggle with the code itself."""
+    edits: dict[str, int] = defaultdict(int)
+    sessions: dict[str, int] = defaultdict(int)
+    for row in churn:
+        edits[row.file] += row.edits
+        sessions[row.file] += 1
+    ranked = sorted(edits, key=lambda file: (-edits[file], file))[:CHURN_SHOWN]
+    return [{"file": f, "edits": edits[f], "sessions": sessions[f]} for f in ranked]
+
+
+TITLE_CHARS = 90
 
 
 def _grouped(
@@ -109,6 +191,23 @@ def _grouped(
     )
 
 
+def row_of(lessons: Sequence[Lesson], reviews: Mapping[str, Review], ident: str) -> list[Lesson]:
+    """The lessons the dashboard shows as one row with lesson `ident`; empty when none has it."""
+    for group in _grouped(lessons, reviews, frozenset()):
+        if ident in {lesson_id(item) for item in group}:
+            return group
+    return []
+
+
+def row_title(group: Sequence[Lesson], reviews: Mapping[str, Review]) -> str:
+    """The title the dashboard shows for a row: a reviewer's title, else what happened."""
+    review = next(
+        (reviews[lesson_id(item)] for item in reversed(group) if lesson_id(item) in reviews), None
+    )
+    title = review.title if review and review.title else title_of(group[-1].pain_point.signature)
+    return title[:TITLE_CHARS]
+
+
 def _merge_home(
     group: list[Lesson], groups: list[list[Lesson]], reviews: Mapping[str, Review]
 ) -> list[Lesson] | None:
@@ -127,7 +226,7 @@ def _merge_home(
 def _pain_point(
     number: int,
     group: list[Lesson],
-    order: Mapping[str, tuple[int, date]],
+    order: Mapping[str, tuple[int, date | None]],
     view: RepoView,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     """One pain point and its lesson, for a group of lessons about the same trouble."""
@@ -140,30 +239,45 @@ def _pain_point(
         (contexts[lesson_id(item)] for item in reversed(group) if lesson_id(item) in contexts), None
     )
     sessions = sorted(order[item.pain_point.session_id][0] for item in group)
-    return _point(number, latest, sessions, review), _lesson(
+    goal = view.goals.get(latest.pain_point.session_id, "")
+    return _point(number, latest, sessions, review, goal), _lesson(
         number, latest, words, review, view.annotated
     )
 
 
+def _story_json(lesson: Lesson, goal: str) -> dict[str, str]:
+    """The pain point's three story lines, scrubbed."""
+    story = story_of(lesson, goal)
+    return {
+        "workingOn": scrub(story.working_on),
+        "broke": scrub(story.broke),
+        "ended": scrub(story.ended),
+    }
+
+
 def _point(
-    number: int, latest: Lesson, sessions: list[int], review: Review | None
+    number: int, latest: Lesson, sessions: list[int], review: Review | None, goal: str = ""
 ) -> dict[str, Any]:
     """The pain point's fields."""
     signature = latest.pain_point.signature
-    turns = 1 + len(latest.resolution)
-    title = review.title if review and review.title else happened(signature)
+    turns = 1 + latest.fix_steps
+    title = review.title if review and review.title else title_of(signature)
     return {
         "id": number,
         "kind": KIND_OF_SIGNAL[signature.signal],
-        "title": title[:90],
+        "title": scrub(title)[:TITLE_CHARS],
         "file": _file_of(signature),
         "command": command_of_signature(signature),
         "sessions": sessions,
         "turnsPerOccurrence": turns,
         "minutesPerOccurrence": round(turns * MINUTES_PER_TURN, 1),
-        "failure": failure_detail(latest.quote) or happened(signature),
+        "failure": scrub(failure_detail(latest.quote) or happened(signature)),
         "fix": resolution_clause(latest) if latest.resolution else None,
         "lessonId": lesson_id(latest),
+        # Raw text: the page escapes it when drawing. The model's summary leads; the rule-built one
+        # fills in until the session's model has written one.
+        "summary": scrub(review.summary) if review else "",
+        **_story_json(latest, goal),
     }
 
 
@@ -184,7 +298,7 @@ def _lesson(
         "reviewConflict": _conflict(lesson_id(latest), review, annotated),
         "appliesTo": _tags(words, review),
         "note": render_lesson(latest),
-        "exampleContext": latest.quote[:200],
+        "exampleContext": scrub(error_summary(latest)),
         "context": words.text if words else "",
         "intentional": words.intentional if words else False,
         "priority": words.priority.value if words else "normal",
@@ -215,11 +329,12 @@ def _tags(words: LessonContext | None, review: Review | None) -> dict[str, list[
 def _written_point(
     number: int,
     item: AuthoredLesson,
-    order: Mapping[str, tuple[int, date]],
+    order: Mapping[str, tuple[int, date | None]],
     words: LessonContext | None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    """A written lesson as a pain point: it has no sessions of its own, so it sits on the newest."""
-    newest = max((index for index, _ in order.values()), default=0)
+    """A written lesson as a pain point, placed on the newest dated session (it has none)."""
+    dated = [index for index, when in order.values() if when is not None]
+    newest = max(dated or [index for index, _ in order.values()], default=0)
     kind = {"mistake": "repeat", "correction": "correction"}.get(item.kind.value, item.kind.value)
     point = {
         "id": number,
@@ -271,23 +386,3 @@ def command_of_signature(signature: Signature) -> str | None:
     if signature.signal is not Signal.FAILED_COMMAND:
         return None
     return " ".join(part for part in signature.key[:-1] if part != "-") or None
-
-
-def _replay(
-    points: list[dict[str, Any]], day_of: Mapping[int, int], last_day: int
-) -> dict[str, Any]:
-    """Repeats in the last REPLAY_DAYS that a note would have come before (an estimate)."""
-    start = max(0, last_day - REPLAY_DAYS)
-    items = [
-        {
-            "painPointId": point["id"],
-            "sessionIndex": index,
-            "day": day_of[index],
-            "turnsSaved": point["turnsPerOccurrence"],
-            "minutesSaved": point["minutesPerOccurrence"],
-        }
-        for point in points
-        for index in point["sessions"][1:]
-        if day_of[index] >= start
-    ]
-    return {"windowStartDay": start, "items": sorted(items, key=lambda item: item["day"])}

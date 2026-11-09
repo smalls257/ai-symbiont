@@ -6,43 +6,27 @@ about", so offline prints a visible note and exits 0: the harness is never block
 
 import json
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
-from enum import StrEnum
-from pathlib import Path
 from typing import Any
 
 from symbiont.delivery.headline import headline
+from symbiont.delivery.hook_profiles import (
+    EchoPolicy,
+    HookProfile,
+    ShellOutcome,
+    profile,
+    tool_vocabulary,
+)
+from symbiont.delivery.hook_vocab import HookEvent, NoteStyle, NoteVisibility
+from symbiont.delivery.project_identity import project_for
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
+from symbiont.readers.harnesses import HARNESSES, Harness, UnknownHarnessError, detect, harness
+from symbiont.records.dashboard_views import DashboardView, dashboard_address
 from symbiont.records.output_failure import exit_code_with_output
 
 DATASET_PREFIX = "live-"
 LIVE_LICENSE = "local-session"
-
-
-class HookEvent(StrEnum):
-    """The harness events the hooks understand (day-1 G2 for Muse Code; Claude Code's docs)."""
-
-    SESSION_START = "SessionStart"
-    USER_PROMPT_SUBMIT = "UserPromptSubmit"
-    PRE_LLM_CALL = "PreLLMCall"
-    POST_TOOL_USE = "PostToolUse"
-    POST_TOOL_USE_FAILURE = "PostToolUseFailure"
-    STOP = "Stop"
-
-
-class NoteStyle(StrEnum):
-    """How a PostToolUse note is worded: plain prose, or a finding in the tool result's voice."""
-
-    PLAIN = "plain"
-    FINDING = "finding"
-
-
-class NoteVisibility(StrEnum):
-    """Who reads a note: the model alone, or the developer on screen as well."""
-
-    MODEL_ONLY = "model-only"
-    SHOWN = "shown"
 
 
 @dataclass(frozen=True)
@@ -62,6 +46,8 @@ class HookSettings:
     port: int
     fallback_project: str
     visibility: NoteVisibility = NoteVisibility.SHOWN
+    # Projects the developer answered for; used per the harness's ProjectNaming.
+    known_projects: frozenset[str] = frozenset()
 
 
 class HookInputError(ValueError):
@@ -79,33 +65,30 @@ _SPEAKING_EVERYWHERE = frozenset(
         HookEvent.POST_TOOL_USE_FAILURE,
     }
 )
-CLAUDE_CODE = "claude_code"
-MUSE_CODE = "muse_code"
 AUTO = "auto"
-# Muse Code sets this for every plugin hook it runs (measured with `muse plugins hook test`);
-# Claude Code does not, so one plugin bundle can tell its two hosts apart without an argument.
-MUSE_MARKER = "MUSE_PLUGIN_ROOT"
-# Muse Code names its tools in snake_case (measured from live hook payloads: `bash`, `read_file`).
-_EDIT_TOOLS = frozenset(
-    {"Edit", "Write", "MultiEdit", "NotebookEdit", "edit_file", "write_file", "apply_patch"}
-)
-# `powershell` is the shell tool Muse Code uses on Windows [measured on Windows 11, Muse 1.4.14].
-_SHELL_TOOLS = frozenset({"Bash", "shell", "bash", "exec_command", "powershell", "PowerShell"})
-_READ_TOOLS = frozenset({"Read", "read_file"})
 # Muse Code's TUI flashes `systemMessage` for a few seconds, so the developer never reads the
-# note itself; the model is asked to say it in its reply, where the transcript keeps it.
-# Claude Code shows `systemMessage` to the developer, so it gets no such line.
+# note itself; the model is asked to say it in its reply, where the transcript keeps it (see
+# EchoPolicy in hook_profiles.py for which harness gets this).
 ECHO_TO_DEVELOPER = (
     'Before you continue, tell the developer in one line, starting with "symbiont:", '
     "what this note says."
 )
 
 
-def resolve_harness(chosen: str, environ: Mapping[str, str]) -> str:
-    """The harness a hook runs under: `auto` reads the host's environment, else as given."""
+def resolve_harness(
+    chosen: str, environ: Mapping[str, str], known: Sequence[Harness] = HARNESSES
+) -> Harness:
+    """The harness a hook runs under: `auto` reads the host's environment, else as given.
+
+    Raises UnknownHarnessError when `auto` finds no marker: guessing Claude Code would file a
+    Muse Code session's history under the wrong harness without a word.
+    """
     if chosen != AUTO:
-        return chosen
-    return MUSE_CODE if MUSE_MARKER in environ else CLAUDE_CODE
+        return harness(chosen, known)
+    found = detect(environ, known)
+    if found is None:
+        raise UnknownHarnessError("cannot tell which harness runs this hook")
+    return found
 
 
 def speaking_events(harness: str) -> frozenset[HookEvent]:
@@ -135,7 +118,9 @@ def run_hook(
     down service.
     """
     data = parsed_input(stdin_text)
-    body = observe_body(event, data, settings.harness, settings.fallback_project)
+    body = observe_body(
+        event, data, settings.harness, settings.fallback_project, settings.known_projects
+    )
     try:
         reply = (call or call_service)("/observe", body, settings.port)
     except ServiceOfflineError as offline:
@@ -146,7 +131,11 @@ def run_hook(
     notes = reply.get("notes")
     if not isinstance(notes, list) or not all(isinstance(n, str) for n in notes):
         raise ServiceReplyError("the local service sent notes that are not a list of sentences")
-    told = _announcements(reply, dashboard_url(settings.port, body["payload"]["record"]["project"]))
+    # Pain points to work through live in the Inbox, so the notice skips the Overview default.
+    told = _announcements(
+        reply,
+        dashboard_address(settings.port, body["payload"]["record"]["project"], DashboardView.INBOX),
+    )
     worded = _worded(event, notes, settings.style)
     text = "\n".join(filter(None, [worded, *told, *_for_the_model(reply)]))
     if not text or event not in speaking_events(settings.harness):
@@ -160,20 +149,25 @@ def run_hook(
 
 
 def _asks_model_to_echo(settings: HookSettings) -> bool:
-    """Whether the model is asked to repeat the note to the developer (Muse Code, shown)."""
-    return settings.harness == MUSE_CODE and settings.visibility is NoteVisibility.SHOWN
+    """Whether the harness's EchoPolicy asks the model to repeat the shown note."""
+    echo = profile(settings.harness).echo
+    return echo is EchoPolicy.ASK_MODEL_TO_REPEAT and settings.visibility is NoteVisibility.SHOWN
 
 
 def observe_body(
-    event: HookEvent, data: dict[str, Any], harness: str, fallback_project: str
+    event: HookEvent,
+    data: dict[str, Any],
+    harness: str,
+    fallback_project: str,
+    known_projects: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     """The /observe request for one hook event."""
     session_id = data.get("session_id")
     if not isinstance(session_id, str) or not session_id:
         raise HookInputError("hook input has no session_id")
     cwd = data.get("cwd")
-    project = Path(cwd).name if isinstance(cwd, str) and cwd else fallback_project
-    record = _record(event, data, harness, project, session_id)
+    project = project_for(cwd if isinstance(cwd, str) else None, fallback_project, known_projects)
+    record = _record(harness, project, session_id) | _shaped(event, data, tool_vocabulary(harness))
     return {
         "harness": harness,
         "session_id": session_id,
@@ -193,10 +187,8 @@ def parsed_input(stdin_text: str) -> dict[str, Any]:
     return data
 
 
-def _record(
-    event: HookEvent, data: dict[str, Any], harness: str, project: str, session_id: str
-) -> dict[str, Any]:
-    """The record the service stores for one hook event."""
+def _record(harness: str, project: str, session_id: str) -> dict[str, Any]:
+    """The fields every stored hook record shares."""
     base: dict[str, Any] = {
         "harness": harness,
         "project": project,
@@ -206,14 +198,14 @@ def _record(
         "provenance": {
             "dataset": DATASET_PREFIX + harness,
             "license": LIVE_LICENSE,
-            "spark_safe": False,
+            "remote_safe": False,
         },
         "files": [],
     }
-    return base | _shaped(event, data)
+    return base
 
 
-def _shaped(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
+def _shaped(event: HookEvent, data: dict[str, Any], tools: HookProfile) -> dict[str, Any]:
     """The kind and raw text of a record, by event."""
     if event is HookEvent.USER_PROMPT_SUBMIT:
         return {"kind": "user_turn", "raw": str(data.get("prompt", ""))}
@@ -222,10 +214,10 @@ def _shaped(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
     if event is HookEvent.PRE_LLM_CALL:
         count = len(data["messages"]) if isinstance(data.get("messages"), list) else 0
         return {"kind": "agent_turn", "raw": f"model call over {count} messages"}
-    return _tool_record(event, data)
+    return _tool_record(event, data, tools)
 
 
-def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
+def _tool_record(event: HookEvent, data: dict[str, Any], tools: HookProfile) -> dict[str, Any]:
     """A tool-call record; shell tools carry the command and its exit status."""
     tool = str(data.get("tool_name", ""))
     given = data.get("tool_input")
@@ -233,19 +225,21 @@ def _tool_record(event: HookEvent, data: dict[str, Any]) -> dict[str, Any]:
     given_response = data.get("tool_response")
     printed = _decoded_object(data.get("error") if given_response is None else given_response)
     raw = _output_text(printed if printed is not None else "")
-    if tool in _SHELL_TOOLS:
+    if tool in tools.shell_tools:
         command = str(arguments.get("command", ""))
         return {
             "kind": "command",
             "raw": raw,
             "command": command,
-            "exit_code": exit_code_with_output(command, raw, _exit_code(printed, event)),
+            "exit_code": exit_code_with_output(
+                command, raw, tools.shell_exit(ShellOutcome(event, data, printed, raw))
+            ),
         }
     path = arguments.get("file_path") or arguments.get("path")
     files = [path] if isinstance(path, str) else []
-    if tool in _EDIT_TOOLS:
+    if tool in tools.edit_tools:
         return {"kind": "edit", "raw": raw, "files": files}
-    if tool in _READ_TOOLS:
+    if tool in tools.read_tools:
         return {"kind": "read", "raw": raw, "files": files}
     return {"kind": "tool_result", "raw": raw, "files": files}
 
@@ -276,26 +270,6 @@ def _output_text(response: Any) -> str:
         if printed:
             return "\n".join(part for part in printed if part)
     return json.dumps(response)
-
-
-def _exit_code(response: Any, event: HookEvent) -> int | None:
-    """What the harness reported; a failure with no code is 1, a success is never assumed 0."""
-    if isinstance(response, dict):
-        for key in ("exit_code", "exitCode"):
-            if isinstance(response.get(key), int):
-                return int(response[key])
-    return 1 if event is HookEvent.POST_TOOL_USE_FAILURE else None
-
-
-def dashboard_url(port: int, project: str) -> str:
-    """Where the local dashboard for `project` is served."""
-    safe = "".join(
-        char
-        if char.isascii() and (char.isalnum() or char in "-._~")
-        else "".join(f"%{b:02X}" for b in char.encode())
-        for char in project
-    )
-    return f"http://127.0.0.1:{port}/dashboard?project={safe}"
 
 
 def _announcements(reply: dict[str, Any], dashboard: str) -> list[str]:

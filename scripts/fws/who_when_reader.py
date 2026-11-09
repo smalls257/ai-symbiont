@@ -23,7 +23,7 @@ HARNESS = "multi-agent"
 PROVENANCE = Provenance(
     dataset="Kevin355/Who_and_When",
     license="MIT (GitHub repository); GAIA and AssistantBench questions, local use only",
-    spark_safe=False,
+    remote_safe=False,
 )
 # Parquet file and the agent framework that produced its logs (arXiv 2505.00212, section 3).
 SPLITS = {

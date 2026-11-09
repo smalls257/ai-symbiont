@@ -1,6 +1,6 @@
 """Claude Code: hooks in .claude/settings.local.json, the MCP server in .mcp.json."""
 
-from symbiont.delivery.hooks import HookEvent, NoteStyle
+from symbiont.delivery.hook_vocab import HookEvent, NoteStyle
 from symbiont.delivery.install.hook_config import hooks_block, merge_json
 from symbiont.delivery.install.transaction import HarnessInstall
 

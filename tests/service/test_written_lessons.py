@@ -11,6 +11,7 @@ from datetime import date
 import pytest
 
 from record_builders import edit, run, session
+from store_builders import save_lessons
 from symbiont import cli
 from symbiont.core.rule_relevance import rules_of
 from symbiont.miner.lesson_context import (
@@ -60,8 +61,8 @@ def mined(store):
         run("pytest tests/test_parser.py", 0, "1 passed"),
     )
     records = [replace(r, project="demo") for r in steps]
-    lessons = lessons_from(mine_history(sessions_of(records), {}), records)
-    store.save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    lessons = lessons_from(mine_history(sessions_of(records), {}), records, frozenset())
+    save_lessons(store, "demo", [], lessons, held_out_tasks=frozenset())
     return lessons
 
 

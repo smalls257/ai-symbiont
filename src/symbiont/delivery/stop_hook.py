@@ -6,7 +6,6 @@ which logs whether a lesson was saved. The service decides; this is a thin clien
 """
 
 import json
-from pathlib import Path
 from typing import Any
 
 from symbiont.delivery.hooks import (
@@ -17,6 +16,7 @@ from symbiont.delivery.hooks import (
     offline_note,
     parsed_input,
 )
+from symbiont.delivery.project_identity import project_for
 from symbiont.delivery.recall import ServiceOfflineError, ServiceReplyError, call_service
 
 
@@ -29,7 +29,9 @@ def run_stop(
     if not isinstance(session_id, str) or not session_id:
         raise HookInputError("hook input has no session_id")
     cwd = data.get("cwd")
-    project = Path(cwd).name if isinstance(cwd, str) and cwd else settings.fallback_project
+    project = project_for(
+        cwd if isinstance(cwd, str) else None, settings.fallback_project, settings.known_projects
+    )
     body: dict[str, object] = {
         "project": project,
         "session_id": session_id,

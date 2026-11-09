@@ -10,7 +10,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from symbiont.core.failure_signature import failure_detail, same_failure
-from symbiont.core.notes import check_to_run, happened, resolution_clause
+from symbiont.core.notes import happened, resolution_clause, specific_check
 from symbiont.miner.lesson_context import LessonContext
 from symbiont.miner.lessons import Lesson
 from symbiont.miner.painpoint import Signal, Signature
@@ -97,10 +97,9 @@ def _sentence(lesson: Lesson, context: LessonContext | None) -> str:
     detail = failure_detail(lesson.quote).removeprefix(f"{signature.key[-1]}: ")
     failed = happened(signature) + (f" ({detail})" if detail else "")
     if lesson.resolution:
-        body = (
-            f"Last time, {failed}; it was fixed when {resolution_clause(lesson)}. "
-            f"Check: {check_to_run(signature)}."
-        )
+        check = specific_check(signature)
+        body = f"Last time, {failed}; it was fixed when {resolution_clause(lesson)}."
+        body += f" Check: {check}." if check else ""
     else:
         body = f"Last time, {failed}; no fix was found in the history."
     if context is None or not context.text.strip():

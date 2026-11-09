@@ -1,21 +1,10 @@
 """Signal: the agent going round in circles.
 
-A loop is the same action repeated close together with nothing learned and
-nothing changed:
-
-- the same command (whole text; only temp paths and spacing are evened out,
-  so `python -c` one-liners, heredocs, sed ranges and grep patterns stay
-  distinct), each time with the same exit code and the same output, or
-- the same view of the same lines of a file (paging through a file is
-  reading, not looping), each time successful.
-
-Repeats must be within `window` steps of the previous one. An applied edit
-ends every command streak (any change can alter a command's result) and the
-read streaks of the files it changed. One pain point per streak, at the step
-where it reaches `min_repeats`, citing every repeat.
-
-The command key is the command as the agent typed it (shortened if long), not
-the lossy `normalise_command` used to group failures across sessions.
+The same command (as typed; only temp paths and spacing evened out) with the same exit code and
+output, or the same view of the same lines of a file, repeated within `window` steps with no
+applied edit in between. Waiting (`sleep 60 && gh run view`, `gh run watch`, a task's output, a
+check after the agent says "still running") is not looping.
+One pain point per streak, at the step where it reaches `min_repeats`, citing every repeat.
 """
 
 import re
@@ -23,10 +12,11 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from symbiont.miner.painpoint import PainPoint, RecordRef, Signal, Signature
+from symbiont.miner.waiting import is_task_output, is_waiting, says_waiting
 from symbiont.records.schema import Kind, Record
 
 MAX_KEY_CHARS = 120
-_TEMP_PATH = re.compile(r"(?:/private)?(?:/tmp|/var/folders)/[^\s'\"]*")
+_TEMP_PATH = re.compile(r"(?<![\w./~-])(?:/private)?(?:/tmp|/var/folders)/[^\s'\"]*")
 _DURATION = re.compile(r"\b\d+(?:\.\d+)?\s?(?:ms|s|sec|seconds)\b")
 _ADDRESS = re.compile(r"\b0x[0-9a-fA-F]+\b")
 
@@ -46,25 +36,32 @@ def find_loops(
     """Find an action repeated `min_repeats` times with the same result inside `window` steps."""
     streaks: dict[tuple[str, ...], _Streak] = {}
     found = []
+    waiting = False
     for record in session:
+        if record.kind in (Kind.AGENT_TURN, Kind.USER_TURN):
+            waiting = record.kind == Kind.AGENT_TURN and says_waiting(record.raw)
+            continue
         if _changed_files(record):
             _end_streaks_touched_by(streaks, record)
             continue
-        key = _repeat_key(record)
+        key = None if waiting else _repeat_key(record)
         if key is None:
             continue
         streak = streaks.get(key)
         result = _result(record)
-        if (
-            streak is None
-            or streak.result != result
-            or record.step - streak.repeats[-1].step > window
-        ):
+        if not _continues(streak, result, record.step, window):
             streak = streaks[key] = _Streak(result)
         streak.repeats.append(record)
         if len(streak.repeats) == min_repeats:
             found.append(_pain_point(key, streak.repeats))
     return found
+
+
+def _continues(streak: _Streak | None, result: _Result, step: int, window: int) -> bool:
+    """The same result again, close enough to the last repeat to be the same streak."""
+    if streak is None or streak.result != result:
+        return False
+    return step - streak.repeats[-1].step <= window
 
 
 def _changed_files(record: Record) -> bool:
@@ -80,8 +77,12 @@ def _end_streaks_touched_by(streaks: dict[tuple[str, ...], _Streak], edit: Recor
 
 def _repeat_key(record: Record) -> tuple[str, ...] | None:
     if record.kind == Kind.COMMAND and record.command and record.command.strip():
+        if is_waiting(record.command):
+            return None
         return ("command", _even_out(record.command))
     if record.kind == Kind.READ and len(record.files) == 1 and record.exit_code != 1:
+        if is_task_output(record.files[0]):
+            return None
         return ("read", record.files[0], _lines_shown(record.line_range))
     return None
 

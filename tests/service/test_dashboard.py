@@ -11,10 +11,12 @@ import urllib.error
 import urllib.request
 from dataclasses import replace
 from datetime import date
+from pathlib import Path
 
 import pytest
 
-from record_builders import edit, run, session
+from record_builders import edit, run, session, user
+from store_builders import save_lessons
 from symbiont.miner.lesson_context import (
     AppliesTo,
     AuthoredLesson,
@@ -36,6 +38,8 @@ from symbiont.service.nightly import NightlyJudges, NightlyRecord, lessons_diges
 from symbiont.service.wiring import Guards, open_service
 from symbiont.store.local import Store
 
+STATIC = Path(__file__).resolve().parents[2] / "src" / "symbiont" / "service" / "static"
+
 pytestmark = pytest.mark.periphery
 IMPORT = "File \"app/parser.py\", line 1\nImportError: cannot import name 'parse'"
 TODAY = date(2026, 11, 2)
@@ -52,7 +56,7 @@ def lessons_in(*session_ids):
                 run("pytest tests/test_parser.py", 0, "1 passed"),
             )
         ]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
 
 def view(lessons, **extra):
@@ -123,7 +127,7 @@ def test_a_reviewer_can_merge_one_pain_point_into_another():
 @pytest.fixture
 def served(tmp_path):
     store = Store.open(tmp_path / "store.db")
-    store.save_mining("demo", [], lessons_in("a", "b"), held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], lessons_in("a", "b"), held_out_tasks=frozenset())
     httpd = server.bind(open_service(tmp_path, ServiceMode.RECALL_ONLY), 0)
     threading.Thread(target=httpd.serve_forever, daemon=True).start()
     yield f"http://127.0.0.1:{httpd.server_address[1]}", store
@@ -147,16 +151,36 @@ def test_the_service_serves_the_page_filled_from_the_store_and_its_static_files(
 
     assert status == 200 and kind.startswith("text/html")
     assert data["repo"]["name"] == "demo" and len(data["painPoints"]) == 1
+    assert set(data["trends"]) == {
+        "months",
+        "undatedSessions",
+        "undatedReason",
+        "groups",
+        "natural",
+    }
+    assert get(f"{base}/dashboard/trends.js")[2].startswith("text/javascript")
     assert "501" not in html and "measured results" not in html
     assert "Every note it showed" not in html and "mockup" not in html.lower()
     assert get(f"{base}/dashboard/dashboard.js")[2].startswith("text/javascript")
+    assert get(f"{base}/dashboard/painlist.js")[2].startswith("text/javascript")
+    assert get(f"{base}/dashboard/heldback.js")[2].startswith("text/javascript")
     assert get(f"{base}/dashboard/dashboard.css")[0] == 200
     assert "http://" not in get(f"{base}/dashboard/dashboard.js")[1].replace("http://127", "")
 
 
+def test_every_script_and_stylesheet_the_page_names_is_served(served):
+    base, _ = served
+    html = get(f"{base}/dashboard")[1]
+    named = re.findall(r'<(?:script src|link rel="stylesheet" href)="(/dashboard/[^"]+)"', html)
+
+    assert "/dashboard/struggle.js" in named and "/dashboard/inbox.js" in named
+    unserved = [path for path in named if get(base + path)[0] != 200]
+    assert unserved == []
+
+
 def test_several_repositories_need_a_choice_and_an_unknown_path_is_a_404(served):
     base, store = served
-    store.save_mining("other", [], lessons_in("c"), held_out_tasks=frozenset())
+    save_lessons(store, "other", [], lessons_in("c"), held_out_tasks=frozenset())
 
     status, body, _ = get(f"{base}/dashboard")
 
@@ -181,7 +205,7 @@ def test_the_snapshot_carries_the_nightly_state_for_the_header():
 def test_the_served_page_says_never_trained_then_trained_after_a_night(tmp_path):
     store = Store.open(tmp_path / "store.db")
     lessons = lessons_in("a", "b")
-    store.save_mining("demo", [], lessons, held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], lessons, held_out_tasks=frozenset())
     nightly = NightlyJudges(tmp_path / "nightly")
     service = open_service(tmp_path, ServiceMode.RECALL_ONLY, guards=Guards(nightly_news=nightly))
 
@@ -216,9 +240,188 @@ def test_the_mine_address_keeps_the_mine_stage_up_for_a_job_that_already_finishe
     assert _mining_shell(plain) is None
 
 
+def _struggle_only_store(tmp_path):
+    from symbiont.miner.struggle import SessionFacts
+    from symbiont.store.held_back import MiningOutcome
+
+    store = Store.open(tmp_path / "facts.db")
+    facts = [SessionFacts("a", "task a", frozenset(), frozenset(), 5, {"never": 1}, False)]
+    store.mined.save("quiet", [], MiningOutcome([], facts=facts), held_out_tasks=frozenset())
+    return store
+
+
+def test_a_finished_job_with_session_facts_but_no_lesson_serves_the_stage(tmp_path):
+    store = _struggle_only_store(tmp_path)
+    done = MiningProgress(MiningState.DONE, 1, 1, 3, 0, 0)
+    live = Live(mining=lambda project: done)
+
+    page = dashboard_page(store, None, "/dashboard?project=quiet", TODAY, live)
+    watching = dashboard_page(store, None, "/dashboard?project=quiet&mining=1", TODAY, live)
+
+    assert _mining_shell(page) is None
+    assert '"stage": {' in page.body.decode()
+    assert "stage" not in _mining_shell(watching)
+
+
+def test_a_finished_job_with_nothing_to_show_still_gets_the_mine_stage(tmp_path):
+    store = Store.open(tmp_path / "empty.db")
+    done = MiningProgress(MiningState.DONE, 1, 1, 0, 0, 0)
+
+    page = dashboard_page(
+        store, None, "/dashboard?project=none", TODAY, Live(mining=lambda p: done)
+    )
+
+    assert _mining_shell(page)["progress"]["session_facts"] == 0
+
+
+def test_the_boot_never_opens_a_pain_point_when_there_are_none():
+    script = (STATIC / "dashboard.js").read_text(encoding="utf-8")
+
+    assert "if(P.length){renderList();showPain(1);}" in script
+    assert "RX=d=>40+(d-WINDOW_START)/SPAN_DAYS*1720" in script
+    assert "FIRST_DATE=DATED.length?DATED[0].date:DATA.repo.today" in script
+    assert "DATA.sessions[0]" not in script
+
+
 def test_the_mine_address_without_any_job_shows_the_dashboard_not_an_empty_stage(served):
     _, store = served
 
     page = dashboard_page(store, None, "/dashboard?project=demo&mining=1", TODAY, Live())
 
     assert _mining_shell(page) is None
+
+
+def test_the_snapshot_shows_struggle_churn_and_held_back_counts_but_no_lessons_for_them():
+    from datetime import date
+
+    from symbiont.miner.churn import FileChurn
+    from symbiont.miner.painpoint import Signal, Signature
+    from symbiont.miner.screen import HoldReason
+    from symbiont.service.dashboard_view import RepoView, dashboard_snapshot
+    from symbiont.store.held_back import StruggleGroup
+
+    trap = Signature(Signal.FAILED_COMMAND, ("make", "lint", "exit 2"))
+    view = RepoView(
+        "demo",
+        [],
+        {},
+        {},
+        held_back={HoldReason.NO_FIX_SHOWN: 3},
+        struggle=[StruggleGroup(trap, sessions=4, occurrences=10)],
+        churn=[FileChurn("a.py", "s1", 3), FileChurn("a.py", "s2", 2), FileChurn("b.py", "s1", 1)],
+    )
+    shown = dashboard_snapshot(view, date(2026, 11, 6))
+    assert shown["heldBack"] == {"no_fix_shown": 3}
+    assert shown["painPoints"] == [] and shown["lessons"] == []
+    assert (shown["struggle"][0]["sessions"], shown["struggle"][0]["occurrences"]) == (4, 10)
+    assert shown["struggle"][0]["minutes"] == 7.0
+    assert shown["churn"] == [
+        {"file": "a.py", "edits": 5, "sessions": 2},
+        {"file": "b.py", "edits": 1, "sessions": 1},
+    ]
+
+
+def _css_rule(css: str, selector: str) -> str:
+    match = re.search(r"(?m)^" + re.escape(selector) + r"\{([^}]*)\}", css)
+    assert match, f"no {selector} rule in dashboard.css"
+    return match.group(1)
+
+
+def test_the_add_context_panels_scroll_instead_of_clipping():
+    """Paper Tiger: a panel that shows a candidate but clips most of a long quote."""
+    from pathlib import Path
+
+    css = (Path(server.__file__).parent / "static" / "dashboard.css").read_text()
+    edit_rule = _css_rule(css, ".edit")
+    agent_rule = _css_rule(css, ".agent")
+    for rule in (edit_rule, agent_rule):
+        assert "overflow-y:auto" in rule
+        assert "min-height:0" in rule
+    assert "overflow:hidden" not in edit_rule
+
+
+def test_a_summary_with_markup_is_escaped_on_the_page():
+    """Leaky Narrative at the page: model text must be drawn through esc, never as HTML."""
+    from pathlib import Path
+
+    markup = "<img src=x onerror=alert(1)>"
+    lessons = lessons_in("a", "b")
+    ident = lesson_id(lessons[0])
+    review = Review(Verdict.MISTAKE, summary=markup)
+
+    snapshot = dashboard_snapshot(view(lessons, reviews={ident: review}), TODAY)
+    static = Path(server.__file__).parent / "static"
+    js = (static / "dashboard.js").read_text()
+    helper = (static / "summary.js").read_text()
+
+    assert snapshot["painPoints"][0]["summary"] == markup
+    assert "SymbiontSummary.summaryHtml(p,esc)" in js
+    assert "esc(p.summary)" in helper and "workingOn" in helper
+    assert "Ask your session for a summary: /symbiont review" in helper
+    assert len(js.splitlines()) <= 400
+
+
+def test_a_pain_point_without_a_review_gets_a_rule_built_summary_from_the_request():
+    steps = session(
+        user("make the parser tests pass"),
+        run("pytest tests/test_parser.py", 1, IMPORT),
+        edit("app/parser.py", diff="-a\n+def parse(text):\n"),
+        run("pytest tests/test_parser.py", 0, "1 passed"),
+    )
+    steps = [replace(step, project="demo", session_id="a") for step in steps]
+    lessons = lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
+
+    point = dashboard_snapshot(view(lessons), TODAY)["painPoints"][0]
+
+    assert point["summary"] == ""
+    assert point["workingOn"] == "make the parser tests pass"
+    assert "ImportError" in point["broke"] and "ruleSummary" not in point
+    assert point["ended"].startswith("fixed by editing parser.py (added `def parse(text):`)")
+
+
+def test_the_inbox_assets_are_served_and_the_pain_points_tab_has_its_sub_navigation(served):
+    base, _ = served
+    html = get(f"{base}/dashboard")[1]
+
+    for asset in ("inbox.js", "inbox_model.js", "inbox_rows.js", "inbox_dialogs.js", "views.js"):
+        status, body, kind = get(f"{base}/dashboard/{asset}")
+        assert status == 200 and kind.startswith("text/javascript") and body.strip()
+    assert get(f"{base}/dashboard/inbox.css")[2].startswith("text/css")
+    assert 'id="subnav"' in html and 'id="vInbox"' in html
+    assert html.index("/dashboard/inbox.js") < html.index("/dashboard/views.js")
+    assert html.index("/dashboard/views.js") < html.index("/dashboard/dashboard.js")
+
+
+def test_a_missing_asset_is_a_404_naming_it_not_a_crash(served, tmp_path, monkeypatch):
+    _, store = served
+    monkeypatch.setattr("symbiont.service.dashboard_page.STATIC", tmp_path)
+
+    page = dashboard_page(store, None, "/dashboard/topics.js", TODAY)
+
+    assert page.status == 404 and b"topics.js" in page.body
+
+
+@pytest.mark.parametrize(
+    "view", ["inbox", "topics", "trends", "struggle", "context", "replay", "nonsense"]
+)
+def test_the_page_answers_every_view_link_with_the_same_page(served, view):
+    base, _ = served
+
+    status, html, _ = get(f"{base}/dashboard?view={view}")
+
+    assert status == 200 and 'id="subnav"' in html
+
+
+def test_the_page_script_honors_the_view_parameter_and_boots_into_the_chosen_stage():
+    script = (STATIC / "dashboard.js").read_text(encoding="utf-8")
+    views = (STATIC / "views.js").read_text(encoding="utf-8")
+
+    assert "go(views.stage)" in script and "routeFrom(location.search" in views
+    assert "coming soon" in views and "SymbiontTopics" in views and "SymbiontTrends" in views
+
+
+def test_every_tooltip_reader_goes_through_the_shared_sanitizer():
+    for name in ("dashboard.js",):  # topics.js shows no tip of its own
+        script = (STATIC / name).read_text(encoding="utf-8")
+        assert "SymbiontTip.safe(" in script and ".innerHTML=el.getAttribute" not in script
+        assert "innerHTML=t.dataset.tip" not in script

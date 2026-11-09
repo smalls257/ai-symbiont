@@ -11,26 +11,29 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from symbiont.delivery.hook_profiles import ProjectNaming, profile
 from symbiont.delivery.hook_trace import record_outcome, record_received, trace_path
+from symbiont.delivery.hook_vocab import HookEvent, NoteStyle, NoteVisibility
 from symbiont.delivery.hooks import (
     AUTO,
-    CLAUDE_CODE,
-    MUSE_CODE,
-    HookEvent,
     HookInputError,
     HookSettings,
-    NoteStyle,
-    NoteVisibility,
     resolve_harness,
     run_hook,
 )
 from symbiont.delivery.launch import DEFAULT_DATA_DIR, reviving_call
+from symbiont.delivery.project_identity import RegistryUnreadableError, known_projects
 from symbiont.delivery.recall import ServiceRefusedError, ServiceReplyError
 from symbiont.delivery.stdio import use_utf8_lf_stdio
 from symbiont.delivery.stop_hook import run_stop
 from symbiont.egress.policy import LOCAL_SERVICE_PORT
+from symbiont.readers.harnesses import HARNESSES, UnknownHarnessError
 
-HARNESS_CHOICES = (AUTO, CLAUDE_CODE, MUSE_CODE)
+HARNESS_CHOICES = (AUTO, *(entry.id for entry in HARNESSES))
+UNKNOWN_HARNESS_LINE = (
+    "symbiont: cannot tell which harness runs this hook; "
+    "reinstall the plugin or pass --harness <id>"
+)
 
 
 def add_hook_arguments(parser: argparse.ArgumentParser) -> None:
@@ -55,15 +58,27 @@ def forward_hook(args: argparse.Namespace, stdin_text: str) -> int:
     """Forward one hook event and print what the harness should show; always returns 0."""
     trace = trace_path(os.environ, args.data_dir)
     record_received(trace, args.event, stdin_text)
-    harness = resolve_harness(args.harness, os.environ)
-    settings = HookSettings(harness, args.notes, args.port, args.project, args.visibility)
     try:
+        harness = resolve_harness(args.harness, os.environ)
+    except UnknownHarnessError:
+        return _say_unusable(trace, args.event, UNKNOWN_HARNESS_LINE)
+    try:
+        names_from_git = profile(harness.id).project_naming is ProjectNaming.GIT_ROOT_WHEN_KNOWN
+        known = known_projects(args.data_dir) if names_from_git else frozenset()
+        settings = HookSettings(
+            harness.id, args.notes, args.port, args.project, args.visibility, known
+        )
         call = reviving_call(args.data_dir, args.port)
         if args.event is HookEvent.STOP:
             result = run_stop(stdin_text, settings, call)
         else:
             result = run_hook(args.event, stdin_text, settings, call)
-    except (HookInputError, ServiceRefusedError, ServiceReplyError) as unusable:
+    except (
+        HookInputError,
+        RegistryUnreadableError,
+        ServiceRefusedError,
+        ServiceReplyError,
+    ) as unusable:
         record_outcome(trace, args.event, "dropped", f"{type(unusable).__name__}: {unusable}")
         sys.stderr.write(f"symbiont hook {args.event}: {unusable}\n")
         said = {"systemMessage": f"symbiont could not use {args.event}: {unusable}"}
@@ -77,6 +92,14 @@ def forward_hook(args: argparse.Namespace, stdin_text: str) -> int:
         sys.stderr.write(result.warning + "\n")
     if result.context:
         sys.stdout.write(result.context + "\n")
+    return 0
+
+
+def _say_unusable(trace: Path | None, event: HookEvent, line: str) -> int:
+    """Show a visible line for a hook that cannot run; the harness is never blocked."""
+    record_outcome(trace, event, "dropped", line)
+    sys.stderr.write(line + "\n")
+    sys.stdout.write(json.dumps({"systemMessage": line}) + "\n")
     return 0
 
 

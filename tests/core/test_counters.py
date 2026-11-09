@@ -150,3 +150,20 @@ def test_normalised_command_matches_a_real_shaped_failed_command_key():
     ]
     d = c.decide(X, situation(spelled, [pain(real, 1), pain(real, 2)]), None)
     assert d.trouble == real
+
+
+REVIEW = Signature(Signal.REVIEW_FLAG, ("src/batch.ts", "CodeRabbit", "Batch the deletes."))
+CORRECTED = Signature(Signal.CORRECTION, ("src/batch.ts", "no use the bulk endpoint"))
+
+
+def _warns(signature, sightings):
+    history = [pain(signature, step=1, session_id=f"past{n}") for n in range(sightings)]
+    c = Counters()
+    return c.decide(X, situation([edit("src/batch.ts")], history), None).trouble == signature
+
+
+def test_a_review_flag_warns_exactly_when_a_correction_would():
+    # A person spoke in both; the live learner treats them alike (review I2).
+    for sightings in (1, 2):
+        assert _warns(REVIEW, sightings) == _warns(CORRECTED, sightings)
+    assert not _warns(REVIEW, 1) and _warns(REVIEW, 2)

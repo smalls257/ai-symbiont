@@ -1,39 +1,77 @@
 """Reader for Claude Code session logs (JSONL, one event per line).
 
-A tool result travels in the `raw` of the action it answers; SWE-chat's
-`prompt_pushback` becomes the "correction" tag. Metadata events are counted per
-type and logged; a non-conversation event that carries a `message` raises ReadError.
-`read` is for the owner's private sessions: unknown privacy is never shareable.
+A tool result travels in the `raw` of the action it answers. A tool call the tool itself would
+reject is kept as a refused action; unmineable content is skipped, counted and logged; any
+other malformed shape raises ReadError. `read` is for private sessions: never shareable.
 """
 
-import difflib
 import json
 import logging
 import re
 from collections import Counter
 from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any
 
+from symbiont.readers.claude_code_fields import (
+    MalformedError,
+    RefusedCallError,
+    optional_text,
+    origin_kind,
+    require,
+    require_text,
+)
+from symbiont.readers.claude_code_skips import REFUSED_CALLS, report_skips
+from symbiont.readers.claude_code_tags import (
+    TITLE_EVENT,
+    branch_tags,
+    fallback_title,
+    pushback_tags,
+    remember_title,
+    session_title,
+)
+from symbiont.readers.claude_code_tools import TOOLS, make_relative, other_tool, refused_call
 from symbiont.readers.errors import ReadError
-from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAME, split_our_output
+from symbiont.records.ours import OUR_OUTPUT_RECORD_TAG, RECALL_TOOL_NAMES, split_our_output
 from symbiont.records.output_failure import exit_code_with_output
 from symbiont.records.schema import Kind, Provenance, Record
+from symbiont.records.session_tags import CREATED_TAG, title_tag
 
 HARNESS = "claude-code"
-PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", spark_safe=False)
-SWE_CHAT = Provenance(dataset="swe-chat", license="see-dataset-card", spark_safe=False)
-OPEN_SWE_TRACES = Provenance(dataset="open-swe-traces", license="see-dataset-card", spark_safe=True)
+PRIVATE_SESSIONS = Provenance(dataset="private-sessions", license="none", remote_safe=False)
+SWE_CHAT = Provenance(dataset="swe-chat", license="see-dataset-card", remote_safe=False)
+OPEN_SWE_TRACES = Provenance(
+    dataset="open-swe-traces", license="see-dataset-card", remote_safe=True
+)
 
-CORRECTION = "correction"
 _CONVERSATION_TYPES = ("user", "assistant")
 logger = logging.getLogger(__name__)
 _EXIT_CODE = re.compile(r"^Exit code (-?\d+)")
-
-
-class _MalformedError(Exception):
-    """Internal: an event is not in the shape this reader knows. Becomes a ReadError."""
+# Fields Claude Code sets on user events that are not the developer's own typing.
+_NOT_TYPED_FLAGS = {
+    "isCompactSummary": "compaction summary",
+    "isMeta": "caveat or meta line",
+    "isSidechain": "sidechain prompt",
+}
+# Claude Code logs the API requests it sends as events whose `message` is the request body.
+# They are bookkeeping, not turns: skip and count them. Any other non-conversation type with a
+# message is still new conversation-shaped content and raises.
+_REQUEST_LOG_TYPES = ("api-request-blob", "api-request", "api-request-shape")
+# `origin.kind` of user events other than the developer's typing: background-agent notifications
+# and other sessions' messages arrive as user events but are not the developer's words. Any
+# kind not named here is counted under its own name.
+_HUMAN_ORIGIN = "human"
+_INJECTED_ORIGINS = {
+    "task-notification": "task notification",
+    "peer": "message from another session",
+}
+# Claude Code's Write answers "File created successfully at: ..." for a new file and
+# "The file ... has been updated successfully" for an existing one (counted on real logs).
+UNPARSED_MARKER = "_swe_chat_unparsed"
+UNPARSED_SKIP = "line the dataset could not parse"
+_CREATED = re.compile(r"^File created successfully at:")
+Skips = Counter[str]
 
 
 def session_logs(repo_dir: Path, home: Path) -> list[Path]:
@@ -54,39 +92,76 @@ def project_folder_name(repo_path: str) -> str:
 
 
 def read(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of the owner's private sessions (never spark safe)."""
+    """Yield records of the owner's private sessions (never remote safe)."""
     return _read(path, project, PRIVATE_SESSIONS)
 
 
 def read_swe_chat(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of SWE-chat sessions (never spark safe)."""
-    return _read(path, project, SWE_CHAT)
+    """Yield records of SWE-chat sessions (never remote safe).
+
+    A line holding only `_swe_chat_unparsed`, or valid JSON that is not an object, is the dataset
+    exporter's own failure: skipped and counted, the source never had an event there to read.
+    """
+    return _read(path, project, SWE_CHAT, unparsed_marker=UNPARSED_MARKER)
 
 
 def read_open_swe_traces(path: Path, project: str) -> Iterator[Record]:
-    """Yield records of public Open-SWE-Traces Claude Code rows (spark safe)."""
+    """Yield records of public Open-SWE-Traces Claude Code rows (remote safe)."""
     return _read(path, project, OPEN_SWE_TRACES)
 
 
-def _read(path: Path, project: str, provenance: Provenance) -> Iterator[Record]:
+def _read(
+    path: Path, project: str, provenance: Provenance, unparsed_marker: str | None = None
+) -> Iterator[Record]:
     """Yield one session's records; each tool result is folded into the action it answers."""
-    events = _conversation_events(Path(path))
+    titles: dict[str, str] = {}
+    events = _conversation_events(Path(path), titles, unparsed_marker)
     results = _results_by_call(path, events)
     source = _Source(project, provenance)
     steps: dict[str, int] = {}
+    skips: Skips = Counter()
+    records: list[Record] = []
     for line_no, event in events:
         try:
-            for fields in _event_records(event, results):
-                session_id = _require_text(event, "sessionId")
+            for fields in _event_records(event, results, skips):
+                session_id = require_text(event, "sessionId")
                 step = steps.get(session_id, 0)
                 steps[session_id] = step + 1
-                yield _record(event, source, session_id, step, fields)
-        except _MalformedError as exc:
+                fields["tags"] = (*fields.get("tags", ()), *branch_tags(event))
+                records.append(_record(event, source, session_id, step, fields))
+        except MalformedError as exc:
             raise ReadError(path, line_no, str(exc)) from exc
+    report_skips(path, skips)
+    yield from _titled(records, titles)
 
 
-def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
-    """User and assistant events; metadata events are counted and logged, not dropped silently."""
+def _titled(records: list[Record], titles: dict[str, str]) -> list[Record]:
+    """Each session's first user turn gains its title tag (see `session_title`).
+
+    Done after the pass because the first typed non-command turn may come after a slash command.
+    """
+    first_turns: dict[str, int] = {}
+    typed: dict[str, str] = {}
+    for index, record in enumerate(records):
+        if record.kind != Kind.USER_TURN:
+            continue
+        first_turns.setdefault(record.session_id, index)
+        title = fallback_title(record.raw)
+        if title:
+            typed.setdefault(record.session_id, title)
+    for session_id, index in first_turns.items():
+        tag = title_tag(session_title(session_id, titles, typed))
+        records[index] = replace(records[index], tags=(*records[index].tags, tag))
+    return records
+
+
+def _conversation_events(
+    path: Path, titles: dict[str, str], unparsed_marker: str | None
+) -> list[tuple[int, dict[str, Any]]]:
+    """User and assistant events; metadata events are counted and logged, not dropped silently.
+
+    The session titles `ai-title` events carry are put into `titles`.
+    """
     events = []
     skipped: Counter[str] = Counter()
     with path.open(encoding="utf-8") as fh:
@@ -95,10 +170,14 @@ def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
                 event = json.loads(line)
             except json.JSONDecodeError as exc:
                 raise ReadError(path, line_no, f"not valid JSON ({exc.msg})") from exc
+            if unparsed_marker and _is_export_artifact(event, unparsed_marker):
+                skipped[UNPARSED_SKIP] += 1
+                continue
             if not isinstance(event, dict):
                 raise ReadError(path, line_no, "a line must hold one event object")
             if _is_metadata(path, line_no, event):
                 skipped[event["type"]] += 1
+                _keep_title(path, line_no, event, titles)
             else:
                 events.append((line_no, event))
     if skipped:
@@ -106,8 +185,22 @@ def _conversation_events(path: Path) -> list[tuple[int, dict[str, Any]]]:
     return events
 
 
+def _is_export_artifact(line: Any, marker: str) -> bool:
+    """True for a SWE-chat line the exporter broke: only the marker key, or not an object at all."""
+    return not isinstance(line, dict) or set(line) == {marker}
+
+
+def _keep_title(path: Path, line_no: int, event: dict[str, Any], titles: dict[str, str]) -> None:
+    """Remember a session's title; a malformed `ai-title` event raises ReadError."""
+    try:
+        if event["type"] == TITLE_EVENT:
+            remember_title(event, titles)
+    except MalformedError as exc:
+        raise ReadError(path, line_no, str(exc)) from exc
+
+
 def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
-    """True for non-conversation events without a message; one with a message raises ReadError."""
+    """True for bookkeeping events; an unknown type carrying a message raises ReadError."""
     kind = event.get("type")
     if not isinstance(kind, str):
         message = "missing 'type'" if kind is None else "'type' must be a string"
@@ -117,7 +210,7 @@ def _is_metadata(path: Path, line_no: int, event: dict[str, Any]) -> bool:
         if not has_message:
             raise ReadError(path, line_no, f"{kind!r} event has no 'message'")
         return False
-    if has_message:
+    if has_message and kind not in _REQUEST_LOG_TYPES:
         raise ReadError(path, line_no, f"unknown event type {kind!r}")
     return True
 
@@ -130,7 +223,7 @@ def _results_by_call(
     for line_no, event in events:
         try:
             results.update(_event_results(event))
-        except _MalformedError as exc:
+        except MalformedError as exc:
             raise ReadError(path, line_no, str(exc)) from exc
     return results
 
@@ -138,44 +231,19 @@ def _results_by_call(
 def _event_results(event: dict[str, Any]) -> dict[str, dict[str, Any]]:
     """The tool_result blocks of one event, by tool_use id."""
     return {
-        _require_text(block, "tool_use_id"): block
+        require_text(block, "tool_use_id"): block
         for block in _blocks(event)
         if block.get("type") == "tool_result"
     }
 
 
-def _require(mapping: Any, key: str) -> Any:
-    """The mapping's value for `key`; a missing or null one raises _MalformedError."""
-    if not isinstance(mapping, dict) or mapping.get(key) is None:
-        raise _MalformedError(f"missing {key!r}")
-    return mapping[key]
-
-
-def _require_str(value: Any, field: str) -> str:
-    """The value if it is a string, else _MalformedError naming the field."""
-    if not isinstance(value, str):
-        raise _MalformedError(f"{field!r} must be a string, got {type(value).__name__}")
-    return value
-
-
-def _require_text(mapping: Any, key: str) -> str:
-    """The string under `key` in the mapping; missing or non-string raises _MalformedError."""
-    return _require_str(_require(mapping, key), key)
-
-
-def _optional_text(mapping: dict[str, Any], key: str) -> str:
-    """A field the harness may omit; empty then, but never a non-string."""
-    value = mapping.get(key)
-    return "" if value is None else _require_str(value, key)
-
-
 def _blocks(event: dict[str, Any]) -> list[dict[str, Any]]:
     """The event's content as blocks; bare text becomes one text block."""
-    content = _require(_require(event, "message"), "content")
+    content = require(require(event, "message"), "content")
     if isinstance(content, str):
         return [{"type": "text", "text": content}]
     if not isinstance(content, list) or not all(isinstance(b, dict) for b in content):
-        raise _MalformedError("message 'content' must be text or a list of blocks")
+        raise MalformedError("message 'content' must be text or a list of blocks")
     return content
 
 
@@ -196,7 +264,7 @@ def _record(
         project=source.project,
         session_id=session_id,
         step=step,
-        ts=_optional_text(event, "timestamp") or None,
+        ts=optional_text(event, "timestamp") or None,
         provenance=source.provenance,
         **fields,
     )
@@ -206,69 +274,97 @@ def _record(
 
 
 def _event_records(
-    event: dict[str, Any], results: dict[str, dict[str, Any]]
+    event: dict[str, Any], results: dict[str, dict[str, Any]], skips: Skips
 ) -> Iterator[dict[str, Any]]:
     """The shaped fields of each record one event yields."""
-    _optional_text(event, "cwd")
+    optional_text(event, "cwd")
     if event["type"] == "user":
-        yield from _user_turns(event)
+        yield from _user_turns(event, skips)
     else:
-        yield from _assistant_records(event, results)
+        yield from _assistant_records(event, results, skips)
 
 
-def _user_turns(event: dict[str, Any]) -> Iterator[dict[str, Any]]:
+def _user_turns(event: dict[str, Any], skips: Skips) -> Iterator[dict[str, Any]]:
     """The user's text as one turn; events holding only tool results yield nothing."""
-    texts = [_require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
+    for flag, label in _NOT_TYPED_FLAGS.items():
+        if event.get(flag) is True:
+            skips[label] += 1  # the harness wrote it, the developer did not: no correction signal
+            return
+    injected = _injected_label(event)
+    if injected is not None:
+        skips[injected] += 1  # another process wrote it: quoting it as the developer would be false
+        return
+    texts = [require_text(b, "text") for b in _blocks(event) if b.get("type") == "text"]
     if not texts:
         return  # tool results only: they are folded into the action they answer
-    yield {"kind": Kind.USER_TURN, "raw": "\n".join(texts), "tags": _pushback_tags(event)}
+    yield {"kind": Kind.USER_TURN, "raw": "\n".join(texts), "tags": pushback_tags(event)}
 
 
-def _pushback_tags(event: dict[str, Any]) -> tuple[str, ...]:
-    """`correction` when SWE-chat marked the turn as pushback; any other flag value raises."""
-    flag = event.get("prompt_pushback")
-    if flag is None or flag is False or flag == "":
-        return ()
-    if flag is True or isinstance(flag, str):
-        return (CORRECTION,)
-    raise _MalformedError(f"prompt_pushback must be true/false or a label, got {flag!r}")
+def _injected_label(event: dict[str, Any]) -> str | None:
+    """Why a user event with a non-human `origin` is skipped; None for human or origin-less ones."""
+    kind = origin_kind(event)
+    if kind is None or kind == _HUMAN_ORIGIN:
+        return None
+    return _INJECTED_ORIGINS.get(kind, kind)
 
 
 def _assistant_records(
-    event: dict[str, Any], results: dict[str, dict[str, Any]]
+    event: dict[str, Any], results: dict[str, dict[str, Any]], skips: Skips
 ) -> Iterator[dict[str, Any]]:
     """Text, thinking and tool_use blocks as records, each action carrying its result."""
-    cwd = _optional_text(event, "cwd") or None
+    cwd = optional_text(event, "cwd") or None
     for block in _blocks(event):
         kind = block.get("type")
         if kind == "text":
-            yield {"kind": Kind.AGENT_TURN, "raw": _require_text(block, "text")}
+            yield {"kind": Kind.AGENT_TURN, "raw": require_text(block, "text")}
         elif kind == "tool_use":
-            yield from _tool_use(block, results.get(_require_text(block, "id")), cwd)
+            yield from _tool_use(block, results.get(require_text(block, "id")), cwd, skips)
         elif kind != "thinking":
-            raise _MalformedError(f"unknown assistant block type {kind!r}")
+            skips[f"unknown block type {kind}"] += 1
 
 
 def _tool_use(
-    block: dict[str, Any], result: dict[str, Any] | None, cwd: str | None
+    block: dict[str, Any], result: dict[str, Any] | None, cwd: str | None, skips: Skips
 ) -> Iterator[dict[str, Any]]:
     """The harness's action, then our own text from its result as a separate record."""
-    name = _require_text(block, "name")
-    args = _require(block, "input")
+    name = require_text(block, "name")
+    args = require(block, "input")
     if not isinstance(args, dict):
-        raise _MalformedError(f"tool input of {name!r} must be an object")
+        raise MalformedError(f"tool input of {name!r} must be an object")
+    if name == "Edit" and "old_string" not in args:
+        skips["Edit without old_string"] += 1  # no snippet to diff; not a known edit shape
+        return
     text = _result_content(result)
     # Our recall answer is ours from the first character.
-    own, ours = ("", text) if name == RECALL_TOOL_NAME else split_our_output(text)
-    fields = _TOOLS.get(name, _other_tool)(name, args, _make_relative(cwd))
+    own, ours = ("", text) if name in RECALL_TOOL_NAMES else split_our_output(text)
+    relative = make_relative(cwd)
+    try:
+        fields = _action_fields(name, args, relative, own, result)
+    except RefusedCallError as exc:
+        skips[REFUSED_CALLS] += 1
+        fields = {**refused_call(name, args, relative), "raw": own or str(exc)}
+    yield fields
+    if ours:
+        yield {"kind": Kind.TOOL_RESULT, "raw": ours, "tags": (OUR_OUTPUT_RECORD_TAG,)}
+
+
+def _action_fields(
+    name: str,
+    args: dict[str, Any],
+    relative: Callable[[str], str],
+    own: str,
+    result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """The record fields of one tool call; raises RefusedCallError when the tool would reject it."""
+    fields = TOOLS.get(name, other_tool)(name, args, relative)
     fields["raw"] = own
     code = _exit_code(fields["kind"], result, own)
     if fields["kind"] == Kind.COMMAND:
         code = exit_code_with_output(str(fields.get("command") or ""), own, code)
     fields["exit_code"] = code
-    yield fields
-    if ours:
-        yield {"kind": Kind.TOOL_RESULT, "raw": ours, "tags": (OUR_OUTPUT_RECORD_TAG,)}
+    if name == "Write" and _CREATED.match(own):
+        fields["tags"] = (CREATED_TAG,)
+    return fields
 
 
 def _result_content(result: dict[str, Any] | None) -> str:
@@ -276,13 +372,13 @@ def _result_content(result: dict[str, Any] | None) -> str:
     if result is None:
         return ""
     if not isinstance(result.get("is_error", False), bool):
-        raise _MalformedError("'is_error' must be true or false")
+        raise MalformedError("'is_error' must be true or false")
     content = result.get("content")
     if content is None or isinstance(content, str):
         return content or ""
     if isinstance(content, list) and all(isinstance(b, dict) for b in content):
-        return "\n".join(_optional_text(b, "text") for b in content)
-    raise _MalformedError("tool_result 'content' must be text or a list of blocks")
+        return "\n".join(optional_text(b, "text") for b in content)
+    raise MalformedError("tool_result 'content' must be text or a list of blocks")
 
 
 def _exit_code(kind: Kind, result: dict[str, Any] | None, raw: str) -> int | None:
@@ -295,106 +391,3 @@ def _exit_code(kind: Kind, result: dict[str, Any] | None, raw: str) -> int | Non
             return int(found.group(1))
         return None if result.get("is_error") else 0
     return 1 if result.get("is_error") else 0
-
-
-# --- tools ---------------------------------------------------------------------
-
-
-def _make_relative(cwd: str | None) -> Callable[[str], str]:
-    """A function that strips the session's cwd from absolute paths."""
-
-    def relative(path: str) -> str:
-        """The path relative to the session's cwd when it is inside it."""
-        if cwd and path.startswith(cwd.rstrip("/") + "/"):
-            return path[len(cwd.rstrip("/")) + 1 :]
-        return path
-
-    return relative
-
-
-def _bash(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """A shell command action."""
-    return {"kind": Kind.COMMAND, "command": _require_text(args, "command")}
-
-
-def _read_file(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """A file-view action with the lines shown."""
-    return {
-        "kind": Kind.READ,
-        "files": (relative(_require_text(args, "file_path")),),
-        "line_range": _read_range(args),
-    }
-
-
-def _read_range(args: dict[str, Any]) -> tuple[int, int] | None:
-    """(first, last) line shown from offset and limit; None for a whole-file read."""
-    offset, limit = args.get("offset"), args.get("limit")
-    if offset is None and limit is None:
-        return None
-    if not all(isinstance(v, int) for v in (offset or 1, limit or 1)):
-        raise _MalformedError(f"Read offset and limit must be integers, got {offset!r}, {limit!r}")
-    first = offset or 1
-    return (first, first + limit - 1) if limit else (first, -1)
-
-
-def _edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """An edit action with a snippet-level diff."""
-    path = relative(_require_text(args, "file_path"))
-    pairs = [(_require_text(args, "old_string"), _optional_text(args, "new_string"))]
-    return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
-
-
-def _multi_edit(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """One edit action for a MultiEdit call, its diffs joined in order."""
-    path = relative(_require_text(args, "file_path"))
-    edits = _require(args, "edits")
-    if not isinstance(edits, list):
-        raise _MalformedError("MultiEdit 'edits' must be a list")
-    pairs = [(_require_text(e, "old_string"), _optional_text(e, "new_string")) for e in edits]
-    return {"kind": Kind.EDIT, "files": (path,), "diff": _diff(path, pairs, f"a/{path}")}
-
-
-def _write(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """A whole-file write as an edit against /dev/null."""
-    path = relative(_require_text(args, "file_path"))
-    return {
-        "kind": Kind.EDIT,
-        "files": (path,),
-        "diff": _diff(path, [("", _require_text(args, "content"))], "/dev/null"),
-    }
-
-
-def _notebook_edit(
-    name: str, args: dict[str, Any], relative: Callable[[str], str]
-) -> dict[str, Any]:
-    """A notebook edit action; the previous cell text is not logged, so there is no diff."""
-    return {"kind": Kind.EDIT, "files": (relative(_require_text(args, "notebook_path")),)}
-
-
-def _other_tool(name: str, args: dict[str, Any], relative: Callable[[str], str]) -> dict[str, Any]:
-    """Search, planning and MCP tools: kept as results so nothing is dropped."""
-    return {"kind": Kind.TOOL_RESULT, "command": name}
-
-
-def _diff(path: str, pairs: list[tuple[str, str]], old_name: str) -> str:
-    """Unified diff of each old/new pair, labeled with the file's path."""
-    # Claude Code does not record where old_string sits; hunk numbers are snippet-relative.
-    return "".join(
-        "".join(difflib.unified_diff(_lines(old), _lines(new), old_name, f"b/{path}"))
-        for old, new in pairs
-    )
-
-
-def _lines(text: str) -> list[str]:
-    """Text split into newline-terminated lines for difflib."""
-    return [line + "\n" for line in text.splitlines()]
-
-
-_TOOLS: dict[str, Callable[[str, dict[str, Any], Callable[[str], str]], dict[str, Any]]] = {
-    "Bash": _bash,
-    "Read": _read_file,
-    "Edit": _edit,
-    "MultiEdit": _multi_edit,
-    "Write": _write,
-    "NotebookEdit": _notebook_edit,
-}

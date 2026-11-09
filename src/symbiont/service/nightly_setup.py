@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from symbiont.readers.harnesses import PLUGIN_SOURCE
 from symbiont.service.nightly_kit import BASE, BASE_MARKER, GENERAL_ROWS, HABITS, read_rows
 from symbiont.service.nightly_run import Runner
 
@@ -54,9 +55,7 @@ DOWNLOAD_KIT = (
     f"run `huggingface-cli download {KIT_REPO} --include '{KIT_FOLDER}/*' "
     f"--local-dir <folder>` and pass <folder>/{KIT_FOLDER} as --kit-files"
 )
-INSTALL_NIGHTLY = (
-    "uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'"
-)
+INSTALL_NIGHTLY = f"uv tool install 'ai-symbiont[nightly] @ git+{PLUGIN_SOURCE}'"
 SETUP_STEPS = (
     "build it once (about 2.5 GB and 100 MB of downloads; nothing else is needed): "
     f"1. accept Meta's license on https://huggingface.co/{BASE_MODEL} and run "

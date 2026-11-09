@@ -14,7 +14,10 @@ from symbiont.miner.resolutions import (
     NO_LATER_SUCCESS,
     NOTHING_CHANGED,
     ONLY_UNRELATED_CHANGED,
+    PASSED_RESPELLED,
     Resolution,
+    Unresolved,
+    reason_of,
     resolution_of,
 )
 from symbiont.miner.signals.failed_command import find_failed_commands
@@ -153,13 +156,81 @@ def test_the_same_npm_script_passing_later_still_matches():
     assert resolve(records) == NOTHING_CHANGED
 
 
-@pytest.mark.parametrize("tool", ["uv run", "docker run", "cargo run"])
+@pytest.mark.parametrize("tool", ["docker run", "cargo run"])
 def test_other_run_commands_compare_as_before(tool):
     records = session(run(f"{tool} app", 1, BROKE), run(f"{tool} other", 0, "ok"))
     assert steps_of(resolve(records)) == [f"{tool} other"]
 
 
-@pytest.mark.parametrize("tool", ["npm", "yarn", "pnpm"])
-def test_the_script_is_part_of_the_subcommand_for_js_tools(tool):
+@pytest.mark.parametrize("tool", ["npm", "yarn", "pnpm", "uv"])
+def test_the_script_is_part_of_the_subcommand_for_script_runners(tool):
     records = session(run(f"{tool} run build", 1, BROKE), run(f"{tool} run lint", 0, "ok"))
     assert resolve(records) == NO_LATER_SUCCESS
+
+
+# --- a shown fix, never a re-spelling ---------------------------------------------------
+
+NO_TESTS = "collected 0 items\n\nno tests ran in 0.01s"
+RED = "E   assert 1 == 2\n1 failed"
+
+
+def test_a_pass_respelled_with_nothing_changed_is_unresolved_not_a_fix():
+    records = session(run(TEST, 1, RED), run(f"{TEST} -x -k parse", 0, "1 passed"))
+    found = resolve(records)
+    assert reason_of(found) == PASSED_RESPELLED
+    assert not isinstance(found, Resolution)
+
+
+def test_a_corrected_invocation_is_a_known_fix():
+    records = session(
+        run("pytest tests/test_x.py", 5, NO_TESTS), run("pytest tests/dialects/test_x.py", 0, "ok")
+    )
+    assert steps_of(resolve(records)) == ["pytest tests/dialects/test_x.py"]
+
+
+def test_an_edit_made_alongside_is_never_the_fix():
+    records = session(run(TEST, 1, RED), edit("docs/changelog.md"), run(TEST, 0, "1 passed"))
+    found = resolve(records)
+    assert isinstance(found, Unresolved) and not isinstance(found, Resolution)
+    assert [r.files for r in found.alongside] == [("docs/changelog.md",)]
+
+
+def test_a_failure_is_resolved_from_its_own_session_only():
+    failed = session(run(TEST, 1, RED))
+    later = [replace(r, session_id="later") for r in session(run(TEST, 0, "1 passed"))]
+    assert resolve(failed + later) == NO_LATER_SUCCESS
+
+
+def test_a_pass_after_an_edit_to_the_failing_file_is_a_fix():
+    records = session(run(TEST, 1, BROKE_IN_PARSER), edit("sqlglot/parser.py"), run(TEST, 0, "ok"))
+    assert steps_of(resolve(records)) == [("sqlglot/parser.py",), TEST]
+
+
+def test_a_pass_after_a_different_preparing_command_is_a_fix():
+    records = session(run(TEST, 1, BROKE), run("pip install pyyaml"), run(TEST, 0, "ok"))
+    assert steps_of(resolve(records)) == ["pip install pyyaml", TEST]
+
+
+def test_each_lesson_is_resolved_against_its_own_session_records_only():
+    from symbiont.miner.lessons import lessons_from
+
+    one = session(run(TEST, 1, RED))
+    other = [replace(r, session_id="s2") for r in session(run(TEST, 0, "1 passed"))]
+    (lesson,) = lessons_from(find_failed_commands(one), one + other, frozenset())
+    assert lesson.unresolved_because == NO_LATER_SUCCESS
+
+
+def test_a_name_value_argument_is_not_the_subcommand():
+    from symbiont.miner.resolutions import subcommand_of
+
+    assert subcommand_of("make CC=gcc test") == "test"
+
+
+def test_a_pass_chained_after_a_fix_step_is_the_same_attempt():
+    from symbiont.miner.resolutions import later_success_of
+
+    failed = run("git add a.ts", 128, "fatal: Unable to create '.git/index.lock': File exists.")
+    s = session(failed, run("rm -f .git/index.lock && git add a.ts", 0, ""))
+    assert later_success_of(s[0], s) is s[1]
+    other = session(failed, run("rm -f .git/index.lock && git commit -m x", 0, ""))
+    assert later_success_of(other[0], other) is None

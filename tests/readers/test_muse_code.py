@@ -71,7 +71,7 @@ def test_prompts_and_answers_become_turns_and_other_lines_are_not_conversation(t
     ]
     assert [r.step for r in records] == [0, 1]
     assert records[0].harness == "muse-code" and records[0].project == "demo"
-    assert not records[0].provenance.spark_safe, "unknown privacy is never shareable"
+    assert not records[0].provenance.remote_safe, "unknown privacy is never shareable"
 
 
 def test_a_shell_call_carries_its_command_output_and_exit_status(tmp_path):

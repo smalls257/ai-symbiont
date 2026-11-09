@@ -78,7 +78,7 @@ def test_a_repository_with_no_record_keeps_the_plain_ranker_recall(tmp_path):
 
 def test_a_trained_repository_is_checked_and_the_event_names_the_checker(tmp_path):
     response = recall(trained_service(tmp_path, saying(0.99)))
-    assert response.body["answer"].startswith("What happened: ")
+    assert response.body["answer"].startswith("`tool7 module7` failed")
     checked = next(e["checked_by"] for e in events_of(tmp_path) if "checked_by" in e)
     assert checked == {
         "checker": "Llama 3.2 1B",
@@ -170,7 +170,8 @@ def test_the_dashboard_header_shows_the_last_checked_note(tmp_path):
     page = json.loads(html.split('id="symbiont-data">')[1].split("</script>")[0])
     last = page["nightly"]["last_checked"]
     assert (
-        last["note"].startswith("What happened: ") and "trained on 41 lessons" in last["sentence"]
+        last["note"].startswith("`tool7 module7` failed")
+        and "trained on 41 lessons" in last["sentence"]
     )
 
 

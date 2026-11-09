@@ -20,9 +20,16 @@ from symbiont.service.mining_jobs import (
     MiningWork,
     NoMiningJobError,
 )
-from symbiont.service.request_shapes import BadRequestError, mine_request_of, named_project
+from symbiont.service.request_shapes import (
+    BadRequestError,
+    checkout_of,
+    mine_request_of,
+    named_project,
+)
+from symbiont.store.checkouts import checkout_names, names_for
+from symbiont.store.held_back import MiningOutcome, held_back_sentence, held_by_reason
 from symbiont.store.local import Source
-from symbiont.store.mining import MiningRules, mine_sources
+from symbiont.store.mining import MiningRules, mine_sources, with_ignored, with_topics
 from symbiont.store.repos import RepoStance
 
 if TYPE_CHECKING:
@@ -54,13 +61,24 @@ class MineRoutes:
         known = self._parts.store.sources(project)
         new = [source for source in dict.fromkeys(wanted) if source not in known]
         every = [*known, *new]
+        names = self._checkout_names(request, project)
         started = self._jobs.start(
-            project, len(every), self._work(project, new, every), self._record_end(call)
+            project, len(every), self._work(project, new, every, names), self._record_end(call)
         )
         if started:
             self._parts.events.append(call, None, [], [f"mining {len(every)} logs"])
         progress = self._jobs.progress(project)
         return {"started": started, **(progress.as_json() if progress else {})}
+
+    def _checkout_names(self, request: dict[str, Any], project: str) -> frozenset[str]:
+        """The directory names `project`'s checkouts go by; a named checkout is remembered."""
+        registry = self._parts.gate.registry
+        checkout = checkout_of(request)
+        if checkout is None:
+            return names_for(registry, project)
+        if registry is not None:
+            registry.record_checkout(project, checkout)
+        return checkout_names(checkout)
 
     def progress(self, request: dict[str, Any]) -> dict[str, Any]:
         """The POST form of the progress answer, for clients that can only POST.
@@ -80,17 +98,20 @@ class MineRoutes:
             return Page(404, JSON_TYPE, json.dumps({"error": _NO_JOB.format(project)}).encode())
         return Page(200, JSON_TYPE, json.dumps(found.as_json()).encode())
 
-    def _work(self, project: str, new: list[Source], every: list[Source]) -> MiningWork:
+    def _work(
+        self, project: str, new: list[Source], every: list[Source], names: frozenset[str]
+    ) -> MiningWork:
         """The job body: mine every log, then save under the service lock."""
         setup = self._parts
-        rules = MiningRules(setup.readers, setup.held_out_tasks)
+        rules = with_ignored(mining_rules(setup, project, names), setup.store, project)
+        rules = with_topics(rules, setup.store, project)
 
-        def work(report: Callable[[list[Lesson]], None]) -> list[Lesson]:
+        def work(report: Callable[[list[Lesson]], None]) -> MiningOutcome:
             """Read and mine without the lock; store only when the whole run succeeded."""
-            lessons = mine_sources(every, rules, report)
+            outcome = mine_sources(every, rules, report)
             with self._lock:
-                setup.store.save_mining(project, new, lessons, held_out_tasks=setup.held_out_tasks)
-            return lessons
+                setup.store.mined.save(project, new, outcome, held_out_tasks=setup.held_out_tasks)
+            return outcome
 
         return work
 
@@ -104,9 +125,18 @@ class MineRoutes:
                     self._parts.events.append_failure(call, 500, end.error or "mining failed")
                     return
                 done = f"mined {end.sessions_total} logs into {end.lessons} lessons"
+                if end.held_back:
+                    done += "; " + held_back_sentence(held_by_reason(end.held_back))
                 self._parts.events.append(call, None, [], [done])
 
         return record
+
+
+def mining_rules(parts: "ServiceParts", project: str, names: frozenset[str]) -> MiningRules:
+    """How `project` is mined now: the service's readers, hold-out and screening, its checkouts."""
+    return MiningRules(
+        parts.readers, parts.held_out_tasks, screen=parts.screen_rules(), repo_names=names
+    )
 
 
 _NO_JOB = "no mining has run for {} since the service started"

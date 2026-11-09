@@ -10,6 +10,7 @@ from datetime import date
 import pytest
 
 from record_builders import edit, run, session
+from store_builders import save_lessons
 from symbiont.miner.lesson_context import Review, ReviewOverride, Verdict
 from symbiont.miner.lessons import lessons_from
 from symbiont.miner.mine import mine_history, sessions_of
@@ -28,13 +29,13 @@ def pytest_lessons():
         run("pytest tests/test_refund.py -q", 0, "1 passed"),
     )
     steps = [replace(step, project="demo", session_id="s1") for step in steps]
-    return lessons_from(mine_history(sessions_of(steps), {}), steps)
+    return lessons_from(mine_history(sessions_of(steps), {}), steps, frozenset())
 
 
 def rig(tmp_path):
     (lesson,) = pytest_lessons()
     store = Store.open(tmp_path / "s.db")
-    store.save_mining("demo", [], [lesson], held_out_tasks=frozenset())
+    save_lessons(store, "demo", [], [lesson], held_out_tasks=frozenset())
     store.curation.save_review("demo", lesson_id(lesson), Review(Verdict.NOISE))
     return store, lesson, lesson_id(lesson)
 
