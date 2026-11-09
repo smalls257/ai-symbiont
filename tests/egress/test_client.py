@@ -1,4 +1,4 @@
-"""post_json checks policy before sending, logs sizes and provenance but never text, and raises."""
+"""post_json checks policy before sending, logs sizes but never text, and raises."""
 
 import json
 import logging
@@ -7,13 +7,10 @@ import urllib.request
 import pytest
 
 from symbiont.egress import Destination, EgressRefusedError, Endpoint, post_json
-from symbiont.records.schema import Provenance
 
-SAFE = Provenance(dataset="openhands", license="MIT", remote_safe=True)
-PRIVATE = Provenance(dataset="owner-sessions", license="private", remote_safe=False)
 SECRET_TEXT = "the quick brown fox is private prompt text"
 GLIMMER = Destination(Endpoint.LOCAL_GLIMMER, "http://127.0.0.1:8081/v1/chat/completions")
-REMOTE = Destination(Endpoint.REMOTE_CHAT, "https://api.meta.ai/v1")
+PUBLIC = Destination(Endpoint.LOCAL_SERVICE, "https://api.meta.ai/v1")
 
 
 class FakeTransport:
@@ -38,17 +35,17 @@ def test_a_local_post_sends_the_body_unchanged_and_returns_the_reply():
 def test_a_refused_send_raises_before_the_transport_is_touched():
     transport = FakeTransport({})
     with pytest.raises(EgressRefusedError):
-        post_json(REMOTE, {"p": SECRET_TEXT}, provenance=[PRIVATE], transport=transport)
+        post_json(PUBLIC, {"p": SECRET_TEXT}, transport=transport)
     assert transport.requests == []
 
 
-def test_the_log_holds_sizes_and_provenance_never_the_text(caplog):
+def test_the_log_holds_sizes_never_the_text(caplog):
     caplog.set_level(logging.INFO, logger="symbiont.egress")
-    post_json(REMOTE, {"p": SECRET_TEXT}, provenance=[SAFE], transport=FakeTransport({}))
+    post_json(GLIMMER, {"p": SECRET_TEXT}, transport=FakeTransport({}))
     with pytest.raises(EgressRefusedError):
-        post_json(REMOTE, {"p": SECRET_TEXT}, provenance=[PRIVATE], transport=FakeTransport({}))
+        post_json(PUBLIC, {"p": SECRET_TEXT}, transport=FakeTransport({}))
     logged = caplog.text
-    assert "bytes=" in logged and "openhands" in logged and "owner-sessions" in logged
+    assert "bytes=" in logged and "api.meta.ai" in logged and "local_glimmer" in logged
     assert "quick brown fox" not in logged
 
 
@@ -58,3 +55,9 @@ def test_a_transport_failure_propagates():
 
     with pytest.raises(TimeoutError):
         post_json(GLIMMER, {}, transport=broken)
+
+
+def test_a_local_post_carries_no_authorization_header():
+    transport = FakeTransport({})
+    post_json(GLIMMER, {}, transport=transport)
+    assert transport.requests[0][0].get_header("Authorization") is None

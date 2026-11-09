@@ -7,8 +7,8 @@ import pytest
 from symbiont.egress import EgressRefusedError
 from symbiont.egress.credentials import ApiKey
 from symbiont.egress.messages import Message
-from symbiont.egress.policy import Endpoint
 from symbiont.egress.remote_chat import Effort, RemoteChatSession, RemoteReplyError, provider
+from symbiont.egress.remote_send import RemoteEndpoint
 from symbiont.egress.spend import Ledger, SpendCapError, SpendCaps, Tier
 from symbiont.records.schema import Provenance
 
@@ -83,6 +83,6 @@ def test_a_turn_refuses_private_provenance_and_a_reply_without_usage(tmp_path):
 
 def test_a_wonder_session_names_the_wonder_endpoint(tmp_path):
     transport = FakeTransport(tool_reply())
-    remote = session(tmp_path, transport, endpoint=Endpoint.WONDER)
+    remote = session(tmp_path, transport, endpoint=RemoteEndpoint.WONDER)
     remote.converse(HISTORY, TOOLS, Effort.LOW, "w")
     assert transport.requests[0].full_url == "https://api.meta.ai/v1/chat/completions"

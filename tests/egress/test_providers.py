@@ -2,8 +2,8 @@
 
 import pytest
 
-from symbiont.egress.policy import REMOTE_HOSTS
 from symbiont.egress.remote_chat import PROVIDERS, UnknownProviderError, provider
+from symbiont.egress.remote_send import REMOTE_HOSTS
 
 
 def test_remote_hosts_are_exactly_the_providers_hosts():

@@ -14,14 +14,15 @@ from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Any
 
-from symbiont.egress.client import Transport, _urlopen, post_json
+from symbiont.egress.client import Transport, open_without_redirects
 from symbiont.egress.credentials import ApiKey
 from symbiont.egress.messages import Message, declared_provenance
-from symbiont.egress.policy import Destination, EgressRefusedError, Endpoint
+from symbiont.egress.policy import EgressRefusedError
 from symbiont.egress.providers import PROVIDERS as PROVIDERS
 from symbiont.egress.providers import RemoteProvider
 from symbiont.egress.providers import UnknownProviderError as UnknownProviderError
 from symbiont.egress.providers import provider as provider
+from symbiont.egress.remote_send import RemoteDestination, RemoteEndpoint, post_remote_json
 from symbiont.egress.spend import (
     Ledger,
     LedgerEntry,
@@ -133,10 +134,10 @@ class RemoteChatSession:
     key: ApiKey
     ledger: Ledger = field(default_factory=Ledger)
     provenance: tuple[Provenance, ...] = ()
-    transport: Transport = _urlopen
+    transport: Transport = open_without_redirects
     temperature: float | None = None  # None: the server's default
     system: str | None = None  # text of a system message sent before the prompt
-    endpoint: Endpoint = Endpoint.CONTRIBUTOR  # Wonder runs name Endpoint.WONDER
+    endpoint: RemoteEndpoint = RemoteEndpoint.CONTRIBUTOR  # Wonder runs name WONDER
     turn_max_tokens: int = DEFAULT_MAX_TOKENS  # room for reasoning plus a tool call per turn
 
     def chat(
@@ -193,7 +194,7 @@ class RemoteChatSession:
         """Reserve the worst case under the caps, send, settle (a failed call at an estimate)."""
         worst = estimate_call_usd(self.tier, len(json.dumps(body).encode()), body["max_tokens"])
         call = self.ledger.reserve(self.run, self.caps, worst, label)
-        destination = Destination(self.endpoint, self.provider.chat_url, self.key)
+        destination = RemoteDestination(self.endpoint, self.provider.chat_url, self.key)
         started = time.monotonic()
         try:
             out = self._send(destination, body, provenance)
@@ -226,11 +227,13 @@ class RemoteChatSession:
         )  # fmt: skip
 
     def _send(
-        self, destination: Destination, body: dict[str, Any], provenance: list[Provenance]
+        self, destination: RemoteDestination, body: dict[str, Any], provenance: list[Provenance]
     ) -> dict[str, Any]:
-        """Send via post_json; raises RemoteApiError (HTTP error) or RemoteReplyError (bad JSON)."""
+        """Send; raises RemoteApiError (an HTTP error) or RemoteReplyError (not JSON)."""
         try:
-            return post_json(destination, body, provenance=provenance, transport=self.transport)
+            return post_remote_json(
+                destination, body, provenance=provenance, transport=self.transport
+            )
         except urllib.error.HTTPError as error:
             detail = error.read().decode(errors="replace")[:ERROR_EXCERPT_CHARS] if error.fp else ""
             raise RemoteApiError(f"status {error.code}: {detail}") from error
