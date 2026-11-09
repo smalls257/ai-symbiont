@@ -7,7 +7,7 @@ from typing import Any
 from gate_coding import bash_command
 
 from symbiont.act1.glimmer import REPLY_TEMPERATURE
-from symbiont.egress import Destination, Endpoint, post_json
+from symbiont.egress.lan_send import post_glimmer_json
 
 MODEL = "Muse-Glimmer-30B-KQuant-17GB-Q4_K_M"
 SAMPLING_SEED = 20261030  # Act 1 sets no sampling seed; the gate fixes one, same for both arms
@@ -73,5 +73,5 @@ def ask(
         body["tools"] = tools
     url = base_url.rstrip("/") + "/chat/completions"
     started = time.monotonic()
-    out = post_json(Destination(Endpoint.LOCAL_GLIMMER, url), body, timeout_s=REQUEST_TIMEOUT_S)
+    out = post_glimmer_json(url, body, timeout_s=REQUEST_TIMEOUT_S)
     return read_completion(out, time.monotonic() - started)

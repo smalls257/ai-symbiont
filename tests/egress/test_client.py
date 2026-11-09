@@ -9,7 +9,7 @@ import pytest
 from symbiont.egress import Destination, EgressRefusedError, Endpoint, post_json
 
 SECRET_TEXT = "the quick brown fox is private prompt text"
-GLIMMER = Destination(Endpoint.LOCAL_GLIMMER, "http://127.0.0.1:8081/v1/chat/completions")
+GLIMMER = Destination(Endpoint.LOCAL_MEMORY_MODEL, "http://127.0.0.1:8081/v1/chat/completions")
 PUBLIC = Destination(Endpoint.LOCAL_SERVICE, "https://api.meta.ai/v1")
 
 
@@ -45,7 +45,7 @@ def test_the_log_holds_sizes_never_the_text(caplog):
     with pytest.raises(EgressRefusedError):
         post_json(PUBLIC, {"p": SECRET_TEXT}, transport=FakeTransport({}))
     logged = caplog.text
-    assert "bytes=" in logged and "api.meta.ai" in logged and "local_glimmer" in logged
+    assert "bytes=" in logged and "api.meta.ai" in logged and "local_memory_model" in logged
     assert "quick brown fox" not in logged
 
 

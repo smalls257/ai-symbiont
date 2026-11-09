@@ -20,6 +20,7 @@ RESEARCH = (
     "symbiont/act1/",
     "symbiont/eval/",
     "symbiont/routeb/",
+    "symbiont/egress/lan_send.py",
     "symbiont/egress/remote_send.py",
     "symbiont/egress/remote_chat.py",
     "symbiont/egress/spend.py",

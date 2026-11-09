@@ -1,4 +1,4 @@
-"""The published egress policy reaches local servers only, decided with no network (Buffer)."""
+"""The published egress policy reaches loopback only, decided with no network (Buffer)."""
 
 import pytest
 
@@ -26,23 +26,25 @@ def test_every_endpoint_refuses_a_url_without_http_or_a_host(endpoint):
             check_outbound(Destination(endpoint, url))
 
 
-@pytest.mark.parametrize(
-    "url",
-    [
-        "http://127.0.0.1:8081/v1",
-        "http://localhost:8081/v1",
-        "http://glimmerbox:8081/v1",
-        "http://lab" + ".lan/v1",
-        "http://" + "192.168." + "0.9:8081/v1",
-    ],
-)
-def test_local_glimmer_reaches_loopback_or_lan(url):
-    check_outbound(Destination(Endpoint.LOCAL_GLIMMER, url))
+LAN_URLS = [
+    "http://glimmerbox:8081/v1",
+    "http://lab" + ".lan/v1",
+    "http://" + "192.168." + "0.9:8081/v1",
+    "http://" + "10." + "0.0.5:7377/recall",
+]
 
 
-@pytest.mark.parametrize("host", ["box.lan.", "printer.localdomain", "router.fritz.box"])
-def test_lan_host_spellings_are_accepted_for_glimmer(host):
-    check_outbound(Destination(Endpoint.LOCAL_GLIMMER, f"http://{host}/v1"))
+@pytest.mark.parametrize("endpoint", list(Endpoint))
+@pytest.mark.parametrize("url", LAN_URLS)
+def test_no_endpoint_in_the_published_package_reaches_the_lan(endpoint, url):
+    with pytest.raises(EgressRefusedError, match="loopback only"):
+        check_outbound(Destination(endpoint, url))
+
+
+@pytest.mark.parametrize("endpoint", list(Endpoint))
+@pytest.mark.parametrize("url", ["http://127.0.0.1:7377/recall", "http://localhost:8090/v1"])
+def test_every_endpoint_reaches_loopback(endpoint, url):
+    check_outbound(Destination(endpoint, url))
 
 
 def test_local_service_is_loopback_only():

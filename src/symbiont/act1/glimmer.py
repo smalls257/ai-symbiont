@@ -10,7 +10,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
-from symbiont.egress import Destination, Endpoint, post_json
+from symbiont.egress.lan_send import post_glimmer_json
 
 # Glimmer at "Reasoning strength: low" spent all of 400 tokens thinking on 2 of 10 decisions
 # (finish_reason "length", empty content). 1500 leaves room for low reasoning plus a short strategy.
@@ -97,9 +97,7 @@ def _post_chat(base_url: str, body: dict[str, Any], timeout_s: float) -> Reply:
     # refuses a public host for this endpoint.
     """POST one chat request to the owner's Glimmer server through egress."""
     url = base_url.rstrip("/") + "/chat/completions"
-    return parse_chat_response(
-        post_json(Destination(Endpoint.LOCAL_GLIMMER, url), body, timeout_s=timeout_s)
-    )
+    return parse_chat_response(post_glimmer_json(url, body, timeout_s=timeout_s))
 
 
 @dataclass(frozen=True)

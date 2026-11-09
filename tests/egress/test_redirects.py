@@ -64,7 +64,7 @@ def test_a_redirect_is_an_error_and_the_key_never_reaches_the_target(status):
         open_without_redirects(keyed, 5.0)
     assert caught.value.code == status
     with pytest.raises(urllib.error.HTTPError):
-        post_json(Destination(Endpoint.LOCAL_GLIMMER, url), {"p": 1})
+        post_json(Destination(Endpoint.LOCAL_SERVICE, url), {"p": 1})
     assert Recorder.seen == []
     origin.shutdown()
     target.shutdown()

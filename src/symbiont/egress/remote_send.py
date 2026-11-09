@@ -18,7 +18,8 @@ from urllib.parse import urlsplit
 
 from symbiont.egress.client import Transport, open_without_redirects
 from symbiont.egress.credentials import ApiKey
-from symbiont.egress.policy import EgressRefusedError, host_of, is_lan, refuse_unless
+from symbiont.egress.lan_send import is_lan
+from symbiont.egress.policy import EgressRefusedError, host_of, refuse_unless
 from symbiont.egress.providers import PROVIDERS
 from symbiont.records.schema import Provenance
 
