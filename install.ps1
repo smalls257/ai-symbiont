@@ -1,6 +1,6 @@
 # Install ai-symbiont without cloning the repository (Windows PowerShell).
 #
-#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/smalls257/ai-symbiont/main/install.ps1))) [-Nightly] [-Ref <git ref>] [-Harness <id>|auto|all|none]
+#   & ([scriptblock]::Create((irm https://raw.githubusercontent.com/smalls257/ai-symbiont-plugin/main/install.ps1))) [-Nightly] [-Ref <git ref>] [-Harness <id>|auto|all|none]
 #
 # Parallel to install.sh: this script knows only `uv` and the package. Harness plugin commands
 # live in `symbiont setup`, read from the harness registry. Re-running upgrades the package.
@@ -11,7 +11,7 @@ param(
 )
 $ErrorActionPreference = "Stop"
 
-$RepoUrl = "https://github.com/smalls257/ai-symbiont"
+$RepoUrl = "https://github.com/smalls257/ai-symbiont-plugin"
 $UvInstallHint = 'powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"'
 $extras = if ($Nightly) { "[nightly]" } else { "" }  # torch is large, so the trainer is opt-in
 

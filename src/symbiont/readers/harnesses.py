@@ -55,7 +55,9 @@ def _muse_sessions_live_in(environ: Mapping[str, str], home: Path) -> Path:
     return muse_code.muse_store_root(environ, home) / "muse" / "sessions"
 
 
-PLUGIN_SOURCE = "https://github.com/smalls257/ai-symbiont"  # where both marketplaces install from
+# The product-only repo, exported from this one by scripts/export_plugin_repo.py. Both marketplaces
+# and `uv tool install` read it, so an install never downloads research code or results.
+PLUGIN_SOURCE = "https://github.com/smalls257/ai-symbiont-plugin"
 
 # Muse Code first: it also sets CLAUDE_PLUGIN_ROOT, so Claude Code's markers would claim it.
 # MUSE_PLUGIN_ROOT is set for every plugin hook Muse runs [measured with `muse plugins hook test`];

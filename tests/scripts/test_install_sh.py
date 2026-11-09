@@ -9,7 +9,7 @@ import pytest
 
 REPO = Path(__file__).resolve().parents[2]
 INSTALL = REPO / "install.sh"
-SOURCE = "git+https://github.com/smalls257/ai-symbiont"
+SOURCE = "git+https://github.com/smalls257/ai-symbiont-plugin"
 
 
 def _script(path: Path, body: str) -> None:

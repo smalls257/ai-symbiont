@@ -68,6 +68,9 @@ source-exclude = [
     "src/symbiont/egress/credentials.py",
     "src/symbiont/egress/messages.py",
     "src/symbiont/egress/file_lock.py",
+    # Contributor notes describe the research side too; an install needs none of them.
+    "src/symbiont/**/AGENTS.md",
+    "src/symbiont/**/CLAUDE.md",
 ]
 wheel-exclude = [
     "symbiont/act1",
@@ -81,6 +84,8 @@ wheel-exclude = [
     "symbiont/egress/credentials.py",
     "symbiont/egress/messages.py",
     "symbiont/egress/file_lock.py",
+    "symbiont/**/AGENTS.md",
+    "symbiont/**/CLAUDE.md",
 ]
 
 [tool.pytest.ini_options]

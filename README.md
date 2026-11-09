@@ -19,8 +19,8 @@ You corrected your coding agent last week. Today it makes the same mistake again
 
 - **In Muse Code, one command onboards a repository** (allow, learn from past sessions, find your corrections, download and train the checker):
   ```bash
-  uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
-  muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
+  uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
+  muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont-plugin
   muse plugins install symbiont@ai-symbiont && muse plugins approve symbiont
   muse            # then type: /symbiont onboard
   ```
@@ -68,32 +68,32 @@ Pre-registered evaluations, with the result file, prereg and research note behin
 One command installs the `symbiont` command and registers the plugin in every harness it finds on PATH (`--nightly` adds the trainer, `--harness <id>|all|none` picks, `--ref <git ref>` pins a version). It needs [uv](https://docs.astral.sh/uv/); when `uv` is missing it prints the install command and stops. Re-running upgrades.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/smalls257/ai-symbiont/main/install.sh | sh -s -- --nightly
+curl -fsSL https://raw.githubusercontent.com/smalls257/ai-symbiont-plugin/main/install.sh | sh -s -- --nightly
 ```
 
 Windows (PowerShell; `install.ps1` takes `-Nightly`, `-Ref` and `-Harness`; not yet tested on Windows):
 
 ```powershell
-& ([scriptblock]::Create((irm https://raw.githubusercontent.com/smalls257/ai-symbiont/main/install.ps1))) -Nightly
+& ([scriptblock]::Create((irm https://raw.githubusercontent.com/smalls257/ai-symbiont-plugin/main/install.ps1))) -Nightly
 ```
 
 Or by hand: install the command, then the plugin for your harness.
 
 ```bash
-uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
 ```
 
 Claude Code:
 
 ```text
-/plugin marketplace add https://github.com/smalls257/ai-symbiont
+/plugin marketplace add https://github.com/smalls257/ai-symbiont-plugin
 /plugin install symbiont@ai-symbiont
 ```
 
 Muse Code:
 
 ```bash
-muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont
+muse plugins marketplace add ai-symbiont https://github.com/smalls257/ai-symbiont-plugin
 muse plugins install symbiont@ai-symbiont
 muse plugins approve symbiont
 ```
@@ -186,7 +186,7 @@ torch, and `symbiont nightly` then says so and exits non-zero. One command insta
 nightly needs, with no repository checkout and no second Python:
 
 ```bash
-uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'
+uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'
 ```
 
 The `nightly` extra is mlx-lm on an Apple Silicon Mac (an environment marker), plus torch, peft and

@@ -52,4 +52,4 @@ the command and its stored data with `uv tool uninstall ai-symbiont` and by dele
 `~/.symbiont` (the lessons, the answers per repository and the logs; nothing else is stored).
 
 If the `symbiont` command is not found, tell the developer to install it with
-`uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont'` (the `[nightly]` part brings the packages that train the checker).
+`uv tool install 'ai-symbiont[nightly] @ git+https://github.com/smalls257/ai-symbiont-plugin'` (the `[nightly]` part brings the packages that train the checker).

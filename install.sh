@@ -1,7 +1,7 @@
 #!/bin/sh
 # Install ai-symbiont without cloning the repository.
 #
-#   curl -fsSL https://raw.githubusercontent.com/smalls257/ai-symbiont/main/install.sh | sh -s -- \
+#   curl -fsSL https://raw.githubusercontent.com/smalls257/ai-symbiont-plugin/main/install.sh | sh -s -- \
 #     [--nightly] [--ref <git ref>] [--harness <id>|auto|all|none]
 #
 # This script knows only `uv` and the package. Which harness plugins exist, and the commands that
@@ -9,7 +9,7 @@
 # needs no change here. Running it again upgrades the package (`uv tool install --force`).
 set -eu
 
-REPO_URL="https://github.com/smalls257/ai-symbiont"
+REPO_URL="https://github.com/smalls257/ai-symbiont-plugin"
 UV_INSTALL_HINT="curl -LsSf https://astral.sh/uv/install.sh | sh"
 ref="main"
 extras=""

@@ -40,7 +40,9 @@ def test_setup_prints_the_commands_for_a_harness_whose_cli_is_missing_and_exits_
     assert code == 0
     assert all(call[0] == "muse" for call in runner.calls)
     assert "claude is not on PATH" in printed
-    assert "claude plugin marketplace add https://github.com/smalls257/ai-symbiont" in printed
+    assert (
+        "claude plugin marketplace add https://github.com/smalls257/ai-symbiont-plugin" in printed
+    )
 
 
 def test_setup_with_no_harness_cli_anywhere_prints_every_command_and_exits_0(capsys):
